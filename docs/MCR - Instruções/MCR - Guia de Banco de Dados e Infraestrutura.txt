@@ -1,5 +1,6 @@
 ================================================================================
 PROJETO MCR – GUIA DE BANCO DE DADOS E INFRAESTRUTURA
+(Versão 2.0 – Coluna created_at e limpeza de contas guest)
 Arquivo: MCR - Guia de Banco de Dados e Infraestrutura.txt
 ================================================================================
 
@@ -32,6 +33,9 @@ etc.) e com as consultas do Login Server.
 
 Documentar novos campos ou tabelas para que o assistente saiba da sua existência
 em interações futuras.
+
+**NOVO**: A coluna `created_at` (INT, default 0) na tabela `accounts` é essencial
+para a limpeza de contas guest. Não a remova ou altere sem actualizar o Login Server.
 
 ================================================================================
 🗄️ 1. AMBIENTE: XAMPP (MARIADB)
@@ -98,7 +102,7 @@ Local: ProjetoMCR/Canary/data/schema.sql
 
 Principais tabelas e suas funções:
 
-accounts: armazena contas de jogador. Colunas: id, name, password (hash SHA1), email (vazio).
+accounts: armazena contas de jogador. Colunas: id, name, password (hash SHA1), email (vazio), **created_at (INT)**.
 
 players: armazena personagens. Colunas: id, name, account_id, level, vocation, sex, posx, posy, posz, town_id, etc.
 
@@ -107,6 +111,21 @@ players: armazena personagens. Colunas: id, name, account_id, level, vocation, s
 O Login Server acessa as mesmas tabelas accounts e players. Qualquer alteração
 nessas tabelas DEVE ser sincronizada com o código do Login Server.
 
+**Adições MCR ao schema:**
+
+- **accounts.created_at**: Coluna INT (timestamp Unix). Usada para controlar a criação
+  de contas guest e permitir a sua remoção automática após 30 minutos de inatividade.
+  Contas permanentes podem ter o valor 0 ou o timestamp de criação.
+
+- **Rotina de limpeza de contas guest** (implementada no Login Server):
+  Remove contas com prefixo `guest_` e `created_at` anterior a 30 minutos, assim como
+  os respectivos personagens (`Guest_*`).
+  Comandos SQL executados periodicamente:
+  ```sql
+  DELETE FROM players WHERE name LIKE 'Guest\_%' AND account_id IN (
+      SELECT id FROM accounts WHERE name LIKE 'guest\_%' AND created_at < UNIX_TIMESTAMP() - 1800
+  );
+  DELETE FROM accounts WHERE name LIKE 'guest\_%' AND created_at < UNIX_TIMESTAMP() - 1800;
 Verificação de compatibilidade:
 
 O Canary 3.4.1 NÃO possui a coluna "lastlogin" na tabela players. O Login Server
@@ -116,9 +135,10 @@ novamente. (Fase 10)
 O campo "email" na tabela accounts é mantido como string vazia, pois o MCR não
 utiliza e-mail para autenticação.
 
-- **accounts**: agora possui a coluna `created_at` (INT, default 0) para controle de expiração de contas temporárias.
-- **Rotina de limpeza** (executada no Login Server) remove contas com prefixo `guest_` e `created_at` anterior a 30 minutos, junto com seus personagens.
+A coluna created_at deve existir na tabela accounts. Se estiver ausente, adicione-a com:
 
+sql
+ALTER TABLE accounts ADD COLUMN created_at INT NOT NULL DEFAULT 0;
 ================================================================================
 🔐 4. phpMyAdmin
 ================================================================================
@@ -205,38 +225,43 @@ Personagens de teste: Para testar o fluxo de criação de personagem, é útil
 criar personagens manualmente via SQL:
 INSERT INTO players (name, account_id, level, vocation, sex, posx, posy, posz, town_id, ...) VALUES (...);
 
-- Coluna created_at: Necessária para expiração de contas guest. Deve ser adicionada manualmente caso o schema não a possua.
+Coluna created_at: Necessária para expiração de contas guest. Deve ser adicionada
+manualmente caso o schema não a possua. A rotina de limpeza do Login Server depende
+deste campo para remover contas guest abandonadas.
 
 ================================================================================
 🔍 CHECKLIST DE REVISÃO PARA O ASSISTENTE (BANCO DE DADOS E INFRA)
 ================================================================================
 
-- [ ] Senhas reais NÃO aparecem; placeholder <Senha> usado?
+Senhas reais NÃO aparecem; placeholder <Senha> usado?
 
-- [ ] Todo novo banco/tabela/coluna criado com CHARSET utf8mb4 COLLATE utf8mb4_unicode_ci?
+Todo novo banco/tabela/coluna criado com CHARSET utf8mb4 COLLATE utf8mb4_unicode_ci?
 
-- [ ] Sintaxe compatível com MariaDB (SET PASSWORD FOR, não ALTER USER)?
+Sintaxe compatível com MariaDB (SET PASSWORD FOR, não ALTER USER)?
 
-- [ ] Comandos SQL fornecidos na íntegra?
+Comandos SQL fornecidos na íntegra?
 
-- [ ] Recomendação de backup antes de operações destrutivas?
+Recomendação de backup antes de operações destrutivas?
 
-- [ ] Compatibilidade mantida com schema do Canary 3.4.1 e Login Server?
+Compatibilidade mantida com schema do Canary 3.4.1 e Login Server?
 
-- [ ] Novas colunas/tabelas documentadas para referência futura?
+Novas colunas/tabelas documentadas para referência futura?
 
+NOVO: A coluna created_at existe na tabela accounts? Se não, foi adicionada?
+
+NOVO: A rotina de limpeza de contas guest está configurada e testada?
 
 ================================================================================
 📤 COMO ATUALIZAR O REPOSITÓRIO GIT
 ================================================================================
 
 git add "docs/MCR - Guia de Banco de Dados e Infraestrutura.txt"
-git commit -m "docs: adiciona guia de banco de dados e infraestrutura"
+git commit -m "docs: atualiza guia de banco de dados com coluna created_at e rotina de limpeza"
 git push origin main
 
 ⚠️ Arquivos de configuração com senhas (config.lua, .env) NÃO são versionados.
 Apenas templates (.example) são commitados.
 
 ================================================================================
-FIM DO GUIA DE BANCO DE DADOS E INFRAESTRUTURA
+FIM DO GUIA DE BANCO DE DADOS E INFRAESTRUTURA — VERSÃO 2.0
 ================================================================================

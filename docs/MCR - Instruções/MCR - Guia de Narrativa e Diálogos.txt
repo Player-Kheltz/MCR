@@ -1,6 +1,6 @@
 ================================================================================
 PROJETO MCR – GUIA DE NARRATIVA E DIÁLOGOS
-(Versão 2.0 – Atualizada para a API Canary 3.4.1 e ISO-8859-1)
+(Versão 3.0 – Género do Personagem, Personalidade do NPC e Progressão de Intimidade)
 Arquivo: MCR - Guia de Narrativa e Diálogos.txt
 ================================================================================
 
@@ -12,10 +12,12 @@ ISO-8859-1 obrigatória para scripts que exibem strings ao jogador.
 
 Conteúdo:
 - Esqueleto funcional de NPC (nova API).
-- Biblioteca npc_utils.lua (sinônimos, pronomes, variação).
+- Biblioteca npc_utils.lua (sinónimos, pronomes, variação).
 - Sistema de destaque de palavras com {chaves} (compatível com o OTClient).
 - Múltiplas falas com npcHandler:say({...}).
 - Regras para criação/modificação de diálogos.
+- **NOVO: Género do Personagem e como integrá-lo na progressão de intimidade com o NPC.**
+- **NOVO: Personalidade do NPC como vector narrativo (frieza, calor, humor, etc.).**
 
 ================================================================================
 ⚠️ REGRAS DE REVISÃO PARA O ASSISTENTE (NARRATIVA E DIÁLOGOS)
@@ -37,7 +39,8 @@ Ao criar ou modificar QUALQUER script de NPC (.lua) no servidor, o assistente DE
 
 3. Usar a biblioteca npc_utils.lua para:
    - Reconhecimento flexível (NpcUtils.correspondeAcao).
-   - Pronomes, artigos e vocativos (getTratamento).
+   - Pronomes, artigos e vocativos (getTratamento). ATUALIZAÇÃO: getTratamento
+     agora também pode considerar o género do personagem (ver secção 9).
    - Frases variadas (escolherFraseVariada).
 
 4. Palavras importantes no chat DEVEM ser destacadas com {chaves}, que o
@@ -56,6 +59,22 @@ Ao criar ou modificar QUALQUER script de NPC (.lua) no servidor, o assistente DE
    decisões tomadas. Os prints devem ser em português, com os valores das
    variáveis relevantes.
 
+8. **NOVO**: O NPC deve descobrir e respeitar o **género do personagem**
+   (masculino/feminino) como identidade do jogador no mundo. O sexo do
+   personagem (definido na criação) é independente e NÃO deve ser usado para
+   determinar pronomes ou tratamento narrativo.
+
+9. **NOVO**: A forma como o NPC pergunta ou infere o género do personagem
+   DEVE ser coerente com a **personalidade do NPC** (ver secção 8). Pode
+   ser direta, subtil, adiada até que haja intimidade, ou completamente
+   ausente em NPCs neutros. O objectivo é imersão total.
+
+10. **NOVO**: A progressão de intimidade com o NPC deve refletir-se na
+    linguagem: um NPC frio pode tornar-se mais caloroso depois de uma quest;
+    um NPC desconfiado pode passar a usar elogios. O género do personagem
+    (uma vez conhecido) influencia essa progressão (ex.: "jovem guerreira",
+    "minha senhora").
+
 ================================================================================
 🌌 1. TOM DE VOZ E AMBIENTAÇÃO – O UNIVERSO MCR
 ================================================================================
@@ -65,6 +84,12 @@ terminais de missão, mas habitantes vivos. Ao criar um NPC, reflita:
 - Qual a história dele dentro do mundo?
 - Como ele reage a guerreiros, magos, druidas?
 - Qual seu medo, objetivo, mania?
+- **NOVO: Como a sua personalidade influencia a maneira como se dirige ao jogador?**
+  (ex.: um ferreiro rude fala de forma brusca; uma sacerdotisa éena é calorosa)
+
+A descoberta do género do personagem é parte dessa construção. Um NPC sábio e
+empático pode perceber imediatamente e perguntar com naturalidade; um NPC
+amargurado talvez nunca pergunte, mantendo um tratamento neutro até ser cativado.
 
 ================================================================================
 📚 2. BIBLIOTECA NPC_UTILS.LUA (OBRIGATÓRIA)
@@ -73,8 +98,10 @@ terminais de missão, mas habitantes vivos. Ao criar um NPC, reflita:
 Arquivo: data/MCR Scripts/npc_utils.lua
 Salvar como: ISO-8859-1
 
-Conteúdo completo (já documentado no guia anterior, sem alterações). Suas funções
+Conteúdo completo já documentado, sem alterações estruturais. Suas funções
 essenciais: NpcUtils.correspondeAcao, NpcUtils.getTratamento, NpcUtils.escolherFraseVariada.
+**A função getTratamento deve ser expandida para aceitar um parâmetro opcional
+de género (ver secção 9).**
 
 ================================================================================
 🏗️ 3. ESQUELETO FUNCIONAL DE NPC (API REAL)
@@ -83,11 +110,15 @@ essenciais: NpcUtils.correspondeAcao, NpcUtils.getTratamento, NpcUtils.escolherF
 TODO script de NPC deve seguir o modelo abaixo. Comentários em PT-BR,
 nomes de variáveis em inglês. Salve o arquivo como ISO-8859-1.
 
+Inclui agora a lógica de género do personagem (armazenada em storage) e
+personalidade do NPC.
+
 ----------------------------------------------------------------------
 --[[
 Projeto: MCR
 NPC: Canary (exemplo educativo)
-Descrição: NPC de demonstração usando a API real do Canary 3.4.1.
+Descrição: NPC de demonstração usando a API real do Canary 3.4.1,
+           com género do personagem e progressão de intimidade.
 --]]
 
 local npcName = "MeuNPC"
@@ -129,9 +160,22 @@ end
 
 -- Opcional: onBuyItem, onSellItem, onCheckItem para NPCs com loja
 
--- Saudação
+-- Saudação com personalidade e gestão de género
 local function greetCallback(npc, player)
-    npcHandler:setMessage(MESSAGE_GREET, "Olá |PLAYERNAME|! Em que posso ajudar?")
+    local playerId = player:getId()
+    local gender = player:getStorageValue(100001) -- storage global para género do personagem
+    local tr = NpcUtils.getTratamento(player, gender) -- suporta género opcional
+
+    -- Exemplo de personalidade "calorosa": pergunta o género se ainda não souber
+    if not gender or gender < 1 then
+        npcHandler:setMessage(MESSAGE_GREET, "Saudações, viajante! Antes de mais, sua essência é {masculina} ou {feminina}?")
+        npcHandler:setTopic(playerId, 0) -- tópico especial para género
+        return true
+    end
+
+    -- Personalidade calorosa: frase de boas-vindas com género
+    local frase = (gender == 1) and "Bem-vindo de volta, nobre senhor!" or "Bem-vinda de volta, doce dama!"
+    npcHandler:setMessage(MESSAGE_GREET, frase .. " Em que posso ajudar?")
     return true
 end
 npcHandler:setCallback(CALLBACK_GREET, greetCallback)
@@ -141,20 +185,31 @@ local function creatureSayCallback(npc, player, type, msg)
     if not npcHandler:checkInteraction(npc, player) then return false end
 
     local playerId = player:getId()
+    local gender = player:getStorageValue(100001)
+    local tr = NpcUtils.getTratamento(player, gender)
 
+    -- Tópico 0: descobrir género do personagem (pode ser usado por qualquer NPC)
+    if npcHandler:getTopic(playerId) == 0 and not gender then
+        if NpcUtils.correspondeAcao(msg, {"masculino", "homem", "male", "macho", "menino", "rapaz", "garoto", "cavalheiro", "varão", "m", "boy", "man", "masculina"}) then
+            player:setStorageValue(100001, 1)
+            npcHandler:say("Compreendido, nobre senhor! Em que posso servi-lo agora?", npc, player)
+            npcHandler:setTopic(playerId, 0)
+        elseif NpcUtils.correspondeAcao(msg, {"feminino", "mulher", "female", "fêmea", "menina", "moça", "garota", "dama", "donzela", "princesa", "rainha", "f", "fem", "minina", "muié", "mulé", "femme", "woman", "girl", "feminina"}) then
+            player:setStorageValue(100001, 2)
+            npcHandler:say("Ah, uma dama viajante! Que os ventos a guiem. O que deseja?", npc, player)
+            npcHandler:setTopic(playerId, 0)
+        else
+            npcHandler:say("Perdão, mas preciso saber: sua essência é {masculina} ou {feminina}?", npc, player)
+        end
+        return true
+    end
+
+    -- Exemplo de uso do género (respeitando a personalidade)
     if NpcUtils.correspondeAcao(msg, {"missão", "ajuda", "tarefa"}) then
-        -- Uso de tabela para múltiplas falas com 3 segundos de intervalo
-        npcHandler:say({
-            "Ah, um aventureiro em busca de propósito!",
-            "Posso lhe confiar uma {missão} perigosa. Você {aceita}?"
-        }, npc, player, 3000)
+        local frase = (gender == 2) and "minha senhora" or "meu senhor"
+        npcHandler:say("Claro, " .. frase .. "! Posso lhe confiar uma {missão} perigosa. Você {aceita}?", npc, player)
         npcHandler:setTopic(playerId, 1)
-    elseif npcHandler:getTopic(playerId) == 1 and NpcUtils.correspondeAcao(msg, {"aceitar", "sim", "aceito"}) then
-        npcHandler:say("Que os ventos lhe guiem! Vá até a {Floresta Sussurrante} e colete {5 Folhas Etéreas}.", npc, player)
-        npcHandler:setTopic(playerId, 0)
-    elseif NpcUtils.correspondeAcao(msg, {"sair", "tchau", "adeus"}) then
-        npcHandler:say("Até a próxima, bravo aventureiro.", npc, player)
-        npcHandler:closeNpc(npc, player)
+    -- ... restante da lógica
     end
 
     return true
@@ -193,19 +248,35 @@ Use Notepad++ (Codificação → Codificar em ANSI) ou VS Code ("Salvar com codi
 NUNCA faça `if msg == "missao"`. SEMPRE use:
 `if NpcUtils.correspondeAcao(msg, {"missao", "quest", "tarefa", "trabalho", "ajuda"}) then`
 
-Inclua no mínimo 7 sinônimos (mas sempre tentar o adicionar o maior número possível de sinônimos), variações regionais e em inglês (ex.: "buy", "comprar",
-"adquirir"). A função já trata case-insensitive e palavra inteira.
+A lista de sinónimos deve ser **abundante** (mínimo 7, idealmente 15+), incluindo
+variações regionais, gírias, termos em inglês e até erros de digitação comuns.
+Exemplo para "criar":
+{"criar", "nova", "criar conta", "registrar", "cadastrar", "inscrever", "abrir conta",
+ "nova conta", "criacao", "create", "new", "novo", "iniciar"}
+
+Para género:
+{"masculino", "homem", "male", "macho", "menino", "rapaz", "garoto", "cavalheiro",
+ "varão", "m", "boy", "man", "masculina", "masculin"}
+{"feminino", "mulher", "female", "fêmea", "menina", "moça", "garota", "dama",
+ "donzela", "princesa", "rainha", "f", "fem", "minina", "muié", "mulé", "femme",
+ "woman", "girl", "feminina", "feminin"}
+
+Isto garante que o jogador nunca fique preso por não saber a palavra exata.
 
 ================================================================================
 👤 6. PERSONALIZAÇÃO POR SEXO E VOCAÇÃO (getTratamento)
 ================================================================================
 
-A função retorna artigo, pronome, possessivo e vocativo fantástico baseado na
-vocação. Exemplo:
+A função NpcUtils.getTratamento foi expandida para aceitar um parâmetro opcional
+`gender` (1 = masculino, 2 = feminino). Quando fornecido, **substitui o sexo do
+personagem** para efeitos de pronomes, artigos e vocativos.
+
+Exemplo:
 ```lua
-local tr = NpcUtils.getTratamento(player)
+local gender = player:getStorageValue(100001)
+local tr = NpcUtils.getTratamento(player, gender)
 npcHandler:say("Seja bem-vind" .. tr.sufixoVoc .. ", " .. tr.artigo .. " " .. tr.vocativo .. "!", npc, player)
-Use em toda saudação, despedida e entrega de missão.
+Se gender for nil, a função usa o sexo do personagem como fallback.
 
 ================================================================================
 🎲 7. VARIAÇÃO DE FRASES (escolherFraseVariada)
@@ -216,13 +287,60 @@ despedida) e escolha aleatoriamente. Exemplo:
 
 lua
 local frasesBomDia = {
-    "Bom dia, %s! O que deseja?",
-    "Ah, %s! Quais ventos o trazem aqui?",
-    "Saudações, %s. Precisa de algo?"
+"Bom dia, %s! O que deseja?",
+"Ah, %s! Quais ventos o trazem aqui?",
+"Saudações, %s. Precisa de algo?"
 }
 npcHandler:say(NpcUtils.escolherFraseVariada(frasesBomDia, player), npc, player)
+
+A função escolherFraseVariada já realiza a substituição de placeholders como %s
+pelo nome ou tratamento do jogador.
+
 ================================================================================
-🔑 8. DESTAQUE DE PALAVRAS COM {CHAVES} (COMPROVADO)
+🧬 8. PERSONALIDADE DO NPC E PROGRESSÃO DE INTIMIDADE (NOVA SECÇÃO)
+================================================================================
+
+Cada NPC no MCR tem uma personalidade definida, que dita:
+
+Como ele se dirige ao jogador (formal, informal, rude, carinhoso).
+
+Se e quando pergunta o género do personagem.
+
+Como a relação evolui com o tempo (intimidade).
+
+Níveis de intimidade (sugestão, usar storages 100010+ para tracking):
+
+0: Desconhecido (neutro, frio, ou apenas educado).
+
+1: Conhecido (após primeira conversa ou quest simples).
+
+2: Amigo (após quest importante ou várias ajudas).
+
+3: Confidente (pós quest principal, tratamento muito caloroso).
+
+Exemplos de personalidades e como tratam o género:
+
+Personalidade	Pergunta o género?	Exemplo de frase (intimidade 0)	Exemplo após intimidade 3
+Sábio caloroso	Sim, logo no primeiro encontro.	"Ah, uma alma feminina! Como posso ajudá-la?"	"Minha querida discípula, que alegria vê-la!"
+Guerreiro rude	Não pergunta, usa termos neutros.	"O que você quer, estranho?"	"Até que você é útil, amigo. Fala."
+Místico enigmático	Pergunta após confiança (int. 2).	"Sinto uma energia masculina em você... certo?"	"Irmão de alma, os astros sorriem para nós."
+Comerciante astuto	Pergunta subtilmente no meio do diálogo.	"E então, meu caro... ou minha cara? Como devo lhe chamar?"	"Para uma cliente tão fiel, preços especiais!"
+Implementação nos scripts:
+
+Armazenar o género do personagem em storage global (ex.: 100001).
+
+Armazenar o nível de intimidade em storage por NPC (ex.: 100010 + npcId).
+
+No greetCallback, verificar o nível de intimidade e o género, ajustando a saudação.
+
+No creatureSayCallback, usar o nível de intimidade para decidir se pergunta
+o género (se ainda não souber) e para adaptar a linguagem.
+
+O género do personagem é PERMANENTE e universal – uma vez definido, todos os
+NPCs que o conhecem devem respeitá-lo.
+
+================================================================================
+🔑 9. DESTAQUE DE PALAVRAS COM {CHAVES} (COMPROVADO)
 ================================================================================
 
 O OTClient Redemption reconhece palavras entre {chaves} como destaque visual
@@ -245,8 +363,9 @@ Exemplo completo:
 
 lua
 npcHandler:say("Preciso que vá até a {Torre do Astrônomo} e colete {10 Pedras Lunares}. Você {aceita}?", npc, player)
+
 ================================================================================
-⚠️ ARMADILHAS E LIÇÕES APRENDIDAS
+⚠️ ARMADILHAS E LIÇÕES APRENDIDAS (ATUALIZADAS)
 ================================================================================
 
 API antiga (NpcSystem.parseParameters) NÃO funciona mais. Use Game.createNpcType.
@@ -259,32 +378,43 @@ Para múltiplas falas, use tabela com delay: npcHandler:say({"linha1", "linha2"}
 
 O nome no XML de spawn (MCR-npc.xml) deve bater exatamente com npcConfig.name.
 
+NOVO: A falta de sinónimos abundantes para "género" fez com que "feminina" não fosse reconhecida inicialmente no Oráculo. Lição: incluir sempre o óbvio e o não‑óbvio.
+
+NOVO: Confundir "sexo do personagem" com "género do personagem" quebra a imersão. O sexo é biológico (escolha na criação), o género é identidade (definido pelo jogador via diálogo). Usar storages separados.
+
+NOVO: Um NPC que nunca pergunta o género pode manter‑se neutro, mas deve ser uma escolha deliberada de personalidade, não um descuido.
+
 ================================================================================
 🔍 CHECKLIST DE REVISÃO PARA O ASSISTENTE (NPCs)
 ================================================================================
 
-- [ ] Script salvo como ISO-8859-1?
+Script salvo como ISO-8859-1?
 
-- [ ] Usa Game.createNpcType e npcType:register(npcConfig)?
+Usa Game.createNpcType e npcType:register(npcConfig)?
 
-- [ ] Callbacks onThink, onAppear, etc., delegam ao handler?
+Callbacks onThink, onAppear, etc., delegam ao handler?
 
-- [ ] creatureSayCallback assinatura (npc, player, type, msg)?
+creatureSayCallback assinatura (npc, player, type, msg)?
 
-- [ ] npcHandler:say com npc e player como argumentos?
+npcHandler:say com npc e player como argumentos?
 
-- [ ] NpcUtils.correspondeAcao usado em vez de ==?
+NpcUtils.correspondeAcao usado com listas ABUNDANTES de sinónimos?
 
-- [ ] Palavras importantes entre {chaves}?
+Palavras importantes entre {chaves}?
 
-- [ ] Não há addEvent manual para falas consecutivas?
+Não há addEvent manual para falas consecutivas?
 
-- [ ] Entrada no MCR-npc.xml adicionada?
+Entrada no MCR-npc.xml adicionada?
 
-- [ ] Textos em PT-BR, com acentuação testada?
+Textos em PT-BR, com acentuação testada?
 
-- [ ] Prints de debug adicionados em todo o fluxo condicional? (tópicos, estados, validações)?
+Prints de debug adicionados em todo o fluxo condicional? (tópicos, estados, validações)?
 
+NOVO: O NPC respeita o género do personagem (storage 100001) em vez do sexo?
+
+NOVO: A forma de perguntar/inferir o género é coerente com a personalidade do NPC?
+
+NOVO: Há progressão de intimidade? (storages, variação de linguagem com o tempo)?
 
 ================================================================================
 📤 COMO ATUALIZAR O REPOSITÓRIO GIT
@@ -293,9 +423,9 @@ O nome no XML de spawn (MCR-npc.xml) deve bater exatamente com npcConfig.name.
 git add "data/MCR Scripts/npc_utils.lua"
 git add "data/npc/scripts/seu_npc.lua"
 git add "data/world/MCR-npc.xml"
-git commit -m "feat(npc): adiciona NPC no novo padrão ISO-8859-1"
+git commit -m "feat(npc): atualiza NPCs com género do personagem e personalidade narrativa"
 git push origin main
 
 ================================================================================
-FIM DO GUIA DE NARRATIVA E DIÁLOGOS
+FIM DO GUIA DE NARRATIVA E DIÁLOGOS (VERSÃO 3.0)
 ================================================================================

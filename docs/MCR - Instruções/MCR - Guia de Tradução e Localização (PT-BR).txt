@@ -1,6 +1,6 @@
 ================================================================================
 PROJETO MCR – GUIA DE TRADUÇÃO E LOCALIZAÇÃO (PT-BR)
-(Versão 2.2 – Reforço da máscara de Alma e scripts do servidor)
+(Versão 3.0 – Máscara de Alma, Género do Personagem e Codificação Reforçada)
 Arquivo: MCR - Guia de Tradução e Localização (PT-BR).txt
 ================================================================================
 
@@ -15,6 +15,8 @@ do Brasil em TODAS as camadas do Projeto MCR. Ele define:
 - O uso correto do destaque no chat (apenas {chaves}).
 - Regras gramaticais e de estilo para manter a qualidade do texto.
 - A máscara de Alma para mensagens de "look" e outras interações com personagens convidados.
+- **NOVO: Diretrizes para o Género do Personagem (storage 100001) em todas as mensagens.**
+- **NOVO: Atualização dos error_codes e mapeamento para PT‑BR.**
 
 Este guia NÃO é opcional. Toda modificação no projeto DEVE passar por suas regras.
 
@@ -38,8 +40,11 @@ assistente DEVE:
    Usar o padrão error_code (ver seção 4).
 7. No chat do jogo, destacar palavras importantes SOMENTE com {chaves}. NÃO usar
    tags como `{{#RRGGBB}}` ou HTML.
-8. Em todas as mensagens de sistema que mencionem o personagem convidado, aplicar
-   a máscara de Alma (substituir "Guest_*" por "Alma").
+8. **ATUALIZADO**: Em todas as mensagens de sistema que mencionem o personagem convidado,
+   aplicar a máscara de Alma (substituir "Guest_*" por "Alma").
+9. **NOVO**: Em todas as mensagens dirigidas ao jogador, utilizar o **género do personagem**
+   (storage 100001) para determinar pronomes, artigos e flexões. Se o género não estiver
+   definido, usar tratamento neutro ou perguntar (conforme a personalidade do NPC).
 
 ================================================================================
 📋 1. ESCOPO DE APLICAÇÃO DO PT-BR
@@ -58,6 +63,7 @@ Devem estar OBRIGATORIAMENTE em português:
 - Nomes de NPCs, monstros, locais e itens no mapa/XML.
 - Documentação do projeto (guias, DevLog, instruções).
 - Mensagens de "look" (examinar) para criaturas e itens.
+- **NOVO**: Mensagens de definição de género (ex.: "Sua essência é {masculina} ou {feminina}?").
 
 Podem permanecer em INGLÊS:
 
@@ -69,7 +75,7 @@ Podem permanecer em INGLÊS:
 - Endpoints de API (/register, /login).
 
 ================================================================================
-📝 2. CODIFICAÇÃO POR TIPO DE ARQUIVO
+📝 2. CODIFICAÇÃO POR TIPO DE ARQUIVO (REVISADA)
 ================================================================================
 
 Esta é a seção MAIS CRÍTICA deste guia. A codificação errada é a causa número 1
@@ -128,7 +134,10 @@ PROTOCOLO OBRIGATÓRIO (ERROR_CODE):
        account_name_taken = "O nome de conta já está em uso.",
        password_too_weak = "A senha deve ter 8+ caracteres com letras e números.",
        invalid_credentials = "Nome de conta ou senha incorretos.",
-       registration_success = "Conta criada com sucesso!"
+       registration_success = "Conta criada com sucesso!",
+       guest_creation_failed = "Falha ao criar conta convidada.",
+       alma_creation_failed = "Falha ao criar personagem convidado.",
+       gender_not_defined = "Género do personagem não definido. Por favor, escolha {masculino} ou {feminino}."
    }
 
 3. Esta tabela EXISTE no script Lua do cliente (registro.lua, entergame.lua, etc.),
@@ -169,8 +178,10 @@ Além da correção gramatical, o texto do Projeto MCR deve:
   (um bêbado pode falar errado; um dragão ancião pode usar arcaísmos).
 - Manter consistência: se um termo foi traduzido de uma forma, usar a mesma
   tradução em todo o projeto.
+- **NOVO**: Utilizar as flexões de género adequadas quando o storage 100001 estiver
+  definido. Ex.: "bem-vindo" / "bem-vinda", "jovem senhor" / "jovem senhora".
 
-Lista de termos padronizados:
+Lista de termos padronizados (atualizada):
 - "vocação" (não "classe")
 - "personagem" (não "char", "boneco")
 - "missão" (não "quest", embora "quest" possa aparecer em comentários de código)
@@ -181,9 +192,11 @@ Lista de termos padronizados:
 - "Vida" (não "Health")
 - "Mana" (não "Mana" – mantém-se igual)
 - "Posição" (não "Position")
+- "Género" (não "Sexo", quando referente à identidade do personagem)
+- "Sexo" (apenas para a escolha biológica na criação do personagem)
 
 ================================================================================
-🎭 6. MÁSCARA DE ALMA EM MENSAGENS DO SERVIDOR (NOVA SEÇÃO)
+🎭 6. MÁSCARA DE ALMA EM MENSAGENS DO SERVIDOR (REVISADA)
 ================================================================================
 
 O personagem convidado (Guest_*) deve ser sempre apresentado como "Alma" para
@@ -194,6 +207,7 @@ incluindo:
 - Mensagens de entrada/saída de jogadores
 - Qualquer broadcast que mencione o nome do personagem convidado
 - Descrições em janelas modais ou tooltips
+- **NOVO**: Diálogos de NPCs que possam interagir com personagens convidados (ex.: Oráculo)
 
 A máscara é implementada nos scripts do servidor substituindo o nome real
 pelo nome "Alma" antes de enviar a mensagem ao jogador:
@@ -204,7 +218,7 @@ if name:sub(1,6) == "Guest_" then
     name = "Alma"
 end
 Esta substituição é um complemento à máscara já implementada no cliente
-(ver Guia de Criação de Conta e Personagem, seção 8).
+(ver Guia de Criação de Conta e Personagem, secção 8).
 
 Arquivos que já possuem a máscara:
 
@@ -215,6 +229,60 @@ data/events/scripts/on_look.lua (handleCreatureDescription)
 Novos scripts que gerem mensagens com o nome do personagem devem incluir
 a mesma verificação.
 
+================================================================================
+📌 7. GÉNERO DO PERSONAGEM EM MENSAGENS (NOVA SECÇÃO)
+================================================================================
+
+A partir da implementação do storage 100001, todas as mensagens que se dirijam
+directamente ao jogador devem respeitar o género definido. Isso inclui:
+
+Diálogos de NPC (npc:say, sendTextMessage)
+
+Broadcasts globais que mencionem o jogador pelo nome
+
+Mensagens de sistema (ex.: ao subir de nível, ao receber conquistas)
+
+Formas de tratamento recomendadas (baseadas no género):
+
+Masculino (100001 = 1): "bem-vindo", "jovem senhor", "nobre guerreiro", "ele", "o"
+
+Feminino (100001 = 2): "bem-vinda", "jovem senhora", "nobre guerreira", "ela", "a"
+
+Não definido (0 ou nil): usar formas neutras ("bem-vinde", "viajante", "aventureiro(a)") ou perguntar.
+
+Exemplo de mensagem adaptada:
+
+lua
+local gender = player:getStorageValue(100001)
+local mensagem
+if gender == 1 then
+    mensagem = "Parabéns, nobre senhor! Você foi promovido."
+elseif gender == 2 then
+    mensagem = "Parabéns, nobre senhora! Você foi promovida."
+else
+    mensagem = "Parabéns, viajante! Você foi promovide."
+end
+player:sendTextMessage(MESSAGE_EVENT_ADVANCE, mensagem)
+Nota sobre a neutralidade: Para personagens cujo género não foi definido,
+prefira sempre uma abordagem de descoberta: "Antes de prosseguir, devo saber:
+sua essência é {masculina} ou {feminina}?". Isto mantém a imersão e garante que
+o jogador se sinta representado.
+
+================================================================================
+📋 8. TABELA DE ERROR_CODES (ACTUALIZADA)
+================================================================================
+
+error_code	Mensagem em PT-BR (cliente)
+account_name_taken	O nome de conta já está em uso.
+password_too_weak	A senha deve ter 8+ caracteres com letras e números.
+invalid_fields	Preencha todos os campos corretamente.
+invalid_credentials	Nome de conta ou senha incorretos.
+registration_success	Conta criada com sucesso!
+guest_creation_failed	Falha ao criar conta convidada.
+alma_creation_failed	Falha ao criar personagem convidado.
+gender_not_defined	Género do personagem não definido. Escolha {masculino} ou {feminino}.
+gender_updated	Género do personagem actualizado com sucesso.
+login_required	É necessário iniciar sessão primeiro.
 ================================================================================
 ⚠️ ARMADILHAS E LIÇÕES APRENDIDAS (EXTRAÍDAS DO DEVLOG)
 ================================================================================
@@ -245,6 +313,12 @@ Windows-1252 (como €, ‚, ƒ) nos scripts, o que é raro.
 Mensagens de look do servidor estavam em inglês: Foram traduzidas ("You see"
 → "Você vê") e a máscara de Alma foi aplicada para consistência total.
 
+NOVO: A falta do storage 100001 em mensagens pode fazer com que NPCs tratem
+o jogador de forma neutra. Sempre verifique o storage antes de gerar texto.
+
+NOVO: A palavra "feminina" não estava na lista de sinónimos do Oráculo inicial,
+causando falha na definição de género. Inclua SEMPRE variações óbvias e não‑óbvias.
+
 ================================================================================
 🔍 CHECKLIST DE REVISÃO PARA O ASSISTENTE (TRADUÇÃO E LOCALIZAÇÃO)
 ================================================================================
@@ -256,7 +330,7 @@ Todo texto visível ao jogador está em PT-BR com acentuação correta?
 
 Comentários de código estão em PT-BR (exceto nomes de variáveis)?
 
-A codificação do arquivo está correta conforme a tabela da Seção 2?
+A codificação do arquivo está correta conforme a tabela da Secção 2?
 
 Scripts Lua (cliente e servidor) estão salvos como ISO-8859-1?
 
@@ -276,14 +350,20 @@ Mensagens do servidor aplicam a máscara de Alma para personagens Guest_*?
 
 Mensagens de look usam "Você vê" (não "You see")?
 
+NOVO: Mensagens dirigidas ao jogador respeitam o género (storage 100001)?
+
+NOVO: Se o género não estiver definido, o texto é neutro ou pergunta ao jogador?
+
+NOVO: Os error_codes de género estão listados e mapeados?
+
 ================================================================================
 📤 COMO ATUALIZAR O REPOSITÓRIO GIT
 ================================================================================
 
 git add "docs/MCR - Guia de Tradução e Localização (PT-BR).txt"
-git commit -m "docs: atualiza guia de tradução com máscara de Alma e scripts do servidor"
+git commit -m "docs: atualiza guia de tradução com máscara de Alma, género do personagem e novos error_codes"
 git push origin main
 
 ================================================================================
-FIM DO GUIA DE TRADUÇÃO E LOCALIZAÇÃO (PT-BR)
+FIM DO GUIA DE TRADUÇÃO E LOCALIZAÇÃO (PT-BR) — VERSÃO 3.0
 ================================================================================

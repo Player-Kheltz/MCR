@@ -1,5 +1,6 @@
 ================================================================================
 PROJETO MCR – GUIA DE CONFIGURAÇÃO (SERVIDOR E REDE)
+(Versão 2.0 – Adicionados storages globais para género e intimidade)
 Arquivo: MCR - Guia de Configuração (Servidor e Rede).txt
 ================================================================================
 
@@ -12,6 +13,7 @@ Login Server e o ambiente de rede do Projeto MCR funcionem em harmonia. Ele cobr
 - O arquivo .env do Login Server (variáveis de ambiente).
 - Portas, firewall e conectividade.
 - Configuração do banco de dados (acesso e charset).
+- **NOVO: Storages reservados para sistemas globais (Género do Personagem e Intimidade).**
 - Versionamento com Git (boas práticas).
 
 Toda vez que for necessário ajustar uma porta, adicionar uma flag ou depurar um erro
@@ -38,6 +40,8 @@ ajustes no Git, o assistente DEVE:
 5. Nas instruções de versionamento, lembrar que o PowerShell requer aspas duplas em
    caminhos com espaços. Exemplo: git add "docs/Projeto MCR.txt"
 6. Ao configurar charset do banco, sempre forçar utf8mb4 (COLLATE utf8mb4_unicode_ci).
+7. **NOVO**: Respeitar as faixas de storages globais definidas na secção 7. NÃO usar
+   storages reservados (100001, 100010+) para missões ou sistemas locais.
 
 ================================================================================
 📄 1. CONFIGURAÇÃO DO CANARY (config.lua)
@@ -214,24 +218,58 @@ Se falhar, verificar se o Canary está rodando e se ip = "0.0.0.0" está configu
   git add "docs/MCR - Guia de Configuração (Servidor e Rede).txt"
 
 ================================================================================
+🗂️ 7. STORAGES RESERVADOS PARA SISTEMAS GLOBAIS (NOVA SECÇÃO)
+================================================================================
+
+Para manter a organização e evitar conflitos, as seguintes faixas de storage estão
+oficialmente reservadas no Projeto MCR. NUNCA use estes IDs para missões, eventos
+isolados ou sistemas que não sejam os globais aqui descritos.
+
+| Faixa / ID          | Sistema                          | Descrição                                                                 |
+|---------------------|----------------------------------|---------------------------------------------------------------------------|
+| 100001              | Género do Personagem             | 1 = masculino, 2 = feminino. Definido pelo Oráculo ou primeiro NPC.       |
+| 100010 – 109999     | Intimidade com NPCs              | Armazena o nível de intimidade do jogador com cada NPC.                   |
+|                     |                                  | O ID do storage é calculado como 100010 + id_do_npc (ex.: NPC id 1 → 100011).|
+|                     |                                  | Valores: 0 = desconhecido, 1 = conhecido, 2 = amigo, 3 = confidente.      |
+| 90001               | Temporário (accountId autenticado)| Usado apenas pelo Oráculo durante o gerenciamento de contas.              |
+
+Estas faixas são verificadas e assumidas por todos os NPCs do mundo. Qualquer
+alteração deve ser reflectida em todos os scripts que referenciam estes storages.
+
+**Exemplo de utilização nos scripts Lua:**
+```lua
+local gender = player:getStorageValue(100001) -- obtém o género do personagem
+local intimacy = player:getStorageValue(100010 + npcId) -- obtém a intimidade com este NPC
+Nota sobre a faixa 50000–50999: Continua reservada para missões (storages de progresso).
+
+================================================================================
 ⚠️ ARMADILHAS E LIÇÕES APRENDIDAS (EXTRAÍDAS DO DEVLOG)
 ================================================================================
 
-- **SERVER_PORT errado**: Usar 7172 no .env causa erro 10060 (timeout) no cliente ao
-  tentar conectar ao jogo. O campo externalport na resposta de login deve ser 7173.
-  (Fase 18)
-- **ip = "127.0.0.1"**: Pode impedir conexões do OTClient mesmo no mesmo PC.
-  Sempre use ip = "0.0.0.0". (Fase 18)
-- **Senha do MariaDB**: O XAMPP atual usa MariaDB, e o comando ALTER USER não funciona.
-  Use SET PASSWORD FOR... (Fase 33)
-- **phpMyAdmin sem senha**: Se auth_type = 'config' e a senha não for configurada,
-  o acesso falha. Sempre ajustar config.inc.php. (Fase 33)
-- **Cache do OTClient**: Para evitar confusões durante testes, a pasta cache/ local
-  deve estar configurada (ver Guia de Compilação Cliente). (Fase 19)
-- **OTCFeatures.newWalking**: Manter false evita muitos problemas de sincronização.
-- **Firewall no Windows**: Mesmo em desenvolvimento, regras de firewall podem bloquear
-  as portas 7173 e 8080. Sempre verifique com Test-NetConnection. (Fase 18)
-- **Botão "Criar Conta" removido**: O cliente agora usa o "Salão dos Destinos" que chama /guest_login diretamente. Não há mais interface de registro tradicional.
+SERVER_PORT errado: Usar 7172 no .env causa erro 10060 (timeout) no cliente ao
+tentar conectar ao jogo. O campo externalport na resposta de login deve ser 7173.
+(Fase 18)
+
+ip = "127.0.0.1": Pode impedir conexões do OTClient mesmo no mesmo PC.
+Sempre use ip = "0.0.0.0". (Fase 18)
+
+Senha do MariaDB: O XAMPP atual usa MariaDB, e o comando ALTER USER não funciona.
+Use SET PASSWORD FOR... (Fase 33)
+
+phpMyAdmin sem senha: Se auth_type = 'config' e a senha não for configurada,
+o acesso falha. Sempre ajustar config.inc.php. (Fase 33)
+
+Cache do OTClient: Para evitar confusões durante testes, a pasta cache/ local
+deve estar configurada (ver Guia de Compilação Cliente). (Fase 19)
+
+OTCFeatures.newWalking: Manter false evita muitos problemas de sincronização.
+
+Firewall no Windows: Mesmo em desenvolvimento, regras de firewall podem bloquear
+as portas 7173 e 8080. Sempre verifique com Test-NetConnection. (Fase 18)
+
+Botão "Criar Conta" removido: O cliente agora usa o "Salão dos Destinos" que chama /guest_login diretamente. Não há mais interface de registro tradicional.
+
+NOVO: O storage 100001 deve ser consultado por todos os NPCs. Se um NPC não o verificar, tratará o jogador com um género neutro, o que pode ser aceitável apenas para NPCs muito frios – mas é recomendado que todo NPC tente definir e usar o género para imersão.
 
 ================================================================================
 🔍 CHECKLIST DE REVISÃO PARA O ASSISTENTE (CONFIGURAÇÃO / INFRAESTRUTURA)
@@ -240,19 +278,22 @@ Se falhar, verificar se o Canary está rodando e se ip = "0.0.0.0" está configu
 Antes de finalizar qualquer alteração em arquivos de configuração ou sugestão de rede,
 o assistente DEVE verificar:
 
-- [ ] Senhas reais NUNCA aparecem no texto; placeholder <Senha> foi utilizado.
+Senhas reais NUNCA aparecem no texto; placeholder <Senha> foi utilizado.
 
-- [ ] Portas mencionadas são exatamente: 7171 (status), 7172 (login), 7173 (game), 8080 (HTTP), 3306 (DB).
+Portas mencionadas são exatamente: 7171 (status), 7172 (login), 7173 (game), 8080 (HTTP), 3306 (DB).
 
-- [ ] OTCFEATURES no config.lua estão sincronizadas com o cliente (newWalking=false, etc.).
+OTCFEATURES no config.lua estão sincronizadas com o cliente (newWalking=false, etc.).
 
-- [ ] Se uma nova variável de ambiente foi adicionada ao .env, o .env.example foi atualizado.
+Se uma nova variável de ambiente foi adicionada ao .env, o .env.example foi atualizado.
 
-- [ ] Comandos Git sugeridos estão com aspas duplas para caminhos com espaços (PowerShell).
+Comandos Git sugeridos estão com aspas duplas para caminhos com espaços (PowerShell).
 
-- [ ] Configuração de charset do banco como utf8mb4 foi mencionada.
+Configuração de charset do banco como utf8mb4 foi mencionada.
 
+NOVO: Storages globais (100001, 100010–109999) foram considerados e NENHUM sistema está a usar IDs sobrepostos.
+
+NOVO: A secção 7 foi consultada antes de atribuir novos storages a missões ou NPCs.
 
 ================================================================================
-FIM DO GUIA DE CONFIGURAÇÃO (SERVIDOR E REDE)
+FIM DO GUIA DE CONFIGURAÇÃO (SERVIDOR E REDE) — VERSÃO 2.0
 ================================================================================
