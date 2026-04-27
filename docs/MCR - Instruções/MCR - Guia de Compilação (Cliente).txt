@@ -90,53 +90,117 @@ O assistente NÃO precisa reaplicá‑las, mas deve conhecê‑las para manuten�
    - Resultado: cache em pasta local (cache/ na raiz), dispensando %APPDATA%.
    - Necessário criar manualmente a pasta cache/ ou garantir que o motor a crie.
 
-
 2. Tradução Parcial de Interfaces (Em Andamento)
    - Alguns módulos essenciais (entergame, characterlist) já têm strings traduzidas para PT-BR.
    - A interface de criação de conta (registro.lua) e a janela .otui associada estão em PT-BR.
    - Trabalho contínuo: toda string fixa exibida ao jogador deve ser traduzida.
 
+3. Máscara de Alma (Guest_ → Alma) — IMPLEMENTAÇÃO COMPLETA
+   - Objetivo: Substituir visualmente qualquer nome de personagem que comece com "Guest_"
+     por "Alma" em toda a interface do cliente (lista de personagens, nome sobre a cabeça,
+     chat, barras de status, battle list, look).
+   - Arquivos C++ modificados:
+     * OTClient/src/client/creature.h: mantida a declaração original de getName() e setName().
+     * OTClient/src/client/creature.cpp: função setName() alterada para, ao receber um nome
+       iniciado por "Guest_", armazenar "Alma" no CachedText m_name.
+       Código adicionado:
+       ```cpp
+       void Creature::setName(const std::string_view name) {
+           std::string finalName{ name };
+           if (finalName.size() >= 6 && finalName.substr(0, 6) == "Guest_") {
+               finalName = "Alma";
+           }
+           if (finalName == m_name.getText()) return;
+           const auto& oldName = m_name.getText();
+           m_name.setText(finalName);
+           callLuaField("onChangeName", finalName, oldName);
+       }
+OTClient/src/client/game.cpp: função loginWorld() mascara m_characterName; função
+processTalk() substitui o nome do emissor no chat.
+Código adicionado em loginWorld:
+
+cpp
+std::string maskedName{ characterName };
+if (characterName.size() >= 6 && characterName.substr(0, 6) == "Guest_") {
+    maskedName = "Alma";
+}
+m_localPlayer->setName(maskedName);
+...
+m_characterName = maskedName;
+Código adicionado em processTalk:
+
+cpp
+std::string displayName{ name };
+if (displayName.size() >= 6 && displayName.substr(0, 6) == "Guest_") {
+    displayName = "Alma";
+}
+g_lua.callGlobalField("g_game", "onTalk", displayName, level, mode, text, channelId, pos);
+Arquivo Lua cliente modificado:
+
+modules/client_entergame/entergame.lua: função onCharacterList() alterada para
+exibir "Alma" na lista de personagens:
+
+lua
+if characterInfo.name and characterInfo.name:sub(1,6) == "Guest_" then
+    characterInfo.name = "Alma"
+end
+O módulo Lua alma.lua, antes necessário, foi removido por já não ser preciso.
+
+A máscara é puramente visual; o nome real continua a ser usado para autenticação
+e pelo servidor (ex.: NPC Oráculo).
+
+Esta customização resolveu a limitação original do motor, que não expunha métodos
+Lua para alterar o nome de exibição do próprio jogador local.
+
 ================================================================================
 🧩 CONFIGURAÇÕES ESPECÍFICAS DO OTCLIENT PÓS-COMPILAÇÃO
 ================================================================================
 
-- **init.lua – Tabela Servers:**
-  Deve conter a entrada para o Projeto MCR:
-  lua
-  Servers = {
-    {
-      name = "Projeto MCR",
-      host = "127.0.0.1",
-      port = 8080,
-      client = 1500,
-      httpLogin = true,
-      url = "http://127.0.0.1/",
-    }
-  }
-  
-- **OTCFeatures:** Não configuráveis diretamente no cliente; são recebidas do servidor.
-  O servidor deve ter OTCFEATURES adequadas (Guia de Configuração).
+init.lua – Tabela Servers:
+Deve conter a entrada para o Projeto MCR:
+lua
+Servers = {
+{
+name = "Projeto MCR",
+host = "127.0.0.1",
+port = 8080,
+client = 1500,
+httpLogin = true,
+url = "http://127.0.0.1/",
+}
+}
 
-- **Fontes:** O cliente já vem com as fontes bitmap listadas no Guia de Interface.
-  Não é necessário instalar fontes adicionais no sistema.
+OTCFeatures: Não configuráveis diretamente no cliente; são recebidas do servidor.
+O servidor deve ter OTCFEATURES adequadas (Guia de Configuração).
+
+Fontes: O cliente já vem com as fontes bitmap listadas no Guia de Interface.
+Não é necessário instalar fontes adicionais no sistema.
 
 ================================================================================
 ⚠️ ARMADILHAS E LIÇÕES APRENDIDAS (EXTRAÍDAS DO DEVLOG)
 ================================================================================
 
-- **Cache em %APPDATA%:** No desenvolvimento, limpar cache foi um problema constante.
-  A solução de cache portátil (pasta local) resolveu isso completamente (Fase 19).
-- **Módulos de bot/walking:** O OTClient Redemption inclui alguns módulos que podem
-  causar travamentos ou comportamentos indesejados se não removidos (Fase 2.4).
-- **Codificação de scripts Lua carregados com dofile:** Mesmo que o C++ do motor
-  trabalhe com UTF-8, o interpretador Lua do OTClient processa arquivos .lua como
-  Latin-1 por padrão. Scripts com acentos devem ser salvos como ISO-8859-1 (Fase 22.3).
-- **Métodos setModal, center:** A versão Redemption não suporta certos métodos
-  convenientes; a interface deve ser definida via OTUI com `modal: true, center: true`
-  ou calculando posições manualmente (Fase 11).
-- **Login HTTP:** A substituição do ProtocolLogin por HTTP.post evitou travamentos
-  e "Things are not loaded" (Fase 12). O login via HTTP é a única forma suportada
-  no fluxo MCR.
+Cache em %APPDATA%: No desenvolvimento, limpar cache foi um problema constante.
+A solução de cache portátil (pasta local) resolveu isso completamente (Fase 19).
+
+Módulos de bot/walking: O OTClient Redemption inclui alguns módulos que podem
+causar travamentos ou comportamentos indesejados se não removidos (Fase 2.4).
+
+Codificação de scripts Lua carregados com dofile: Mesmo que o C++ do motor
+trabalhe com UTF-8, o interpretador Lua do OTClient processa arquivos .lua como
+Latin-1 por padrão. Scripts com acentos devem ser salvos como ISO-8859-1 (Fase 22.3).
+
+Métodos setModal, center: A versão Redemption não suporta certos métodos
+convenientes; a interface deve ser definida via OTUI com modal: true, center: true
+ou calculando posições manualmente (Fase 11).
+
+Login HTTP: A substituição do ProtocolLogin por HTTP.post evitou travamentos
+e "Things are not loaded" (Fase 12). O login via HTTP é a única forma suportada
+no fluxo MCR.
+
+Máscara de nome via Lua: Tentativas de alterar o nome de exibição do jogador
+local apenas com scripts Lua falharam porque o motor não expõe essa capacidade.
+A solução exigiu modificar diretamente a função setName() da classe Creature (Fase atual).
 
 ================================================================================
 🔍 CHECKLIST DE REVISÃO PARA O ASSISTENTE (C++ CLIENTE)
@@ -145,18 +209,17 @@ O assistente NÃO precisa reaplicá‑las, mas deve conhecê‑las para manuten�
 Antes de finalizar qualquer modificação em arquivos .cpp/.h do OTClient, o assistente
 DEVE verificar:
 
-- [ ] Strings de interface expostas ao jogador (labels, botões, menus) estão em PT-BR, com acentuação correta?
+Strings de interface expostas ao jogador (labels, botões, menus) estão em PT-BR, com acentuação correta?
 
-- [ ] Comentários de código em PT-BR; nomes de funções/variáveis em inglês?
+Comentários de código em PT-BR; nomes de funções/variáveis em inglês?
 
-- [ ] A modificação mantém compatibilidade com o servidor Canary (protocolo 15.00)?
+A modificação mantém compatibilidade com o servidor Canary (protocolo 15.00)?
 
-- [ ] Novos caminhos de arquivo ou diretórios respeitam a estrutura do cliente?
+Novos caminhos de arquivo ou diretórios respeitam a estrutura do cliente?
 
-- [ ] A comunicação de rede utiliza as portas corretas (8080 HTTP, 7173 game)?
+A comunicação de rede utiliza as portas corretas (8080 HTTP, 7173 game)?
 
-- [ ] Se adicionou bindings Lua, a documentação foi atualizada?
-
+Se adicionou bindings Lua, a documentação foi atualizada?
 
 ================================================================================
 📤 COMO ATUALIZAR O REPOSITÓRIO GIT APÓS MODIFICAÇÕES
@@ -164,9 +227,9 @@ DEVE verificar:
 
 Após compilar e testar:
 
-  git add OTClient/src/...
-  git commit -m "build(cliente): [descrição clara em pt-BR]"
-  git push origin main
+git add OTClient/src/...
+git commit -m "build(cliente): [descrição clara em pt-BR]"
+git push origin main
 
 ⚠️ PowerShell: nomes de arquivos com espaços devem ser entre aspas duplas.
 

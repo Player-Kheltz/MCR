@@ -1,6 +1,6 @@
 ================================================================================
 PROJETO MCR – GUIA DE CRIAÇÃO DE CONTA E PERSONAGEM
-(Versão 3.0 – Salão dos Destinos e Contas Guest)
+(Versão 3.1 – Máscara de Alma implementada e mensagens em PT-BR)
 Arquivo: MCR - Guia de Criação de Conta e Personagem.txt
 ================================================================================
 
@@ -20,6 +20,7 @@ Componentes abordados:
 - Integração com Login Server (via /guest_login e opcode de migração).
 - Transição suave para conta permanente (opcode 200).
 - Limpeza automática de contas guest para evitar poluição do banco.
+- Máscara de Alma: como o nome Guest_* é exibido como "Alma" em toda a interface.
 
 ================================================================================
 ⚠️ REGRAS DE REVISÃO PARA O ASSISTENTE (AUTENTICAÇÃO E CRIAÇÃO)
@@ -42,13 +43,11 @@ Componentes abordados:
 9. O botão "Criar Conta" tradicional foi REMOVIDO. O único ponto de entrada para
    novos jogadores é o botão "Salão dos Destinos".
 10. O personagem convidado (prefixo "Guest_") é TEMPORÁRIO e NUNCA aparece
-    em contas permanentes. No futuro, um módulo cliente mascarará o nome
-    "Guest_*" exibindo "Alma" para o jogador.
-11. O script do Oráculo (oraculo.lua) e quaisquer scripts auxiliares DEVEM
-    conter prints de debug (DEBUG:) que mostrem cada etapa do fluxo: geração
-    de conta guest, criação de nova conta, gerenciamento de conta existente,
-    validação de nome/senha, e envio de opcode 200. Os prints devem incluir
-    nome da conta, tópico atual e resultado de verificações.  
+    em contas permanentes.
+11. A MÁSCARA DE ALMA É OBRIGATÓRIA: em todas as interfaces do cliente e nas
+    mensagens do servidor, o nome Guest_* deve ser exibido como "Alma".
+12. O script do Oráculo (oraculo.lua) e quaisquer scripts auxiliares DEVEM
+    conter prints de debug (DEBUG:) que mostrem cada etapa do fluxo.
 
 ================================================================================
 🗺️ 1. VISÃO GERAL DO FLUXO (NOVA DIREÇÃO)
@@ -133,8 +132,15 @@ Conceito:
   e teleporta-o ao Salão.
 - Ele NUNCA é atribuído a contas permanentes. Sua única função é permitir
   a interação com o Oráculo.
-- No futuro, um módulo Lua no cliente ocultará o nome real (Guest_*) e exibirá
-  "Alma" para o jogador, mantendo a imersão narrativa.
+- **Máscara de Alma:** O nome real do personagem (Guest_*) jamais é exibido
+  ao jogador. Em toda a interface do cliente (lista de personagens, nome sobre
+  a cabeça, chat, barras de status, battle list) e nas mensagens do servidor
+  (look), o nome é substituído por "Alma". Esta substituição é feita:
+  * No cliente: Via alterações em C++ (creature.cpp:setName, game.cpp:loginWorld,
+    game.cpp:processTalk) e em Lua (entergame.lua:onCharacterList).
+  * No servidor: Via alteração em player.lua (onLookInBattleList) e on_look.lua.
+  O nome interno continua "Guest_*" para que o Oráculo e outros sistemas
+  possam identificar contas convidadas.
 
 Criação da conta guest (Login Server):
 Endpoint: GET /guest_login
@@ -287,87 +293,193 @@ aparece com seu novo personagem no templo inicial (ou no local definido).
   principal e a seleção de personagens quando o parâmetro character está
   presente.
 
+================================================================================
+🎭 8. MÁSCARA DE ALMA – IMPLEMENTAÇÃO COMPLETA (NOVA SEÇÃO)
+================================================================================
+
+O nome do personagem convidado jamais deve ser exibido como "Guest_*". Em todos
+os contextos visuais para o jogador, o nome deve aparecer como "Alma".
+
+8.1 NO CLIENTE (C++)
+- Arquivo: OTClient/src/client/creature.cpp
+  Função setName() alterada para converter qualquer nome com prefixo "Guest_" em "Alma":
+
+  ```cpp
+  void Creature::setName(const std::string_view name) {
+      std::string finalName{ name };
+      if (finalName.size() >= 6 && finalName.substr(0, 6) == "Guest_") {
+          finalName = "Alma";
+      }
+      if (finalName == m_name.getText()) return;
+      const auto& oldName = m_name.getText();
+      m_name.setText(finalName);
+      callLuaField("onChangeName", finalName, oldName);
+  }
+Arquivo: OTClient/src/client/game.cpp
+Função loginWorld() mascara o nome antes de guardá-lo no LocalPlayer e em m_characterName:
+
+cpp
+std::string maskedName{ characterName };
+if (characterName.size() >= 6 && characterName.substr(0, 6) == "Guest_") {
+    maskedName = "Alma";
+}
+m_localPlayer->setName(maskedName);
+...
+m_characterName = maskedName;
+Função processTalk() mascara o nome do emissor no chat:
+
+cpp
+std::string displayName{ name };
+if (displayName.size() >= 6 && displayName.substr(0, 6) == "Guest_") {
+    displayName = "Alma";
+}
+g_lua.callGlobalField("g_game", "onTalk", displayName, level, mode, text, channelId, pos);
+8.2 NO CLIENTE (Lua)
+
+Arquivo: modules/client_entergame/entergame.lua
+Função onCharacterList() alterada para exibir "Alma" na lista de personagens:
+
+lua
+for _, characterInfo in pairs(characters) do
+    if characterInfo.name and characterInfo.name:sub(1,6) == "Guest_" then
+        characterInfo.name = "Alma"
+    end
+    ...
+end
+8.3 NO SERVIDOR (Lua) — Mensagens de "look"
+
+Arquivo: data/creaturescripts/scripts/player.lua
+Função Player:onLookInBattleList() mascara o nome na descrição:
+
+lua
+local name = creature:getName()
+if name:sub(1,6) == "Guest_" then
+    name = "Alma"
+end
+local description = "Você vê " .. creature:getDescription(distance)
+description = description:gsub(creature:getName(), name, 1)
+Arquivo: data/events/scripts/on_look.lua
+Função handleCreatureDescription() também aplica a máscara:
+
+lua
+local realName = inspectedThing:getName()
+if realName:match("^Guest_") then
+    descriptionText = descriptionText:gsub(realName, "Alma", 1)
+end
+8.4 O QUE NÃO MUDOU
+
+O nome real "Guest_*" continua a ser usado internamente para:
+
+Autenticação no servidor
+
+Identificação da conta guest pelo Oráculo (prefixo "guest_")
+
+Logs e depuração
+
+A máscara é puramente visual e não afeta a lógica de jogo.
 
 ================================================================================
-📋 8. NOTAS DE IMPLEMENTAÇÃO (CONSOLIDADAS)
+📋 9. NOTAS DE IMPLEMENTAÇÃO (CONSOLIDADAS)
 ================================================================================
 
-- **Contas guest temporárias**: criadas pelo endpoint GET /guest_login. O personagem temporário tem nome único (Guest_<random>). Ao logar, o servidor reseta atributos.
-- **Oráculo**: 
-  - Usa db.query síncrono para INSERT e verificações.
-  - Armazena dados temporários em tabela Lua (tempData) para strings (nome, senha, personagem).
-  - Valida nomes com lista branca (sem ã, õ).
-  - Aplica looktype 128 (masculino) ou 136 (feminino) automaticamente.
-  - Define lastlogin = os.time() no novo personagem para evitar o script send_first_items.
-- **Cliente**:
-  - Salvar entergame.lua como ISO-8859-1.
-  - Botão "Salão dos Destinos" usa HTTP.get para /guest_login.
-  - Login direto com g_game.loginWorld, sem CharacterList.
-  - Após logout guest, a tela de login é reexibida; a lista de personagens é limpa com pcall(CharacterList.destroy).
-  - (Futuro) Módulo de máscara de nome: exibirá "Alma" para qualquer personagem com prefixo "Guest_".
+Contas guest temporárias: criadas pelo endpoint GET /guest_login. O personagem temporário tem nome único (Guest_<random>). Ao logar, o servidor reseta atributos.
+
+Oráculo:
+
+Usa db.query síncrono para INSERT e verificações.
+
+Armazena dados temporários em tabela Lua (tempData) para strings (nome, senha, personagem).
+
+Valida nomes com lista branca (sem ã, õ).
+
+Aplica looktype 128 (masculino) ou 136 (feminino) automaticamente.
+
+Define lastlogin = os.time() no novo personagem para evitar o script send_first_items.
+
+Cliente:
+
+Salvar entergame.lua como ISO-8859-1.
+
+Botão "Salão dos Destinos" usa HTTP.get para /guest_login.
+
+Login direto com g_game.loginWorld, sem CharacterList.
+
+Após logout guest, a tela de login é reexibida; a lista de personagens é limpa com pcall(CharacterList.destroy).
+
+A máscara de Alma funciona em todas as camadas: C++, Lua cliente, e Lua servidor.
 
 ================================================================================
 ⚠️ ARMADILHAS E LIÇÕES APRENDIDAS (ATUALIZADAS)
 ================================================================================
 
-- **Contas guest com flood:** Nunca crie personagens convidados (Guest_*) em contas permanentes. Use
-  limpeza automática (30 min) para remover contas guest abandonadas.
-- **Acentuação em nomes:** A lista branca evita corrupção, mas o banco de
-  dados (utf8mb4) pode armazenar qualquer caractere. A validação no Lua
-  deve ser rigorosa.
-- **SERVER_PORT:** O .env deve ter SERVER_PORT=7173, caso contrário o
-  cliente não consegue conectar ao jogo após a migração.
-- **Transição com opcode 200:** Testar cuidadosamente a desconexão e
-  reconexão para evitar loops ou estados inconsistentes.
-- **Uso de storage temporário:** O Alma perde seus dados ao deslogar (pois
-  a conta guest é descartada), então storages usados durante o gerenciamento
-  (ex.: accountId autenticado) não precisam de limpeza.
-- **Oráculo acessível apenas por personagens convidados:** Bloquear interação se o jogador
-  não tiver prefixo "Guest_" ou a conta não for guest.
+Contas guest com flood: Nunca crie personagens convidados (Guest_*) em contas permanentes. Use limpeza automática (30 min) para remover contas guest abandonadas.
+
+Acentuação em nomes: A lista branca evita corrupção, mas o banco de dados (utf8mb4) pode armazenar qualquer caractere. A validação no Lua deve ser rigorosa.
+
+SERVER_PORT: O .env deve ter SERVER_PORT=7173, caso contrário o cliente não consegue conectar ao jogo após a migração.
+
+Transição com opcode 200: Testar cuidadosamente a desconexão e reconexão para evitar loops ou estados inconsistentes.
+
+Uso de storage temporário: O Alma perde seus dados ao deslogar (pois a conta guest é descartada), então storages usados durante o gerenciamento (ex.: accountId autenticado) não precisam de limpeza.
+
+Oráculo acessível apenas por personagens convidados: Bloquear interação se o jogador não tiver prefixo "Guest_" ou a conta não for guest.
+
+Máscara de Alma via Lua falhou: A primeira tentativa usou um módulo Lua que tentava alterar o nome do jogador local, mas o motor não expõe essa capacidade. A solução foi intervir diretamente no C++ (creature.cpp e game.cpp).
+
+Mensagens de look em inglês: Foram traduzidas para PT‑BR e a máscara de Alma foi aplicada tanto no player.lua quanto no on_look.lua.
 
 ================================================================================
 🔍 CHECKLIST DE REVISÃO PARA O ASSISTENTE
 ================================================================================
 
-- [ ] Toda a experiência ocorre dentro do OTClient?
+Toda a experiência ocorre dentro do OTClient?
 
-- [ ] Botão "Salão dos Destinos" substitui "Criar Conta" e funciona com /guest_login?
+Botão "Salão dos Destinos" substitui "Criar Conta" e funciona com /guest_login?
 
-- [ ] A função doAutoLogin permite entrada direta com Alma?
+A função doAutoLogin permite entrada direta com Alma?
 
-- [ ] Alma é criado automaticamente pelo Login Server e removido por limpeza?
+Alma é criado automaticamente pelo Login Server e removido por limpeza?
 
-- [ ] O Oráculo verifica se o jogador é Alma e conta guest?
+O Oráculo verifica se o jogador é Alma e conta guest?
 
-- [ ] Fluxo de criação de conta nova: validações, inserção no banco, hash SHA1?
+Fluxo de criação de conta nova: validações, inserção no banco, hash SHA1?
 
-- [ ] Fluxo de gerenciamento: autenticação da conta, opções de alteração, deleção, criação de personagem?
+Fluxo de gerenciamento: autenticação da conta, opções de alteração, deleção, criação de personagem?
 
-- [ ] Opcode 200 implementado e cliente migra corretamente?
+Opcode 200 implementado e cliente migra corretamente?
 
-- [ ] Scripts Lua (Oráculo, login do Alma) salvos como ISO-8859-1?
+Scripts Lua (Oráculo, login do Alma) salvos como ISO-8859-1?
 
-- [ ] Nomes de personagem validados com lista branca (sem ã, õ)?
+Nomes de personagem validados com lista branca (sem ã, õ)?
 
-- [ ] Diálogos usam {chaves} para destacar palavras-chave?
+Diálogos usam {chaves} para destacar palavras-chave?
 
-- [ ] Nenhuma conta permanente recebe personagem Alma?
+Nenhuma conta permanente recebe personagem Alma?
 
-- [ ] Rotina de limpeza de contas guest configurada?
+Rotina de limpeza de contas guest configurada?
 
+Máscara de Alma funciona no cliente (lista de personagens, nome sobre cabeça, chat, barras)?
+
+Máscara de Alma funciona no servidor (mensagens de look)?
+
+Mensagens de look estão em PT‑BR?
 
 ================================================================================
 📤 COMO ATUALIZAR O REPOSITÓRIO GIT
 ================================================================================
 
-  git add "OTClient/modules/client_entergame/entergame.lua"
-  git add "OTClient/modules/client_entergame/salao_destinos.lua"   (se criado)
-  git add "data/npc/scripts/oraculo.lua"
-  git add "data/creaturescripts/scripts/login_alma.lua"
-  git add "LoginServer/src/api/guest.go"
-  git commit -m "feat(auth): implementa Salão dos Destinos com contas guest e Oráculo autosserviço"
-  git push origin main
+git add "OTClient/src/client/creature.cpp"
+git add "OTClient/src/client/creature.h"
+git add "OTClient/src/client/game.cpp"
+git add "OTClient/modules/client_entergame/entergame.lua"
+git add "data/creaturescripts/scripts/player.lua"
+git add "data/events/scripts/on_look.lua"
+git add "data/npc/scripts/oraculo.lua"
+git add "data/creaturescripts/scripts/login_alma.lua"
+git add "LoginServer/src/api/guest.go"
+git commit -m "feat(auth): implementa Salão dos Destinos com contas guest, máscara de Alma e mensagens PT-BR"
+git push origin main
 
 ================================================================================
-FIM DO GUIA DE CRIAÇÃO DE CONTA E PERSONAGEM (VERSÃO 3.0)
+FIM DO GUIA DE CRIAÇÃO DE CONTA E PERSONAGEM (VERSÃO 3.1)
 ================================================================================

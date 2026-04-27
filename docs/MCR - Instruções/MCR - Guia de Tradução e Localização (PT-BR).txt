@@ -1,6 +1,6 @@
 ================================================================================
 PROJETO MCR – GUIA DE TRADUÇÃO E LOCALIZAÇÃO (PT-BR)
-(Versão 2.1 – Ajuste de codificação e destaque no chat)
+(Versão 2.2 – Reforço da máscara de Alma e scripts do servidor)
 Arquivo: MCR - Guia de Tradução e Localização (PT-BR).txt
 ================================================================================
 
@@ -14,6 +14,7 @@ do Brasil em TODAS as camadas do Projeto MCR. Ele define:
 - O protocolo de comunicação entre backend e frontend para evitar corrupção de acentos.
 - O uso correto do destaque no chat (apenas {chaves}).
 - Regras gramaticais e de estilo para manter a qualidade do texto.
+- A máscara de Alma para mensagens de "look" e outras interações com personagens convidados.
 
 Este guia NÃO é opcional. Toda modificação no projeto DEVE passar por suas regras.
 
@@ -37,6 +38,8 @@ assistente DEVE:
    Usar o padrão error_code (ver seção 4).
 7. No chat do jogo, destacar palavras importantes SOMENTE com {chaves}. NÃO usar
    tags como `{{#RRGGBB}}` ou HTML.
+8. Em todas as mensagens de sistema que mencionem o personagem convidado, aplicar
+   a máscara de Alma (substituir "Guest_*" por "Alma").
 
 ================================================================================
 📋 1. ESCOPO DE APLICAÇÃO DO PT-BR
@@ -54,6 +57,7 @@ Devem estar OBRIGATORIAMENTE em português:
 - Logs do servidor e do Login Server (mensagens de inicialização, erros).
 - Nomes de NPCs, monstros, locais e itens no mapa/XML.
 - Documentação do projeto (guias, DevLog, instruções).
+- Mensagens de "look" (examinar) para criaturas e itens.
 
 Podem permanecer em INGLÊS:
 
@@ -74,7 +78,7 @@ de bugs visuais (acentos corrompidos) no Projeto MCR.
 | Tipo de Arquivo                          | Codificação      | BOM?  | Exemplo                                |
 |------------------------------------------|------------------|-------|----------------------------------------|
 | Scripts Lua do CLIENTE (dofile, módulos) | ISO-8859-1       | Não   | registro.lua, entergame.lua            |
-| Scripts Lua do SERVIDOR (data/npc/, etc.)| ISO-8859-1       | Não   | oraculo.lua, npc_utils.lua, sereia_lunar.lua |
+| Scripts Lua do SERVIDOR (data/npc/, etc.)| ISO-8859-1       | Não   | oraculo.lua, npc_utils.lua, player.lua |
 | Código C++ (servidor e cliente)          | UTF-8            | COM   | canary_server.cpp, main.cpp            |
 | Código Go (Login Server)                 | UTF-8            | COM   | register.go, login.go                  |
 | Arquivos .otui (interface)               | UTF-8            | SEM   | register_window.otui                   |
@@ -92,7 +96,7 @@ quando originadas de um script do servidor.
 - Caracteres como 'ç', 'ã', 'é' são representados por um ÚNICO byte (ex.: 0xE7 = ç).
 - Se salvo como UTF-8, aparecerão como "Ã§", "Ã£", "Ã©" na interface.
 - Essa regra se aplica a todos os scripts Lua que geram texto visível ao jogador,
-  sejam eles do cliente (dofile) ou do servidor (data/npc/).
+  sejam eles do cliente (dofile) ou do servidor (data/creaturescripts/, data/events/, data/npc/).
 
 ⚠️ UTF-8 COM BOM (C++, GO):
 O compilador C++ e o compilador Go reconhecem o BOM e tratam o arquivo como UTF-8.
@@ -173,28 +177,73 @@ Lista de termos padronizados:
 - "servidor" (não "server")
 - "conta" (não "account")
 - "senha" (não "password")
+- "Você vê" (não "You see")
+- "Vida" (não "Health")
+- "Mana" (não "Mana" – mantém-se igual)
+- "Posição" (não "Position")
+
+================================================================================
+🎭 6. MÁSCARA DE ALMA EM MENSAGENS DO SERVIDOR (NOVA SEÇÃO)
+================================================================================
+
+O personagem convidado (Guest_*) deve ser sempre apresentado como "Alma" para
+o jogador. Esta substituição deve ser aplicada em TODAS as mensagens de sistema,
+incluindo:
+
+- Mensagens de "look" (examinar personagem)
+- Mensagens de entrada/saída de jogadores
+- Qualquer broadcast que mencione o nome do personagem convidado
+- Descrições em janelas modais ou tooltips
+
+A máscara é implementada nos scripts do servidor substituindo o nome real
+pelo nome "Alma" antes de enviar a mensagem ao jogador:
+
+```lua
+local name = creature:getName()
+if name:sub(1,6) == "Guest_" then
+    name = "Alma"
+end
+Esta substituição é um complemento à máscara já implementada no cliente
+(ver Guia de Criação de Conta e Personagem, seção 8).
+
+Arquivos que já possuem a máscara:
+
+data/creaturescripts/scripts/player.lua (onLookInBattleList)
+
+data/events/scripts/on_look.lua (handleCreatureDescription)
+
+Novos scripts que gerem mensagens com o nome do personagem devem incluir
+a mesma verificação.
 
 ================================================================================
 ⚠️ ARMADILHAS E LIÇÕES APRENDIDAS (EXTRAÍDAS DO DEVLOG)
 ================================================================================
 
-- **Acentos corrompidos no cliente e servidor:** Scripts Lua de ambas as pontas
-  DEVEM ser salvos como ISO-8859-1 para evitar artefatos. (Fase 22.3, correção adicional)
-- **Mensagens do backend com acentos:** Enviar strings acentuadas no JSON do Login
-  Server resultava em "jÃi estÃi" no cliente. A solução foi o padrão error_code
-  com mapeamento no cliente. (Fase 22.3)
-- **Console do Canary com "Vers├úo":** Os logs em português apareciam corrompidos
-  porque o console do Windows usava CP 850. A solução foi adicionar
-  SetConsoleOutputCP(CP_UTF8) no main.cpp. (Fase 40)
-- **Arquivos Go com strings acentuadas:** Mesmo compilando corretamente, a saída
-  HTTP pode ser interpretada como Latin-1 pelo cliente. Por isso o padrão
-  error_code foi adotado também no Go. (Fase 22.3)
-- **Destaque no chat:** Apenas {chaves} são reconhecidas; qualquer tentativa de
-  usar `{{#RRGGBB}}` falha silenciosamente.
-- **ISO-8859-1 vs ANSI:** No Windows, "ANSI" é um apelido para a codificação
-  Windows-1252, que é um superset do ISO-8859-1. Salvar como "ANSI" no Notepad++
-  ou VS Code geralmente funciona, desde que não haja caracteres específicos do
-  Windows-1252 (como €, ‚, ƒ) nos scripts, o que é raro.
+Acentos corrompidos no cliente e servidor: Scripts Lua de ambas as pontas
+DEVEM ser salvos como ISO-8859-1 para evitar artefatos. (Fase 22.3, correção adicional)
+
+Mensagens do backend com acentos: Enviar strings acentuadas no JSON do Login
+Server resultava em "jÃi estÃi" no cliente. A solução foi o padrão error_code
+com mapeamento no cliente. (Fase 22.3)
+
+Console do Canary com "Vers├úo": Os logs em português apareciam corrompidos
+porque o console do Windows usava CP 850. A solução foi adicionar
+SetConsoleOutputCP(CP_UTF8) no main.cpp. (Fase 40)
+
+Arquivos Go com strings acentuadas: Mesmo compilando corretamente, a saída
+HTTP pode ser interpretada como Latin-1 pelo cliente. Por isso o padrão
+error_code foi adotado também no Go. (Fase 22.3)
+
+Destaque no chat: Apenas {chaves} são reconhecidas; qualquer tentativa de
+usar {{#RRGGBB}} falha silenciosamente.
+
+ISO-8859-1 vs ANSI: No Windows, "ANSI" é um apelido para a codificação
+Windows-1252, que é um superset do ISO-8859-1. Salvar como "ANSI" no Notepad++
+ou VS Code geralmente funciona, desde que não haja caracteres específicos do
+Windows-1252 (como €, ‚, ƒ) nos scripts, o que é raro.
+
+Mensagens de look do servidor estavam em inglês: Foram traduzidas ("You see"
+→ "Você vê") e a máscara de Alma foi aplicada para consistência total.
 
 ================================================================================
 🔍 CHECKLIST DE REVISÃO PARA O ASSISTENTE (TRADUÇÃO E LOCALIZAÇÃO)
@@ -203,34 +252,37 @@ Lista de termos padronizados:
 Este checklist DEVE ser aplicado a QUALQUER modificação, independentemente da
 camada, pois a localização é transversal.
 
-- [ ] Todo texto visível ao jogador está em PT-BR com acentuação correta?
+Todo texto visível ao jogador está em PT-BR com acentuação correta?
 
-- [ ] Comentários de código estão em PT-BR (exceto nomes de variáveis)?
+Comentários de código estão em PT-BR (exceto nomes de variáveis)?
 
-- [ ] A codificação do arquivo está correta conforme a tabela da Seção 2?
+A codificação do arquivo está correta conforme a tabela da Seção 2?
 
-- [ ] Scripts Lua (cliente e servidor) estão salvos como ISO-8859-1?
+Scripts Lua (cliente e servidor) estão salvos como ISO-8859-1?
 
-- [ ] Arquivos .otui estão salvos como UTF-8 sem BOM?
+Arquivos .otui estão salvos como UTF-8 sem BOM?
 
-- [ ] Strings enviadas do backend (Go) usam o padrão error_code (sem acentos)?
+Strings enviadas do backend (Go) usam o padrão error_code (sem acentos)?
 
-- [ ] O mapeamento error_code → mensagem PT-BR existe no cliente Lua?
+O mapeamento error_code → mensagem PT-BR existe no cliente Lua?
 
-- [ ] Destaque no chat usa apenas {chaves}?
+Destaque no chat usa apenas {chaves}?
 
-- [ ] O texto soa NATURAL e COERENTE com o universo MCR?
+O texto soa NATURAL e COERENTE com o universo MCR?
 
-- [ ] A terminologia está padronizada (vocação, personagem, missão)?
+A terminologia está padronizada (vocação, personagem, missão)?
 
+Mensagens do servidor aplicam a máscara de Alma para personagens Guest_*?
+
+Mensagens de look usam "Você vê" (não "You see")?
 
 ================================================================================
 📤 COMO ATUALIZAR O REPOSITÓRIO GIT
 ================================================================================
 
-  git add "docs/MCR - Guia de Tradução e Localização (PT-BR).txt"
-  git commit -m "docs: atualiza guia de tradução com ISO-8859-1 universal e destaque por {chaves}"
-  git push origin main
+git add "docs/MCR - Guia de Tradução e Localização (PT-BR).txt"
+git commit -m "docs: atualiza guia de tradução com máscara de Alma e scripts do servidor"
+git push origin main
 
 ================================================================================
 FIM DO GUIA DE TRADUÇÃO E LOCALIZAÇÃO (PT-BR)
