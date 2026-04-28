@@ -1,6 +1,6 @@
 ================================================================================
 PROJETO MCR – GUIA DE BANCO DE DADOS E INFRAESTRUTURA
-(Versão 2.0 – Coluna created_at e limpeza de contas guest)
+(Versão 3.0 – Sistema de pronomes nativo, coluna player_pronoun e limpeza de contas guest)
 Arquivo: MCR - Guia de Banco de Dados e Infraestrutura.txt
 ================================================================================
 
@@ -36,6 +36,14 @@ em interações futuras.
 
 **NOVO**: A coluna `created_at` (INT, default 0) na tabela `accounts` é essencial
 para a limpeza de contas guest. Não a remova ou altere sem actualizar o Login Server.
+
+**NOVO**: A coluna `player_pronoun` (TINYINT, default 0) na tabela `accounts`
+armazena o pronome do JOGADOR (0 = não definido, 1 = jogador, 2 = jogadora).
+É utilizada pelo Oráculo ao se dirigir ao dono da conta.
+
+**NOVO**: A coluna `pronoun` na tabela `players` é NATIVA do Canary e armazena o
+pronome do PERSONAGEM (0 = usa o sexo, 2 = ela, 3 = ele, etc.). NÃO utilize
+storages manuais para este fim.
 
 ================================================================================
 🗄️ 1. AMBIENTE: XAMPP (MARIADB)
@@ -102,9 +110,9 @@ Local: ProjetoMCR/Canary/data/schema.sql
 
 Principais tabelas e suas funções:
 
-accounts: armazena contas de jogador. Colunas: id, name, password (hash SHA1), email (vazio), **created_at (INT)**.
+accounts: armazena contas de jogador. Colunas: id, name, password (hash SHA1), email (vazio), **created_at (INT)**, **player_pronoun (TINYINT)**.
 
-players: armazena personagens. Colunas: id, name, account_id, level, vocation, sex, posx, posy, posz, town_id, etc.
+players: armazena personagens. Colunas: id, name, account_id, level, vocation, sex, posx, posy, posz, town_id, **pronoun (TINYINT)**, etc.
 
 É complementado por dezenas de outras tabelas para houses, guilds, store, daily rewards, etc.
 
@@ -116,6 +124,25 @@ nessas tabelas DEVE ser sincronizada com o código do Login Server.
 - **accounts.created_at**: Coluna INT (timestamp Unix). Usada para controlar a criação
   de contas guest e permitir a sua remoção automática após 30 minutos de inatividade.
   Contas permanentes podem ter o valor 0 ou o timestamp de criação.
+
+- **accounts.player_pronoun**: Coluna TINYINT. Define como o Oráculo deve se dirigir
+  ao JOGADOR (dono da conta). Valores:
+    0 = não definido (perguntará novamente)
+    1 = jogador (tratamento masculino)
+    2 = jogadora (tratamento feminino)
+
+- **players.pronoun**: Coluna TINYINT nativa do Canary. Define o pronome do PERSONAGEM
+  (como o mundo deve se referir a ele). Valores:
+    0 = não definido (usa o sexo do personagem como fallback)
+    1 = they (neutro) – disponível, mas não exposto pelo Oráculo por enquanto
+    2 = she (ela)
+    3 = he (ele)
+    4 = ze
+    5 = usar o nome (name)
+  O Oráculo grava diretamente 2 ou 3 durante a criação/gerenciamento, e o servidor
+  automaticamente trata pronome = 0 como fallback para o sexo.
+
+Não é mais necessário o uso de storage 100001 para pronome do personagem.
 
 - **Rotina de limpeza de contas guest** (implementada no Login Server):
   Remove contas com prefixo `guest_` e `created_at` anterior a 30 minutos, assim como
@@ -139,6 +166,12 @@ A coluna created_at deve existir na tabela accounts. Se estiver ausente, adicion
 
 sql
 ALTER TABLE accounts ADD COLUMN created_at INT NOT NULL DEFAULT 0;
+
+A coluna player_pronoun deve ser adicionada manualmente (ainda não faz parte do schema.sql original):
+ALTER TABLE accounts ADD COLUMN player_pronoun TINYINT NOT NULL DEFAULT 0;
+
+A coluna pronoun já existe na tabela players (nativa do Canary). Não precisa ser criada.
+
 ================================================================================
 🔐 4. phpMyAdmin
 ================================================================================
@@ -229,6 +262,12 @@ Coluna created_at: Necessária para expiração de contas guest. Deve ser adicio
 manualmente caso o schema não a possua. A rotina de limpeza do Login Server depende
 deste campo para remover contas guest abandonadas.
 
+Coluna player_pronoun: Armazena o pronome do JOGADOR (dono da conta).
+Deve ser adicionada com ALTER TABLE accounts ADD COLUMN player_pronoun TINYINT NOT NULL DEFAULT 0;
+
+Coluna pronoun: NATIVA do Canary. Armazena o pronome do PERSONAGEM.
+NÃO utilize o storage 100001 para essa finalidade.
+
 ================================================================================
 🔍 CHECKLIST DE REVISÃO PARA O ASSISTENTE (BANCO DE DADOS E INFRA)
 ================================================================================
@@ -249,6 +288,10 @@ Novas colunas/tabelas documentadas para referência futura?
 
 NOVO: A coluna created_at existe na tabela accounts? Se não, foi adicionada?
 
+NOVO: A coluna player_pronoun existe na tabela accounts? Se não, foi adicionada?
+
+NOVO: A coluna pronoun é usada para o pronome do personagem (sem storages manuais)?
+
 NOVO: A rotina de limpeza de contas guest está configurada e testada?
 
 ================================================================================
@@ -256,12 +299,12 @@ NOVO: A rotina de limpeza de contas guest está configurada e testada?
 ================================================================================
 
 git add "docs/MCR - Guia de Banco de Dados e Infraestrutura.txt"
-git commit -m "docs: atualiza guia de banco de dados com coluna created_at e rotina de limpeza"
+git commit -m "docs: atualiza guia de banco de dados com colunas de pronome e limpeza"
 git push origin main
 
 ⚠️ Arquivos de configuração com senhas (config.lua, .env) NÃO são versionados.
 Apenas templates (.example) são commitados.
 
 ================================================================================
-FIM DO GUIA DE BANCO DE DADOS E INFRAESTRUTURA — VERSÃO 2.0
+FIM DO GUIA DE BANCO DE DADOS E INFRAESTRUTURA — VERSÃO 3.0
 ================================================================================

@@ -1,6 +1,6 @@
 ================================================================================
 PROJETO MCR – GUIA DE TRADUÇÃO E LOCALIZAÇÃO (PT-BR)
-(Versão 3.0 – Máscara de Alma, Género do Personagem e Codificação Reforçada)
+(Versão 4.0 – Remoção do storage 100001, pronomes nativos)
 Arquivo: MCR - Guia de Tradução e Localização (PT-BR).txt
 ================================================================================
 
@@ -15,8 +15,8 @@ do Brasil em TODAS as camadas do Projeto MCR. Ele define:
 - O uso correto do destaque no chat (apenas {chaves}).
 - Regras gramaticais e de estilo para manter a qualidade do texto.
 - A máscara de Alma para mensagens de "look" e outras interações com personagens convidados.
-- **NOVO: Diretrizes para o Género do Personagem (storage 100001) em todas as mensagens.**
-- **NOVO: Atualização dos error_codes e mapeamento para PT‑BR.**
+- **ATUALIZADO**: Uso do módulo pronouns.lua e da coluna players.pronoun para pronomes.
+- **ATUALIZADO**: Atualização dos error_codes e mapeamento para PT‑BR.
 
 Este guia NÃO é opcional. Toda modificação no projeto DEVE passar por suas regras.
 
@@ -40,11 +40,11 @@ assistente DEVE:
    Usar o padrão error_code (ver seção 4).
 7. No chat do jogo, destacar palavras importantes SOMENTE com {chaves}. NÃO usar
    tags como `{{#RRGGBB}}` ou HTML.
-8. **ATUALIZADO**: Em todas as mensagens de sistema que mencionem o personagem convidado,
+8. Nunca usar "}?" junto; sempre "} ?" para evitar erro visual no cliente.
+9. **ATUALIZADO**: Em todas as mensagens de sistema que mencionem o personagem convidado,
    aplicar a máscara de Alma (substituir "Guest_*" por "Alma").
-9. **NOVO**: Em todas as mensagens dirigidas ao jogador, utilizar o **género do personagem**
-   (storage 100001) para determinar pronomes, artigos e flexões. Se o género não estiver
-   definido, usar tratamento neutro ou perguntar (conforme a personalidade do NPC).
+10. **ATUALIZADO**: Em todas as mensagens dirigidas ao jogador, utilizar o **pronome do personagem**
+    obtido via módulo pronouns.lua (Pronouns.getSubject, etc.). NÃO usar storage 100001.
 
 ================================================================================
 📋 1. ESCOPO DE APLICAÇÃO DO PT-BR
@@ -63,7 +63,6 @@ Devem estar OBRIGATORIAMENTE em português:
 - Nomes de NPCs, monstros, locais e itens no mapa/XML.
 - Documentação do projeto (guias, DevLog, instruções).
 - Mensagens de "look" (examinar) para criaturas e itens.
-- **NOVO**: Mensagens de definição de género (ex.: "Sua essência é {masculina} ou {feminina}?").
 
 Podem permanecer em INGLÊS:
 
@@ -137,7 +136,6 @@ PROTOCOLO OBRIGATÓRIO (ERROR_CODE):
        registration_success = "Conta criada com sucesso!",
        guest_creation_failed = "Falha ao criar conta convidada.",
        alma_creation_failed = "Falha ao criar personagem convidado.",
-       gender_not_defined = "Género do personagem não definido. Por favor, escolha {masculino} ou {feminino}."
    }
 
 3. Esta tabela EXISTE no script Lua do cliente (registro.lua, entergame.lua, etc.),
@@ -161,6 +159,7 @@ Regras:
   ({500 pontos de experiência}).
 - NÃO utilize tags `{{#RRGGBB}}`, HTML, ou qualquer outra sintaxe – elas
   não produzem efeito visual.
+- **NUNCA use "}?" junto; sempre "} ?" para evitar corrupção visual no cliente.**
 
 ================================================================================
 ✍️ 5. ESTILO E QUALIDADE DO TEXTO
@@ -178,8 +177,6 @@ Além da correção gramatical, o texto do Projeto MCR deve:
   (um bêbado pode falar errado; um dragão ancião pode usar arcaísmos).
 - Manter consistência: se um termo foi traduzido de uma forma, usar a mesma
   tradução em todo o projeto.
-- **NOVO**: Utilizar as flexões de género adequadas quando o storage 100001 estiver
-  definido. Ex.: "bem-vindo" / "bem-vinda", "jovem senhor" / "jovem senhora".
 
 Lista de termos padronizados (atualizada):
 - "vocação" (não "classe")
@@ -192,8 +189,8 @@ Lista de termos padronizados (atualizada):
 - "Vida" (não "Health")
 - "Mana" (não "Mana" – mantém-se igual)
 - "Posição" (não "Position")
-- "Género" (não "Sexo", quando referente à identidade do personagem)
-- "Sexo" (apenas para a escolha biológica na criação do personagem)
+- "Pronome" (para a identidade do personagem, armazenada em players.pronoun)
+- "Sexo" (apenas para a escolha biológica do corpo do personagem)
 
 ================================================================================
 🎭 6. MÁSCARA DE ALMA EM MENSAGENS DO SERVIDOR (REVISADA)
@@ -207,7 +204,6 @@ incluindo:
 - Mensagens de entrada/saída de jogadores
 - Qualquer broadcast que mencione o nome do personagem convidado
 - Descrições em janelas modais ou tooltips
-- **NOVO**: Diálogos de NPCs que possam interagir com personagens convidados (ex.: Oráculo)
 
 A máscara é implementada nos scripts do servidor substituindo o nome real
 pelo nome "Alma" antes de enviar a mensagem ao jogador:
@@ -217,9 +213,6 @@ local name = creature:getName()
 if name:sub(1,6) == "Guest_" then
     name = "Alma"
 end
-Esta substituição é um complemento à máscara já implementada no cliente
-(ver Guia de Criação de Conta e Personagem, secção 8).
-
 Arquivos que já possuem a máscara:
 
 data/creaturescripts/scripts/player.lua (onLookInBattleList)
@@ -230,43 +223,25 @@ Novos scripts que gerem mensagens com o nome do personagem devem incluir
 a mesma verificação.
 
 ================================================================================
-📌 7. GÉNERO DO PERSONAGEM EM MENSAGENS (NOVA SECÇÃO)
+📌 7. PRONOME DO PERSONAGEM EM MENSAGENS (ATUALIZADO)
 ================================================================================
 
-A partir da implementação do storage 100001, todas as mensagens que se dirijam
-directamente ao jogador devem respeitar o género definido. Isso inclui:
-
-Diálogos de NPC (npc:say, sendTextMessage)
-
-Broadcasts globais que mencionem o jogador pelo nome
-
-Mensagens de sistema (ex.: ao subir de nível, ao receber conquistas)
-
-Formas de tratamento recomendadas (baseadas no género):
-
-Masculino (100001 = 1): "bem-vindo", "jovem senhor", "nobre guerreiro", "ele", "o"
-
-Feminino (100001 = 2): "bem-vinda", "jovem senhora", "nobre guerreira", "ela", "a"
-
-Não definido (0 ou nil): usar formas neutras ("bem-vinde", "viajante", "aventureiro(a)") ou perguntar.
-
-Exemplo de mensagem adaptada:
+A partir da versão 4.0, todas as mensagens que se dirijam ao personagem devem
+respeitar o pronome definido na coluna players.pronoun, obtido preferencialmente
+pelo módulo pronouns.lua:
 
 lua
-local gender = player:getStorageValue(100001)
-local mensagem
-if gender == 1 then
-    mensagem = "Parabéns, nobre senhor! Você foi promovido."
-elseif gender == 2 then
-    mensagem = "Parabéns, nobre senhora! Você foi promovida."
-else
-    mensagem = "Parabéns, viajante! Você foi promovide."
-end
-player:sendTextMessage(MESSAGE_EVENT_ADVANCE, mensagem)
-Nota sobre a neutralidade: Para personagens cujo género não foi definido,
-prefira sempre uma abordagem de descoberta: "Antes de prosseguir, devo saber:
-sua essência é {masculina} ou {feminina}?". Isto mantém a imersão e garante que
-o jogador se sinta representado.
+dofile('data/MCR Scripts/pronouns.lua')
+local subject = Pronouns.getSubject(player)  -- "he", "she" ou "they"
+local object = Pronouns.getObject(player)    -- "him", "her", "them"
+Exemplos de uso:
+
+Bem-vindo: "Bem-vindo" (he), "Bem-vinda" (she), "Bem-vinde" (they)
+
+Mensagens de sistema: "Parabéns, você foi promovido/a."
+
+Não definido (0): usar formas neutras ("viajante", "aventureiro(a)") ou perguntar
+ao jogador qual o pronome desejado e actualizar players.pronoun.
 
 ================================================================================
 📋 8. TABELA DE ERROR_CODES (ACTUALIZADA)
@@ -280,15 +255,13 @@ invalid_credentials	Nome de conta ou senha incorretos.
 registration_success	Conta criada com sucesso!
 guest_creation_failed	Falha ao criar conta convidada.
 alma_creation_failed	Falha ao criar personagem convidado.
-gender_not_defined	Género do personagem não definido. Escolha {masculino} ou {feminino}.
-gender_updated	Género do personagem actualizado com sucesso.
-login_required	É necessário iniciar sessão primeiro.
+pronoun_not_defined	Pronome do personagem não definido.
 ================================================================================
 ⚠️ ARMADILHAS E LIÇÕES APRENDIDAS (EXTRAÍDAS DO DEVLOG)
 ================================================================================
 
 Acentos corrompidos no cliente e servidor: Scripts Lua de ambas as pontas
-DEVEM ser salvos como ISO-8859-1 para evitar artefatos. (Fase 22.3, correção adicional)
+DEVEM ser salvos como ISO-8859-1 para evitar artefatos. (Fase 22.3)
 
 Mensagens do backend com acentos: Enviar strings acentuadas no JSON do Login
 Server resultava em "jÃi estÃi" no cliente. A solução foi o padrão error_code
@@ -297,10 +270,6 @@ com mapeamento no cliente. (Fase 22.3)
 Console do Canary com "Vers├úo": Os logs em português apareciam corrompidos
 porque o console do Windows usava CP 850. A solução foi adicionar
 SetConsoleOutputCP(CP_UTF8) no main.cpp. (Fase 40)
-
-Arquivos Go com strings acentuadas: Mesmo compilando corretamente, a saída
-HTTP pode ser interpretada como Latin-1 pelo cliente. Por isso o padrão
-error_code foi adotado também no Go. (Fase 22.3)
 
 Destaque no chat: Apenas {chaves} são reconhecidas; qualquer tentativa de
 usar {{#RRGGBB}} falha silenciosamente.
@@ -312,12 +281,6 @@ Windows-1252 (como €, ‚, ƒ) nos scripts, o que é raro.
 
 Mensagens de look do servidor estavam em inglês: Foram traduzidas ("You see"
 → "Você vê") e a máscara de Alma foi aplicada para consistência total.
-
-NOVO: A falta do storage 100001 em mensagens pode fazer com que NPCs tratem
-o jogador de forma neutra. Sempre verifique o storage antes de gerar texto.
-
-NOVO: A palavra "feminina" não estava na lista de sinónimos do Oráculo inicial,
-causando falha na definição de género. Inclua SEMPRE variações óbvias e não‑óbvias.
 
 ================================================================================
 🔍 CHECKLIST DE REVISÃO PARA O ASSISTENTE (TRADUÇÃO E LOCALIZAÇÃO)
@@ -340,7 +303,7 @@ Strings enviadas do backend (Go) usam o padrão error_code (sem acentos)?
 
 O mapeamento error_code → mensagem PT-BR existe no cliente Lua?
 
-Destaque no chat usa apenas {chaves}?
+Destaque no chat usa apenas {chaves} e NUNCA "}?" junto?
 
 O texto soa NATURAL e COERENTE com o universo MCR?
 
@@ -350,20 +313,16 @@ Mensagens do servidor aplicam a máscara de Alma para personagens Guest_*?
 
 Mensagens de look usam "Você vê" (não "You see")?
 
-NOVO: Mensagens dirigidas ao jogador respeitam o género (storage 100001)?
-
-NOVO: Se o género não estiver definido, o texto é neutro ou pergunta ao jogador?
-
-NOVO: Os error_codes de género estão listados e mapeados?
+Mensagens dirigidas ao personagem respeitam o pronome (via pronouns.lua)?
 
 ================================================================================
 📤 COMO ATUALIZAR O REPOSITÓRIO GIT
 ================================================================================
 
 git add "docs/MCR - Guia de Tradução e Localização (PT-BR).txt"
-git commit -m "docs: atualiza guia de tradução com máscara de Alma, género do personagem e novos error_codes"
+git commit -m "docs: atualiza guia de tradução com pronomes nativos e novos error_codes"
 git push origin main
 
 ================================================================================
-FIM DO GUIA DE TRADUÇÃO E LOCALIZAÇÃO (PT-BR) — VERSÃO 3.0
+FIM DO GUIA DE TRADUÇÃO E LOCALIZAÇÃO (PT-BR) — VERSÃO 4.0
 ================================================================================

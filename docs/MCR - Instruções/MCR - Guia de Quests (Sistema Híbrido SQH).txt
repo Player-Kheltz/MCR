@@ -1,6 +1,6 @@
 ================================================================================
 PROJETO MCR – GUIA DE QUESTS (SISTEMA HÍBRIDO SQH)
-(Versão 4.0 – Género do Personagem, Personalidade do NPC e Progressão de Intimidade)
+(Versão 5.0 – Sistema nativo de pronomes, remoção do storage 100001)
 Arquivo: MCR - Guia de Quests (Sistema Híbrido SQH).txt
 ================================================================================
 
@@ -12,14 +12,14 @@ recorrer a janelas modais para progresso de missão.
 
 Este guia contém:
 
-- A filosofia do SQH (actualizada com imersão e género).
+- A filosofia do SQH (actualizada com imersão e pronomes).
 - O fluxograma de interação obrigatório.
 - Destaque de palavras no chat com {chaves}.
 - HUD de Missões (Quest Tracker).
 - Notificações Toast.
-- **NOVO: Uso do género do personagem (storage 100001) e como os NPCs adaptam os diálogos da quest.**
-- **NOVO: Progressão de intimidade (storages 100010+) a influenciar a narrativa da quest.**
-- **NOVO: Personalidade do NPC como molde para o tom da missão.**
+- **ATUALIZADO: Uso do módulo pronouns.lua para pronomes do personagem, em vez do storage 100001.**
+- Progressão de intimidade (storages 100010+) a influenciar a narrativa da quest.
+- Personalidade do NPC como molde para o tom da missão.
 - Directrizes de qualidade.
 - Exemplo completo de implementação actualizado (Sereia Lunar).
 
@@ -60,17 +60,17 @@ Ao criar ou modificar QUALQUER quest no Projeto MCR, o assistente DEVE:
   para cada ponto de decisão: aceite da missão, coleta de itens, verificação
   de quantidade, entrega, recompensa e mudança de storage.
 
-- **NOVO**: Utilizar o **género do personagem** (storage 100001) através da função
-  `NpcUtils.getTratamento(player, gender)` para adaptar pronomes, artigos,
-  vocativos e flexões de género em todas as falas da quest.
+- **ATUALIZADO**: Utilizar o módulo `pronouns.lua` para obter o pronome do
+  personagem (`Pronouns.getSubject(player)`, etc.) em vez do storage 100001.
+  O pronome do personagem é armazenado na coluna nativa `players.pronoun`.
 
-- **NOVO**: A forma como o NPC oferece a missão, comenta o progresso e agradece
-  deve reflectir a **personalidade do NPC** (ver Guia de Narrativa, secção 8)
-  e o **nível de intimidade** com o jogador (storages 100010+).
+- A forma como o NPC oferece a missão, comenta o progresso e agradece
+  deve reflectir a **personalidade do NPC** (ver Guia de Narrativa) e o
+  **nível de intimidade** com o jogador (storages 100010+).
 
-- **NOVO**: Antes de iniciar a quest, se o jogador ainda não tiver o género
-  definido (storage 100001 = 0 ou nil), o NPC deve perguntar e armazenar o
-  valor, de forma adequada à sua personalidade.
+- Antes de iniciar a quest, se o jogador ainda não tiver o pronome definido
+  (`players.pronoun = 0`), o NPC deve perguntar e armazenar o valor, de forma
+  adequada à sua personalidade.
 
 ================================================================================
 🧠 1. FILOSOFIA DO SQH (ATUALIZADA)
@@ -95,10 +95,10 @@ No MCR:
 - JANELAS MODAIS são PROIBIDAS para progresso de missão. Elas quebram a imersão
   e transformam o NPC em um terminal burocrático.
 
-- **NOVO**: A narrativa da quest é PERSONALIZADA ao género do personagem e à
-  relação que o jogador construiu com o NPC. Um NPC amigo trata-o com carinho;
-  um NPC desconfiado pode ser seco no início e tornar-se mais caloroso após a
-  quest. Isto faz cada jornada ser única.
+- **ATUALIZADO**: A narrativa da quest é PERSONALIZADA ao pronome do personagem
+  (via coluna `players.pronoun`) e à relação que o jogador construiu com o NPC.
+  Um NPC amigo trata-o com carinho; um NPC desconfiado pode ser seco no início
+  e tornar-se mais caloroso após a quest. Isto faz cada jornada ser única.
 
 ================================================================================
 🗺️ 2. FLUXOGRAMA DE INTERAÇÃO HÍBRIDA (OBRIGATÓRIO)
@@ -108,10 +108,11 @@ Este é o fluxo padrão que TODA quest do MCR deve seguir. Adaptações são per
 apenas se mantiverem a essência.
 
 **Contexto inicial:**
-- No greetCallback, o NPC verifica o género do personagem (storage 100001).
-  Se não definido, pergunta e guarda (tópico dedicado, ex.: 200).
+- No greetCallback, o NPC verifica o pronome do personagem através de
+  `Pronouns.getSubject(player)`. Se ainda não estiver definido (0), pergunta e
+  guarda no tópico dedicado (ex.: 200), actualizando `players.pronoun`.
 - Verifica o nível de intimidade (storage 100010 + npcId).
-- Adapta a saudação ao género e à personalidade.
+- Adapta a saudação ao pronome e à personalidade.
 
 **SAUDAÇÃO CONTEXTUAL**
 O NPC identifica o jogador e o estado da missão (storages).
@@ -121,7 +122,7 @@ Ex.: "Ah, minha jovem senhora! Vejo que retornou. Conseguiu encontrar as {10 Pel
 O script escuta palavras-chave (usando NpcUtils.correspondeAcao com lista abundante)
 para disparar a oferta de missão.
 Ex.: Se o jogador digitar "missao", "tarefa", "ajuda", "quest".
-Resposta do NPC (adaptada ao género e à personalidade):
+Resposta do NPC (adaptada ao pronome e à personalidade):
 "Preciso que você vá até {Lago dos Reflexos} e me traga {5 Lágrimas de Sereia}.
 O que me diz, nobre senhor/senhora? {aceitar}?"
 
@@ -132,7 +133,7 @@ O jogador DIGITA "aceitar" (ou sinónimo). Isso é processado pela creatureSayCa
 a) Seta storage de missão ativa.
 b) Envia Extended Opcode (faixa 180) para ATUALIZAR o HUD de Missões.
 c) Opcionalmente, dispara um OPCODE_TOAST com "Missão iniciada: Nome da Missão".
-d) NPC dá uma fala de despedida narrativa, personalizada ao género e à intimidade.
+d) NPC dá uma fala de despedida narrativa, personalizada ao pronome e à intimidade.
 
 **ACOMPANHAMENTO PELO HUD**
 Durante a missão, o jogador vê no canto da tela:
@@ -300,38 +301,42 @@ Dinheiro: player:addMoney(valor)
 Todas devem ser anunciadas no chat com destaque por {chaves}.
 
 ================================================================================
-🧬 7. GÉNERO DO PERSONAGEM, PERSONALIDADE E INTIMIDADE NAS QUESTS (NOVA SECÇÃO)
+🧬 7. PRONOME DO PERSONAGEM, PERSONALIDADE E INTIMIDADE NAS QUESTS (ATUALIZADO)
 ================================================================================
 
-7.1 Género do Personagem
-Toda quest deve começar por verificar o storage 100001. Se o jogador ainda não
-tiver género definido, o NPC deve perguntar, de forma coerente com a sua
-personalidade (directa, subtil, etc.). Exemplo para um NPC sábio e caloroso:
+7.1 Pronome do Personagem
+Toda quest deve começar por verificar o pronome do personagem através do módulo
+`pronouns.lua`. Se o jogador ainda não tiver pronome definido (0), o NPC deve
+perguntar, de forma coerente com a sua personalidade (directa, subtil, etc.).
+Exemplo para um NPC sábio e caloroso:
 
-lua
-local gender = player:getStorageValue(100001)
-if not gender or gender < 1 then
-    npcHandler:say("Antes de falarmos de missões, devo saber: sua essência é {masculina} ou {feminina}?", npc, player)
+```lua
+dofile('data/MCR Scripts/pronouns.lua')
+local subject = Pronouns.getSubject(player)  -- consulta players.pronoun
+if subject == "they" then  -- fallback quando pronoun = 0 e sexo não definido
+    npcHandler:say("Antes de falarmos de missões, devo saber: como devo lhe chamar? {Ele} ou {Ela}?", npc, player)
     npcHandler:setTopic(playerId, 200)
     return true
 end
-No tópico 200, a resposta é processada com sinónimos abundantes e o storage
-é actualizado. Após isso, a quest prossegue normalmente.
+No tópico 200, a resposta é processada com sinónimos abundantes e a coluna
+players.pronoun é actualizada (2 para ela, 3 para ele).
 
-Uma vez definido, o NPC usa o género em todas as falas:
+Uma vez definido, o NPC usa o pronome em todas as falas:
 
 lua
-local tr = NpcUtils.getTratamento(player, gender)
-npcHandler:say("Nobre " .. tr.vocativo .. ", {aceita} esta perigosa missão?", npc, player)
+local subject = Pronouns.getSubject(player)
+local artigo = (subject == "she") and "a" or "o"
+npcHandler:say("Nobre " .. artigo .. " viajante, {aceita} esta perigosa missão?", npc, player)
 7.2 Personalidade do NPC
 A forma como o NPC oferece a quest, reage ao progresso e agradece deve ser
 filtrada pela sua personalidade. Exemplos:
 
-Personalidade	Oferecimento da quest	Ao concluir
-Caloroso	"Ah, querido(a) viajante! Tenho um pedido especial..."	"Maravilhoso! Você é realmente incrível!"
-Rude	"Você parece forte. Tem coragem para um trabalho sujo?"	"Até que você presta. Toma, seu pagamento."
-Místico	"As estrelas dizem que você pode restaurar o equilíbrio..."	"O cosmos agradece, guardião dos ventos."
-Comerciante	"Tenho uma proposta comercial para você..."	"Negócio fechado! Volte sempre, cliente preferencial."
+Personalidade Oferecimento da quest Ao concluir
+Caloroso "Ah, querido(a) viajante! Tenho um pedido especial..." "Maravilhoso! Você é realmente incrível!"
+Rude "Você parece forte. Tem coragem para um trabalho sujo?" "Até que você presta. Toma, seu pagamento."
+Místico "As estrelas dizem que você pode restaurar o equilíbrio..." "O cosmos agradece, guardião dos ventos."
+Comerciante "Tenho uma proposta comercial para você..." "Negócio fechado! Volte sempre, cliente preferencial."
+
 7.3 Progressão de Intimidade
 Armazenar o nível de intimidade com cada NPC em storages 100010 + npcId.
 Inicialmente 0 (desconhecido). Após completar a primeira quest para o NPC,
@@ -339,9 +344,7 @@ sobe para 1 (conhecido). Após quests mais importantes, pode subir para 2 (amigo
 ou 3 (confidente). A linguagem do NPC deve reflectir essa evolução:
 
 Intimidade 0: "Viajante, preciso de ajuda."
-
 Intimidade 1: "Ah, o nobre senhor voltou! Já sabia que podia confiar em si."
-
 Intimidade 3: "Meu caríssimo amigo! Sempre há lugar para si na minha mesa."
 
 Esta progressão é transversal: mesmo após a quest, o NPC lembrar-se-á do jogador.
@@ -370,7 +373,7 @@ Os Opcodes usados estão na faixa 180–199.
 
 O NPC utiliza a biblioteca npc_utils.lua para reconhecimento flexível de palavras-chave.
 
-A narrativa está em PT-BR impecável, com personalização por género (storage 100001).
+A narrativa está em PT-BR impecável, com personalização por pronome (via pronouns.lua).
 
 O NPC tem uma personalidade definida e a linguagem da quest reflete-a.
 
@@ -389,12 +392,13 @@ O script do NPC está salvo como ISO-8859-1.
 
 lua
 --[[
-    Projeto MCR – NPC Sereia Lunar
-    Quest: O Lamento da Sereia
-    Salvar como: ISO-8859-1
+Projeto MCR – NPC Sereia Lunar
+Quest: O Lamento da Sereia
+Salvar como: ISO-8859-1
 --]]
 
 dofile('data/MCR Scripts/npc_utils.lua')
+dofile('data/MCR Scripts/pronouns.lua')
 
 local npcName = "Sereia Lunar"
 local npcType = Game.createNpcType(npcName)
@@ -416,7 +420,7 @@ local keywordHandler = KeywordHandler:new()
 local npcHandler = NpcHandler:new(keywordHandler)
 
 local function getItemCount(player, itemId)
-    return player:getItemCount(itemId) or 0
+return player:getItemCount(itemId) or 0
 end
 
 -- Callbacks de engine
@@ -428,130 +432,117 @@ npcType.onSay = function(npc, creature, type, msg) npcHandler:onSay(npc, creatur
 npcType.onCloseChannel = function(npc, player) npcHandler:onCloseChannel(npc, player) end
 
 local function greetCallback(npc, player)
-    local playerId = player:getId()
-    local gender = player:getStorageValue(100001)
+local playerId = player:getId()
+local subject = Pronouns.getSubject(player)
 
-    -- Se não tiver género definido, perguntar antes de qualquer coisa
-    if not gender or gender < 1 then
-        npcHandler:setMessage(MESSAGE_GREET, "Sinto uma alma sem definição... Sua essência é {masculina} ou {feminina}?")
-        npcHandler:setTopic(playerId, 200)
-        return true
-    end
+-- Se não tiver pronome definido, perguntar antes de qualquer coisa
+if subject == "they" then
+npcHandler:setMessage(MESSAGE_GREET, "Sinto uma alma sem definição... Você é {Ele} ou {Ela}?")
+npcHandler:setTopic(playerId, 200)
+return true
+end
 
-    local intimacy = player:getStorageValue(STORAGE_INTIMIDADE) or 0
-    local tr = NpcUtils.getTratamento(player, gender)
+local intimacy = player:getStorageValue(STORAGE_INTIMIDADE) or 0
+local saudacoes = {}
+if intimacy == 0 then
+saudacoes = {
+"Ah, um novo rosto... As águas trouxeram você até mim.",
+"Sinto uma aura curiosa... Bem-vindo(a), viajante das marés."
+}
+elseif intimacy >= 1 then
+saudacoes = {
+"Que alegria ver seu rosto novamente.",
+"As ondas sussurraram seu nome. Como tem passado?"
+}
+end
 
-    local saudacoes = {}
-    if intimacy == 0 then
-        saudacoes = {
-            "Ah, um novo rosto... As águas trouxeram " .. tr.artigo .. " " .. tr.vocativo .. " até mim.",
-            "Sinto uma aura curiosa... Bem-vindo(a), viajante das marés."
-        }
-    elseif intimacy >= 1 then
-        saudacoes = {
-            tr.vocativo .. "! Que alegria ver seu rosto novamente.",
-            "As ondas sussurraram seu nome, " .. tr.vocativo .. ". Como tem passado?"
-        }
-    end
-
-    npcHandler:setMessage(MESSAGE_GREET, NpcUtils.escolherFraseVariada(saudacoes, player))
-    return true
+npcHandler:setMessage(MESSAGE_GREET, NpcUtils.escolherFraseVariada(saudacoes, player))
+return true
 end
 npcHandler:setCallback(CALLBACK_GREET, greetCallback)
 
 local function creatureSayCallback(npc, player, type, msg)
-    if not npcHandler:checkInteraction(npc, player) then return false end
+if not npcHandler:checkInteraction(npc, player) then return false end
 
-    local playerId = player:getId()
-    local gender = player:getStorageValue(100001)
-    local tr = NpcUtils.getTratamento(player, gender)
-    local intimacy = player:getStorageValue(STORAGE_INTIMIDADE) or 0
-    local topic = npcHandler:getTopic(playerId)
+local playerId = player:getId()
+local subject = Pronouns.getSubject(player)
+local intimacy = player:getStorageValue(STORAGE_INTIMIDADE) or 0
+local topic = npcHandler:getTopic(playerId)
 
-    -- Tópico 200: definição do género (igual para qualquer NPC)
-    if topic == 200 then
-        if NpcUtils.correspondeAcao(msg, {"masculino", "homem", "male", "macho", "menino", "rapaz", "garoto", "cavalheiro", "varão", "m", "boy", "man", "masculina"}) then
-            player:setStorageValue(100001, 1)
-            npcHandler:say("As águas reflectem um espírito masculino. Agora, o que o traz ao meu lago?", npc, player)
-            npcHandler:setTopic(playerId, 0)
-            return true
-        elseif NpcUtils.correspondeAcao(msg, {"feminino", "mulher", "female", "fêmea", "menina", "moça", "garota", "dama", "donzela", "princesa", "rainha", "f", "fem", "minina", "muié", "mulé", "femme", "woman", "girl", "feminina"}) then
-            player:setStorageValue(100001, 2)
-            npcHandler:say("Uma alma feminina... As marés dançam à sua volta. Como posso ajudá-la?", npc, player)
-            npcHandler:setTopic(playerId, 0)
-            return true
-        else
-            npcHandler:say("Preciso compreender: sua essência é {masculina} ou {feminina}?", npc, player)
-            return true
-        end
-    end
+-- Tópico 200: definição do pronome
+if topic == 200 then
+if NpcUtils.correspondeAcao(msg, {"ele", "masculino", "homem", "male", "macho", "menino", "rapaz", "garoto", "m", "boy", "man"}) then
+player:setPronoun(PLAYERPRONOUN_HE) -- 3
+npcHandler:say("As águas reflectem um espírito masculino. Agora, o que o traz ao meu lago?", npc, player)
+npcHandler:setTopic(playerId, 0)
+return true
+elseif NpcUtils.correspondeAcao(msg, {"ela", "feminino", "mulher", "female", "fêmea", "menina", "moça", "garota", "dama", "f", "fem", "woman", "girl"}) then
+player:setPronoun(PLAYERPRONOUN_SHE) -- 2
+npcHandler:say("Uma alma feminina... As marés dançam à sua volta. Como posso ajudá-la?", npc, player)
+npcHandler:setTopic(playerId, 0)
+return true
+else
+npcHandler:say("Preciso compreender: você é {Ele} ou {Ela}?", npc, player)
+return true
+end
+end
 
-    -- Diálogos da quest baseados no estado e intimidade
-    if player:getStorageValue(STORAGE_QUEST_SEREIA) < 1 then
-        if NpcUtils.correspondeAcao(msg, {"missao", "quest", "tarefa", "ajuda", "trabalho", "missões", "aventura", "desafio"}) then
-            npcHandler:say(
-                "Preciso que colete para mim {5 Lágrimas de Sereia} no {Lago dos Reflexos}. " ..
-                "Você {aceita} este desafio, " .. tr.artigo .. " " .. tr.vocativo .. "?",
-                npc, player
-            )
-            npcHandler:setTopic(playerId, 1)
-        elseif npcHandler:getTopic(playerId) == 1 and NpcUtils.correspondeAcao(msg, {"aceitar", "sim", "aceito", "claro", "positivo", "yes", "pode ser", "óbvio"}) then
-            player:setStorageValue(STORAGE_QUEST_SEREIA, 1)
-            player:setStorageValue(STORAGE_LAGRIMAS_COLETADAS, 0)
-            local hudData = {
-                titulo = "O Lamento da Sereia",
-                descricao = "Coletar Lágrimas de Sereia",
-                atual = 0,
-                total = QUANTIDADE_NECESSARIA
-            }
-            player:sendExtendedOpcode(OPCODE_QUEST_UPDATE, json.encode(hudData))
-            local toastData = { mensagem = "Missão iniciada: O Lamento da Sereia", cor = "#00BFFF", duracao = 3 }
-            player:sendExtendedOpcode(OPCODE_TOAST, json.encode(toastData))
-            local despedidas = {
-                "Que as marés lhe guiem, nobre " .. tr.vocativo .. ".",
-                "Confio em si, " .. tr.vocativo .. ". Retorne quando tiver as lágrimas."
-            }
-            npcHandler:say(NpcUtils.escolherFraseVariada(despedidas, player), npc, player)
-            npcHandler:setTopic(playerId, 0)
-        end
+-- Diálogos da quest baseados no estado e intimidade
+if player:getStorageValue(STORAGE_QUEST_SEREIA) < 1 then
+if NpcUtils.correspondeAcao(msg, {"missao", "quest", "tarefa", "ajuda", "trabalho", "missões", "aventura", "desafio"}) then
+npcHandler:say(
+"Preciso que colete para mim {5 Lágrimas de Sereia} no {Lago dos Reflexos}. Você {aceita} este desafio?",
+npc, player
+)
+npcHandler:setTopic(playerId, 1)
+elseif npcHandler:getTopic(playerId) == 1 and NpcUtils.correspondeAcao(msg, {"aceitar", "sim", "aceito", "claro", "positivo", "yes", "pode ser", "óbvio"}) then
+player:setStorageValue(STORAGE_QUEST_SEREIA, 1)
+player:setStorageValue(STORAGE_LAGRIMAS_COLETADAS, 0)
+local hudData = {
+titulo = "O Lamento da Sereia",
+descricao = "Coletar Lágrimas de Sereia",
+atual = 0,
+total = QUANTIDADE_NECESSARIA
+}
+player:sendExtendedOpcode(OPCODE_QUEST_UPDATE, json.encode(hudData))
+local toastData = { mensagem = "Missão iniciada: O Lamento da Sereia", cor = "#00BFFF", duracao = 3 }
+player:sendExtendedOpcode(OPCODE_TOAST, json.encode(toastData))
+npcHandler:say("Que as marés lhe guiem. Retorne quando tiver as lágrimas.", npc, player)
+npcHandler:setTopic(playerId, 0)
+end
 
-    elseif player:getStorageValue(STORAGE_QUEST_SEREIA) == 1 then
-        if NpcUtils.correspondeAcao(msg, {"entregar", "consegui", "trouxe", "terminei", "completei", "aqui estão", "pronto"}) then
-            local quantidade = getItemCount(player, ITEM_LAGRIMA_SEREIA)
-            if quantidade >= QUANTIDADE_NECESSARIA then
-                player:removeItem(ITEM_LAGRIMA_SEREIA, QUANTIDADE_NECESSARIA)
-                player:setStorageValue(STORAGE_QUEST_SEREIA, 2)
-                player:setStorageValue(STORAGE_LAGRIMAS_COLETADAS, 0)
-                player:sendExtendedOpcode(OPCODE_QUEST_UPDATE, json.encode({}))
-                local toastData = { mensagem = "Missão concluída: O Lamento da Sereia!", cor = "#FFD700", duracao = 4 }
-                player:sendExtendedOpcode(OPCODE_TOAST, json.encode(toastData))
-                player:addItem(22222, 100) -- VERIFICAR ID
-                player:addExperience(500)
+elseif player:getStorageValue(STORAGE_QUEST_SEREIA) == 1 then
+if NpcUtils.correspondeAcao(msg, {"entregar", "consegui", "trouxe", "terminei", "completei", "aqui estão", "pronto"}) then
+local quantidade = getItemCount(player, ITEM_LAGRIMA_SEREIA)
+if quantidade >= QUANTIDADE_NECESSARIA then
+player:removeItem(ITEM_LAGRIMA_SEREIA, QUANTIDADE_NECESSARIA)
+player:setStorageValue(STORAGE_QUEST_SEREIA, 2)
+player:setStorageValue(STORAGE_LAGRIMAS_COLETADAS, 0)
+player:sendExtendedOpcode(OPCODE_QUEST_UPDATE, json.encode({}))
+local toastData = { mensagem = "Missão concluída: O Lamento da Sereia!", cor = "#FFD700", duracao = 4 }
+player:sendExtendedOpcode(OPCODE_TOAST, json.encode(toastData))
+player:addItem(22222, 100) -- VERIFICAR ID
+player:addExperience(500)
 
-                -- Atualizar intimidade
-                local novaIntimidade = math.min(intimacy + 1, 3)
-                player:setStorageValue(STORAGE_INTIMIDADE, novaIntimidade)
+-- Atualizar intimidade
+local novaIntimidade = math.min(intimacy + 1, 3)
+player:setStorageValue(STORAGE_INTIMIDADE, novaIntimidade)
 
-                local agradecimentos = {
-                    "Obrigada, doce " .. tr.vocativo .. "! O lago está a curar-se graças a si.",
-                    "Minha eterna gratidão, " .. tr.vocativo .. ". As lágrimas voltaram ao lar."
-                }
-                npcHandler:say(NpcUtils.escolherFraseVariada(agradecimentos, player), npc, player)
-                npcHandler:say("Tome os seus {100 Fragmentos de Prata Lunar} e {500 pontos de experiência} como recompensa.", npc, player)
-                npcHandler:setTopic(playerId, 0)
-            else
-                npcHandler:say("Ainda faltam lágrimas. Você tem " .. quantidade .. " de " .. QUANTIDADE_NECESSARIA .. ". Continue procurando, " .. tr.vocativo .. ".", npc, player)
-            end
-        elseif NpcUtils.correspondeAcao(msg, {"missao", "progresso", "status", "faltam"}) then
-            local quantidade = getItemCount(player, ITEM_LAGRIMA_SEREIA)
-            npcHandler:say("Tem " .. quantidade .. " de " .. QUANTIDADE_NECESSARIA .. " {Lágrimas de Sereia}. Continue, " .. tr.vocativo .. "!", npc, player)
-        end
+npcHandler:say("Minha eterna gratidão! As lágrimas voltaram ao lar. Tome os seus {100 Fragmentos de Prata Lunar} e {500 pontos de experiência} como recompensa.", npc, player)
+npcHandler:setTopic(playerId, 0)
+else
+npcHandler:say("Ainda faltam lágrimas. Você tem " .. quantidade .. " de " .. QUANTIDADE_NECESSARIA .. ". Continue procurando.", npc, player)
+end
+elseif NpcUtils.correspondeAcao(msg, {"missao", "progresso", "status", "faltam"}) then
+local quantidade = getItemCount(player, ITEM_LAGRIMA_SEREIA)
+npcHandler:say("Tem " .. quantidade .. " de " .. QUANTIDADE_NECESSARIA .. " {Lágrimas de Sereia}. Continue!", npc, player)
+end
 
-    elseif player:getStorageValue(STORAGE_QUEST_SEREIA) == 2 then
-        npcHandler:say("O lago já está em paz, graças a si, " .. tr.vocativo .. ". Fique por aqui e ouça as ondas.", npc, player)
-    end
+elseif player:getStorageValue(STORAGE_QUEST_SEREIA) == 2 then
+npcHandler:say("O lago já está em paz, graças a você. Fique por aqui e ouça as ondas.", npc, player)
+end
 
-    return true
+return true
 end
 npcHandler:setCallback(CALLBACK_MESSAGE_DEFAULT, creatureSayCallback)
 
@@ -560,6 +551,9 @@ npcHandler:setMessage(MESSAGE_WALKAWAY, "Você partiu sem se despedir...")
 npcHandler:addModule(FocusModule:new(), npcConfig.name, true, true, true)
 
 npcType:register(npcConfig)
+
+text
+
 ================================================================================
 ⚠️ ARMADILHAS E LIÇÕES APRENDIDAS (ATUALIZADAS)
 ================================================================================
@@ -574,11 +568,11 @@ Storages negativas ou zeradas: O Canary trata storage < 0 como inexistente. Use 
 
 Opcode duplicado: Certifique-se de que o opcode usado não conflita com outro sistema. Consulte a tabela de faixas no Guia de Configuração.
 
-NOVO: Sempre verifique o storage 100001 no início de cada interacção e ofereça a definição se estiver em falta. Um NPC que ignore o género parecerá descuidado.
+**NOVO**: Utilize SEMPRE o módulo `pronouns.lua` para obter o pronome do personagem. Não use storage 100001.
 
-NOVO: A progressão de intimidade deve ser visível na linguagem. Não subestime o poder de um "meu caro amigo" após várias quests.
+**NOVO**: A progressão de intimidade deve ser visível na linguagem. Não subestime o poder de um "meu caro amigo" após várias quests.
 
-NOVO: A personalidade do NPC deve ser consistente ao longo de todas as falas. Um NPC rude que de repente fala de forma poética quebra a imersão.
+**NOVO**: A personalidade do NPC deve ser consistente ao longo de todas as falas. Um NPC rude que de repente fala de forma poética quebra a imersão.
 
 ================================================================================
 🔍 CHECKLIST DE REVISÃO PARA O ASSISTENTE (QUESTS)
@@ -602,7 +596,7 @@ NPC utiliza NpcUtils (sinónimos, tratamento, variação)?
 
 IDs de itens verificados (ou marcados como VERIFICAÇÃO PENDENTE)?
 
-Texto em PT-BR impecável, com personalização por género (storage 100001)?
+Texto em PT-BR impecável, com personalização por pronome (via pronouns.lua)?
 
 A personalidade do NPC está reflectida em todas as falas da quest?
 
@@ -610,7 +604,7 @@ A progressão de intimidade é actualizada e visível após a quest?
 
 Script salvo como ISO-8859-1?
 
-Inclui definição de género (tópico 200) se o jogador não o tiver?
+Inclui definição de pronome (tópico 200) se o jogador não o tiver?
 
 ================================================================================
 📤 COMO ATUALIZAR O REPOSITÓRIO GIT
@@ -620,9 +614,9 @@ git add "data/npc/scripts/sereia_lunar.lua"
 git add "data/world/MCR-npc.xml"
 git add "modules/game_questlog/quest_tracker.lua"
 git add "modules/game_toast/toast.lua"
-git commit -m "feat(quest): atualiza SQH com género do personagem, personalidade e intimidade"
+git commit -m "feat(quest): atualiza SQH com sistema nativo de pronomes"
 git push origin main
 
 ================================================================================
-FIM DO GUIA DE QUESTS (SISTEMA HÍBRIDO SQH) — VERSÃO 4.0
+FIM DO GUIA DE QUESTS (SISTEMA HÍBRIDO SQH) — VERSÃO 5.0
 ================================================================================
