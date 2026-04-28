@@ -610,12 +610,11 @@ Inclui definição de pronome (tópico 200) se o jogador não o tiver?
 📤 COMO ATUALIZAR O REPOSITÓRIO GIT
 ================================================================================
 
-git add "data/npc/scripts/sereia_lunar.lua"
-git add "data/world/MCR-npc.xml"
-git add "modules/game_questlog/quest_tracker.lua"
-git add "modules/game_toast/toast.lua"
-git commit -m "feat(quest): atualiza SQH com sistema nativo de pronomes"
+git add "<arquivos alterados>"
+git commit -m "feat(auth): <Comentário>"
 git push origin main
+
+⚠️ PowerShell: aspas duplas em caminhos com espaços.
 
 ================================================================================
 FIM DO GUIA DE QUESTS (SISTEMA HÍBRIDO SQH) — VERSÃO 5.0

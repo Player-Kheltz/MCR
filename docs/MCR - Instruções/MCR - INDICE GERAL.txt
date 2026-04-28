@@ -143,6 +143,16 @@ Esta é a ÚNICA maneira de garantir que nenhuma regra seja violada e que a
 coerência do Projeto MCR seja mantida em todas as camadas.
 
 ================================================================================
+📤 COMO ATUALIZAR O REPOSITÓRIO GIT
+================================================================================
+
+git add "<arquivos alterados>"
+git commit -m "feat(auth): <Comentário>"
+git push origin main
+
+⚠️ PowerShell: aspas duplas em caminhos com espaços.
+
+================================================================================
 🔗 REPOSITÓRIO OFICIAL
 ================================================================================
 GitHub: https://github.com/Player-Kheltz/ProjetoMCR

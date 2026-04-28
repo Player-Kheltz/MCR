@@ -318,9 +318,11 @@ Mensagens dirigidas ao personagem respeitam o pronome (via pronouns.lua)?
 📤 COMO ATUALIZAR O REPOSITÓRIO GIT
 ================================================================================
 
-git add "docs/MCR - Guia de Tradução e Localização (PT-BR).txt"
-git commit -m "docs: atualiza guia de tradução com pronomes nativos e novos error_codes"
+git add "<arquivos alterados>"
+git commit -m "feat(auth): <Comentário>"
 git push origin main
+
+⚠️ PowerShell: aspas duplas em caminhos com espaços.
 
 ================================================================================
 FIM DO GUIA DE TRADUÇÃO E LOCALIZAÇÃO (PT-BR) — VERSÃO 4.0

@@ -104,7 +104,7 @@ O assistente NÃO precisa reaplicá‑las, mas deve conhecê‑las para manuten�
      * OTClient/src/client/creature.cpp: função setName() alterada para, ao receber um nome
        iniciado por "Guest_", armazenar "Alma" no CachedText m_name.
        Código adicionado:
-       ```cpp
+       cpp
        void Creature::setName(const std::string_view name) {
            std::string finalName{ name };
            if (finalName.size() >= 6 && finalName.substr(0, 6) == "Guest_") {
@@ -262,16 +262,14 @@ A comunicação de rede utiliza as portas corretas (8080 HTTP, 7173 game)?
 Se adicionou bindings Lua, a documentação foi atualizada?
 
 ================================================================================
-📤 COMO ATUALIZAR O REPOSITÓRIO GIT APÓS MODIFICAÇÕES
+📤 COMO ATUALIZAR O REPOSITÓRIO GIT
 ================================================================================
 
-Após compilar e testar:
-
-git add OTClient/src/...
-git commit -m "build(cliente): [descrição clara em pt-BR]"
+git add "<arquivos alterados>"
+git commit -m "feat(auth): <Comentário>"
 git push origin main
 
-⚠️ PowerShell: nomes de arquivos com espaços devem ser entre aspas duplas.
+⚠️ PowerShell: aspas duplas em caminhos com espaços.
 
 ================================================================================
 FIM DO GUIA DE COMPILAÇÃO (CLIENTE)

@@ -1,6 +1,6 @@
 ================================================================================
 PROJETO MCR – GUIA DE CRIAÇÃO DE CONTA E PERSONAGEM
-(Versão 4.1 – Persistência de player_pronoun, logout síncrono)
+(Versão 4.2 – Saudação sem pronome, tópicos 5/21, protecção de campos)
 Arquivo: MCR - Guia de Criação de Conta e Personagem.txt
 ================================================================================
 
@@ -19,7 +19,7 @@ Componentes abordados:
 - Definição do pronome da conta (Jogador/Jogadora) e do personagem (Ele/Ela).
 - Validação de nomes (lista branca de caracteres).
 - Integração com Login Server (via /guest_login e opcode de migração).
-- Transição suave para conta permanente (opcode 200) – agora síncrona e <250 ms.
+- Transição suave para conta permanente (opcode 200) – síncrona e <250 ms.
 - Limpeza automática de contas guest para evitar poluição do banco.
 - Máscara de Alma: como o nome Guest_* é exibido como "Alma" em toda a interface.
 
@@ -50,11 +50,11 @@ Componentes abordados:
     mensagens do servidor, o nome Guest_* deve ser exibido como "Alma".
 12. O script do Oráculo (oraculo.lua) e quaisquer scripts auxiliares DEVEM
     conter prints de debug (DEBUG:) que mostrem cada etapa do fluxo.
-13. **ATUALIZADO**: O Oráculo pergunta primeiro o pronome da CONTA (Jogador/Jogadora),
-    que é armazenado em `accounts.player_pronoun`. **AGORA PERSISTIDO TAMBÉM NO
-    GERENCIAMENTO** para que nunca mais seja perguntado. Durante a criação
-    do personagem, pergunta o pronome do PERSONAGEM (Ele/Ela), que é armazenado
-    diretamente na coluna nativa `players.pronoun` (2 = ela, 3 = ele).
+13. **ATUALIZADO**: O Oráculo pergunta o pronome da CONTA (Jogador/Jogadora)
+    apenas após o jogador escolher "Criar" ou, no gerenciamento, se a conta
+    ainda não o tiver definido. O valor é guardado em `accounts.player_pronoun`
+    e nunca mais perguntado. O pronome do PERSONAGEM continua a ser perguntado
+    durante a criação do personagem.
 14. **ATUALIZADO**: A ordem de criação do personagem é Nome → Pronome (Ele/Ela) →
     Sexo (Masculino/Feminino) → Vocação.
 15. **NOVO**: Todas as opções de menu oferecem a possibilidade de {Voltar},
@@ -70,31 +70,29 @@ FLUXO PARA NOVOS JOGADORES (CRIAÇÃO DE CONTA):
    temporária e o personagem Alma.
 3. O cliente automaticamente faz login com as credenciais recebidas e entra no
    jogo com Alma no Salão dos Destinos.
-4. **O Oráculo saúda automaticamente a Alma** (sem necessidade de "hi") e pergunta
-   se é {Jogador} ou {Jogadora} (pronome da conta).
-5. Após a resposta, pergunta se deseja {Criar} uma nova conta ou {Gerenciar}
-   uma já existente.
-6. Se escolher "criar", o Oráculo conduz o diálogo: nome de conta, senha, e
-   opcionalmente criação de personagem (nome, pronome, sexo, vocação).
-7. Após a criação, o Oráculo envia um opcode (200) com as novas credenciais.
-8. O cliente usa o novo método síncrono `g_game.logout(false)` para desligar a
-   Alma e imediatamente inicia o login com a conta permanente, sem retornar
-   ao menu principal. Transição em <250 ms.
+4. **O Oráculo saúda automaticamente a Alma** (sem necessidade de "hi") e
+   pergunta se deseja {Criar} uma nova conta ou {Gerenciar} uma já existente.
+5. Se escolher "criar", o Oráculo pergunta primeiro se é {Jogador} ou {Jogadora},
+   e só depois solicita nome de conta, senha e opcionalmente a criação de
+   personagem.
+6. Se escolher "gerenciar", o Oráculo pede credenciais e, se necessário,
+   pergunta o pronome da conta antes de mostrar as opções de administração.
+7. Após a criação ou selecção de personagem, o Oráculo envia um opcode (200)
+   com as novas credenciais.
+8. O cliente usa o método síncrono `g_game.logout(false)` para desligar a Alma
+   e imediatamente inicia o login com a conta permanente. Transição em <250 ms.
 
 FLUXO PARA JOGADORES EXISTENTES (GERENCIAMENTO DE CONTA):
 1. Jogador clica no botão "Salão dos Destinos".
 2. Mesmo processo: conta guest + Alma.
-3. No Oráculo, após indicar se é {Jogador} ou {Jogadora} (se for o primeiro acesso
-   **e o campo `player_pronoun` estiver 0**), escolhe "gerenciar" e fornece nome
-   de conta e senha.
-4. O Oráculo valida as credenciais contra o banco de dados.
-5. Se autenticado, **recupera o `player_pronoun`**; se for 0, pergunta e
-   **atualiza a coluna**.
-6. Oferece opções: alterar senha, gerenciar personagens (apagar, alterar nome/sexo/pronome),
-   criar novo personagem, ou entrar no jogo.
-7. Para entrar no jogo, o Oráculo envia opcode 200 com as credenciais da conta
-   permanente e o personagem escolhido.
-8. O cliente migra para a conta gerenciada e o jogador assume o personagem.
+3. O Oráculo pergunta se deseja {Criar} ou {Gerenciar}.
+4. Ao escolher "Gerenciar", fornece nome de conta e senha.
+5. O Oráculo valida as credenciais; se `player_pronoun` for 0, pergunta e
+   actualiza a coluna.
+6. Oferece opções: alterar senha, gerenciar personagens, criar novo personagem,
+   ou entrar no jogo.
+7. Para entrar, envia opcode 200 com as credenciais da conta permanente e o
+   personagem escolhido.
 
 ================================================================================
 🌌 2. BOTÃO "SALÃO DOS DESTINOS" (ENTRADA ÚNICA)
@@ -190,36 +188,40 @@ Limpeza automática:
 5.1 SAUDAÇÃO E IDENTIFICAÇÃO
 - O Oráculo saúda automaticamente a Alma assim que ela surge no Salão, sem
   necessidade de "hi". A saudação é gerenciada pelo `onThink` + `MESSAGE_GREET`.
-- A primeira pergunta é: "Você é um {Jogador} ou uma {Jogadora} ?"
-- A resposta define `accounts.player_pronoun` (1 = jogador, 2 = jogadora).
-- **ATUALIZADO**: No gerenciamento de conta existente, se o campo `player_pronoun`
-  for 0, a pergunta é feita e a resposta é gravada com `UPDATE`. Assim que definido,
-  o Oráculo lembra para sempre e não pergunta novamente.
+- **A saudação NÃO pergunta o pronome.** Em vez disso, oferece as opções:
+  "Deseja {Criar} uma nova conta ou {Gerenciar} uma já existente ?"
+- O pronome da conta (Jogador/Jogadora) é perguntado **apenas** quando o jogador
+  escolhe "Criar" ou, durante o gerenciamento, se o campo `accounts.player_pronoun`
+  estiver 0.
+- No fluxo de criação, o Oráculo define `data.playerPronoun` através do tópico 5
+  e depois prossegue para o nome da conta (tópico 10).
+- No fluxo de gerenciamento, se não houver pronome gravado, o Oráculo envia para
+  o tópico 21, onde pergunta e persiste o valor, indo depois para o menu principal
+  (tópico 30).
 
 5.2 FLUXO DE CRIAÇÃO DE CONTA NOVA
-Etapas:
-a. Solicitar nome de conta (3 a 32 caracteres, sem espaços, sem " \ { }).
-b. Solicitar senha (mínimo 3 caracteres, sem espaços, sem " \ { }).
-c. Confirmar senha.
-d. Inserir nova conta na tabela accounts (hash SHA1, player_pronoun incluso).
-e. Perguntar se deseja criar um personagem agora ({Sim}/{Não}).
-f. Se sim, prossegue com:
+a. Após escolher "Criar", o Oráculo pergunta "Você é um {Jogador} ou uma {Jogadora}?" (tópico 5).
+b. Guarda `data.playerPronoun` e ajusta a variável `tratamento`.
+c. Solicita nome de conta (3 a 32 caracteres, sem espaços, sem " \ { }).
+d. Solicita senha (mínimo 3 caracteres, sem espaços, sem " \ { }).
+e. Confirmar senha.
+f. Inserir nova conta na tabela accounts (hash SHA1, player_pronoun incluso).
+g. Perguntar se deseja criar um personagem agora ({Sim}/{Não}).
+h. Se sim, prossegue com:
    - Nome do personagem (lista branca, sem ã/õ, sem Guest_).
    - Pronome ({Ele} ou {Ela}) → salvo em players.pronoun (3 ou 2).
    - Sexo (corpo: {Masculino} ou {Feminino}) → salvo em players.sex.
    - Vocação (flexionada de acordo com o pronome).
-g. Após criação bem-sucedida, o Oráculo pergunta se deseja {Iniciar} a jornada
-   ou {Gerenciar} a conta.
+i. Após criação bem-sucedida, pergunta se deseja {Iniciar} a jornada ou {Gerenciar}.
 
 5.3 FLUXO DE GERENCIAMENTO DE CONTA EXISTENTE
 a. Oráculo solicita: "Digite o nome da sua conta e a senha, separados por um espaço."
 b. Valida as credenciais (consulta accounts e verifica hash SHA1).
 c. **Verifica o campo `player_pronoun`** na tabela `accounts`:
    - Se for 0 (não definido), pergunta "Você é um {Jogador} ou uma {Jogadora}?"
-     e **atualiza a coluna `player_pronoun` com a resposta** (1 ou 2).
-   - Se já estiver definido, recupera o valor e usa-o para todo o diálogo.
-d. Armazena os dados da conta autenticada e oferece menu: {Senha}, {Personagem},
-   {Criar} ou {Entrar}.
+     (tópico 21) e actualiza a coluna.
+   - Se já estiver definido, usa-o e mostra o menu de opções (tópico 30).
+d. Oferece menu: {Senha}, {Personagem}, {Criar} ou {Entrar}.
 e. Subfluxos:
    - Alterar senha: pede nova senha, valida, atualiza hash.
    - Gerenciar personagens: lista personagens, opções de {Apagar} ou {Alterar}
@@ -227,11 +229,18 @@ e. Subfluxos:
    - Criar novo personagem: mesmo fluxo de criação.
    - Entrar: envia opcode 200 com o personagem escolhido.
 
-5.4 OPÇÃO DE VOLTAR
+5.4 PROTEÇÃO DE CAMPOS (NOVO)
+Para evitar que o jogador acidentalmente use palavras de menu como nome ou senha,
+os tópicos 10 (nome da conta), 11 (senha), 40 (nova senha) e 50 (nome do personagem)
+incluem uma verificação inicial: se a mensagem corresponder a qualquer comando de
+menu (Senha, Personagem, Criar, Entrar, Voltar, etc.), a operação é cancelada e o
+Oráculo retorna ao menu apropriado.
+
+5.5 OPÇÃO DE VOLTAR
 Em praticamente todos os menus, o jogador pode digitar {Voltar} para retornar ao
 menu anterior, mantendo a sessão autenticada.
 
-5.5 SEGURANÇA
+5.6 SEGURANÇA
 - Confirmação de senha obrigatória para deletar personagem.
 - Senhas nunca são exibidas ou armazenadas em texto plano.
 
@@ -378,7 +387,7 @@ Logs e depuração
 A máscara é puramente visual e não afeta a lógica de jogo.
 
 ================================================================================
-📋 9. PRONOME DA CONTA E PRONOME DO PERSONAGEM (NOVA SECÇÃO)
+📋 9. PRONOME DA CONTA E PRONOME DO PERSONAGEM
 ================================================================================
 
 A partir da versão 4.0, o Projeto MCR distingue dois conceitos:
@@ -399,19 +408,19 @@ enquanto cada personagem pode ter sua própria identidade independente.
 ================================================================================
 
 - O Oráculo utiliza `onThink` + `MESSAGE_GREET` para saudação automática.
+- A saudação inicial **não** pergunta o pronome; essa pergunta foi movida para os
+  fluxos de criação (tópico 5) e gerenciamento (tópico 21).
 - O módulo `pronouns.lua` está disponível para outros NPCs usarem o sistema nativo.
 - A coluna `players.pronoun` já existe no schema do Canary e não requer migração.
 - A coluna `accounts.player_pronoun` foi adicionada com:
   ALTER TABLE accounts ADD COLUMN player_pronoun TINYINT NOT NULL DEFAULT 0;
-- **ATUALIZADO**: `player_pronoun` é atualizado tanto na criação da conta como no
-  primeiro gerenciamento bem‑sucedido. O Oráculo nunca mais perguntará o pronome
-  da conta depois de definido.
+- `player_pronoun` é actualizado tanto na criação da conta como no primeiro
+  gerenciamento bem‑sucedido, garantindo que o Oráculo nunca mais pergunte.
 - O storage 100001 NÃO é mais usado para pronome do personagem.
-- A migração de conta (opcode 200) usa o novo método C++ `Game::logout`, que desliga
-  a Alma de forma síncrona. Isto reduz o tempo de transição para <250 ms, o mínimo
-  técnico possível sem alterar o protocolo de rede.
-- O callback Lua do opcode 200 chama `g_game.logout(false)` seguido imediatamente de
-  `EnterGame.doAutoLogin`, sem qualquer `scheduleEvent` ou atraso artificial.
+- A migração de conta (opcode 200) usa o método C++ `Game::logout`, que desliga
+  a Alma de forma síncrona em <250 ms.
+- O callback Lua do opcode 200 chama `g_game.logout(false)` seguido imediatamente
+  de `EnterGame.doAutoLogin`, sem atrasos artificiais.
 
 ================================================================================
 ⚠️ ARMADILHAS E LIÇÕES APRENDIDAS (ATUALIZADAS)
@@ -421,14 +430,15 @@ enquanto cada personagem pode ter sua própria identidade independente.
 - Nunca usar "}?" junto; sempre "} ?" para evitar erro visual no cliente.
 - A ordem de criação (nome → pronome → sexo → vocação) foi ajustada para melhor
   narrativa.
-- A distinção entre pronome da conta e do personagem evita confusão e permite
-  que cada personagem tenha identidade própria.
 - Sempre oferecer opção de {Voltar} para evitar que o jogador fique preso.
-- Sempre atualizar `player_pronoun` no gerenciamento para evitar perguntas repetidas.
+- Actualizar `player_pronoun` no gerenciamento para evitar perguntas repetidas.
+- **NOVO**: Os campos de nome e senha agora detectam palavras de menu e cancelam
+  a operação em vez de usá‑las como valor, prevenindo alterações acidentais.
 
 ================================================================================
 🔍 CHECKLIST DE REVISÃO PARA O ASSISTENTE
 ================================================================================
+
 
 Toda a experiência ocorre dentro do OTClient?
 
@@ -472,19 +482,12 @@ Máscara de Alma funciona no cliente e no servidor?
 📤 COMO ATUALIZAR O REPOSITÓRIO GIT
 ================================================================================
 
-git add "OTClient/src/client/creature.cpp"
-git add "OTClient/src/client/creature.h"
-git add "OTClient/src/client/game.cpp"
-git add "OTClient/modules/client_entergame/entergame.lua"
-git add "data/creaturescripts/scripts/player.lua"
-git add "data/events/scripts/on_look.lua"
-git add "data/npc/scripts/oraculo.lua"
-git add "data/MCR Scripts/pronouns.lua"
-git add "data/MCR Scripts/npc_utils.lua"
-git add "LoginServer/src/api/guest.go"
-git commit -m "feat(auth): implementa pronomes nativos e atualiza Oráculo"
+git add "<arquivos alterados>"
+git commit -m "feat(auth): <Comentário>"
 git push origin main
 
+⚠️ PowerShell: aspas duplas em caminhos com espaços.
+
 ================================================================================
-FIM DO GUIA DE CRIAÇÃO DE CONTA E PERSONAGEM (VERSÃO 4.0)
+FIM DO GUIA DE CRIAÇÃO DE CONTA E PERSONAGEM (VERSÃO 4.2)
 ================================================================================

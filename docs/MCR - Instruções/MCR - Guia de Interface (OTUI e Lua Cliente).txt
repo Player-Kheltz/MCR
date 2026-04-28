@@ -1,4 +1,4 @@
-================================================================================
+﻿================================================================================
 PROJETO MCR – GUIA DE INTERFACE (OTUI E LUA CLIENTE)
 Base: OTClient Redemption (opentibiabr/otclient)
 Arquivo: MCR - Guia de Interface (OTUI e Lua Cliente).txt
@@ -15,7 +15,7 @@ no OTClient Redemption para o Projeto MCR. Ele cobre:
 - Catálogo de fontes bitmap disponíveis e como usá-las.
 - Ajustes finos de alinhamento (text-offset).
 - A máscara de Alma na lista de personagens (integração com entergame.lua).
-- **NOVO**: Callback do opcode 200 para migração instantânea de conta.
+- Callback do opcode 200 para migração instantânea de conta.
 
 Sempre que o assistente for criar uma janela, modificar um layout .otui ou
 escrever um script Lua que produza interface visual, DEVE consultar este guia.
@@ -362,9 +362,8 @@ A lista de personagens aplica a máscara de Alma para Guest_* (se aplicável)?
 📤 COMO ATUALIZAR O REPOSITÓRIO GIT
 ================================================================================
 
-git add "OTClient/modules/client_entergame/entergame.lua"
-git add "OTClient/modules/client_entergame/register_window.otui"
-git commit -m "feat(ui): ajustes na interface de registro e máscara de Alma"
+git add "<arquivos alterados>"
+git commit -m "feat(auth): <Comentário>"
 git push origin main
 
 ⚠️ PowerShell: aspas duplas em caminhos com espaços.

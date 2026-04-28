@@ -330,5 +330,15 @@ NOVO: O pronome da conta está em accounts.player_pronoun.
 NOVO: Storages globais (100010–109999) foram considerados e NENHUM sistema está a usar IDs sobrepostos.
 
 ================================================================================
+📤 COMO ATUALIZAR O REPOSITÓRIO GIT
+================================================================================
+
+git add "<arquivos alterados>"
+git commit -m "feat(auth): <Comentário>"
+git push origin main
+
+⚠️ PowerShell: aspas duplas em caminhos com espaços.
+
+================================================================================
 FIM DO GUIA DE CONFIGURAÇÃO (SERVIDOR E REDE) — VERSÃO 3.0
 ================================================================================

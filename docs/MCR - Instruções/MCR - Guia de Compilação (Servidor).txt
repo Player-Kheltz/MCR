@@ -145,14 +145,14 @@ DEVE verificar:
 
 
 ================================================================================
-📤 COMO ATUALIZAR O REPOSITÓRIO GIT APÓS MODIFICAÇÕES
+📤 COMO ATUALIZAR O REPOSITÓRIO GIT
 ================================================================================
 
-Após compilar e testar, se você modificou qualquer arquivo fonte:
+git add "<arquivos alterados>"
+git commit -m "feat(auth): <Comentário>"
+git push origin main
 
-  git add Canary/src/...
-  git commit -m "build(servidor): [descrição clara em pt-BR]"
-  git push origin main
+⚠️ PowerShell: aspas duplas em caminhos com espaços.
 
 ⚠️ PowerShell: nomes de arquivos com espaços devem ser entre aspas duplas.
    Exemplo: git add "Canary/src/canary_server.cpp"

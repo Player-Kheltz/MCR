@@ -298,9 +298,11 @@ NOVO: A rotina de limpeza de contas guest está configurada e testada?
 📤 COMO ATUALIZAR O REPOSITÓRIO GIT
 ================================================================================
 
-git add "docs/MCR - Guia de Banco de Dados e Infraestrutura.txt"
-git commit -m "docs: atualiza guia de banco de dados com colunas de pronome e limpeza"
+git add "<arquivos alterados>"
+git commit -m "feat(auth): <Comentário>"
 git push origin main
+
+⚠️ PowerShell: aspas duplas em caminhos com espaços.
 
 ⚠️ Arquivos de configuração com senhas (config.lua, .env) NÃO são versionados.
 Apenas templates (.example) são commitados.

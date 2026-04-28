@@ -249,14 +249,14 @@ Antes de finalizar qualquer modificação no Login Server, o assistente DEVE ver
 
 
 ================================================================================
-📤 COMO ATUALIZAR O REPOSITÓRIO GIT APÓS MODIFICAÇÕES
+📤 COMO ATUALIZAR O REPOSITÓRIO GIT
 ================================================================================
 
-  git add LoginServer/src/...
-  git commit -m "feat(login): [descrição em pt-BR]"
-  git push origin main
+git add "<arquivos alterados>"
+git commit -m "feat(auth): <Comentário>"
+git push origin main
 
-⚠️ PowerShell: usar aspas duplas em caminhos com espaços.
+⚠️ PowerShell: aspas duplas em caminhos com espaços.
 
 ================================================================================
 FIM DO GUIA DO LOGIN SERVER

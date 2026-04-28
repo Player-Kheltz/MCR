@@ -1,6 +1,6 @@
 ================================================================================
 PROJETO MCR – GUIA DE NARRATIVA E DIÁLOGOS
-(Versão 5.0 – Unificação de seções, sistema nativo de pronomes)
+(Versão 5.1 – Reforço sobre pronome da conta e organização do Oráculo)
 Arquivo: MCR - Guia de Narrativa e Diálogos.txt
 ================================================================================
 
@@ -48,6 +48,8 @@ Ao criar ou modificar QUALQUER script de NPC (.lua) no servidor, o assistente DE
 
 4. Respeitar a distinção entre:
    - Pronome da CONTA (jogador/jogadora): usado apenas pelo Oráculo.
+     **ATUALIZADO**: O Oráculo pergunta o pronome da conta apenas nos fluxos de
+     criação (tópico 5) e gerenciamento (tópico 21), nunca na saudação inicial.
    - Pronome do PERSONAGEM (ele/ela): usado por todos os NPCs e mensagens.
 
 5. Palavras importantes no chat DEVEM ser destacadas com {chaves}, que o
@@ -320,13 +322,12 @@ Progressão de intimidade implementada?
 📤 COMO ATUALIZAR O REPOSITÓRIO GIT
 ================================================================================
 
-git add "data/MCR Scripts/pronouns.lua"
-git add "data/MCR Scripts/npc_utils.lua"
-git add "data/npc/scripts/seu_npc.lua"
-git add "data/world/MCR-npc.xml"
-git commit -m "feat(npc): atualiza guia de narrativa com pronomes nativos"
+git add "<arquivos alterados>"
+git commit -m "feat(auth): <Comentário>"
 git push origin main
 
+⚠️ PowerShell: aspas duplas em caminhos com espaços.
+
 ================================================================================
-FIM DO GUIA DE NARRATIVA E DIÁLOGOS (VERSÃO 5.0)
+FIM DO GUIA DE NARRATIVA E DIÁLOGOS (VERSÃO 5.1)
 ================================================================================
