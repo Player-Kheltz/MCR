@@ -65,7 +65,7 @@ Componentes abordados:
 
 FLUXO PARA NOVOS JOGADORES (CRIAÇÃO DE CONTA):
 1. Jogador clica no botão "Salão dos Destinos" na tela inicial.
-2. O cliente solicita ao Login Server (POST /guest_login) uma conta guest
+2. O cliente solicita ao Login Server (GET /guest_login) uma conta guest
    temporária e o personagem Alma.
 3. O cliente automaticamente faz login com as credenciais recebidas e entra no
    jogo com Alma no Salão dos Destinos.
@@ -106,12 +106,12 @@ Não há mais botão "Criar Conta".
 Evento onClick:
 1. Exibe uma breve mensagem "Conectando ao Salão dos Destinos..." (pode ser um
    label no próprio menu, sem janela modal).
-2. Realiza uma requisição HTTP POST para http://127.0.0.1:8080/guest_login
+2. Realiza uma requisição HTTP GET para http://127.0.0.1:8080/guest_login
    (sem parâmetros, pois é um pedido de conta guest).
 3. Ao receber a resposta JSON {account, password, character}, chama a função
    g_entergame.doAutoLogin(account, password, character).
 4. A função doAutoLogin (implementada em entergame.lua) faz:
-   - HTTP POST /login com account e password.
+   - HTTP GET /login com account e password.
    - Obtém a lista de personagens (que conterá apenas "Alma").
    - Seleciona automaticamente "Alma" e inicia a conexão ao servidor de jogo
      (ProtocolGame na porta 7173).
@@ -211,7 +211,7 @@ b. Valida as credenciais (consulta accounts e verifica hash SHA1).
 c. Se autenticado, armazena os dados e oferece menu: {Senha}, {Personagem},
    {Criar} ou {Entrar}.
 d. Subfluxos:
-   - Alterar senha: pede nova senha, valida, actualiza hash.
+   - Alterar senha: pede nova senha, valida, atualiza hash.
    - Gerenciar personagens: lista personagens, opções de {Apagar} ou {Alterar}
      (nome, sexo, pronome).
    - Criar novo personagem: mesmo fluxo de criação.

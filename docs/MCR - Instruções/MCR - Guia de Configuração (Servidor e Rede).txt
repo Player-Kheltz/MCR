@@ -216,7 +216,7 @@ Se falhar, verificar se o Canary está rodando e se ip = "0.0.0.0" está configu
 - O repositório já está estruturado. Os arquivos sensíveis NÃO são commitados:
   .gitignore da raiz inclui:
     Canary/config.lua
-    LoginServer/.env.txt
+    LoginServer/.env
     MyAAC/config.local.php
 - Sempre que alterar configurações, atualize também os arquivos de exemplo (.example).
 - Nomes de arquivos com espaços exigem aspas duplas no PowerShell:

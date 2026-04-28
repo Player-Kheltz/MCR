@@ -241,10 +241,10 @@ Bem-vindo: "Bem-vindo" (he), "Bem-vinda" (she), "Bem-vinde" (they)
 Mensagens de sistema: "Parabéns, você foi promovido/a."
 
 Não definido (0): usar formas neutras ("viajante", "aventureiro(a)") ou perguntar
-ao jogador qual o pronome desejado e actualizar players.pronoun.
+ao jogador qual o pronome desejado e atualizar players.pronoun.
 
 ================================================================================
-📋 8. TABELA DE ERROR_CODES (ACTUALIZADA)
+📋 8. TABELA DE ERROR_CODES (ATUALIZADA)
 ================================================================================
 
 error_code	Mensagem em PT-BR (cliente)
@@ -255,7 +255,6 @@ invalid_credentials	Nome de conta ou senha incorretos.
 registration_success	Conta criada com sucesso!
 guest_creation_failed	Falha ao criar conta convidada.
 alma_creation_failed	Falha ao criar personagem convidado.
-pronoun_not_defined	Pronome do personagem não definido.
 ================================================================================
 ⚠️ ARMADILHAS E LIÇÕES APRENDIDAS (EXTRAÍDAS DO DEVLOG)
 ================================================================================

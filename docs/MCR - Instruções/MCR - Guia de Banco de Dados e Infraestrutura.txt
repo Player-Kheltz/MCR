@@ -35,7 +35,7 @@ Documentar novos campos ou tabelas para que o assistente saiba da sua existênci
 em interações futuras.
 
 **NOVO**: A coluna `created_at` (INT, default 0) na tabela `accounts` é essencial
-para a limpeza de contas guest. Não a remova ou altere sem actualizar o Login Server.
+para a limpeza de contas guest. Não a remova ou altere sem atualizar o Login Server.
 
 **NOVO**: A coluna `player_pronoun` (TINYINT, default 0) na tabela `accounts`
 armazena o pronome do JOGADOR (0 = não definido, 1 = jogador, 2 = jogadora).

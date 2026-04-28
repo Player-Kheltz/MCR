@@ -27,8 +27,8 @@ Sintaxe OTUI: NUNCA usar chaves { } para agrupar propriedades. NUNCA usar
 comentários com --. A indentação é EXCLUSIVAMENTE com espaços. Widgets devem
 ser filhos diretos da MainWindow para getChildById funcionar.
 
-Fontes: Usar apenas fontes do catálogo oficial (cipsoftFont, verdana--px,
-small--px, etc.). Não usar fontes TrueType sem teste prévio.
+Fontes: Usar apenas fontes do catálogo oficial (cipsoftFont, verdana-11px-rounded, small-9px, etc.).
+Não usar fontes TrueType sem teste prévio.
 
 Strings: Toda string fixa na interface (labels, botões) em PT-BR.
 
@@ -39,7 +39,7 @@ Métodos proibidos no Redemption: Não usar setModal(true), setSize(w,h),
 center(). Preferir propriedades OTML (modal: true, center: true) ou cálculo
 manual de posição (setPosition com coordenadas calculadas).
 
-Comunicação com servidor: Requisições HTTP.post devem ter callback onError.
+Comunicação com servidor: Requisições HTTP.get devem ter callback onError.
 Listeners de Extended Opcode devem verificar se buffer não é nil.
 
 Não usar HorizontalLayout em .otui; usar anchors e margens.
@@ -328,7 +328,7 @@ Scripts Lua com acentos estão salvos como ISO-8859-1?
 
 Métodos proibidos (setModal, setSize duplo, center) NÃO foram usados?
 
-Comunicação HTTP.post tem callback onError? Listeners de opcode checam buffer nil?
+Comunicação HTTP.get tem callback onError? Listeners de opcode checam buffer nil?
 
 Strings da interface estão em PT-BR e foram testadas com acentos?
 

@@ -12,7 +12,7 @@ recorrer a janelas modais para progresso de missão.
 
 Este guia contém:
 
-- A filosofia do SQH (actualizada com imersão e pronomes).
+- A filosofia do SQH (atualizada com imersão e pronomes).
 - O fluxograma de interação obrigatório.
 - Destaque de palavras no chat com {chaves}.
 - HUD de Missões (Quest Tracker).
@@ -21,7 +21,7 @@ Este guia contém:
 - Progressão de intimidade (storages 100010+) a influenciar a narrativa da quest.
 - Personalidade do NPC como molde para o tom da missão.
 - Directrizes de qualidade.
-- Exemplo completo de implementação actualizado (Sereia Lunar).
+- Exemplo completo de implementação atualizado (Sereia Lunar).
 
 ================================================================================
 ⚠️ REGRAS DE REVISÃO PARA O ASSISTENTE (QUESTS – SQH)
@@ -41,7 +41,7 @@ Ao criar ou modificar QUALQUER quest no Projeto MCR, o assistente DEVE:
   evitadas.
 
 - Notificar o cliente via sendExtendedOpcode (faixa 180-199) sempre que o estado
-  da missão mudar, actualizando o HUD e exibindo toasts.
+  da missão mudar, atualizando o HUD e exibindo toasts.
 
 - Persistir o progresso em storages dentro das faixas reservadas (50000–50999
   para missões).
@@ -110,7 +110,7 @@ apenas se mantiverem a essência.
 **Contexto inicial:**
 - No greetCallback, o NPC verifica o pronome do personagem através de
   `Pronouns.getSubject(player)`. Se ainda não estiver definido (0), pergunta e
-  guarda no tópico dedicado (ex.: 200), actualizando `players.pronoun`.
+  guarda no tópico dedicado (ex.: 200), atualizando `players.pronoun`.
 - Verifica o nível de intimidade (storage 100010 + npcId).
 - Adapta a saudação ao pronome e à personalidade.
 
@@ -319,7 +319,7 @@ if subject == "they" then  -- fallback quando pronoun = 0 e sexo não definido
     return true
 end
 No tópico 200, a resposta é processada com sinónimos abundantes e a coluna
-players.pronoun é actualizada (2 para ela, 3 para ele).
+players.pronoun é atualizada (2 para ela, 3 para ele).
 
 Uma vez definido, o NPC usa o pronome em todas as falas:
 
@@ -600,7 +600,7 @@ Texto em PT-BR impecável, com personalização por pronome (via pronouns.lua)?
 
 A personalidade do NPC está reflectida em todas as falas da quest?
 
-A progressão de intimidade é actualizada e visível após a quest?
+A progressão de intimidade é atualizada e visível após a quest?
 
 Script salvo como ISO-8859-1?
 
