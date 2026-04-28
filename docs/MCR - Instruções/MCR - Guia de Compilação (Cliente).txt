@@ -149,8 +149,48 @@ O módulo Lua alma.lua, antes necessário, foi removido por já não ser preciso
 A máscara é puramente visual; o nome real continua a ser usado para autenticação
 e pelo servidor (ex.: NPC Oráculo).
 
-Esta customização resolveu a limitação original do motor, que não expunha métodos
-Lua para alterar o nome de exibição do próprio jogador local.
+Método logout para migração de conta (Game::logout) — NOVA CUSTOMIZAÇÃO
+
+Adicionado método público void logout(bool restartConnection = false) na classe Game.
+
+Declaração em OTClient/src/client/game.h:
+
+cpp
+void logout(bool restartConnection = false);
+Implementação em OTClient/src/client/game.cpp:
+
+cpp
+void Game::logout(bool restartConnection)
+{
+    if (!isOnline())
+        return;
+
+    if (m_protocolGame) {
+        m_protocolGame->sendLogout();
+        m_protocolGame->disconnect();
+        m_protocolGame = nullptr;
+    }
+
+    if (isOnline()) {
+        m_online = false;
+        g_lua.callGlobalField("g_game", "onGameEnd");
+        resetGameStates();
+        m_worldName.clear();
+        m_characterName.clear();
+        g_map.cleanDynamicThings();
+    }
+
+    g_lua.callGlobalField("g_game", "onLogout", restartConnection);
+}
+Registado em Lua no ficheiro OTClient/src/client/luafunctions.cpp:
+
+cpp
+g_lua.bindSingletonFunction("g_game", "logout", &Game::logout, &g_game);
+Este método é chamado pelo callback do opcode 200 (migração de conta do Oráculo) para
+desligar a Alma de forma síncrona e imediata, sem atrasos causados pelo event dispatcher.
+
+A função expõe em Lua g_game.logout(false), permitindo ao cliente trocar de conta
+directamente após receber as novas credenciais.
 
 ================================================================================
 🧩 CONFIGURAÇÕES ESPECÍFICAS DO OTCLIENT PÓS-COMPILAÇÃO

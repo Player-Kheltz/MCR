@@ -15,6 +15,7 @@ no OTClient Redemption para o Projeto MCR. Ele cobre:
 - Catálogo de fontes bitmap disponíveis e como usá-las.
 - Ajustes finos de alinhamento (text-offset).
 - A máscara de Alma na lista de personagens (integração com entergame.lua).
+- **NOVO**: Callback do opcode 200 para migração instantânea de conta.
 
 Sempre que o assistente for criar uma janela, modificar um layout .otui ou
 escrever um script Lua que produza interface visual, DEVE consultar este guia.
@@ -276,7 +277,30 @@ Ver Guia de Compilação (Cliente), secção "Customizações MCR – Máscara d
 
 Certifique-se de que entergame.lua esteja salvo como ISO-8859-1.
 
-O .otui correspondente deve ter o botão com id="createAccountButton" (mantido para compatibilidade), texto "Salão dos Destinos" e onClick: EnterGame.openSalaoDestinos().
+O .otui correspondente deve ter o botão com id="createAccountButton" (mantido para
+compatibilidade), texto "Salão dos Destinos" e onClick: EnterGame.openSalaoDestinos().
+
+📡 CALLBACK DO OPCODE 200 (MIGRAÇÃO DE CONTA)
+
+O cliente escuta o opcode 200 através da seguinte função, registada algures no
+módulo entergame.lua (substituiu a versão anterior que usava scheduleEvent):
+
+lua
+ProtocolGame.registerExtendedOpcode(200, function(protocol, opcode, buffer)
+    if not buffer or #buffer == 0 then return end
+
+    local success, data = pcall(json.decode, buffer)
+    if not success then return end
+
+    -- Desconecta a Alma imediatamente (método C++ síncrono)
+    g_game.logout(false)
+
+    -- Inicia o novo login com as credenciais recebidas
+    EnterGame.doAutoLogin(data.account, data.password, data.character)
+end)
+Este código garante uma transição praticamente instantânea entre a Alma e o
+personagem definitivo, sem atrasos artificiais. A função g_game.logout(false)
+foi implementada em C++ (Game::logout) e registada em luafunctions.cpp.
 
 ================================================================================
 ⚠️ ARMADILHAS E LIÇÕES APRENDIDAS (EXTRAÍDAS DO DEVLOG)
