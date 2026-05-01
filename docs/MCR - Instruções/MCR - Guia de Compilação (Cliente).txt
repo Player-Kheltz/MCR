@@ -1,6 +1,6 @@
 ================================================================================
 PROJETO MCR – GUIA DE COMPILAÇÃO (CLIENTE)
-Base: OTClient Redemption (opentibiabr/otclient) – Protocolo 15.00
+(Versão 2.1 – Tradução do OTClient, escapes octais e look pronominal)
 Arquivo: MCR - Guia de Compilação (Cliente).txt
 ================================================================================
 
@@ -192,6 +192,22 @@ desligar a Alma de forma síncrona e imediata, sem atrasos causados pelo event d
 A função expõe em Lua g_game.logout(false), permitindo ao cliente trocar de conta
 directamente após receber as novas credenciais.
 
+6. **Tradução do código-fonte do OTClient para PT‑BR** (aplica-se a todos os
+   ficheiros .cpp/.h em OTClient/src/).
+   - Pipeline automática supervisionada, com revisão manual.
+   - Uso de escapes octais Latin‑1 para strings acentuadas, garantindo
+     compatibilidade total e eliminando problemas de BOM/encoding.
+   - Protecção rigorosa dos bindings Lua: funções como `Game::logout`,
+     `Creature::setName`, `ProtocolGame::sendExtendedOpcode` mantiveram os
+     nomes originais.
+   - Comentários traduzidos para PT‑BR (com caracteres ASCII sempre que possível).
+
+7. **Comando look com pronome do personagem** (já integrado no servidor e cliente).
+   O módulo `pronouns.lua` é utilizado pelo `on_look.lua` e `player.lua` para
+   que a descrição "Você vê" seja adaptada ao pronome do personagem (ex.: "Você vê
+   um aventureiro" / "uma aventureira"). Isto requer o funcionamento correto do
+   sistema de pronomes (coluna `players.pronoun`).
+
 ================================================================================
 🧩 CONFIGURAÇÕES ESPECÍFICAS DO OTCLIENT PÓS-COMPILAÇÃO
 ================================================================================
@@ -241,6 +257,10 @@ no fluxo MCR.
 Máscara de nome via Lua: Tentativas de alterar o nome de exibição do jogador
 local apenas com scripts Lua falharam porque o motor não expõe essa capacidade.
 A solução exigiu modificar diretamente a função setName() da classe Creature (Fase atual).
+
+- **Escapes octais vs UTF‑8**: Mesmo que o compilador suporte UTF‑8, os escapes
+  octais garantem que o código seja portável e imune a alterações de code page
+  do editor. Use SEMPRE `\xyz` para acentos (ex.: `"N\355vel"`).
 
 ================================================================================
 🔍 CHECKLIST DE REVISÃO PARA O ASSISTENTE (C++ CLIENTE)

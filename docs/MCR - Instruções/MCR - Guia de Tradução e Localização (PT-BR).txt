@@ -1,6 +1,7 @@
 ================================================================================
 PROJETO MCR – GUIA DE TRADUÇÃO E LOCALIZAÇÃO (PT-BR)
-(Versão 4.0 – Remoção do storage 100001, pronomes nativos)
+(Versão 5.0 – Pipeline de tradução automática supervisionada, escapes octais e
+ protecção de bindings)
 Arquivo: MCR - Guia de Tradução e Localização (PT-BR).txt
 ================================================================================
 
@@ -15,8 +16,14 @@ do Brasil em TODAS as camadas do Projeto MCR. Ele define:
 - O uso correto do destaque no chat (apenas {chaves}).
 - Regras gramaticais e de estilo para manter a qualidade do texto.
 - A máscara de Alma para mensagens de "look" e outras interações com personagens convidados.
-- **ATUALIZADO**: Uso do módulo pronouns.lua e da coluna players.pronoun para pronomes.
-- **ATUALIZADO**: Atualização dos error_codes e mapeamento para PT‑BR.
+- Uso do módulo pronouns.lua e da coluna players.pronoun para pronomes.
+- Atualização dos error_codes e mapeamento para PT‑BR.
+- Pipeline de tradução automática supervisionada para C++.
+- Uso de escapes octais (`\243`, `\247`) em literais de string para garantir
+  compatibilidade Latin-1 em todos os compiladores e sistemas.
+- Protecção obrigatória de bindings Lua e ficheiros de cabeçalho (.h/.hpp).
+- Ajuste do comando `look` para respeitar o pronome do personagem.
+- Reforço da máscara de Alma em mensagens do servidor.
 
 Este guia NÃO é opcional. Toda modificação no projeto DEVE passar por suas regras.
 
@@ -45,6 +52,19 @@ assistente DEVE:
    aplicar a máscara de Alma (substituir "Guest_*" por "Alma").
 10. **ATUALIZADO**: Em todas as mensagens dirigidas ao jogador, utilizar o **pronome do personagem**
     obtido via módulo pronouns.lua (Pronouns.getSubject, etc.). NÃO usar storage 100001.
+11. Ao traduzir código C++ (servidor ou cliente), utilizar SEMPRE a pipeline
+    automática supervisionada: ferramentas de tradução automática seguidas de
+    revisão humana. Apenas strings de interface e comentários são traduzidos;
+    nomes de variáveis, funções e bindings Lua permanecem em inglês.
+12. Nos ficheiros .cpp/.h, representar caracteres acentuados através de escapes
+    octais (`\xyz`) com os códigos da tabela Latin-1 (ISO-8859-1). Isto evita
+    problemas de BOM, compilador e encoding do sistema de ficheiros.
+    Exemplo: "Nível" → "N\355vel"; "Vocação" → "Voca\347\343o".
+13. Jamais alterar assinaturas de funções expostas ao Lua (`registerMethod`,
+    `registerClass`). A tradução de strings internas não pode quebrar os nomes
+    dos métodos visíveis nos scripts.
+14. Proteger ficheiros de cabeçalho (.h/.hpp): comentários podem ser traduzidos,
+    mas macros, nomes de classes, enums e inclusões permanecem intactos.
 
 ================================================================================
 📋 1. ESCOPO DE APLICAÇÃO DO PT-BR
@@ -90,8 +110,28 @@ de bugs visuais (acentos corrompidos) no Projeto MCR.
 | Arquivos .xml (spawn, itens)             | UTF-8            | SEM   | MCR-npc.xml, items.xml                 |
 | Arquivos de configuração (.lua, .env)    | UTF-8            | SEM   | config.lua, .env                       |
 | Documentação (.txt)                      | UTF-8            | COM   | MCR - Guia de *.txt                    |
+| Código C++ (servidor e cliente) | UTF-8 COM BOM **ou** ASCII com escapes octais Latin-1 | COM (UTF-8) ou SEM (ASCII) | canary_server.cpp, creature.cpp |
 
 Detalhamento:
+
+⚠️ CÓDIGO C++ (SERVIDOR E CLIENTE):
+A partir da versão 5.0, todo o código-fonte C++ do servidor e do cliente foi
+traduzido para PT-BR utilizando uma pipeline de tradução automática supervisionada.
+Para garantir a máxima compatibilidade e evitar quaisquer artefactos de encoding,
+todas as strings que contêm acentos ou caracteres especiais são representadas
+exclusivamente através de escapes octais da tabela Latin-1 (ISO-8859-1).
+- Exemplo: `"bem-vindo ao Projeto MCR"` pode ser escrito como `"bem-vindo ao Projeto MCR"` (sem acentos) ou, se necessário, `"bem-vindo \340o Projeto MCR"` para "à".
+- NÃO se utiliza UTF-8 directamente nas strings; o ficheiro pode ser salvo como
+  ASCII puro, sem BOM, pois os escapes garantem a representação correcta.
+- Comentários também seguem a mesma regra, embora seja preferível usar apenas
+  caracteres ASCII nos comentários para evitar problemas.
+
+⚠️ PROTEÇÃO DE BINDINGS LUA:
+Durante a tradução, foram preservados todos os nomes de funções e classes
+registados no Lua (ex.: `Player::getPronoun`, `Game::logout`). Nomes de
+parâmetros em C++ podem ser traduzidos nos comentários, mas nunca nos
+`registerMethod` ou `registerClass`.
+
 
 ⚠️ ISO-8859-1 (SCRIPTS LUA – CLIENTE E SERVIDOR):
 Scripts Lua que contenham strings acentuadas e sejam exibidos ao jogador (tanto no
@@ -191,6 +231,8 @@ Lista de termos padronizados (atualizada):
 - "Posição" (não "Position")
 - "Pronome" (para a identidade do personagem, armazenada em players.pronoun)
 - "Sexo" (apenas para a escolha biológica do corpo do personagem)
+- "escapar octal" – representação `\ooo` para caracteres Latin‑1.
+- "pipeline de tradução" – processo automático + revisão.
 
 ================================================================================
 🎭 6. MÁSCARA DE ALMA EM MENSAGENS DO SERVIDOR (REVISADA)
@@ -313,6 +355,17 @@ Mensagens do servidor aplicam a máscara de Alma para personagens Guest_*?
 Mensagens de look usam "Você vê" (não "You see")?
 
 Mensagens dirigidas ao personagem respeitam o pronome (via pronouns.lua)?
+
+Código C++ traduzido seguiu a pipeline automática supervisionada?
+
+Strings acentuadas em C++ foram convertidas para escapes octais Latin‑1?
+
+Nomes de bindings Lua (métodos, classes) permanecem inalterados?
+
+Ficheiros de cabeçalho (.h/.hpp) não tiveram macros ou declarações alteradas?
+
+O comando `look` (servidor) utiliza o módulo `pronouns.lua` para personalizar a descrição?
+
 
 ================================================================================
 📤 COMO ATUALIZAR O REPOSITÓRIO GIT

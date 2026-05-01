@@ -1,6 +1,6 @@
 ================================================================================
 PROJETO MCR – GUIA DE COMPILAÇÃO (SERVIDOR)
-Base: Canary (opentibiabr/canary v3.4.1) – Protocolo 15.00
+(Versão 3.1 – Código-fonte traduzido, escapes octais e protecção de bindings)
 Arquivo: MCR - Guia de Compilação (Servidor).txt
 ================================================================================
 
@@ -122,6 +122,35 @@ O assistente NÃO precisa reaplicá‑las, mas deve conhecê‑las para manuten�
 - **Compilação com vcpkg:** Mantenha o vcpkg atualizado. A versão 3.4.1 do Canary
   foi testada com as bibliotecas listadas; atualizações podem quebrar compatibilidade.
 
+
+================================================================================
+🧬 3‑A. TRADUÇÃO DO CÓDIGO‑FONTE PARA PT‑BR (NOVA SECÇÃO)
+================================================================================
+
+A partir da versão actual do projeto, TODO o código C++ do servidor (Canary/src/)
+foi traduzido para português do Brasil através de uma pipeline automática
+supervisionada. As seguintes directrizes foram aplicadas e DEVEM ser mantidas
+em qualquer modificação futura:
+
+1. **Strings de interface e logs**: todas as mensagens enviadas ao jogador
+   (sendTextMessage, sendCancelMessage, logs de sistema) estão em PT‑BR.
+2. **Representação segura**: caracteres acentuados são codificados como escapes
+   octais da tabela Latin‑1 (ex.: `\340` para 'à', `\347` para 'ç'). Isto
+   torna os ficheiros independentes de BOM e encoding do sistema.
+3. **Bindings Lua intactos**: nenhuma função registada com `registerMethod` ou
+   `registerClass` teve o nome alterado. Apenas comentários e strings internas
+   foram traduzidos.
+4. **Cabeçalhos (.h/.hpp)**: comentários traduzidos, mas definições de classes,
+   macros e inclusões permanecem originais.
+5. **Ferramenta**: foi empregue um tradutor automático com revisão humana;
+   qualquer nova string deve passar pelo mesmo processo ou ser escrita
+   directamente em PT‑BR com escapes octais.
+
+Ao editar um ficheiro .cpp, o assistente DEVE:
+- Usar escapes octais para qualquer carácter fora do ASCII básico.
+- Verificar que nenhum `registerMethod` foi alterado acidentalmente.
+- Manter os comentários em PT‑BR, mas com caracteres seguros (preferir ASCII).
+
 ================================================================================
 🔍 CHECKLIST DE REVISÃO PARA O ASSISTENTE (C++ SERVIDOR)
 ================================================================================
@@ -142,6 +171,14 @@ DEVE verificar:
 - [ ] Toda nova consulta SQL utiliza placeholders parametrizados (evitar concatenação)?
 
 - [ ] A compilação foi verificada (sem warnings novos) e a funcionalidade testada manualmente antes do commit?
+
+- [ ] Todas as novas strings acentuadas usam escapes octais Latin‑1?
+
+- [ ] Nomes de bindings Lua (métodos, classes) permanecem inalterados?
+
+- [ ] Ficheiros de cabeçalho (.h/.hpp) não sofreram alterações indevidas?
+
+- [ ] Comentários em PT‑BR não contêm caracteres não‑ASCII (ou usam escapes)?
 
 
 ================================================================================

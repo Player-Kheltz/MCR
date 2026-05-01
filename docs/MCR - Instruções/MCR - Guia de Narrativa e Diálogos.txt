@@ -118,6 +118,11 @@ npcHandler:say("Que " .. subject .. " seja bem-vindo" .. (subject == "she" and "
 O módulo utiliza as constantes PLAYERPRONOUN_HE, PLAYERPRONOUN_SHE, etc.,
 que são expostas pelo servidor.
 
+- O comando `look` do servidor (creaturescripts e eventos) agora chama
+  `Pronouns.getSubject(player)` para flexionar a descrição. Exemplo:
+  "Você vê um viajante." / "Você vê uma viajante."
+  A máscara de Alma também é aplicada para personagens Guest_.
+
 ================================================================================
 📚 3. BIBLIOTECA NPC_UTILS.LUA (OBRIGATÓRIA)
 ================================================================================
