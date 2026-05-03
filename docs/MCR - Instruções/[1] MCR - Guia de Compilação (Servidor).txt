@@ -1,0 +1,168 @@
+PROJETO MCR – GUIA DE COMPILAÇÃO (SERVIDOR)
+Versão 3.2 – Pipeline de tradução automática, escapes octais e protecção de bindings
+Arquivo: MCR - Guia de Compilação (Servidor).txt
+
+🎯 OBJETIVO DESTE GUIA
+Fornecer todas as instruções, dependências, customizações e verificações necessárias para compilar o servidor Canary do Projeto MCR a partir do código‑fonte. Este guia também estabelece as regras que o assistente DEVE seguir ao auxiliar em tarefas relacionadas à compilação, modificação de arquivos C++ ou adição de bindings Lua.
+
+⚠️ REGRAS DE REVISÃO PARA O ASSISTENTE (C++ – SERVIDOR CANARY)
+
+Ao modificar QUALQUER arquivo .cpp/.h no diretório Canary/src/, o assistente DEVE:
+
+Garantir que TODAS as strings visíveis ao jogador (sendTextMessage, sendCancelMessage, logs de sistema) estejam em PT‑BR, com acentuação correcta. Os caracteres acentuados DEVEM ser escritos como escapes octais Latin‑1 (ex.: "N\355vel").
+
+Manter comentários em PT‑BR, excepto em nomes de funções/variáveis que permanecem em inglês (camelCase ou snake_case).
+
+Verificar se a alteração mantém compatibilidade com o protocolo 15.00 e não quebra bindings Lua existentes (registerMethod, registerClass).
+
+Se adicionar novos métodos expostos ao Lua, seguir a convenção de nomenclatura minúsculas_com_underscore e incluir validação de parâmetros (número e tipo).
+
+Se alterar comunicação de rede (ProtocolGame), garantir que opcodes estendidos estejam na faixa reservada (160–255) e sejam documentados.
+
+Toda nova consulta SQL DEVE usar placeholders parametrizados (evitar concatenação).
+
+Após a edição, listar explicitamente os arquivos modificados para compilação selectiva.
+
+📦 DEPENDÊNCIAS (AMBIENTE WINDOWS)
+
+Ferramentas Obrigatórias:
+
+Visual Studio 2022 (Community ou superior) com carga de trabalho "Desenvolvimento para desktop com C++".
+
+CMake 3.20 ou superior (adicionar ao PATH).
+
+Git for Windows.
+
+vcpkg (gerenciador de bibliotecas). Instale em C:\vcpkg (ou caminho sem espaços).
+
+Comandos de instalação do vcpkg:
+git clone https://github.com/Microsoft/vcpkg.git C:\vcpkg
+cd C:\vcpkg
+.\bootstrap-vcpkg.bat
+.\vcpkg integrate install
+
+Bibliotecas Requeridas (instalar via vcpkg, para x64-windows):
+.\vcpkg install boost-beast:x64-windows boost-asio:x64-windows
+.\vcpkg install boost-filesystem:x64-windows boost-system:x64-windows
+.\vcpkg install boost-variant:x64-windows libmariadb:x64-windows
+.\vcpkg install lua:x64-windows pugixml:x64-windows cryptopp:x64-windows
+.\vcpkg install fmt:x64-windows spdlog:x64-windows nlohmann-json:x64-windows
+.\vcpkg install gtest:x64-windows (opcional, para testes)
+
+Observação: os pacotes podem mudar de nome; consulte o README.md do repositório canary para obter a lista exacta para a versão 3.4.1.
+
+🔨 PROCEDIMENTO DE COMPILAÇÃO (PADRÃO)
+
+Clone o repositório MCR (já contém os fontes customizados):
+git clone https://github.com/Player-Kheltz/ProjetoMCR.git
+cd ProjetoMCR\Canary
+
+Configure o CMake (substitua o caminho do vcpkg pelo seu):
+mkdir build
+cd build
+cmake .. -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows
+
+Compile:
+cmake --build . --config Release
+
+O executável será gerado em build\Release\canary.exe.
+
+Copie o executável para a raiz do servidor (onde estão data/, config.lua) ou configure o output directamente com cmake --install . (se configurado).
+
+🧬 CUSTOMIZAÇÕES MCR JÁ APLICADAS AO CÓDIGO‑FONTE
+
+As seguintes modificações já estão presentes nos fontes do repositório ProjetoMCR/Canary. O assistente NÃO precisa reaplicá‑las, mas deve conhecê‑las para manutenção e depuração.
+
+Console UTF‑8 (main.cpp)
+Dentro da função main(), bloco condicional para Windows:
+#ifdef _WIN32
+SetConsoleOutputCP(CP_UTF8);
+SetConsoleCP(CP_UTF8);
+#endif
+GARANTE que os logs em português apareçam com acentuação correcta no terminal.
+
+Identidade do Servidor (canary_server.cpp / canary_server.hpp)
+
+Todas as strings de log traduzidas para PT‑BR: Ex.: "Canary - Version..." → "Projeto MCR - Versão...".
+
+Título da janela do console (Windows) alterado para "Projeto MCR".
+
+Mensagem da excepção FailedToInitializeCanary traduzida.
+
+Créditos originais da OpenTibiaBR preservados nos cabeçalhos.
+
+Bindings Lua Preservados
+Nenhuma remoção de métodos. Apenas adições documentadas. A base permanece idêntica ao Canary 3.4.1.
+
+🛠️ PIPELINE DE TRADUÇÃO AUTOMÁTICA
+
+A partir da versão actual, TODO o código C++ do servidor foi traduzido para PT‑BR através de uma pipeline automática supervisionada. As directrizes abaixo DEVEM ser mantidas em qualquer modificação futura:
+
+Strings de interface e logs: todas as mensagens enviadas ao jogador estão em PT‑BR.
+
+Representação segura: caracteres acentuados são codificados como escapes octais da tabela Latin‑1 (ex.: \340 para 'à', \347 para 'ç'). Isto torna os ficheiros independentes de BOM e encoding do sistema.
+
+Bindings Lua intactos: nenhuma função registada com registerMethod ou registerClass teve o nome alterado. Apenas comentários e strings internas foram traduzidos.
+
+Cabeçalhos (.h/.hpp): comentários traduzidos, mas definições de classes, macros e inclusões permanecem originais.
+
+Ferramentas: foi empregue um tradutor automático com revisão humana; qualquer nova string deve passar pelo mesmo processo ou ser escrita directamente em PT‑BR com escapes octais.
+
+Ao editar um ficheiro .cpp, o assistente DEVE:
+
+Usar escapes octais para qualquer carácter fora do ASCII básico.
+
+Verificar que nenhum registerMethod foi alterado acidentalmente.
+
+Manter os comentários em PT‑BR, mas com caracteres seguros (preferir ASCII).
+
+Consulte a lista completa de scripts da pipeline no Índice Geral (Ferramentas de Automação).
+
+⚠️ ARMADILHAS E LIÇÕES APRENDIDAS
+
+Codificação de console: Apenas salvar os fontes como UTF‑8 com BOM NÃO garante exibição correcta no console do Windows. É imprescindível usar SetConsoleOutputCP(CP_UTF8) e SetConsoleCP(CP_UTF8) no main.cpp (Fase 40).
+
+Tradução de logs: Ao traduzir strings em C++, certifique‑se de que todas as ocorrências da mensagem original foram localizadas. Use busca em todo o projecto.
+
+Conexão com MariaDB: O Canary usa libmariadb. Se houver erro "Access denied", verificar se a senha em config.lua corresponde à definida no XAMPP e se o serviço MySQL/MariaDB está rodando (Fase 33).
+
+Compilação com vcpkg: Mantenha o vcpkg actualizado. A versão 3.4.1 do Canary foi testada com as bibliotecas listadas; actualizações podem quebrar compatibilidade.
+
+Escapes octais vs UTF‑8: Mesmo que o compilador suporte UTF‑8, os escapes octais garantem que o código seja portável e imune a alterações de code page do editor. Use SEMPRE \ooo para acentos.
+
+🔍 CHECKLIST DE REVISÃO PARA O ASSISTENTE (C++ SERVIDOR)
+
+Antes de finalizar qualquer modificação em arquivos .cpp/.h do Canary, o assistente DEVE verificar:
+
+Strings visíveis ao jogador (sendTextMessage, sendCancelMessage) estão em PT‑BR e com acentuação correcta (escapada em octal)?
+
+Comentários e nomes de funções auxiliares auto‑documentáveis estão em PT‑BR?
+
+A modificação mantém compatibilidade com o protocolo 15.00 e não quebra bindings Lua existentes?
+
+Novos métodos expostos ao Lua (registerMethod, registerClass) seguem a convenção minúsculas_com_underscore e incluem validação de parâmetros?
+
+Se a alteração envolve rede (ProtocolGame), os opcodes estendidos estão dentro das faixas MCR (160‑255) e documentados?
+
+Toda nova consulta SQL utiliza placeholders parametrizados (evitar concatenação)?
+
+A compilação foi verificada (sem warnings novos) e a funcionalidade testada manualmente antes do commit?
+
+Todas as novas strings acentuadas usam escapes octais Latin‑1?
+
+Nomes de bindings Lua (métodos, classes) permanecem inalterados?
+
+Ficheiros de cabeçalho (.h/.hpp) não sofreram alterações indevidas?
+
+Comentários em PT‑BR não contêm caracteres não‑ASCII (ou usam escapes)?
+
+📤 COMO ATUALIZAR O REPOSITÓRIO GIT
+
+git add "<arquivos alterados>"
+git commit -m "feat(auth): <Comentário>"
+git push origin main
+
+⚠️ PowerShell: aspas duplas em caminhos com espaços.
+
+FIM DO GUIA DE COMPILAÇÃO (SERVIDOR) — VERSÃO 3.2
+
