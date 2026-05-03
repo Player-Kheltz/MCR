@@ -1,0 +1,211 @@
+PROJETO MCR – GUIA DE EXPERIÊNCIA DO JOGADOR
+Versão 1.0 – A jornada completa, da Alma ao herói
+Arquivo: MCR - Guia de Experiencia do Jogador.txt
+
+🎯 OBJETIVO DESTE GUIA
+Fornecer ao assistente/desenvolvedor uma visão completa e integrada daquilo que o jogador vê, sente e percorre no Projeto MCR — do primeiro clique no Salão dos Destinos até à consagração como herói de um mundo vivo. Este guia funciona como bússola de design: cada decisão técnica (interface, fluxo de criação, diálogos, progressão) deve ser validada contra a experiência descrita aqui. Se um sistema não contribui para esta jornada, ou a enfraquece, está a violar os pilares do projecto.
+
+⚠️ REGRAS DE REVISÃO PARA O ASSISTENTE (EXPERIÊNCIA DO JOGADOR)
+
+Ao projectar ou modificar QUALQUER sistema, interface ou interacção, o assistente DEVE:
+
+Imersão contínua — O jogador nunca sai do OTClient. Não há sites, pop‑ups externos ou ferramentas fora do jogo para funções essenciais.
+
+Narrativa natural — Toda interacção administrativa (criar conta, alterar senha, gerir personagens) é mediada por diálogo no chat com personalidade. Nada de terminais frios.
+
+Respeito pela identidade — O mundo reconhece o pronome do personagem e reage de forma coerente. Nenhum NPC trata o jogador de forma genérica quando já existe relação.
+
+Feedback constante — Cada acção tem resposta visual ou textual: HUD, toasts, falas de NPC, animações. O jogador nunca se pergunta "funcionou?".
+
+Curva de aprendizagem suave — Os primeiros passos ensinam sem parecer um tutorial. O Salão dos Destinos, o Oráculo e as primeiras missões são a escola natural do aventureiro.
+
+Progressão com significado — Subir de nível, completar missões ou ganhar a confiança de um NPC altera a forma como o mundo reage. O jogador não é apenas mais um; é uma presença acumulativa.
+
+Estilo dual — Sempre que possível, usar um tom inspirador e imersivo para descrever a experiência e um tom técnico e directo para explicar o fluxo ao assistente.
+
+🌌 1. A PORTA ENTRE MUNDOS — O SALÃO DOS DESTINOS
+
+"O Projeto MCR não é apenas um servidor de Tibia. É uma porta entre mundos. No instante em que o jogador clica no Salão dos Destinos, abandona o universo real e desperta como Alma — uma consciência sem forma, flutuando no plano etéreo. O Oráculo, guardião dos limiares, não processa formulários: ele lê o espírito de quem o visita. Cada escolha — pronome, vocação, nome — é um acto de criação, não uma configuração. E quando o novo aventureiro finalmente pisa no templo de principiantes, o silêncio sagrado é quebrado apenas pelo sussurro do vento… e pela sensação de que esta jornada, desta vez, é verdadeiramente sua."
+
+Na prática, o fluxo é:
+
+O jogador clica no botão "Salão dos Destinos" (não há "Criar Conta" separado).
+
+O cliente solicita uma conta guest temporária ao Login Server (GET /guest_login) e recebe um personagem descartável chamado Alma.
+
+O jogador entra automaticamente no Salão dos Destinos com Alma.
+
+O Oráculo saúda Alma automaticamente e oferece as opções {Criar} ou {Gerenciar}.
+
+A partir daqui, o jogador nunca vê uma interface de registo tradicional — tudo é conversa.
+
+🔮 2. A CRIAÇÃO DO EU — CONTA E PERSONAGEM
+
+"Diante do Oráculo, o silêncio tem peso. As perguntas não são feitas por curiosidade, mas por necessidade cósmica. 'És Jogador ou Jogadora?' — a primeira distinção, a que define como o guardião se dirige a ti para sempre. Depois, o nome da tua essência, a senha que sela o vínculo. E, por fim, a criação da tua forma: nome, pronome, corpo, vocação. O Oráculo não emite recibos; ele testemunha um nascimento."
+
+Fluxo técnico para o assistente:
+
+Pronome da conta (Jogador/Jogadora): perguntado no tópico 5 (criação) ou 21 (gerenciamento). Armazenado em accounts.player_pronoun (1 ou 2). Não se repete.
+
+Nome de conta e senha: validados com protecção de campos (tópicos 10, 11).
+
+Personagem: criado na ordem Nome → Pronome (Ele/Ela) → Sexo (corpo) → Vocação.
+
+Pronome do personagem: armazenado em players.pronoun (2 ou 3), usado por todos os NPCs.
+
+Validação de nomes: lista branca de caracteres; bloqueio de 'ã', 'õ' e prefixo "Guest_".
+
+Opcode 200: migração instantânea da conta guest para a permanente com logout síncrono (<250 ms).
+
+Após a criação (ou selecção de personagem existente), o Oráculo pergunta se deseja {Iniciar} a jornada ou {Gerenciar}. O jogador nunca precisa decorar comandos — as opções estão sempre destacadas com {chaves}.
+
+🗺️ 3. O DESPERTAR — PRIMEIROS PASSOS NO MUNDO
+
+"O templo de principiantes recebe o aventureiro com a luz suave de velas e o murmúrio de fontes antigas. Não há pressa. Um NPC ancião aproxima‑se e oferece as boas‑vindas, tratando‑o pelo pronome que o Oráculo já registou. As primeiras tarefas — 'leva este recado ao ferreiro', 'apanha ervas para o boticário' — são simples, mas revelam que este mundo fala, reage e lembra."
+
+Estrutura para o assistente:
+
+O script de login (login.lua) posiciona o novo personagem no templo de principiantes.
+
+O primeiro NPC de boas‑vindas utiliza o módulo pronouns.lua para saudar correctamente.
+
+As primeiras missões (SQH) são mini‑tutoriais disfarçados: ensinam a usar o chat (reconhecer {destaque}), a entregar itens e a ver o progresso no HUD.
+
+A progressão de intimidade começa aqui: o NPC recorda o jogador nos encontros seguintes.
+
+📜 4. O MUNDO REAGE — PERSONALIZAÇÃO E IMERSÃO NARRATIVA
+
+"Ao contrário dos mundos estáticos, no Projeto MCR a identidade do jogador ecoa. Uma feiticeira não é tratada como 'jovem aventureiro' genérico — é 'jovem feiticeira'. O ferreiro rude que antes resmungava agora saúda com um aceno de cabeça, porque o jogador já lhe prestou um favor. Cada NPC tem personalidade própria: o sábio fala com poesia, o mercador com astúcia, o guarda com secura."
+
+Mecanismos envolvidos:
+
+Pronomes: Pronouns.getSubject(player), getObject(), getPossessive() — todos os NPCs usam.
+
+Intimidade: storages 100010+ guardam o nível de relação (0 a 3). A linguagem evolui com o nível.
+
+Personalidade do NPC: definida no Guia de Narrativa e Diálogos; cada um tem voz única.
+
+Flexão de vocação: a biblioteca npc_utils.lua oferece funções para adaptar o discurso.
+
+Consistência visual: a máscara de Alma garante que o personagem guest nunca apareça como "Guest_*", mas sempre como "Alma".
+
+⚔️ 5. PROGRESSÃO E SISTEMAS DE JOGO
+
+O jogador avança através de:
+
+Missões (SQH): oferecidas no chat, com destaque visual. Progresso visível no HUD. Conclusão notificada por toast. NUNCA se usam janelas modais para aceitar, recusar ou progredir missões.
+
+Combate: equilibrado pelas rates definidas no config.lua. Monstros têm nomes traduzidos (via pipeline) e loots convertidos para IDs.
+
+Economia: ouro, platina, cristal. Conversão automática via gold converter. Loja in‑game acessível por comando no chat, com diálogo introdutório.
+
+Evolução de habilidades: skills, magias, promoções de vocação — tudo anunciado no chat e com feedback visual.
+
+O assistente deve garantir que a progressão nunca exija conhecimento externo: o jogo ensina jogando.
+
+💬 6. INTERFACE E FEEDBACK — CHAT, HUD, TOASTS E MODAIS
+
+"Cada acção tem uma resposta. O chat não é apenas um canal de conversa: é o palco onde as histórias acontecem. As palavras importantes brilham num azul subtil, indicando o caminho sem o impor. No canto do ecrã, o HUD de missões sussurra o progresso — '2 de 5 lágrimas recolhidas'. E quando a tarefa se completa, um brinde visual celebra o feito."
+
+Regras técnicas:
+
+Chat: único método de interacção narrativa. Destaque EXCLUSIVAMENTE com {chaves}. Nunca usar }? junto; sempre } ?.
+
+HUD de Missões: actualizado via opcode 180. Mostra título, descrição e progresso (x/y).
+
+Toasts: opcode 181. Mensagens temporárias de sucesso, falha ou informação. Não substituem o chat.
+
+Janelas modais: RESTRITAS a Banco, Loja e confirmações críticas irreversíveis (ex.: apagar personagem). Sempre precedidas de fala narrativa no chat.
+
+🤝 7. COMUNIDADE E INTERACÇÃO SOCIAL
+
+O Projeto MCR não é uma experiência solitária:
+
+Grupos (Party): partilha de experiência e loot, gerida pelos parâmetros do config.lua.
+
+Guildas: criação, gestão e guerras — suportadas pelo sistema nativo do Canary.
+
+PvP: configurável, com suporte a frag handler.
+
+Comunicação entre jogadores: canais de chat, mensagens privadas. As mensagens respeitam a máscara de Alma.
+
+O design social deve ser sempre opcional e integrado: nenhum sistema força o jogador a interagir, mas todos o convidam naturalmente.
+
+🏆 8. DIFERENCIAIS E VALORES DO PROJECTO
+
+O que distingue o Projeto MCR de outros servidores:
+
+100% no cliente: sem site, sem phpMyAdmin para o jogador, sem ferramentas externas.
+
+Imersão narrativa: cada NPC sente, lembra e fala de forma única.
+
+Respeito à identidade: pronome da conta e pronome do personagem separados e consistentes.
+
+Tradução total para PT‑BR: nomes de itens, monstros, diálogos, logs — tudo em português.
+
+Código aberto e customizável: o assistente e o desenvolvedor têm controlo total sobre o código‑fonte.
+
+Pipeline de tradução automatizada: permite manter a localização actualizada com esforço mínimo.
+
+Ambientação original: desvinculada do Tibia oficial, com história, geografia e mitologia próprias.
+
+🚀 9. O FUTURO DA EXPERIÊNCIA
+
+"O horizonte está sempre a expandir‑se. Novos sistemas surgirão: eventos dinâmicos que respondem às acções dos jogadores, expansões do mapa que revelam territórios inexplorados, e funcionalidades que aprofundam a ligação entre o mundo e quem o habita. O que não muda é a promessa: o jogador nunca deixará de ser o centro da história."
+
+Para o assistente: ao implementar novas funcionalidades, siga sempre os pilares (Índice Geral) e valide contra os checklists de experiência. Um sistema novo só é bem‑vindo se melhorar a jornada do jogador, nunca se a complicar.
+
+🔗 10. INTEGRAÇÃO COM OS OUTROS GUIAS
+
+Este guia está ligado a todos os outros. Eis as referências essenciais para cada aspecto da experiência:
+
+Aspecto da Experiência	Guias de Referência
+Criação de conta e personagem	[8] Criação de Conta e Personagem
+Diálogos, pronomes e intimidade	[6] Narrativa e Diálogos
+Missões e progresso visual	[7] Quests (Sistema Híbrido SQH)
+Codificação de textos	[10] Tradução e Localização (PT‑BR)
+Interface do cliente	[5] Interface (OTUI e Lua Cliente)
+Configuração de portas e redes	[3] Configuração (Servidor e Rede)
+Autenticação e guest accounts	[4] Login Server
+Dados e schema	[9] Banco de Dados e Infraestrutura
+Compilação e customizações	[1] Compilação (Servidor) / [2] Compilação (Cliente)
+Pilares e regras gerais	[Índice Geral] MCR - INDICE GERAL
+🔍 CHECKLIST DE REVISÃO PARA O ASSISTENTE (EXPERIÊNCIA DO JOGADOR)
+
+Antes de finalizar QUALQUER funcionalidade, o assistente DEVE verificar:
+
+O jogador consegue completar o fluxo de criação de conta e personagem sem sair do OTClient?
+
+O Oráculo saúda automaticamente e pergunta pronome da conta apenas uma vez?
+
+A ordem de criação do personagem é Nome → Pronome → Sexo → Vocação?
+
+As validações de nome são aplicadas (lista branca, sem ã/õ, sem Guest_)?
+
+A máscara de Alma funciona em todos os contextos visuais?
+
+Os pronomes do personagem são respeitados por todos os NPCs?
+
+As missões usam exclusivamente {chaves} no chat e NUNCA janelas modais?
+
+O HUD de missões é actualizado via opcode 180 e os toasts via 181?
+
+A progressão de intimidade afecta a linguagem dos NPCs?
+
+As janelas modais são usadas apenas para Banco, Loja e acções irreversíveis?
+
+Todo o texto visível está em PT‑BR e foi salvo como ISO‑8859‑1 (Lua) ou com escapes octais (C++)?
+
+Os sistemas de grupo, guilda e PvP estão acessíveis e funcionais?
+
+O novo conteúdo contribui para a imersão e não complica a jornada?
+
+📤 COMO ATUALIZAR O REPOSITÓRIO GIT
+
+git add "docs/MCR - Guia de Experiencia do Jogador.txt"
+git commit -m "docs: adiciona Guia de Experiência do Jogador v1.0"
+git push origin main
+
+⚠️ PowerShell: aspas duplas em caminhos com espaços.
+
+FIM DO GUIA DE EXPERIÊNCIA DO JOGADOR — VERSÃO 1.0
