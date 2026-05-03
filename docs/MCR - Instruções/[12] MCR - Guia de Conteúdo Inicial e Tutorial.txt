@@ -1,0 +1,304 @@
+PROJETO MCR – GUIA DE CONTEÚDO INICIAL E TUTORIAL
+Versão 1.0 – O Despertar em Eridanus
+Arquivo: MCR - Guia de Conteudo Inicial e Tutorial.txt
+
+🎯 OBJETIVO DESTE GUIA
+Fornecer ao assistente/desenvolvedor todas as diretrizes, regras, exemplos e listas para conceber a primeira experiência do jogador após a criação do personagem. A Ilha do Despertar, também chamada Eridanus, é uma área tutorial inspirada em Rookgaard – mas totalmente integrada à filosofia MCR: sem vocações fixas, com total liberdade de aprendizado e imersão narrativa absoluta. Aqui, o recém‑chegado aprende mecânicas, descobre a sua identidade de Aventureiro e prepara‑se para explorar o continente principal.
+
+⚠️ REGRAS DE REVISÃO PARA O ASSISTENTE (CONTEÚDO INICIAL E TUTORIAL)
+
+Ao criar, modificar ou expandir QUALQUER elemento do tutorial, o assistente DEVE:
+
+Imersão pura para o jogador – Nenhuma instrução técnica, número de ID ou termo de desenvolvedor aparece no chat, no HUD ou em qualquer mensagem visível. Toda a comunicação com o jogador é diegética (vinda de NPCs, do ambiente, de livros, etc.).
+
+Tom acolhedor e curioso – Os NPCs falam como habitantes de um mundo de fantasia, não como manuais. Ex.: "Ah, encontraste uma espada? Deixa‑me ensinar‑te o peso do aço." em vez de "Equipe a espada e ataque o boneco de treino."
+
+Aprendizado pela acção – O jogador aprende fazendo. O NPC pede uma tarefa; ao cumpri‑la, o jogador entende a mecânica. Nenhum pop‑up ou janela modal interrompe o fluxo, exceto os autorizados (confirmações críticas).
+
+Progressão livre – Não há escolha de vocação. O personagem é sempre "Aventureiro". Magias, habilidades com armas e outras perícias são desbloqueadas através de missões, itens, níveis ou descobertas. O tutorial apresenta este conceito.
+
+Integração com o SQH – Todas as missões do tutorial seguem o Sistema de Quests Híbrido: diálogo com {destaque}, HUD de progresso, notificações toast. Nenhuma janela modal para progresso de missão.
+
+Respeito à identidade – O pronome do personagem (definido no Oráculo) é usado por todos os NPCs desde a primeira saudação. A máscara de Alma jamais aparece aqui (o jogador já está com personagem permanente).
+
+Codificação e localização – Todos os scripts Lua do tutorial salvos como ISO‑8859‑1. Strings em C++ com escapes octais. Itens referenciados por ID, nunca por nome (usar IDs reais do items.xml traduzido).
+
+Referências constantes aos outros guias – Sempre que uma mecânica se aprofunda, o assistente deve consultar o guia correspondente ([6] Narrativa, [7] Quests, [10] Tradução, etc.).
+
+🌌 1. A LENDA DE ERIDANUS — CONTEXTO NARRATIVO
+
+"Ao abandonar o Salão dos Destinos, a tua alma materializa‑se numa praia varrida pelo vento. Uma voz calorosa saúda‑te: 'Bem‑vindo a Eridanus, viajante. As ondas trouxeram‑te e o destino ainda não te soltou.' Não és guerreiro, nem mago, nem druida. És um Aventureiro – um espírito livre que o mundo ainda há‑de moldar. A Ilha do Despertar é o teu primeiro caderno de notas; cada habitante tem algo a ensinar, cada canto esconde um segredo. Não há pressa. O horizonte espera.'"
+
+A história do tutorial é simples e serve de molde para o aprendizado:
+
+O personagem naufragou (ou foi transportado magicamente) até Eridanus.
+
+Encontra um Guardião da Ilha (NPC principal) que o orienta.
+
+Para sair da ilha, precisa de provar que está pronto – o que se traduz em completar uma série de missões que ensinam as mecânicas essenciais.
+
+No final, um barco ou portal leva‑o ao continente principal.
+
+🗺️ 2. A ILHA DO DESPERTAR — ÁREA E AMBIENTE
+
+A ilha deve ser compacta, visualmente acolhedora e segura (proteção de PvP e sem perda de itens ao morrer). Elementos sugeridos:
+
+Praia do Náufrago: ponto de chegada do personagem. Areia, conchas, destroços.
+
+Templo Interior: pequena construção com um tile de proteção (temple) e um NPC Guardião.
+
+Floresta Serena: área de caça fraca (ratos, coelhos, slimes). Contém ervas e itens de coleta.
+
+Gruta Sussurrante: caverna rasa com morcegos e um baú com equipamento inicial.
+
+Vilarejo de Eri: três ou quatro cabanas com NPCs especializados (ferreiro, curandeira, pescador).
+
+Altar da Partida: local de saída da ilha, bloqueado até que o jogador complete a missão principal.
+
+O mapa deve ser desenhado no Map Editor e os spawns configurados em XML. Todos os nomes de lugares e NPCs devem estar em PT‑BR.
+
+👤 3. OS HABITANTES DE ERIDANUS — NPCs E PERSONALIDADES
+
+Cada NPC é um habitante com história, voz e função pedagógica disfarçada.
+
+NPC	Personalidade	Função no tutorial
+Eldrin, o Guardião	Sábio e acolhedor	Boas‑vindas, missão principal, orientação geral
+Lyra, a Curandeira	Mística e serena	Ensina sobre vida, mana, cura, uso de poções e runas
+Thorne, o Ferreiro	Rude e brincalhão	Ensina combate, armas, shields, equipamento
+Corvus, o Pescador	Paciente e irónico	Ensina fishing, paciência, recolha de itens do ambiente
+Mira, a Cartógrafa	Curiosa e precisa	Ensina a usar o mapa, explorar, encontrar locais
+Cada NPC deve possuir:
+
+Saudação personalizada por pronome (usando pronouns.lua).
+
+Variação de frases (via NpcUtils.escolherFraseVariada).
+
+Progressão de intimidade (storage 100010 + npcId).
+
+Tópico para definição de pronome, se porventura o jogador não o tiver (tópico 200).
+
+Os diálogos devem ser escritos em PT‑BR impecável e salvos como ISO‑8859‑1.
+
+📜 4. MISSÕES DO TUTORIAL — ESTRUTURA SQH
+
+Todas as missões do tutorial seguem o Sistema de Quests Híbrido. A faixa de storages usada é 50010–50029 (reservada para o tutorial). Opcodes: 180 (HUD), 181 (toasts). Cada missão tem um tópico no NPC associado, uma condição de conclusão e recompensas (itens, experiência, acesso a novas mecânicas).
+
+Sequência sugerida (missão principal + secundárias):
+
+A. Missão Principal: "O Caminho do Aventureiro"
+
+NPC: Eldrin
+
+Storage: 50010
+
+Objectivo: completar as quatro missões secundárias abaixo.
+
+HUD: "O Caminho do Aventureiro – Tarefas concluídas: 0/4"
+
+Ao concluir as quatro, Eldrin permite a passagem para o Altar da Partida.
+
+Recompensa: acesso ao continente, item simbólico (ex.: "Amuleto de Eridanus").
+
+B. Missão Secundária 1: "O Peso do Aço" (Combate)
+
+NPC: Thorne
+
+Storage: 50011
+
+Objectivo: equipar uma arma fornecida (ex.: Espada Curta) e derrotar 3 Bonecos de Treino (ou slimes) na área próxima.
+
+HUD: "O Peso do Aço – Bonecos derrotados: x/3"
+
+Ao concluir: Thorne ensina a alternar entre armas e shields. O jogador recebe um escudo de madeira.
+
+Mecânicas ensinadas: equipar, atacar, alternar defesa, entender dano.
+
+C. Missão Secundária 2: "O Sopro da Vida" (Cura e Poções)
+
+NPC: Lyra
+
+Storage: 50012
+
+Objectivo: recolher 3 Ervas Medicinais (item de coleta na floresta) e entregá‑las a Lyra.
+
+HUD: "O Sopro da Vida – Ervas recolhidas: x/3"
+
+Ao concluir: Lyra prepara uma Poção de Vida e uma Poção de Mana; ensina a usar poções e a importância de manter a vida cheia.
+
+Mecânicas ensinadas: coleta de itens, uso de poções, conceito de vida/mana.
+
+D. Missão Secundária 3: "Segredos da Terra" (Exploração e Fishing)
+
+NPC: Corvus
+
+Storage: 50013
+
+Objectivo: pescar 2 Peixes e encontrar um Mapa Antigo na Gruta Sussurrante.
+
+HUD: "Segredos da Terra – Peixes: x/2, Mapa: 0/1"
+
+Ao concluir: Corvus ensina a usar o mapa e a reconhecer pontos de interesse.
+
+Mecânicas ensinadas: fishing, uso do mapa, exploração.
+
+E. Missão Secundária 4: "A Essência do Aventureiro" (Primeira Magia)
+
+NPC: Lyra (ou um novo NPC, ex.: Mira)
+
+Storage: 50014
+
+Objectivo: encontrar um Pergaminho Arcano na Gruta Sussurrante e levá‑lo a Lyra.
+
+HUD: "A Essência do Aventureiro – Pergaminho: 0/1"
+
+Ao concluir: Lyra ensina ao jogador a primeira magia (ex.: "Luz" ou "Toque Curativo"). Explicação diegética de que o Aventureiro pode aprender qualquer magia, desde que encontre quem a ensine.
+
+Mecânicas ensinadas: magias, mana, aprendizado contínuo, liberdade de build.
+
+Após concluir as quatro, o jogador retorna a Eldrin, que o encaminha ao Altar da Partida. O HUD da missão principal é limpo e um toast celebra: "Caminho do Aventureiro concluído!"
+
+⚔️ 5. A FILOSOFIA DO AVENTUREIRO — SEM VOCAÇÕES FIXAS
+
+No Projeto MCR, não existem as vocações tradicionais (Knight, Paladin, Sorcerer, Druid). O jogador é sempre um "Aventureiro". Esta é uma decisão de design central, e o tutorial deve comunicá‑la orgânicamente:
+
+Eldrin diz: "Não te apresses a escolher um caminho. O mundo é vasto e cada saber tem o seu preço. Sê um Aventureiro, e o conhecimento virá até ti."
+
+Magias são aprendidas através de pergaminhos, NPCs espalhados pelo mundo, livros antigos e missões específicas. Nenhuma magia é restrita por classe.
+
+Armas e equipamentos podem ser usados livremente, mas a eficácia depende de atributos (nível, skills). Ex.: para usar uma Alabarda, o jogador precisa de level 20 ou ter completado a missão "Força dos Gigantes". Isso incentiva a exploração e a progressão.
+
+O tutorial introduz esta flexibilidade: na missão "A Essência do Aventureiro", o jogador aprende que pode aprender magias de qualquer escola, desde que descubra os mestres certos.
+
+Para o assistente: implementar isto requer um sistema de aprendizado de magias e um sistema de requisitos para equipamentos. Tais sistemas podem ser geridos por storages e verificações em scripts (onEquip, onUseSpell). O tutorial apenas planta a semente; a implementação completa será detalhada num futuro Guia de Sistemas de Progressão.
+
+📦 6. ITENS E IDs RECOMENDADOS
+
+A tabela abaixo lista itens típicos do tutorial com os seus nomes em PT‑BR (conforme dicionário MCR). O assistente DEVE verificar o ID real no ficheiro items.xml traduzido antes de os usar em scripts.
+
+Nome do Item (PT‑BR)	Uso no Tutorial	ID (verificar)
+Espada Curta	Missão "O Peso do Aço"	
+Escudo de Madeira	Recompensa da missão "O Peso do Aço"	
+Poção de Vida	Recompensa da missão "O Sopro da Vida"	
+Poção de Mana	Recompensa da missão "O Sopro da Vida"	
+Erva Medicinal	Item de coleta para "O Sopro da Vida"	
+Peixe	Item de pesca para "Segredos da Terra"	
+Mapa Antigo	Item de exploração (baú na gruta)	
+Pergaminho Arcano	Item para "A Essência do Aventureiro"	
+Amuleto de Eridanus	Recompensa final (conclusão tutorial)	
+Tocha	Iluminação inicial (dada por Eldrin)	
+Mochila	Dada por Eldrin no início	
+Além disso, o assistente deve criar monstros fracos para combate (ex.: Slime, Rato, Morcego) e um "Boneco de Treino" (criatura imóvel, sem loot, usada apenas para a missão de Thorne).
+
+🧠 7. INTEGRAÇÃO TÉCNICA E FLUXOGRAMA
+
+Fluxo geral do tutorial:
+
+Jogador chega à Praia do Náufrago (posição fixa em Eridanus).
+
+Eldrin aproxima‑se (onThink + MESSAGE_GREET) e oferece a missão principal.
+
+O jogador explora e encontra os outros NPCs, que oferecem as missões secundárias.
+
+Cada missão completada actualiza o HUD da missão principal (contador de tarefas).
+
+Após 4/4, Eldrin envia o jogador ao Altar da Partida.
+
+Ao usar o altar (teleport), o jogador é transportado para o continente principal.
+
+Scripts envolvidos (a criar/modificar):
+
+data/npc/eldrin.lua – Guardião da ilha, missão principal
+
+data/npc/thorne.lua – Ferreiro, missão de combate
+
+data/npc/lyra.lua – Curandeira, missões de cura e magia
+
+data/npc/corvus.lua – Pescador, missão de exploração
+
+data/creaturescripts/scripts/tutorial.lua – Verificações de progresso, recompensas, actualização de HUD
+
+data/globalevents/tutorial_spawn.lua – Configuração inicial do jogador (equipamento inicial: tocha, mochila)
+
+Storages usados:
+
+50010 a 50014 (missões principal e secundárias)
+
+100010 + npcId para intimidade (seguindo o padrão global)
+
+90001 (temporário, se necessário, mas evitar)
+
+Opcodes:
+
+180: actualização do HUD
+
+181: notificação toast
+
+Validações importantes:
+
+Verificar se o jogador já completou o tutorial (storage 50010 = 2) para não o repetir.
+
+Garantir que o Altar da Partida só funciona após 50010 = 2.
+
+🎨 8. TOM NARRATIVO PARA O JOGADOR — DIRETRIZES
+
+Toda a comunicação com o jogador deve evitar linguagem técnica. Exemplos práticos:
+
+Ao ensinar a equipar: "Pousa a tua mão sobre o cabo desta espada. Sente‑lhe o peso? Agora, com um movimento firme, brande‑a contra o boneco de treino."
+
+Ao ensinar a usar poções: "Este frasco contém a essência de ervas curativas. Quando a vida te escapar, bebe‑o. Sentirás o calor reconfortante da cura."
+
+Ao ensinar magia: "Fecha os olhos. Ouve o sussurro da mana à tua volta. Agora, imagina uma chama pequenina na palma da tua mão. Acredita, e ela acender‑se‑á."
+
+Nunca escrever comandos como "Digite /use potion" ou "Pressione Ctrl+F". As {chaves} indicam o que o jogador pode dizer (ex.: "Diz‑me quando estiveres pronto. Basta {aceitar} o desafio.").
+
+🔗 9. INTEGRAÇÃO COM OS OUTROS GUIAS
+
+Aspecto da Criação do Tutorial	Guias de Referência
+Diálogos, pronomes, personalidade dos NPCs	[6] Narrativa e Diálogos
+Estrutura das missões (SQH)	[7] Quests (Sistema Híbrido SQH)
+Codificação dos scripts Lua (ISO‑8859‑1)	[10] Tradução e Localização (PT‑BR)
+Interface do cliente (chat, HUD, toasts)	[5] Interface (OTUI e Lua Cliente)
+Items e IDs	[9] Banco de Dados e Infra + items.xml traduzido
+Configuração do tutorial (spawns, teleports)	[3] Configuração (Servidor e Rede)
+Experiência global do jogador	[11] Guia de Experiência do Jogador
+🔍 CHECKLIST DE REVISÃO PARA O ASSISTENTE (CONTEÚDO INICIAL E TUTORIAL)
+
+Antes de considerar o tutorial completo, verificar:
+
+O tutorial começa após a criação do personagem, sem acesso ao Salão dos Destinos.
+
+Todos os NPCs usam o pronome correto do personagem (via pronouns.lua).
+
+Nenhuma mensagem contém linguagem técnica ou IDs visíveis.
+
+As missões usam exclusivamente {destaque} no chat e nunca janelas modais para progresso.
+
+O HUD é actualizado via opcode 180 e limpo ao concluir a missão principal.
+
+Notificações toast são enviadas ao concluir cada objectivo.
+
+A progressão de intimidade com os NPCs funciona e influencia os diálogos.
+
+Itens e monstros têm IDs verificados no items.xml traduzido.
+
+O Altar da Partida está bloqueado até à conclusão da missão principal (storage 50010 = 2).
+
+O sistema de aprendizado de magias está funcional (mesmo que inicialmente apenas uma magia).
+
+Todos os scripts Lua estão salvos como ISO‑8859‑1.
+
+A ilha é segura (sem PvP, sem perda de itens ao morrer).
+
+O jogador recebe equipamento inicial adequado (mochila, tocha).
+
+O fluxo permite que o jogador explore livremente, mas a missão principal guia o progresso.
+
+📤 COMO ATUALIZAR O REPOSITÓRIO GIT
+
+git add "docs/MCR - Guia de Conteudo Inicial e Tutorial.txt"
+git commit -m "docs: adiciona Guia de Conteúdo Inicial e Tutorial v1.0"
+git push origin main
+
+⚠️ PowerShell: aspas duplas em caminhos com espaços.
+
+FIM DO GUIA DE CONTEÚDO INICIAL E TUTORIAL — VERSÃO 1.0
