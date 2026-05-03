@@ -1,6 +1,6 @@
 PROJETO MCR – GUIA DE QUESTS (SISTEMA HÍBRIDO SQH)
 (Versão 5.1 – Sistema nativo de pronomes, remoção do storage 100001, pipeline de tradução)
-Arquivo: MCR - Guia de Quests (Sistema Híbrido SQH).txt
+Arquivo: [7] MCR - Guia de Quests (Sistema Híbrido SQH).txt
 
 🎯 OBJETIVO DESTE GUIA
 Definir o padrão absoluto para criação de missões (quests) no Projeto MCR.

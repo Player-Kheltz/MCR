@@ -1,6 +1,6 @@
 PROJETO MCR – GUIA DE COMPILAÇÃO (CLIENTE)
 Versão 2.2 – Pipeline de tradução, máscara de Alma e logout síncrono
-Arquivo: MCR - Guia de Compilação (Cliente).txt
+Arquivo: [2] MCR - Guia de Compilação (Cliente).txt
 
 🎯 OBJETIVO DESTE GUIA
 Fornecer todas as instruções, dependências, customizações e verificações necessárias para compilar o OTClient Redemption do Projeto MCR a partir do código‑fonte. Este guia também estabelece as regras que o assistente DEVE seguir ao auxiliar em tarefas relacionadas à compilação, modificação de arquivos C++ do cliente ou ajustes nos módulos Lua que dependem de alterações no motor.

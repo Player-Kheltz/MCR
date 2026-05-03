@@ -1,6 +1,6 @@
 PROJETO MCR – GUIA DE CONFIGURAÇÃO (SERVIDOR E REDE)
 Versão 3.2 – Sistema de pronomes nativo, pipeline de tradução e remoção do storage 100001
-Arquivo: MCR - Guia de Configuração (Servidor e Rede).txt
+Arquivo: [3] MCR - Guia de Configuração (Servidor e Rede).txt
 
 🎯 OBJETIVO DESTE GUIA
 Este documento reúne TODAS as configurações necessárias para que o servidor Canary, o Login Server e o ambiente de rede do Projeto MCR funcionem em harmonia. Ele cobre:

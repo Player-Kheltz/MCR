@@ -1,6 +1,6 @@
 PROJETO MCR – ÍNDICE GERAL E PILARES PERMANENTES
-Versão: 2.0 (Actualização pós‑tradução automática e remoção de referências obsoletas)
-Arquivo: MCR - INDICE GERAL.txt
+Versão: 2.1 (Inclusão do Guia de Tutorial e da Lista de Itens Úteis)
+Arquivo: [0] MCR - INDICE GERAL.txt
 
 🎯 FUNÇÃO DESTE ARQUIVO
 Este documento é a raiz de toda a documentação do Projeto MCR. Serve a três propósitos fundamentais:
@@ -9,7 +9,9 @@ LEMBRETE PERMANENTE: contém os pilares filosóficos e técnicos que NUNCA podem
 
 ÍNDICE DE GUIAS: lista todos os documentos temáticos que compõem a base de conhecimento do Projeto MCR, com uma breve descrição do conteúdo de cada um.
 
-FERRAMENTAS DE AUTOMAÇÃO: relação dos scripts Python que compõem a pipeline de tradução e conversão do servidor.
+ARQUIVOS COMPLEMENTARES: relação de listas e recursos auxiliares, como a Lista de Itens Úteis.
+
+FERRAMENTAS DE AUTOMAÇÃO: scripts Python que compõem a pipeline de tradução.
 
 ⚠️ PILARES PERMANENTES (APLICÁVEIS A TODAS AS CAMADAS)
 
@@ -60,28 +62,39 @@ Como compilar o Canary (v3.4.1) a partir do código‑fonte, com todas as custom
 Como compilar o OTClient Redemption, configurar cache portátil, aplicar customizações visuais e integrar os módulos MCR.
 
 [3] MCR - Guia de Configuração (Servidor e Rede).txt
-Configuração completa de config.lua, OTCFEATURES, portas (7171/7172/7173), .env do Login Server, firewall e segurança.
+Configuração completa de config.lua, OTCFEATURES, portas, .env do Login Server, firewall e segurança.
 
 [4] MCR - Guia do Login Server.txt
-API REST (Go): endpoints /register, /login, /change_password, /guest_login. Padrão de error_code, hash SHA1, variáveis de ambiente, CORS, tratamento de panics.
+API REST (Go): endpoints /register, /login, /guest_login. Padrão de error_code, hash SHA1, variáveis de ambiente, CORS, tratamento de panics.
 
 [5] MCR - Guia de Interface (OTUI e Lua Cliente).txt
-Sintaxe OTUI (proibições de {}, --, HorizontalLayout), fontes bitmap, codificação de scripts Lua como ISO‑8859‑1, métodos proibidos no Redemption, centralização manual.
+Sintaxe OTUI, fontes bitmap, codificação de scripts Lua como ISO‑8859‑1, métodos proibidos no Redemption.
 
 [6] MCR - Guia de Narrativa e Diálogos.txt
-Biblioteca npc_utils.lua, funções de reconhecimento de sinónimos, personalização por sexo/vocação, variação de frases, tom fantasioso.
+Biblioteca npc_utils.lua, reconhecimento de sinónimos, personalização por sexo/vocação, variação de frases.
 
 [7] MCR - Guia de Quests (Sistema Híbrido SQH).txt
-Sistema de Quests Híbrido: chat com destaque por {chaves}, HUD de missões, notificações toast, checklist de qualidade de quest, exemplo completo "O Lamento da Sereia".
+Sistema de Quests Híbrido: chat com {destaque}, HUD de missões, notificações toast, checklist de qualidade.
 
 [8] MCR - Guia de Criação de Conta e Personagem.txt
-Fluxo do Account Manager "Alma", Salão dos Destinos, NPC Oráculo, validação de nomes (lista branca), escolha de sexo e vocação, criação automática.
+Fluxo do Account Manager "Alma", Salão dos Destinos, NPC Oráculo, validação de nomes, escolha de sexo e vocação.
 
 [9] MCR - Guia de Banco de Dados e Infraestrutura.txt
-Configuração do MySQL/MariaDB (XAMPP), charset utf8mb4, tabelas, schema, phpMyAdmin, procedimentos de backup e restauração.
+Configuração do MySQL/MariaDB, charset utf8mb4, tabelas, schema, phpMyAdmin, backups.
 
 [10] MCR - Guia de Tradução e Localização (PT‑BR).txt
-Regras completas de codificação de arquivos (UTF‑8 com BOM vs ISO‑8859‑1), acentuação em strings de rede, mensagens de sistema, logs e interface. Pipeline de tradução automática supervisionada e uso de escapes octais.
+Regras completas de codificação de arquivos (UTF‑8 vs ISO‑8859‑1), error_code, pipeline de tradução automática.
+
+[11] MCR - Guia de Experiência do Jogador.txt
+Visão completa daquilo que o jogador vê, sente e percorre no Projeto MCR, servindo como bússola de design.
+
+[12] MCR - Guia de Conteúdo Inicial e Tutorial.txt
+A Ilha do Despertar (Eridanus). Estrutura das missões, NPCs, itens com IDs reais, ensinamento de todas as mecânicas básicas (combate, ferramentas, poções, runas, pesca, etc.).
+
+📁 ARQUIVOS COMPLEMENTARES
+
+[Aquivo Complementar] Lista de Items Uteis.txt
+Lista com mais de 3000 itens traduzidos, seus IDs e atributos. Recurso de consulta rápida para criadores de conteúdo, missões e tutorial.
 
 🛠️ FERRAMENTAS DE AUTOMAÇÃO (PIPELINE DE TRADUÇÃO)
 
@@ -143,4 +156,4 @@ Estrutura: Canary/ | OTClient/ | LoginServer/ | docs/ | MyAAC/
 
 Toda alteração de código ou documentação DEVE ser commitada neste repositório. Consulte o MCR - Guia de Configuração para instruções de versionamento com Git.
 
-FIM DO ÍNDICE GERAL (VERSÃO 2.0)
+FIM DO ÍNDICE GERAL (VERSÃO 2.1)

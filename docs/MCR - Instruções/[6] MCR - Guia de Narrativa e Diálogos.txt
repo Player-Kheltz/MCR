@@ -1,6 +1,6 @@
 PROJETO MCR – GUIA DE NARRATIVA E DIÁLOGOS
 (Versão 5.2 – Distinção entre pronome da conta e pronome do personagem, integração com a pipeline de tradução)
-Arquivo: MCR - Guia de Narrativa e Diálogos.txt
+Arquivo: [6] MCR - Guia de Narrativa e Diálogos.txt
 
 🎯 OBJETIVO DESTE GUIA
 Este guia é a bússola narrativa do Projeto MCR. Define como os NPCs devem falar, pensar e reagir dentro do universo de fantasia original "Aventura Fantasiosa", utilizando a API real do Canary 3.4.1 (Game.createNpcType) e a codificação ISO‑8859‑1 obrigatória para scripts que exibem strings ao jogador.

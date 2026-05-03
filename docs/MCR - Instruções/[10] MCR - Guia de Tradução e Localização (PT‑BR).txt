@@ -1,6 +1,6 @@
 PROJETO MCR – GUIA DE TRADUÇÃO E LOCALIZAÇÃO (PT‑BR)
 (Versão 5.1 – Pipeline de tradução automática, escapes octais, protecção de bindings e pronomes)
-Arquivo: MCR - Guia de Tradução e Localização (PT-BR).txt
+Arquivo: [10] MCR - Guia de Tradução e Localização (PT‑BR).txt
 
 🎯 OBJETIVO DESTE GUIA
 Este documento é a autoridade máxima sobre a correta aplicação do idioma Português do Brasil em TODAS as camadas do Projeto MCR. Ele define:

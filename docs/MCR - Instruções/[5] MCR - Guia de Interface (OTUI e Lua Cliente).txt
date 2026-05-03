@@ -1,6 +1,6 @@
 ﻿PROJETO MCR – GUIA DE INTERFACE (OTUI E LUA CLIENTE)
 Versão 2.2 – Máscara de Alma, opcode 200, pipeline de tradução
-Arquivo: MCR - Guia de Interface (OTUI e Lua Cliente).txt
+Arquivo: [5] MCR - Guia de Interface (OTUI e Lua Cliente).txt
 
 🎯 OBJETIVO DESTE GUIA
 Este documento é a autoridade máxima sobre a criação e modificação de interfaces no OTClient Redemption para o Projeto MCR. Ele cobre:

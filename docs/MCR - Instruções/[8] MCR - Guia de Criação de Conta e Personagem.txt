@@ -1,6 +1,6 @@
 PROJETO MCR – GUIA DE CRIAÇÃO DE CONTA E PERSONAGEM
 (Versão 4.3 – Revisão completa, protecção de campos, ordem de criação e máscara de Alma)
-Arquivo: MCR - Guia de Criação de Conta e Personagem.txt
+Arquivo: [8] MCR - Guia de Criação de Conta e Personagem.txt
 
 🎯 OBJETIVO DESTE GUIA
 Documentar o sistema de autenticação e gerenciamento de contas do Projeto MCR,
@@ -31,6 +31,8 @@ Limpeza automática de contas guest para evitar poluição do banco.
 
 Máscara de Alma: como o nome Guest_* é exibido como "Alma" em toda a
 interface.
+
+Referência à Lista de Itens Úteis para o equipamento inicial do tutorial.
 
 ⚠️ REGRAS DE REVISÃO PARA O ASSISTENTE (AUTENTICAÇÃO E CRIAÇÃO)
 
@@ -80,6 +82,11 @@ A ordem de criação do personagem é Nome → Pronome (Ele/Ela) → Sexo
 
 Todas as opções de menu oferecem a possibilidade de {Voltar}, permitindo que o
 jogador retorne ao menu anterior sem perder a sessão.
+
+Após a criação bem‑sucedida do personagem, o jogador é enviado para a Ilha do Despertar (Eridanus).
+O equipamento inicial é concedido pelo NPC Eldrin, conforme documentado no Guia de Conteúdo Inicial
+e Tutorial (Guia 11) e na Lista de Itens Úteis. O assistente deve garantir que os IDs dos itens
+correspondem aos do ficheiro items.xml traduzido.
 
 🗺️ 1. VISÃO GERAL DO FLUXO
 
@@ -536,6 +543,20 @@ a Alma de forma síncrona em <250 ms.
 O callback Lua do opcode 200 chama g_game.logout(false) seguido
 imediatamente de EnterGame.doAutoLogin, sem atrasos artificiais.
 
+📦 11. EQUIPAMENTO INICIAL DO TUTORIAL
+
+Após a criação do personagem e a saída do Salão dos Destinos, o jogador aparece na Praia do Náufrago, na Ilha do Despertar. O NPC Eldrin fornece o equipamento inicial listado abaixo. Estes itens estão documentados na Lista de Itens Úteis (arquivo complementar) e os seus IDs devem ser conferidos no ficheiro items.xml traduzido.
+
+ID	Nome do Item (PT‑BR)	Função inicial
+2854	Mochila	Inventário
+2920	Tocha	Iluminação
+3552	Botas de Couro	Protecção básica
+3561	Jaqueta	Protecção básica
+3559	Calças de Couro	Protecção básica
+3264	Espada	Arma inicial
+3412	Escudo de Madeira	Defesa (obtido após missão do tutorial)
+O assistente deve garantir que, ao criar o personagem, o script de login (login.lua) ou o evento global tutorial_spawn.lua conceda automaticamente estes itens. A lista completa de itens do tutorial, incluindo ferramentas (pá, corda, picareta, vara de pesca), poções, runas e outros, está detalhada no Guia de Conteúdo Inicial e Tutorial e na Lista de Itens Úteis.
+
 ⚠️ ARMADILHAS E LIÇÕES APRENDIDAS
 
 Saudação automática exigiu substituir FocusModule por onThink + MESSAGE_GREET.
@@ -595,12 +616,14 @@ Rotina de limpeza de contas guest configurada?
 
 Máscara de Alma funciona no cliente e no servidor?
 
+O equipamento inicial do tutorial está configurado com os IDs correctos?
+
+A Lista de Itens Úteis foi consultada para verificar os IDs?
+
 📤 COMO ATUALIZAR O REPOSITÓRIO GIT
 
 git add "<arquivos alterados>"
-git commit -m "feat(auth): <Comentário>"
+git commit -m "feat(auth): Atualiza guia de criação com referência à lista de itens"
 git push origin main
 
-⚠️ PowerShell: aspas duplas em caminhos com espaços.
-
-FIM DO GUIA DE CRIAÇÃO DE CONTA E PERSONAGEM (VERSÃO 4.3)
+FIM DO GUIA DE CRIAÇÃO DE CONTA E PERSONAGEM — VERSÃO 4.4

@@ -1,12 +1,12 @@
 PROJETO MCR – GUIA DE BANCO DE DADOS E INFRAESTRUTURA
-(Versão 3.1 – Sistema de pronomes nativo, coluna player_pronoun, limpeza de contas guest e pipeline de tradução)
-Arquivo: MCR - Guia de Banco de Dados e Infraestrutura.txt
+(Versão 3.2 – Integração com a Lista de Itens Úteis e suporte ao tutorial)
+Arquivo: [9] MCR - Guia de Banco de Dados e Infraestrutura.txt
 
 🎯 OBJETIVO DESTE GUIA
-Fornecer todas as informações, procedimentos e regras para configurar, manter e
-modificar o banco de dados do Projeto MCR (MySQL/MariaDB via XAMPP). Este guia
-também cobre a infraestrutura associada: phpMyAdmin, backups, charset e a
-integração com o servidor Canary e o Login Server.
+Fornecer todas as informações, procedimentos e regras para configurar, manter e 
+modificar o banco de dados do Projeto MCR. Esta versão adiciona a referência à
+Lista de Itens Úteis como recurso complementar para identificação de IDs durante
+a criação de conteúdos.
 
 ⚠️ REGRAS DE REVISÃO PARA O ASSISTENTE (BANCO DE DADOS E INFRA)
 
@@ -42,6 +42,11 @@ pelo Oráculo ao se dirigir ao dono da conta.
 A coluna pronoun na tabela players é NATIVA do Canary e armazena o pronome
 do PERSONAGEM (0 = usa o sexo, 2 = ela, 3 = ele, etc.). NÃO utilize storages
 manuais para este fim.
+
+Ao criar scripts que manipulam itens (especialmente missões, tutorial e lojas),
+o assistente DEVE utilizar a Lista de Itens Úteis como referência rápida de IDs
+já traduzidos. O ficheiro items.xml permanece a fonte canónica, mas a lista
+facilita a busca por itens comuns.
 
 🗄️ 1. AMBIENTE: XAMPP (MARIADB)
 
@@ -240,6 +245,26 @@ MYSQL_PASS=<Senha>
 Ambos os sistemas precisam estar rodando para o fluxo completo de autenticação e
 jogo funcionar.
 
+📚 7. RECURSOS COMPLEMENTARES: LISTA DE ITENS ÚTEIS (NOVA SECÇÃO)
+
+Além do schema SQL e do ficheiro items.xml, o projecto dispõe de uma Lista de Itens Úteis ([Aquivo Complementar] Lista de Items Uteis.txt) que contém mais de 3000 itens com os seus IDs, nomes traduzidos e atributos principais. Este recurso é especialmente valioso para:
+
+Criar rapidamente missões e o tutorial sem necessidade de abrir o XML completo.
+
+Evitar erros de ID ao referenciar itens em scripts Lua.
+
+Fornecer ao assistente um acesso rápido aos itens mais comuns (equipamentos, poções, runas, ferramentas, etc.).
+
+Como utilizar a lista:
+
+Procure pelo nome do item em português (ex.: "Poção de Vida") e obtenha o ID (266).
+
+Use esse ID nos comandos player:addItem(266, 1).
+
+Confirme sempre o ID no items.xml antes de implantar em produção.
+
+A lista é um complemento, não substitui o ficheiro XML oficial. Em caso de divergência, o XML prevalece. Actualizações futuras ao items.xml devem ser reflectidas na lista.
+
 ⚠️ ARMADILHAS E LIÇÕES APRENDIDAS
 
 MariaDB vs MySQL: O XAMPP actual usa MariaDB. O comando ALTER USER não
@@ -310,15 +335,16 @@ manuais)?
 
 A rotina de limpeza de contas guest está configurada e testada?
 
+Ao criar novos scripts com itens, a Lista de Itens Úteis foi consultada para confirmar IDs?
+
+Os IDs usados coincidem com o ficheiro items.xml actual?
+
 📤 COMO ATUALIZAR O REPOSITÓRIO GIT
 
 git add "<arquivos alterados>"
-git commit -m "feat(auth): <Comentário>"
+git commit -m "docs: Atualiza guia de BD com referência à lista de itens"
 git push origin main
 
-⚠️ PowerShell: aspas duplas em caminhos com espaços.
+⚠️ Arquivos de configuração com senhas NÃO são versionados.
 
-⚠️ Arquivos de configuração com senhas (config.lua, .env) NÃO são versionados.
-Apenas templates (.example) são commitados.
-
-FIM DO GUIA DE BANCO DE DADOS E INFRAESTRUTURA — VERSÃO 3.1
+FIM DO GUIA DE BANCO DE DADOS E INFRAESTRUTURA — VERSÃO 3.2

@@ -1,6 +1,6 @@
 PROJETO MCR – GUIA DO LOGIN SERVER
 Versão 1.2 – Endpoint /guest_login, limpeza automática e padrão error_code
-Arquivo: MCR - Guia do Login Server.txt
+Arquivo: [4] MCR - Guia do Login Server.txt
 
 🎯 OBJETIVO DESTE GUIA
 Fornecer todas as regras, especificações de API, protocolos de erro e lições aprendidas referentes ao Login Server do Projeto MCR. Este componente é responsável por autenticar contas, retornar listas de personagens e gerenciar a criação automática de contas guest. Toda a comunicação com o cliente é feita via HTTP REST na porta 8080.

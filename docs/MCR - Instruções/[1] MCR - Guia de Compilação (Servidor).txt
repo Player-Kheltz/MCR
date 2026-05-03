@@ -1,6 +1,6 @@
 PROJETO MCR – GUIA DE COMPILAÇÃO (SERVIDOR)
 Versão 3.2 – Pipeline de tradução automática, escapes octais e protecção de bindings
-Arquivo: MCR - Guia de Compilação (Servidor).txt
+Arquivo: [1] MCR - Guia de Compilação (Servidor).txt
 
 🎯 OBJETIVO DESTE GUIA
 Fornecer todas as instruções, dependências, customizações e verificações necessárias para compilar o servidor Canary do Projeto MCR a partir do código‑fonte. Este guia também estabelece as regras que o assistente DEVE seguir ao auxiliar em tarefas relacionadas à compilação, modificação de arquivos C++ ou adição de bindings Lua.

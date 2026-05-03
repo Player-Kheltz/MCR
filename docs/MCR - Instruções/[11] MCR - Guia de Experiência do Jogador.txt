@@ -1,6 +1,6 @@
 PROJETO MCR – GUIA DE EXPERIÊNCIA DO JOGADOR
 Versão 1.0 – A jornada completa, da Alma ao herói
-Arquivo: MCR - Guia de Experiencia do Jogador.txt
+Arquivo: [11] MCR - Guia de Experiência do Jogador.txt
 
 🎯 OBJETIVO DESTE GUIA
 Fornecer ao assistente/desenvolvedor uma visão completa e integrada daquilo que o jogador vê, sente e percorre no Projeto MCR — do primeiro clique no Salão dos Destinos até à consagração como herói de um mundo vivo. Este guia funciona como bússola de design: cada decisão técnica (interface, fluxo de criação, diálogos, progressão) deve ser validada contra a experiência descrita aqui. Se um sistema não contribui para esta jornada, ou a enfraquece, está a violar os pilares do projecto.
