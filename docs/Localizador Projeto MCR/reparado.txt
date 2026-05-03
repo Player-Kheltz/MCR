@@ -812,7 +812,7 @@
 27_19=[{}] Falha ao detectar banco de dados de chefes aprimorados. (CÓDIGO 01)
 33_19=[{}] Não é possível criar um chefe boostado com apenas um chefe cadastrado. (CÓDIGO 02)
 42_18=[{}] Nenhum chefe otimizado encontrado em g_database(). Um novo será selecionado.
-50_19=Chefe impulsionado: {}
+50_19=Boss Impulsionado: {}
 67_19=Falha ao impulsionar um chefe. Não há nenhum chefe registrado na Raridade Arquiinimigo.
 82_3=`looktypeEx` = {}, `looktype` = {}, `lookfeet` = {}, `looklegs` = {}, 
 83_3=`lookhead` = {}, `lookbody` = {}, `lookaddons` = {}, `lookmount` = {}, 
@@ -820,7 +820,7 @@
 98_19=[{}] Falha ao detectar banco de dados de chefes aprimorados. (CÓDIGO 03)
 108_19=[{}] Falha ao redefinir o slot 1 do chefe selecionado pelos jogadores. (CÓDIGO 03)
 117_19=[{}] Falha ao redefinir o slot 2 do chefe selecionado pelos jogadores. (CÓDIGO 03)
-123_17=Chefe impulsionado: {}
+123_17=Boss Impulsionado: {}
 162_21=[{}] Chefe com id {} não encontrado não mapa do chefe
 208_9=Como recompensa, um Podium of Vigor gratuito foi enviado para a caixa de entrada da sua Loja. 
 209_9=Você pode colocar este pódio em qualquer casa que possua com este personagem. 
@@ -1583,7 +1583,7 @@
 9124_20=Chave de ação 'stash' desconhecida: {}
 9432_20=[{}] monstro {} tem raça de chefe errada {}
 9463_19=[{}] O nome do chefe aprimorado está vazio
-9470_19=[{}] O chefe impulsionado '{}' tem uma raça inválida
+9470_19=[{}] O Boss Impulsionado '{}' tem uma raça inválida
 9478_19=[{}] chefe slot1 com ID de corrida '{}' tem uma corrida inválida
 9486_19=[{}] chefe slot1 com ID de corrida '{}' tem uma corrida inválida
 9564_21=[{}] monstro {} não encontrado

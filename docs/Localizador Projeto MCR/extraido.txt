@@ -612,11 +612,11 @@
 379_39=Magic Level
 401_54=instant-rewards
 453_18=[Game::loadBoostedCreature] - 
-454_18=Failed to detect boosted creature database. (CODE 01)
+454_18=Failed to detect Criatura Impulsionada database. (CODE 01)
 490_18=[Game::loadBoostedCreature] - 
-491_18=It was not possible to generate a new boosted creature->
+491_18=It was not possible to generate a new Criatura Impulsionada->
 497_18=[Game::loadBoostedCreature] - 
-498_18=It was not possible to generate a new boosted creature-> Monster '{}' not found.
+498_18=It was not possible to generate a new Criatura Impulsionada-> Monster '{}' not found.
 506_4=`date` = '
 507_4=`boostname` = 
 508_4=`looktype` = 
@@ -628,7 +628,7 @@
 514_4=`lookmount` = 
 515_4=`raceid` = '
 518_18=[Game::loadBoostedCreature] - 
-519_18=Failed to detect boosted creature database. (CODE 02)
+519_18=Failed to detect Criatura Impulsionada database. (CODE 02)
 538_57=Game::createFiendishMonsters
 541_59=Game::createInfluencedMonsters
 544_51=Game::updateForgeableMonsters
