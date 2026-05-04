@@ -1,0 +1,981 @@
+<?xml version="1.0" ?>
+<monsters>
+  <monster name="A Abominação" looktype="1393"/>
+  <monster name="A Abóbora Mutante" looktype="292"/>
+  <monster name="A Conde Pálida" looktype="557"/>
+  <monster name="A confusão" looktype="563"/>
+  <monster name="A Fonte Astral" looktype="0"/>
+  <monster name="A Lebre do Halloween" looktype="74"/>
+  <monster name="A Orquídea Flamejante" looktype="150"/>
+  <monster name="A Raposa Chifruda" looktype="202"/>
+  <monster name="A Voz da Ruína" looktype="344"/>
+  <monster name="Abominação Draken" looktype="357"/>
+  <monster name="Acólito da Esfinge Negra" looktype="1200"/>
+  <monster name="Acólito das Trevas" looktype="9"/>
+  <monster name="Acólito do Culto" looktype="194"/>
+  <monster name="Adepto do Culto" looktype="194"/>
+  <monster name="Agente funerário" looktype="1551"/>
+  <monster name="Ahhhh" looktype="1591"/>
+  <monster name="Alagamento" looktype="535"/>
+  <monster name="Algodão Doce Elemental" looktype="1749"/>
+  <monster name="Alma Maculada" looktype="712"/>
+  <monster name="Alma Perdida" looktype="232"/>
+  <monster name="Alma Perdida Estranha" looktype="1268"/>
+  <monster name="Alquimista Bulltauro" looktype="1718"/>
+  <monster name="Amazona" looktype="137"/>
+  <monster name="Ameaça Mercurial" looktype="1561"/>
+  <monster name="Anciã Wyrm" looktype="561"/>
+  <monster name="Ancião Bonelord" looktype="108"/>
+  <monster name="Antena" looktype="0"/>
+  <monster name="Anão" looktype="69"/>
+  <monster name="Anão Capanga" looktype="160"/>
+  <monster name="Anão Enlouquecido" looktype="69"/>
+  <monster name="Anão Escravizado" looktype="494"/>
+  <monster name="Anêmona Glooth" looktype="604"/>
+  <monster name="Aparição" looktype="48"/>
+  <monster name="Apocalipse" looktype="12"/>
+  <monster name="Aprendiz Sheng" looktype="23"/>
+  <monster name="Aprendiz Sombrio" looktype="133"/>
+  <monster name="Arachir, o Ancião" looktype="287"/>
+  <monster name="Aracnofóbica" looktype="1135"/>
+  <monster name="Aranha" looktype="30"/>
+  <monster name="Aranha da Caverna Exótica" looktype="1344"/>
+  <monster name="Aranha de Cristal" looktype="263"/>
+  <monster name="Aranha Gigante" looktype="38"/>
+  <monster name="Aranha Gigante Wyda" looktype="38"/>
+  <monster name="Aranha Peçonhenta" looktype="36"/>
+  <monster name="Aranha Sagrada" looktype="219"/>
+  <monster name="Aranha Velha" looktype="922"/>
+  <monster name="Arauto da Tristeza" looktype="320"/>
+  <monster name="Arcanista Élfico" looktype="63"/>
+  <monster name="Armadilha" looktype="487"/>
+  <monster name="Armadura Orc" looktype="2"/>
+  <monster name="Armênio (Criatura)" looktype="68"/>
+  <monster name="Arqueiro Leão" looktype="1316"/>
+  <monster name="Arqueiro Minotauro" looktype="24"/>
+  <monster name="Arqueiro Naga" looktype="1537"/>
+  <monster name="Arqueiro Usurpador" looktype="1316"/>
+  <monster name="Arqueiro Usurpador Endurecido" looktype="1316"/>
+  <monster name="Arraia Manta" looktype="449"/>
+  <monster name="Arrepios" looktype="592"/>
+  <monster name="Artilheiro Pirata" looktype="1346"/>
+  <monster name="Assassino" looktype="152"/>
+  <monster name="Assassino do Clã Muglex" looktype="296"/>
+  <monster name="Assassino Goblin" looktype="296"/>
+  <monster name="Astuto Lobisomem Pantera" looktype="1648"/>
+  <monster name="Asura da meia-noite" looktype="150"/>
+  <monster name="Asura Fogo da Alvorada" looktype="150"/>
+  <monster name="Atirador Perdido" looktype="539"/>
+  <monster name="Atirador Venenoso Dworc" looktype="216"/>
+  <monster name="Aventureiro" looktype="129"/>
+  <monster name="Aventureiro Irritado" looktype="129"/>
+  <monster name="Avó Foulscale" looktype="34"/>
+  <monster name="Avô Tridiano" looktype="193"/>
+  <monster name="Azul Nômade" looktype="146"/>
+  <monster name="Açúcar Mamãe" looktype="1764"/>
+  <monster name="Bakragore" looktype="1671"/>
+  <monster name="Baluarte" looktype="607"/>
+  <monster name="Bandida Glooth" looktype="137"/>
+  <monster name="Bandido" looktype="129"/>
+  <monster name="Bandido Glooth" looktype="129"/>
+  <monster name="Banho de sangue de Bibby" looktype="2"/>
+  <monster name="Banshee" looktype="78"/>
+  <monster name="Barata" looktype="284"/>
+  <monster name="Barbária" looktype="264"/>
+  <monster name="Barão Contrabandista Silvertoe" looktype="134"/>
+  <monster name="Bashmu Juvenil" looktype="1408"/>
+  <monster name="Basmu" looktype="1408"/>
+  <monster name="Batedor Insetóide" looktype="403"/>
+  <monster name="Batedor Mitmah" looktype="1709"/>
+  <monster name="Batedor Mortal" looktype="1073"/>
+  <monster name="Batedor Profundo" looktype="413"/>
+  <monster name="Batedor Élfico" looktype="64"/>
+  <monster name="Bateria Glooth" looktype="0"/>
+  <monster name="Bazir" looktype="35"/>
+  <monster name="Beemote" looktype="55"/>
+  <monster name="Berserker Orc" looktype="8"/>
+  <monster name="Berserker Perdido" looktype="496"/>
+  <monster name="Besouro Lanceiro" looktype="348"/>
+  <monster name="Besouro-buraqueiro" looktype="83"/>
+  <monster name="Besta de Sangue" looktype="602"/>
+  <monster name="Besta Hulking Prehemoth" looktype="1553"/>
+  <monster name="Besta Ossada" looktype="101"/>
+  <monster name="Bibliotecário Mestre Deepling" looktype="443"/>
+  <monster name="Blob Glooth" looktype="614"/>
+  <monster name="Bolha da Morte" looktype="315"/>
+  <monster name="Bolha de chocolate" looktype="1732"/>
+  <monster name="Bolha de chão" looktype="459"/>
+  <monster name="Bolha de creme" looktype="1757"/>
+  <monster name="Bolha de Mercúrio" looktype="316"/>
+  <monster name="Bolha de tinta" looktype="1064"/>
+  <monster name="Bolha de Ácido" looktype="314"/>
+  <monster name="Bolo de óculos" looktype="1740"/>
+  <monster name="Bom dia" looktype="64"/>
+  <monster name="Bomba Glooth" looktype="680"/>
+  <monster name="Bombardeiro Pirata" looktype="1346"/>
+  <monster name="Boneco de neve animado" looktype="1159"/>
+  <monster name="Boogy" looktype="981"/>
+  <monster name="Borboleta" looktype="227"/>
+  <monster name="Branco Pálido" looktype="564"/>
+  <monster name="Broca" looktype="527"/>
+  <monster name="Broodrider Inferniarca" looktype="1796"/>
+  <monster name="Brutetâmero Bárbaro" looktype="264"/>
+  <monster name="Brutus Barba Sangrenta" looktype="98"/>
+  <monster name="Bruxa" looktype="54"/>
+  <monster name="Bruxa do Gelo" looktype="149"/>
+  <monster name="Bruxa incrivelmente velha" looktype="54"/>
+  <monster name="Bruxo" looktype="130"/>
+  <monster name="Bruxo Usurpador" looktype="1316"/>
+  <monster name="Bruxo Usurpador Endurecido" looktype="1316"/>
+  <monster name="Bucaneiro Pirata" looktype="97"/>
+  <monster name="Bug Velho" looktype="920"/>
+  <monster name="Bulltauro Bruto" looktype="1717"/>
+  <monster name="Buraco de lava" looktype="0"/>
+  <monster name="Buraco do Inferno" looktype="0"/>
+  <monster name="Burro" looktype="387"/>
+  <monster name="Búfalo Aquático" looktype="523"/>
+  <monster name="Cabeça de choque" looktype="579"/>
+  <monster name="Cabeça do Cérebro" looktype="0"/>
+  <monster name="Cachorro" looktype="32"/>
+  <monster name="Cachorro Quente" looktype="32"/>
+  <monster name="Calamário" looktype="451"/>
+  <monster name="Calamário Abissal" looktype="451"/>
+  <monster name="Caminhante" looktype="605"/>
+  <monster name="Caminhante da Praga" looktype="246"/>
+  <monster name="Caminhante do Penhasco" looktype="497"/>
+  <monster name="Caminhante Sangrento Bárbaro" looktype="255"/>
+  <monster name="Campeão Izcandar do Inverno" looktype="1137"/>
+  <monster name="Cantor de Feitiços Mortal" looktype="1088"/>
+  <monster name="Capataz Joelheira" looktype="70"/>
+  <monster name="Capitão da Guarda Quaid" looktype="1217"/>
+  <monster name="Capitão Jones" looktype="196"/>
+  <monster name="Caranguejo" looktype="112"/>
+  <monster name="Caranguejo de Sangue" looktype="200"/>
+  <monster name="Caranguejo Sanguíneo do Mar Profundo" looktype="200"/>
+  <monster name="Carimbo" looktype="381"/>
+  <monster name="Carnifila" looktype="120"/>
+  <monster name="Carnisilvan Corpulento" looktype="1418"/>
+  <monster name="Carnisilvan Sombrio" looktype="1418"/>
+  <monster name="Carnisilvan Venenoso" looktype="1418"/>
+  <monster name="Carnivostrich" looktype="1605"/>
+  <monster name="Carniçal" looktype="18"/>
+  <monster name="Carnívoro Ameaçador" looktype="1138"/>
+  <monster name="Carnívoro Espinhoso" looktype="1139"/>
+  <monster name="Carnívoro Pesado" looktype="1133"/>
+  <monster name="Carrasco" looktype="609"/>
+  <monster name="Carrasco Pirata" looktype="96"/>
+  <monster name="Castor Gigante" looktype="1536"/>
+  <monster name="Catador do Clã Muglex" looktype="297"/>
+  <monster name="Catador Goblin" looktype="297"/>
+  <monster name="Cavaleiro Eclipse" looktype="234"/>
+  <monster name="Cavaleiro Falcão" looktype="1071"/>
+  <monster name="Cavaleiro familiar" looktype="991"/>
+  <monster name="Cavaleiro Leão" looktype="1317"/>
+  <monster name="Cavaleiro Negro" looktype="131"/>
+  <monster name="Cavaleiro Orc" looktype="4"/>
+  <monster name="Cavaleiro Renegado" looktype="268"/>
+  <monster name="Cavaleiro Usurpador" looktype="1316"/>
+  <monster name="Cavaleiro Usurpador Endurecido" looktype="1317"/>
+  <monster name="Cavalo" looktype="435"/>
+  <monster name="Cavalo Cinza" looktype="434"/>
+  <monster name="Cavalo Marrom" looktype="436"/>
+  <monster name="Cavalo Selvagem" looktype="393"/>
+  <monster name="Caçador" looktype="129"/>
+  <monster name="Caçador de Carne Dworc" looktype="215"/>
+  <monster name="Caçador de Crânios Bárbaro" looktype="254"/>
+  <monster name="Caçador de Minotauros" looktype="612"/>
+  <monster name="Caçador do Inferno Inferniarca" looktype="1793"/>
+  <monster name="Caçador Furtivo" looktype="129"/>
+  <monster name="Caçador Furtivo Minotauro" looktype="24"/>
+  <monster name="Caçador Noturno" looktype="1552"/>
+  <monster name="Ceifador de Almas" looktype="300"/>
+  <monster name="Centopeia" looktype="124"/>
+  <monster name="Cerebelo" looktype="0"/>
+  <monster name="Cervo" looktype="31"/>
+  <monster name="Cervo Branco Enfurecido" looktype="400"/>
+  <monster name="Cervo da Perdição" looktype="31"/>
+  <monster name="Chagorz" looktype="1666"/>
+  <monster name="Chakoya Invocadora do Vento" looktype="260"/>
+  <monster name="Chayenne" looktype="155"/>
+  <monster name="Chifre Sangrento" looktype="1548"/>
+  <monster name="Chikhaton" looktype="361"/>
+  <monster name="Chizzoron, o Distorcedor" looktype="340"/>
+  <monster name="Chorão" looktype="489"/>
+  <monster name="Chorão Infectado" looktype="489"/>
+  <monster name="Ciclope" looktype="22"/>
+  <monster name="Ciclope Juvenil" looktype="22"/>
+  <monster name="Ciclope Smith" looktype="277"/>
+  <monster name="Cidadão Febril" looktype="425"/>
+  <monster name="Cientista Maluco" looktype="133"/>
+  <monster name="Clomp" looktype="860"/>
+  <monster name="Clubarc O Saqueador" looktype="342"/>
+  <monster name="Cobra" looktype="28"/>
+  <monster name="Cobra Assassina" looktype="1217"/>
+  <monster name="Cobra Peçonhenta" looktype="81"/>
+  <monster name="Cobra Sagrada" looktype="28"/>
+  <monster name="Coelho" looktype="74"/>
+  <monster name="Coelho Assassino" looktype="74"/>
+  <monster name="Coelho Prateado" looktype="262"/>
+  <monster name="Companheiro Pirata" looktype="1346"/>
+  <monster name="Conhecimento Elementar" looktype="1065"/>
+  <monster name="Contrabandista" looktype="134"/>
+  <monster name="Corsário Pirata" looktype="98"/>
+  <monster name="Corym Charlatão" looktype="532"/>
+  <monster name="Corym Vanguarda" looktype="534"/>
+  <monster name="Coveiro" looktype="558"/>
+  <monster name="Cozinheiro de Trufas" looktype="1751"/>
+  <monster name="Cria da Morte" looktype="226"/>
+  <monster name="Cria da Serpente" looktype="220"/>
+  <monster name="Cria do Inferno" looktype="322"/>
+  <monster name="Cria Manchada" looktype="1401"/>
+  <monster name="Criação do Abismo" looktype="1037"/>
+  <monster name="Crocodilo" looktype="119"/>
+  <monster name="Crustáceos Gigantescos" looktype="383"/>
+  <monster name="Cruzeiro" looktype="842"/>
+  <monster name="Cubo de Açúcar" looktype="1753"/>
+  <monster name="Cuspidor" looktype="461"/>
+  <monster name="Custodiante" looktype="1217"/>
+  <monster name="Cão das Sombras" looktype="322"/>
+  <monster name="Cão Infernal" looktype="240"/>
+  <monster name="Cão Selvagem" looktype="32"/>
+  <monster name="Dan doente" looktype="299"/>
+  <monster name="Demônio" looktype="35"/>
+  <monster name="Demônio Askarak" looktype="420"/>
+  <monster name="Demônio da Noite" looktype="556"/>
+  <monster name="Demônio de Kraknaknork" looktype="12"/>
+  <monster name="Demônio Enfraquecido" looktype="12"/>
+  <monster name="Demônio Pária" looktype="590"/>
+  <monster name="Demônio Shaburak" looktype="417"/>
+  <monster name="Dentes de Sabre" looktype="1549"/>
+  <monster name="Descendente do Pesadelo" looktype="321"/>
+  <monster name="Desova da Meia-Noite" looktype="315"/>
+  <monster name="Destruidor" looktype="236"/>
+  <monster name="Devorador" looktype="617"/>
+  <monster name="Devorador de Almas" looktype="355"/>
+  <monster name="Devorador de Cavernas" looktype="1036"/>
+  <monster name="Devorador de Pedra" looktype="486"/>
+  <monster name="Devorador Listrado" looktype="1398"/>
+  <monster name="Devorador Sem Olhos" looktype="1399"/>
+  <monster name="Dharalion" looktype="203"/>
+  <monster name="Diabo do Fogo Menor" looktype="40"/>
+  <monster name="Diabrete do Fogo" looktype="40"/>
+  <monster name="Diblis, a Feira" looktype="287"/>
+  <monster name="Diremaw" looktype="1034"/>
+  <monster name="Diremaw envernizado" looktype="1397"/>
+  <monster name="Divisor de Cabeças Bárbaro" looktype="253"/>
+  <monster name="Djinn Azul" looktype="80"/>
+  <monster name="Djinn Verde" looktype="51"/>
+  <monster name="Donzela Cisne" looktype="138"/>
+  <monster name="Doutor Medula" looktype="1611"/>
+  <monster name="Dragolisque" looktype="1707"/>
+  <monster name="Dragão" looktype="34"/>
+  <monster name="Dragão da Nevada" looktype="248"/>
+  <monster name="Dragão de Gelo" looktype="947"/>
+  <monster name="Dragão de Guerra" looktype="1708"/>
+  <monster name="Dragão Medonho" looktype="351"/>
+  <monster name="Dragão Morto-Vivo" looktype="231"/>
+  <monster name="Dragão Pinata" looktype="0"/>
+  <monster name="Dragãozinho" looktype="505"/>
+  <monster name="Draptor" looktype="382"/>
+  <monster name="Dreadmaw" looktype="358"/>
+  <monster name="Dromedário" looktype="404"/>
+  <monster name="Drone Ciclope" looktype="280"/>
+  <monster name="Druida familiar" looktype="993"/>
+  <monster name="Dríade" looktype="137"/>
+  <monster name="Duende" looktype="982"/>
+  <monster name="Efreet" looktype="103"/>
+  <monster name="Ekatrix" looktype="54"/>
+  <monster name="Elefante" looktype="211"/>
+  <monster name="Elefante Apavorado" looktype="211"/>
+  <monster name="Elemental da Terra" looktype="301"/>
+  <monster name="Elemental da Água" looktype="286"/>
+  <monster name="Elemental da Água Enorme" looktype="11"/>
+  <monster name="Elemental de Alta Tensão" looktype="293"/>
+  <monster name="Elemental de Energia" looktype="293"/>
+  <monster name="Elemental de Energia Massiva" looktype="290"/>
+  <monster name="Elemental do Fogo" looktype="49"/>
+  <monster name="Elemental do Fogo Massivo" looktype="242"/>
+  <monster name="Elemental Massivo da Terra" looktype="285"/>
+  <monster name="Elfo" looktype="62"/>
+  <monster name="Elite Draken" looktype="362"/>
+  <monster name="Elite Profundo" looktype="441"/>
+  <monster name="Elmo Orc" looktype="2"/>
+  <monster name="Elvira Martelo" looktype="70"/>
+  <monster name="Energuardião dos Contos" looktype="1063"/>
+  <monster name="Enpa Yolo" looktype="26"/>
+  <monster name="Enxame de insetos" looktype="349"/>
+  <monster name="Enxame Menor" looktype="460"/>
+  <monster name="Enxameador" looktype="460"/>
+  <monster name="Escala de brilho" looktype="34"/>
+  <monster name="Escaramuçador de Corym" looktype="533"/>
+  <monster name="Escaravelho" looktype="83"/>
+  <monster name="Escaravelho Antigo" looktype="79"/>
+  <monster name="Escorpião" looktype="43"/>
+  <monster name="Escorpião da Alvorada" looktype="43"/>
+  <monster name="Escorpião de Arenito" looktype="398"/>
+  <monster name="Escoteiro Cobra" looktype="1217"/>
+  <monster name="Escoteiro Quara Pincher" looktype="77"/>
+  <monster name="Escudeiro Vicioso" looktype="131"/>
+  <monster name="Escudo Orc" looktype="2"/>
+  <monster name="Escória Espectral" looktype="195"/>
+  <monster name="Esfinge" looktype="1188"/>
+  <monster name="Esfinge Feroz" looktype="1188"/>
+  <monster name="Esfolador do Inferno" looktype="856"/>
+  <monster name="Espalhador" looktype="47"/>
+  <monster name="Espectro" looktype="235"/>
+  <monster name="Espectro Estripador" looktype="1122"/>
+  <monster name="Espectro Explosivo" looktype="1122"/>
+  <monster name="Espectro Gazer" looktype="1122"/>
+  <monster name="Espectro Traído" looktype="233"/>
+  <monster name="Espreitador de Lava" looktype="1041"/>
+  <monster name="Espreitador de Lava Voraz" looktype="1041"/>
+  <monster name="Espreitador do Pântano" looktype="530"/>
+  <monster name="Espreitador Noturno" looktype="320"/>
+  <monster name="Espuma Perseguidor" looktype="1562"/>
+  <monster name="Espírito Manchado" looktype="566"/>
+  <monster name="Esqueleto" looktype="33"/>
+  <monster name="Esqueleto de Festa" looktype="33"/>
+  <monster name="Esqueleto Demoníaco" looktype="37"/>
+  <monster name="Esqueleto Frágil" looktype="33"/>
+  <monster name="Esqueleto Guerreiro de Elite" looktype="298"/>
+  <monster name="Esqueleto Pirata" looktype="195"/>
+  <monster name="Esquilo" looktype="274"/>
+  <monster name="Esquilo Enfurecido" looktype="274"/>
+  <monster name="Esquilo Ladrão" looktype="274"/>
+  <monster name="Essência das Trevas" looktype="315"/>
+  <monster name="Estabilizando o Dread Intruder" looktype="882"/>
+  <monster name="Estabilizando o Reality Reaver" looktype="879"/>
+  <monster name="Executando a Guarda Orc de Elite" looktype="2"/>
+  <monster name="Exílio Perdido" looktype="537"/>
+  <monster name="Fada do Açúcar Irritada" looktype="1747"/>
+  <monster name="Fada Glooth" looktype="600"/>
+  <monster name="Fahim, o Sábio" looktype="104"/>
+  <monster name="Falcão Paladino" looktype="1071"/>
+  <monster name="Fantasma" looktype="241"/>
+  <monster name="Fantasma Perigoso" looktype="1298"/>
+  <monster name="Fantasma Pirata" looktype="196"/>
+  <monster name="Farejador de Cogumelos" looktype="60"/>
+  <monster name="Fatiador de carne" looktype="457"/>
+  <monster name="Fatiador Mortal" looktype="102"/>
+  <monster name="Fauno" looktype="980"/>
+  <monster name="Fauno Sombrio" looktype="980"/>
+  <monster name="Fauno Ártico" looktype="980"/>
+  <monster name="Faísca" looktype="877"/>
+  <monster name="Feiticeiro Draken" looktype="340"/>
+  <monster name="Feiticeiro familiar" looktype="994"/>
+  <monster name="Feiticeiro Inferniarca" looktype="1792"/>
+  <monster name="Feiticeiro Leão" looktype="1316"/>
+  <monster name="Fernfang" looktype="206"/>
+  <monster name="Ferreiro da Praga" looktype="247"/>
+  <monster name="Ferrugem" looktype="498"/>
+  <monster name="Ferumbras" looktype="229"/>
+  <monster name="Filho de Verminor" looktype="19"/>
+  <monster name="Filhote de Dragão" looktype="271"/>
+  <monster name="Filhote de Dragão de Gelo" looktype="283"/>
+  <monster name="Filhote de Enxameador" looktype="460"/>
+  <monster name="Filhote do Senhor dos Dragões" looktype="272"/>
+  <monster name="Flamingo" looktype="212"/>
+  <monster name="Fleabringer" looktype="341"/>
+  <monster name="Flor de Gelo Asura" looktype="150"/>
+  <monster name="Fofo" looktype="240"/>
+  <monster name="Fogo Furioso" looktype="242"/>
+  <monster name="Frango Agressivo" looktype="111"/>
+  <monster name="Frango Agrestico" looktype="111"/>
+  <monster name="Frango Berserker" looktype="111"/>
+  <monster name="Frazzlemaw" looktype="594"/>
+  <monster name="Frazzlemaw enfraquecido" looktype="594"/>
+  <monster name="Fred doente" looktype="299"/>
+  <monster name="Freegoiz" looktype="12"/>
+  <monster name="Frágil Alma Perdida" looktype="1268"/>
+  <monster name="Fungo Enorme" looktype="488"/>
+  <monster name="Fungo Horrível" looktype="499"/>
+  <monster name="Fungossauro" looktype="1555"/>
+  <monster name="Furiosa" looktype="149"/>
+  <monster name="Furioso Orc Berserker" looktype="8"/>
+  <monster name="Fábio" looktype="294"/>
+  <monster name="Fúria" looktype="149"/>
+  <monster name="Fúria da Floresta" looktype="569"/>
+  <monster name="Gaffir" looktype="1217"/>
+  <monster name="Gaivota" looktype="223"/>
+  <monster name="Galinha" looktype="111"/>
+  <monster name="Gambá" looktype="106"/>
+  <monster name="Garimpeiro Amaldiçoado" looktype="1268"/>
+  <monster name="Gato" looktype="276"/>
+  <monster name="General Murius" looktype="611"/>
+  <monster name="Geomante Anão" looktype="66"/>
+  <monster name="Geração do Welter" looktype="121"/>
+  <monster name="Ghazbaran" looktype="12"/>
+  <monster name="Gigante de Gelo" looktype="265"/>
+  <monster name="Gigante do Gelo" looktype="257"/>
+  <monster name="Gladiador" looktype="131"/>
+  <monster name="Gladiador Ardente" looktype="541"/>
+  <monster name="Gladiador de Elite Morto-Vivo" looktype="306"/>
+  <monster name="Gladiador Morto-Vivo" looktype="306"/>
+  <monster name="Gnarlhound" looktype="341"/>
+  <monster name="Gnarlhound modificado" looktype="515"/>
+  <monster name="Goanna Adulto" looktype="1195"/>
+  <monster name="Goblin" looktype="61"/>
+  <monster name="Goblin do Clã Grynch" looktype="61"/>
+  <monster name="Golem da Folha" looktype="567"/>
+  <monster name="Golem de Cristal Danificado" looktype="508"/>
+  <monster name="Golem de Cristal Enfurecido" looktype="508"/>
+  <monster name="Golem de Folha Murcha" looktype="573"/>
+  <monster name="Golem de Gelo" looktype="261"/>
+  <monster name="Golem de Guerra" looktype="326"/>
+  <monster name="Golem de Lava" looktype="491"/>
+  <monster name="Golem de Pedra" looktype="67"/>
+  <monster name="Golem Glooth" looktype="600"/>
+  <monster name="Golem Operário" looktype="304"/>
+  <monster name="Golem Rustheap" looktype="603"/>
+  <monster name="Golem Trabalhador Danificado" looktype="304"/>
+  <monster name="Golpeador Perdido" looktype="538"/>
+  <monster name="Gorerila" looktype="1559"/>
+  <monster name="Gorger Inferniarca" looktype="1797"/>
+  <monster name="Gota de Fruta" looktype="1754"/>
+  <monster name="Gozzler" looktype="313"/>
+  <monster name="Grande Chefe Trolliver" looktype="281"/>
+  <monster name="Grifo" looktype="1220"/>
+  <monster name="Grimeleech" looktype="855"/>
+  <monster name="Gritante Choro-Stal" looktype="1560"/>
+  <monster name="Groam" looktype="413"/>
+  <monster name="Grorlam" looktype="205"/>
+  <monster name="Grão-Mestre Vil" looktype="268"/>
+  <monster name="Guarda Anão" looktype="70"/>
+  <monster name="Guarda de Cova" looktype="234"/>
+  <monster name="Guarda de Honra" looktype="298"/>
+  <monster name="Guarda Minotauro" looktype="29"/>
+  <monster name="Guarda Profundo" looktype="442"/>
+  <monster name="Guarda Superior Lagarto" looktype="337"/>
+  <monster name="Guarda Troll" looktype="281"/>
+  <monster name="Guardião da Cripta" looktype="1190"/>
+  <monster name="Guardião da Tribo Chakoya" looktype="249"/>
+  <monster name="Guardião de Argila" looktype="333"/>
+  <monster name="Guardião dos Contos" looktype="1063"/>
+  <monster name="Guardião Eterno" looktype="345"/>
+  <monster name="Guardião Lula" looktype="1059"/>
+  <monster name="Guerreiro da Cripta" looktype="298"/>
+  <monster name="Guerreiro da Tribo da Cicatriz" looktype="7"/>
+  <monster name="Guerreiro Esqueleto" looktype="298"/>
+  <monster name="Guerreiro Girtablilu" looktype="1407"/>
+  <monster name="Guerreiro Mooh'Tah" looktype="611"/>
+  <monster name="Guerreiro Naga" looktype="1539"/>
+  <monster name="Guerreiro Orc" looktype="7"/>
+  <monster name="Guerreiro Profundo" looktype="441"/>
+  <monster name="Guerreiro Selvagem" looktype="131"/>
+  <monster name="Guzzlemaw" looktype="584"/>
+  <monster name="Gárgula" looktype="95"/>
+  <monster name="Gárgula de Metal" looktype="601"/>
+  <monster name="Hacker" looktype="8"/>
+  <monster name="Hairman, o Enorme" looktype="116"/>
+  <monster name="Harpia" looktype="1604"/>
+  <monster name="Heoni" looktype="239"/>
+  <monster name="Herói" looktype="73"/>
+  <monster name="Hidra" looktype="121"/>
+  <monster name="Hiena" looktype="94"/>
+  <monster name="Hiena macabra" looktype="94"/>
+  <monster name="Hirintror" looktype="261"/>
+  <monster name="Homem Biscoito" looktype="1738"/>
+  <monster name="Homem Crocodilo Selvagem" looktype="1647"/>
+  <monster name="Homem de Trapo" looktype="1601"/>
+  <monster name="Homem Javali" looktype="1603"/>
+  <monster name="Homem na Caverna" looktype="128"/>
+  <monster name="Homem Tigre" looktype="1646"/>
+  <monster name="Homem Tigre Branco" looktype="1646"/>
+  <monster name="Homem-crocodilo" looktype="1647"/>
+  <monster name="Horror com ânsia de vômito" looktype="588"/>
+  <monster name="Humano Mutante" looktype="323"/>
+  <monster name="Husky" looktype="258"/>
+  <monster name="Ichgahal" looktype="1665"/>
+  <monster name="Iks Ahpututu" looktype="1590"/>
+  <monster name="Iks Aucar" looktype="1587"/>
+  <monster name="Iks Chuka" looktype="1588"/>
+  <monster name="Iks Churrascan" looktype="1587"/>
+  <monster name="Iks Pututu" looktype="1589"/>
+  <monster name="Iks Yapunac" looktype="1702"/>
+  <monster name="Iluminados do Culto" looktype="193"/>
+  <monster name="Imitar" looktype="92"/>
+  <monster name="Imp Diabólico" looktype="237"/>
+  <monster name="Incendiário" looktype="159"/>
+  <monster name="Infernal" looktype="35"/>
+  <monster name="Infernalista" looktype="130"/>
+  <monster name="Inseto" looktype="45"/>
+  <monster name="Inseto de Enxofre" looktype="352"/>
+  <monster name="Intruso Terrível" looktype="882"/>
+  <monster name="Invasor do Lodo" looktype="299"/>
+  <monster name="Invocador de Demônios" looktype="0"/>
+  <monster name="Invocação de Elite de Spidris" looktype="457"/>
+  <monster name="Invocação Fantasma" looktype="241"/>
+  <monster name="Izcandar Campeão do Verão" looktype="1137"/>
+  <monster name="Jacaré Assassino" looktype="358"/>
+  <monster name="Javali" looktype="380"/>
+  <monster name="Javalomem" looktype="721"/>
+  <monster name="Jessé, o Malvado" looktype="134"/>
+  <monster name="Joaninha" looktype="448"/>
+  <monster name="Jorrador de Enxofre" looktype="1547"/>
+  <monster name="Jovem Goanna" looktype="1196"/>
+  <monster name="Jovem Serpente Marinha" looktype="317"/>
+  <monster name="Jovem troll" looktype="15"/>
+  <monster name="Juggernaut" looktype="244"/>
+  <monster name="Kollos" looktype="458"/>
+  <monster name="Kongra" looktype="116"/>
+  <monster name="Koshei, o Imortal" looktype="99"/>
+  <monster name="Kraknaknork" looktype="6"/>
+  <monster name="Lacaio do Clã Muglex" looktype="61"/>
+  <monster name="Ladrão de Queijo" looktype="534"/>
+  <monster name="Ladrão de Túmulos" looktype="146"/>
+  <monster name="Lagarta" looktype="1394"/>
+  <monster name="Lagarto Encantador de Serpentes" looktype="115"/>
+  <monster name="Lagarto Escolhido" looktype="344"/>
+  <monster name="Lagarto Magistratus" looktype="115"/>
+  <monster name="Lagarto Nobre" looktype="115"/>
+  <monster name="Lagarto Templário" looktype="113"/>
+  <monster name="Lagarto Zaogun" looktype="343"/>
+  <monster name="Lamassu" looktype="1190"/>
+  <monster name="Lanceiro Orc" looktype="50"/>
+  <monster name="Lança-pragas" looktype="0"/>
+  <monster name="Lançador de Morte" looktype="0"/>
+  <monster name="Lançador Mágico" looktype="0"/>
+  <monster name="Larva" looktype="82"/>
+  <monster name="Lavafungo" looktype="1405"/>
+  <monster name="Legionário Lagarto" looktype="338"/>
+  <monster name="Legionário Troll" looktype="53"/>
+  <monster name="Lesma" looktype="407"/>
+  <monster name="Leão" looktype="41"/>
+  <monster name="Leão Branco" looktype="1290"/>
+  <monster name="Leão que ruge" looktype="570"/>
+  <monster name="Libelinha Esmeralda" looktype="528"/>
+  <monster name="Lich" looktype="99"/>
+  <monster name="Liodilo" looktype="1602"/>
+  <monster name="Lisa" looktype="604"/>
+  <monster name="Lissy letal" looktype="155"/>
+  <monster name="Livro Amaldiçoado" looktype="1061"/>
+  <monster name="Livro em Chamas" looktype="1061"/>
+  <monster name="Livro Energético" looktype="1061"/>
+  <monster name="Livro Gelado" looktype="1061"/>
+  <monster name="Livro Mordedor" looktype="1066"/>
+  <monster name="Livro Voador" looktype="1060"/>
+  <monster name="Lobisomem" looktype="308"/>
+  <monster name="Lobisomem Pantera" looktype="1648"/>
+  <monster name="Lobisomen Leoa" looktype="1301"/>
+  <monster name="Lobo" looktype="27"/>
+  <monster name="Lobo Cristalino" looktype="391"/>
+  <monster name="Lobo de Fogo Espinheiro" looktype="414"/>
+  <monster name="Lobo de Guerra" looktype="3"/>
+  <monster name="Lobo de Inverno" looktype="52"/>
+  <monster name="Lobo Faminto" looktype="27"/>
+  <monster name="Lobo Fantasma" looktype="730"/>
+  <monster name="Lobo Sombrio" looktype="716"/>
+  <monster name="Lodo" looktype="19"/>
+  <monster name="Lodo mole" looktype="19"/>
+  <monster name="Lula Cérebro" looktype="1059"/>
+  <monster name="Lula Furiosa" looktype="1059"/>
+  <monster name="Lutador Fogo do Inferno" looktype="243"/>
+  <monster name="Lutador Mecânico" looktype="102"/>
+  <monster name="Lutador Profundo" looktype="470"/>
+  <monster name="Líder Goblin" looktype="61"/>
+  <monster name="Líder Orc" looktype="59"/>
+  <monster name="Lúcio" looktype="454"/>
+  <monster name="Macaco Amaldiçoado" looktype="1592"/>
+  <monster name="Madeira" looktype="535"/>
+  <monster name="Magia da Fúria Selvagem" looktype="0"/>
+  <monster name="Magia da Natureza Selvagem" looktype="0"/>
+  <monster name="Magia da Água Selvagem" looktype="0"/>
+  <monster name="Magia do Fogo Selvagem" looktype="0"/>
+  <monster name="Mago furioso" looktype="416"/>
+  <monster name="Mago Furioso Energizado" looktype="423"/>
+  <monster name="Mago Louco" looktype="394"/>
+  <monster name="Mago Minotauro" looktype="23"/>
+  <monster name="Mago Negro" looktype="133"/>
+  <monster name="Makara" looktype="1565"/>
+  <monster name="Maldição da Luz" looktype="68"/>
+  <monster name="Mamute" looktype="199"/>
+  <monster name="Manbat Vicioso" looktype="554"/>
+  <monster name="Manticora" looktype="1189"/>
+  <monster name="Mantossauro" looktype="1556"/>
+  <monster name="Marid" looktype="104"/>
+  <monster name="Mariposa Hiberna" looktype="1149"/>
+  <monster name="Mariposa Lacewing" looktype="1148"/>
+  <monster name="Matriarca Modeladora" looktype="933"/>
+  <monster name="Mawhawk" looktype="595"/>
+  <monster name="Medo sufocante" looktype="586"/>
+  <monster name="Medusa" looktype="330"/>
+  <monster name="Mega Dragão" looktype="1712"/>
+  <monster name="Mel Elemental" looktype="1733"/>
+  <monster name="Membro de Gangue" looktype="151"/>
+  <monster name="Memória de um Anão" looktype="70"/>
+  <monster name="Memória de um Carnisilvan" looktype="1418"/>
+  <monster name="Memória de um Elfo" looktype="63"/>
+  <monster name="Memória de um escaravelho" looktype="79"/>
+  <monster name="Memória de um Fauno" looktype="980"/>
+  <monster name="Memória de um Frazzlemaw" looktype="594"/>
+  <monster name="Memória de um fungo" looktype="488"/>
+  <monster name="Memória de um Golem" looktype="600"/>
+  <monster name="Memória de um Herói" looktype="73"/>
+  <monster name="Memória de um Insetóide" looktype="403"/>
+  <monster name="Memória de um Lagarto" looktype="337"/>
+  <monster name="Memória de um Livro" looktype="1060"/>
+  <monster name="Memória de um Lobo" looktype="918"/>
+  <monster name="Memória de um Mamute" looktype="199"/>
+  <monster name="Memória de um Ogro" looktype="857"/>
+  <monster name="Memória de um Pirata" looktype="97"/>
+  <monster name="Memória de um Shaper" looktype="932"/>
+  <monster name="Memória de um Vampiro" looktype="68"/>
+  <monster name="Memória de um Werelion" looktype="1301"/>
+  <monster name="Memória de um Yalahari" looktype="309"/>
+  <monster name="Memória de uma Amazônia" looktype="137"/>
+  <monster name="Memória de uma Banshee" looktype="78"/>
+  <monster name="Memória de uma Hidra" looktype="121"/>
+  <monster name="Memória de uma Manticora" looktype="1189"/>
+  <monster name="Mendigo Enlouquecido" looktype="153"/>
+  <monster name="Merikh, o Matador" looktype="103"/>
+  <monster name="Merlkin" looktype="117"/>
+  <monster name="Mestre de Batalha Zunzu" looktype="343"/>
+  <monster name="Mestre de Guerra Draken" looktype="334"/>
+  <monster name="Mestre Vodu Dworc" looktype="214"/>
+  <monster name="Mineiro Anão" looktype="160"/>
+  <monster name="Minion Morto-Vivo" looktype="37"/>
+  <monster name="Minishabaal" looktype="237"/>
+  <monster name="Minotauro" looktype="25"/>
+  <monster name="Minotauro Amazona" looktype="608"/>
+  <monster name="Minotauro Bruiser" looktype="25"/>
+  <monster name="Minotauro Invasor" looktype="29"/>
+  <monster name="Minotauro movido a Glooth" looktype="607"/>
+  <monster name="Mochila Orc Sam" looktype="5"/>
+  <monster name="Modelador de ferramentas Chakoya" looktype="259"/>
+  <monster name="Modelador de Âmbar para Enraizamento" looktype="1762"/>
+  <monster name="Modelador Quebrado" looktype="932"/>
+  <monster name="Modelador Torcido" looktype="932"/>
+  <monster name="Monge" looktype="57"/>
+  <monster name="Monge da Ordem" looktype="57"/>
+  <monster name="Monge familiar" looktype="1818"/>
+  <monster name="Monge Sombrio" looktype="225"/>
+  <monster name="Moohtant" looktype="607"/>
+  <monster name="Morcego" looktype="122"/>
+  <monster name="Morcego do Amanhecer" looktype="122"/>
+  <monster name="Morcego Exótico" looktype="1373"/>
+  <monster name="Morcego Mutante" looktype="307"/>
+  <monster name="Morgaroth" looktype="12"/>
+  <monster name="Morik, o Gladiador" looktype="131"/>
+  <monster name="Morshabaal" looktype="1468"/>
+  <monster name="Morte cerebral" looktype="256"/>
+  <monster name="Mosca da Alvorada" looktype="528"/>
+  <monster name="Muda Carnisilvan" looktype="1419"/>
+  <monster name="Mulher Nômade" looktype="150"/>
+  <monster name="Murião" looktype="1664"/>
+  <monster name="Máquina de Treino" looktype="1142"/>
+  <monster name="Mão de Sangue" looktype="552"/>
+  <monster name="Mão do Destino Amaldiçoado" looktype="230"/>
+  <monster name="Múmia" looktype="65"/>
+  <monster name="Múmia Anciã" looktype="65"/>
+  <monster name="Múmia Pútrida" looktype="976"/>
+  <monster name="Münster" looktype="56"/>
+  <monster name="Naga corrupta" looktype="1538"/>
+  <monster name="Naga Renegada" looktype="1543"/>
+  <monster name="Necromante" looktype="9"/>
+  <monster name="Necrófaro" looktype="209"/>
+  <monster name="Nibblemaw" looktype="1737"/>
+  <monster name="Ninfa" looktype="989"/>
+  <monster name="Ninhada de violação" looktype="878"/>
+  <monster name="Ninhada de violação instável" looktype="878"/>
+  <monster name="Nobre Leão" looktype="570"/>
+  <monster name="Noiva Vampira" looktype="312"/>
+  <monster name="Noviça do Culto" looktype="133"/>
+  <monster name="Nômade" looktype="146"/>
+  <monster name="O Colecionador" looktype="261"/>
+  <monster name="O ladrão de cérebros" looktype="1412"/>
+  <monster name="O Livro da Morte" looktype="1061"/>
+  <monster name="O mau-olhado" looktype="210"/>
+  <monster name="O Monstro" looktype="1600"/>
+  <monster name="O Pai da Praga" looktype="348"/>
+  <monster name="O Primeiro Dragão" looktype="947"/>
+  <monster name="O Príncipe Sapo" looktype="224"/>
+  <monster name="O Rootkraken" looktype="1765"/>
+  <monster name="Observador" looktype="109"/>
+  <monster name="Ocultista do Minotauro" looktype="23"/>
+  <monster name="Ocyakao" looktype="259"/>
+  <monster name="Ogro Arruaceiro" looktype="1213"/>
+  <monster name="Ogro Bruto" looktype="857"/>
+  <monster name="Ogro Rufião" looktype="1212"/>
+  <monster name="Ogro Selvagem" looktype="858"/>
+  <monster name="Ogro Sábio" looktype="1214"/>
+  <monster name="Ogro Xamã" looktype="859"/>
+  <monster name="Olho Morto Desviante" looktype="151"/>
+  <monster name="Omnivora" looktype="717"/>
+  <monster name="Orc" looktype="5"/>
+  <monster name="Orc Renegado" looktype="59"/>
+  <monster name="Orc Saqueador" looktype="342"/>
+  <monster name="Orclope Doomhauler" looktype="934"/>
+  <monster name="Orclopes Devastador" looktype="935"/>
+  <monster name="Orewalker" looktype="490"/>
+  <monster name="Orshabaal" looktype="201"/>
+  <monster name="Ossos" looktype="231"/>
+  <monster name="Ovelha" looktype="14"/>
+  <monster name="Ovelha Má" looktype="14"/>
+  <monster name="Ovelha Negra" looktype="13"/>
+  <monster name="Ovo" looktype="0"/>
+  <monster name="Paladino familiar" looktype="992"/>
+  <monster name="Panda" looktype="123"/>
+  <monster name="Pantera da Meia-Noite" looktype="385"/>
+  <monster name="Papagaio" looktype="217"/>
+  <monster name="Papagaio da Caverna" looktype="217"/>
+  <monster name="Papagaio Demônio" looktype="217"/>
+  <monster name="Papaizinho" looktype="1764"/>
+  <monster name="Parasita" looktype="82"/>
+  <monster name="Parasita Cerebral" looktype="82"/>
+  <monster name="Parder" looktype="1533"/>
+  <monster name="Peixe" looktype="455"/>
+  <monster name="Pele de Sombra" looktype="1040"/>
+  <monster name="Pena Animada" looktype="1058"/>
+  <monster name="Pequeno Corym Charlatão" looktype="532"/>
+  <monster name="Peregrino Aflito" looktype="1403"/>
+  <monster name="Peregrino do Prado" looktype="530"/>
+  <monster name="Perseguidor" looktype="128"/>
+  <monster name="Perseguição" looktype="1554"/>
+  <monster name="Pesadelo" looktype="245"/>
+  <monster name="Pica-cabeça" looktype="1557"/>
+  <monster name="Pilar" looktype="0"/>
+  <monster name="Pilar Mágico" looktype="0"/>
+  <monster name="Pilhador Pirata" looktype="93"/>
+  <monster name="Pinguim" looktype="250"/>
+  <monster name="Pinguim Terrível" looktype="250"/>
+  <monster name="Pirata Canalha" looktype="1346"/>
+  <monster name="Pirata de Elite" looktype="534"/>
+  <monster name="Pirata Degolador" looktype="1346"/>
+  <monster name="Podridão Elemental" looktype="615"/>
+  <monster name="Pombo" looktype="531"/>
+  <monster name="Poodle" looktype="473"/>
+  <monster name="Pooka" looktype="977"/>
+  <monster name="Pooka Torcido" looktype="978"/>
+  <monster name="Porco" looktype="60"/>
+  <monster name="Porco Vampiro" looktype="60"/>
+  <monster name="Porco Velho" looktype="921"/>
+  <monster name="Poro da Colmeia" looktype="0"/>
+  <monster name="Portador de Bane" looktype="310"/>
+  <monster name="Portador do Crepúsculo" looktype="300"/>
+  <monster name="Precursor da Alma Quebrada" looktype="1137"/>
+  <monster name="Predador Quara Renegado" looktype="20"/>
+  <monster name="Prehemoth Corpulento" looktype="1553"/>
+  <monster name="Primitivo" looktype="143"/>
+  <monster name="Profanador" looktype="238"/>
+  <monster name="Profanador de Cripta" looktype="146"/>
+  <monster name="Profeta do Culto ao Minotauro" looktype="23"/>
+  <monster name="Profundo Feiticeiro" looktype="443"/>
+  <monster name="Projeto de lei doente" looktype="299"/>
+  <monster name="Prospector de Mortos-vivos" looktype="18"/>
+  <monster name="Prospector do Mal" looktype="1268"/>
+  <monster name="Príncipe Askarak" looktype="419"/>
+  <monster name="Príncipe Shaburak" looktype="418"/>
+  <monster name="Pupila das Sombras" looktype="551"/>
+  <monster name="Pássaro do Terror" looktype="218"/>
+  <monster name="Pássaro do Terror Domado" looktype="218"/>
+  <monster name="Pítio, o Podre" looktype="231"/>
+  <monster name="Quara Constrictor Scout" looktype="46"/>
+  <monster name="Quara Constritora" looktype="46"/>
+  <monster name="Quara Hidromante" looktype="47"/>
+  <monster name="Quara Hidromante Batedor" looktype="47"/>
+  <monster name="Quara Mantassin" looktype="72"/>
+  <monster name="Quara Mantassin Scout" looktype="72"/>
+  <monster name="Quara Pinça" looktype="77"/>
+  <monster name="Quara Predadora" looktype="20"/>
+  <monster name="Quara Predator Scout" looktype="20"/>
+  <monster name="Quara Raider" looktype="1759"/>
+  <monster name="Quara Saqueador" looktype="1741"/>
+  <monster name="Quimera da Caverna" looktype="1406"/>
+  <monster name="Rainha Aranha" looktype="219"/>
+  <monster name="Rainha Rotworm" looktype="295"/>
+  <monster name="Raposa" looktype="1029"/>
+  <monster name="Rastreador" looktype="456"/>
+  <monster name="Rastreador de areia" looktype="350"/>
+  <monster name="Rastreador de Bugs Rootthing" looktype="1763"/>
+  <monster name="Rastreador de Magma" looktype="492"/>
+  <monster name="Rato" looktype="21"/>
+  <monster name="Rato da Caverna" looktype="56"/>
+  <monster name="Rato Mutante" looktype="305"/>
+  <monster name="Raxias" looktype="980"/>
+  <monster name="Reaver a Realidade" looktype="879"/>
+  <monster name="Recipiente Alquimista" looktype="0"/>
+  <monster name="Refinador de pedra" looktype="1032"/>
+  <monster name="Renegade Quara Constrictor" looktype="46"/>
+  <monster name="Renegade Quara Hydromancer" looktype="47"/>
+  <monster name="Renegade Quara Mantassin" looktype="72"/>
+  <monster name="Renegado Quara Pincher" looktype="77"/>
+  <monster name="Reno" looktype="1606"/>
+  <monster name="Resumindo o enraizamento" looktype="1760"/>
+  <monster name="Retaguarda de Inverno Enlouquecida" looktype="1136"/>
+  <monster name="Retaguarda Enlouquecida de Verão" looktype="1136"/>
+  <monster name="Rinoceronte de Pedra" looktype="936"/>
+  <monster name="Ripptor Nocivo" looktype="1558"/>
+  <monster name="Robby, o Imprudente" looktype="129"/>
+  <monster name="Ron, o Estripador" looktype="151"/>
+  <monster name="Rorc" looktype="550"/>
+  <monster name="Rottie, o Rotworm" looktype="26"/>
+  <monster name="Rukor Zad" looktype="152"/>
+  <monster name="Rã Carmesim" looktype="226"/>
+  <monster name="Rã Coral" looktype="226"/>
+  <monster name="Rã do Pântano" looktype="412"/>
+  <monster name="Réplica do Servo de Ferro" looktype="395"/>
+  <monster name="Réplica do Servo Diamante" looktype="397"/>
+  <monster name="Réplica do Servo Dourado" looktype="396"/>
+  <monster name="Sacerdote Bulltaur" looktype="1719"/>
+  <monster name="Sacerdote da Morte" looktype="99"/>
+  <monster name="Sacerdote de Sangue" looktype="553"/>
+  <monster name="Sacerdote Dragão Lagarto" looktype="339"/>
+  <monster name="Sacerdotisa" looktype="58"/>
+  <monster name="Sacerdotisa do Sol Selvagem" looktype="1199"/>
+  <monster name="Sacerdotisa Verme" looktype="613"/>
+  <monster name="Salamandra" looktype="529"/>
+  <monster name="Salamandra Treinada por Trolls" looktype="529"/>
+  <monster name="Salmobruta Inferniarca" looktype="1794"/>
+  <monster name="Sapo" looktype="222"/>
+  <monster name="Sapo Azul" looktype="226"/>
+  <monster name="Sapo Imundo" looktype="222"/>
+  <monster name="Sapo Infernal" looktype="224"/>
+  <monster name="Sapo Orquídea" looktype="226"/>
+  <monster name="Sapo Verde" looktype="224"/>
+  <monster name="Saqueador de Quara" looktype="1758"/>
+  <monster name="Saqueador Troll" looktype="281"/>
+  <monster name="Savant Flutuante" looktype="1063"/>
+  <monster name="Seguidor do Culto do Minotauro" looktype="25"/>
+  <monster name="Selva Moa" looktype="1534"/>
+  <monster name="Senhor Askarak" looktype="410"/>
+  <monster name="Senhor da Grave Oshuran" looktype="99"/>
+  <monster name="Senhor da Guerra Orc" looktype="2"/>
+  <monster name="Senhor da Guerra Ruzad" looktype="2"/>
+  <monster name="Senhor das Ovelhas Más" looktype="13"/>
+  <monster name="Senhor dos Dragões" looktype="39"/>
+  <monster name="Senhor dos Ossos" looktype="17"/>
+  <monster name="Senhor Shaburak" looktype="409"/>
+  <monster name="Senhor Valorcrest" looktype="287"/>
+  <monster name="Sentinela Lagarto" looktype="114"/>
+  <monster name="Serpente Mais Marinha" looktype="675"/>
+  <monster name="Serpente Marinha" looktype="275"/>
+  <monster name="Servo da Tumba" looktype="100"/>
+  <monster name="Servo de Ferro" looktype="395"/>
+  <monster name="Servo Diamante" looktype="397"/>
+  <monster name="Servo Dourado" looktype="396"/>
+  <monster name="Servo Gelado" looktype="261"/>
+  <monster name="Servo Necromante" looktype="9"/>
+  <monster name="Shlorg enfraquecido" looktype="565"/>
+  <monster name="Sibang" looktype="118"/>
+  <monster name="Significa Alma Perdida" looktype="1268"/>
+  <monster name="Silenciador" looktype="585"/>
+  <monster name="Silenciador Enfraquecido" looktype="585"/>
+  <monster name="Silenciador Perdido" looktype="537"/>
+  <monster name="Sineater Inferniarca" looktype="1795"/>
+  <monster name="Sirene Insana" looktype="1136"/>
+  <monster name="Soldado Anão" looktype="71"/>
+  <monster name="Sombra Branca" looktype="560"/>
+  <monster name="Sono febril" looktype="593"/>
+  <monster name="Sono Terror" looktype="587"/>
+  <monster name="Sparkion instável" looktype="877"/>
+  <monster name="Spidris" looktype="457"/>
+  <monster name="Spidris Elite" looktype="457"/>
+  <monster name="Spyrat Leste" looktype="0"/>
+  <monster name="Spyrat Norte" looktype="0"/>
+  <monster name="Spyrat Oeste" looktype="0"/>
+  <monster name="Spyrat Sul" looktype="0"/>
+  <monster name="Sulfureto" looktype="1546"/>
+  <monster name="Supervisor da Colmeia" looktype="458"/>
+  <monster name="Supervisor Elfo" looktype="159"/>
+  <monster name="Tanaturso" looktype="1134"/>
+  <monster name="Tartaruga" looktype="197"/>
+  <monster name="Tartaruga de Duas Cabeças" looktype="1535"/>
+  <monster name="Tartaruga Esmeralda" looktype="1550"/>
+  <monster name="Tartaruga Thornback" looktype="198"/>
+  <monster name="Tarântula" looktype="219"/>
+  <monster name="Tecnomante Louco" looktype="66"/>
+  <monster name="Telescor" looktype="298"/>
+  <monster name="Terramita" looktype="346"/>
+  <monster name="Terror Doce" looktype="1739"/>
+  <monster name="Texugo" looktype="105"/>
+  <monster name="Texugomem" looktype="729"/>
+  <monster name="Tigre" looktype="125"/>
+  <monster name="Tigre Branco" looktype="1649"/>
+  <monster name="Tigre Mutante" looktype="318"/>
+  <monster name="Tirano do Túnel" looktype="1035"/>
+  <monster name="Tirano Profundo" looktype="442"/>
+  <monster name="Torre de Controle" looktype="0"/>
+  <monster name="Torturador Sombrio" looktype="234"/>
+  <monster name="Totem do Minotauro" looktype="0"/>
+  <monster name="Toupeira" looktype="1048"/>
+  <monster name="Trabalhador da mina morto-vivo" looktype="33"/>
+  <monster name="Trabalhador do Cubo de Açúcar" looktype="1756"/>
+  <monster name="Trabalhador Insetóide" looktype="403"/>
+  <monster name="Trabalhador Profundo" looktype="470"/>
+  <monster name="Treinador de Salamandra" looktype="15"/>
+  <monster name="Tremendo Tirano" looktype="1396"/>
+  <monster name="Triturador de cristal" looktype="511"/>
+  <monster name="Troll" looktype="15"/>
+  <monster name="Troll Campeão" looktype="281"/>
+  <monster name="Troll da Ilha" looktype="282"/>
+  <monster name="Troll da Montanha" looktype="15"/>
+  <monster name="Troll de Gelo" looktype="53"/>
+  <monster name="Troll do Pântano" looktype="76"/>
+  <monster name="Troll Furioso" looktype="281"/>
+  <monster name="Trufa" looktype="1750"/>
+  <monster name="Trôpego da Cripta" looktype="100"/>
+  <monster name="Tubarão" looktype="453"/>
+  <monster name="Tyrn" looktype="562"/>
+  <monster name="Urso" looktype="16"/>
+  <monster name="Urso das Cavernas Morto-Vivo" looktype="384"/>
+  <monster name="Urso Polar" looktype="42"/>
+  <monster name="Urso Velho" looktype="919"/>
+  <monster name="Ursomem" looktype="720"/>
+  <monster name="Urtiga Cuspideira" looktype="221"/>
+  <monster name="Valquíria" looktype="139"/>
+  <monster name="Vampiro" looktype="68"/>
+  <monster name="Vanguarda de Inverno Enlouquecida" looktype="1137"/>
+  <monster name="Vanguarda de verão enlouquecida" looktype="1137"/>
+  <monster name="Vanguarda Mitmah" looktype="1716"/>
+  <monster name="Veado Branco" looktype="400"/>
+  <monster name="Veado Branco Desesperado" looktype="400"/>
+  <monster name="Velha Aranha Gigante" looktype="910"/>
+  <monster name="Velho Lobo" looktype="918"/>
+  <monster name="Velho observador" looktype="924"/>
+  <monster name="Vemiath" looktype="1668"/>
+  <monster name="Venerável Girtablilu" looktype="1407"/>
+  <monster name="Verdadeira Flor Geada Asura" looktype="1068"/>
+  <monster name="Verdadeiro Asura da Meia-Noite" looktype="1068"/>
+  <monster name="Verdadeiro Asura Fogo da Alvorada" looktype="1068"/>
+  <monster name="Verme Carniceiro" looktype="192"/>
+  <monster name="Verme da Podridão" looktype="26"/>
+  <monster name="Verme profundo" looktype="1033"/>
+  <monster name="Verminor" looktype="12"/>
+  <monster name="Vespa" looktype="44"/>
+  <monster name="Vespa Velha" looktype="923"/>
+  <monster name="Vexgarra" looktype="854"/>
+  <monster name="Vidente Mitmah" looktype="1710"/>
+  <monster name="Visco mutante" looktype="554"/>
+  <monster name="Visconde Vampiro" looktype="555"/>
+  <monster name="Visão da Rendição" looktype="583"/>
+  <monster name="Vizir Cobra" looktype="1217"/>
+  <monster name="Viúva Chorosa" looktype="347"/>
+  <monster name="Vulcongra" looktype="509"/>
+  <monster name="Waspoid" looktype="462"/>
+  <monster name="Werefox" looktype="1030"/>
+  <monster name="Werehyaena" looktype="1300"/>
+  <monster name="Werelion" looktype="1301"/>
+  <monster name="Wiggler" looktype="510"/>
+  <monster name="Willi Vespa" looktype="44"/>
+  <monster name="Wyrm" looktype="291"/>
+  <monster name="Wyvern" looktype="239"/>
+  <monster name="Xamã da Tribo da Cicatriz" looktype="6"/>
+  <monster name="Xamã Orc" looktype="6"/>
+  <monster name="Xamã Werehyaena" looktype="1300"/>
+  <monster name="Xênia" looktype="137"/>
+  <monster name="Yaga, a Velha" looktype="54"/>
+  <monster name="Yakchal" looktype="149"/>
+  <monster name="Yeti" looktype="110"/>
+  <monster name="Yielotáx" looktype="408"/>
+  <monster name="Zarabustor" looktype="130"/>
+  <monster name="Zavarash" looktype="12"/>
+  <monster name="Zelote do Culto do Minotauro" looktype="29"/>
+  <monster name="Zevelon Arauto do Crepúsculo" looktype="287"/>
+  <monster name="Zoralurk" looktype="12"/>
+  <monster name="Zulazza, a Corruptor" looktype="334"/>
+  <monster name="Zumba" looktype="570"/>
+  <monster name="Zumbi" looktype="311"/>
+  <monster name="Zushuka" looktype="149"/>
+  <monster name="Água-viva" looktype="452"/>
+  <monster name="Árvore Assombrada" looktype="310"/>
+</monsters>

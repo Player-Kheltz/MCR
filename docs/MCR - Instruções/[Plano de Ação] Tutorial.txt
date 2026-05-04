@@ -1,0 +1,230 @@
+🧱 Pré‑requisitos (já deve ter)
+Servidor Canary compilado e rodando (Guia 1).
+
+Cliente OTClient configurado (Guia 2).
+
+Login Server funcional (Guia 4).
+
+items.xml traduzido e Lista de Itens Úteis disponível.
+
+Banco de dados BancoServer criado com charset utf8mb4 (Guia 9).
+
+Ferramentas de automação (pipeline de tradução) prontas – caso precise traduzir alguma string extra.
+
+🗺️ 1. Criação do Mapa da Ilha do Despertar
+Local: A ilha é uma área isolada, segura (proteção PvP, sem perda de itens ao morrer), acessada diretamente do Salão dos Destinos após a criação do personagem.
+
+Ferramenta: Map Editor (compatível com o Canary, normalmente o RME modificado).
+Você vai desenhar as áreas descritas no Guia 12:
+
+Área	Função	Elementos principais
+Praia do Náufrago	Spawn do personagem	Areia, alguns destroços, tile de temple (proteção).
+Templo Interior	NPC Eldrin	Pequena construção, piso diferenciado, talvez velas.
+Floresta Serena	Caça fraca e coleta	Ratos, coelhos, slimes, ervas (Erva de Sangue).
+Gruta Sussurrante	Primeira exploração	Morcegos, baú com Livro de Feitiços, cristal para minerar.
+Vilarejo de Eri	NPCs especializados	Cabana do Thorne (ferreiro), cabana da Lyra (curandeira), cabana da Mira (cartógrafa), cabana/cais do Corvus (pescador).
+Lagoa Tranquila	Pesca	Água, cardumes visuais, vara de pesca.
+Altar da Partida	Saída da ilha	Estrutura mística, bloqueada até conclusão do tutorial.
+Spawn do jogador: configure o script de login (data/creaturescripts/scripts/login.lua ou evento global tutorial_spawn.lua) para que personagens recém‑criados (sem storage de tutorial concluído) apareçam na Praia do Náufrago (ex: posição x=100, y=100, z=7). O NPC Eldrin deve estar próximo.
+
+Temple tile: coloque um tile de proteção (temple) na praia ou no templo interior. O personagem deve renascer lá se morrer.
+
+Monstros: crie ou use criaturas existentes fracas (Rato, Slime, Morcego). Verifique se os IDs correspondem aos do seu monstro.xml. Spawne‑os nas áreas corretas.
+
+Itens no chão / baús: coloque o Livro de Feitiços (ID 3059) na Gruta Sussurrante, e ferramentas nos locais apropriados (pá na praia, corda perto de um poço, picareta na gruta, vara de pesca com Corvus, etc.)
+
+Bloqueio do Altar da Partida: use um tile especial ou um teleport que só funcione se o jogador tiver storage 50010 = 2. Pode‑se usar um script de movimento (onStepIn) que verifica o storage e teletransporta para o continente ou impede a passagem.
+
+🧑‍🤝‍🧑 2. Criação dos NPCs do Tutorial
+Cada NPC será um arquivo .lua em data/npc/. Siga exatamente o esqueleto do Guia de Narrativa e Diálogos (Guia 6):
+
+Game.createNpcType(nome)
+
+npcConfig com outfit, saúde, etc.
+
+npcHandler + keywordHandler
+
+Callbacks obrigatórios (onThink, onAppear, …)
+
+greetCallback, creatureSayCallback, farewellCallback
+
+Destaque com {chaves}, espaço antes de }? → sempre } ?
+
+Uso do módulo pronouns.lua (carregar com dofile('data/MCR Scripts/pronouns.lua')) e Pronouns.getSubject(player).
+
+Uso de NpcUtils.correspondeAcao, NpcUtils.escolherFraseVariada
+
+Debug: print("DEBUG: greetCallback - player=" .. player:getName()) em cada callback e ponto de decisão.
+
+Codificação: salve os arquivos como ISO‑8859‑1 (Latin‑1/ANSI no Windows). CRÍTICO.
+
+Os NPCs e suas funções (Guia 12, secção 3):
+NPC	Personalidade	Missão principal	Storages
+Eldrin	Sábio, acolhedor	Boas‑vindas + missão principal (“O Caminho do Aventureiro”)	50010
+Thorne	Rude, brincalhão	“O Peso do Aço” (combate) – equipar Espada e derrotar Bonecos de Treino. Opção de testar outras armas.	50011
+Lyra	Mística, serena	“O Sopro da Vida” (coleta de ervas, água, poções, criação de runas) + “A Essência do Aventureiro” (Livro de Feitiços, Runa de Cura Intensa)	50012, 50014
+Mira	Curiosa, precisa	“Segredos da Terra” (ferramentas: pá, corda, picareta) + encaminha para pesca com Corvus	50013
+Corvus	Paciente, irónico	Sub‑missão de pesca (entrega 2 peixes) – parte integrante da missão de Mira	50013 (compartilhado)
+Progressão de intimidade: use storages 100010 + npcId (Guia 3 e 7). Após cada missão, incremente o nível (de 0 para 1, depois 2 para Lyra, etc.). O NPC adapta a linguagem.
+
+Fluxo da missão principal: Eldrin monitora a conclusão das 4 missões secundárias. Quando o jogador tiver 50011=2, 50012=2, 50013=2, 50014=2, ele libera o Altar da Partida.
+
+Exemplo simplificado do NPC Eldrin:
+lua
+-- eldrin.lua
+dofile('data/MCR Scripts/npc_utils.lua')
+dofile('data/MCR Scripts/pronouns.lua')
+
+local npcName = "Eldrin"
+local npcType = Game.createNpcType(npcName)
+local npcConfig = { ... }  -- outfit, etc.
+
+local npcHandler = NpcHandler:new(keywordHandler)
+-- callbacks ...
+
+local function greetCallback(npc, player)
+    local subj = Pronouns.getSubject(player)
+    local missao = player:getStorageValue(50010)
+    if missao < 1 then
+        npcHandler:setMessage(MESSAGE_GREET, "Bem-vind" .. (subj=="she" and "a" or "o") .. " a Eridanus! Precisas de orientação?")
+    elseif missao == 1 then
+        -- verifica progresso das submissões
+    else
+        -- tutorial completo
+    end
+    return true
+end
+
+npcHandler:setCallback(CALLBACK_GREET, greetCallback)
+-- creatureSayCallback com a lógica da missão, aceitar, verificar submissões, etc.
+-- ...
+npcType:register(npcConfig)
+⚠️ Atenção ao formato: todos os NPCs devem usar npcHandler:say("texto", npc, player) e nunca doPlayerSendTextMessage solto. As falas devem respeitar o pronome do personagem obtido via Pronouns.getSubject(player).
+
+📦 3. Itens do Tutorial (IDs Reais)
+A Lista de Itens Úteis já contém todos os IDs verificados. Garanta que esses itens existam no seu items.xml. Os principais:
+
+ID	Nome	Uso
+2854	Mochila	Equipamento inicial
+2920	Tocha	Iluminação
+3552	Botas de Couro	Proteção
+3561	Jaqueta	Armadura
+3559	Calças de Couro	Pernas
+3264	Espada	Arma inicial
+3412	Escudo de Madeira	Recompensa de Thorne
+266	Poção de Vida	Aula de Lyra
+268	Poção de Mana	Aula de Lyra
+3457	Pá	Ferramenta Mira
+3003	Corda	Ferramenta Mira
+3456	Picareta	Ferramenta Mira
+3483	Vara de Pesca	Pesca Corvus
+3492	Verme	Isca
+3578	Peixe	Entrega Corvus
+3734	Erva de Sangue	Coleta Lyra
+3059	Livro de Feitiços	Gruta – entrega Lyra
+3147	Runa em Branco	Lyra
+3174	Runa de Míssil Mágico Leve	Lyra
+3152	Runa de Cura Intensa	Lyra (missão final)
+3018	Amuleto de Escaravelho	Recompensa final Eldrin
+O equipamento inicial deve ser dado por Eldrin no primeiro cumprimento (ou automaticamente via login.lua). No script de login, se o jogador for novo (storage 50010 < 1), dê os itens iniciais. Mas a forma mais imersiva é o NPC entregar. Você pode combinar: login.lua entrega uma mochila vazia; Eldrin completa o inventário ao saudar o jogador pela primeira vez.
+
+🧪 4. Estrutura das Quests (Sistema SQH)
+Cada missão segue o Guia de Quests (Guia 7).
+
+Storages: 50010‑50019 reservados (50010 missão principal, 50011 a 50014 para as secundárias).
+
+Opcodes: 180 para atualizar HUD de missões, 181 para notificações Toast.
+
+Validação de aceitação: o jogador digita palavras (sinónimos) para aceitar (NpcUtils.correspondeAcao).
+
+Ao aceitar: seta storage, envia opcode 180 com dados do HUD (JSON: título, descrição, atual, total). Exemplo:
+
+lua
+local hudData = {titulo = "O Peso do Aço", descricao = "Derrotar Bonecos de Treino", atual = 0, total = 3}
+player:sendExtendedOpcode(180, json.encode(hudData))
+Progresso: a cada boneco derrotado, incremente storage 50011 interno e envie opcode 180 atualizado. (Pode ser feito via evento onKill do tutorial, ou NPC verifica kill de monstro com tag especial).
+
+Entrega: jogador fala com o NPC, verifica itens/quantidade. Ao completar, remove itens, dá recompensa, atualiza storage da missão para 2 (concluída), limpa HUD (envia opcode 180 com dados vazios), envia opcode 181 com mensagem de conclusão.
+
+Recompensa: itens, experiência, dinheiro, tudo anunciado no chat com {destaque}.
+
+⚠️ Importante: implemente os Bonecos de Treino como criaturas imóveis, sem loot, que morrem com um hit e recontam para a missão. Crie um monstro personalizado no monsters/ e spawn na área do Thorne.
+
+🔗 5. Integração com o Salão dos Destinos
+O personagem recém‑criado via Oráculo é teletransportado para a Ilha do Despertar. No script do Oráculo, após a criação bem‑sucedida, em vez de enviar para o templo padrão, defina a posição da Praia do Náufrago. O Guia 8 menciona que o script de login posiciona o personagem. Ajuste o login.lua (ou tutorial_spawn.lua) para verificar se o personagem acabou de ser criado (ex: level 1, vocation 0, storage 50010 vazio) e teletransportá‑lo para a praia. Se já tiver iniciado o tutorial mas desconectou, deve voltar ao templo da ilha.
+
+O Oráculo também deve verificar se o jogador optou por {Iniciar} a jornada e então disparar o teletransporte. O envio do opcode 200 (migração de conta) já finaliza a sessão guest e faz o login com a conta permanente; no callback doAutoLogin o novo personagem será carregado e o script de login pode reposicioná‑lo.
+
+🧑‍💻 6. Ordem de Implementação Sugerida
+Mapa: desenhe as áreas básicas (praia, templo, vila, gruta, lagoa). Coloque os tiles de bloqueio, temple e o teleport do altar (temporariamente funcional para testes).
+
+NPC Eldrin básico: apenas saudação, sem quests, para testar diálogo, pronome, acentos.
+
+Itens iniciais: faça com que Eldrin (ou login.lua) entregue mochila, tocha, roupas, espada.
+
+NPC Thorne + missão de combate: crie Bonecos de Treino, implemente missão completa, HUD e recompensa (Escudo de Madeira).
+
+NPC Lyra (parte 1) – missão “Sopro da Vida”: coleta de ervas, água, poções, runa de míssil mágico.
+
+NPC Mira + Corvus – missão “Segredos da Terra”: ferramentas e pesca. Aqui precisará de pontos de escavação (areia que revela item), poço (uso de corda), cristal minerável (picareta), e a lagoa com peixes fisgáveis.
+
+NPC Lyra (parte 2) – missão “A Essência do Aventureiro”: busca do Livro de Feitiços na gruta, entrega, recebe Runa de Cura Intensa.
+
+NPC Eldrin – conclusão: verifica as 4 missões, libera Altar da Partida, entrega Amuleto de Escaravelho.
+
+Altar da Partida: script que teletransporta para o continente (por enquanto pode ser um teleport para uma cidade de testes, ou spawn temporário).
+
+Ajustes finos: progressão de intimidade, variação de frases, debug logs, testes de todos os caminhos.
+
+🔍 7. Revisão e Testes
+Após cada etapa, faça uma bateria de testes:
+
+Crie um personagem novo e percorra o tutorial inteiro.
+
+Verifique se o HUD aparece e atualiza corretamente.
+
+Teste recusar e voltar atrás nos diálogos, deslogar e relogar – os storages e HUD devem persistir.
+
+Veja os DEBUG: no console do servidor para rastrear decisões.
+
+Confirme que o Altar só funciona após a conclusão.
+
+Teste com personagem feminino para ver pronomes e flexões (“Bem‑vinda”, etc.).
+
+Certifique‑se de que os scripts estão salvos como ISO‑8859‑1 (se houver acentos, use o Notepad++ ou VS Code para converter).
+
+📌 8. Pontos de Atenção dos Guias
+Pilar 5: Toda interação é no chat com {chaves}. Nada de modal para progresso de missão.
+
+Guia 10: Mensagens do servidor em PT‑BR, arquivos Lua do servidor também ISO‑8859‑1. Se usar acentos, confirme que não estão UTF‑8.
+
+Guia 3: Os storages globais (100010+) para intimidade estão reservados. Já os usamos (ex: 100010 + npcId). Não conflitam com os 50000+ das missões.
+
+Pipeline de tradução: Se precisar traduzir alguma string para os diálogos, use a pipeline; mas como você mesmo escreverá em português, não deve ser necessário. Apenas garanta a codificação correta.
+
+✅ Checklist de Saída (antes de considerar o tutorial “pronto”)
+Mapa da ilha criado e spawns configurados.
+
+Todos os NPCs implementados com a estrutura correta, debug logs, pronomes e intimidade.
+
+Missões usam {chaves} no chat, e } ? com espaço.
+
+Nenhuma janela modal no fluxo da missão.
+
+HUD (opcode 180) e Toast (opcode 181) funcionais.
+
+IDs de itens conferem com o items.xml.
+
+Altar da Partida bloqueado/liberado via storage.
+
+Equipamento inicial entregue (pelo NPC ou login).
+
+Ferramentas são ensinadas com uso prático (cavar, escalar, minerar, pescar).
+
+Combate com diferentes armas experimentado (espada, machado, clava, arco).
+
+Criação e uso de runas testados.
+
+A ilha é segura (sem PvP, sem perda de itens ao morrer – ajuste as flags do mapa).
+
+Scripts Lua salvos como ISO‑8859‑1.
