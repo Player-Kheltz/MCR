@@ -1,0 +1,2937 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<monsters>
+  <monster name="A Abominação">
+    <look type="1393"/>
+  </monster>
+  <monster name="A Abóbora Mutante">
+    <look type="292"/>
+  </monster>
+  <monster name="A Conde Pálida">
+    <look type="557"/>
+  </monster>
+  <monster name="A confusão">
+    <look type="563"/>
+  </monster>
+  <monster name="A Fonte Astral">
+    <look item="24228"/>
+  </monster>
+  <monster name="A Lebre do Halloween">
+    <look type="74"/>
+  </monster>
+  <monster name="A Orquídea Flamejante">
+    <look type="150"/>
+  </monster>
+  <monster name="A Raposa Chifruda">
+    <look type="202"/>
+  </monster>
+  <monster name="A Voz da Ruína">
+    <look type="344"/>
+  </monster>
+  <monster name="Abominação Draken">
+    <look type="357"/>
+  </monster>
+  <monster name="Acólito da Esfinge Negra">
+    <look type="1200"/>
+  </monster>
+  <monster name="Acólito das Trevas">
+    <look type="9"/>
+  </monster>
+  <monster name="Acólito do Culto">
+    <look type="194"/>
+  </monster>
+  <monster name="Adepto do Culto">
+    <look type="194"/>
+  </monster>
+  <monster name="Agente funerário">
+    <look type="1551"/>
+  </monster>
+  <monster name="Ahhhh">
+    <look type="1591"/>
+  </monster>
+  <monster name="Alagamento">
+    <look type="535"/>
+  </monster>
+  <monster name="Algodão Doce Elemental">
+    <look type="1749"/>
+  </monster>
+  <monster name="Alma Maculada">
+    <look type="712"/>
+  </monster>
+  <monster name="Alma Perdida">
+    <look type="232"/>
+  </monster>
+  <monster name="Alma Perdida Estranha">
+    <look type="1268"/>
+  </monster>
+  <monster name="Alquimista Bulltauro">
+    <look type="1718"/>
+  </monster>
+  <monster name="Amazona">
+    <look type="137"/>
+  </monster>
+  <monster name="Ameaça Mercurial">
+    <look type="1561"/>
+  </monster>
+  <monster name="Anciã Wyrm">
+    <look type="561"/>
+  </monster>
+  <monster name="Ancião Bonelord">
+    <look type="108"/>
+  </monster>
+  <monster name="Antena">
+    <look item="850"/>
+  </monster>
+  <monster name="Anão">
+    <look type="69"/>
+  </monster>
+  <monster name="Anão Capanga">
+    <look type="160"/>
+  </monster>
+  <monster name="Anão Enlouquecido">
+    <look type="69"/>
+  </monster>
+  <monster name="Anão Escravizado">
+    <look type="494"/>
+  </monster>
+  <monster name="Anêmona Glooth">
+    <look type="604"/>
+  </monster>
+  <monster name="Aparição">
+    <look type="48"/>
+  </monster>
+  <monster name="Apocalipse">
+    <look type="12"/>
+  </monster>
+  <monster name="Aprendiz Sheng">
+    <look type="23"/>
+  </monster>
+  <monster name="Aprendiz Sombrio">
+    <look type="133"/>
+  </monster>
+  <monster name="Arachir, o Ancião">
+    <look type="287"/>
+  </monster>
+  <monster name="Aracnofóbica">
+    <look type="1135"/>
+  </monster>
+  <monster name="Aranha">
+    <look type="30"/>
+  </monster>
+  <monster name="Aranha da Caverna Exótica">
+    <look type="1344"/>
+  </monster>
+  <monster name="Aranha de Cristal">
+    <look type="263"/>
+  </monster>
+  <monster name="Aranha Gigante">
+    <look type="38"/>
+  </monster>
+  <monster name="Aranha Gigante Wyda">
+    <look type="38"/>
+  </monster>
+  <monster name="Aranha Peçonhenta">
+    <look type="36"/>
+  </monster>
+  <monster name="Aranha Sagrada">
+    <look type="219"/>
+  </monster>
+  <monster name="Aranha Velha">
+    <look type="922"/>
+  </monster>
+  <monster name="Arauto da Tristeza">
+    <look type="320"/>
+  </monster>
+  <monster name="Arcanista Élfico">
+    <look type="63"/>
+  </monster>
+  <monster name="Armadilha">
+    <look type="487"/>
+  </monster>
+  <monster name="Armadura Orc">
+    <look type="2"/>
+  </monster>
+  <monster name="Armênio (Criatura)">
+    <look type="68"/>
+  </monster>
+  <monster name="Arqueiro Leão">
+    <look type="1316"/>
+  </monster>
+  <monster name="Arqueiro Minotauro">
+    <look type="24"/>
+  </monster>
+  <monster name="Arqueiro Naga">
+    <look type="1537"/>
+  </monster>
+  <monster name="Arqueiro Usurpador">
+    <look type="1316"/>
+  </monster>
+  <monster name="Arqueiro Usurpador Endurecido">
+    <look type="1316"/>
+  </monster>
+  <monster name="Arraia Manta">
+    <look type="449"/>
+  </monster>
+  <monster name="Arrepios">
+    <look type="592"/>
+  </monster>
+  <monster name="Artilheiro Pirata">
+    <look type="1346"/>
+  </monster>
+  <monster name="Assassino">
+    <look type="152"/>
+  </monster>
+  <monster name="Assassino do Clã Muglex">
+    <look type="296"/>
+  </monster>
+  <monster name="Assassino Goblin">
+    <look type="296"/>
+  </monster>
+  <monster name="Astuto Lobisomem Pantera">
+    <look type="1648"/>
+  </monster>
+  <monster name="Asura da meia-noite">
+    <look type="150"/>
+  </monster>
+  <monster name="Asura Fogo da Alvorada">
+    <look type="150"/>
+  </monster>
+  <monster name="Atirador Perdido">
+    <look type="539"/>
+  </monster>
+  <monster name="Atirador Venenoso Dworc">
+    <look type="216"/>
+  </monster>
+  <monster name="Aventureiro">
+    <look type="129"/>
+  </monster>
+  <monster name="Aventureiro Irritado">
+    <look type="129"/>
+  </monster>
+  <monster name="Avó Foulscale">
+    <look type="34"/>
+  </monster>
+  <monster name="Avô Tridiano">
+    <look type="193"/>
+  </monster>
+  <monster name="Azul Nômade">
+    <look type="146"/>
+  </monster>
+  <monster name="Açúcar Mamãe">
+    <look type="1764"/>
+  </monster>
+  <monster name="Bakragore">
+    <look type="1671"/>
+  </monster>
+  <monster name="Baluarte">
+    <look type="607"/>
+  </monster>
+  <monster name="Bandida Glooth">
+    <look type="137"/>
+  </monster>
+  <monster name="Bandido">
+    <look type="129"/>
+  </monster>
+  <monster name="Bandido Glooth">
+    <look type="129"/>
+  </monster>
+  <monster name="Banho de sangue de Bibby">
+    <look type="2"/>
+  </monster>
+  <monster name="Banshee">
+    <look type="78"/>
+  </monster>
+  <monster name="Barata">
+    <look type="284"/>
+  </monster>
+  <monster name="Barbária">
+    <look type="264"/>
+  </monster>
+  <monster name="Barão Contrabandista Silvertoe">
+    <look type="134"/>
+  </monster>
+  <monster name="Bashmu Juvenil">
+    <look type="1408"/>
+  </monster>
+  <monster name="Basmu">
+    <look type="1408"/>
+  </monster>
+  <monster name="Batedor Insetóide">
+    <look type="403"/>
+  </monster>
+  <monster name="Batedor Mitmah">
+    <look type="1709"/>
+  </monster>
+  <monster name="Batedor Mortal">
+    <look type="1073"/>
+  </monster>
+  <monster name="Batedor Profundo">
+    <look type="413"/>
+  </monster>
+  <monster name="Batedor Élfico">
+    <look type="64"/>
+  </monster>
+  <monster name="Bateria Glooth">
+    <look item="20710"/>
+  </monster>
+  <monster name="Bazir">
+    <look type="35"/>
+  </monster>
+  <monster name="Beemote">
+    <look type="55"/>
+  </monster>
+  <monster name="Berserker Orc">
+    <look type="8"/>
+  </monster>
+  <monster name="Berserker Perdido">
+    <look type="496"/>
+  </monster>
+  <monster name="Besouro Lanceiro">
+    <look type="348"/>
+  </monster>
+  <monster name="Besouro-buraqueiro">
+    <look type="83"/>
+  </monster>
+  <monster name="Besta de Sangue">
+    <look type="602"/>
+  </monster>
+  <monster name="Besta Hulking Prehemoth">
+    <look type="1553"/>
+  </monster>
+  <monster name="Besta Ossada">
+    <look type="101"/>
+  </monster>
+  <monster name="Bibliotecário Mestre Deepling">
+    <look type="443"/>
+  </monster>
+  <monster name="Blob Glooth">
+    <look type="614"/>
+  </monster>
+  <monster name="Bolha da Morte">
+    <look type="315"/>
+  </monster>
+  <monster name="Bolha de chocolate">
+    <look type="1732"/>
+  </monster>
+  <monster name="Bolha de chão">
+    <look type="459"/>
+  </monster>
+  <monster name="Bolha de creme">
+    <look type="1757"/>
+  </monster>
+  <monster name="Bolha de Mercúrio">
+    <look type="316"/>
+  </monster>
+  <monster name="Bolha de tinta">
+    <look type="1064"/>
+  </monster>
+  <monster name="Bolha de Ácido">
+    <look type="314"/>
+  </monster>
+  <monster name="Bolo de óculos">
+    <look type="1740"/>
+  </monster>
+  <monster name="Bom dia">
+    <look type="64"/>
+  </monster>
+  <monster name="Bomba Glooth">
+    <look type="680"/>
+  </monster>
+  <monster name="Bombardeiro Pirata">
+    <look type="1346"/>
+  </monster>
+  <monster name="Boneco de neve animado">
+    <look type="1159"/>
+  </monster>
+  <monster name="Boogy">
+    <look type="981"/>
+  </monster>
+  <monster name="Borboleta">
+    <look type="227"/>
+  </monster>
+  <monster name="Branco Pálido">
+    <look type="564"/>
+  </monster>
+  <monster name="Broca">
+    <look type="527"/>
+  </monster>
+  <monster name="Broodrider Inferniarca">
+    <look type="1796"/>
+  </monster>
+  <monster name="Brutetâmero Bárbaro">
+    <look type="264"/>
+  </monster>
+  <monster name="Brutus Barba Sangrenta">
+    <look type="98"/>
+  </monster>
+  <monster name="Bruxa">
+    <look type="54"/>
+  </monster>
+  <monster name="Bruxa do Gelo">
+    <look type="149"/>
+  </monster>
+  <monster name="Bruxa incrivelmente velha">
+    <look type="54"/>
+  </monster>
+  <monster name="Bruxo">
+    <look type="130"/>
+  </monster>
+  <monster name="Bruxo Usurpador">
+    <look type="1316"/>
+  </monster>
+  <monster name="Bruxo Usurpador Endurecido">
+    <look type="1316"/>
+  </monster>
+  <monster name="Bucaneiro Pirata">
+    <look type="97"/>
+  </monster>
+  <monster name="Bug Velho">
+    <look type="920"/>
+  </monster>
+  <monster name="Bulltauro Bruto">
+    <look type="1717"/>
+  </monster>
+  <monster name="Buraco de lava">
+    <look item="391"/>
+  </monster>
+  <monster name="Buraco do Inferno">
+    <look item="391"/>
+  </monster>
+  <monster name="Burro">
+    <look type="387"/>
+  </monster>
+  <monster name="Búfalo Aquático">
+    <look type="523"/>
+  </monster>
+  <monster name="Cabeça de choque">
+    <look type="579"/>
+  </monster>
+  <monster name="Cabeça do Cérebro">
+    <look item="32418"/>
+  </monster>
+  <monster name="Cachorro">
+    <look type="32"/>
+  </monster>
+  <monster name="Cachorro Quente">
+    <look type="32"/>
+  </monster>
+  <monster name="Calamário">
+    <look type="451"/>
+  </monster>
+  <monster name="Calamário Abissal">
+    <look type="451"/>
+  </monster>
+  <monster name="Caminhante">
+    <look type="605"/>
+  </monster>
+  <monster name="Caminhante da Praga">
+    <look type="246"/>
+  </monster>
+  <monster name="Caminhante do Penhasco">
+    <look type="497"/>
+  </monster>
+  <monster name="Caminhante Sangrento Bárbaro">
+    <look type="255"/>
+  </monster>
+  <monster name="Campeão Izcandar do Inverno">
+    <look type="1137"/>
+  </monster>
+  <monster name="Cantor de Feitiços Mortal">
+    <look type="1088"/>
+  </monster>
+  <monster name="Capataz Joelheira">
+    <look type="70"/>
+  </monster>
+  <monster name="Capitão da Guarda Quaid">
+    <look type="1217"/>
+  </monster>
+  <monster name="Capitão Jones">
+    <look type="196"/>
+  </monster>
+  <monster name="Caranguejo">
+    <look type="112"/>
+  </monster>
+  <monster name="Caranguejo de Sangue">
+    <look type="200"/>
+  </monster>
+  <monster name="Caranguejo Sanguíneo do Mar Profundo">
+    <look type="200"/>
+  </monster>
+  <monster name="Carimbo">
+    <look type="381"/>
+  </monster>
+  <monster name="Carnifila">
+    <look type="120"/>
+  </monster>
+  <monster name="Carnisilvan Corpulento">
+    <look type="1418"/>
+  </monster>
+  <monster name="Carnisilvan Sombrio">
+    <look type="1418"/>
+  </monster>
+  <monster name="Carnisilvan Venenoso">
+    <look type="1418"/>
+  </monster>
+  <monster name="Carnivostrich">
+    <look type="1605"/>
+  </monster>
+  <monster name="Carniçal">
+    <look type="18"/>
+  </monster>
+  <monster name="Carnívoro Ameaçador">
+    <look type="1138"/>
+  </monster>
+  <monster name="Carnívoro Espinhoso">
+    <look type="1139"/>
+  </monster>
+  <monster name="Carnívoro Pesado">
+    <look type="1133"/>
+  </monster>
+  <monster name="Carrasco">
+    <look type="609"/>
+  </monster>
+  <monster name="Carrasco Pirata">
+    <look type="96"/>
+  </monster>
+  <monster name="Castor Gigante">
+    <look type="1536"/>
+  </monster>
+  <monster name="Catador do Clã Muglex">
+    <look type="297"/>
+  </monster>
+  <monster name="Catador Goblin">
+    <look type="297"/>
+  </monster>
+  <monster name="Cavaleiro Eclipse">
+    <look type="234"/>
+  </monster>
+  <monster name="Cavaleiro Falcão">
+    <look type="1071"/>
+  </monster>
+  <monster name="Cavaleiro familiar">
+    <look type="991"/>
+  </monster>
+  <monster name="Cavaleiro Leão">
+    <look type="1317"/>
+  </monster>
+  <monster name="Cavaleiro Negro">
+    <look type="131"/>
+  </monster>
+  <monster name="Cavaleiro Orc">
+    <look type="4"/>
+  </monster>
+  <monster name="Cavaleiro Renegado">
+    <look type="268"/>
+  </monster>
+  <monster name="Cavaleiro Usurpador">
+    <look type="1316"/>
+  </monster>
+  <monster name="Cavaleiro Usurpador Endurecido">
+    <look type="1317"/>
+  </monster>
+  <monster name="Cavalo">
+    <look type="435"/>
+  </monster>
+  <monster name="Cavalo Cinza">
+    <look type="434"/>
+  </monster>
+  <monster name="Cavalo Marrom">
+    <look type="436"/>
+  </monster>
+  <monster name="Cavalo Selvagem">
+    <look type="393"/>
+  </monster>
+  <monster name="Caçador">
+    <look type="129"/>
+  </monster>
+  <monster name="Caçador de Carne Dworc">
+    <look type="215"/>
+  </monster>
+  <monster name="Caçador de Crânios Bárbaro">
+    <look type="254"/>
+  </monster>
+  <monster name="Caçador de Minotauros">
+    <look type="612"/>
+  </monster>
+  <monster name="Caçador do Inferno Inferniarca">
+    <look type="1793"/>
+  </monster>
+  <monster name="Caçador Furtivo">
+    <look type="129"/>
+  </monster>
+  <monster name="Caçador Furtivo Minotauro">
+    <look type="24"/>
+  </monster>
+  <monster name="Caçador Noturno">
+    <look type="1552"/>
+  </monster>
+  <monster name="Ceifador de Almas">
+    <look type="300"/>
+  </monster>
+  <monster name="Centopeia">
+    <look type="124"/>
+  </monster>
+  <monster name="Cerebelo">
+    <look item="32572"/>
+  </monster>
+  <monster name="Cervo">
+    <look type="31"/>
+  </monster>
+  <monster name="Cervo Branco Enfurecido">
+    <look type="400"/>
+  </monster>
+  <monster name="Cervo da Perdição">
+    <look type="31"/>
+  </monster>
+  <monster name="Chagorz">
+    <look type="1666"/>
+  </monster>
+  <monster name="Chakoya Invocadora do Vento">
+    <look type="260"/>
+  </monster>
+  <monster name="Chayenne">
+    <look type="155"/>
+  </monster>
+  <monster name="Chifre Sangrento">
+    <look type="1548"/>
+  </monster>
+  <monster name="Chikhaton">
+    <look type="361"/>
+  </monster>
+  <monster name="Chizzoron, o Distorcedor">
+    <look type="340"/>
+  </monster>
+  <monster name="Chorão">
+    <look type="489"/>
+  </monster>
+  <monster name="Chorão Infectado">
+    <look type="489"/>
+  </monster>
+  <monster name="Ciclope">
+    <look type="22"/>
+  </monster>
+  <monster name="Ciclope Juvenil">
+    <look type="22"/>
+  </monster>
+  <monster name="Ciclope Smith">
+    <look type="277"/>
+  </monster>
+  <monster name="Cidadão Febril">
+    <look type="425"/>
+  </monster>
+  <monster name="Cientista Maluco">
+    <look type="133"/>
+  </monster>
+  <monster name="Clomp">
+    <look type="860"/>
+  </monster>
+  <monster name="Clubarc O Saqueador">
+    <look type="342"/>
+  </monster>
+  <monster name="Cobra">
+    <look type="28"/>
+  </monster>
+  <monster name="Cobra Assassina">
+    <look type="1217"/>
+  </monster>
+  <monster name="Cobra Peçonhenta">
+    <look type="81"/>
+  </monster>
+  <monster name="Cobra Sagrada">
+    <look type="28"/>
+  </monster>
+  <monster name="Coelho">
+    <look type="74"/>
+  </monster>
+  <monster name="Coelho Assassino">
+    <look type="74"/>
+  </monster>
+  <monster name="Coelho Prateado">
+    <look type="262"/>
+  </monster>
+  <monster name="Companheiro Pirata">
+    <look type="1346"/>
+  </monster>
+  <monster name="Conhecimento Elementar">
+    <look type="1065"/>
+  </monster>
+  <monster name="Contrabandista">
+    <look type="134"/>
+  </monster>
+  <monster name="Corsário Pirata">
+    <look type="98"/>
+  </monster>
+  <monster name="Corym Charlatão">
+    <look type="532"/>
+  </monster>
+  <monster name="Corym Vanguarda">
+    <look type="534"/>
+  </monster>
+  <monster name="Coveiro">
+    <look type="558"/>
+  </monster>
+  <monster name="Cozinheiro de Trufas">
+    <look type="1751"/>
+  </monster>
+  <monster name="Cria da Morte">
+    <look type="226"/>
+  </monster>
+  <monster name="Cria da Serpente">
+    <look type="220"/>
+  </monster>
+  <monster name="Cria do Inferno">
+    <look type="322"/>
+  </monster>
+  <monster name="Cria Manchada">
+    <look type="1401"/>
+  </monster>
+  <monster name="Criação do Abismo">
+    <look type="1037"/>
+  </monster>
+  <monster name="Crocodilo">
+    <look type="119"/>
+  </monster>
+  <monster name="Crustáceos Gigantescos">
+    <look type="383"/>
+  </monster>
+  <monster name="Cruzeiro">
+    <look type="842"/>
+  </monster>
+  <monster name="Cubo de Açúcar">
+    <look type="1753"/>
+  </monster>
+  <monster name="Cuspidor">
+    <look type="461"/>
+  </monster>
+  <monster name="Custodiante">
+    <look type="1217"/>
+  </monster>
+  <monster name="Cão das Sombras">
+    <look type="322"/>
+  </monster>
+  <monster name="Cão Infernal">
+    <look type="240"/>
+  </monster>
+  <monster name="Cão Selvagem">
+    <look type="32"/>
+  </monster>
+  <monster name="Dan doente">
+    <look type="299"/>
+  </monster>
+  <monster name="Demônio">
+    <look type="35"/>
+  </monster>
+  <monster name="Demônio Askarak">
+    <look type="420"/>
+  </monster>
+  <monster name="Demônio da Noite">
+    <look type="556"/>
+  </monster>
+  <monster name="Demônio de Kraknaknork">
+    <look type="12"/>
+  </monster>
+  <monster name="Demônio Enfraquecido">
+    <look type="12"/>
+  </monster>
+  <monster name="Demônio Pária">
+    <look type="590"/>
+  </monster>
+  <monster name="Demônio Shaburak">
+    <look type="417"/>
+  </monster>
+  <monster name="Dentes de Sabre">
+    <look type="1549"/>
+  </monster>
+  <monster name="Descendente do Pesadelo">
+    <look type="321"/>
+  </monster>
+  <monster name="Desova da Meia-Noite">
+    <look type="315"/>
+  </monster>
+  <monster name="Destruidor">
+    <look type="236"/>
+  </monster>
+  <monster name="Devorador">
+    <look type="617"/>
+  </monster>
+  <monster name="Devorador de Almas">
+    <look type="355"/>
+  </monster>
+  <monster name="Devorador de Cavernas">
+    <look type="1036"/>
+  </monster>
+  <monster name="Devorador de Pedra">
+    <look type="486"/>
+  </monster>
+  <monster name="Devorador Listrado">
+    <look type="1398"/>
+  </monster>
+  <monster name="Devorador Sem Olhos">
+    <look type="1399"/>
+  </monster>
+  <monster name="Dharalion">
+    <look type="203"/>
+  </monster>
+  <monster name="Diabo do Fogo Menor">
+    <look type="40"/>
+  </monster>
+  <monster name="Diabrete do Fogo">
+    <look type="40"/>
+  </monster>
+  <monster name="Diblis, a Feira">
+    <look type="287"/>
+  </monster>
+  <monster name="Diremaw">
+    <look type="1034"/>
+  </monster>
+  <monster name="Diremaw envernizado">
+    <look type="1397"/>
+  </monster>
+  <monster name="Divisor de Cabeças Bárbaro">
+    <look type="253"/>
+  </monster>
+  <monster name="Djinn Azul">
+    <look type="80"/>
+  </monster>
+  <monster name="Djinn Verde">
+    <look type="51"/>
+  </monster>
+  <monster name="Donzela Cisne">
+    <look type="138"/>
+  </monster>
+  <monster name="Doutor Medula">
+    <look type="1611"/>
+  </monster>
+  <monster name="Dragolisque">
+    <look type="1707"/>
+  </monster>
+  <monster name="Dragão">
+    <look type="34"/>
+  </monster>
+  <monster name="Dragão da Nevada">
+    <look type="248"/>
+  </monster>
+  <monster name="Dragão de Gelo">
+    <look type="947"/>
+  </monster>
+  <monster name="Dragão de Guerra">
+    <look type="1708"/>
+  </monster>
+  <monster name="Dragão Medonho">
+    <look type="351"/>
+  </monster>
+  <monster name="Dragão Morto-Vivo">
+    <look type="231"/>
+  </monster>
+  <monster name="Dragão Pinata">
+    <look item="25062"/>
+  </monster>
+  <monster name="Dragãozinho">
+    <look type="505"/>
+  </monster>
+  <monster name="Draptor">
+    <look type="382"/>
+  </monster>
+  <monster name="Dreadmaw">
+    <look type="358"/>
+  </monster>
+  <monster name="Dromedário">
+    <look type="404"/>
+  </monster>
+  <monster name="Drone Ciclope">
+    <look type="280"/>
+  </monster>
+  <monster name="Druida familiar">
+    <look type="993"/>
+  </monster>
+  <monster name="Dríade">
+    <look type="137"/>
+  </monster>
+  <monster name="Duende">
+    <look type="982"/>
+  </monster>
+  <monster name="Efreet">
+    <look type="103"/>
+  </monster>
+  <monster name="Ekatrix">
+    <look type="54"/>
+  </monster>
+  <monster name="Elefante">
+    <look type="211"/>
+  </monster>
+  <monster name="Elefante Apavorado">
+    <look type="211"/>
+  </monster>
+  <monster name="Elemental da Terra">
+    <look type="301"/>
+  </monster>
+  <monster name="Elemental da Água">
+    <look type="286"/>
+  </monster>
+  <monster name="Elemental da Água Enorme">
+    <look type="11"/>
+  </monster>
+  <monster name="Elemental de Alta Tensão">
+    <look type="293"/>
+  </monster>
+  <monster name="Elemental de Energia">
+    <look type="293"/>
+  </monster>
+  <monster name="Elemental de Energia Massiva">
+    <look type="290"/>
+  </monster>
+  <monster name="Elemental do Fogo">
+    <look type="49"/>
+  </monster>
+  <monster name="Elemental do Fogo Massivo">
+    <look type="242"/>
+  </monster>
+  <monster name="Elemental Massivo da Terra">
+    <look type="285"/>
+  </monster>
+  <monster name="Elfo">
+    <look type="62"/>
+  </monster>
+  <monster name="Elite Draken">
+    <look type="362"/>
+  </monster>
+  <monster name="Elite Profundo">
+    <look type="441"/>
+  </monster>
+  <monster name="Elmo Orc">
+    <look type="2"/>
+  </monster>
+  <monster name="Elvira Martelo">
+    <look type="70"/>
+  </monster>
+  <monster name="Energuardião dos Contos">
+    <look type="1063"/>
+  </monster>
+  <monster name="Enpa Yolo">
+    <look type="26"/>
+  </monster>
+  <monster name="Enxame de insetos">
+    <look type="349"/>
+  </monster>
+  <monster name="Enxame Menor">
+    <look type="460"/>
+  </monster>
+  <monster name="Enxameador">
+    <look type="460"/>
+  </monster>
+  <monster name="Escala de brilho">
+    <look type="34"/>
+  </monster>
+  <monster name="Escaramuçador de Corym">
+    <look type="533"/>
+  </monster>
+  <monster name="Escaravelho">
+    <look type="83"/>
+  </monster>
+  <monster name="Escaravelho Antigo">
+    <look type="79"/>
+  </monster>
+  <monster name="Escorpião">
+    <look type="43"/>
+  </monster>
+  <monster name="Escorpião da Alvorada">
+    <look type="43"/>
+  </monster>
+  <monster name="Escorpião de Arenito">
+    <look type="398"/>
+  </monster>
+  <monster name="Escoteiro Cobra">
+    <look type="1217"/>
+  </monster>
+  <monster name="Escoteiro Quara Pincher">
+    <look type="77"/>
+  </monster>
+  <monster name="Escudeiro Vicioso">
+    <look type="131"/>
+  </monster>
+  <monster name="Escudo Orc">
+    <look type="2"/>
+  </monster>
+  <monster name="Escória Espectral">
+    <look type="195"/>
+  </monster>
+  <monster name="Esfinge">
+    <look type="1188"/>
+  </monster>
+  <monster name="Esfinge Feroz">
+    <look type="1188"/>
+  </monster>
+  <monster name="Esfolador do Inferno">
+    <look type="856"/>
+  </monster>
+  <monster name="Espalhador">
+    <look type="47"/>
+  </monster>
+  <monster name="Espectro">
+    <look type="235"/>
+  </monster>
+  <monster name="Espectro Estripador">
+    <look type="1122"/>
+  </monster>
+  <monster name="Espectro Explosivo">
+    <look type="1122"/>
+  </monster>
+  <monster name="Espectro Gazer">
+    <look type="1122"/>
+  </monster>
+  <monster name="Espectro Traído">
+    <look type="233"/>
+  </monster>
+  <monster name="Espreitador de Lava">
+    <look type="1041"/>
+  </monster>
+  <monster name="Espreitador de Lava Voraz">
+    <look type="1041"/>
+  </monster>
+  <monster name="Espreitador do Pântano">
+    <look type="530"/>
+  </monster>
+  <monster name="Espreitador Noturno">
+    <look type="320"/>
+  </monster>
+  <monster name="Espuma Perseguidor">
+    <look type="1562"/>
+  </monster>
+  <monster name="Espírito Manchado">
+    <look type="566"/>
+  </monster>
+  <monster name="Esqueleto">
+    <look type="33"/>
+  </monster>
+  <monster name="Esqueleto de Festa">
+    <look type="33"/>
+  </monster>
+  <monster name="Esqueleto Demoníaco">
+    <look type="37"/>
+  </monster>
+  <monster name="Esqueleto Frágil">
+    <look type="33"/>
+  </monster>
+  <monster name="Esqueleto Guerreiro de Elite">
+    <look type="298"/>
+  </monster>
+  <monster name="Esqueleto Pirata">
+    <look type="195"/>
+  </monster>
+  <monster name="Esquilo">
+    <look type="274"/>
+  </monster>
+  <monster name="Esquilo Enfurecido">
+    <look type="274"/>
+  </monster>
+  <monster name="Esquilo Ladrão">
+    <look type="274"/>
+  </monster>
+  <monster name="Essência das Trevas">
+    <look type="315"/>
+  </monster>
+  <monster name="Estabilizando o Dread Intruder">
+    <look type="882"/>
+  </monster>
+  <monster name="Estabilizando o Reality Reaver">
+    <look type="879"/>
+  </monster>
+  <monster name="Executando a Guarda Orc de Elite">
+    <look type="2"/>
+  </monster>
+  <monster name="Exílio Perdido">
+    <look type="537"/>
+  </monster>
+  <monster name="Fada do Açúcar Irritada">
+    <look type="1747"/>
+  </monster>
+  <monster name="Fada Glooth">
+    <look type="600"/>
+  </monster>
+  <monster name="Fahim, o Sábio">
+    <look type="104"/>
+  </monster>
+  <monster name="Falcão Paladino">
+    <look type="1071"/>
+  </monster>
+  <monster name="Fantasma">
+    <look type="241"/>
+  </monster>
+  <monster name="Fantasma Perigoso">
+    <look type="1298"/>
+  </monster>
+  <monster name="Fantasma Pirata">
+    <look type="196"/>
+  </monster>
+  <monster name="Farejador de Cogumelos">
+    <look type="60"/>
+  </monster>
+  <monster name="Fatiador de carne">
+    <look type="457"/>
+  </monster>
+  <monster name="Fatiador Mortal">
+    <look type="102"/>
+  </monster>
+  <monster name="Fauno">
+    <look type="980"/>
+  </monster>
+  <monster name="Fauno Sombrio">
+    <look type="980"/>
+  </monster>
+  <monster name="Fauno Ártico">
+    <look type="980"/>
+  </monster>
+  <monster name="Faísca">
+    <look type="877"/>
+  </monster>
+  <monster name="Feiticeiro Draken">
+    <look type="340"/>
+  </monster>
+  <monster name="Feiticeiro familiar">
+    <look type="994"/>
+  </monster>
+  <monster name="Feiticeiro Inferniarca">
+    <look type="1792"/>
+  </monster>
+  <monster name="Feiticeiro Leão">
+    <look type="1316"/>
+  </monster>
+  <monster name="Fernfang">
+    <look type="206"/>
+  </monster>
+  <monster name="Ferreiro da Praga">
+    <look type="247"/>
+  </monster>
+  <monster name="Ferrugem">
+    <look type="498"/>
+  </monster>
+  <monster name="Ferumbras">
+    <look type="229"/>
+  </monster>
+  <monster name="Filho de Verminor">
+    <look type="19"/>
+  </monster>
+  <monster name="Filhote de Dragão">
+    <look type="271"/>
+  </monster>
+  <monster name="Filhote de Dragão de Gelo">
+    <look type="283"/>
+  </monster>
+  <monster name="Filhote de Enxameador">
+    <look type="460"/>
+  </monster>
+  <monster name="Filhote do Senhor dos Dragões">
+    <look type="272"/>
+  </monster>
+  <monster name="Flamingo">
+    <look type="212"/>
+  </monster>
+  <monster name="Fleabringer">
+    <look type="341"/>
+  </monster>
+  <monster name="Flor de Gelo Asura">
+    <look type="150"/>
+  </monster>
+  <monster name="Fofo">
+    <look type="240"/>
+  </monster>
+  <monster name="Fogo Furioso">
+    <look type="242"/>
+  </monster>
+  <monster name="Frango Agressivo">
+    <look type="111"/>
+  </monster>
+  <monster name="Frango Agrestico">
+    <look type="111"/>
+  </monster>
+  <monster name="Frango Berserker">
+    <look type="111"/>
+  </monster>
+  <monster name="Frazzlemaw">
+    <look type="594"/>
+  </monster>
+  <monster name="Frazzlemaw enfraquecido">
+    <look type="594"/>
+  </monster>
+  <monster name="Fred doente">
+    <look type="299"/>
+  </monster>
+  <monster name="Freegoiz">
+    <look type="12"/>
+  </monster>
+  <monster name="Frágil Alma Perdida">
+    <look type="1268"/>
+  </monster>
+  <monster name="Fungo Enorme">
+    <look type="488"/>
+  </monster>
+  <monster name="Fungo Horrível">
+    <look type="499"/>
+  </monster>
+  <monster name="Fungossauro">
+    <look type="1555"/>
+  </monster>
+  <monster name="Furiosa">
+    <look type="149"/>
+  </monster>
+  <monster name="Furioso Orc Berserker">
+    <look type="8"/>
+  </monster>
+  <monster name="Fábio">
+    <look type="294"/>
+  </monster>
+  <monster name="Fúria">
+    <look type="149"/>
+  </monster>
+  <monster name="Fúria da Floresta">
+    <look type="569"/>
+  </monster>
+  <monster name="Gaffir">
+    <look type="1217"/>
+  </monster>
+  <monster name="Gaivota">
+    <look type="223"/>
+  </monster>
+  <monster name="Galinha">
+    <look type="111"/>
+  </monster>
+  <monster name="Gambá">
+    <look type="106"/>
+  </monster>
+  <monster name="Garimpeiro Amaldiçoado">
+    <look type="1268"/>
+  </monster>
+  <monster name="Gato">
+    <look type="276"/>
+  </monster>
+  <monster name="General Murius">
+    <look type="611"/>
+  </monster>
+  <monster name="Geomante Anão">
+    <look type="66"/>
+  </monster>
+  <monster name="Geração do Welter">
+    <look type="121"/>
+  </monster>
+  <monster name="Ghazbaran">
+    <look type="12"/>
+  </monster>
+  <monster name="Gigante de Gelo">
+    <look type="265"/>
+  </monster>
+  <monster name="Gigante do Gelo">
+    <look type="257"/>
+  </monster>
+  <monster name="Gladiador">
+    <look type="131"/>
+  </monster>
+  <monster name="Gladiador Ardente">
+    <look type="541"/>
+  </monster>
+  <monster name="Gladiador de Elite Morto-Vivo">
+    <look type="306"/>
+  </monster>
+  <monster name="Gladiador Morto-Vivo">
+    <look type="306"/>
+  </monster>
+  <monster name="Gnarlhound">
+    <look type="341"/>
+  </monster>
+  <monster name="Gnarlhound modificado">
+    <look type="515"/>
+  </monster>
+  <monster name="Goanna Adulto">
+    <look type="1195"/>
+  </monster>
+  <monster name="Goblin">
+    <look type="61"/>
+  </monster>
+  <monster name="Goblin do Clã Grynch">
+    <look type="61"/>
+  </monster>
+  <monster name="Golem da Folha">
+    <look type="567"/>
+  </monster>
+  <monster name="Golem de Cristal Danificado">
+    <look type="508"/>
+  </monster>
+  <monster name="Golem de Cristal Enfurecido">
+    <look type="508"/>
+  </monster>
+  <monster name="Golem de Folha Murcha">
+    <look type="573"/>
+  </monster>
+  <monster name="Golem de Gelo">
+    <look type="261"/>
+  </monster>
+  <monster name="Golem de Guerra">
+    <look type="326"/>
+  </monster>
+  <monster name="Golem de Lava">
+    <look type="491"/>
+  </monster>
+  <monster name="Golem de Pedra">
+    <look type="67"/>
+  </monster>
+  <monster name="Golem Glooth">
+    <look type="600"/>
+  </monster>
+  <monster name="Golem Operário">
+    <look type="304"/>
+  </monster>
+  <monster name="Golem Rustheap">
+    <look type="603"/>
+  </monster>
+  <monster name="Golem Trabalhador Danificado">
+    <look type="304"/>
+  </monster>
+  <monster name="Golpeador Perdido">
+    <look type="538"/>
+  </monster>
+  <monster name="Gorerila">
+    <look type="1559"/>
+  </monster>
+  <monster name="Gorger Inferniarca">
+    <look type="1797"/>
+  </monster>
+  <monster name="Gota de Fruta">
+    <look type="1754"/>
+  </monster>
+  <monster name="Gozzler">
+    <look type="313"/>
+  </monster>
+  <monster name="Grande Chefe Trolliver">
+    <look type="281"/>
+  </monster>
+  <monster name="Grifo">
+    <look type="1220"/>
+  </monster>
+  <monster name="Grimeleech">
+    <look type="855"/>
+  </monster>
+  <monster name="Gritante Choro-Stal">
+    <look type="1560"/>
+  </monster>
+  <monster name="Groam">
+    <look type="413"/>
+  </monster>
+  <monster name="Grorlam">
+    <look type="205"/>
+  </monster>
+  <monster name="Grão-Mestre Vil">
+    <look type="268"/>
+  </monster>
+  <monster name="Guarda Anão">
+    <look type="70"/>
+  </monster>
+  <monster name="Guarda de Cova">
+    <look type="234"/>
+  </monster>
+  <monster name="Guarda de Honra">
+    <look type="298"/>
+  </monster>
+  <monster name="Guarda Minotauro">
+    <look type="29"/>
+  </monster>
+  <monster name="Guarda Profundo">
+    <look type="442"/>
+  </monster>
+  <monster name="Guarda Superior Lagarto">
+    <look type="337"/>
+  </monster>
+  <monster name="Guarda Troll">
+    <look type="281"/>
+  </monster>
+  <monster name="Guardião da Cripta">
+    <look type="1190"/>
+  </monster>
+  <monster name="Guardião da Tribo Chakoya">
+    <look type="249"/>
+  </monster>
+  <monster name="Guardião de Argila">
+    <look type="333"/>
+  </monster>
+  <monster name="Guardião dos Contos">
+    <look type="1063"/>
+  </monster>
+  <monster name="Guardião Eterno">
+    <look type="345"/>
+  </monster>
+  <monster name="Guardião Lula">
+    <look type="1059"/>
+  </monster>
+  <monster name="Guerreiro da Cripta">
+    <look type="298"/>
+  </monster>
+  <monster name="Guerreiro da Tribo da Cicatriz">
+    <look type="7"/>
+  </monster>
+  <monster name="Guerreiro Esqueleto">
+    <look type="298"/>
+  </monster>
+  <monster name="Guerreiro Girtablilu">
+    <look type="1407"/>
+  </monster>
+  <monster name="Guerreiro Mooh'Tah">
+    <look type="611"/>
+  </monster>
+  <monster name="Guerreiro Naga">
+    <look type="1539"/>
+  </monster>
+  <monster name="Guerreiro Orc">
+    <look type="7"/>
+  </monster>
+  <monster name="Guerreiro Profundo">
+    <look type="441"/>
+  </monster>
+  <monster name="Guerreiro Selvagem">
+    <look type="131"/>
+  </monster>
+  <monster name="Guzzlemaw">
+    <look type="584"/>
+  </monster>
+  <monster name="Gárgula">
+    <look type="95"/>
+  </monster>
+  <monster name="Gárgula de Metal">
+    <look type="601"/>
+  </monster>
+  <monster name="Hacker">
+    <look type="8"/>
+  </monster>
+  <monster name="Hairman, o Enorme">
+    <look type="116"/>
+  </monster>
+  <monster name="Harpia">
+    <look type="1604"/>
+  </monster>
+  <monster name="Heoni">
+    <look type="239"/>
+  </monster>
+  <monster name="Herói">
+    <look type="73"/>
+  </monster>
+  <monster name="Hidra">
+    <look type="121"/>
+  </monster>
+  <monster name="Hiena">
+    <look type="94"/>
+  </monster>
+  <monster name="Hiena macabra">
+    <look type="94"/>
+  </monster>
+  <monster name="Hirintror">
+    <look type="261"/>
+  </monster>
+  <monster name="Homem Biscoito">
+    <look type="1738"/>
+  </monster>
+  <monster name="Homem Crocodilo Selvagem">
+    <look type="1647"/>
+  </monster>
+  <monster name="Homem de Trapo">
+    <look type="1601"/>
+  </monster>
+  <monster name="Homem Javali">
+    <look type="1603"/>
+  </monster>
+  <monster name="Homem na Caverna">
+    <look type="128"/>
+  </monster>
+  <monster name="Homem Tigre">
+    <look type="1646"/>
+  </monster>
+  <monster name="Homem Tigre Branco">
+    <look type="1646"/>
+  </monster>
+  <monster name="Homem-crocodilo">
+    <look type="1647"/>
+  </monster>
+  <monster name="Horror com ânsia de vômito">
+    <look type="588"/>
+  </monster>
+  <monster name="Humano Mutante">
+    <look type="323"/>
+  </monster>
+  <monster name="Husky">
+    <look type="258"/>
+  </monster>
+  <monster name="Ichgahal">
+    <look type="1665"/>
+  </monster>
+  <monster name="Iks Ahpututu">
+    <look type="1590"/>
+  </monster>
+  <monster name="Iks Aucar">
+    <look type="1587"/>
+  </monster>
+  <monster name="Iks Chuka">
+    <look type="1588"/>
+  </monster>
+  <monster name="Iks Churrascan">
+    <look type="1587"/>
+  </monster>
+  <monster name="Iks Pututu">
+    <look type="1589"/>
+  </monster>
+  <monster name="Iks Yapunac">
+    <look type="1702"/>
+  </monster>
+  <monster name="Iluminados do Culto">
+    <look type="193"/>
+  </monster>
+  <monster name="Imitar">
+    <look type="92"/>
+  </monster>
+  <monster name="Imp Diabólico">
+    <look type="237"/>
+  </monster>
+  <monster name="Incendiário">
+    <look type="159"/>
+  </monster>
+  <monster name="Infernal">
+    <look type="35"/>
+  </monster>
+  <monster name="Infernalista">
+    <look type="130"/>
+  </monster>
+  <monster name="Inseto">
+    <look type="45"/>
+  </monster>
+  <monster name="Inseto de Enxofre">
+    <look type="352"/>
+  </monster>
+  <monster name="Intruso Terrível">
+    <look type="882"/>
+  </monster>
+  <monster name="Invasor do Lodo">
+    <look type="299"/>
+  </monster>
+  <monster name="Invocador de Demônios">
+    <look item="470"/>
+  </monster>
+  <monster name="Invocação de Elite de Spidris">
+    <look type="457"/>
+  </monster>
+  <monster name="Invocação Fantasma">
+    <look type="241"/>
+  </monster>
+  <monster name="Izcandar Campeão do Verão">
+    <look type="1137"/>
+  </monster>
+  <monster name="Jacaré Assassino">
+    <look type="358"/>
+  </monster>
+  <monster name="Javali">
+    <look type="380"/>
+  </monster>
+  <monster name="Javalomem">
+    <look type="721"/>
+  </monster>
+  <monster name="Jessé, o Malvado">
+    <look type="134"/>
+  </monster>
+  <monster name="Joaninha">
+    <look type="448"/>
+  </monster>
+  <monster name="Jorrador de Enxofre">
+    <look type="1547"/>
+  </monster>
+  <monster name="Jovem Goanna">
+    <look type="1196"/>
+  </monster>
+  <monster name="Jovem Serpente Marinha">
+    <look type="317"/>
+  </monster>
+  <monster name="Jovem troll">
+    <look type="15"/>
+  </monster>
+  <monster name="Juggernaut">
+    <look type="244"/>
+  </monster>
+  <monster name="Kollos">
+    <look type="458"/>
+  </monster>
+  <monster name="Kongra">
+    <look type="116"/>
+  </monster>
+  <monster name="Koshei, o Imortal">
+    <look type="99"/>
+  </monster>
+  <monster name="Kraknaknork">
+    <look type="6"/>
+  </monster>
+  <monster name="Lacaio do Clã Muglex">
+    <look type="61"/>
+  </monster>
+  <monster name="Ladrão de Queijo">
+    <look type="534"/>
+  </monster>
+  <monster name="Ladrão de Túmulos">
+    <look type="146"/>
+  </monster>
+  <monster name="Lagarta">
+    <look type="1394"/>
+  </monster>
+  <monster name="Lagarto Encantador de Serpentes">
+    <look type="115"/>
+  </monster>
+  <monster name="Lagarto Escolhido">
+    <look type="344"/>
+  </monster>
+  <monster name="Lagarto Magistratus">
+    <look type="115"/>
+  </monster>
+  <monster name="Lagarto Nobre">
+    <look type="115"/>
+  </monster>
+  <monster name="Lagarto Templário">
+    <look type="113"/>
+  </monster>
+  <monster name="Lagarto Zaogun">
+    <look type="343"/>
+  </monster>
+  <monster name="Lamassu">
+    <look type="1190"/>
+  </monster>
+  <monster name="Lanceiro Orc">
+    <look type="50"/>
+  </monster>
+  <monster name="Lança-pragas">
+    <look item="2190"/>
+  </monster>
+  <monster name="Lançador de Morte">
+    <look item="2190"/>
+  </monster>
+  <monster name="Lançador Mágico">
+    <look item="2190"/>
+  </monster>
+  <monster name="Larva">
+    <look type="82"/>
+  </monster>
+  <monster name="Lavafungo">
+    <look type="1405"/>
+  </monster>
+  <monster name="Legionário Lagarto">
+    <look type="338"/>
+  </monster>
+  <monster name="Legionário Troll">
+    <look type="53"/>
+  </monster>
+  <monster name="Lesma">
+    <look type="407"/>
+  </monster>
+  <monster name="Leão">
+    <look type="41"/>
+  </monster>
+  <monster name="Leão Branco">
+    <look type="1290"/>
+  </monster>
+  <monster name="Leão que ruge">
+    <look type="570"/>
+  </monster>
+  <monster name="Libelinha Esmeralda">
+    <look type="528"/>
+  </monster>
+  <monster name="Lich">
+    <look type="99"/>
+  </monster>
+  <monster name="Liodilo">
+    <look type="1602"/>
+  </monster>
+  <monster name="Lisa">
+    <look type="604"/>
+  </monster>
+  <monster name="Lissy letal">
+    <look type="155"/>
+  </monster>
+  <monster name="Livro Amaldiçoado">
+    <look type="1061"/>
+  </monster>
+  <monster name="Livro em Chamas">
+    <look type="1061"/>
+  </monster>
+  <monster name="Livro Energético">
+    <look type="1061"/>
+  </monster>
+  <monster name="Livro Gelado">
+    <look type="1061"/>
+  </monster>
+  <monster name="Livro Mordedor">
+    <look type="1066"/>
+  </monster>
+  <monster name="Livro Voador">
+    <look type="1060"/>
+  </monster>
+  <monster name="Lobisomem">
+    <look type="308"/>
+  </monster>
+  <monster name="Lobisomem Pantera">
+    <look type="1648"/>
+  </monster>
+  <monster name="Lobisomen Leoa">
+    <look type="1301"/>
+  </monster>
+  <monster name="Lobo">
+    <look type="27"/>
+  </monster>
+  <monster name="Lobo Cristalino">
+    <look type="391"/>
+  </monster>
+  <monster name="Lobo de Fogo Espinheiro">
+    <look type="414"/>
+  </monster>
+  <monster name="Lobo de Guerra">
+    <look type="3"/>
+  </monster>
+  <monster name="Lobo de Inverno">
+    <look type="52"/>
+  </monster>
+  <monster name="Lobo Faminto">
+    <look type="27"/>
+  </monster>
+  <monster name="Lobo Fantasma">
+    <look type="730"/>
+  </monster>
+  <monster name="Lobo Sombrio">
+    <look type="716"/>
+  </monster>
+  <monster name="Lodo">
+    <look type="19"/>
+  </monster>
+  <monster name="Lodo mole">
+    <look type="19"/>
+  </monster>
+  <monster name="Lula Cérebro">
+    <look type="1059"/>
+  </monster>
+  <monster name="Lula Furiosa">
+    <look type="1059"/>
+  </monster>
+  <monster name="Lutador Fogo do Inferno">
+    <look type="243"/>
+  </monster>
+  <monster name="Lutador Mecânico">
+    <look type="102"/>
+  </monster>
+  <monster name="Lutador Profundo">
+    <look type="470"/>
+  </monster>
+  <monster name="Líder Goblin">
+    <look type="61"/>
+  </monster>
+  <monster name="Líder Orc">
+    <look type="59"/>
+  </monster>
+  <monster name="Lúcio">
+    <look type="454"/>
+  </monster>
+  <monster name="Macaco Amaldiçoado">
+    <look type="1592"/>
+  </monster>
+  <monster name="Madeira">
+    <look type="535"/>
+  </monster>
+  <monster name="Magia da Fúria Selvagem">
+    <look/>
+  </monster>
+  <monster name="Magia da Natureza Selvagem">
+    <look/>
+  </monster>
+  <monster name="Magia da Água Selvagem">
+    <look/>
+  </monster>
+  <monster name="Magia do Fogo Selvagem">
+    <look/>
+  </monster>
+  <monster name="Mago furioso">
+    <look type="416"/>
+  </monster>
+  <monster name="Mago Furioso Energizado">
+    <look type="423"/>
+  </monster>
+  <monster name="Mago Louco">
+    <look type="394"/>
+  </monster>
+  <monster name="Mago Minotauro">
+    <look type="23"/>
+  </monster>
+  <monster name="Mago Negro">
+    <look type="133"/>
+  </monster>
+  <monster name="Makara">
+    <look type="1565"/>
+  </monster>
+  <monster name="Maldição da Luz">
+    <look type="68"/>
+  </monster>
+  <monster name="Mamute">
+    <look type="199"/>
+  </monster>
+  <monster name="Manbat Vicioso">
+    <look type="554"/>
+  </monster>
+  <monster name="Manticora">
+    <look type="1189"/>
+  </monster>
+  <monster name="Mantossauro">
+    <look type="1556"/>
+  </monster>
+  <monster name="Marid">
+    <look type="104"/>
+  </monster>
+  <monster name="Mariposa Hiberna">
+    <look type="1149"/>
+  </monster>
+  <monster name="Mariposa Lacewing">
+    <look type="1148"/>
+  </monster>
+  <monster name="Matriarca Modeladora">
+    <look type="933"/>
+  </monster>
+  <monster name="Mawhawk">
+    <look type="595"/>
+  </monster>
+  <monster name="Medo sufocante">
+    <look type="586"/>
+  </monster>
+  <monster name="Medusa">
+    <look type="330"/>
+  </monster>
+  <monster name="Mega Dragão">
+    <look type="1712"/>
+  </monster>
+  <monster name="Mel Elemental">
+    <look type="1733"/>
+  </monster>
+  <monster name="Membro de Gangue">
+    <look type="151"/>
+  </monster>
+  <monster name="Memória de um Anão">
+    <look type="70"/>
+  </monster>
+  <monster name="Memória de um Carnisilvan">
+    <look type="1418"/>
+  </monster>
+  <monster name="Memória de um Elfo">
+    <look type="63"/>
+  </monster>
+  <monster name="Memória de um escaravelho">
+    <look type="79"/>
+  </monster>
+  <monster name="Memória de um Fauno">
+    <look type="980"/>
+  </monster>
+  <monster name="Memória de um Frazzlemaw">
+    <look type="594"/>
+  </monster>
+  <monster name="Memória de um fungo">
+    <look type="488"/>
+  </monster>
+  <monster name="Memória de um Golem">
+    <look type="600"/>
+  </monster>
+  <monster name="Memória de um Herói">
+    <look type="73"/>
+  </monster>
+  <monster name="Memória de um Insetóide">
+    <look type="403"/>
+  </monster>
+  <monster name="Memória de um Lagarto">
+    <look type="337"/>
+  </monster>
+  <monster name="Memória de um Livro">
+    <look type="1060"/>
+  </monster>
+  <monster name="Memória de um Lobo">
+    <look type="918"/>
+  </monster>
+  <monster name="Memória de um Mamute">
+    <look type="199"/>
+  </monster>
+  <monster name="Memória de um Ogro">
+    <look type="857"/>
+  </monster>
+  <monster name="Memória de um Pirata">
+    <look type="97"/>
+  </monster>
+  <monster name="Memória de um Shaper">
+    <look type="932"/>
+  </monster>
+  <monster name="Memória de um Vampiro">
+    <look type="68"/>
+  </monster>
+  <monster name="Memória de um Werelion">
+    <look type="1301"/>
+  </monster>
+  <monster name="Memória de um Yalahari">
+    <look type="309"/>
+  </monster>
+  <monster name="Memória de uma Amazônia">
+    <look type="137"/>
+  </monster>
+  <monster name="Memória de uma Banshee">
+    <look type="78"/>
+  </monster>
+  <monster name="Memória de uma Hidra">
+    <look type="121"/>
+  </monster>
+  <monster name="Memória de uma Manticora">
+    <look type="1189"/>
+  </monster>
+  <monster name="Mendigo Enlouquecido">
+    <look type="153"/>
+  </monster>
+  <monster name="Merikh, o Matador">
+    <look type="103"/>
+  </monster>
+  <monster name="Merlkin">
+    <look type="117"/>
+  </monster>
+  <monster name="Mestre de Batalha Zunzu">
+    <look type="343"/>
+  </monster>
+  <monster name="Mestre de Guerra Draken">
+    <look type="334"/>
+  </monster>
+  <monster name="Mestre Vodu Dworc">
+    <look type="214"/>
+  </monster>
+  <monster name="Mineiro Anão">
+    <look type="160"/>
+  </monster>
+  <monster name="Minion Morto-Vivo">
+    <look type="37"/>
+  </monster>
+  <monster name="Minishabaal">
+    <look type="237"/>
+  </monster>
+  <monster name="Minotauro">
+    <look type="25"/>
+  </monster>
+  <monster name="Minotauro Amazona">
+    <look type="608"/>
+  </monster>
+  <monster name="Minotauro Bruiser">
+    <look type="25"/>
+  </monster>
+  <monster name="Minotauro Invasor">
+    <look type="29"/>
+  </monster>
+  <monster name="Minotauro movido a Glooth">
+    <look type="607"/>
+  </monster>
+  <monster name="Mochila Orc Sam">
+    <look type="5"/>
+  </monster>
+  <monster name="Modelador de ferramentas Chakoya">
+    <look type="259"/>
+  </monster>
+  <monster name="Modelador de Âmbar para Enraizamento">
+    <look type="1762"/>
+  </monster>
+  <monster name="Modelador Quebrado">
+    <look type="932"/>
+  </monster>
+  <monster name="Modelador Torcido">
+    <look type="932"/>
+  </monster>
+  <monster name="Monge">
+    <look type="57"/>
+  </monster>
+  <monster name="Monge da Ordem">
+    <look type="57"/>
+  </monster>
+  <monster name="Monge familiar">
+    <look type="1818"/>
+  </monster>
+  <monster name="Monge Sombrio">
+    <look type="225"/>
+  </monster>
+  <monster name="Moohtant">
+    <look type="607"/>
+  </monster>
+  <monster name="Morcego">
+    <look type="122"/>
+  </monster>
+  <monster name="Morcego do Amanhecer">
+    <look type="122"/>
+  </monster>
+  <monster name="Morcego Exótico">
+    <look type="1373"/>
+  </monster>
+  <monster name="Morcego Mutante">
+    <look type="307"/>
+  </monster>
+  <monster name="Morgaroth">
+    <look type="12"/>
+  </monster>
+  <monster name="Morik, o Gladiador">
+    <look type="131"/>
+  </monster>
+  <monster name="Morshabaal">
+    <look type="1468"/>
+  </monster>
+  <monster name="Morte cerebral">
+    <look type="256"/>
+  </monster>
+  <monster name="Mosca da Alvorada">
+    <look type="528"/>
+  </monster>
+  <monster name="Muda Carnisilvan">
+    <look type="1419"/>
+  </monster>
+  <monster name="Mulher Nômade">
+    <look type="150"/>
+  </monster>
+  <monster name="Murião">
+    <look type="1664"/>
+  </monster>
+  <monster name="Máquina de Treino">
+    <look type="1142"/>
+  </monster>
+  <monster name="Mão de Sangue">
+    <look type="552"/>
+  </monster>
+  <monster name="Mão do Destino Amaldiçoado">
+    <look type="230"/>
+  </monster>
+  <monster name="Múmia">
+    <look type="65"/>
+  </monster>
+  <monster name="Múmia Anciã">
+    <look type="65"/>
+  </monster>
+  <monster name="Múmia Pútrida">
+    <look type="976"/>
+  </monster>
+  <monster name="Mÿnster">
+    <look type="56"/>
+  </monster>
+  <monster name="Naga corrupta">
+    <look type="1538"/>
+  </monster>
+  <monster name="Naga Renegada">
+    <look type="1543"/>
+  </monster>
+  <monster name="Necromante">
+    <look type="9"/>
+  </monster>
+  <monster name="Necrófaro">
+    <look type="209"/>
+  </monster>
+  <monster name="Nibblemaw">
+    <look type="1737"/>
+  </monster>
+  <monster name="Ninfa">
+    <look type="989"/>
+  </monster>
+  <monster name="Ninhada de violação">
+    <look type="878"/>
+  </monster>
+  <monster name="Ninhada de violação instável">
+    <look type="878"/>
+  </monster>
+  <monster name="Nobre Leão">
+    <look type="570"/>
+  </monster>
+  <monster name="Noiva Vampira">
+    <look type="312"/>
+  </monster>
+  <monster name="Noviça do Culto">
+    <look type="133"/>
+  </monster>
+  <monster name="Nômade">
+    <look type="146"/>
+  </monster>
+  <monster name="O Colecionador">
+    <look type="261"/>
+  </monster>
+  <monster name="O ladrão de cérebros">
+    <look type="1412"/>
+  </monster>
+  <monster name="O Livro da Morte">
+    <look type="1061"/>
+  </monster>
+  <monster name="O mau-olhado">
+    <look type="210"/>
+  </monster>
+  <monster name="O Monstro">
+    <look type="1600"/>
+  </monster>
+  <monster name="O Pai da Praga">
+    <look type="348"/>
+  </monster>
+  <monster name="O Primeiro Dragão">
+    <look type="947"/>
+  </monster>
+  <monster name="O Príncipe Sapo">
+    <look type="224"/>
+  </monster>
+  <monster name="O Rootkraken">
+    <look type="1765"/>
+  </monster>
+  <monster name="Observador">
+    <look type="109"/>
+  </monster>
+  <monster name="Ocultista do Minotauro">
+    <look type="23"/>
+  </monster>
+  <monster name="Ocyakao">
+    <look type="259"/>
+  </monster>
+  <monster name="Ogro Arruaceiro">
+    <look type="1213"/>
+  </monster>
+  <monster name="Ogro Bruto">
+    <look type="857"/>
+  </monster>
+  <monster name="Ogro Rufião">
+    <look type="1212"/>
+  </monster>
+  <monster name="Ogro Selvagem">
+    <look type="858"/>
+  </monster>
+  <monster name="Ogro Sábio">
+    <look type="1214"/>
+  </monster>
+  <monster name="Ogro Xamã">
+    <look type="859"/>
+  </monster>
+  <monster name="Olho Morto Desviante">
+    <look type="151"/>
+  </monster>
+  <monster name="Omnivora">
+    <look type="717"/>
+  </monster>
+  <monster name="Orc">
+    <look type="5"/>
+  </monster>
+  <monster name="Orc Renegado">
+    <look type="59"/>
+  </monster>
+  <monster name="Orc Saqueador">
+    <look type="342"/>
+  </monster>
+  <monster name="Orclope Doomhauler">
+    <look type="934"/>
+  </monster>
+  <monster name="Orclopes Devastador">
+    <look type="935"/>
+  </monster>
+  <monster name="Orewalker">
+    <look type="490"/>
+  </monster>
+  <monster name="Orshabaal">
+    <look type="201"/>
+  </monster>
+  <monster name="Ossos">
+    <look type="231"/>
+  </monster>
+  <monster name="Ovelha">
+    <look type="14"/>
+  </monster>
+  <monster name="Ovelha Má">
+    <look type="14"/>
+  </monster>
+  <monster name="Ovelha Negra">
+    <look type="13"/>
+  </monster>
+  <monster name="Ovo">
+    <look item="4839"/>
+  </monster>
+  <monster name="Paladino familiar">
+    <look type="992"/>
+  </monster>
+  <monster name="Panda">
+    <look type="123"/>
+  </monster>
+  <monster name="Pantera da Meia-Noite">
+    <look type="385"/>
+  </monster>
+  <monster name="Papagaio">
+    <look type="217"/>
+  </monster>
+  <monster name="Papagaio da Caverna">
+    <look type="217"/>
+  </monster>
+  <monster name="Papagaio Demônio">
+    <look type="217"/>
+  </monster>
+  <monster name="Papaizinho">
+    <look type="1764"/>
+  </monster>
+  <monster name="Parasita">
+    <look type="82"/>
+  </monster>
+  <monster name="Parasita Cerebral">
+    <look type="82"/>
+  </monster>
+  <monster name="Parder">
+    <look type="1533"/>
+  </monster>
+  <monster name="Peixe">
+    <look type="455"/>
+  </monster>
+  <monster name="Pele de Sombra">
+    <look type="1040"/>
+  </monster>
+  <monster name="Pena Animada">
+    <look type="1058"/>
+  </monster>
+  <monster name="Pequeno Corym Charlatão">
+    <look type="532"/>
+  </monster>
+  <monster name="Peregrino Aflito">
+    <look type="1403"/>
+  </monster>
+  <monster name="Peregrino do Prado">
+    <look type="530"/>
+  </monster>
+  <monster name="Perseguidor">
+    <look type="128"/>
+  </monster>
+  <monster name="Perseguição">
+    <look type="1554"/>
+  </monster>
+  <monster name="Pesadelo">
+    <look type="245"/>
+  </monster>
+  <monster name="Pica-cabeça">
+    <look type="1557"/>
+  </monster>
+  <monster name="Pilar">
+    <look item="2190"/>
+  </monster>
+  <monster name="Pilar Mágico">
+    <look item="2190"/>
+  </monster>
+  <monster name="Pilhador Pirata">
+    <look type="93"/>
+  </monster>
+  <monster name="Pinguim">
+    <look type="250"/>
+  </monster>
+  <monster name="Pinguim Terrível">
+    <look type="250"/>
+  </monster>
+  <monster name="Pirata Canalha">
+    <look type="1346"/>
+  </monster>
+  <monster name="Pirata de Elite">
+    <look type="534"/>
+  </monster>
+  <monster name="Pirata Degolador">
+    <look type="1346"/>
+  </monster>
+  <monster name="Podridão Elemental">
+    <look type="615"/>
+  </monster>
+  <monster name="Pombo">
+    <look type="531"/>
+  </monster>
+  <monster name="Poodle">
+    <look type="473"/>
+  </monster>
+  <monster name="Pooka">
+    <look type="977"/>
+  </monster>
+  <monster name="Pooka Torcido">
+    <look type="978"/>
+  </monster>
+  <monster name="Porco">
+    <look type="60"/>
+  </monster>
+  <monster name="Porco Vampiro">
+    <look type="60"/>
+  </monster>
+  <monster name="Porco Velho">
+    <look type="921"/>
+  </monster>
+  <monster name="Poro da Colmeia">
+    <look item="14064"/>
+  </monster>
+  <monster name="Portador de Bane">
+    <look type="310"/>
+  </monster>
+  <monster name="Portador do Crepúsculo">
+    <look type="300"/>
+  </monster>
+  <monster name="Precursor da Alma Quebrada">
+    <look type="1137"/>
+  </monster>
+  <monster name="Predador Quara Renegado">
+    <look type="20"/>
+  </monster>
+  <monster name="Prehemoth Corpulento">
+    <look type="1553"/>
+  </monster>
+  <monster name="Primitivo">
+    <look type="143"/>
+  </monster>
+  <monster name="Profanador">
+    <look type="238"/>
+  </monster>
+  <monster name="Profanador de Cripta">
+    <look type="146"/>
+  </monster>
+  <monster name="Profeta do Culto ao Minotauro">
+    <look type="23"/>
+  </monster>
+  <monster name="Profundo Feiticeiro">
+    <look type="443"/>
+  </monster>
+  <monster name="Projeto de lei doente">
+    <look type="299"/>
+  </monster>
+  <monster name="Prospector de Mortos-vivos">
+    <look type="18"/>
+  </monster>
+  <monster name="Prospector do Mal">
+    <look type="1268"/>
+  </monster>
+  <monster name="Príncipe Askarak">
+    <look type="419"/>
+  </monster>
+  <monster name="Príncipe Shaburak">
+    <look type="418"/>
+  </monster>
+  <monster name="Pupila das Sombras">
+    <look type="551"/>
+  </monster>
+  <monster name="Pássaro do Terror">
+    <look type="218"/>
+  </monster>
+  <monster name="Pássaro do Terror Domado">
+    <look type="218"/>
+  </monster>
+  <monster name="Pítio, o Podre">
+    <look type="231"/>
+  </monster>
+  <monster name="Quara Constrictor Scout">
+    <look type="46"/>
+  </monster>
+  <monster name="Quara Constritora">
+    <look type="46"/>
+  </monster>
+  <monster name="Quara Hidromante">
+    <look type="47"/>
+  </monster>
+  <monster name="Quara Hidromante Batedor">
+    <look type="47"/>
+  </monster>
+  <monster name="Quara Mantassin">
+    <look type="72"/>
+  </monster>
+  <monster name="Quara Mantassin Scout">
+    <look type="72"/>
+  </monster>
+  <monster name="Quara Pinça">
+    <look type="77"/>
+  </monster>
+  <monster name="Quara Predadora">
+    <look type="20"/>
+  </monster>
+  <monster name="Quara Predator Scout">
+    <look type="20"/>
+  </monster>
+  <monster name="Quara Raider">
+    <look type="1759"/>
+  </monster>
+  <monster name="Quara Saqueador">
+    <look type="1741"/>
+  </monster>
+  <monster name="Quimera da Caverna">
+    <look type="1406"/>
+  </monster>
+  <monster name="Rainha Aranha">
+    <look type="219"/>
+  </monster>
+  <monster name="Rainha Rotworm">
+    <look type="295"/>
+  </monster>
+  <monster name="Raposa">
+    <look type="1029"/>
+  </monster>
+  <monster name="Rastreador">
+    <look type="456"/>
+  </monster>
+  <monster name="Rastreador de areia">
+    <look type="350"/>
+  </monster>
+  <monster name="Rastreador de Bugs Rootthing">
+    <look type="1763"/>
+  </monster>
+  <monster name="Rastreador de Magma">
+    <look type="492"/>
+  </monster>
+  <monster name="Rato">
+    <look type="21"/>
+  </monster>
+  <monster name="Rato da Caverna">
+    <look type="56"/>
+  </monster>
+  <monster name="Rato Mutante">
+    <look type="305"/>
+  </monster>
+  <monster name="Raxias">
+    <look type="980"/>
+  </monster>
+  <monster name="Reaver a Realidade">
+    <look type="879"/>
+  </monster>
+  <monster name="Recipiente Alquimista">
+    <look item="39952"/>
+  </monster>
+  <monster name="Refinador de pedra">
+    <look type="1032"/>
+  </monster>
+  <monster name="Renegade Quara Constrictor">
+    <look type="46"/>
+  </monster>
+  <monster name="Renegade Quara Hydromancer">
+    <look type="47"/>
+  </monster>
+  <monster name="Renegade Quara Mantassin">
+    <look type="72"/>
+  </monster>
+  <monster name="Renegado Quara Pincher">
+    <look type="77"/>
+  </monster>
+  <monster name="Reno">
+    <look type="1606"/>
+  </monster>
+  <monster name="Resumindo o enraizamento">
+    <look type="1760"/>
+  </monster>
+  <monster name="Retaguarda de Inverno Enlouquecida">
+    <look type="1136"/>
+  </monster>
+  <monster name="Retaguarda Enlouquecida de Verão">
+    <look type="1136"/>
+  </monster>
+  <monster name="Rinoceronte de Pedra">
+    <look type="936"/>
+  </monster>
+  <monster name="Ripptor Nocivo">
+    <look type="1558"/>
+  </monster>
+  <monster name="Robby, o Imprudente">
+    <look type="129"/>
+  </monster>
+  <monster name="Ron, o Estripador">
+    <look type="151"/>
+  </monster>
+  <monster name="Rorc">
+    <look type="550"/>
+  </monster>
+  <monster name="Rottie, o Rotworm">
+    <look type="26"/>
+  </monster>
+  <monster name="Rukor Zad">
+    <look type="152"/>
+  </monster>
+  <monster name="Rã Carmesim">
+    <look type="226"/>
+  </monster>
+  <monster name="Rã Coral">
+    <look type="226"/>
+  </monster>
+  <monster name="Rã do Pântano">
+    <look type="412"/>
+  </monster>
+  <monster name="Réplica do Servo de Ferro">
+    <look type="395"/>
+  </monster>
+  <monster name="Réplica do Servo Diamante">
+    <look type="397"/>
+  </monster>
+  <monster name="Réplica do Servo Dourado">
+    <look type="396"/>
+  </monster>
+  <monster name="Sacerdote Bulltaur">
+    <look type="1719"/>
+  </monster>
+  <monster name="Sacerdote da Morte">
+    <look type="99"/>
+  </monster>
+  <monster name="Sacerdote de Sangue">
+    <look type="553"/>
+  </monster>
+  <monster name="Sacerdote Dragão Lagarto">
+    <look type="339"/>
+  </monster>
+  <monster name="Sacerdotisa">
+    <look type="58"/>
+  </monster>
+  <monster name="Sacerdotisa do Sol Selvagem">
+    <look type="1199"/>
+  </monster>
+  <monster name="Sacerdotisa Verme">
+    <look type="613"/>
+  </monster>
+  <monster name="Salamandra">
+    <look type="529"/>
+  </monster>
+  <monster name="Salamandra Treinada por Trolls">
+    <look type="529"/>
+  </monster>
+  <monster name="Salmobruta Inferniarca">
+    <look type="1794"/>
+  </monster>
+  <monster name="Sapo">
+    <look type="222"/>
+  </monster>
+  <monster name="Sapo Azul">
+    <look type="226"/>
+  </monster>
+  <monster name="Sapo Imundo">
+    <look type="222"/>
+  </monster>
+  <monster name="Sapo Infernal">
+    <look type="224"/>
+  </monster>
+  <monster name="Sapo Orquídea">
+    <look type="226"/>
+  </monster>
+  <monster name="Sapo Verde">
+    <look type="224"/>
+  </monster>
+  <monster name="Saqueador de Quara">
+    <look type="1758"/>
+  </monster>
+  <monster name="Saqueador Troll">
+    <look type="281"/>
+  </monster>
+  <monster name="Savant Flutuante">
+    <look type="1063"/>
+  </monster>
+  <monster name="Seguidor do Culto do Minotauro">
+    <look type="25"/>
+  </monster>
+  <monster name="Selva Moa">
+    <look type="1534"/>
+  </monster>
+  <monster name="Senhor Askarak">
+    <look type="410"/>
+  </monster>
+  <monster name="Senhor da Grave Oshuran">
+    <look type="99"/>
+  </monster>
+  <monster name="Senhor da Guerra Orc">
+    <look type="2"/>
+  </monster>
+  <monster name="Senhor da Guerra Ruzad">
+    <look type="2"/>
+  </monster>
+  <monster name="Senhor das Ovelhas Más">
+    <look type="13"/>
+  </monster>
+  <monster name="Senhor dos Dragões">
+    <look type="39"/>
+  </monster>
+  <monster name="Senhor dos Ossos">
+    <look type="17"/>
+  </monster>
+  <monster name="Senhor Shaburak">
+    <look type="409"/>
+  </monster>
+  <monster name="Senhor Valorcrest">
+    <look type="287"/>
+  </monster>
+  <monster name="Sentinela Lagarto">
+    <look type="114"/>
+  </monster>
+  <monster name="Serpente Mais Marinha">
+    <look type="675"/>
+  </monster>
+  <monster name="Serpente Marinha">
+    <look type="275"/>
+  </monster>
+  <monster name="Servo da Tumba">
+    <look type="100"/>
+  </monster>
+  <monster name="Servo de Ferro">
+    <look type="395"/>
+  </monster>
+  <monster name="Servo Diamante">
+    <look type="397"/>
+  </monster>
+  <monster name="Servo Dourado">
+    <look type="396"/>
+  </monster>
+  <monster name="Servo Gelado">
+    <look type="261"/>
+  </monster>
+  <monster name="Servo Necromante">
+    <look type="9"/>
+  </monster>
+  <monster name="Shlorg enfraquecido">
+    <look type="565"/>
+  </monster>
+  <monster name="Sibang">
+    <look type="118"/>
+  </monster>
+  <monster name="Significa Alma Perdida">
+    <look type="1268"/>
+  </monster>
+  <monster name="Silenciador">
+    <look type="585"/>
+  </monster>
+  <monster name="Silenciador Enfraquecido">
+    <look type="585"/>
+  </monster>
+  <monster name="Silenciador Perdido">
+    <look type="537"/>
+  </monster>
+  <monster name="Sineater Inferniarca">
+    <look type="1795"/>
+  </monster>
+  <monster name="Sirene Insana">
+    <look type="1136"/>
+  </monster>
+  <monster name="Soldado Anão">
+    <look type="71"/>
+  </monster>
+  <monster name="Sombra Branca">
+    <look type="560"/>
+  </monster>
+  <monster name="Sono febril">
+    <look type="593"/>
+  </monster>
+  <monster name="Sono Terror">
+    <look type="587"/>
+  </monster>
+  <monster name="Sparkion instável">
+    <look type="877"/>
+  </monster>
+  <monster name="Spidris">
+    <look type="457"/>
+  </monster>
+  <monster name="Spidris Elite">
+    <look type="457"/>
+  </monster>
+  <monster name="Spyrat Leste">
+    <look item="30375"/>
+  </monster>
+  <monster name="Spyrat Norte">
+    <look item="30376"/>
+  </monster>
+  <monster name="Spyrat Oeste">
+    <look item="30378"/>
+  </monster>
+  <monster name="Spyrat Sul">
+    <look item="30377"/>
+  </monster>
+  <monster name="Sulfureto">
+    <look type="1546"/>
+  </monster>
+  <monster name="Supervisor da Colmeia">
+    <look type="458"/>
+  </monster>
+  <monster name="Supervisor Elfo">
+    <look type="159"/>
+  </monster>
+  <monster name="Tanaturso">
+    <look type="1134"/>
+  </monster>
+  <monster name="Tartaruga">
+    <look type="197"/>
+  </monster>
+  <monster name="Tartaruga de Duas Cabeças">
+    <look type="1535"/>
+  </monster>
+  <monster name="Tartaruga Esmeralda">
+    <look type="1550"/>
+  </monster>
+  <monster name="Tartaruga Thornback">
+    <look type="198"/>
+  </monster>
+  <monster name="Tarântula">
+    <look type="219"/>
+  </monster>
+  <monster name="Tecnomante Louco">
+    <look type="66"/>
+  </monster>
+  <monster name="Telescor">
+    <look type="298"/>
+  </monster>
+  <monster name="Terramita">
+    <look type="346"/>
+  </monster>
+  <monster name="Terror Doce">
+    <look type="1739"/>
+  </monster>
+  <monster name="Texugo">
+    <look type="105"/>
+  </monster>
+  <monster name="Texugomem">
+    <look type="729"/>
+  </monster>
+  <monster name="Tigre">
+    <look type="125"/>
+  </monster>
+  <monster name="Tigre Branco">
+    <look type="1649"/>
+  </monster>
+  <monster name="Tigre Mutante">
+    <look type="318"/>
+  </monster>
+  <monster name="Tirano do Túnel">
+    <look type="1035"/>
+  </monster>
+  <monster name="Tirano Profundo">
+    <look type="442"/>
+  </monster>
+  <monster name="Torre de Controle">
+    <look item="20894"/>
+  </monster>
+  <monster name="Torturador Sombrio">
+    <look type="234"/>
+  </monster>
+  <monster name="Totem do Minotauro">
+    <look item="2299"/>
+  </monster>
+  <monster name="Toupeira">
+    <look type="1048"/>
+  </monster>
+  <monster name="Trabalhador da mina morto-vivo">
+    <look type="33"/>
+  </monster>
+  <monster name="Trabalhador do Cubo de Açúcar">
+    <look type="1756"/>
+  </monster>
+  <monster name="Trabalhador Insetóide">
+    <look type="403"/>
+  </monster>
+  <monster name="Trabalhador Profundo">
+    <look type="470"/>
+  </monster>
+  <monster name="Treinador de Salamandra">
+    <look type="15"/>
+  </monster>
+  <monster name="Tremendo Tirano">
+    <look type="1396"/>
+  </monster>
+  <monster name="Triturador de cristal">
+    <look type="511"/>
+  </monster>
+  <monster name="Troll">
+    <look type="15"/>
+  </monster>
+  <monster name="Troll Campeão">
+    <look type="281"/>
+  </monster>
+  <monster name="Troll da Ilha">
+    <look type="282"/>
+  </monster>
+  <monster name="Troll da Montanha">
+    <look type="15"/>
+  </monster>
+  <monster name="Troll de Gelo">
+    <look type="53"/>
+  </monster>
+  <monster name="Troll do Pântano">
+    <look type="76"/>
+  </monster>
+  <monster name="Troll Furioso">
+    <look type="281"/>
+  </monster>
+  <monster name="Trufa">
+    <look type="1750"/>
+  </monster>
+  <monster name="Trôpego da Cripta">
+    <look type="100"/>
+  </monster>
+  <monster name="Tubarão">
+    <look type="453"/>
+  </monster>
+  <monster name="Tyrn">
+    <look type="562"/>
+  </monster>
+  <monster name="Urso">
+    <look type="16"/>
+  </monster>
+  <monster name="Urso das Cavernas Morto-Vivo">
+    <look type="384"/>
+  </monster>
+  <monster name="Urso Polar">
+    <look type="42"/>
+  </monster>
+  <monster name="Urso Velho">
+    <look type="919"/>
+  </monster>
+  <monster name="Ursomem">
+    <look type="720"/>
+  </monster>
+  <monster name="Urtiga Cuspideira">
+    <look type="221"/>
+  </monster>
+  <monster name="Valquíria">
+    <look type="139"/>
+  </monster>
+  <monster name="Vampiro">
+    <look type="68"/>
+  </monster>
+  <monster name="Vanguarda de Inverno Enlouquecida">
+    <look type="1137"/>
+  </monster>
+  <monster name="Vanguarda de verão enlouquecida">
+    <look type="1137"/>
+  </monster>
+  <monster name="Vanguarda Mitmah">
+    <look type="1716"/>
+  </monster>
+  <monster name="Veado Branco">
+    <look type="400"/>
+  </monster>
+  <monster name="Veado Branco Desesperado">
+    <look type="400"/>
+  </monster>
+  <monster name="Velha Aranha Gigante">
+    <look type="910"/>
+  </monster>
+  <monster name="Velho Lobo">
+    <look type="918"/>
+  </monster>
+  <monster name="Velho observador">
+    <look type="924"/>
+  </monster>
+  <monster name="Vemiath">
+    <look type="1668"/>
+  </monster>
+  <monster name="Venerável Girtablilu">
+    <look type="1407"/>
+  </monster>
+  <monster name="Verdadeira Flor Geada Asura">
+    <look type="1068"/>
+  </monster>
+  <monster name="Verdadeiro Asura da Meia-Noite">
+    <look type="1068"/>
+  </monster>
+  <monster name="Verdadeiro Asura Fogo da Alvorada">
+    <look type="1068"/>
+  </monster>
+  <monster name="Verme Carniceiro">
+    <look type="192"/>
+  </monster>
+  <monster name="Verme da Podridão">
+    <look type="26"/>
+  </monster>
+  <monster name="Verme profundo">
+    <look type="1033"/>
+  </monster>
+  <monster name="Verminor">
+    <look type="12"/>
+  </monster>
+  <monster name="Vespa">
+    <look type="44"/>
+  </monster>
+  <monster name="Vespa Velha">
+    <look type="923"/>
+  </monster>
+  <monster name="Vexgarra">
+    <look type="854"/>
+  </monster>
+  <monster name="Vidente Mitmah">
+    <look type="1710"/>
+  </monster>
+  <monster name="Visco mutante">
+    <look type="554"/>
+  </monster>
+  <monster name="Visconde Vampiro">
+    <look type="555"/>
+  </monster>
+  <monster name="Visão da Rendição">
+    <look type="583"/>
+  </monster>
+  <monster name="Vizir Cobra">
+    <look type="1217"/>
+  </monster>
+  <monster name="Viúva Chorosa">
+    <look type="347"/>
+  </monster>
+  <monster name="Vulcongra">
+    <look type="509"/>
+  </monster>
+  <monster name="Waspoid">
+    <look type="462"/>
+  </monster>
+  <monster name="Werefox">
+    <look type="1030"/>
+  </monster>
+  <monster name="Werehyaena">
+    <look type="1300"/>
+  </monster>
+  <monster name="Werelion">
+    <look type="1301"/>
+  </monster>
+  <monster name="Wiggler">
+    <look type="510"/>
+  </monster>
+  <monster name="Willi Vespa">
+    <look type="44"/>
+  </monster>
+  <monster name="Wyrm">
+    <look type="291"/>
+  </monster>
+  <monster name="Wyvern">
+    <look type="239"/>
+  </monster>
+  <monster name="Xamã da Tribo da Cicatriz">
+    <look type="6"/>
+  </monster>
+  <monster name="Xamã Orc">
+    <look type="6"/>
+  </monster>
+  <monster name="Xamã Werehyaena">
+    <look type="1300"/>
+  </monster>
+  <monster name="Xênia">
+    <look type="137"/>
+  </monster>
+  <monster name="Yaga, a Velha">
+    <look type="54"/>
+  </monster>
+  <monster name="Yakchal">
+    <look type="149"/>
+  </monster>
+  <monster name="Yeti">
+    <look type="110"/>
+  </monster>
+  <monster name="Yielotáx">
+    <look type="408"/>
+  </monster>
+  <monster name="Zarabustor">
+    <look type="130"/>
+  </monster>
+  <monster name="Zavarash">
+    <look type="12"/>
+  </monster>
+  <monster name="Zelote do Culto do Minotauro">
+    <look type="29"/>
+  </monster>
+  <monster name="Zevelon Arauto do Crepúsculo">
+    <look type="287"/>
+  </monster>
+  <monster name="Zoralurk">
+    <look type="12"/>
+  </monster>
+  <monster name="Zulazza, a Corruptor">
+    <look type="334"/>
+  </monster>
+  <monster name="Zumba">
+    <look type="570"/>
+  </monster>
+  <monster name="Zumbi">
+    <look type="311"/>
+  </monster>
+  <monster name="Zushuka">
+    <look type="149"/>
+  </monster>
+  <monster name="Água-viva">
+    <look type="452"/>
+  </monster>
+  <monster name="Árvore Assombrada">
+    <look type="310"/>
+  </monster>
+</monsters>
