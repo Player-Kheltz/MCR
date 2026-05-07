@@ -144,6 +144,21 @@ Se salvo como UTF‑8, aparecerão como "Ã§", "Ã£", "Ã©" na interface.
 
 Essa regra se aplica a todos os scripts Lua que geram texto visível ao jogador, sejam eles do cliente (dofile) ou do servidor (data/creaturescripts/, data/events/, data/npc/).
 
+⚠️ IMPACTO NO MAP EDITOR (RME)
+Os scripts de monstros e NPCs salvos como ISO‑8859‑1 causam um problema
+adicional no Remere's Map Editor (RME). O RME carrega esses ficheiros como
+bytes e depois assume que são UTF‑8 para criar as strings internas (wxString).
+Isto faz com que nomes com acentos apareçam em branco nas paletas de monstros
+e NPCs.
+
+Para resolver este problema, o código‑fonte do RME foi modificado para:
+1. Converter o conteúdo de ISO‑8859‑1 para UTF‑8 ao ler os ficheiros .lua
+   (função latin1_to_utf8 em encoding_utils.h).
+2. Estender o parser Lua com as funções resolveLocalVar e parseNpcConfig
+   para reconhecer padrões comuns nos scripts do Projeto MCR.
+
+Consulte o Guia [2] para detalhes das modificações e compilação do RME.
+
 ⚠️ UTF‑8 COM BOM (C++, GO):
 O compilador C++ e o compilador Go reconhecem o BOM e tratam o arquivo como UTF‑8. Isso garante acentuação correta em logs e mensagens internas.
 

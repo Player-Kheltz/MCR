@@ -293,6 +293,16 @@ local intimacy = player:getStorageValue(100010 + npcId)
 
 -- Pronome do personagem
 local subject = Pronouns.getSubject(player)  -- usa coluna players.pronoun
+
+🗺️ 9. CONFIGURAÇÃO DO MAP EDITOR (RME)
+
+O RME modificado importa monstros e NPCs diretamente dos diretórios Lua
+do Canary. As configurações relevantes estão em:
+- Preferências → Monstros: Diretório Lua (ex: data/monster)
+- Preferências → NPCs: Diretório Lua (ex: data/npc)
+
+Estes caminhos devem apontar para os diretórios do servidor Canary MCR.
+
 ⚠️ ARMADILHAS E LIÇÕES APRENDIDAS
 
 SERVER_PORT errado: Usar 7172 no .env causa erro 10060 (timeout) no cliente ao tentar conectar ao jogo. O campo externalport na resposta de login deve ser 7173. (Fase 18)

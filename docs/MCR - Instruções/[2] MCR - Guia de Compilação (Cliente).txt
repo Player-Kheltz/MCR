@@ -189,6 +189,62 @@ Comando look com pronome do personagem (já integrado no servidor e cliente)
 
 O módulo pronouns.lua é utilizado pelo on_look.lua e player.lua para que a descrição "Você vê" seja adaptada ao pronome do personagem (ex.: "Você vê um aventureiro" / "uma aventureira"). Isto requer o funcionamento correcto do sistema de pronomes (coluna players.pronoun).
 
+🖥️ MAP EDITOR (RME) – SUPORTE A LUA ISO‑8859‑1
+
+O Projeto MCR utiliza uma versão modificada do Remere's Map Editor (RME) com
+suporte a scripts Lua de monstros e NPCs em ISO‑8859‑1.
+
+As seguintes alterações estão presentes no código‑fonte do RME (disponível
+no repositório do projeto):
+
+1. FICHEIRO encoding_utils.h
+   Função inline que converte uma string de ISO‑8859‑1 para UTF‑8.
+   Local: source/encoding_utils.h
+
+   cpp
+   inline std::string latin1_to_utf8(const std::string& input) {
+       std::string output;
+       output.reserve(input.size());
+       for (unsigned char c : input) {
+           if (c < 0x80) output.push_back(c);
+           else {
+               output.push_back(0xC0 | (c >> 6));
+               output.push_back(0x80 | (c & 0x3F));
+           }
+       }
+       return output;
+   }
+
+2. PARSER LUA ESTENDIDO (lua_parser.h)
+   Foram adicionadas duas novas funções inline:
+   - resolveLocalVar: resolve variáveis locais como "local npcName = "Oráculo""
+   - parseNpcConfig: extrai nome e outfit de blocos npcConfig
+
+   Estas funções permitem que o RME reconheça NPCs que usam o padrão:
+   lua
+   local npcName = "Oráculo"
+   local npcType = Game.createNpcType(npcName)
+   local npcConfig = {
+       name = npcName,
+       outfit = { ... }
+   }
+
+3. MODIFICAÇÕES EM monsters.cpp E npcs.cpp
+   Nos métodos loadFromLuaDir, a leitura do conteúdo dos ficheiros .lua
+   é agora feita com conversão ISO‑8859‑1 → UTF‑8:
+
+   cpp
+   std::string rawContent = LuaParser::readFileContent(filePath.ToStdString());
+   std::string content = latin1_to_utf8(rawContent);
+
+   Além disso, em npcs.cpp, o fallback de parsing tenta as novas funções
+   resolveLocalVar e parseNpcConfig quando parseCreateCall falha.
+
+   COMPILAÇÃO DO RME
+   A compilação do RME utiliza o mesmo ambiente do OTClient (Visual Studio,
+   vcpkg). Consulte a documentação do repositório do Map Editor para as
+   dependências específicas (geralmente wxWidgets e o mesmo toolchain).
+
 🧩 CONFIGURAÇÕES ESPECÍFICAS DO OTCLIENT PÓS‑COMPILAÇÃO
 
 init.lua – Tabela Servers:

@@ -128,6 +128,14 @@ mcr_dict.py / mcr_dict_monsters.py: dicionários manuais de traduções oficiais
 
 Todos os scripts estão prontos para uso e devem ser executados na ordem adequada, conforme documentado nos cabeçalhos de cada um.
 
+🗺️ MAP EDITOR (RME) – MODIFICAÇÕES MCR
+O projeto inclui alterações no código‑fonte do Remere's Map Editor para
+garantir a compatibilidade total com os scripts Lua do MCR:
+- Função de conversão ISO‑8859‑1 → UTF‑8 (encoding_utils.h)
+- Parser Lua estendido (resolveLocalVar, parseNpcConfig)
+- Modificações em monsters.cpp e npcs.cpp para usar as funções acima
+Consulte o Guia [2] para instruções de compilação.
+
 🧠 REGRA DE OURO PARA O ASSISTENTE (INTEGRAÇÃO DE GUIAS)
 
 SEMPRE que você, assistente, for modificar ou criar QUALQUER arquivo do projecto (C++, Lua servidor, Lua cliente, OTUI, Go, configuração), você DEVE:
