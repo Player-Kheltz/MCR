@@ -189,6 +189,17 @@ Comando look com pronome do personagem (já integrado no servidor e cliente)
 
 O módulo pronouns.lua é utilizado pelo on_look.lua e player.lua para que a descrição "Você vê" seja adaptada ao pronome do personagem (ex.: "Você vê um aventureiro" / "uma aventureira"). Isto requer o funcionamento correcto do sistema de pronomes (coluna players.pronoun).
 
+🔤 Conversão do nome do personagem no módulo entergame.lua
+O nome do personagem é recebido pelo cliente através do JSON de login (HTTP) em UTF‑8. Como o OTClient processa strings Lua como ISO‑8859‑1 (Latin‑1), é necessário converter o nome para Latin‑1 antes de o utilizar na interface.
+
+Para isso, foi adicionada a função utf8ToLatin1 no módulo modules/client_entergame/entergame.lua e a conversão é aplicada em dois pontos:
+
+No onCharacterList, após a máscara de Alma.
+
+No doAutoLogin, imediatamente após receber a lista de personagens do Login Server.
+
+Consulte o Guia de Tradução e Localização (PT‑BR) para ver a função completa e o procedimento detalhado.
+
 🖥️ MAP EDITOR (RME) – SUPORTE A LUA ISO‑8859‑1
 
 O Projeto MCR utiliza uma versão modificada do Remere's Map Editor (RME) com
@@ -304,6 +315,8 @@ O método g_game.logout(false) não foi afectado?
 Todas as novas strings acentuadas usam escapes octais Latin‑1?
 
 Nomes de bindings Lua (métodos, classes) permanecem inalterados?
+
+O nome do personagem recebido via HTTP é convertido de UTF‑8 para Latin‑1 no entergame.lua?
 
 📤 COMO ATUALIZAR O REPOSITÓRIO GIT
 

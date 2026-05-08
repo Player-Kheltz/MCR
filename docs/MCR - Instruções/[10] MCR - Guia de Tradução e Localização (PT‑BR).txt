@@ -188,6 +188,72 @@ Esta tabela EXISTE no script Lua do cliente (registro.lua, entergame.lua, etc.),
 
 NOVOS error_codes devem ser adicionados tanto no backend quanto na tabela de mapeamento do cliente.
 
+🔄 4. Nome do personagem vindo do JSON de login (HTTP)
+O Login Server envia a lista de personagens e a resposta de autenticação em JSON com codificação UTF‑8 (padrão obrigatório do formato). No entanto, o OTClient interpreta strings Lua como ISO‑8859‑1 (Latin‑1) e o protocolo de jogo também utiliza Latin‑1.
+
+Para evitar que o nome do próprio jogador apareça corrompido na interface (ex.: JoÃ£o em vez de João), todo o nome de personagem recebido via HTTP deve ser convertido de UTF‑8 para Latin‑1 antes de ser armazenado ou utilizado na interface.
+
+A conversão é feita com a função utf8ToLatin1, que deve ser inserida no módulo entergame.lua (ou num módulo de utilidades carregado antes). O procedimento é:
+
+Adicionar a função utf8ToLatin1 ao ficheiro:
+
+lua
+-- Converte uma string UTF-8 para Latin‑1 (ISO 8859‑1)
+local function utf8ToLatin1(str)
+    local result = {}
+    local i = 1
+    while i <= #str do
+        local c = str:byte(i)
+        if c < 0x80 then
+            result[#result + 1] = string.char(c)
+            i = i + 1
+        elseif c >= 0xC2 and c <= 0xDF then -- sequência de 2 bytes
+            local c2 = str:byte(i + 1)
+            if c2 and c2 >= 0x80 and c2 <= 0xBF then
+                local codepoint = ((c - 0xC0) * 64) + (c2 - 0x80)
+                if codepoint <= 0xFF then
+                    result[#result + 1] = string.char(codepoint)
+                else
+                    result[#result + 1] = '?'
+                end
+                i = i + 2
+            else
+                result[#result + 1] = '?'
+                i = i + 1
+            end
+        else
+            result[#result + 1] = '?'
+            i = i + 1
+        end
+    end
+    return table.concat(result)
+end
+Aplicar a conversão em dois pontos dentro do entergame.lua:
+
+Na função onCharacterList, após o loop que aplica a máscara de Alma e antes de entregar os personagens ao módulo de lista:
+
+lua
+for _, characterInfo in pairs(characters) do
+    characterInfo.name = utf8ToLatin1(characterInfo.name)
+end
+Na função doAutoLogin, imediatamente após a construção da tabela characters a partir da resposta HTTP e antes de procurar o personagem alvo:
+
+lua
+for _, char in ipairs(characters) do
+    char.name = utf8ToLatin1(char.name)
+end
+Garantir que o ficheiro entergame.lua está salvo como ISO‑8859‑1 (embora a função só contenha caracteres ASCII, o ficheiro em si pode conter outras strings acentuadas).
+
+Após esta conversão, o nome do personagem fica em Latin‑1, igual aos nomes que chegam via protocolo de jogo, e será exibido corretamente em toda a interface (chat, lista de personagens, etc.).
+
+2. Atualizar a secção 6 (Máscara de Alma) com uma nota
+Localização: No final da secção 6. Máscara de Alma em Mensagens do Servidor.
+
+Texto a inserir:
+
+⚠️ Nota sobre a lista de personagens (cliente): O nome do personagem convidado (Guest_*) é recebido via JSON (UTF‑8) e depois mascarado para “Alma”. Após a máscara, também deve ser aplicada a conversão utf8ToLatin1 para garantir que o nome exibido na interface está na codificação correta.
+
+
 🔑 4. DESTAQUE NO CHAT
 
 O OTClient suporta exclusivamente o destaque de palavras envolvidas por {chaves}. Esse realce é herdado do protocolo Tibia e não requer nenhuma modificação no cliente.
