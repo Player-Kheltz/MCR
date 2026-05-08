@@ -1,5 +1,5 @@
 PROJETO MCR – GUIA DE COMPILAÇÃO (CLIENTE)
-Versão 2.2 – Pipeline de tradução, máscara de Alma e logout síncrono
+Versão 2.3 – Conversão de nome do personagem no entergame.lua
 Arquivo: [2] MCR - Guia de Compilação (Cliente).txt
 
 🎯 OBJETIVO DESTE GUIA
@@ -102,14 +102,14 @@ Código adicionado:
 
 cpp
 void Creature::setName(const std::string_view name) {
-    std::string finalName{ name };
-    if (finalName.size() >= 6 && finalName.substr(0, 6) == "Guest_") {
-        finalName = "Alma";
-    }
-    if (finalName == m_name.getText()) return;
-    const auto& oldName = m_name.getText();
-    m_name.setText(finalName);
-    callLuaField("onChangeName", finalName, oldName);
+std::string finalName{ name };
+if (finalName.size() >= 6 && finalName.substr(0, 6) == "Guest_") {
+finalName = "Alma";
+}
+if (finalName == m_name.getText()) return;
+const auto& oldName = m_name.getText();
+m_name.setText(finalName);
+callLuaField("onChangeName", finalName, oldName);
 }
 OTClient/src/client/game.cpp: função loginWorld() mascara m_characterName; função processTalk() substitui o nome do emissor no chat.
 Código adicionado em loginWorld:
@@ -117,7 +117,7 @@ Código adicionado em loginWorld:
 cpp
 std::string maskedName{ characterName };
 if (characterName.size() >= 6 && characterName.substr(0, 6) == "Guest_") {
-    maskedName = "Alma";
+maskedName = "Alma";
 }
 m_localPlayer->setName(maskedName);
 ...
@@ -127,7 +127,7 @@ Código adicionado em processTalk:
 cpp
 std::string displayName{ name };
 if (displayName.size() >= 6 && displayName.substr(0, 6) == "Guest_") {
-    displayName = "Alma";
+displayName = "Alma";
 }
 g_lua.callGlobalField("g_game", "onTalk", displayName, level, mode, text, channelId, pos);
 Arquivo Lua cliente modificado:
@@ -151,21 +151,21 @@ Implementação em OTClient/src/client/game.cpp:
 cpp
 void Game::logout(bool restartConnection)
 {
-    if (!isOnline()) return;
-    if (m_protocolGame) {
-        m_protocolGame->sendLogout();
-        m_protocolGame->disconnect();
-        m_protocolGame = nullptr;
-    }
-    if (isOnline()) {
-        m_online = false;
-        g_lua.callGlobalField("g_game", "onGameEnd");
-        resetGameStates();
-        m_worldName.clear();
-        m_characterName.clear();
-        g_map.cleanDynamicThings();
-    }
-    g_lua.callGlobalField("g_game", "onLogout", restartConnection);
+if (!isOnline()) return;
+if (m_protocolGame) {
+m_protocolGame->sendLogout();
+m_protocolGame->disconnect();
+m_protocolGame = nullptr;
+}
+if (isOnline()) {
+m_online = false;
+g_lua.callGlobalField("g_game", "onGameEnd");
+resetGameStates();
+m_worldName.clear();
+m_characterName.clear();
+g_map.cleanDynamicThings();
+}
+g_lua.callGlobalField("g_game", "onLogout", restartConnection);
 }
 Registado em Lua no ficheiro OTClient/src/client/luafunctions.cpp:
 
@@ -190,6 +190,7 @@ Comando look com pronome do personagem (já integrado no servidor e cliente)
 O módulo pronouns.lua é utilizado pelo on_look.lua e player.lua para que a descrição "Você vê" seja adaptada ao pronome do personagem (ex.: "Você vê um aventureiro" / "uma aventureira"). Isto requer o funcionamento correcto do sistema de pronomes (coluna players.pronoun).
 
 🔤 Conversão do nome do personagem no módulo entergame.lua
+
 O nome do personagem é recebido pelo cliente através do JSON de login (HTTP) em UTF‑8. Como o OTClient processa strings Lua como ISO‑8859‑1 (Latin‑1), é necessário converter o nome para Latin‑1 antes de o utilizar na interface.
 
 Para isso, foi adicionada a função utf8ToLatin1 no módulo modules/client_entergame/entergame.lua e a conversão é aplicada em dois pontos:
@@ -208,53 +209,55 @@ suporte a scripts Lua de monstros e NPCs em ISO‑8859‑1.
 As seguintes alterações estão presentes no código‑fonte do RME (disponível
 no repositório do projeto):
 
-1. FICHEIRO encoding_utils.h
-   Função inline que converte uma string de ISO‑8859‑1 para UTF‑8.
-   Local: source/encoding_utils.h
+FICHEIRO encoding_utils.h
+Função inline que converte uma string de ISO‑8859‑1 para UTF‑8.
+Local: source/encoding_utils.h
 
-   cpp
-   inline std::string latin1_to_utf8(const std::string& input) {
-       std::string output;
-       output.reserve(input.size());
-       for (unsigned char c : input) {
-           if (c < 0x80) output.push_back(c);
-           else {
-               output.push_back(0xC0 | (c >> 6));
-               output.push_back(0x80 | (c & 0x3F));
-           }
-       }
-       return output;
-   }
+cpp
+inline std::string latin1_to_utf8(const std::string& input) {
+std::string output;
+output.reserve(input.size());
+for (unsigned char c : input) {
+if (c < 0x80) output.push_back(c);
+else {
+output.push_back(0xC0 | (c >> 6));
+output.push_back(0x80 | (c & 0x3F));
+}
+}
+return output;
+}
 
-2. PARSER LUA ESTENDIDO (lua_parser.h)
-   Foram adicionadas duas novas funções inline:
-   - resolveLocalVar: resolve variáveis locais como "local npcName = "Oráculo""
-   - parseNpcConfig: extrai nome e outfit de blocos npcConfig
+PARSER LUA ESTENDIDO (lua_parser.h)
+Foram adicionadas duas novas funções inline:
 
-   Estas funções permitem que o RME reconheça NPCs que usam o padrão:
-   lua
-   local npcName = "Oráculo"
-   local npcType = Game.createNpcType(npcName)
-   local npcConfig = {
-       name = npcName,
-       outfit = { ... }
-   }
+resolveLocalVar: resolve variáveis locais como "local npcName = "Oráculo""
 
-3. MODIFICAÇÕES EM monsters.cpp E npcs.cpp
-   Nos métodos loadFromLuaDir, a leitura do conteúdo dos ficheiros .lua
-   é agora feita com conversão ISO‑8859‑1 → UTF‑8:
+parseNpcConfig: extrai nome e outfit de blocos npcConfig
 
-   cpp
-   std::string rawContent = LuaParser::readFileContent(filePath.ToStdString());
-   std::string content = latin1_to_utf8(rawContent);
+Estas funções permitem que o RME reconheça NPCs que usam o padrão:
+lua
+local npcName = "Oráculo"
+local npcType = Game.createNpcType(npcName)
+local npcConfig = {
+name = npcName,
+outfit = { ... }
+}
 
-   Além disso, em npcs.cpp, o fallback de parsing tenta as novas funções
-   resolveLocalVar e parseNpcConfig quando parseCreateCall falha.
+MODIFICAÇÕES EM monsters.cpp E npcs.cpp
+Nos métodos loadFromLuaDir, a leitura do conteúdo dos ficheiros .lua
+é agora feita com conversão ISO‑8859‑1 → UTF‑8:
 
-   COMPILAÇÃO DO RME
-   A compilação do RME utiliza o mesmo ambiente do OTClient (Visual Studio,
-   vcpkg). Consulte a documentação do repositório do Map Editor para as
-   dependências específicas (geralmente wxWidgets e o mesmo toolchain).
+cpp
+std::string rawContent = LuaParser::readFileContent(filePath.ToStdString());
+std::string content = latin1_to_utf8(rawContent);
+
+Além disso, em npcs.cpp, o fallback de parsing tenta as novas funções
+resolveLocalVar e parseNpcConfig quando parseCreateCall falha.
+
+COMPILAÇÃO DO RME
+A compilação do RME utiliza o mesmo ambiente do OTClient (Visual Studio,
+vcpkg). Consulte a documentação do repositório do Map Editor para as
+dependências específicas (geralmente wxWidgets e o mesmo toolchain).
 
 🧩 CONFIGURAÇÕES ESPECÍFICAS DO OTCLIENT PÓS‑COMPILAÇÃO
 
@@ -263,14 +266,14 @@ Deve conter a entrada para o Projeto MCR:
 
 lua
 Servers = {
-    {
-        name = "Projeto MCR",
-        host = "127.0.0.1",
-        port = 8080,
-        client = 1500,
-        httpLogin = true,
-        url = "http://127.0.0.1/",
-    }
+{
+name = "Projeto MCR",
+host = "127.0.0.1",
+port = 8080,
+client = 1500,
+httpLogin = true,
+url = "http://127.0.0.1/",
+}
 }
 OTCFeatures: Não configuráveis directamente no cliente; são recebidas do servidor. O servidor deve ter OTCFEATURES adequadas (Guia de Configuração).
 
@@ -326,4 +329,4 @@ git push origin main
 
 ⚠️ PowerShell: aspas duplas em caminhos com espaços.
 
-FIM DO GUIA DE COMPILAÇÃO (CLIENTE) — VERSÃO 2.2
+FIM DO GUIA DE COMPILAÇÃO (CLIENTE) — VERSÃO 2.3

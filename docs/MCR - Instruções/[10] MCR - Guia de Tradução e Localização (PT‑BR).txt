@@ -1,5 +1,5 @@
 PROJETO MCR – GUIA DE TRADUÇÃO E LOCALIZAÇÃO (PT‑BR)
-(Versão 5.1 – Pipeline de tradução automática, escapes octais, protecção de bindings e pronomes)
+(Versão 5.2 – Conversão de nomes de personagem no cliente)
 Arquivo: [10] MCR - Guia de Tradução e Localização (PT‑BR).txt
 
 🎯 OBJETIVO DESTE GUIA
@@ -32,6 +32,8 @@ Protecção obrigatória de bindings Lua e ficheiros de cabeçalho (.h/.hpp).
 Ajuste do comando look para respeitar o pronome do personagem.
 
 Reforço da máscara de Alma em mensagens do servidor.
+
+Conversão do nome do personagem recebido via JSON de login (HTTP) de UTF‑8 para Latin‑1 no cliente.
 
 Este guia NÃO é opcional. Toda modificação no projecto DEVE passar por suas regras.
 
@@ -188,16 +190,16 @@ Esta tabela EXISTE no script Lua do cliente (registro.lua, entergame.lua, etc.),
 
 NOVOS error_codes devem ser adicionados tanto no backend quanto na tabela de mapeamento do cliente.
 
-🔄 4. Nome do personagem vindo do JSON de login (HTTP)
-O Login Server envia a lista de personagens e a resposta de autenticação em JSON com codificação UTF‑8 (padrão obrigatório do formato). No entanto, o OTClient interpreta strings Lua como ISO‑8859‑1 (Latin‑1) e o protocolo de jogo também utiliza Latin‑1.
+🔄 4. NOME DO PERSONAGEM VINDO DO JSON DE LOGIN (HTTP)
 
-Para evitar que o nome do próprio jogador apareça corrompido na interface (ex.: JoÃ£o em vez de João), todo o nome de personagem recebido via HTTP deve ser convertido de UTF‑8 para Latin‑1 antes de ser armazenado ou utilizado na interface.
+O Login Server envia a lista de personagens e a resposta de autenticação em **JSON com codificação UTF‑8** (padrão obrigatório do formato). No entanto, o OTClient interpreta strings Lua como **ISO‑8859‑1** (Latin‑1) e o protocolo de jogo também utiliza Latin‑1.
 
-A conversão é feita com a função utf8ToLatin1, que deve ser inserida no módulo entergame.lua (ou num módulo de utilidades carregado antes). O procedimento é:
+Para evitar que o nome do **próprio jogador** apareça corrompido na interface (ex.: `JoÃ£o` em vez de `João`), **todo o nome de personagem recebido via HTTP deve ser convertido de UTF‑8 para Latin‑1 antes de ser armazenado ou utilizado na interface**.
 
-Adicionar a função utf8ToLatin1 ao ficheiro:
+A conversão é feita com a função `utf8ToLatin1`, que deve ser inserida no módulo `entergame.lua` (ou num módulo de utilidades carregado antes). O procedimento é:
 
-lua
+1. **Adicionar a função `utf8ToLatin1`** ao ficheiro:
+```lua
 -- Converte uma string UTF-8 para Latin‑1 (ISO 8859‑1)
 local function utf8ToLatin1(str)
     local result = {}
@@ -221,7 +223,7 @@ local function utf8ToLatin1(str)
                 result[#result + 1] = '?'
                 i = i + 1
             end
-        else
+        else -- sequência inválida ou > 2 bytes
             result[#result + 1] = '?'
             i = i + 1
         end
@@ -246,15 +248,7 @@ Garantir que o ficheiro entergame.lua está salvo como ISO‑8859‑1 (embora a 
 
 Após esta conversão, o nome do personagem fica em Latin‑1, igual aos nomes que chegam via protocolo de jogo, e será exibido corretamente em toda a interface (chat, lista de personagens, etc.).
 
-2. Atualizar a secção 6 (Máscara de Alma) com uma nota
-Localização: No final da secção 6. Máscara de Alma em Mensagens do Servidor.
-
-Texto a inserir:
-
-⚠️ Nota sobre a lista de personagens (cliente): O nome do personagem convidado (Guest_*) é recebido via JSON (UTF‑8) e depois mascarado para “Alma”. Após a máscara, também deve ser aplicada a conversão utf8ToLatin1 para garantir que o nome exibido na interface está na codificação correta.
-
-
-🔑 4. DESTAQUE NO CHAT
+🔑 5. DESTAQUE NO CHAT
 
 O OTClient suporta exclusivamente o destaque de palavras envolvidas por {chaves}. Esse realce é herdado do protocolo Tibia e não requer nenhuma modificação no cliente.
 
@@ -266,7 +260,7 @@ NÃO utilize tags {{#RRGGBB}}, HTML, ou qualquer outra sintaxe – elas não pro
 
 NUNCA use "}?" junto; sempre "} ?" para evitar corrupção visual no cliente.
 
-✍️ 5. ESTILO E QUALIDADE DO TEXTO
+✍️ 6. ESTILO E QUALIDADE DO TEXTO
 
 Além da correcção gramatical, o texto do Projeto MCR deve:
 
@@ -310,7 +304,7 @@ Lista de termos padronizados (atualizada):
 
 "pipeline de tradução" – processo automático + revisão.
 
-🎭 6. MÁSCARA DE ALMA EM MENSAGENS DO SERVIDOR (REVISADA)
+🎭 7. MÁSCARA DE ALMA EM MENSAGENS DO SERVIDOR (REVISADA)
 
 O personagem convidado (Guest_*) deve ser sempre apresentado como "Alma" para o jogador. Esta substituição deve ser aplicada em TODAS as mensagens de sistema, incluindo:
 
@@ -327,7 +321,7 @@ A máscara é implementada nos scripts do servidor substituindo o nome real pelo
 lua
 local name = creature:getName()
 if name:sub(1,6) == "Guest_" then
-    name = "Alma"
+name = "Alma"
 end
 Arquivos que já possuem a máscara:
 
@@ -336,14 +330,16 @@ data/creaturescripts/scripts/player.lua (onLookInBattleList)
 data/events/scripts/on_look.lua (handleCreatureDescription)
 Novos scripts que gerem mensagens com o nome do personagem devem incluir a mesma verificação.
 
-📌 7. PRONOME DO PERSONAGEM EM MENSAGENS (ATUALIZADO)
+⚠️ Nota sobre a lista de personagens (cliente): O nome do personagem convidado (Guest_*) é recebido via JSON (UTF‑8) e depois mascarado para “Alma”. Após a máscara, também deve ser aplicada a conversão utf8ToLatin1 para garantir que o nome exibido na interface está na codificação correta.
+
+📌 8. PRONOME DO PERSONAGEM EM MENSAGENS (ATUALIZADO)
 
 A partir da versão 4.0, todas as mensagens que se dirijam ao personagem devem respeitar o pronome definido na coluna players.pronoun, obtido preferencialmente pelo módulo pronouns.lua:
 
 lua
 dofile('data/MCR Scripts/pronouns.lua')
-local subject = Pronouns.getSubject(player)  -- "he", "she" ou "they"
-local object = Pronouns.getObject(player)    -- "him", "her", "them"
+local subject = Pronouns.getSubject(player) -- "he", "she" ou "they"
+local object = Pronouns.getObject(player) -- "him", "her", "them"
 Exemplos de uso:
 
 Bem‑vindo: "Bem‑vindo" (he), "Bem‑vinda" (she), "Bem‑vinde" (they)
@@ -351,17 +347,17 @@ Bem‑vindo: "Bem‑vindo" (he), "Bem‑vinda" (she), "Bem‑vinde" (they)
 Mensagens de sistema: "Parabéns, você foi promovido/a."
 Não definido (0): usar formas neutras ("viajante", "aventureiro(a)") ou perguntar ao jogador qual o pronome desejado e atualizar players.pronoun.
 
-📋 8. TABELA DE ERROR_CODES (ATUALIZADA)
+📋 9. TABELA DE ERROR_CODES (ATUALIZADA)
 
-error_code	Mensagem em PT‑BR (cliente)
-account_name_taken	O nome de conta já está em uso.
-password_too_weak	A senha deve ter 8+ caracteres com letras
+error_code Mensagem em PT‑BR (cliente)
+account_name_taken O nome de conta já está em uso.
+password_too_weak A senha deve ter 8+ caracteres com letras
 e números.
-invalid_fields	Preencha todos os campos correctamente.
-invalid_credentials	Nome de conta ou senha incorretos.
-registration_success	Conta criada com sucesso!
-guest_creation_failed	Falha ao criar conta convidada.
-alma_creation_failed	Falha ao criar personagem convidado.
+invalid_fields Preencha todos os campos correctamente.
+invalid_credentials Nome de conta ou senha incorretos.
+registration_success Conta criada com sucesso!
+guest_creation_failed Falha ao criar conta convidada.
+alma_creation_failed Falha ao criar personagem convidado.
 ⚠️ ARMADILHAS E LIÇÕES APRENDIDAS (EXTRAÍDAS DO DEVLOG)
 
 Acentos corrompidos no cliente e servidor: Scripts Lua de ambas as pontas DEVEM ser salvos como ISO‑8859‑1 para evitar artefactos. (Fase 22.3)
@@ -416,6 +412,8 @@ Ficheiros de cabeçalho (.h/.hpp) não tiveram macros ou declarações alteradas
 
 O comando look (servidor) utiliza o módulo pronouns.lua para personalizar a descrição?
 
+Os nomes de personagens provenientes do JSON de login são convertidos de UTF‑8 para Latin‑1 no entergame.lua?
+
 📤 COMO ATUALIZAR O REPOSITÓRIO GIT
 
 git add "<arquivos alterados>"
@@ -424,4 +422,4 @@ git push origin main
 
 ⚠️ PowerShell: aspas duplas em caminhos com espaços.
 
-FIM DO GUIA DE TRADUÇÃO E LOCALIZAÇÃO (PT‑BR) — VERSÃO 5.1
+FIM DO GUIA DE TRADUÇÃO E LOCALIZAÇÃO (PT‑BR) — VERSÃO 5.2
