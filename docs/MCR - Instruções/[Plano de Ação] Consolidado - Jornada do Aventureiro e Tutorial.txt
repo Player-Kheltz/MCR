@@ -1,0 +1,302 @@
+PROJETO MCR – PLANO DE AÇÃO CONSOLIDADO: JORNADA DO AVENTUREIRO E TUTORIAL
+(Versão 1.0 – Integração completa das implementações)
+Arquivo: [Plano de Ação] Consolidado - Jornada do Aventureiro e Tutorial.txt
+
+🎯 OBJETIVO DESTE PLANO
+Fornecer um roteiro único e ordenado para implementar simultaneamente:
+- O Sistema de Progressão do Aventureiro (Domínios, Afinidade, Sintonia Natural).
+- O Tutorial da Ilha do Despertar (Eridanus), que serve como iniciação orgânica aos Domínios.
+
+Ambos os sistemas estão profundamente interligados: o tutorial é a primeira
+experiência do jogador com a Jornada do Aventureiro. Portanto, é natural que
+sejam implementados em conjunto.
+
+Este plano segue a mesma estrutura faseada dos planos anteriores, mas agora
+cobre todas as tarefas necessárias para ambos os sistemas, com dependências
+claras e testes integrados.
+
+⚠️ REGRAS DE REVISÃO PARA O ASSISTENTE
+- Seguir rigorosamente a ordem das fases; desvios só com autorização.
+- Respeitar todos os guias temáticos aplicáveis.
+- Strings em C++ com escapes octais Latin-1; scripts Lua em ISO‑8859‑1.
+- Novas tabelas/colunas com charset utf8mb4 COLLATE utf8mb4_unicode_ci.
+- Incluir logs DEBUG em todos os novos scripts Lua.
+- Manter a máscara de Alma e conversão UTF‑8→Latin‑1 no cliente.
+- NUNCA usar "}?" junto; sempre "} ?".
+
+📋 VISÃO GERAL DAS FASES
+
+Fase 0 – Preparação e Backup
+Fase 1 – Banco de Dados (tabelas de Domínios e ajustes)
+Fase 2 – Servidor C++ (remoção de vocações, métodos Lua, Sintonia)
+Fase 3 – Scripts Lua do Servidor (configuração de Domínios, eventos, Oráculo, NPCs do tutorial)
+Fase 4 – Cliente OTClient (remoção de UI de vocação, HUD de Sintonia, janela de conhecimento)
+Fase 5 – Integração, Testes e Ajustes Finais
+
+----------------------------------------------------------------------------
+FASE 0 – PREPARAÇÃO E BACKUP (PRÉ-REQUISITO)
+----------------------------------------------------------------------------
+
+0.1 FAZER BACKUP COMPLETO DO BANCO DE DADOS
+    mysqldump -u root -p --single-transaction --routines --triggers --events
+      --default-character-set=utf8mb4 BancoServer > backup_pre_jornada_YYYYMMDD.sql
+
+0.2 CRIAR BRANCH NO GIT
+    git checkout -b feat/jornada-aventureiro-e-tutorial
+
+0.3 VERIFICAR AMBIENTE
+    - Servidor Canary compilando sem erros.
+    - Cliente OTClient compilando.
+    - Login Server rodando.
+    - XAMPP/MySQL ativo.
+
+----------------------------------------------------------------------------
+FASE 1 – BANCO DE DADOS
+----------------------------------------------------------------------------
+
+1.1 CRIAR TABELA dominios_def
+    SQL:
+    CREATE TABLE dominios_def (
+        id SMALLINT AUTO_INCREMENT PRIMARY KEY,
+        nome VARCHAR(50) NOT NULL,
+        descricao VARCHAR(255),
+        icone VARCHAR(50)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+1.2 CRIAR TABELA habilidades_def (com suporte a sinergia)
+    SQL:
+    CREATE TABLE habilidades_def (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        nome VARCHAR(50) NOT NULL,
+        dominio_id SMALLINT NOT NULL,
+        tipo ENUM('ativa','passiva') NOT NULL,
+        requisito_afinidade INT DEFAULT 0,
+        descricao TEXT,
+        sinergia_dominio_id SMALLINT DEFAULT NULL,
+        sinergia_afinidade INT DEFAULT NULL,
+        FOREIGN KEY (dominio_id) REFERENCES dominios_def(id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+1.3 CRIAR TABELA player_dominios
+    SQL:
+    CREATE TABLE player_dominios (
+        player_id INT NOT NULL,
+        dominio_id SMALLINT NOT NULL,
+        afinidade INT DEFAULT 0,
+        despertado TINYINT DEFAULT 0,
+        PRIMARY KEY (player_id, dominio_id),
+        FOREIGN KEY (player_id) REFERENCES players(id) ON DELETE CASCADE,
+        FOREIGN KEY (dominio_id) REFERENCES dominios_def(id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+1.4 CRIAR TABELA player_habilidades
+    SQL:
+    CREATE TABLE player_habilidades (
+        player_id INT NOT NULL,
+        habilidade_id INT NOT NULL,
+        PRIMARY KEY (player_id, habilidade_id),
+        FOREIGN KEY (player_id) REFERENCES players(id) ON DELETE CASCADE,
+        FOREIGN KEY (habilidade_id) REFERENCES habilidades_def(id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+1.5 POPULAR DOMÍNIOS E HABILIDADES INICIAIS
+    Inserir Domínios:
+    INSERT INTO dominios_def (id, nome, descricao, icone) VALUES
+    (1, 'Fogo', 'Domínio das chamas e calor primordial', 'fogo.png'),
+    (2, 'Lâminas', 'Domínio das armas cortantes', 'laminas.png'),
+    (3, 'Herbalismo', 'Domínio das ervas e poções', 'herbalismo.png'),
+    (4, 'Mineração', 'Domínio da extração de metais', 'mineracao.png'),
+    (5, 'Pesca', 'Domínio da pesca', 'pesca.png'),
+    (6, 'Cura', 'Domínio da restauração da vida', 'cura.png'),
+    (7, 'Forja', 'Domínio da metalurgia', 'forja.png'),
+    (8, 'Bestas', 'Domínio da ligação com criaturas', 'bestas.png'),
+    (9, 'Cultivo', 'Domínio da terra e colheitas', 'cultivo.png');
+
+    Inserir habilidades básicas (exemplo para Fogo e Lâminas):
+    INSERT INTO habilidades_def (id, nome, dominio_id, tipo, requisito_afinidade, descricao) VALUES
+    (1, 'Bola de Fogo', 1, 'ativa', 0, 'Lança uma bola de fogo.'),
+    (2, 'Chama Interior', 1, 'passiva', 15, '+5% dano de fogo.'),
+    (3, 'Golpe Cortante', 2, 'ativa', 0, 'Um golpe rápido de espada.'),
+    (4, 'Defesa com Escudo', 2, 'passiva', 10, 'Melhora o bloqueio com escudo.');
+
+    (Completar para os demais Domínios conforme o design.)
+
+1.6 AJUSTAR CAMPO VOCATION NA TABELA players
+    - Garantir que o valor padrão seja 0.
+    - Se necessário, alterar: ALTER TABLE players MODIFY vocation INT NOT NULL DEFAULT 0;
+
+CHECKLIST FASE 1:
+☐ Tabelas criadas com charset utf8mb4?
+☐ Chaves estrangeiras e primárias correctas?
+☐ Dados iniciais de Domínios e habilidades inseridos?
+☐ vocation padrão 0 confirmado?
+
+----------------------------------------------------------------------------
+FASE 2 – SERVIDOR CANARY (C++)
+----------------------------------------------------------------------------
+
+2.1 REMOVER RESTRIÇÕES DE VOCAÇÃO EM ITENS
+    - Em item.cpp e player.cpp, eliminar verificações de vocation para equipar.
+    - Permitir que vocation 0 use qualquer item.
+
+2.2 REMOVER RESTRIÇÕES DE VOCAÇÃO EM MAGIAS
+    - Em spells.cpp, ignorar vocation; permitir que 0 aprenda/utilize.
+    - Opcional: criar script Python para adicionar vocation=0 a todas as magias em spells.xml.
+
+2.3 ADICIONAR MÉTODOS LUA DE DOMÍNIO
+    - Em player.h/cpp e luascript.cpp:
+      player:getDominioAfinidade(dominioId)
+      player:addDominioAfinidade(dominioId, valor)
+      player:setDominioDespertado(dominioId, bool)
+      player:hasHabilidade(habilidadeId)
+      player:learnHabilidade(habilidadeId)
+      player:getSintoniaImediata()
+      player:getSintoniaProfunda()
+      player:registerDominioAction(dominioId)
+
+2.4 IMPLEMENTAR SISTEMA DE SINTONIA NATURAL (TRÊS CAMADAS)
+    - Em player.cpp:
+      std::deque<SintoniaData> recentActions (últimas 200 ações).
+      Método registerAction(dominioId) para registrar ações.
+      Método calculateSintonia():
+        - Imediata: últimas 10 ações, se todas iguais → ativa.
+        - Profunda: últimas 100 ações, se >51% de um Domínio → ativa.
+    - Expor sintoniaImediata e sintoniaProfunda via getters.
+    - Cachear resultado, recalcular a cada 30s ou sob demanda.
+
+2.5 ADAPTAR LOGS E STATUS
+    - Remover prints de vocation; substituir por "Aventureiro".
+
+2.6 COMPILAR E TESTAR
+    - Garantir que o servidor compila sem warnings e inicia.
+
+CHECKLIST FASE 2:
+☐ vocation=0 não bloqueia itens/magias.
+☐ Métodos Lua funcionais e com DEBUG.
+☐ Sintonia calculada correctamente.
+☐ Compilação OK.
+
+----------------------------------------------------------------------------
+FASE 3 – SCRIPTS LUA DO SERVIDOR
+----------------------------------------------------------------------------
+
+3.1 CONFIGURAÇÃO DE DOMÍNIOS (config_dominios.lua)
+    - Criar data/MCR Scripts/config_dominios.lua.
+    - Tabelas: spellDomain, weaponSkillDomain, despertarItem, etc.
+    - Salvar como ISO‑8859‑1.
+
+3.2 MÓDULO DE UTILIDADES (dominio_utils.lua)
+    - Criar data/MCR Scripts/dominio_utils.lua.
+    - Funções: despertarDominio, notificarProgresso, verificarSintonia.
+
+3.3 EVENTOS GLOBAIS (dominios.lua)
+    - Criar data/events/scripts/dominios.lua.
+    - Handlers: onUseSpell, onKill, onItemUse.
+    - Registrar ações de Domínio e adicionar Afinidade.
+
+3.4 ATUALIZAR LOGIN.LUA
+    - Remover qualquer setVocation.
+    - Adicionar bloco de migração (personagens antigos com vocation!=0 → zerar e conceder Domínio equivalente).
+    - Posicionar novos personagens na Praia do Náufrago.
+
+3.5 MODIFICAR ORÁCULO (oraculo.lua)
+    - Remover tópico de vocação.
+    - Adicionar benção narrativa final.
+    - Após criação, teleportar para Eridanus via opcode 200.
+
+3.6 CRIAR NPCs DO TUTORIAL (Eridanus)
+    - data/npc/eldrin.lua
+    - data/npc/thorne.lua
+    - data/npc/lyra.lua
+    - data/npc/mira.lua
+    - data/npc/corvus.lua
+    - Todos seguindo Guia [6], com missões SQH (Guia [7]), pronomes, intimidade.
+    - Missões incluem chamadas a despertarDominio ao concluir.
+
+3.7 CRIAR SCRIPT DE PROGRESSO DO TUTORIAL
+    - data/creaturescripts/scripts/tutorial.lua (onKill, onItemUse, etc.)
+    - data/globalevents/tutorial_spawn.lua
+
+3.8 ITENS DE CONHECIMENTO (LIVRO DE FEITIÇOS)
+    - Implementar ação de click direito que envia opcode 184.
+    - Ao confirmar "Aprender", consumir item e adicionar habilidade.
+
+CHECKLIST FASE 3:
+☐ config_dominios.lua com mapeamentos.
+☐ Eventos de Domínio funcionais.
+☐ login.lua limpo e com migração.
+☐ Oráculo sem vocação.
+☐ NPCs do tutorial completos, com missões e despertares.
+☐ Livro de Feitiços funcional com opcode 184.
+☐ Todos .lua salvos ISO‑8859‑1.
+
+----------------------------------------------------------------------------
+FASE 4 – CLIENTE OTCLIENT
+----------------------------------------------------------------------------
+
+4.1 REMOVER UI DE SELEÇÃO DE VOCAÇÃO
+    - modules/game_charactercreation: esconder botões ou auto-selecionar "Aventureiro".
+
+4.2 ADICIONAR HUD DE SINTONIA
+    - Ícone no canto superior direito (hud.otui).
+    - Escutar opcode 182: atualizar ícone e tooltip.
+    - Escutar opcode 183: disparar efeitos visuais (partículas).
+
+4.3 IMPLEMENTAR JANELA DE CONHECIMENTO (OPCODE 184)
+    - Registrar listener para opcode 184.
+    - Exibir janela modal com descrição narrativa e botões "Aprender"/"Fechar".
+    - Ao aprender, enviar pacote de confirmação (ou consumir via opcode).
+
+4.4 REVISAR TEXTOS
+    - Remover "vocação" de entergame.lua, registro.lua, etc.
+
+CHECKLIST FASE 4:
+☐ Tela de criação sem vocação.
+☐ HUD de Sintonia funcional.
+☐ Janela de conhecimento funcional.
+☐ Textos sem "vocação".
+
+----------------------------------------------------------------------------
+FASE 5 – INTEGRAÇÃO E TESTES FINAIS
+----------------------------------------------------------------------------
+
+5.1 FLUXO COMPLETO DO TUTORIAL
+    - Criar personagem → Salão dos Destinos → Oráculo → Praia do Náufrago.
+    - Completar todas as missões do tutorial.
+    - Verificar se os Domínios são despertados e o HUD de Sintonia aparece.
+    - Altar da Partida libera e teleporta para o continente.
+
+5.2 TESTE DE SINTONIA
+    - Alternar entre combate com espada e uso de magias de fogo.
+    - Verificar mudanças de ícone e efeitos visuais.
+
+5.3 TESTE DE PROGRESSÃO DE DOMÍNIOS
+    - Após tutorial, continuar usando habilidades para ver ganho de Afinidade e desbloqueio de novas habilidades via NPCs/quests.
+
+5.4 TESTE DE MIGRAÇÃO (BANCO VAZIO MAS COM SCRIPT)
+    - Garantir que o script de migração funciona em personagens de teste antigos.
+
+5.5 TESTE DE PERFORMANCE
+    - Vários jogadores ganhando Afinidade simultaneamente.
+
+5.6 COMMIT E DOCUMENTAÇÃO FINAL
+
+----------------------------------------------------------------------------
+⚠️ TROUBLESHOOTING COMUM
+----------------------------------------------------------------------------
+| Problema | Causa provável | Solução |
+|----------|----------------|---------|
+| Magia não funciona | vocation não é 0 nem está na lista antiga | Verificar se vocation=0 foi adicionado à spell ou se o código C++ liberou |
+| HUD de Sintonia não aparece | opcode 182 não tratado | Conferir listener no módulo client |
+| Livro de Feitiços não abre janela | opcode 184 não registrado | Adicionar handler no módulo de opcodes |
+| NPC não desperta Domínio | Falta chamar despertarDominio | Revisar script do NPC |
+
+----------------------------------------------------------------------------
+PROCEDIMENTO DE ROLLBACK
+----------------------------------------------------------------------------
+- Reverter branch git.
+- Restaurar banco a partir do backup da Fase 0.
+
+----------------------------------------------------------------------------
+FIM DO PLANO CONSOLIDADO — VERSÃO 1.0
+----------------------------------------------------------------------------
