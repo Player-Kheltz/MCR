@@ -7495,3 +7495,1855 @@ ID         Nome                                          Tipo                   
 51306      Calças Transcendentes                                                        weight:5800; armor:8; absorbpercentphysical:5
 51307      Bandagens Transcendentes                                                     weight:1400; armor:3; speed:10; absorbpercentphysical:3; showAttributes:1
 51308      Transcendente Bo                              fist weapons                   weight:6400; attack:45; defense:18; magiclevelpoints:1
+
+
+ID de Itens com nome Originais (em inglês);
+
+Helmet
+
+3393
+Amazon Helmet
+
+3022
+Ancient Tiara
+
+5917
+Bandana
+
+9103
+Batwing Hat
+
+3408
+Bonelord Helmet
+
+3354
+Brass Helmet
+
+3395
+Ceremonial Mask
+
+3352
+Chain Helmet
+
+3407
+Charmer's Tiara
+
+11674
+Cobra Crown
+
+11700
+Coolie Hat
+
+3385
+Crown Helmet
+
+3391
+Crusader Helmet
+
+3226
+Damaged Helmet
+
+5924
+Damaged Steel Helmet
+
+3384
+Dark Helmet
+[3387] Demon Helmet
+[3356] Devil Helmet
+[3400] Dragon Scale Helmet
+[3396] Dwarven Helmet
+[7459] Earmuffs
+[11689] Elite Draken Helmet
+[3406] Feather Headdress
+[5903] Ferumbras' Hat
+[9013] Flower Wreath
+[3230] Full Helmet of the Ancients
+[7458] Fur Cap
+[829] Glacier Mask
+[3365] Golden Helmet
+[9382] Helmet of Nature
+[3210] Hat of the Mad
+[3229] Helmet of the Ancients
+[5460] Helmet of the Deep
+[9381] Helmet of Ultimate Terror
+[3390] Horned Helmet
+[3405] Horseman Helmet
+[3353] Iron Helmet
+[10451] Jade Hat
+[894] Jester Hat
+[7461] Krimhorn Helmet
+[3355] Leather Helmet
+[3374] Legion Helmet
+[828] Lightning Headband
+[7992] Mage Hat
+[3573] Magician Hat
+[827] Magma Monocle
+[9399] Mighty Helm of Green Sparks
+[875] Mining Helmet
+[3574] Mystic Turban
+[9374] Odd Hat
+[6577] Party Hat
+[6096] Pirate Hat
+[3576] Post Officers Hat
+[7462] Ragnir Helmet
+[3392] Royal Helmet
+[6531] Santa Hat
+[5741] Skull Helmet
+[3375] Soldier Helmet
+[3351] Steel Helmet
+[3373] Strange Helmet
+[3376] Studded Helmet
+[830] Terra Hood
+[3403] Tribal Mask
+[3367] Viking Helmet
+[3369] Warrior Helmet
+[3368] Winged Helmet
+[9653] Witch Hat
+[8864] Yalahari Mask
+[10385] Zaoan Helmet
+
+Armor
+[3394] Amazon Armor
+[3570] Ball Gown
+[8044] Belted Cape
+[3567] Blue Robe
+[3359] Brass Armor
+[3565] Cape
+[3358] Chain Armor
+[3562] Coat
+[3381] Crown Armor
+[8050] Crystalline Armor
+[3383] Dark Armor
+[8037] Dark Lord's Cape
+[3388] Demon Armor
+[8057] Divine Plate
+[3379] Doublet
+[8039] Dragon Robe
+[3386] Dragon Scale Mail
+[3397] Dwarven Armor
+[8054] Earthborn Titan Armor
+[11651] Elite Draken Mail
+[3399] Elven Mail
+[8064] Ethno Coat
+[8053] Fireborn Giant Armor
+[9015] Flower Dress
+[8043] Focus Cape
+[8059] Frozen Plate
+[8048] Girl's Dress
+[824] Glacier Robe
+[3360] Golden Armor
+[3563] Green Tunic
+[8041] Greenwood Coat
+[9379] Heavy Metal T-Shirt
+[8045] Hibiscus Dress
+[3561] Jacket
+[3370] Knight Armor
+[8049] Lavos Armor
+[3361] Leather Armor
+[3404] Leopard Armor
+[825] Lightning Robe
+[3366] Magic Plate Armor
+[7991] Magician's Robe
+[826] Magma Coat
+[7463] Mammoth Fur Cape
+[8060] Master Archer's Armor
+[8058] Molten Plate
+[3402] Native Armor
+[3380] Noble Armor
+[8056] Oceanborn Leviathan Armor
+[11701] Old Cape
+[8063] Paladin Armor
+[6095] Pirate Shirt
+[3357] Plate Armor
+[3571] Ranger's Cloak
+[3566] Red Robe
+[3564] Red Tunic
+[8038] Robe of the Ice Queen
+[8062] Robe of the Underworld
+[11686] Royal Draken Mail
+[11687] Royal Scale Robe
+[3377] Scale Armor
+[3568] Simple Dress
+[8061] Skullcracker Armor
+[10438] Spellweaver's Robe
+[8042] Spirit Cloak
+[3378] Studded Armor
+[8046] Summer Dress
+[8052] Swamplair Armor
+[811] Terra Mantle
+[9400] The Rain Coat
+[8047] Tunic
+[8040] Velvet Mantle
+[8051] Voltage Armor
+[3569] White Dress
+[8055] Windborn Colossus Armor
+[7993] Witchhunter's Cloak
+[8862] Yalahari Armor
+[10384] Zaoan Armor
+[10439] Zaoan Robe
+
+Legs
+[3560] Bast Skirt
+[645] Blue Legs
+[3372] Brass Legs
+[3558] Chain Legs
+[3382] Crown Legs
+[3389] Demon Legs
+[3363] Dragon Scale Legs
+[3398] Dwarven Legs
+[3401] Elven Legs
+[823] Glacier Kilt
+[3364] Golden Legs
+[3371] Knight Legs
+[9014] Leaf Legs
+[3559] Leather Legs
+[822] Lightning Legs
+[821] Magma Legs
+[7464] Mammoth Fur Shorts
+[5918] Pirate Knee Breeches
+[3557] Plate Legs
+[8095] Ranger Legs
+[3362] Studded Legs
+[812] Terra Legs
+[9383] Trousers of the Ancients
+[8863] Yalahari Leg Piece
+[10387] Zaoan Legs
+
+Boots
+[3079] Boots of Haste
+[3246] Boots of Waterwalking
+[11690] Broken Draken Boots
+[3553] Bunnyslippers
+[9017] Coconut Shoes
+[3556] Crocodile Boots
+[10200] Crystal Boots
+[10201] Dragon Scale Boots
+[4033] Draken Boots
+[9019] Firewalker Boots
+[9018] Firewalker Boots (in use)
+[7457] Fur Boots
+[819] Glacier Shoes
+[3555] Golden Boots
+[10323] Guardian Boots
+[3552] Leather Boots
+[820] Lightning Boots
+[818] Magma Boots
+[3550] Patched Boots
+[5461] Pirate Boots
+[3551] Sandals
+[6529] Soft Boots
+[3549] Soft Boots (in use)
+[3554] Steel Boots
+[813] Terra Boots
+[10386] Zaoan Shoes
+
+Shield
+[3437] Amazon Shield
+[3432] Ancient Shield
+[3413] Battle Shield
+[3418] Bonelord Shield
+[3429] Black Shield
+[3423] Blessed Shield
+[3441] Bone Shield
+[3411] Brass Shield
+[3435] Castle Shield
+[3430] Copper Shield
+[3419] Crown Shield
+[3421] Dark Shield
+[3420] Demon Shield
+[3416] Dragon Shield
+[3425] Dwarven Shield
+[3438] Eagle Shield
+[8078] Fiery Rainbow Shield
+[3422] Great Shield
+[3433] Griffin Shield
+[3415] Guardian Shield
+[8079] Icy Rainbow Shield
+[3414] Mastermind Shield
+[9372] Meat Shield
+[3436] Medusa Shield
+[6432] Necromancer Shield
+[6390] Nightmare Shield
+[7460] Norse Shield
+[9372] Meat Shield
+[3424] Ornamented Shield
+[3439] Phoenix Shield
+[3410] Plate Shield
+[8077] Rainbow Shield
+[3427] Rose Shield
+[3445] Salamander Shield
+[3440] Scarab Shield
+[3444] Sentinel Shield
+[9380] Shield of Care
+[11688] Shield of Corruption
+[3417] Shield of Honour
+[9377] Shield of the White Knight
+[8080] Sparking Rainbow Shield
+[3409] Steel Shield
+[3426] Studded Shield
+[3442] Tempest Shield
+[8081] Terran Rainbow Shield
+[9401] The Shield Nevermourn
+[6131] Tortoise Shield
+[3428] Tower Shield
+[3443] Tusk Shield
+[3434] Vampire Shield
+[3431] Viking Shield
+[3412] Wooden Shield
+
+Spellbook
+[11691] Snake God's Wristguard
+[3059] Spellbook
+[8090] Spellbook of Dark Mysteries
+[8072] Spellbook of Enlightenment
+[8075] Spellbook of Lost Souls
+[8074] Spellbook of Mind Control
+[8073] Spellbook of Warding
+[8076] Spellscroll of Prophecies
+
+Axe
+[7436] Angelic Axe
+[3274] Axe
+[3317] Barbarian Axe
+[3266] Battle Axe
+[3344] Beastslayer Axe
+[7412] Butcher's Axe
+[3328] Daramanian Waraxe
+[3329] Daramanian Axe
+[8098] Demonwing Axe
+[3275] Double Axe
+[3302] Dragon Lance
+[10388] Drakinata
+[7419] Dreaded Cleaver
+[3323] Dwarven Axe
+[783] Earth Barbarian Axe
+[787] Earth Headchopper
+[786] Earth Heroic Axe
+[785] Earth Knight Axe
+[788] Earth War axe
+[801] Energy Barbarian Axe
+[804] Energy Headchopper
+[803] Energy Heroic Axe
+[802] Energy Knight Axe
+[805] Energy War axe
+[7453] Executioner
+[665] Fiery Barbarian Axe
+[668] Fiery Headchopper
+[667] Fiery Heroic Axe
+[666] Fiery Knight Axe
+[669] Fiery War axe
+[3320] Fire Axe
+[7454] Glorious Axe
+[3306] Golden Sickle
+[3303] Great Axe
+[3315] Guardian Halberd
+[3269] Halberd
+[3268] Hand Axe
+[3276] Hatchet
+[7380] Headchopper
+[8096] Hellforged Axe
+[7389] Heroic Axe
+[684] Icy Barbarian Axe
+[687] Icy Headchopper
+[686] Icy Heroic Axe
+[685] Icy Knight Axe
+[688] Icy War axe
+[7435] Impaler
+[3318] Knight Axe
+[7455] Mythril Axe
+[3314] Naginata
+[7456] Noble Axe
+[3313] Obsidian Lance
+[3316] Orcish Axe
+[7411] Ornamented Axe
+[3331] Ravager's Axe
+[7433] Ravenwing
+[7420] Reaper's Axe
+[3346] Ripper Lance
+[7434] Royal Axe
+[6553] Ruthless Axe
+[9384] Scythe of the Reaper
+[3293] Sickle
+[8097] Solar Axe
+[7773] Steel Axe
+[3319] Stonecutter Axe
+[7413] Titan Axe
+[11657] Twiceslicer
+[3335] Twin Axe
+[7388] Vile Axe
+[3342] War Axe
+[10406] Zaoan Halberd
+
+Club
+[7414] Abyss Hammer
+[7426] Amber Staff
+[3341] Arcane Staff
+[3348] Banana Staff
+[3305] Battle Hammer
+[7429] Blessed Sceptre
+[3337] Bone Club
+[7428] Bonebreaker
+[7379] Brutetamer's Staff
+[7427] Chaos Mace
+[3311] Clerical Mace
+[3270] Club
+[9385] Club of the Fury
+[7415] Cranial Basher
+[3304] Crowbar
+[3333] Crystal Mace
+[3327] Daramanian Mace
+[8099] Dark Trinity Mace
+[7431] Demonbone
+[7387] Diamond Sceptre
+[10391] Drachaku
+[3322] Dragon Hammer
+[7430] Dragonbone Staff
+[10391] Drakachu
+[789] Earth Clerical Mace
+[791] Earth Cranial Basher
+[790] Earth Crystal Mace
+[792] Earth Orcish Maul
+[793] Earth War hammer
+[3321] Enchanted Staff
+[806] Energy Clerical Mace
+[808] Energy Cranial Basher
+[807] Energy Crystal Mace
+[809] Energy Orcish Maul
+[810] Energy War hammer
+[670] Fiery Clerical Mace
+[672] Fiery Cranial Basher
+[671] Fiery Crystal Mace
+[673] Fiery Orcish Maul
+[674] Fiery War hammer
+[7432] Furry Club
+[3208] Giant Smithhammer
+[9373] Glutton's Mace
+[3325] Light Mace
+[7450] Hammer of Prophecy
+[3332] Hammer of Wrath
+[3340] Heavy Mace
+[689] Icy Clerical Mace
+[691] Icy Cranial Basher
+[690] Icy Crystal Mace
+[692] Icy Orcish Maul
+[693] Icy War hammer
+[3310] Iron Hammer
+[7422] Jade Hammer
+[3343] Lich Staff
+[7424] Lunar Staff
+[3286] Mace
+[7381] Mammoth Whopper
+[3282] Morning Star
+[7409] Northern Star
+[8100] Obsidian Truncheon
+[7421] Onyx Flail
+[7392] Orcish Maul
+[7410] Queen's Sceptre
+[7437] Sapphire Hammer
+[3453] Scythe
+[7451] Shadow Sceptre
+[3312] Silver Mace
+[3324] Skull Staff
+[7423] Skullcrusher
+[11692] Snake God's Sceptre
+[7452] Spiked Squelcher
+[3289] Staff
+[3336] Studded Club
+[7425] Taurus Mace
+[8101] The Stomper
+[3309] Thunder Hammer
+[3279] War Hammer
+
+Sword
+[7404] Assassin Dagger
+[7403] Berserker
+[7406] Blacksteel Sword
+[11693] Blade of Corruption
+[7416] Bloody Edge
+[3338] Bone Sword
+[3295] Bright Sword
+[3301] Broadsword
+[3283] Carlin Sword
+[3292] Combat Knife
+[7385] Crimson Sword
+[7449] Crystal Sword
+[3267] Dagger
+[7382] Demonrage Sword
+[3339] Djinn Blade
+[7402] Dragon slayer
+[782] Earth Blacksteel Sword
+[783] Earth Dragon Slayer
+[781] Earth Mystic Blade
+[780] Earth Relic Sword
+[779] Earth Spike Sword
+[8102] Emerald Sword
+[797] Energy Blacksteel Sword
+[798] Energy Dragon Slayer
+[796] Energy Mystic Blade
+[795] Energy Relic Sword
+[794] Energy Spike Sword
+[3326] Epee
+[9386] Farmer's Avenger
+[663] Fiery Blacksteel Sword
+[664] Fiery Dragon Slayer
+[662] Fiery Mystic Blade
+[661] Fiery Relic Sword
+[660] Fiery Spike Sword
+[3280] Fire Sword
+[3281] Giant Sword
+[7407] Haunted Blade
+[7405] Havoc Blade
+[3330] Heavy Machete
+[3284] Ice Rapier
+[682] Icy Blacksteel Sword
+[683] Icy Dragon Slayer
+[681] Icy Mystic Blade
+[680] Icy Relic Sword
+[679] Icy Spike Sword
+[9396] Incredible Mumpiz Slayer
+[7774] Jagged Sword
+[3300] Katana
+[3291] Knife
+[3285] Longsword
+[3308] Machete
+[3278] Magic Longsword
+[3288] Magic Sword
+[7386] Mercenary Sword
+[7384] Mystic Blade
+[7418] Nightmare Blade
+[3334] Pharaoh Sword
+[9387] Poet's Fencing Quill
+[9375] Pointed Rabbitslayer
+[3299] Poison Dagger
+[3272] Rapier
+[7383] Relic Sword
+[6101] Ron the Ripper's Sabre
+[7417] Runed Sword
+[3273] Sabre
+[10389] Sais
+[3307] Scimitar
+[3297] Serpent Sword
+[3294] Short Sword
+[3290] Silver Dagger
+[8103] Solar Sword
+[3271] Spike Sword
+[3264] Sword
+[3345] Templar Scytheblade
+[7391] Thaian Sword
+[6527] The Avenger
+[8104] The Calamity
+[8103] The Epiphany
+[7390] The Justice Seeker
+[10392] Twin Hooks
+[3265] Two Handed Sword
+[3296] Warlord Sword
+[7408] Wyvern Fang
+[10390] Zaoan Sword
+
+Jogáveis
+[7368] Assassin Star
+[7367] Enchanted Spear
+[3347] Hunting Spear
+[7378] Royal Spear
+[1781] Small Stone
+[2992] Snowball
+[3277] Spear
+[3298] Throwing Knife
+[3287] Throwing Star
+[7366] Viper Star
+
+Arma de Distância
+[5803] Arbalest
+[3350] Bow
+[8022] Chain Bolter
+[8027] Composite Hornbow
+[3349] Crossbow
+[8030] Elethriel's Elemental Bow
+[7438] Elvish Bow
+[8021] Modified Crossbow
+[9378] Musician's Bow
+[8023] Royal Crossbow
+[8029] Silkweaver Bow
+[5907] Slingshot
+[8024] The Devileye
+[8025] The Ironworker
+[8026] Warsinger Bow
+[8028] Yol's Bow
+
+Wands
+[3073] Wand of Cosmic Energy
+[3072] Wand of Decay
+[8093] Wand of Draconia
+[3075] Wand of Dragonbreath
+[3071] Wand of Inferno
+[8092] Wand of Starstorm
+[8094] Wand of Voodoo
+[3074] Wand of Vortex
+
+Rods
+[3067] Hailstorm Rod
+[3070] Moonlight Rod
+[3069] Necrotic Rod
+[8083] Northwind Rod
+[3066] Snakebite Rod
+[8084] Springsprout Rod
+[3065] Terra Rod
+[8082] Underworld Rod
+
+Munição
+[3447] Arrow
+[3446] Bolt
+[3449] Burst Arrow
+[774] Earth Arrow
+[763] Flaming Arrow
+[761] Flash Arrow
+[6528] Infernal Bolt
+[7365] Onyx Arrow
+[7363] Piercing Bolt
+[3448] Poison Arrow
+[3450] Power Bolt
+[762] Shiver Arrow
+[7364] Sniper Arrow
+
+Rings
+[3092] Axe Ring
+[9593] Broken Wedding Ring
+[9393] Claw of 'The Noxious Spawn'
+[3093] Club Ring
+[3007] Crystal Ring
+[6299] Death Ring
+[3097] Dwarven Ring
+[3051] Energy Ring
+[9585] Engraved Wedding Ring
+[3063] Gold Ring
+[3052] Life Ring
+[3048] Might Ring
+[3050] Power Ring
+[3098] Ring of Healing
+[3245] Ring of Wishes
+[3006] Ring of the Sky
+[349] Signet Ring
+[3049] Stealth Ring
+[3091] Sword Ring
+[3053] Time Ring
+[3004] Wedding Ring
+
+Amuletos
+[3057] Amulet of Loss
+[3025] Ancient Amulet
+[10457] Beetle Necklace
+[3080] Broken Amulet
+[3056] Bronze Amulet
+[3009] Bronze Necklace
+[3008] Crystal Necklace
+[3019] Demonbone Amulet
+[3085] Dragon Necklace
+[3082] Elven Amulet
+[9802] Friendship Amulet (1)
+[9803] Friendship Amulet (2)
+[3083] Garlic Necklace
+[815] Glacier Amulet
+[3013] Golden Amulet
+[7532] Koshei's Ancient Amulet
+[9303] Leviathan's Amulet
+[816] Lightning Pendant
+[10476] Lucky Clover Amulet
+[817] Magma Amulet
+[3102] Paw Amulet
+[3055] Platinum Amulet
+[3084] Protection Amulet
+[3016] Ruby Necklace
+[9302] Sacred Tree Amulet
+[3021] Sapphire Amulet
+[3018] Scarab Amulet
+[3572] Scarf
+[9304] Shockwave Amulet
+[3054] Silver Amulet
+[3015] Silver Necklace
+[3014] Star Amulet
+[3081] Stone Skin Amulet
+[3045] Strange Talisman
+[814] Terra Amulet
+[10412] Wailing Widow's Necklace
+[3012] Wolf Tooth Chain
+
+Ferramentas
+[939] Bait
+[5942] Blessed Wooden stake
+[3454] Broom
+[5466] Bunch of Sugar Cane
+[3605] Bunch Of Wheat
+[5479] Cat's Paw
+[3482] Closed Trap
+[646] Elvenhair Rope
+[3603] Flour
+[5467] Fire Bug
+[3483] Fishing Rod
+[3460] Hammer
+[3455] Hoe
+[3509] Inkwell (1)
+[127] Inkwell (2)
+[5865] Juice Squeezer
+[5710] Light Shovel
+[7889] Lock Pick
+[3308] Machete
+[9306] Mechanical Fishing Rod
+[3463] Mirror
+[5908] Obsidian Knife
+[3456] Pick
+[3451] Pitchfork
+[3452] Rake
+[3003] Rope
+[3461] Saw
+[3457] Shovel
+[3462] Small Axe
+[9594] Sneaky Stabber of Eliteness
+[9595] Sneaky Stabber of Eliteness (jammed)
+[9107] Special Polish
+[9596] Squeezing Gear of Girlpower
+[9597] Squeezing Gear of Girlpower (jammed)
+[3481] Trap
+[6118] Treasure Map
+[5706] Treasure Map (Pirate)
+[6091] Very noble-looking watch (1)
+[6092] Very noble-looking watch (2)
+[2906] Watch
+[650] Watering Can
+[9598] Whacking Driller of Fate
+[9599] Whacking Driller of Fate (jammed)
+[3211] Witchesbroom
+[3459] Wooden Hammer
+[5941] Wooden Stake
+[3492] Worm
+
+Fonte de luz
+[2911] Candelabrum (off)
+[2912] Candelabrum (on)
+[2917] Candlestick (off)
+[2918] Candlestick (on)
+[2919] Candestick (out of candle)
+[8827] Charged Ghost Charm
+[6488] Christmas Branch (lit)
+[6489] Christmas Branch
+[3249] Frozen Starlight
+[8822] Ghost Charm
+[2914] Lamp (off)
+[2915] Lamp (on)
+[2916] Lamp (out of oil)
+[3046] Magic Light Wand
+[3047] Magic Light Wand (on)
+[2977] Pumpkinhead (off)
+[2978] Pumpkinhead (on)
+[5812] Skull Candle
+[5813] Skull Candle (off)
+[3058] Strange Symbol
+[2934] Table Lamp (off)
+[2935] Talbe Lamp (on)
+[2920] Torch (biggest,off)
+[2921] Torch (biggest,on)
+[2922] Torch (medium,off)
+[2923] Torch (medium,on)
+[2924] Torch (small,off)
+[2925] Torch (small,on)
+[2926] Torch (small,out of use)
+
+Produtos de Criatura
+[10296] Acorn
+[9632] Ancient Stone
+[3214] Ankh
+[10297] Antlers
+[5883] Ape Fur
+[10299] Badger Fur
+[11445] Bamboo Stick
+[11511] Banana Sash
+[5894] Bat Wing
+[11447] Battle Stone
+[5896] Bear Paw
+[5930] Behemoth Claw
+[5898] Beholder Eye
+[9645] Black Hood
+[11448] Black Wool
+[11449] Blood Preservation
+[9633] Bloody Pincers
+[5912] Blue Piece of Cloth
+[9667] Boggy Dreads
+[10404] Bone Shoulderplate
+[10277] Bony Tail
+[10320] Book of Necromantic Rituals
+[9646] Book of Prayers
+[11702] Brimstone Fangs
+[11703] Brimstone Shell
+[11451] Broken Crossbow
+[11660] Broken Draken Mail
+[9656] Broken Gladiator Shield
+[10418] Broken Halberd
+[11453] Broken Helmet
+[11652] Broken Key Ring
+[11452] Broken Shamanic Staff
+[11661] Broken Slicer
+[5913] Brown Piece of Cloth
+[9689] Bunch of Troll Hair
+[9688] Bundle of Cursed Straw
+[10300] Carniphila Seeds
+[10275] Carrion Worm Fang
+[10301] Centipede Leg
+[5890] Chicken Feather
+[9634] Cobra Tongue
+[11514] Colourful Feather
+[10302] Compass
+[10409] Corrupted Flag
+[7882] Cockroach Leg
+[10272] Crab Pincers
+[9638] Cultish Mask
+[9639] Cultish Robe
+[11455] Cultish Symbol
+[10410] Cursed Shoulder Spikes
+[9657] Cyclops Toe
+[10303] Dark Rosary
+[5906] Demon Dust
+[5954] Demon Horn
+[6499] Demonic Essence
+[9647] Demonic Skeletal Hand
+[11456] Dirty Turban
+[11684] Downy Feather
+[6546] Dracola's Eye
+[5919] Dragon Claw
+[10444] Dragon Priest's Wandtip
+[11457] Dragon's Tail
+[11658] Draken Sulphur
+[11659] Draken Wristbands
+[5900] Dwarven Beard
+[10276] Elder Beholder Tentacle
+[11465] Elven Astral Observer
+[11464] Elven Scouting Glass
+[9635] Elvish Talisman
+[5891] Enchanted Chicken Wing
+[10306] Essence of a Bad Dream
+[11671] Eye of Corruption
+[6098] Eye Patch
+[9636] Fiery Heart
+[5884] Fighting Spirit
+[5895] Fish Fin
+[9109] Fish Flakes
+[11466] Flask of Embalming Fluid
+[9648] Frosty Ear of a Troll
+[9661] Frosty Heart
+[9658] Frost Giant Pelt
+[9649] Gauze Bandage
+[9655] Gear Crystal
+[8775] Gear Wheel
+[11458] Geomancer's Robe
+[11463] Geomancer's Staff
+[10449] Ghastly Dragon Head
+[9690] Ghostly Tissue
+[11467] Ghoul Snack
+[10280] Bonelord Eye
+[5879] Spider Silk
+[11443] Girlish Hair Decoration
+[8143] Gland
+[9054] Glob of Acid Slime
+[9053] Glob of Mercury
+[9055] Glob of Tar
+[11539] Goblin Ear
+[9233] Golem Part
+[5877] Green Dragon Leather
+[5920] Green Dragon Scale
+[5910] Green Piece of Cloth
+[11446] Hair of a Banshee
+[10283] Half-Digested Piece of Meat
+[9659] Half-Eaten Brain
+[6539] Handmaiden's Protector
+[5925] Hardened Bone
+[9683] Haunted Piece of Wood
+[9637] Hellhound Slobber
+[10304] Hellspawn Tail
+[10415] High Guard Flag
+[10416] High Guard's Shoulderplates
+[3024] Holy Falcon
+[5902] Honeycomb
+[6097] Hook
+[5892] Huge Chunk of Crude Iron
+[11469] Hunter's Quiver
+[4839] Hydra Egg
+[10282] Hydra Head
+[6534] Imperor's Trident
+[5880] Iron Ore
+[11470] Jewelled Belt
+[11471] Kongra's Shoulderpad
+[10455] Lancer Beetle Shell
+[10417] Legionairre Flags
+[9691] Lion's Mane
+[11680] Lizard Essence
+[5876] Lizard Leather
+[5881] Lizard Scale
+[11454] Luminous Orb
+[9692] Lump of Dirt
+[10305] Lump of Earth
+[5904] Magic Sulphur
+[10321] Mammoth Tusk
+[11489] Mantassin Tail
+[10298] Metal Spike
+[11472] Minotaur Horn
+[5878] Minotaur Leather
+[11474] Miraculum
+[5943] Morgaroth's Heart
+[6537] Mr.Punish's Handcuffs
+[9662] Mutated Bat Ear
+[10308] Mutated Flesh
+[9668] Mutated Rat Tail
+[9660] Mystical Hourglass
+[953] Nail
+[11475] Necromantic Robe
+[10314] Nettle Blossom
+[11476] Nettle Spit
+[11486] Noble Turban
+[5804] Nose Ring
+[11479] Orc Leather
+[10196] Orc Tooth
+[7786] Orc Tusk
+[11477] Orcish Gear
+[5808] Orshabaal's Brain
+[6126] Peg Leg
+[11481] Pelvis Bone
+[5893] Perfect Behemoth Fang
+[10420] Petrified Scream
+[11483] Piece of Archer Armor
+[10279] Piece of Crocodile Leather
+[9663] Piece of Dead Brain
+[5889] Piece of Draconian Steel
+[9664] Piece of Hellfire Armor
+[5888] Piece of Hell Steel
+[3110] Piece of Iron
+[6540] Piece of Massacre's Shell
+[5887] Piece of Royal Steel
+[9641] Piece of Scarab Shell
+[11482] Piece of Warrior Armor
+[9693] Pig Foot
+[11484] Pile of Grave Earth
+[11485] Poison Spider Shell
+[9640] Poisonous Slime
+[9650] Polar Bear Paw
+[11444] Protective Charm
+[11473] Purple Robe
+[11491] Quara Bone
+[11488] Quara Eye
+[11490] Quara Pincers
+[11487] Quara Tentacle
+[5948] Red Dragon Leather
+[5882] Red Dragon Scale
+[10289] Red Lantern
+[5911] Red Piece of Cloth
+[3254] Roc Feather
+[11492] Rope Belt
+[10291] Rotten Piece of Cloth
+[10311] Sabretooth
+[11493] Safety Pin
+[10456] Sandcrawler Shell
+[11673] Scale of Corruption
+[9631] Scarab Pincers
+[9651] Scorpion Tail
+[11510] Scroll of Heroic Deeds
+[10312] Scythe Leg
+[9666] Sea Serpent Scale
+[10407] Shaggy Tail
+[11478] Shamanic Hood
+[7290] Shard
+[10310] Shiny Stone
+[10292] Silky Fur
+[11480] Skull Belt
+[10274] Skunk Tail
+[11512] Small Flask of Eyedrops
+[11450] Small Notebook
+[11513] Small Pitchfork
+[9694] Snake Skin
+[5875] Sniper Gloves
+[5944] Soul Orb
+[5809] Soul Stone
+[8031] Spider Fangs
+[10408] Spiked Iron Ball
+[9642] Spooky Blue Eye
+[10278] Stone Wing
+[10309] Strand of Medusa Hair
+[10293] Striped Fur
+[10315] Sulphurous Stone
+[9686] Swamp Grass
+[11672] Tail of Corruption
+[10281] Tarantula Egg
+[9684] Tattered Piece of Robe
+[396] Technomancer Beard
+[11666] Tentacle Piece
+[10454] Terramite Legs
+[10452] Terramite Shell
+[10273] Terrorbird Beak
+[6535] The Plasmother's Remains
+[10307] Thick Fur
+[9643] Thorn
+[11515] Trollroot
+[5899] Turtle Shell
+[3044] Tusk
+[10450] Undead Heart
+[10316] Unholy Bone
+[5905] Vampire Dust
+[9685] Vampire Teeth
+[9654] War Crystal
+[10405] Warmaster's Wristguards
+[5885] Warrior's Sweat
+[10318] Warwolf Fur
+[10397] Weaver's Wandtip
+[10317] Werewolf Fur
+[5909] White Piece of Cloth
+[10411] Widow's Mandibles
+[10313] Winged Tail
+[10295] Winter Wolf Fur
+[9652] Witch Broom
+[5897] Wolf Paw
+[5901] Wood
+[10319] Wool
+[9665] Wyrm Scale
+[9644] Wyvern Talisman
+[5914] Yellow Piece of Cloth
+[10413] Zaogun Flag
+[10414] Zaogun's Shoulderplates
+
+Plantas
+[3734] Blood Herb
+[3659] Blue Rose
+[8763] Bowl of Evergreen Flowers
+[2988] Exotic Flowers
+[3737] Fern
+[649] Flower Bouquet
+[2983] Flower Bowl
+[7248] Frostbite Herb
+[3674] Goat Grass
+[2981] God Flowers
+[3661] Grave Flower
+[5921] Heaven Blossom
+[5922] Holy Orchid
+[2984] Honey Flower
+[7250] Hydra Tongue
+[5014] Mandrake
+[3655] Moon Flower
+[3673] Orange Star
+[7245] Piece of Cactus
+[2985] Potted Flower
+[3739] Powder Herb
+[7249] Purple Kiss Blossom
+[3658] Red Rose
+[647] Seeds
+[3740] Shadow Herb
+[3738] Sling Herb
+[3736] Star Herb
+[3735] Stone Herb
+[3741] Troll Green
+[3668] Tulip
+[3660] Yellow Rose
+
+Comidas
+[11460] Aubergine
+[8020] Baking Tray (With dough)
+[3587] Banana
+[6574] Bar of Chocolate
+[3588] Blueberry
+[8017] Beetroot
+[3600] Bread
+[11461] Broccoli
+[3602] Brown Bread
+[3725] Brown Mushroom
+[8197] Bulb of Garlic
+[10328] Bunch of Ripe Rice
+[6277] Cake
+[6569] Candy
+[3599] Candy Cane
+[3595] Carrot
+[3250] Carrot of Doom
+[11462] Cauliflower
+[3607] Cheese
+[3590] Cherry
+[8019] Chocolate Cake
+[3589] Coconut
+[11584] Coconut Shrimp Bake
+[6543] Coloured Egg (Blue)
+[6544] Coloured Egg (Green)
+[6545] Coloured Egg (Purple)
+[6542] Coloured Egg (Red)
+[6541] Coloured Egg (Yellow)
+[3598] Cookie
+[3597] Corncob
+[6393] Creamcake
+[10219] Crocodile Steak
+[8014] Cucumber
+[3728] Dark Mushroom
+[6278] Decorated Cake
+[11587] Demonic Candy Ball
+[3583] Dragon Ham
+[11682] Dragonfruit
+[11681] Ectoplasmic Sushi
+[3606] Egg
+[3731] Fire Mushroom
+[3578] Fish
+[6500] Gingerbreadman
+[3592] Grapes
+[3732] Green Mushroom
+[7159] Green Perch
+[3582] Ham
+[7377] Ice Cream Cone (Blue-Barbarian)
+[7375] Ice Cream Cone (Chilly Cherry)
+[7372] Ice Cream Cone (Crispy Chocolate Chips)
+[7373] Ice Cream Cone (Venorean Dream)
+[8016] Jalapeño Pepper
+[8013] Lemon
+[6276] Lump of Cake Dough
+[8018] Lump of Chocolate Dough
+[3604] Lump of Dough
+[5096] Mango
+[901] Marlin
+[3577] Meat
+[3593] Melon
+[3580] Northern Pike
+[8015] Onion
+[3586] Orange
+[3726] Orange Mushroom
+[6279] Party Cake
+[841] Peanut
+[3584] Pear
+[11683] Peas
+[11459] Pineapple
+[8011] Plum
+[11586] Pot of Blackjack
+[8010] Potato
+[3594] Pumpkin
+[7158] Rainbow Trout
+[8012] Raspberry
+[3585] Red Apple
+[3724] Red Mushroom
+[10329] Rice Ball
+[3601] Roll
+[3579] Salmon
+[3581] Shrimp
+[3730] Some Mushrooms
+[3729] Some Mushrooms (Brown)
+[3591] Strawberry
+[11588] Sweet Mangonaise Elixir
+[10453] Terramite Eggs
+[3596] Tomato
+[5678] Tortoise Egg
+[6125] Tortoise Egg from Nargor
+[6392] Valentine's Cake
+[836] Walnut
+[3723] White Mushroom
+[3727] Wood Mushrooms
+[8177] Yummy Gummy Worm
+
+Poções
+[7644] Antidote Potion
+[7439] Berserk Potion
+[8758] Bottle of Bug Milk
+[7443] Bullseye Potion
+[6558] Concentrated Demonic Blood
+[239] Great Health Potion
+[238] Great Mana Potion
+[7642] Great Spirit Potion
+[266] Health Potion
+[268] Mana Potion
+[7440] Mastermind Potion
+[9016] Rust Remover
+[7876] Small Health Potion
+[236] Strong Health Potion
+[237] Strong Mana Potion
+[7643] Ultimate Health Potion
+
+Itens Mágicos
+[3147] Blank Rune
+[3251] Blood Orb
+[3076] Crystal Ball
+[3206] Dragonfetish
+[5669] Enigmatic Voodoo Skull
+[3061] Life Crystal
+[3062] Mind Stone
+[5668] Mysterious Voodoo Skull
+[3060] Orb
+[3215] Phoenix Egg
+[5884] Spirit Container
+[10343] Spiritual Charm
+[3034] Talon
+
+Items de festa
+[653] Bag (Common costume)
+[655] Bag (Deluxe Costume
+[654] Bag (Uncommon Costume)
+[6574] Bar of Chocolate
+[6576] Fireworks Rocket
+[6575] Green Balloon (1)
+[6577] Green Balloon (2)
+[6578] Party Hat
+[6572] Party Trumpet (1)
+[6573] Party Trumpet (2)
+[2995] Piggy Bank
+[2996] Piggy Bank (broken)
+[906] Present (Explosive)
+[6575] Red Balloon (1)
+[6577] Red Balloon (2)
+[651] Spellwand
+[6570] Surprise Bag (Blue)
+[6571] Surprise Bag (Red)
+[235] Suspicious Surprise Bag
+[900] Yellow Pillow (Supersoft)
+
+Items Valiosos
+[3027] Black Pearl
+[3041] Blue Gem
+[6526] Christmas Token
+[6536] Countess Sorrow's Frozen Tear
+[3011] Crown
+[3043] Crystal Coin
+[3068] Crystal Wand
+[9028] Crystal of Balance
+[9027] Crystal of Focus
+[9067] Crystal of Power
+[3010] Emerald Bangle
+[282] Giant Shimmering Pearl (Gold)
+[281] Giant Shimmering Pearl (Blue)
+[3031] Gold Coin
+[9058] Gold Ingot
+[3040] Gold Nugget
+[11614] Golden Rune Emblem (Animate Dead)
+[11624] Golden Rune Emblem (Avalanche)
+[11634] Golden Rune Emblem (Chameleon)
+[11632] Golden Rune Emblem (Desintegrate)
+[11640] Golden Rune Emblem (Destroy Field)
+[11628] Golden Rune Emblem (Energy Bomb)
+[11636] Golden Rune Emblem (Energy Wall)
+[11608] Golden Rune Emblem (Explosion)
+[11622] Golden Rune Emblem (Icicle)
+[11650] Golden Rune Emblem (Fire Field)
+[11618] Golden Rune Emblem (Fireball)
+[11644] Golden Rune Emblem (Firebomb)
+[11616] Golden Rune Emblem (Great Fireball)
+[11606] Golden Rune Emblem (Heavy Magic Missile)
+[11626] Golden Rune Emblem (Holy Missile)
+[11648] Golden Rune Emblem (Light Magic Missile)
+[11612] Golden Rune Emblem (Magic Wall)
+[11630] Golden Rune Emblem (Paralyze)
+[11646] Golden Rune Emblem (Poison Bomb)
+[11638] Golden Rune Emblem (Soulfire)
+[11610] Golden Rune Emblem (Sudden Death)
+[11620] Golden Rune Emblem (Thunderstorm)
+[11604] Golden Rune Emblem (Ultimate Healing)
+[11642] Golden Rune Emblem (Wild Growth)
+[3038] Green Gem
+[3023] Holy Scarab
+[5021] Orihalcum Pearl
+[3035] Platinum Coin
+[3039] Red Gem
+[3042] Scarab Coin
+[3017] Silver Brooch
+[11613] Silver Rune Emblem (Animate Dead)
+[11623] Silver Rune Emblem (Avalanche)
+[11633] Silver Rune Emblem (Chameleon)
+[11631] Silver Rune Emblem (Desintegrate)
+[11639] Silver Rune Emblem (Destroy Field)
+[11627] Silver Rune Emblem (Energy Bomb)
+[11635] Silver Rune Emblem (Energy Wall)
+[11607] Silver Rune Emblem (Explosion)
+[11621] Silver Rune Emblem (Icicle)
+[11649] Silver Rune Emblem (Fire Field)
+[11617] Silver Rune Emblem (Fireball)
+[11643] Silver Rune Emblem (Firebomb)
+[11615] Silver Rune Emblem (Great Fireball)
+[11605] Silver Rune Emblem (Heavy Magic Missile)
+[11625] Silver Rune Emblem (Holy Missile)
+[11647] Silver Rune Emblem (Light Magic Missile)
+[11611] Silver Rune Emblem (Magic Wall)
+[11629] Silver Rune Emblem (Paralyze)
+[11645] Silver Rune Emblem (Poison Bomb)
+[11637] Silver Rune Emblem (Soulfire)
+[11609] Silver Rune Emblem (Sudden Death)
+[11619] Silver Rune Emblem (Thunderstorm)
+[11603] Silver Rune Emblem (Ultimate Healing)
+[11641] Silver Rune Emblem (Wild Growth)
+[3033] Small Amethyst
+[3028] Small Diamond
+[3032] Small Emerald
+[678] Small Enchanted Amethyst
+[677] Small Enchanted Emerald
+[676] Small Enchanted Ruby
+[675] Small Enchanted Sapphire
+[3030] Small Ruby
+[3029] Small Sapphire
+[9057] Small Topaz
+[8192] Vampire Lord Token
+[3036] Violet Gem
+[3026] White Pearl
+[3037] Yellow Gem
+
+Rusty Equipment
+[8894] Rusty Armor (Common)
+[8895] Rusty Armor (Semi Rare)
+[8896] Rusty Armor (Rare)
+[8903] Rusty Boots (Common)
+[8904] Rusty Boots (Semi Rare)
+[8905] Rusty Boots (Rare)
+[8906] Rusty Helmet (Common)
+[8907] Rusty Helmet (Semi Rare)
+[8908] Rusty Helmet (Rare)
+[8897] Rusty Legs (Common)
+[8898] Rusty Legs (Semi Rare)
+[8899] Rusty Legs (Rare)
+[8900] Rusty Shield (Common)
+[8901] Rusty Shield (Semi Rare)
+[8902] Rusty Shield (Rare)
+[8891] Rusty Sword (Common)
+[8892] Rusty Sword (Semi Rare)
+[8893] Rusty Sword (Rare)
+
+Lixos
+[3104] Banana Skin
+[3116] Big Bone
+[3115] Bone
+[2892] Broken Bottle
+[2894] Broken Brown Glass
+[3117] Broken Flask
+[3118] Broken Green Glass
+[2996] Broken Piggy Bank
+[3113] Broken Pottery
+[3119] Broken Sword
+[3124] Burnt Scroll
+[3122] Dirty Cape
+[3105] Dirty Fur
+[284] Empty Potion Flask (Large)
+[283] Empty Potion Flask (Medium)
+[285] Empty Potion Flask (Small)
+[5951] Fish Tail
+[3111] Fishbone
+[3120] Moldy Cheese
+[3106] Old Twig
+[3125] Remains of a Fish
+[3112] Rotten Meat
+[3114] Skull
+[3129] Some Leaves
+[3107] Some Wood
+[3121] Torn Book
+[3130] Twigs
+[2913] Used Candelabrum
+[2919] Used Candlestick
+[3135] Wooden Trash (Lightbrown)
+[3136] Wooden Trash (Drawer lookalike)
+[3137] Wooden Trash (Chest lookalike)
+[3138] Wooden Trash (Chair lookalike)
+[3139] Wooden Trash (Darkbrown)
+[3140] Wooden Trash (Dark Chest lookalike)
+[3141] Steel Trash (Statue lookalike)
+[3142] Stone Trash (Pot lookalike)
+[3143] Steel Trash (Gold lookalike)
+[9020] Worn Firewalker Boots
+[3123] Worn Leather Boots
+[6530] Worn Soft Boots
+
+Runas
+[3203] Animate Dead Rune
+[3153] Antidote Rune
+[3161] Avalanche Rune
+[3178] Chameleon Rune
+[3177] Convince Creature Rune
+[3197] Desintegrate Rune
+[3148] Destroy Field Rune
+[3149] Energy Bomb Rune
+[3164] Energy Field Rune
+[3166] Energy Wall Rune
+[3200] Explosion Rune
+[3192] Fire Bomb Rune
+[3188] Fire Field Rune
+[3190] Fire Wall Rune
+[3189] Fireball Rune
+[3191] Great Fireball Rune
+[3198] Heavy Magic Missile Rune
+[3182] Holy Missile Rune
+[3158] Icicle Rune
+[3152] Intense Healing Rune
+[3174] Light Magic Missile Rune
+[3180] Magic Wall Rune
+[3165] Paralyze Rune
+[3173] Poison Bomb Rune
+[3172] Poison Field Rune
+[3176] Poison Wall Rune
+[3195] Soulfire Rune
+[3179] Stalagmite Rune
+[3175] Stone Shower Rune
+[3155] Sudden Death Rune
+[3202] Thunderstorm Rune
+[3160] Ultimate Healing Rune
+[3156] Wild Growth Rune
+
+Itens de Quests
+[10025] Almanach of Magic
+[3235] Ancient Rune
+[7253] Animal Cure
+[7533] Arito's Deathlist
+[6108] Atlas
+[10026] Baby Rotworm
+[11695] Black Jade Cobra
+[4867] Botanist's Container
+[11699] Botany Almanach
+[7785] Bricklayer's Kit
+[6099] Brutus Bloodbeard's Hat
+[9698] Carrying Device
+[5938] Ceiron's Waterskin
+[5940] Ceiron's Wolf Tooth Chain
+[6561] Ceremonial Ankh
+[141] Cigar
+[3238] Cobrafang Dagger
+[5945] Coral Comb
+[10218] Corned Fish
+[3239] Crystal Arrow
+[6102] Deadeye Devious' Eyepatch
+[4845] Dwarven Pickaxe
+[945] Energy Soil
+[946] Eternal Flames
+[4871] Explorer Brooch
+[11545] Exquisite Silk
+[11547] Exquisite Wood
+[11544] Faded Last Will
+[3205] Family Brooch (Windtrouser)
+[4834] Family Brooch (Dwarven)
+[9699] Filled Carrying Device
+[6087] First Verse Of The Cult Hymn
+[10009] Flask of Crown Polisher
+[11364] Flask of Plant Poison
+[10183] Flask With Beaver Bait
+[11550] Flexible Dragon Scale
+[6090] Fourth Verse Of The Cult Hymn
+[8746] Ghost's Tear
+[941] Glimmering Soil
+[8820] Helmet (Morik)
+[4872] Ice Pick
+[11541] Jean Pierre's Cookbook II
+[8761] Jug of Embalming Fluid
+[3217] Letterbag
+[6119] Love Poem
+[11344] Lump of Sacred Clay
+[11552] Magic Crystal
+[10011] Map to the Unknown
+[11328] Marked Crate
+[9307] Mechanical Fish
+[9615] Midnight Shard
+[947] Mother Soil
+[11551] Mystic Root
+[940] Natural Soil
+[6120] Nature Magic Spellbook
+[7533] Nomad Parchment
+[11549] Old Iron
+[4831] Old Parchment
+[8762] Piece of Royal Satin
+[9696] Plans for a Strange Device
+[948] Pure Energy
+[9697] Rare Crystal
+[11362] Replica of the Sceptre
+[11341] Sacred Earth
+[8760] Sample of Sand Wasp Honey
+[8759] Sample of Venorean Spice
+[11426] Scribbled Piece of Paper
+[6088] Second Verse Of The Cult Hymn
+[10199] Serpent Crest
+[10159] Skull of a Caveman
+[11371] Snake Sceptre
+[11368] Snake Sceptre (Shaft)
+[11369] Snake Sceptre (Ornament)
+[11370] Snake Sceptre (Part)
+[10028] Soul Contract
+[11546] Spectral Cloth
+[5886] Spool of Yarn
+[9376] Stale Bread of Ancientness
+[4838] Strange Powder
+[6105] Striker's Favourite Pillow
+[11548] Strong Sinew
+[3233] Tear of Daraman
+[6100] The Lethal Lissy's Shirt
+[7924] The Ring of the Count
+[11367] The Tail of the Keeper
+[6089] Third Verse Of The Cult Hymn
+[123] Toy Mouse
+[10027] Universal Tool
+[9041] Vampiric Crest
+[9114] Wooden Ties
+
+Livros
+[2830] Big Blue Demona Book (1)
+[2845] Big Blue Demona Book (2)
+[2821] Black Book (1)
+[2838] Black Book (2)
+[2829] Blue Book (1)
+[2844] Blue Book (2)
+[2850] Blue Tome
+[2816] Brown Book (1)
+[2837] Brown Book (2)
+[2826] Brown Square Book (1)
+[2841] Brown Square Book (2)
+[2825] Brown Thin Book (1)
+[2840] Brown Thin Book (2)
+[3234] Cookbook
+[2832] Fat Green Book (1)
+[2847] Fat Green Book (2)
+[2842] Gemmed Book
+[2831] Green Book (1)
+[2846] Green Book (2)
+[2849] Green Tome
+[2824] Grey Small Book (1)
+[2839] Grey Small Book (2)
+[2851] Grey Tome
+[8155] Heavily Bound Book
+[2836] Holy Tible
+[2828] Orange Book (1)
+[2843] Orange Book (2)
+[2848] Purple Tome
+[2827] Red Square Book
+[2852] Red Tome
+[7874] The Witches' Grimoire
+[8149] Tibiacity Encyclopedia
+[8174] Tibiacity Encyclopedia
+[6103] Unholy Book
+[7879] Your Student Book
+
+Decoração
+[8156] Abacus
+[10817] Bag of Oriental Spices
+[6491] Bat Decoration (not on wall)
+[2975] Bird Cage (no bird)
+[2976] Bird Cage (with bird)
+[9056] Black Skull
+[8531] Blood Goblet
+[8532] Blood Skull
+[6504] Blue Christmas Garland (not on wall)
+[2394] Blue Pillow
+[10244] Bonebeast trophy (on wall)
+[7371] Bronze Goblet
+[8737] CM Token
+[6502] Christmas Branch
+[6505] Christmas Bundle (Red)
+[6507] Christmas Bundle (Blue)
+[6509] Christmas Bundle (Green)
+[6501] Christmas Wreath
+[10422] Clay Lump
+[2664] Cuckoo Clock
+[2933] Djinn's Lamp
+[9039] Dracoyle Statue (enchanted, facing right)
+[9034] Dracoyle Statue (enchanted, facing south)
+[9040] Dracoyle Statue (normal, facing right)
+[9035] Dracoyle Statue (normal, facing south)
+[10398] Draken Trophy
+[10477] Dragon Goblet
+[10347] Dragon Tapestry (on the wall, facing east)
+[2635] Edged Mirror (not on wall)
+[9606] Egg of the Many
+[10798] Ferumbras Doll
+[896] Firlefanz (not on wall)
+[3249] Frozen Starlight
+[2979] Globe
+[8148] Golden Falcon
+[5749] Golden Figurine
+[7369] Golden Goblet
+[9212] Golden Trophy of Excellence
+[5928] Goldfish Bowl (Empty)
+[5929] Goldfish Bowl (With Goldfish)
+[2396] Green Pillow
+[2393] Heart pillow
+[7441] Ice Cube (Raw)
+[7442] Ice Cube (1x used)
+[7443] Ice Cube (2x used)
+[7444] Ice Cube (3x used)
+[7445] Ice Mammoth
+[7447] Ice Statue (Bird)
+[7446] Ice Statue (Fish)
+[895] Jester Staff
+[8150] Key of Numerous Locks
+[10419] Lizard Trophy
+[5783] Medal of Honour
+[5802] Message in a Bottle
+[2994] Model Ship
+[8146] Oracle Figurine
+[10800] Orc's Jaw Shredder
+[2638] Oval Mirror (not on wall)
+[2639] Picture (Landscape)
+[2641] Picture (Portait)
+[2640] Picture (Still Life)
+[10426] Piece of Marble Rock
+[2995] Piggy Bank
+[10425] Pretty Clay Statue
+[2977] Pumpkinhead
+[2978] Pumpkinhead (Lighted)
+[2395] Red Pillow
+[10432] Rough Clay Statue
+[10423] Rough Clay Statue (Player can use serious improvement)
+[10427] Rough Marble Statue
+[2398] Round Blue Pillow
+[2632] Round Mirror (not on wall)
+[2400] Round Purple Pillow
+[2399] Round Red Pillow
+[2401] Round Turqoise Pillow
+[9045] Royal Tapestry
+[9046] Silky Tapestry
+[7370] Silver Trophy
+[6525] Skeleton Decoration (not on wall)
+[2389] Small Blue Pillow
+[2387] Small Green Pillow
+[2933] Small Oil Lamp
+[2390] Small Orange Pillow
+[2386] Small Purple Pillow
+[2388] Small Red Pillow
+[2391] Small Turqoise Pillow
+[2392] Small White Pillow
+[10207] Snowman Package
+[3020] Some Golden Fruits
+[8032] Spiderwebs
+[2644] Tapestry (purple, not on wall)
+[2647] Tapestry (green, not on wall)
+[2650] Tapestry (yellow, not on wall)
+[2653] Tapestry (orange, not on wall)
+[2656] Tapestry (red, not on wall)
+[2659] Tapestry (blue, not on wall)
+[5615] Tapestry (pirate, not on wall)
+[8152] The Mexcalibur
+[8151] TibiaHispano Emblem
+[3997] Tibiora's Box (Closed)
+[4010] Tibiora's Box (Opened)
+[8923] Velvet Tapestry (not on wall)
+[2974] Water Pipe
+[2397] Yellow Pillow
+
+Brinquedos
+[3213] Annihilation Bear
+[7183] Baby Seal Doll
+[3001] Cute Teddy
+[2991] Doll
+[8778] Jester Doll
+[10290] Mini Mummy
+[3078] Mysterious Fetish
+[10277] Nightmare Doll
+[8154] Norseman Doll
+[5080] Panda Teddy
+[8781] Part of a Jester Doll (Left Arm)
+[8783] Part of a Jester Doll (Left Leg)
+[8782] Part of a Jester Doll (Right Arm)
+[8784] Part of a Jester Doll (Right Leg)
+[5810] Pirate Voodoo Doll
+[6567] Santa Doll
+[10338] Santa Teddy
+[10339] Snowman Doll
+[5791] Stuffed Dragon
+[10294] Stuffed Toad
+[2993] Teddy Bear
+[8779] The Head of a Jester Doll
+[8780] The Torso of a Jester Doll
+[10217] Tome of Knowledge
+[123] Toy Mouse
+[8178] Toy Spider
+[10198] Tribal Crest
+[8191] Vampire Doll
+[3002] Dworc Voodoo Doll
+[3209] Voodoo Doll (King)
+[2989] Wooden Doll
+Kitchen Tool
+[3464] Baking Tray
+[2902] Bowl
+[3474] Bowl (Pirate, green)
+[3475] Bowl (Pirate, white)
+[3476] Bowl (Pirate, yellow)
+[3471] Cleaver
+[2881] Cup
+[2883] Cup (Pirate)
+[3467] Fork
+[2882] Jug
+[3479] Jug (Pirate, Blue)
+[3478] Jug (Pirate, Gold)
+[3480] Jug (Pirate, Green)
+[3477] Jug (Pirate, Silver)
+[3469] Kitchen Knife
+[2880] Mug
+[2884] Mug (Pirate)
+[3472] Oven Spatula
+[3466] Pan
+[2902] Plate
+[3473] Rolling Pin
+[3468] Spoon
+[3470] Wooden Spoon
+
+Troféu
+[7396] Behemoth Trophy
+[10244] Bonebeast Trophy
+[7398] Cyclops Trophy
+[7397] Deer Trophy
+[7393] Demon Trophy
+[10421] Disgusting Trophy
+[7399] Dragon Lord Trophy
+[9626] Golden Fafnar Trophy
+[7400] Lion Trophy
+[902] Marlin Trophy
+[7401] Minotaur Trophy
+[7395] Orc Trophy
+[9613] Sea Serpent Trophy
+[9627] Silver Fafnar Trophy
+[11679] Souleater Trophy
+[7394] Wolf Trophy
+
+Bolsas e Recipientes
+[2854] Brown Backpack
+[3253] Backpack of Holding
+[2853] Bag
+[2855] Basket
+[5949] Beach Backpack
+[5950] Beach Bag
+[2869] Blue Backpack
+[2861] Blue Bag
+[2469] Box
+[2473] Box (Brown)
+[8860] Brocade Backpack
+[8861] Brocade Bag
+[2872] Camouflage Backpack
+[2864] Camouflage Bag
+[2472] Chest
+[2471] Crate
+[9605] Crown Backpack
+[9601] Demon Backpack
+[10326] Dragon Backpack
+[10324] Expedition Backpack
+[10325] Expedition Bag
+[7342] Fur Backpack
+[7343] Fur Bag
+[2871] Golden Backpack
+[2863] Golden Bag
+[2865] Green Backpack
+[2857] Green Bag
+[2870] Grey Backpack
+[2862] Grey Bag
+[10202] Heart Backpack
+[6104] Jewel Case
+[5801] Jewelled Backpack
+[10327] Minotaur Backpack
+[9604] Moon Backpack
+[3244] Old and Used Backpack (Sam's old backpack)
+[9602] Orange Backpack
+[9603] Orange Bag
+[3503] Parcel
+[5926] Pirate Backpack
+[5927] Pirate Bag
+[2856] Present
+[2868] Purple Backpack
+[2860] Purple Bag
+[2867] Red Backpack
+[2859] Red Bag
+[10346] Santa Backpack
+[3504] Stamped Parcel
+[2866] Yellow Backpack
+[2858] Yellow Bag
+
+Recipiente de fluido
+[2893] Amphora
+[2875] Bottle
+[2885] Brown Flask
+[2873] Bucket
+[9083] Cocktail Glass
+[9232] Cocktail Glass (Empty)
+[2881] Cup
+[2883] Cup (Pirate)
+[2903] Golden Mug
+[2877] Green Flask
+[2882] Jug
+[3479] Jug (Pirate, Blue)
+[3478] Jug (Pirate, Gold)
+[3480] Jug (Pirate, Green)
+[3477] Jug (Pirate, Silver
+[2880] Mug
+[2884] Mug (Pirate)
+[3465] Pot
+[5552] Rum Flask
+[2876] Vase
+[2874] Vial
+[2901] Waterskin
+
+Documentos
+[3216] Bill
+[2813] Blank Paper
+[2817] Blank Poetry Parchment
+[6498] Certificate
+[6387] Christmas Card
+[2818] Document
+[637] Document (Certificate)
+[2834] Document (Writeable)
+[6522] Gingerbread Recipe
+[8153] Golden Newspaper
+[2851] Gray Tome
+[3507] Label
+[3505] Letter
+[5957] Lottery Ticket
+[2822] Map (Brown)
+[2823] Map (Colour)
+[7873] Note
+[641] Old Piece of Paper
+[2820] Paper
+[2814] Parchment
+[2815] Scroll
+[3506] Stamped Letter
+[5956] Used Lottery Ticket
+[6538] Valentine's Card
+[5958] Winning Lottery Ticket
+
+Mobiliária
+[9064] Crystal Pedestal (Blue)
+[9065] Crystal Pedestal (Cyan)
+[9066] Crystal Pedestal (Green)
+[9063] Crystal Pedestal (Red)
+
+Chaves
+[2967] Purple Key
+[2968] Wooden Key
+[2969] Silver Key
+[2970] Copper Key
+[2971] Crystal Key
+[2972] Golden Key
+[2973] Bone Key
+[7934] Silver Key (2)
+[9113] Magical Key
+[9172] Crystal Key (2)
+
+Game Piece
+[2990] Football
+[3533] Black Token
+[3534] White Token
+[3535] White Pawn
+[3536] White Castle
+[3537] White Knight
+[3538] White Bishop
+[3539] White Queen
+[3540] White King
+[3541] Black Pawn
+[3542] Black Castle
+[3543] Black Knight
+[3544] Black Bishop
+[3545] Black Queen
+[3546] Black King
+[3547] Tic-Tac-Toe Token (X)
+[3548] Tic-Tac-Toe Token (O)
+[5792] Dice: 1
+[10340] Heavy Ball
+
+Instrumentos musical
+[3103] Cornucopia
+[2965] Didgeridoo
+[2952] Drum
+[2955] Fanfare
+[2963] Harp
+[3257] Horn
+[3252] Horn of Sundering
+[3259] Immovable Post Horn
+[2950] Lute
+[2949] Lyre
+[2953] Panpipes
+[6572] Party Trumpet
+[6573] Party Trumpet (in use)
+[2959] Piano
+[2957] Post Horn
+[2956] Royal Fanfare
+[2954] Simple Fanfare
+[2951] War Drum
+[2958] War Horn
+[2948] Wooden Flute
+[5786] Wooden Whistle

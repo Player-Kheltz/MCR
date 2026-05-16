@@ -1,5 +1,5 @@
 PROJETO MCR – GUIA DE TRADUÇÃO E LOCALIZAÇÃO (PT‑BR)
-(Versão 5.2 – Conversão de nomes de personagem no cliente)
+(Versão 5.4 – Atualização para o Sistema de Progressão v2.1.1, novos termos e estrutura Revscript)
 Arquivo: [10] MCR - Guia de Tradução e Localização (PT‑BR).txt
 
 🎯 OBJETIVO DESTE GUIA
@@ -35,7 +35,26 @@ Reforço da máscara de Alma em mensagens do servidor.
 
 Conversão do nome do personagem recebido via JSON de login (HTTP) de UTF‑8 para Latin‑1 no cliente.
 
+⚠️ NOVO (v2.1.1): Terminologia do Sistema de Progressão do Aventureiro (Estados de Alma, Lampejo, Vínculo, Maestria, Posturas, Ímpeto, Equilíbrio, Guarda) e sua aplicação narrativa.
+
+⚠️ NOVO (v2.1.1): Estrutura Revscript – os scripts Lua do servidor são organizados em subpastas dentro de data-canary/scripts/MCR/ (ex.: Dominio, Criacao, Geral). A codificação ISO‑8859‑1 continua obrigatória para todos os scripts que exibem texto ao jogador.
+
 Este guia NÃO é opcional. Toda modificação no projecto DEVE passar por suas regras.
+
+🚧 ESTADO ATUAL DA IMPLEMENTAÇÃO
+
+A infraestrutura de tradução e localização está **funcional e consolidada**:
+
+- A pipeline de tradução automática (scripts Python) está completa e disponível.
+- O código C++ do servidor e cliente já foi traduzido para PT‑BR utilizando escapes octais Latin‑1.
+- O padrão error_code no Login Server e o mapeamento no cliente estão implementados e funcionam correctamente.
+- As regras de codificação de arquivos (ISO‑8859‑1 para scripts Lua, UTF‑8 com BOM para Go, etc.) são leis permanentes.
+- O módulo pronouns.lua está em `data-canary/scripts/MCR/Geral/` e é carregado automaticamente pelo Revscript; não se usa `dofile`.
+- A máscara de Alma e a conversão de nome (UTF‑8 → Latin‑1) estão aplicadas.
+- Os novos termos do Sistema de Progressão (Lampejo, Vínculo, etc.) estão definidos mas **não são expostos ao jogador** até que a Fase 2 (C++) seja concluída.
+- A coluna `lastlogin` existe na tabela `players` e pode ser referenciada sem problemas.
+
+As directrizes deste guia são imediatamente aplicáveis a qualquer criação ou modificação de texto no projecto.
 
 ⚠️ REGRAS DE REVISÃO PARA O ASSISTENTE (TRADUÇÃO E LOCALIZAÇÃO)
 
@@ -43,11 +62,11 @@ Ao gerar QUALQUER texto, código, comentário ou mensagem para o Projeto MCR, o 
 
 Escrever em português do Brasil CORRECTO (ortografia, acentuação, pontuação, concordância nominal e verbal).
 
-Identificar a camada em que o texto será usado e aplicar a codificação correta (ver secção 2 – Codificação por Tipo de Arquivo).
+Identificar a camada em que o texto será usado e aplicar a codificação correcta (ver secção 2 – Codificação por Tipo de Arquivo).
 
 Nunca usar traduções automáticas grosseiras. Preferir linguagem natural, coerente com a ambientação fantasiosa.
 
-Manter a consistência terminológica: usar os mesmos termos para os mesmos conceitos em todo o projecto (ex.: "vocação" não "classe", "personagem" não "boneco").
+Manter a consistência terminológica: usar os mesmos termos para os mesmos conceitos em todo o projecto (ex.: "Aventureiro" não "classe", "personagem" não "boneco").
 
 Respeitar a personalidade do NPC ao redigir diálogos (ver Guia de Narrativa).
 
@@ -59,15 +78,19 @@ Nunca usar "}?" junto; sempre "} ?" para evitar erro visual no cliente.
 
 Em todas as mensagens de sistema que mencionem o personagem convidado, aplicar a máscara de Alma (substituir "Guest_*" por "Alma").
 
-Em todas as mensagens dirigidas ao jogador, utilizar o pronome do personagem obtido via módulo pronouns.lua (Pronouns.getSubject, etc.). NÃO usar storage 100001.
+Em todas as mensagens dirigidas ao jogador, utilizar o pronome do personagem obtido via módulo pronouns.lua (Pronouns.getSubject, etc.). NÃO usar storage 100001. O módulo está em `data-canary/scripts/MCR/Geral/` e é carregado automaticamente; NÃO use `dofile` para carregá-lo.
 
 Ao traduzir código C++ (servidor ou cliente), utilizar SEMPRE a pipeline automática supervisionada: ferramentas de tradução automática seguidas de revisão humana. Apenas strings de interface e comentários são traduzidos; nomes de variáveis, funções e bindings Lua permanecem em inglês.
 
-Nos ficheiros .cpp/.h, representar caracteres acentuados através de escapes octais (\xyz) com os códigos da tabela Latin‑1 (ISO‑8859‑1). Isto evita problemas de BOM, compilador e encoding do sistema de ficheiros. Exemplo: "Nível" → "N\355vel"; "Vocação" → "Voca\347\343o".
+Nos ficheiros .cpp/.h, representar caracteres acentuados OBRIGATORIAMENTE através de escapes octais (\xyz) com os códigos da tabela Latin‑1 (ISO‑8859‑1). Isto evita problemas de BOM, compilador e encoding do sistema de ficheiros. Exemplo: "Nível" → "N\355vel"; "Vocação" → "Voca\347\343o". NÃO use UTF‑8 diretamente.
 
 Jamais alterar assinaturas de funções expostas ao Lua (registerMethod, registerClass). A tradução de strings internas não pode quebrar os nomes dos métodos visíveis nos scripts.
 
 Proteger ficheiros de cabeçalho (.h/.hpp): comentários podem ser traduzidos, mas macros, nomes de classes, enums e inclusões permanecem intactos.
+
+⚠️ NOVO (v2.1.1): Os termos do Sistema de Progressão (Lampejo, Vínculo, Maestria, Ímpeto, Equilíbrio, Guarda) devem ser usados exclusivamente na documentação e em mensagens narrativas quando estritamente necessário. No código, usar os identificadores em inglês (ex.: "lampejo", "vinculo", "maestria", "impeto", "equilibrio", "guarda") como strings internas, sem acentos, para evitar problemas de encoding em comparações.
+
+⚠️ NOVO (v2.1.1): Scripts Lua do servidor que exibem mensagens ao jogador devem ser salvos como ISO‑8859‑1, independentemente da subpasta onde residem (MCR/Dominio/, MCR/Criacao/, etc.). O Revscript não altera a codificação esperada pelo cliente.
 
 📋 1. ESCOPO DE APLICAÇÃO DO PT‑BR
 
@@ -95,6 +118,8 @@ Documentação do projecto (guias, DevLog, instruções).
 
 Mensagens de "look" (examinar) para criaturas e itens.
 
+As novas mensagens narrativas do Sistema de Progressão (feedback de Lampejo, Vínculo, Maestria, despertar de Domínio, etc.).
+
 Podem permanecer em INGLÊS:
 
 Nomes de variáveis, funções, classes, enums, namespaces (ex.: getPlayer, onLogin).
@@ -109,57 +134,35 @@ Comandos SQL e nomes de tabelas/colunas (ex.: SELECT * FROM accounts).
 
 Endpoints de API (/register, /login).
 
+Os identificadores internos dos Estados de Alma ("lampejo", "vinculo", "maestria") quando usados em comparações no código.
+
 📝 2. CODIFICAÇÃO POR TIPO DE ARQUIVO (REVISADA)
 
 Esta é a secção MAIS CRÍTICA deste guia. A codificação errada é a causa número 1 de bugs visuais (acentos corrompidos) no Projeto MCR.
 
-Tipo de Arquivo	Codificação	BOM?	Exemplo
-Scripts Lua do CLIENTE (dofile, módulos)	ISO‑8859‑1	Não	registro.lua, entergame.lua
-Scripts Lua do SERVIDOR (data/npc/, etc.)	ISO‑8859‑1	Não	oraculo.lua, npc_utils.lua, player.lua
-Código C++ (servidor e cliente)	UTF‑8 ou ASCII	COM	canary_server.cpp, main.cpp
-com escapes		(preferível usar escapes octais)
-Código Go (Login Server)	UTF‑8	COM	register.go, login.go
-Arquivos .otui (interface)	UTF‑8	SEM	register_window.otui
-Arquivos .xml (spawn, itens)	UTF‑8	SEM	MCR-npc.xml, items.xml
-Arquivos de configuração (.lua, .env)	UTF‑8	SEM	config.lua, .env
-Documentação (.txt)	UTF‑8	COM	MCR - Guia de *.txt
+Tipo de Arquivo | Codificação | BOM? | Exemplo
+Scripts Lua do CLIENTE (dofile, módulos) | ISO‑8859‑1 | Não | registro.lua, entergame.lua
+Scripts Lua do SERVIDOR (todas as subpastas) | ISO‑8859‑1 | Não | oraculo.lua, evento_kill.lua, player.lua
+Código C++ (servidor e cliente) com escapes octais (preferível) | UTF‑8 ou ASCII | COM | canary_server.cpp, main.cpp
+Código Go (Login Server) | UTF‑8 | COM | register.go, login.go
+Arquivos .otui (interface) | UTF‑8 | SEM | register_window.otui
+Arquivos .xml (spawn, itens) | UTF‑8 | SEM | MCR-npc.xml, items.xml
+Arquivos de configuração (.lua, .env) | UTF‑8 | SEM | config.lua, .env
+Documentação (.txt) | UTF‑8 | COM | MCR - Guia de *.txt
+
 Detalhamento:
 
 ⚠️ CÓDIGO C++ (SERVIDOR E CLIENTE):
-A partir da versão 5.0, todo o código‑fonte C++ do servidor e do cliente foi traduzido para PT‑BR utilizando uma pipeline de tradução automática supervisionada. Para garantir a máxima compatibilidade e evitar quaisquer artefactos de encoding, todas as strings que contêm acentos ou caracteres especiais são representadas exclusivamente através de escapes octais da tabela Latin‑1 (ISO‑8859‑1).
-
-Exemplo: "bem‑vindo ao Projeto MCR" pode ser escrito como "bem‑vindo ao Projeto MCR" (sem acentos) ou, se necessário, "bem‑vindo \340o Projeto MCR" para "à".
-
-NÃO se utiliza UTF‑8 directamente nas strings; o ficheiro pode ser salvo como ASCII puro, sem BOM, pois os escapes garantem a representação correcta.
-
-Comentários também seguem a mesma regra, embora seja preferível usar apenas caracteres ASCII nos comentários para evitar problemas.
+A partir da versão 5.0, todo o código‑fonte C++ do servidor e do cliente foi traduzido para PT‑BR utilizando uma pipeline de tradução automática supervisionada. Para garantir a máxima compatibilidade e evitar quaisquer artefactos de encoding, todas as strings que contêm acentos ou caracteres especiais são representadas exclusivamente através de escapes octais da tabela Latin‑1 (ISO‑8859‑1). Exemplo: "bem‑vindo ao Projeto MCR" pode ser escrito como "bem‑vindo ao Projeto MCR" (sem acentos) ou, se necessário, "bem‑vindo \340o Projeto MCR" para "à". NÃO se utiliza UTF‑8 directamente nas strings; o ficheiro pode ser salvo como ASCII puro, sem BOM, pois os escapes garantem a representação correcta. Comentários também seguem a mesma regra, embora seja preferível usar apenas caracteres ASCII nos comentários para evitar problemas.
 
 ⚠️ PROTEÇÃO DE BINDINGS LUA:
 Durante a tradução, foram preservados todos os nomes de funções e classes registados no Lua (ex.: Player::getPronoun, Game::logout). Nomes de parâmetros em C++ podem ser traduzidos nos comentários, mas nunca nos registerMethod ou registerClass.
 
 ⚠️ ISO‑8859‑1 (SCRIPTS LUA – CLIENTE E SERVIDOR):
-Scripts Lua que contenham strings acentuadas e sejam exibidos ao jogador (tanto no cliente quanto no servidor) DEVEM ser salvos como ISO‑8859‑1 (Latin‑1 / ANSI no Windows). Isso porque o OTClient interpreta todas as strings recebidas como Latin‑1, mesmo quando originadas de um script do servidor.
-
-Caracteres como 'ç', 'ã', 'é' são representados por um ÚNICO byte (ex.: 0xE7 = ç).
-
-Se salvo como UTF‑8, aparecerão como "Ã§", "Ã£", "Ã©" na interface.
-
-Essa regra se aplica a todos os scripts Lua que geram texto visível ao jogador, sejam eles do cliente (dofile) ou do servidor (data/creaturescripts/, data/events/, data/npc/).
+Scripts Lua que contenham strings acentuadas e sejam exibidos ao jogador (tanto no cliente quanto no servidor) DEVEM ser salvos como ISO‑8859‑1 (Latin‑1 / ANSI no Windows). Isso porque o OTClient interpreta todas as strings recebidas como Latin‑1, mesmo quando originadas de um script do servidor. Caracteres como 'ç', 'ã', 'é' são representados por um ÚNICO byte (ex.: 0xE7 = ç). Se salvo como UTF‑8, aparecerão como "Ã§", "Ã£", "Ã©" na interface. Essa regra se aplica a todos os scripts Lua que geram texto visível ao jogador, sejam eles do cliente (dofile) ou do servidor (em qualquer subpasta de data-canary/scripts/MCR/). A estrutura Revscript não altera este requisito.
 
 ⚠️ IMPACTO NO MAP EDITOR (RME)
-Os scripts de monstros e NPCs salvos como ISO‑8859‑1 causam um problema
-adicional no Remere's Map Editor (RME). O RME carrega esses ficheiros como
-bytes e depois assume que são UTF‑8 para criar as strings internas (wxString).
-Isto faz com que nomes com acentos apareçam em branco nas paletas de monstros
-e NPCs.
-
-Para resolver este problema, o código‑fonte do RME foi modificado para:
-1. Converter o conteúdo de ISO‑8859‑1 para UTF‑8 ao ler os ficheiros .lua
-   (função latin1_to_utf8 em encoding_utils.h).
-2. Estender o parser Lua com as funções resolveLocalVar e parseNpcConfig
-   para reconhecer padrões comuns nos scripts do Projeto MCR.
-
-Consulte o Guia [2] para detalhes das modificações e compilação do RME.
+Os scripts de monstros e NPCs salvos como ISO‑8859‑1 causam um problema adicional no Remere's Map Editor (RME). O RME carrega esses ficheiros como bytes e depois assume que são UTF‑8 para criar as strings internas (wxString). Isto faz com que nomes com acentos apareçam em branco nas paletas de monstros e NPCs. Para resolver este problema, o código‑fonte do RME foi modificado para: converter o conteúdo de ISO‑8859‑1 para UTF‑8 ao ler os ficheiros .lua (função latin1_to_utf8 em encoding_utils.h). Estender o parser Lua com as funções resolveLocalVar e parseNpcConfig para reconhecer padrões comuns nos scripts do Projeto MCR. Consulte o Guia [2] para detalhes das modificações e compilação do RME.
 
 ⚠️ UTF‑8 COM BOM (C++, GO):
 O compilador C++ e o compilador Go reconhecem o BOM e tratam o arquivo como UTF‑8. Isso garante acentuação correta em logs e mensagens internas.
@@ -177,7 +180,7 @@ O backend (Login Server) retorna um código de erro padronizado em INGLÊS, SEM 
 
 O cliente (Lua) possui uma TABELA DE MAPEAMENTO que traduz o error_code para a mensagem em PT‑BR (com acentos). Exemplo:
 
-lua
+```lua
 local ERROR_MESSAGES = {
     account_name_taken = "O nome de conta já está em uso.",
     password_too_weak = "A senha deve ter 8+ caracteres com letras e números.",
@@ -186,20 +189,17 @@ local ERROR_MESSAGES = {
     guest_creation_failed = "Falha ao criar conta convidada.",
     alma_creation_failed = "Falha ao criar personagem convidado.",
 }
-Esta tabela EXISTE no script Lua do cliente (registro.lua, entergame.lua, etc.), que está salvo como ISO‑8859‑1. Portanto, as strings em PT‑BR exibidas ao jogador terão os acentos CORRECTOS.
-
-NOVOS error_codes devem ser adicionados tanto no backend quanto na tabela de mapeamento do cliente.
+Esta tabela EXISTE no script Lua do cliente (registro.lua, entergame.lua, etc.), que está salvo como ISO‑8859‑1. Portanto, as strings em PT‑BR exibidas ao jogador terão os acentos CORRECTOS. NOVOS error_codes devem ser adicionados tanto no backend quanto na tabela de mapeamento do cliente.
 
 🔄 4. NOME DO PERSONAGEM VINDO DO JSON DE LOGIN (HTTP)
 
-O Login Server envia a lista de personagens e a resposta de autenticação em **JSON com codificação UTF‑8** (padrão obrigatório do formato). No entanto, o OTClient interpreta strings Lua como **ISO‑8859‑1** (Latin‑1) e o protocolo de jogo também utiliza Latin‑1.
+O Login Server envia a lista de personagens e a resposta de autenticação em JSON com codificação UTF‑8 (padrão obrigatório do formato). No entanto, o OTClient interpreta strings Lua como ISO‑8859‑1 (Latin‑1) e o protocolo de jogo também utiliza Latin‑1. Para evitar que o nome do próprio jogador apareça corrompido na interface (ex.: JoÃ£o em vez de João), todo o nome de personagem recebido via HTTP deve ser convertido de UTF‑8 para Latin‑1 antes de ser armazenado ou utilizado na interface.
 
-Para evitar que o nome do **próprio jogador** apareça corrompido na interface (ex.: `JoÃ£o` em vez de `João`), **todo o nome de personagem recebido via HTTP deve ser convertido de UTF‑8 para Latin‑1 antes de ser armazenado ou utilizado na interface**.
+A conversão é feita com a função utf8ToLatin1, que deve ser inserida no módulo entergame.lua (ou num módulo de utilidades carregado antes). O procedimento é:
 
-A conversão é feita com a função `utf8ToLatin1`, que deve ser inserida no módulo `entergame.lua` (ou num módulo de utilidades carregado antes). O procedimento é:
+Adicionar a função utf8ToLatin1 ao ficheiro:
 
-1. **Adicionar a função `utf8ToLatin1`** ao ficheiro:
-```lua
+lua
 -- Converte uma string UTF-8 para Latin‑1 (ISO 8859‑1)
 local function utf8ToLatin1(str)
     local result = {}
@@ -274,9 +274,9 @@ Usar o padrão culto da língua, mas com flexibilidade para personagens caricato
 
 Manter consistência: se um termo foi traduzido de uma forma, usar a mesma tradução em todo o projecto.
 
-Lista de termos padronizados (atualizada):
+Lista de termos padronizados (atualizada para v2.1.1):
 
-"vocação" (não "classe")
+"Aventureiro" (não "classe", "vocação", "knight", "druid" – o termo vocação foi abolido do jogo; permanece apenas em contexto técnico residual)
 
 "personagem" (não "char", "boneco")
 
@@ -304,6 +304,30 @@ Lista de termos padronizados (atualizada):
 
 "pipeline de tradução" – processo automático + revisão.
 
+⚠️ NOVOS TERMOS (v2.1.1):
+
+"Lampejo" – primeiro nível de Estado de Alma (substitui "Sintonia Imediata").
+
+"Vínculo" – segundo nível de Estado de Alma (substitui "Sintonia Profunda").
+
+"Maestria" – terceiro nível de Estado de Alma (permanente).
+
+"Ímpeto" – postura de combate (Full Attack nativo).
+
+"Equilíbrio" – postura de combate (Balanced nativo).
+
+"Guarda" – postura de combate (Full Defense nativo).
+
+"Domínio" – área de conhecimento (Primário ou Especialização).
+
+"Afinidade" – progresso numérico invisível no Domínio.
+
+"Sinergia" – habilidade desbloqueada pela combinação de Domínios.
+
+"Despertar" – acto de iniciar um novo Domínio.
+
+Estes termos podem aparecer na documentação, em logs de debug e em mensagens narrativas (ex.: "Sentes o Lampejo das chamas..."), mas NUNCA devem ser usados com os seus valores numéricos expostos ao jogador.
+
 🎭 7. MÁSCARA DE ALMA EM MENSAGENS DO SERVIDOR (REVISADA)
 
 O personagem convidado (Guest_*) deve ser sempre apresentado como "Alma" para o jogador. Esta substituição deve ser aplicada em TODAS as mensagens de sistema, incluindo:
@@ -321,23 +345,23 @@ A máscara é implementada nos scripts do servidor substituindo o nome real pelo
 lua
 local name = creature:getName()
 if name:sub(1,6) == "Guest_" then
-name = "Alma"
+    name = "Alma"
 end
 Arquivos que já possuem a máscara:
 
 data/creaturescripts/scripts/player.lua (onLookInBattleList)
 
 data/events/scripts/on_look.lua (handleCreatureDescription)
-Novos scripts que gerem mensagens com o nome do personagem devem incluir a mesma verificação.
 
-⚠️ Nota sobre a lista de personagens (cliente): O nome do personagem convidado (Guest_*) é recebido via JSON (UTF‑8) e depois mascarado para “Alma”. Após a máscara, também deve ser aplicada a conversão utf8ToLatin1 para garantir que o nome exibido na interface está na codificação correta.
+Novos scripts que gerem mensagens com o nome do personagem devem incluir a mesma verificação. Na estrutura Revscript, scripts de progressão que emitam mensagens de sistema também devem aplicar a máscara se mencionarem o nome do Alma.
+
+⚠️ Nota sobre a lista de personagens (cliente): O nome do personagem convidado (Guest_*) é recebido via JSON (UTF‑8) e depois mascarado para “Alma”. Após a máscara, também deve ser aplicada a conversão utf8ToLatin1 para garantir que o nome exibido na interface está na codificação correcta.
 
 📌 8. PRONOME DO PERSONAGEM EM MENSAGENS (ATUALIZADO)
 
-A partir da versão 4.0, todas as mensagens que se dirijam ao personagem devem respeitar o pronome definido na coluna players.pronoun, obtido preferencialmente pelo módulo pronouns.lua:
+A partir da versão 4.0, todas as mensagens que se dirijam ao personagem devem respeitar o pronome definido na coluna players.pronoun, obtido preferencialmente pelo módulo pronouns.lua. O módulo está em data-canary/scripts/MCR/Geral/pronouns.lua e é carregado automaticamente pelo Revscript; NÃO é necessário usar dofile.
 
 lua
-dofile('data/MCR Scripts/pronouns.lua')
 local subject = Pronouns.getSubject(player) -- "he", "she" ou "they"
 local object = Pronouns.getObject(player) -- "him", "her", "them"
 Exemplos de uso:
@@ -345,20 +369,22 @@ Exemplos de uso:
 Bem‑vindo: "Bem‑vindo" (he), "Bem‑vinda" (she), "Bem‑vinde" (they)
 
 Mensagens de sistema: "Parabéns, você foi promovido/a."
+
 Não definido (0): usar formas neutras ("viajante", "aventureiro(a)") ou perguntar ao jogador qual o pronome desejado e atualizar players.pronoun.
+
+Nos novos scripts da pasta MCR/Dominio, o módulo pronouns.lua está globalmente acessível; basta chamar Pronouns.getSubject(player) directamente.
 
 📋 9. TABELA DE ERROR_CODES (ATUALIZADA)
 
-error_code Mensagem em PT‑BR (cliente)
-account_name_taken O nome de conta já está em uso.
-password_too_weak A senha deve ter 8+ caracteres com letras
-e números.
-invalid_fields Preencha todos os campos correctamente.
-invalid_credentials Nome de conta ou senha incorretos.
-registration_success Conta criada com sucesso!
-guest_creation_failed Falha ao criar conta convidada.
-alma_creation_failed Falha ao criar personagem convidado.
-⚠️ ARMADILHAS E LIÇÕES APRENDIDAS (EXTRAÍDAS DO DEVLOG)
+error_code	Mensagem em PT‑BR (cliente)
+account_name_taken	O nome de conta já está em uso.
+password_too_weak	A senha deve ter 8+ caracteres com letras e números.
+invalid_fields	Preencha todos os campos correctamente.
+invalid_credentials	Nome de conta ou senha incorretos.
+registration_success	Conta criada com sucesso!
+guest_creation_failed	Falha ao criar conta convidada.
+alma_creation_failed	Falha ao criar personagem convidado.
+⚠️ ARMADILHAS E LIÇÕES APRENDIDAS (ATUALIZADAS)
 
 Acentos corrompidos no cliente e servidor: Scripts Lua de ambas as pontas DEVEM ser salvos como ISO‑8859‑1 para evitar artefactos. (Fase 22.3)
 
@@ -372,54 +398,44 @@ ISO‑8859‑1 vs ANSI: No Windows, "ANSI" é um apelido para a codificação Wi
 
 Mensagens de look do servidor estavam em inglês: Foram traduzidas ("You see" → "Você vê") e a máscara de Alma foi aplicada para consistência total.
 
+⚠️ v2.1.1 – Termos novos: Ao usar "Lampejo", "Vínculo", "Maestria" em mensagens narrativas, assegure‑se de que a string está em ISO‑8859‑1 e que o termo não é confundido com comandos ou variáveis.
+
+⚠️ v2.1.1 – Estrutura Revscript: Com scripts espalhados por subpastas, é fácil esquecer a codificação de um ficheiro. Crie o hábito de verificar a codificação ao criar qualquer novo script .lua que contenha acentos.
+
+⚠️ v2.1.1 – Coluna lastlogin: Confirmada a existência; sem impacto na localização.
+
 🔍 CHECKLIST DE REVISÃO PARA O ASSISTENTE (TRADUÇÃO E LOCALIZAÇÃO)
 
 Este checklist DEVE ser aplicado a QUALQUER modificação, independentemente da camada, pois a localização é transversal.
 
-Todo texto visível ao jogador está em PT‑BR com acentuação correta?
-
-Comentários de código estão em PT‑BR (exceto nomes de variáveis)?
-
-A codificação do arquivo está correta conforme a tabela da Secção 2?
-
-Scripts Lua (cliente e servidor) estão salvos como ISO‑8859‑1?
-
-Arquivos .otui estão salvos como UTF‑8 sem BOM?
-
-Strings enviadas do backend (Go) usam o padrão error_code (sem acentos)?
-
-O mapeamento error_code → mensagem PT‑BR existe no cliente Lua?
-
-Destaque no chat usa apenas {chaves} e NUNCA "}?" junto?
-
-O texto soa NATURAL e COERENTE com o universo MCR?
-
-A terminologia está padronizada (vocação, personagem, missão)?
-
-Mensagens do servidor aplicam a máscara de Alma para personagens Guest_*?
-
-Mensagens de look usam "Você vê" (não "You see")?
-
-Mensagens dirigidas ao personagem respeitam o pronome (via pronouns.lua)?
-
-Código C++ traduzido seguiu a pipeline automática supervisionada?
-
-Strings acentuadas em C++ foram convertidas para escapes octais Latin‑1?
-
-Nomes de bindings Lua (métodos, classes) permanecem inalterados?
-
-Ficheiros de cabeçalho (.h/.hpp) não tiveram macros ou declarações alteradas?
-
-O comando look (servidor) utiliza o módulo pronouns.lua para personalizar a descrição?
-
-Os nomes de personagens provenientes do JSON de login são convertidos de UTF‑8 para Latin‑1 no entergame.lua?
+☐ Todo texto visível ao jogador está em PT‑BR com acentuação correta?
+☐ Comentários de código estão em PT‑BR (exceto nomes de variáveis)?
+☐ A codificação do arquivo está correta conforme a tabela da Secção 2?
+☐ Scripts Lua (cliente e servidor, em todas as subpastas) estão salvos como ISO‑8859‑1?
+☐ Arquivos .otui estão salvos como UTF‑8 sem BOM?
+☐ Strings enviadas do backend (Go) usam o padrão error_code (sem acentos)?
+☐ O mapeamento error_code → mensagem PT‑BR existe no cliente Lua?
+☐ Destaque no chat usa apenas {chaves} e NUNCA "}?" junto?
+☐ O texto soa NATURAL e COERENTE com o universo MCR?
+☐ A terminologia está padronizada (Aventureiro, personagem, missão)?
+☐ Os novos termos do Sistema de Progressão (Lampejo, Vínculo, etc.) são usados correctamente e sem expor números?
+☐ Mensagens do servidor aplicam a máscara de Alma para personagens Guest_*?
+☐ Mensagens de look usam "Você vê" (não "You see")?
+☐ Mensagens dirigidas ao personagem respeitam o pronome (via pronouns.lua)?
+☐ Código C++ traduzido seguiu a pipeline automática supervisionada?
+☐ Strings acentuadas em C++ foram convertidas para escapes octais Latin‑1 (OBRIGATÓRIO)?
+☐ Nomes de bindings Lua (métodos, classes) permanecem inalterados?
+☐ Ficheiros de cabeçalho (.h/.hpp) não tiveram macros ou declarações alteradas?
+☐ O comando look (servidor) utiliza o módulo pronouns.lua para personalizar a descrição?
+☐ Os nomes de personagens provenientes do JSON de login são convertidos de UTF‑8 para Latin‑1 no entergame.lua?
+☐ O módulo pronouns.lua é acedido como global (sem dofile) a partir de MCR/Geral/?
 
 📤 COMO ATUALIZAR O REPOSITÓRIO GIT
 
 git add "<arquivos alterados>"
-git commit -m "feat(auth): <Comentário>"
+git commit -m "feat(lang): Atualiza guia de tradução com termos v2.1.1 e Revscript"
 git push origin main
 
 ⚠️ PowerShell: aspas duplas em caminhos com espaços.
 
-FIM DO GUIA DE TRADUÇÃO E LOCALIZAÇÃO (PT‑BR) — VERSÃO 5.2
+FIM DO GUIA DE TRADUÇÃO E LOCALIZAÇÃO (PT‑BR) — VERSÃO 5.4

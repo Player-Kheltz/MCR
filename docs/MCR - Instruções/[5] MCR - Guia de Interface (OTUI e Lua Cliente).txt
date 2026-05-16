@@ -1,49 +1,47 @@
-﻿PROJETO MCR – GUIA DE INTERFACE (OTUI E LUA CLIENTE)
-Versão 2.2 – Máscara de Alma, opcode 200, pipeline de tradução
+﻿Projeto MCR – Guia de Interface (OTUI e Lua Cliente)
+Versão 2.4 – Integração com o Sistema de Progressão v2.1.1 (opcodes 182/183/184, Posturas nativas, janela de conhecimento)
 Arquivo: [5] MCR - Guia de Interface (OTUI e Lua Cliente).txt
 
 🎯 OBJETIVO DESTE GUIA
 Este documento é a autoridade máxima sobre a criação e modificação de interfaces no OTClient Redemption para o Projeto MCR. Ele cobre:
 
-A sintaxe correcta de arquivos .otui (declarativa) e suas restrições severas.
-
-A criação de widgets via Lua (g_ui.createWidget, g_ui.displayUI).
-
-Métodos proibidos ou problemáticos na versão Redemption.
-
-Codificação obrigatória de scripts Lua com strings acentuadas (ISO‑8859‑1).
-
-Catálogo de fontes bitmap disponíveis e como usá‑las.
-
-Ajustes finos de alinhamento (text‑offset).
-
-A máscara de Alma na lista de personagens (integração com entergame.lua).
-
-Callback do opcode 200 para migração instantânea de conta.
-
-Referência à pipeline de tradução para manter a interface em PT‑BR.
+- A sintaxe correcta de arquivos .otui (declarativa) e suas restrições severas.
+- A criação de widgets via Lua (g_ui.createWidget, g_ui.displayUI).
+- Métodos proibidos ou problemáticos na versão Redemption.
+- Codificação obrigatória de scripts Lua com strings acentuadas (ISO‑8859‑1).
+- Catálogo de fontes bitmap disponíveis e como usá‑las.
+- Ajustes finos de alinhamento (text‑offset).
+- A máscara de Alma na lista de personagens (integração com entergame.lua).
+- Callback do opcode 200 para migração instantânea de conta.
+- Os novos opcodes do Sistema de Progressão v2.1.1: 182 (ícone de Vínculo), 183 (partículas de Estados de Alma) e 184 (janela de conhecimento).
+- A reutilização dos modos de luta nativos (Full Attack, Balanced, Full Defense) para as Posturas de Combate.
+- Referência à pipeline de tradução para manter a interface em PT‑BR.
 
 Sempre que o assistente for criar uma janela, modificar um layout .otui ou escrever um script Lua que produza interface visual, DEVE consultar este guia.
 
+🚧 ESTADO ATUAL DA IMPLEMENTAÇÃO
+
+Conforme o [Plano de Ação] Consolidado, a Fase 4 (Cliente) ainda não foi iniciada. Pontos relevantes:
+
+- O opcode 200 (migração de conta) já está implementado e funcional.
+- Os listeners para os opcodes 182, 183 e 184 **ainda não existem** nos módulos Lua do cliente. As especificações neste guia servem de referência para quando forem implementados.
+- As Posturas de Combate usam os modos de luta nativos do cliente, que já funcionam; nenhuma modificação de interface é necessária.
+- As regras de sintaxe OTUI, fontes, codificação ISO‑8859‑1 e métodos proibidos são válidas e aplicáveis imediatamente a qualquer criação de interface.
+- Scripts Lua do cliente (entergame.lua, registro.lua, etc.) devem ser salvos como ISO‑8859‑1.
+
 ⚠️ REGRAS DE REVISÃO PARA O ASSISTENTE (OTUI + LUA CLIENTE)
 
-Sintaxe OTUI: NUNCA usar chaves { } para agrupar propriedades. NUNCA usar comentários com --. A indentação é EXCLUSIVAMENTE com espaços. Widgets devem ser filhos directos da MainWindow para getChildById funcionar.
-
-Fontes: Usar apenas fontes do catálogo oficial (cipsoftFont, verdana‑11px‑rounded, small‑9px, etc.). Não usar fontes TrueType sem teste prévio.
-
-Strings: Toda string fixa na interface (labels, botões) em PT‑BR.
-
-Codificação dos scripts Lua carregados via dofile: ISO‑8859‑1 (Latin‑1). Esta é uma regra absoluta, documentada no DevLog (Fases 8, 22.3).
-
-Métodos proibidos no Redemption: Não usar setModal(true), setSize(w,h), center(). Preferir propriedades OTML (modal: true, center: true) ou cálculo manual de posição (setPosition com coordenadas calculadas).
-
-Comunicação com servidor: Requisições HTTP.get devem ter callback onError. Listeners de Extended Opcode devem verificar se buffer não é nil.
-
-Não usar HorizontalLayout em .otui; usar anchors e margens.
-
-Máscara de Alma: Qualquer alteração na lista de personagens deve preservar a substituição de "Guest_*" por "Alma" (ver secção 7).
-
-Tradução de interfaces: Todas as strings fixas devem estar em PT‑BR. Para modificações em massa, pode‑se utilizar a pipeline de tradução automática (scripts Python descritos no Índice Geral). Scripts Lua resultantes devem ser convertidos para ISO‑8859‑1 antes de serem salvos.
+- Sintaxe OTUI: NUNCA usar chaves { } para agrupar propriedades. NUNCA usar comentários com --. A indentação é EXCLUSIVAMENTE com espaços. Widgets devem ser filhos directos da MainWindow para getChildById funcionar.
+- Fontes: Usar apenas fontes do catálogo oficial (cipsoftFont, verdana‑11px‑rounded, small‑9px, etc.). Não usar fontes TrueType sem teste prévio.
+- Strings: Toda string fixa na interface (labels, botões) em PT‑BR.
+- Codificação dos scripts Lua carregados via dofile: ISO‑8859‑1 (Latin‑1). Esta é uma regra absoluta, documentada no DevLog (Fases 8, 22.3).
+- Métodos proibidos no Redemption: Não usar setModal(true), setSize(w,h), center(). Preferir propriedades OTML (modal: true, center: true) ou cálculo manual de posição (setPosition com coordenadas calculadas).
+- Comunicação com servidor: Requisições HTTP.get devem ter callback onError. Listeners de Extended Opcode devem verificar se buffer não é nil.
+- Não usar HorizontalLayout em .otui; usar anchors e margens.
+- Máscara de Alma: Qualquer alteração na lista de personagens deve preservar a substituição de "Guest_*" por "Alma" (ver secção 7).
+- Tradução de interfaces: Todas as strings fixas devem estar em PT‑BR. Para modificações em massa, pode‑se utilizar a pipeline de tradução automática (scripts Python descritos no Índice Geral). Scripts Lua resultantes devem ser convertidos para ISO‑8859‑1 antes de serem salvos.
+- ⚠️ NOVO (v2.1.1): Os opcodes 182, 183 e 184 são dedicados ao feedback do Sistema de Progressão. O cliente DEVE ter listeners implementados para eles (nos módulos Lua apropriados). Consulte a secção 9.
+- ⚠️ NOVO (v2.1.1): As Posturas de Combate (Ímpeto, Equilíbrio, Guarda) reutilizam os modos de luta nativos do cliente (Full Attack, Balanced, Full Defense). Nenhuma alteração visual ou estrutural é necessária para suportar essa mecânica; o servidor interpreta o fightMode e aplica os efeitos.
 
 📐 1. SINTAXE OTUI (ARQUIVOS .otui)
 
@@ -51,67 +49,61 @@ Arquivos .otui descrevem a hierarquia e as propriedades de widgets de forma decl
 
 REGRAS ABSOLUTAS:
 
-NÃO use comentários com --. O parser não os reconhece e gera erros.
-
-NÃO use chaves { } para aninhar estilos ou propriedades. Cada propriedade deve ser uma linha independente dentro do widget.
-
-Use APENAS espaços para indentação. Tabs podem causar "invalid indentation".
-
-Para strings fixas, use a propriedade text (ex.: text: Criar Conta). Evite !text, que tem comportamento inconsistente.
+- NÃO use comentários com --. O parser não os reconhece e gera erros.
+- NÃO use chaves { } para aninhar estilos ou propriedades. Cada propriedade deve ser uma linha independente dentro do widget.
+- Use APENAS espaços para indentação. Tabs podem causar "invalid indentation".
+- Para strings fixas, use a propriedade text (ex.: text: Criar Conta). Evite !text, que tem comportamento inconsistente.
 
 Exemplo CORRECTO de um arquivo .otui:
 
 MainWindow
-id: registerWindow
-width: 300
-height: 220
-modal: true
-center: true
+  id: registerWindow
+  width: 300
+  height: 220
+  modal: true
+  center: true
 
-Label
-id: titleLabel
-text: Criação de Conta
-font: verdana-11px-rounded
-anchors.top: parent.top
-anchors.left: parent.left
-anchors.right: parent.right
-margin-top: 15
+  Label
+    id: titleLabel
+    text: Criação de Conta
+    font: verdana-11px-rounded
+    anchors.top: parent.top
+    anchors.left: parent.left
+    anchors.right: parent.right
+    margin-top: 15
 
-TextEdit
-id: accountName
-font: verdana-10px
-anchors.top: titleLabel.bottom
-anchors.left: parent.left
-anchors.right: parent.right
-margin-top: 10
-margin-left: 20
-margin-right: 20
+  TextEdit
+    id: accountName
+    font: verdana-10px
+    anchors.top: titleLabel.bottom
+    anchors.left: parent.left
+    anchors.right: parent.right
+    margin-top: 10
+    margin-left: 20
+    margin-right: 20
 
-Button
-id: createButton
-text: Criar Conta
-font: verdana-10px
-anchors.top: accountName.bottom
-anchors.left: parent.left
-anchors.right: parent.right
-margin-top: 15
-margin-left: 50
-margin-right: 50
+  Button
+    id: createButton
+    text: Criar Conta
+    font: verdana-10px
+    anchors.top: accountName.bottom
+    anchors.left: parent.left
+    anchors.right: parent.right
+    margin-top: 15
+    margin-left: 50
+    margin-right: 50
 
 CARACTERÍSTICAS IMPORTANTES:
 
-Widgets são declarados como filhos directos da janela principal (MainWindow).
-
-Cada widget tem um id único que permite recuperá‑lo via getChildById.
-
-Ancoragem (anchors) define a posição relativa.
-
-Margens (margin-*) ajustam o espaçamento.
+- Widgets são declarados como filhos directos da janela principal (MainWindow).
+- Cada widget tem um id único que permite recuperá‑lo via getChildById.
+- Ancoragem (anchors) define a posição relativa.
+- Margens (margin-*) ajustam o espaçamento.
 
 O QUE NUNCA FAZER:
 MainWindow {
-id: registerWindow
--- isso quebra
+    id: registerWindow
+    -- isso quebra
 }
 
 🖼️ 2. CRIAÇÃO DE WIDGETS VIA LUA
@@ -124,6 +116,7 @@ lua
 local window = g_ui.displayUI('register_window.otui')
 local nameField = window:getChildById('accountName')
 local createButton = window:getChildById('createButton')
+
 Exemplo de criação programática (para casos simples):
 
 lua
@@ -137,31 +130,34 @@ local rootHeight = rootWidget:getHeight()
 local posX = (rootWidth - 300) / 2
 local posY = (rootHeight - 220) / 2
 window:setPosition({ x = posX, y = posY })
+
 Função segura para buscar widgets recursivamente:
 
 lua
 function recursiveGetChildById(widget, id)
-  if widget:getId() == id then return widget end
-  for i = 1, widget:getChildCount() do
-    local child = widget:getChildByIndex(i)
-    local found = recursiveGetChildById(child, id)
-    if found then return found end
-  end
-  return nil
+    if widget:getId() == id then return widget end
+    for i = 1, widget:getChildCount() do
+        local child = widget:getChildByIndex(i)
+        local found = recursiveGetChildById(child, id)
+        if found then return found end
+    end
+    return nil
 end
+
 🔤 3. FONTES BITMAP DISPONÍVEIS (CATÁLOGO OFICIAL)
 
 O OTClient utiliza fontes bitmap pré‑renderizadas (.otfont). NÃO há suporte a font‑size; o tamanho é intrínseco ao arquivo da fonte.
 
 Fontes recomendadas (testadas e funcionais):
 
-Nome da fonte Tamanho Uso sugerido
-cipsoftFont ~10px Texto geral, padrão Tibia
-verdana-11px-rounded 11px Títulos, destaques
-verdana-10px 10px Corpo de texto, rótulos
-small-9px 9px Textos pequenos, status
-sans-bold-16px 16px Títulos principais
-pVerdana Bold-11px 11px Títulos alternativos
+| Nome da fonte         | Tamanho   | Uso sugerido                  |
+|-----------------------|-----------|-------------------------------|
+| cipsoftFont           | ~10px     | Texto geral, padrão Tibia     |
+| verdana-11px-rounded  | 11px      | Títulos, destaques            |
+| verdana-10px          | 10px      | Corpo de texto, rótulos       |
+| small-9px             | 9px       | Textos pequenos, status       |
+| sans-bold-16px        | 16px      | Títulos principais            |
+| pVerdana Bold-11px    | 11px      | Títulos alternativos          |
 
 Fontes NÃO testadas (usar com cautela):
 
@@ -182,16 +178,17 @@ Este recurso é valioso para centralizar visualmente o texto em campos de entrad
 
 A lista abaixo é baseada em falhas reais documentadas ao longo do desenvolvimento. O assistente JAMAIS deve sugerir estes métodos.
 
-Método/Prática Motivo da proibição Alternativa
-window:setModal(true) Não funciona no Redemption (F11) modal: true no .otui
-window:center() Não funciona no Redemption (F11) center: true no .otui ou setPosition manual
-window:setSize(300, 220) Não aceita dois argumentos (F11) setWidth(300) e setHeight(220) separados
-Comentários -- no .otui Parser quebra (F21.3) Evitar comentários; documentar fora
-Chaves { } no .otui Parser quebra (F21.3) Estrutura plana com indentação
-HorizontalLayout Não definido na versão usada (F16) Anchors + margens manuais
-Fontes TrueType sem teste Compatibilidade não garantida (F22) Usar fontes bitmap do catálogo
-Strings UTF-8 em Lua cliente Corrompe acentos (F22.3) Salvar script Lua como ISO‑8859‑1
-setAttribute em widgets Comportamento inconsistente (F2) Usar propriedades OTUI ou setters dedicados
+| Método/Prática                | Motivo da proibição                   | Alternativa                                         |
+|-------------------------------|---------------------------------------|-----------------------------------------------------|
+| window:setModal(true)         | Não funciona no Redemption (F11)      | modal: true no .otui                                |
+| window:center()               | Não funciona no Redemption (F11)      | center: true no .otui ou setPosition manual         |
+| window:setSize(300, 220)      | Não aceita dois argumentos (F11)      | setWidth(300) e setHeight(220) separados            |
+| Comentários -- no .otui       | Parser quebra (F21.3)                 | Evitar comentários; documentar fora                 |
+| Chaves { } no .otui           | Parser quebra (F21.3)                 | Estrutura plana com indentação                     |
+| HorizontalLayout              | Não definido na versão usada (F16)    | Anchors + margens manuais                           |
+| Fontes TrueType sem teste     | Compatibilidade não garantida (F22)   | Usar fontes bitmap do catálogo                      |
+| Strings UTF‑8 em Lua cliente  | Corrompe acentos (F22.3)              | Salvar script Lua como ISO‑8859‑1                   |
+| setAttribute em widgets       | Comportamento inconsistente (F2)      | Usar propriedades OTUI ou setters dedicados         |
 
 💻 6. CODIFICAÇÃO DE SCRIPTS LUA COM ACENTOS (REGRA CRÍTICA)
 
@@ -201,29 +198,23 @@ Scripts .lua carregados pelo OTClient via dofile() ou como módulos são interpr
 
 Portanto:
 
-TODOS os scripts Lua que contêm strings acentuadas em PT‑BR e são executados no lado do CLIENTE devem ser salvos como ISO‑8859‑1 (Latin‑1).
-
-Isso inclui: registro.lua, entergame.lua, e qualquer módulo customizado.
-
-Se o arquivo for salvo como UTF‑8, caracteres como "ç", "ã", "é" aparecerão como "Ã§", "Ã£", "Ã©" na interface.
+- TODOS os scripts Lua que contêm strings acentuadas em PT‑BR e são executados no lado do CLIENTE devem ser salvos como ISO‑8859‑1 (Latin‑1).
+- Isso inclui: registro.lua, entergame.lua, e qualquer módulo customizado.
+- Se o arquivo for salvo como UTF‑8, caracteres como "ç", "ã", "é" aparecerão como "Ã§", "Ã£", "Ã©" na interface.
 
 Ferramentas para salvar como ISO‑8859‑1:
 
-Notepad++: Codificação → Codificar em ANSI (que é Latin‑1 no Windows Ocidental).
-
-VS Code: Clique em "UTF-8" na barra inferior → "Salvar com codificação" → "Western (ISO 8859‑1)".
+- Notepad++: Codificação → Codificar em ANSI (que é Latin‑1 no Windows Ocidental).
+- VS Code: Clique em "UTF-8" na barra inferior → "Salvar com codificação" → "Western (ISO 8859‑1)".
 
 Verificação rápida: abra o arquivo em um editor hex. O caractere "ç" deve ser representado pelo byte 0xE7 (e não 0xC3 0xA7 do UTF‑8).
 
 ARQUIVOS QUE DEVEM SER ISO‑8859‑1 (lista não exaustiva):
 
-modules/client_entergame/registro.lua
-
-modules/client_entergame/entergame.lua
-
-modules/game_alma/alma.lua (se existir)
-
-Qualquer script que contenha strings com acentos mostradas na UI.
+- modules/client_entergame/registro.lua
+- modules/client_entergame/entergame.lua
+- modules/game_alma/alma.lua (se existir)
+- Qualquer script que contenha strings com acentos mostradas na UI.
 
 EXCEÇÃO: Arquivos .otui podem ser UTF‑8 sem BOM (o parser do OTUI trata correctamente).
 
@@ -231,15 +222,11 @@ EXCEÇÃO: Arquivos .otui podem ser UTF‑8 sem BOM (o parser do OTUI trata corr
 
 O cliente possui um botão "Salão dos Destinos" no lugar de "Criar Conta". O fluxo é:
 
-Botão chama EnterGame.openSalaoDestinos().
-
-A função esconde a janela de login e faz HTTP.get para /guest_login.
-
-Com as credenciais recebidas, chama EnterGame.doAutoLogin(account, password, character).
-
-doAutoLogin autentica via /login, obtém os dados do personagem e chama g_game.loginWorld directamente.
-
-Após logout, EnterGame.showPanels decide se exibe a lista de personagens ou a tela de login, usando a flag isGuestSession.
+1. Botão chama EnterGame.openSalaoDestinos().
+2. A função esconde a janela de login e faz HTTP.get para /guest_login.
+3. Com as credenciais recebidas, chama EnterGame.doAutoLogin(account, password, character).
+4. doAutoLogin autentica via /login, obtém os dados do personagem e chama g_game.loginWorld directamente.
+5. Após logout, EnterGame.showPanels decide se exibe a lista de personagens ou a tela de login, usando a flag isGuestSession.
 
 ⚠️ IMPLEMENTAÇÃO DA MÁSCARA DE ALMA NA LISTA DE PERSONAGENS:
 
@@ -252,13 +239,14 @@ for _, characterInfo in pairs(characters) do
     end
     -- ... restante do loop
 end
+
 A máscara também foi implementada a nível do motor (C++) para garantir que o nome apareça como "Alma" em TODOS os contextos (nome sobre a cabeça, chat, barras). Ver Guia de Compilação (Cliente), secção "Customizações MCR – Máscara de Alma".
 
 Certifique‑se de que entergame.lua esteja salvo como ISO‑8859‑1.
 
 O .otui correspondente deve ter o botão com id="createAccountButton" (mantido para compatibilidade), texto "Salão dos Destinos" e onClick: EnterGame.openSalaoDestinos().
 
-📡 CALLBACK DO OPCODE 200 (MIGRAÇÃO DE CONTA)
+📡 8. CALLBACK DO OPCODE 200 (MIGRAÇÃO DE CONTA)
 
 O cliente escuta o opcode 200 através da seguinte função, registada no módulo entergame.lua:
 
@@ -275,56 +263,117 @@ ProtocolGame.registerExtendedOpcode(200, function(protocol, opcode, buffer)
     -- Inicia o novo login com as credenciais recebidas
     EnterGame.doAutoLogin(data.account, data.password, data.character)
 end)
+
 Este código garante uma transição praticamente instantânea entre a Alma e o personagem definitivo, sem atrasos artificiais. A função g_game.logout(false) foi implementada em C++ (Game::logout) e registada em luafunctions.cpp.
+
+📡 9. NOVOS OPCODES DO SISTEMA DE PROGRESSÃO v2.1.1 (A IMPLEMENTAR NO CLIENTE)
+
+O Sistema de Progressão do Aventureiro introduz três novos Extended Opcodes para feedback visual. O cliente DEVE possuir listeners para todos eles, embora actualmente ainda não estejam implementados (Fase 4 pendente).
+
+9.1 OPCODE 182 – ÍCONE DO VÍNCULO (ESTADO DE ALMA)
+
+- Objectivo: Atualizar o ícone no HUD que representa a especialização dominante (aquela em Vínculo activo).
+- Dados recebidos (JSON): { "dominioId": 20, "tooltip": "O fogo dança ao teu comando." }
+- Comportamento do cliente: Exibir ou atualizar o ícone no canto superior direito (hud.otui). A tooltip aparece ao passar o rato.
+
+Exemplo de listener:
+
+lua
+ProtocolGame.registerExtendedOpcode(182, function(protocol, opcode, buffer)
+    if not buffer or #buffer == 0 then return end
+    local data = json.decode(buffer)
+    -- atualizar HUD com data.dominioId e data.tooltip
+end)
+
+9.2 OPCODE 183 – PARTÍCULAS DE ESTADO DE ALMA
+
+- Objectivo: Disparar efeitos visuais temáticos (fagulhas, folhas, brilho) sobre o personagem quando um Lampejo ou Vínculo se forma.
+- Dados recebidos (JSON): { "tipo": "fogo", "intensidade": "vinculo" }
+- Comportamento do cliente: Iniciar uma animação de partículas sobre o jogador local. A intensidade ("lampejo" ou "vinculo") pode alterar a quantidade/densidade.
+
+Exemplo de listener:
+
+lua
+ProtocolGame.registerExtendedOpcode(183, function(protocol, opcode, buffer)
+    if not buffer or #buffer == 0 then return end
+    local data = json.decode(buffer)
+    -- disparar sistema de partículas com data.tipo e data.intensidade
+end)
+
+9.3 OPCODE 184 – EXAMINAR CONHECIMENTO (JANELA MODAL)
+
+- Objectivo: Quando o jogador clica com o botão direito num item de conhecimento (ex.: Livro de Feitiços), o servidor envia as informações para exibição numa janela modal.
+- Dados recebidos (JSON): { "titulo": "Livro de Feitiços", "descricao": "Um antigo tratado...", "habilidadeId": 10, "compreensivel": true }
+- Comportamento do cliente:
+  - Exibir uma janela modal com o título e a descrição.
+  - Se `compreensivel` for true, mostrar botão "Aprender" e "Fechar".
+  - Se `compreensivel` for false, mostrar a mensagem enigmática e apenas o botão "Fechar".
+  - Ao clicar "Aprender", enviar um pacote de volta ao servidor (ex.: opcode 185 ou mensagem no chat) confirmando o consumo.
+
+Exemplo de listener:
+
+lua
+ProtocolGame.registerExtendedOpcode(184, function(protocol, opcode, buffer)
+    if not buffer or #buffer == 0 then return end
+    local data = json.decode(buffer)
+    -- criar janela modal com data.titulo, data.descricao, botoes condicionais
+end)
+
+Todos estes opcodes dependem de `extendedOpcode = true` no OTCFEATURES (já configurado).
+
+🎮 10. POSTURAS DE COMBATE – REUTILIZAÇÃO DOS MODOS DE LUTA NATIVOS
+
+As Posturas de Combate (Ímpeto, Equilíbrio, Guarda) definidas no Sistema de Progressão v2.1.1 utilizam os modos de luta nativos do cliente Tibia:
+
+- Full Attack → Ímpeto
+- Balanced → Equilíbrio
+- Full Defense → Guarda
+
+Estes modos são acessíveis pelas hotkeys padrão (Ctrl+A, Ctrl+B, Ctrl+D) e pelos ícones no painel de combate do cliente.
+
+NENHUMA modificação é necessária no cliente para suportar esta mecânica. O servidor interpreta o `fightMode` (0=full attack, 1=balanced, 2=full defense) enviado pelo cliente e aplica os efeitos correspondentes (dano, alcance, sangramento, defesa, etc.) com base na arma equipada e na Especialização do Aventureiro.
+
+O feedback narrativo (ex.: "Você assume uma postura de Ímpeto.") é gerido pelo servidor e enviado via chat (MESSAGE_EVENT_ADVANCE ou similar). O cliente apenas exibe a mensagem no chat, como qualquer outra.
+
+Em resumo: o sistema de Posturas é totalmente transparente para o cliente; a interface permanece inalterada.
 
 ⚠️ ARMADILHAS E LIÇÕES APRENDIDAS
 
-Erro "VerticalLayout is not defined": Causado por uso de layouts não suportados. Prefira sempre ancoragem manual (anchors) (Fase 2).
-
-Botão "Criar Conta" não funcionava: O evento onClick deve estar dentro do bloco do botão no .otui ou criado programaticamente com bind. Múltiplos comandos em onClick devem usar pipe | como separador (Fases 8, 11).
-
-Caminhos relativos no dofile: Dentro de módulos, o contexto de execução pode mudar. Use caminho absoluto com barra inicial (ex.: dofile('/registro.lua')) para garantir a localização correcta (Fase 11).
-
-Widget não encontrado (nil): Se getChildById retorna nil, verifique se o widget é filho directo da janela. Use recursiveGetChildById como fallback (Fase 21.3).
-
-Janela não centralizava: center: true no .otui pode falhar em algumas versões. Calcule as coordenadas manualmente usando getWidth/getHeight do rootWidget (Fase 14).
-
-Notificações com acentos corrompidos: Resolvido com error_code no backend e mapeamento no cliente Lua ISO‑8859‑1. NUNCA envie strings acentuadas no JSON de resposta (Fase 22.3).
-
-Tentativa de máscara de nome via Lua falhou: O motor não expõe método para alterar o nome de exibição do jogador local. A solução foi modificar a função setName() da classe Creature em C++ (Fase actual).
+- Erro "VerticalLayout is not defined": Causado por uso de layouts não suportados. Prefira sempre ancoragem manual (anchors) (Fase 2).
+- Botão "Criar Conta" não funcionava: O evento onClick deve estar dentro do bloco do botão no .otui ou criado programaticamente com bind. Múltiplos comandos em onClick devem usar pipe | como separador (Fases 8, 11).
+- Caminhos relativos no dofile: Dentro de módulos, o contexto de execução pode mudar. Use caminho absoluto com barra inicial (ex.: dofile('/registro.lua')) para garantir a localização correcta (Fase 11).
+- Widget não encontrado (nil): Se getChildById retorna nil, verifique se o widget é filho directo da janela. Use recursiveGetChildById como fallback (Fase 21.3).
+- Janela não centralizava: center: true no .otui pode falhar em algumas versões. Calcule as coordenadas manualmente usando getWidth/getHeight do rootWidget (Fase 14).
+- Notificações com acentos corrompidos: Resolvido com error_code no backend e mapeamento no cliente Lua ISO‑8859‑1. NUNCA envie strings acentuadas no JSON de resposta (Fase 22.3).
+- Tentativa de máscara de nome via Lua falhou: O motor não expõe método para alterar o nome de exibição do jogador local. A solução foi modificar a função setName() da classe Creature em C++ (Fase actual).
+- ⚠️ v2.1.1 – Listeners de opcode em falta: Se os opcodes 182, 183 e 184 não tiverem listeners, o HUD de Vínculo, as partículas e a janela de conhecimento simplesmente não aparecerão. Verifique se os módulos Lua apropriados contêm os listeners antes de testar.
 
 🔍 CHECKLIST DE REVISÃO PARA O ASSISTENTE (OTUI + LUA CLIENTE)
 
 Antes de finalizar qualquer modificação em .otui ou script Lua cliente, o assistente DEVE verificar:
 
-O arquivo .otui não contém comentários -- nem chaves { } e usa espaços para indentação?
-
-Widgets usam text (não !text) e fontes do catálogo oficial?
-
-A hierarquia é plana (filhos directos da MainWindow) para getChildById funcionar?
-
-Janelas modais usam modal: true e center: true (ou centralização manual)?
-
-Não foi usado HorizontalLayout; a ancoragem é via anchors e margens?
-
-Scripts Lua com acentos estão salvos como ISO‑8859‑1?
-
-Métodos proibidos (setModal, setSize duplo, center) NÃO foram usados?
-
-Comunicação HTTP.get tem callback onError? Listeners de opcode checam buffer nil?
-
-Strings da interface estão em PT‑BR e foram testadas com acentos?
-
-A lista de personagens aplica a máscara de Alma para Guest_* (se aplicável)?
-
-Se foram feitas traduções em massa, os scripts foram passados pela pipeline e convertidos para ISO‑8859‑1?
+☐ O arquivo .otui não contém comentários -- nem chaves { } e usa espaços para indentação?
+☐ Widgets usam text (não !text) e fontes do catálogo oficial?
+☐ A hierarquia é plana (filhos directos da MainWindow) para getChildById funcionar?
+☐ Janelas modais usam modal: true e center: true (ou centralização manual)?
+☐ Não foi usado HorizontalLayout; a ancoragem é via anchors e margens?
+☐ Scripts Lua com acentos estão salvos como ISO‑8859‑1?
+☐ Métodos proibidos (setModal, setSize duplo, center) NÃO foram usados?
+☐ Comunicação HTTP.get tem callback onError? Listeners de opcode checam buffer nil?
+☐ Strings da interface estão em PT‑BR e foram testadas com acentos?
+☐ A lista de personagens aplica a máscara de Alma para Guest_* (se aplicável)?
+☐ Se foram feitas traduções em massa, os scripts foram passados pela pipeline e convertidos para ISO‑8859‑1?
+☐ Os listeners para os opcodes 182, 183 e 184 estão implementados no cliente? (Verificar estado da Fase 4)
+☐ A janela de conhecimento (opcode 184) suporta os botões "Aprender" e "Fechar"?
+☐ Os modos de luta nativos (Full Attack/Balanced/Full Defense) permanecem inalterados e funcionais?
+☐ O callback do opcode 200 (migração de conta) está funcional?
 
 📤 COMO ATUALIZAR O REPOSITÓRIO GIT
 
 git add "<arquivos alterados>"
-git commit -m "feat(auth): <Comentário>"
+git commit -m "feat(client): <Comentário>"
 git push origin main
 
 ⚠️ PowerShell: aspas duplas em caminhos com espaços.
 
-FIM DO GUIA DE INTERFACE (OTUI E LUA CLIENTE) — VERSÃO 2.2
+FIM DO GUIA DE INTERFACE (OTUI E LUA CLIENTE) — VERSÃO 2.4

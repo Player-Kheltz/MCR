@@ -1,434 +1,152 @@
-PROJETO MCR – SISTEMA DE PROGRESSÃO DO AVENTUREIRO
-(Versão 2.0 – Sintonia em camadas, progressão logarítmica e integração com o tutorial)
+📘 Projeto MCR – Documentação do Sistema de Progressão do Aventureiro (SPA)
+Versão: 2.1.1
 Arquivo: [Documentação] MCR - Sistema de Progressão do Aventureiro.txt
 
-🎯 OBJETIVO DESTE DOCUMENTO
-Definir a arquitetura completa e as regras de design do Sistema de Progressão
-do Aventureiro, que substitui integralmente o conceito de vocações no Projeto
-MCR. Este documento serve como bússola para a implementação de um personagem
-único, capaz de despertar e dominar múltiplos Domínios de conhecimento de
-forma orgânica, sem restrições artificiais, com progressão invisível e
-Sintonia Natural em camadas.
-
-Esta versão 2.0 incorpora:
-- Vocação "Aventureiro" (vocation = 0) como padrão.
-- Sintonia em três camadas (Imediata, Profunda, Maestria).
-- Curva de progressão logarítmica das Afinidades.
-- Economia de conhecimento com itens consumíveis e janela modal.
-- Sinergia avançada entre Domínios.
-- Integração total com o Tutorial da Ilha do Despertar.
-
-⚠️ REGRAS DE REVISÃO PARA O ASSISTENTE (SISTEMA DE PROGRESSÃO)
-
-Ao projectar ou modificar QUALQUER componente relacionado à progressão do
-jogador, o assistente DEVE:
-
-- Abolir qualquer resquício de vocação: o jogador é sempre um Aventureiro
-  (vocation = 0). As demais vocações permanecem no banco apenas como
-  herança técnica; NUNCA são oferecidas ou mencionadas.
-
-- Garantir que o aprendizado de habilidades, magias e ofícios seja
-  EXCLUSIVAMENTE orgânico: através de descobertas no mundo (itens, NPCs,
-  quests, eventos), nunca por uma tela de selecção.
-
-- A progressão (Afinidade) DEVE ser invisível. Nenhuma barra, número ou
-  porcentagem. O feedback vem exclusivamente de mudanças no mundo e
-  mensagens narrativas no chat.
-
-- A Sintonia Natural deve operar em três camadas automáticas (Imediata,
-  Profunda, Maestria) sem qualquer acção deliberada do jogador.
-
-- Novas habilidades desbloqueadas devem ser imediatamente integradas à
-  narrativa do personagem.
-
-- Itens de conhecimento (pergaminhos, livros, receitas) são consumíveis e
-  devem usar janela modal de confirmação antes do consumo, com narrativa
-  imersiva.
-
-- O sistema deve ser modular (future-proof): novos Domínios, habilidades e
-  sinergias são inseridos via banco de dados e scripts Lua, nunca alterando
-  o núcleo C++.
-
-- O Aventureiro sem Domínios despertados possui capacidades básicas (ataque
-  corporal, uso de ferramentas, equipamento simples), aprendendo magias
-  apenas ao despertar Domínios Mágicos.
-
-- Respeitar integralmente os Pilares Permanentes, especialmente:
-  Pilar 1 (100% no cliente), Pilar 4 (Imersão Narrativa) e Pilar 5 (Chat
-  com {chaves} + HUD + Toast).
-
-📜 1. VISÃO GERAL: O FIM DAS VOCAÇÕES
-
-No Projeto MCR não existem vocações tradicionais. O jogador não escolhe ser
-Knight, Paladin, Sorcerer ou Druid. Ele cria um Aventureiro — uma alma que
-desperta no mundo e constrói sua identidade através das experiências que vive.
-
-O campo `vocation` na tabela `players` assume o valor 0 para todo personagem.
-As vocações antigas (1 a 5) permanecem no banco por compatibilidade técnica,
-mas nunca são atribuídas a novos personagens nem verificadas pelo código.
-
-A progressão é construída sobre quatro pilares:
-
-- Domínios: grandes áreas de conhecimento (Fogo, Lâminas, Bestas, Forja,
-  Cultivo). O jogador não escolhe; ele Desperta através de experiências.
-
-- Afinidade: valor numérico interno, invisível, que mede a maestria do
-  jogador sobre um Domínio. Progressão logarítmica.
-
-- Sintonia Natural: bónus passivo e dinâmico em três camadas (Imediata,
-  Profunda, Maestria), baseado nas acções recentes do jogador.
-
-- Habilidades: poderes específicos (activos ou passivos) desbloqueados ao
-  atingir limiares de Afinidade, encontrados no mundo ou ensinados por NPCs.
-
-🌱 2. O NASCIMENTO DO AVENTUREIRO (CRIAÇÃO)
-
-Durante a criação do personagem no Salão dos Destinos (Guia [8]), após
-definir nome, pronome e sexo, o Oráculo não pergunta qual a vocação. Em
-vez disso, oferece uma benção narrativa:
-
-"O véu se fecha sobre o seu destino. Não vejo um caminho único, mas uma
- tapeçaria de fios infinitos. Você não será limitado por títulos, jovem
- aventureiro. O mundo lhe ensinará tudo, se tiver a ousadia de buscar.
- Que as estrelas guiem o seu despertar."
-
-Internamente, o personagem é criado com `vocation = 0`. Todos os itens,
-magias e habilidades são acessíveis, embora a eficácia dependa dos
-atributos e Domínios despertados.
-
-Após a criação, o personagem é transportado para a Ilha do Despertar
-(Eridanus), onde o tutorial o iniciará nos primeiros Domínios.
-
-📚 3. DOMÍNIOS: AS TRILHAS DO CONHECIMENTO
-
-Um Domínio é uma esfera de conhecimento ou poder. O personagem pode
-despertar e progredir em múltiplos Domínios ao longo da jornada.
-
-3.1 LISTA INICIAL DE DOMÍNIOS
-
-Domínios Elementais: Fogo, Água, Terra, Ar, Sombra, Luz
-Domínios Arcanos: Transmutação, Ilusão, Necromancia
-Domínios Marciais: Lâminas, Impacto, Precisão, Combate Duplo
-Domínios da Natureza: Bestas, Botânica, Sintonia Feral
-Domínios de Ofício: Forja, Herbalismo, Culinária, Cultivo, Mineração,
-    Pesca, Carpintaria
-Domínios Místicos: Runologia, Eterismo, Vidência
-
-Cada Domínio tem um identificador numérico único e é armazenado nas
-tabelas `dominios_def` e `player_dominios`.
-
-3.2 MODULARIDADE TOTAL
-
-NOVOS Domínios são adicionados apenas com:
-1. INSERT na tabela `dominios_def`.
-2. INSERTs em `habilidades_def`.
-3. Entradas no arquivo `config_dominios.lua`.
-
-O núcleo C++ jamais precisa ser alterado para suportar novos Domínios.
-
-🌠 4. DESPERTAR DE DOMÍNIOS
-
-O jogador Desperta um Domínio quando cumpre certas condições no mundo.
-O momento é sempre marcado por feedback narrativo (mensagem no chat) e
-pode ser acompanhado por efeito visual ou som.
-
-4.1 MÚLTIPLOS GATILHOS
-Cada Domínio deve oferecer DIVERSAS maneiras de ser despertado. Exemplo
-para o Domínio das Chamas:
-
-a) Usar um grimório "Tratado das Chamas Iniciais" (item consumível).
-b) Completar a quest "O Coração da Montanha" com o Eremita Vulcânico.
-c) Ser atingido por um ataque de fogo de um Dragão Ancião enquanto
-   segura um Catalisador Elemental.
-d) Atingir Magic Level 10 sem nenhum Domínio Elemental — o mana
-   acumulado provoca um "chamado do fogo interior".
-e) Durante o tutorial, completar a missão "O Sopro da Vida" com Lyra.
-
-Se o jogador ignora o primeiro gatilho, outros surgirão. O mundo insiste.
-
-4.2 DESPERTAR INICIAL NO TUTORIAL (ERIDANUS)
-
-O tutorial da Ilha do Despertar é a iniciação orgânica aos Domínios.
-Ao final, o jogador terá despertado pelo menos:
-
-- Lâminas (combate com espada, missão com Thorne)
-- Herbalismo (coleta de ervas, missão com Lyra)
-- Um Domínio Elemental (runa de fogo, missão com Lyra)
-- Mineração (uso de picareta, missão com Mira)
-- Pesca (uso de vara de pescar, missão com Corvus)
-
-Os NPCs nunca dizem "você despertou o Domínio X". Em vez disso, narram
-a mudança:
-"O aço já não é um estranho em suas mãos. Você e a lâmina começam a
- entender-se."
-
-Internamente, o sistema chama `despertarDominio(player, dominioId)`.
-
-📈 5. PROGRESSÃO INTERNA: AFINIDADE
-
-Cada Domínio possui uma Afinidade (inteiro ≥ 0), invisível para o
-jogador. Ela aumenta quando o jogador:
-
-- Usa habilidades/magias do Domínio.
-- Completa missões relacionadas.
-- Cria itens ou realiza ofícios do Domínio.
-- Interage com NPCs mestres.
-
-5.1 CURVA DE PROGRESSÃO LOGARÍTMICA
-
-A progressão não é linear. Usa-se a fórmula:
-ganho = max(1, base - (afinidade_atual / divisor_por_dominio))
-
-| Afinidade Atual | Ganho por acção (base=5, divisor=20) |
-|----------------|---------------------------------------|
-| 0-19 | 5 |
-| 20-39 | 4 |
-| 40-59 | 3 |
-| 60-79 | 2 |
-| 80+ | 1 |
-
-5.2 MULTIPLICADORES DE GANHO
-
-| Condição | Multiplicador |
-|----------|--------------|
-| Sintonia Imediata activa | 1,5x |
-| Sintonia Profunda activa | 2,0x |
-| Bónus de Maestria (Afinidade 80+) | 2,5x |
-
-Estes multiplicadores são cumulativos. Um Mestre de Fogo (80+) com
-Sintonia Profunda ganha 1 × 2,5 × 2,0 = 5 pontos por acção — o mesmo
-que um novato sem bónus. A diferença é que o Mestre já desbloqueou tudo
-e está a refinar-se.
-
-5.3 LIMIARES DE EVENTOS
-
-Certos valores de Afinidade disparam Eventos de Maestria:
-
-- Afinidade 1: Domínio despertado.
-- Afinidade 10: primeira habilidade do Domínio.
-- Afinidade 25: passiva intermédia.
-- Afinidade 50: quest especial de maestria.
-- Afinidade 80: título narrativo (ex.: "Mestre das Chamas").
-- Afinidade 100+: sinergia com outros Domínios (combos).
-
-5.4 FEEDBACK AO JOGADOR
-
-NENHUM número é exibido. Em vez disso:
-
-- Ao atingir um limiar: mensagem no chat como "Você sente um novo
-  entendimento das chamas...".
-- NPCs reagem à sua maestria: "Vejo que o fogo já lhe obedece."
-- O HUD mostra o ícone da Sintonia Actual, não a Afinidade.
-
-🔥 6. SINERGIA E APRENDIZADO ÚNICO
-
-O jogador nunca "reaprende" uma habilidade. Se já possui Bola de Fogo,
-a próxima recompensa de fogo é diferente e cumulativa.
-
-6.1 EXEMPLO DE PROGRESSÃO (DOMÍNIO FOGO)
-
-| Afinidade | Desbloqueio |
-|-----------|------------|
-| 1 (despertar) | Bola de Fogo (activa) |
-| 15 | Chama Interior (passiva: +5% dano fogo) |
-| 30 | Muralha de Fogo (activa) |
-| 50 | Coração Elemental (quest) → Explosão Solar |
-| 60 | Chama Interior melhorada (+10%) |
-| 80 | Título "Mestre das Chamas" |
-| 100 | Sinergia com Lâminas → Lâmina Vulcânica |
-
-6.2 SINERGIA AVANÇADA ENTRE DOMÍNIOS
-
-Habilidades que exigem dois ou mais Domínios são o ápice da progressão.
-Exemplos:
-
-- Lâmina Vulcânica: Fogo 50 + Lâminas 50.
-- Besta Arcana: Bestas 60 + Transmutação 40.
-- Runas Vinculadas: Runologia 70 + Eterismo 50.
-
-Estas habilidades sinérgicas são desbloqueadas por NPCs, quests especiais
-ou itens raríssimos.
-
-🌊 7. SINTONIA NATURAL EM TRÊS CAMADAS
-
-A Sintonia Natural é um bónus automático baseado nas acções recentes do
-jogador. Opera em três camadas independentes.
-
-7.1 CAMADA 1: SINTONIA IMEDIATA (TÁCTICA)
-
-Gatilho: 10 acções consecutivas do mesmo Domínio em 5 minutos.
-Feedback: mensagem no chat + partículas/brilho no personagem.
-Efeito: +10% dano/eficácia no Domínio; custo de mana -5%.
-Duração: persiste enquanto mantiver o estilo; esvanece após 2 min sem acção.
-
-7.2 CAMADA 2: SINTONIA PROFUNDA (ESTRATÉGICA)
-
-Gatilho: nas últimas 100 acções de Domínio, mais de 51% são do mesmo tipo.
-Feedback: mensagem no chat + aura visual mais intensa.
-Efeito: +20% dano/eficácia; custo de mana -10%; ganho de Afinidade ×2,0.
-Duração: persiste até que a proporção mude.
-
-7.3 CAMADA 3: MAESTRIA (PERMANENTE)
-
-Gatilho: Afinidade do Domínio atinge 80.
-Efeito: a Sintonia Imediata agora requer apenas 5 acções para activar.
-Narrativa: "O fogo já não precisa de convite — ele dança ao seu comando."
-
-Esta camada não é uma Sintonia separada, mas uma evolução permanente que
-facilita a activação das camadas anteriores.
-
-7.4 FEEDBACK AO JOGADOR
-
-- HUD: ícone da Sintonia Actual (opcode 182), com tooltip poético.
-- Chat: mensagem apenas quando a Sintonia muda de camada.
-- Cooldown de notificação: 5 minutos entre avisos para evitar spam.
-- Efeitos visuais: partículas (fagulhas para Fogo, folhas para Bestas,
-  brilho metálico para Lâminas) via opcode 183.
-
-🏡 8. OFÍCIOS E A FAZENDA COMUNITÁRIA
-
-Os Domínios de Ofício funcionam exactamente como os demais: têm
-Afinidade, Sintonia e progressão por uso.
-
-8.1 FAZENDA COMUNITÁRIA
-Local fixo no mapa ("Campos Verdejantes") onde qualquer jogador pode
-plantar, cuidar de animais e colher. Jogadores com alta Afinidade em
-Cultivo conseguem plantar sementes raras. Animais fornecem lã, leite
-e ingredientes alquímicos. A fazenda é gerida por NPCs.
-
-8.2 CRAFTING AVANÇADO
-Receitas especiais exigem Afinidade mínima em múltiplos Domínios.
-Exemplo: forjar uma "Lâmina Vulcânica" exige Forja 40 e Fogo 30.
-
-📖 9. ECONOMIA DE CONHECIMENTO
-
-Itens que despertam Domínios ou ensinam habilidades são CONSUMÍVEIS.
-
-9.1 FLUXO DE USO
-1. Jogador clica com botão direito no item (ex.: "Grimório das Chamas").
-2. O cliente envia opcode 184 (Examinar Conhecimento).
-3. O servidor verifica se o jogador tem Afinidade mínima (se aplicável).
-4. Se compreensível: retorna JSON com nome, descrição, Domínio/habilidade.
-5. Se incompreensível: retorna mensagem enigmática.
-6. O cliente exibe janela MODAL com:
-   - Título do item.
-   - Texto narrativo imersivo.
-   - Botão "Aprender" (consome o item).
-   - Botão "Fechar" (mantém o item).
-
-9.2 INCOMPREENSIBILIDADE
-Certos itens exigem Afinidade mínima para serem compreendidos. Se o
-jogador não a possui, a modal mostra:
-"As palavras dançam diante de seus olhos, mas o significado lhe escapa.
- Talvez um dia você esteja pronto."
-
-9.3 COMERCIALIZAÇÃO
-Por serem consumíveis, estes itens podem ser vendidos, trocados ou
-doados. Isto cria uma economia de conhecimento onde jogadores podem
-especializar-se em encontrar e comercializar saberes raros.
-
-🗣️ 10. NARRATIVA REATIVA E INTIMIDADE
-
-Todos os NPCs (Guia [6]) devem estar cientes dos Domínios do jogador,
-adaptando diálogos conforme a Afinidade e intimidade (storages 100010+).
-
-- Um ferreiro, ao notar Afinidade em Forja: "Vejo que a bigorna já não
-  tem segredos para si. Quer aprender a trabalhar o aço astral?"
-- Um mestre espadachim oferece técnicas secretas apenas quando a
-  intimidade for "Amigo" (2) e a Afinidade em Lâminas > 40.
-
-O pronome do personagem (pronouns.lua) é sempre respeitado.
-
-🖥️ 11. INTERFACE E HUD
-
-- Nenhuma menção a "vocação" na interface.
-- HUD exibe ícone da Sintonia Actual (opcode 182), actualizado via
-  opcode estendido. Tooltip poético ao passar o mouse.
-- Ao despertar Domínio ou atingir marco: toast (opcode 181) e mensagem
-  no chat.
-- Janela modal de Conhecimento (opcode 184): exclusiva para itens de
-  conhecimento.
-- Efeitos visuais de Sintonia (opcode 183): partículas/brilho.
-
-⚙️ 12. ARQUITECTURA TÉCNICA
-
-12.1 BANCO DE DADOS (novas tabelas)
-
-`dominios_def` (id, nome, descricao, icone)
-`habilidades_def` (id, nome, dominio_id, tipo, requisito_afinidade,
-  descricao, sinergia_dominio_id, sinergia_afinidade)
-`player_dominios` (player_id, dominio_id, afinidade, despertado)
-`player_habilidades` (player_id, habilidade_id)
-
-Charset utf8mb4 em todas as tabelas.
-
-12.2 SERVIDOR C++
-
-- vocation = 0 como Aventureiro.
-- Remover restrições de vocation em items e spells.
-- Novos métodos Lua:
-  player:getDominioAfinidade(dominioId)
-  player:addDominioAfinidade(dominioId, valor)
-  player:setDominioDespertado(dominioId, bool)
-  player:hasHabilidade(habilidadeId)
-  player:learnHabilidade(habilidadeId)
-  player:getSintoniaImediata()
-  player:getSintoniaProfunda()
-  player:registerDominioAction(dominioId)
-- Sistema de Sintonia com deque de acções recentes.
-
-12.3 SCRIPTS LUA
-
-- config_dominios.lua: mapeamento de magias/items/armas → Domínios.
-- dominio_utils.lua: funções despertarDominio, notificarProgresso.
-- dominios.lua: eventos globais (onUseSpell, onKill, onItemUse).
-- login.lua: sem setVocation; vocação Aventureiro (0).
-- oraculo.lua: remover tópico de vocação; benção narrativa.
-
-12.4 CLIENTE
-
-- Opcode 182: actualizar ícone da Sintonia.
-- Opcode 183: disparar efeitos visuais.
-- Opcode 184: Examinar Conhecimento (janela modal).
-- Remover UI de vocação na criação de personagem.
-
-📋 13. INTEGRAÇÃO COM O TUTORIAL
-
-O tutorial da Ilha do Despertar (Eridanus) é o primeiro contacto do
-jogador com o Sistema de Progressão. Ao concluir as missões, o jogador
-terá despertado Domínios básicos sem nunca ouvir o termo "Domínio".
-Os NPCs narram o despertar de forma imersiva, e o HUD passa a exibir
-o ícone da Sintonia.
-
-Consulte o Guia [12] para detalhes completos das missões e NPCs.
-
-🔍 CHECKLIST DE REVISÃO PARA O ASSISTENTE
-
-☐ A criação de personagem não pergunta vocação?
-☐ O campo vocation é sempre 0 para novos personagens?
-☐ Nenhum item ou magia verifica vocation?
-☐ Existem múltiplas formas de despertar cada Domínio inicial?
-☐ A progressão (Afinidade) é invisível para o jogador?
-☐ Habilidades aprendidas nunca se repetem?
-☐ A Sintonia opera nas três camadas sem acção do jogador?
-☐ O HUD exibe ícone de Sintonia, não números?
-☐ Itens de conhecimento usam janela modal de confirmação?
-☐ A janela modal mostra texto narrativo e botão Aprender/Fechar?
-☐ Itens podem ser incompreensíveis sem a Afinidade adequada?
-☐ NPCs reagem aos Domínios do jogador com pronome e intimidade?
-☐ Domínios de Ofício têm a mesma profundidade?
-☐ O tutorial desperta Domínios iniciais sem usar terminologia técnica?
-☐ O sistema aceita novos Domínios sem alterar C++?
-☐ Sinergias entre Domínios são suportadas (verificações múltiplas)?
-☐ Scripts Lua em ISO-8859-1; C++ com escapes octais?
-☐ Tabelas novas com charset utf8mb4?
-☐ Compatibilidade com Login Server e fluxo de autenticação?
-☐ 100% integrado no cliente (Pilar 1)?
-
-📤 ATUALIZAÇÃO DO REPOSITÓRIO
-
-git add "docs/[Documentação] MCR - Sistema de Progressão do Aventureiro.txt"
-git commit -m "docs: atualiza sistema de progressão v2.0 com sintonia em camadas"
-git push origin main
-
-FIM DO DOCUMENTO — VERSÃO 2.0
+🎯 Objetivo deste Documento
+Este documento descreve a arquitetura, as regras e a API do Sistema de Progressão do Aventureiro (SPA). Ele serve como referência para qualquer pessoa que for manter, expandir ou utilizar o sistema noutros contextos (NPCs, quests, loot, etc.).
+
+O SPA substitui completamente as vocações tradicionais. Todo personagem é um Aventureiro (vocation = 0) e progride horizontalmente através de Domínios, acumulando Afinidade ao realizar ações no mundo.
+
+🚧 Estado Atual da Implementação
+Componente	Estado
+Estrutura de domínios (3 níveis)	✅ Completo
+Distribuição de afinidade (50/33/17)	✅ Completo
+Lampejos (silenciosos)	✅ Completo
+Vínculos (com carência e feedback colorido)	✅ Completo
+Posturas de combate (leve/ágil/pesado/runologia/arremesso)	✅ Completo
+70 habilidades (definições e efeitos)	✅ Completo (efeitos implementados no v3.0)
+Executor de habilidades (verificação de arma, cores)	✅ Completo
+Sistema de cores modular (sintaxe nativa do cliente)	✅ Completo
+Feedback de knockback e controlo	✅ Completo
+Progressão defensiva (Sobrevivência)	✅ Completo
+🗂️ Estrutura de Ficheiros
+text
+data-canary/scripts/MCR/
+├── Geral/
+│   ├── texto_colorido.lua     (tabela COR, função c(), corDominio(), sendColoredString())
+│   ├── util.lua                (hasShield, getWeaponType, getWeaponEspecialidade, isWeaponTwoHanded)
+│   └── ...
+├── SPA/
+│   ├── config.lua              (constantes, hierarquia, posturas, spellDomain)
+│   ├── progressao.lua          (adicionarAfinidade, getNivelPorAfinidade)
+│   ├── sintonia.lua            (Lampejos, Vínculo, aplicarBonus)
+│   ├── postura.lua             (aplicarPostura, knockback, furtividade)
+│   ├── habilidades.lua         (definição das 70 habilidades)
+│   ├── executor_habilidades.lua (motor que executa as habilidades)
+│   ├── eventos.lua             (eventos de dano, kill, item, magia, defesa)
+│   ├── login.lua               (inicialização, vocation=0)
+│   └── ...
+⚙️ Funcionamento Geral
+O jogador realiza ações (dano, kill, usar ferramentas, lançar magias, receber dano).
+
+O sistema acumula Afinidade na especialidade correspondente, distribuindo 50% para a especialidade, 33% para o secundário e 17% para o primário.
+
+O histórico de ações alimenta o cálculo de Lampejos e Vínculos (automáticos).
+
+O Vínculo permanece ativo enquanto a regra se mantiver (>50% das últimas 30 ações). Após 15 segundos sem cumprir, expira.
+
+As posturas de combate (Ímpeto, Equilíbrio, Guarda) alteram dinamicamente velocidade, dano e defesa com base na arma e escudo.
+
+Conforme o jogador sobe de nível nas especialidades, desbloqueia habilidades automáticas. Estas disparam com certa probabilidade durante o combate, exibindo um emote e uma mensagem colorida no chat.
+
+🎨 Sistema de Cores
+Todas as mensagens do SPA usam a sintaxe nativa do OTClient Redemption: {Texto, #CorHex}.
+A tabela de cores está em texto_colorido.lua e segue uma lógica semântica:
+
+Categoria	Exemplo	Cor
+Positivo/Buff	COR.SUCESSO_CURA	#3CB371
+Dano físico	COR.DANO_FISICO	#FF7F50
+Condição (sangramento)	COR.COND_SANGRAMENTO	#8B0000
+Inimigo	COR.INIMIGO_MONSTRO	#FF6347
+Aliado	COR.ALIADO_JOGADOR	#00FF00
+Informação de sistema	COR.SISTEMA_INFO	#87CEEB
+Funções disponíveis:
+
+c(texto, cor) → retorna a string formatada {texto, cor}.
+
+corDominio(domId) → devolve a cor associada a um domínio.
+
+sendColoredString(player, textoComTags) → envia texto com cores para o jogador.
+
+📡 API Exposta ao Lua – Métodos C++ Adicionados para o SPA
+Todos os métodos abaixo foram adicionados ao código‑fonte do Canary e estão disponíveis nos scripts Lua através do objeto player (ou creature, quando indicado).
+
+🧬 Domínios e Afinidade
+Método	Descrição
+player:getDominioAfinidade(dominioId)	Retorna a afinidade acumulada no domínio.
+player:addDominioAfinidade(dominioId, pontos)	Adiciona pontos de afinidade ao domínio.
+player:setDominioDespertado(dominioId, bool)	Marca o domínio como despertado (já foi usado pelo menos uma vez).
+player:hasHabilidade(habilidadeId)	Verifica se o jogador conhece uma habilidade.
+player:learnHabilidade(habilidadeId)	Aprende uma habilidade permanentemente (grava na BD).
+🌊 Sintonia Natural (Estados de Alma)
+Método	Descrição
+player:getDominioState(dominioId)	Retorna o estado de alma do domínio: 0 (nenhum), 1 (Lampejo) ou 2 (Vínculo).
+player:setDominioState(dominioId, state)	Define o estado de alma.
+player:getAllActiveStates()	Retorna uma tabela com todos os domínios que têm Lampejo ou Vínculo ativo.
+player:registerDominioAction(dominioId)	Regista uma ação no histórico para que os Lampejos/Vínculos possam ser calculados.
+player:getActionHistory(maxCount)	Devolve as últimas ações registadas (cada uma com dominioId e timestamp).
+player:clearActionHistory()	Limpa todo o histórico de ações.
+⚡ Velocidade de Ataque Dinâmica
+Método	Descrição
+player:setAttackSpeedModifier(mod)	Define o multiplicador de velocidade de ataque (ex.: 0.85 = 15% mais rápido).
+player:getAttackSpeedModifier()	Retorna o multiplicador atual.
+💧 Regeneração de Vida e Mana Dinâmica
+Método	Descrição
+player:setManaRegenModifier(mod)	Multiplicador da regeneração de mana (1.0 = normal).
+player:getManaRegenModifier()	Retorna o valor atual.
+player:setHealthRegenModifier(mod)	Multiplicador da regeneração de vida.
+player:getHealthRegenModifier()	Retorna o valor atual.
+player:setManaRegenTicksModifier(mod)	Multiplicador do intervalo entre ticks de regeneração de mana.
+player:getManaRegenTicksModifier()	Retorna o valor atual.
+player:setHealthRegenTicksModifier(mod)	Multiplicador do intervalo entre ticks de regeneração de vida.
+player:getHealthRegenTicksModifier()	Retorna o valor atual.
+🎯 Alcance de Ataque Dinâmico
+Método	Descrição
+player:setRangeModifier(mod)	Define o alcance extra (em tiles) para ataques à distância.
+player:getRangeModifier()	Retorna o alcance extra atual.
+🕶️ Furtividade (Stealth)
+Método	Descrição
+player:setStealth(bool)	Ativa ou desativa o modo furtivo. Quando ativo, monstros só notam o jogador a 1 SQM.
+player:isStealth()	Retorna true se o jogador está furtivo.
+🛡️ Posturas de Combate – Empurrar Criaturas
+Método	Descrição
+player:setCanPushCreatures(bool)	Permite que o jogador empurre criaturas "pushable" ao andar.
+player:canPushCreatures()	Retorna true se a capacidade está ativa.
+🩸 Dano Recebido Dinâmico
+Método	Descrição
+player:setDamageTakenModifier(mod)	Multiplicador do dano recebido (ex.: 0.85 = 15% de redução).
+player:getDamageTakenModifier()	Retorna o multiplicador atual.
+💀 Leech (Roubo de Vida e Mana)
+Método	Descrição
+player:setLifeLeechModifier(percent)	Percentagem do dano causado que é convertida em cura.
+player:getLifeLeechModifier()	Retorna o valor atual.
+player:setManaLeechModifier(percent)	Percentagem do dano causado que é convertida em mana.
+player:getManaLeechModifier()	Retorna o valor atual.
+💥 Knockback (Empurrar Inimigos)
+Método	Descrição
+creature:knockback(direction)	Empurra a criatura na direção fornecida. Retorna true se o movimento foi bem‑sucedido.
+(Nota: a direção é um número de 0 a 3, representando Norte, Leste, Sul, Oeste.)	
+
+🧩 Exemplos de Uso Noutros Sistemas
+NPC
+lua
+local msg = c("Guardião: ", COR.NPC_DIALOGO) .. "Precisas de ajuda?"
+player:sendTextMessage(24, msg)
+Loot
+lua
+local msg = "Loot de " .. c(monsterName, COR.INIMIGO_MONSTRO) .. ": " .. c(itemName, COR.ITEM_RARO)
+player:sendLootMessage(msg)
+Look (examinar)
+lua
+local msg = c(item:getName(), COR.ITEM_EPICO) .. ": " .. item:getDescription()
+player:sendTextMessage(24, msg)
+🔍 Checklist de Revisão para Novas Funcionalidades
+A mensagem usa o formato {Texto, #Cor}.
+
+As cores são escolhidas da tabela COR com significado adequado.
+
+O feedback não polui o chat (emotes + log branco/amarelo).
+
+As palavras de ligação herdam a cor do canal (sem c()).
+
+O código está em português e salvo como ISO‑8859‑1.

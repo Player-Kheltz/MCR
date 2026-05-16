@@ -1,5 +1,5 @@
 PROJETO MCR – GUIA DE QUESTS (SISTEMA HÍBRIDO SQH)
-(Versão 5.1 – Sistema nativo de pronomes, remoção do storage 100001, pipeline de tradução)
+(Versão 6.1 – Integração total com o Sistema de Progressão v2.1.1, despertares de Domínio, feedback narrativo e Revscript)
 Arquivo: [7] MCR - Guia de Quests (Sistema Híbrido SQH).txt
 
 🎯 OBJETIVO DESTE GUIA
@@ -8,78 +8,94 @@ O Sistema de Quests Híbrido (SQH) combina a profundidade narrativa do chat com
 a conveniência de feedback visual moderno (HUD, notificações toast), sem jamais
 recorrer a janelas modais para progresso de missão.
 
+A versão 6.1 integra totalmente o Sistema de Progressão do Aventureiro v2.1.1:
+as quests são agora o principal veículo para o despertar de Domínios, o ganho
+inicial de Afinidade e a introdução aos Estados de Alma e Posturas de Combate.
+Os NPCs reagem ao progresso do jogador nos Domínios, e as recompensas podem
+incluir habilidades, sinergias e itens de conhecimento consumíveis.
+
+Todos os scripts de quests e NPCs associados residem nas subpastas apropriadas
+dentro de `data-canary/scripts/MCR/` (ex.: `MCR/Tutorial/` para as missões de
+Eridanus, `MCR/Geral/` para utilitários). O Revscript carrega automaticamente
+cada ficheiro, permitindo que as quests sejam auto‑suficientes e modulares.
+
+🚧 ESTADO ATUAL DA IMPLEMENTAÇÃO
+
+De acordo com o [Plano de Ação] Consolidado, a Fase 2 (C++) ainda não foi iniciada. Por isso:
+
+- Os métodos `player:getDominioNivel()`, `player:getDominioAfinidade()`, `despertarDominio()`, `adicionarAfinidade()` e `player:learnHabilidade()` **ainda não existem**.
+- As secções deste guia que usam esses métodos (despertar Domínios, conceder habilidades, recompensas de afinidade) descrevem o comportamento *alvo*. Para já, utilize verificações de existência (`if despertarDominio then ...`) ou deixe essas chamadas comentadas até que a Fase 2 seja concluída.
+- O sistema base do SQH — chat com {destaque}, HUD via opcode 180, toasts via 181, progressão por storages na faixa 50000–50999 — é totalmente funcional e pode ser usado imediatamente.
+- A estrutura de pastas é Revscript: scripts em `MCR/Tutorial/`, `MCR/Geral/`, etc. Os módulos `pronouns.lua` e `npc_utils.lua` em `MCR/Geral/` são carregados automaticamente, não exigindo `dofile`.
+
 Este guia contém:
 
-A filosofia do SQH (actualizada com imersão e pronomes).
-
-O fluxograma de interação obrigatório.
-
-Destaque de palavras no chat com {chaves}.
-
-HUD de Missões (Quest Tracker).
-
-Notificações Toast.
-
-Uso do módulo pronouns.lua para pronomes do personagem, em vez do storage
-100001.
-
-Progressão de intimidade (storages 100010+) a influenciar a narrativa da
-quest.
-
-Personalidade do NPC como molde para o tom da missão.
-
-Directrizes de qualidade.
-
-Exemplo completo de implementação actualizado (Sereia Lunar).
+- A filosofia do SQH (atualizada com imersão e pronomes).
+- O fluxograma de interação obrigatório.
+- Destaque de palavras no chat com {chaves}.
+- HUD de Missões (Quest Tracker).
+- Notificações Toast.
+- Uso do módulo pronouns.lua para pronomes do personagem.
+- Progressão de intimidade (storages 100010+) a influenciar a narrativa da quest.
+- Personalidade do NPC como molde para o tom da missão.
+- Integração com o Sistema de Progressão: despertares, afinidade e sinergias (NOVO – aguarda Fase 2).
+- Directrizes de qualidade.
+- Exemplo completo de implementação atualizado (Sereia Lunar).
 
 ⚠️ REGRAS DE REVISÃO PARA O ASSISTENTE (QUESTS – SQH)
 
 Ao criar ou modificar QUALQUER quest no Projeto MCR, o assistente DEVE:
 
-Garantir que a quest seja 100% jogável dentro do OTClient, sem necessidade de
-site ou ferramenta externa.
+- Garantir que a quest seja 100% jogável dentro do OTClient, sem necessidade de
+  site ou ferramenta externa.
+- Proibir terminantemente o uso de player:showModalWindow() para aceitar,
+  recusar ou progredir missões. Apenas Loja, Banco e confirmações críticas
+  irreversíveis podem usar modais, e SEMPRE com fala introdutória no chat.
+- Destacar palavras‑chave no chat utilizando SOMENTE {chaves} (ex.: {aceitar},
+  {5 Lágrimas de Sereia}). Tags como {{#RRGGBB}} não funcionam e devem ser
+  evitadas.
+- Notificar o cliente via sendExtendedOpcode (faixa 180‑199) sempre que o estado
+  da missão mudar, atualizando o HUD e exibindo toasts.
+- Persistir o progresso em storages dentro das faixas reservadas (50000–50999
+  para missões).
+- Recompensar o jogador directamente no inventário e anunciar no chat.
+- Incluir validações de itens (se a quest exige coleta) e verificação de
+  inventário.
+- Documentar a quest com comentários em PT‑BR e verificar IDs de itens/storages.
+- Todos os scripts Lua (servidor) que exibem texto ao jogador devem ser salvos
+  como ISO‑8859‑1.
+- Em toda quest, condicionar a saída de logs de debug (print com "DEBUG:") para
+  cada ponto de decisão: aceite da missão, coleta de itens, verificação de
+  quantidade, entrega, recompensa e mudança de storage.
+- Utilizar o módulo pronouns.lua para obter o pronome do personagem
+  (Pronouns.getSubject(player), etc.) em vez do storage 100001. O pronome do
+  personagem é armazenado na coluna nativa players.pronoun. O módulo está em
+  `data-canary/scripts/MCR/Geral/pronouns.lua` e é carregado automaticamente
+  pelo Revscript; NÃO use `dofile` para carregá-lo.
+- A forma como o NPC oferece a missão, comenta o progresso e agradece deve
+  reflectir a personalidade do NPC (ver Guia de Narrativa) e o nível de
+  intimidade com o jogador (storages 100010+).
+- Antes de iniciar a quest, se o jogador ainda não tiver o pronome definido
+  (players.pronoun = 0), o NPC deve perguntar e armazenar o valor, de forma
+  adequada à sua personalidade.
+- ⚠️ NOVO (v2.1.1): As quests devem utilizar as funções do Sistema de Progressão
+  para despertar Domínios (`despertarDominio`), conceder afinidade
+  (`adicionarAfinidade`) e, quando apropriado, ensinar habilidades
+  (`player:learnHabilidade`). Consulte a secção 10. ⚠️ Estes métodos dependem
+  da Fase 2 (C++); proteja as chamadas com verificação de existência ou mantenha
+  como comentário.
+- ⚠️ NOVO (v2.1.1): Itens de conhecimento (ex.: Livro de Feitiços) devem usar a
+  janela modal via opcode 184, permitindo que o jogador decida se aprende
+  ou guarda/vende. (Opcode 184 ainda não implementado no cliente – Fase 4)
+- ⚠️ NOVO (v2.1.1): As recompensas podem incluir o desbloqueio de sinergias
+  (habilidades que exigem dois Domínios), devidamente notificadas com
+  mensagem narrativa.
+- ⚠️ REVSCRIPT: Os scripts das quests e dos NPCs devem ser colocados nas
+  subpastas adequadas (ex.: `MCR/Tutorial/` para as missões de Eridanus,
+  `MCR/Geral/` para utilitários como `npc_utils.lua`). O Revscript carrega
+  automaticamente todos os ficheiros .lua; basta salvá‑los no local correto.
 
-Proibir terminantemente o uso de player:showModalWindow() para aceitar,
-recusar ou progredir missões. Apenas Loja, Banco e confirmações críticas
-irreversíveis podem usar modais, e SEMPRE com fala introdutória no chat.
-
-Destacar palavras‑chave no chat utilizando SOMENTE {chaves} (ex.: {aceitar},
-{5 Lágrimas de Sereia}). Tags como {{#RRGGBB}} não funcionam e devem ser
-evitadas.
-
-Notificar o cliente via sendExtendedOpcode (faixa 180‑199) sempre que o estado
-da missão mudar, actualizando o HUD e exibindo toasts.
-
-Persistir o progresso em storages dentro das faixas reservadas (50000–50999
-para missões).
-
-Recompensar o jogador directamente no inventário e anunciar no chat.
-
-Incluir validações de itens (se a quest exige coleta) e verificação de
-inventário.
-
-Documentar a quest com comentários em PT‑BR e verificar IDs de itens/storages.
-
-Todos os scripts Lua (servidor) que exibem texto ao jogador devem ser salvos
-como ISO‑8859‑1.
-
-Em toda quest, condicionar a saída de logs de debug (print com "DEBUG:") para
-cada ponto de decisão: aceite da missão, coleta de itens, verificação de
-quantidade, entrega, recompensa e mudança de storage.
-
-Utilizar o módulo pronouns.lua para obter o pronome do personagem
-(Pronouns.getSubject(player), etc.) em vez do storage 100001. O pronome do
-personagem é armazenado na coluna nativa players.pronoun.
-
-A forma como o NPC oferece a missão, comenta o progresso e agradece deve
-reflectir a personalidade do NPC (ver Guia de Narrativa) e o nível de
-intimidade com o jogador (storages 100010+).
-
-Antes de iniciar a quest, se o jogador ainda não tiver o pronome definido
-(players.pronoun = 0), o NPC deve perguntar e armazenar o valor, de forma
-adequada à sua personalidade.
-
-🧠 1. FILOSOFIA DO SQH (ACTUALIZADA)
+🧠 1. FILOSOFIA DO SQH (ATUALIZADA v2.1.1)
 
 O SQH resolve a tensão entre imersão narrativa e usabilidade moderna.
 Antigamente, quests em OTs exigiam que o jogador adivinhasse palavras mágicas
@@ -87,34 +103,37 @@ Antigamente, quests em OTs exigiam que o jogador adivinhasse palavras mágicas
 
 No MCR:
 
-O CHAT é o palco da história. O jogador LÊ o que o NPC diz e se conecta com a
-narrativa. Palavras‑chave são DESTACADAS COM {CHAVES} para indicar o que é
-importante, eliminando a adivinhação.
-
-O HUD DE MISSÕES mostra o progresso em tempo real, sem poluir o chat.
-
-NOTIFICAÇÕES TOAST dão feedback imediato de objectivos concluídos, itens
-obtidos, recompensas recebidas.
-
-JANELAS MODAIS são PROIBIDAS para progresso de missão. Elas quebram a imersão
-e transformam o NPC em um terminal burocrático.
-
-A narrativa da quest é PERSONALIZADA ao pronome do personagem (via coluna
-players.pronoun) e à relação que o jogador construiu com o NPC. Um NPC amigo
-trata‑o com carinho; um NPC desconfiado pode ser seco no início e tornar‑se
-mais caloroso após a quest. Isto faz cada jornada ser única.
+- O CHAT é o palco da história. O jogador LÊ o que o NPC diz e se conecta com a
+  narrativa. Palavras‑chave são DESTACADAS COM {CHAVES} para indicar o que é
+  importante, eliminando a adivinhação.
+- O HUD DE MISSÕES mostra o progresso em tempo real, sem poluir o chat.
+- NOTIFICAÇÕES TOAST dão feedback imediato de objectivos concluídos, itens
+  obtidos, recompensas recebidas.
+- JANELAS MODAIS são PROIBIDAS para progresso de missão. Elas quebram a imersão
+  e transformam o NPC em um terminal burocrático.
+- A narrativa da quest é PERSONALIZADA ao pronome do personagem (via coluna
+  players.pronoun) e à relação que o jogador construiu com o NPC. Um NPC amigo
+  trata‑o com carinho; um NPC desconfiado pode ser seco no início e tornar‑se
+  mais caloroso após a quest.
+- A quest é o PRINCIPAL MEIO de despertar Domínios. Cada missão significativa
+  pode iniciar o jogador numa nova Especialização, conceder afinidade extra
+  ou ensinar uma habilidade única. O feedback é sempre narrativo, nunca
+  técnico.
+- Itens de conhecimento (pergaminhos, receitas, grimórios) são CONSUMÍVEIS e
+  opcionais: o jogador pode aprendê‑los, vendê‑los ou guardá‑los para
+  outro personagem, criando uma economia de saber.
 
 🗺️ 2. FLUXOGRAMA DE INTERAÇÃO HÍBRIDA (OBRIGATÓRIO)
 
 Contexto inicial:
 
-No greetCallback, o NPC verifica o pronome do personagem através de
-Pronouns.getSubject(player). Se ainda não estiver definido (0), pergunta e
-guarda no tópico dedicado (ex.: 200), actualizando players.pronoun.
-
-Verifica o nível de intimidade (storage 100010 + npcId).
-
-Adapta a saudação ao pronome e à personalidade.
+- No greetCallback, o NPC verifica o pronome do personagem através de
+  Pronouns.getSubject(player). Se ainda não estiver definido (0), pergunta e
+  guarda no tópico dedicado (ex.: 200), atualizando players.pronoun.
+- Verifica o nível de intimidade (storage 100010 + npcId).
+- Adapta a saudação ao pronome e à personalidade.
+- (NOVO) Opcionalmente, verifica o nível do Domínio relevante para a quest e
+  comenta narrativamente (ver Guia [6]). ⚠️ Aguarda métodos C++.
 
 SAUDAÇÃO CONTEXTUAL
 O NPC identifica o jogador e o estado da missão (storages).
@@ -135,16 +154,16 @@ creatureSayCallback.
 
 AÇÃO DO SERVIDOR (ao aceitar):
 a) Seta storage de missão activa.
-b) Envia Extended Opcode (faixa 180) para ACTUALIZAR o HUD de Missões.
+b) Envia Extended Opcode (faixa 180) para ATUALIZAR o HUD de Missões.
 c) Opcionalmente, dispara um OPCODE_TOAST com "Missão iniciada: Nome da Missão".
 d) NPC dá uma fala de despedida narrativa, personalizada ao pronome e à
-intimidade.
+   intimidade.
 
 ACOMPANHAMENTO PELO HUD
 Durante a missão, o jogador vê no canto da tela:
 [Missão] Lágrimas de Sereia
 • Coletar Lágrimas de Sereia: 2/5
-O HUD é actualizado via Opcodes sempre que o jogador coleta um item ou avança
+O HUD é atualizado via Opcodes sempre que o jogador coleta um item ou avança
 um objectivo.
 
 ENTREGA / PROGRESSO
@@ -154,24 +173,26 @@ VALIDAÇÃO DO SERVIDOR
 a) Checa se o jogador possui os itens necessários (getItemCount).
 b) Remove os itens (removeItem).
 c) Concede a recompensa (addItem, addExperience, etc.).
-d) Actualiza storages (missão concluída).
-e) Actualiza o nível de intimidade com o NPC (ex.: storage 100010 + npcId de 0
-para 1 ou 2).
-f) Envia Opcodes para LIMPAR o HUD e exibir TOAST de conclusão.
-g) NPC dá uma fala narrativa de sucesso, destacando a recompensa com {chaves},
-e usando um tom mais caloroso se a intimidade subiu.
+d) Atualiza storages (missão concluída).
+e) Atualiza o nível de intimidade com o NPC (ex.: storage 100010 + npcId de 0
+   para 1 ou 2).
+f) (NOVO) Se a quest envolve um despertar de Domínio, chama
+   `despertarDominio(player, domId)` e envia feedback narrativo. ⚠️ Aguarda Fase 2.
+g) (NOVO) Se a quest recompensa com uma habilidade, chama
+   `player:learnHabilidade(habilidadeId)`. ⚠️ Aguarda Fase 2.
+h) Envia Opcodes para LIMPAR o HUD e exibir TOAST de conclusão.
+i) NPC dá uma fala narrativa de sucesso, destacando a recompensa com {chaves},
+   e usando um tom mais caloroso se a intimidade subiu. Se um Domínio foi
+   despertado, o NPC faz uma observação poética sobre a mudança no Aventureiro.
 
 🔑 3. DESTAQUE DE PALAVRAS COM {CHAVES}
 
 Convenção MCR:
 
-Toda ação que o jogador deve digitar: {aceitar}, {entregar}, {missão}
-
-Itens de quest: {5 Lágrimas de Sereia}
-
-Locais / NPCs alvo: {Lago dos Reflexos}
-
-Recompensas: {500 pontos de experiência}, {100 Fragmentos de Prata Lunar}
+- Toda ação que o jogador deve digitar: {aceitar}, {entregar}, {missão}
+- Itens de quest: {5 Lágrimas de Sereia}
+- Locais / NPCs alvo: {Lago dos Reflexos}
+- Recompensas: {500 pontos de experiência}, {100 Fragmentos de Prata Lunar}
 
 Exemplo de fala:
 "Preciso que vá até a {Torre do Astrónomo} e colete {10 Pedras Lunares}.
@@ -188,7 +209,7 @@ criado/modificado).
 
 Estrutura de dados enviada pelo servidor:
 
-lua
+```lua
 local hudData = {
     titulo = "O Lamento da Sereia",
     descricao = "Coletar Lágrimas de Sereia",
@@ -197,13 +218,13 @@ local hudData = {
 }
 player:sendExtendedOpcode(OPCODE_QUEST_UPDATE, json.encode(hudData))
 OPCODE_QUEST_UPDATE: Deve estar na faixa 180‑199 (reservada para SQH).
-Valor específico definido no Guia de Configuração. Exemplo: 180.
+Valor específico: 180.
 
 Comportamento do cliente (quest_tracker.lua):
 
 Ao receber o opcode, decodifica o JSON.
 
-Actualiza labels de título e descrição.
+Atualiza labels de título e descrição.
 
 Exibe barra de progresso ou texto "2/5".
 
@@ -216,7 +237,7 @@ Ao receber opcode de limpeza (ou dados vazios), oculta o painel.
 Toasts são mensagens temporárias que aparecem em um canto da tela e somem após
 alguns segundos. São ideais para feedback de progresso.
 Localização no cliente: modules/game_toast/toast.lua (a ser criado).
-OPCODE_TOAST: Deve estar na faixa 180‑199. Exemplo: 181.
+OPCODE_TOAST: Faixa 180‑199. Valor: 181.
 
 Estrutura de dados enviada pelo servidor:
 
@@ -236,6 +257,10 @@ Toasts NÃO substituem o chat para narrativa. Use‑os para:
 "Recompensa recebida: 100 Fragmentos de Prata Lunar"
 
 "Nova missão disponível: O Chamado da Montanha"
+
+(NOVO) "Um novo poder desperta em você..." (ao despertar Domínio)
+
+(NOVO) "Você aprendeu uma nova habilidade!" (ao aprender via quest)
 
 📦 6. VALIDAÇÕES DE ITENS E INVENTÁRIO
 
@@ -269,6 +294,13 @@ Itens: player:addItem(itemId, quantidade)
 Experiência: player:addExperience(valor)
 
 Dinheiro: player:addMoney(valor)
+
+(NOVO) Habilidade: player:learnHabilidade(habilidadeId) ⚠️ Aguarda Fase 2
+
+(NOVO) Afinidade: adicionarAfinidade(player, domId, pontos) ⚠️ Aguarda Fase 2
+
+(NOVO) Despertar: despertarDominio(player, domId) ⚠️ Aguarda Fase 2
+
 Todas devem ser anunciadas no chat com destaque por {chaves}.
 
 🧬 7. PRONOME DO PERSONAGEM, PERSONALIDADE E INTIMIDADE NAS QUESTS
@@ -280,7 +312,7 @@ perguntar, de forma coerente com a sua personalidade (directa, subtil, etc.).
 Exemplo para um NPC sábio e caloroso:
 
 lua
-dofile('data/MCR Scripts/pronouns.lua')
+-- O módulo pronouns.lua está em MCR/Geral/ e é carregado automaticamente.
 local subject = Pronouns.getSubject(player)
 if subject == "they" then
     npcHandler:say("Antes de falarmos de missões, devo saber: como devo lhe
@@ -289,17 +321,18 @@ if subject == "they" then
     return true
 end
 No tópico 200, a resposta é processada com sinónimos abundantes e a coluna
-players.pronoun é actualizada (2 para ela, 3 para ele).
+players.pronoun é atualizada (2 para ela, 3 para ele).
 
 7.2 Personalidade do NPC
 A forma como o NPC oferece a quest, reage ao progresso e agradece deve ser
 filtrada pela sua personalidade. Exemplos:
 
-Personalidade	Oferecimento da quest	Ao concluir
-Caloroso	"Ah, querido(a) viajante! Tenho um pedido..."	"Maravilhoso! Você é realmente incrível!"
-Rude	"Você parece forte. Tem coragem p/ trabalho?"	"Até que você presta. Toma, seu pagamento."
-Místico	"As estrelas dizem que você pode restaurar..."	"O cosmos agradece, guardião dos ventos."
-Comerciante	"Tenho uma proposta comercial para você..."	"Negócio fechado! Volte sempre."
+Personalidade Oferecimento da quest Ao concluir
+Caloroso "Ah, querido(a) viajante! Tenho um pedido..." "Maravilhoso! Você é realmente incrível!"
+Rude "Você parece forte. Tem coragem p/ trabalho?" "Até que você presta. Toma, seu pagamento."
+Místico "As estrelas dizem que você pode restaurar..." "O cosmos agradece, guardião dos ventos."
+Comerciante "Tenho uma proposta comercial para você..." "Negócio fechado! Volte sempre."
+
 7.3 Progressão de Intimidade
 Armazenar o nível de intimidade com cada NPC em storages 100010 + npcId.
 Inicialmente 0 (desconhecido). Após completar a primeira quest para o NPC, sobe
@@ -312,7 +345,83 @@ Intimidade 1: "Ah, o nobre senhor voltou! Já sabia que podia confiar em si."
 
 Intimidade 3: "Meu caríssimo amigo! Sempre há lugar para si na minha mesa."
 
-📋 8. DIRETRIZES DE QUALIDADE PARA QUESTS
+🌠 8. INTEGRAÇÃO COM O SISTEMA DE PROGRESSÃO DO AVENTUREIRO (NOVO v2.1.1)
+
+⚠️ As funcionalidades descritas nesta secção dependem dos métodos C++ da Fase 2,
+que ainda não foram implementados. Use‑as como referência de design.
+
+As quests são o veículo principal para o despertar de Domínios e o aprendizado
+de habilidades. O assistente DEVE seguir as regras abaixo.
+
+8.1 DESPERTAR DE DOMÍNIOS EM QUESTS
+
+Quando uma quest é projectada para despertar um Domínio (ex.: a missão do
+tutorial com Thorne desperta Lâminas Leves), o script deve:
+
+Verificar se o Domínio já foi despertado (player:getDominioNivel(domId) > 0).
+
+Se não, chamar despertarDominio(player, domId) ao concluir o objectivo.
+
+O NPC reage narrativamente, descrevendo a transformação no Aventureiro.
+
+Exemplo (Thorne, após o jogador derrotar os bonecos de treino):
+
+"O aço já não é um estranho em suas mãos. Você e a lâmina começam a
+entender‑se. Continue assim, Aventureiro."
+
+Internamente: despertarDominio(player, DOMINIO_LAMINAS_LEVES)
+
+8.2 HABILIDADES COMO RECOMPENSA
+
+Quests podem ensinar habilidades específicas. Se a habilidade já for conhecida,
+o NPC deve oferecer uma alternativa (ex.: afinidade extra, item raro).
+
+Exemplo (Lyra, após completar "A Essência do Aventureiro"):
+
+"Esta runa de cura é agora parte de si. Use‑a com sabedoria."
+
+Internamente: player:learnHabilidade(HABILIDADE_CURA_INTENSA)
+
+8.3 ITENS DE CONHECIMENTO CONSUMÍVEIS
+
+Itens como pergaminhos e grimórios são entregues ao jogador como itens físicos.
+Ao serem usados (click direito), disparam o opcode 184 e abrem a janela modal
+de conhecimento. A decisão de aprender é do jogador. Consulte a Documentação do
+Sistema de Progressão para o fluxo completo.
+
+8.4 RECOMPENSAS DE AFINIDADE
+
+Quests mais simples ou repetíveis podem conceder afinidade em vez de itens.
+Exemplo: entregar 20 minérios a um ferreiro concede 50 pontos de afinidade em
+Mineração. O feedback narrativo é subtil: "Você sente que conhece melhor a rocha
+agora."
+
+8.5 SINERGIAS COMO RECOMPENSA FINAL
+
+Quests de alto nível (ex.: nível 15+ em dois Domínios) podem desbloquear
+sinergias. O NPC deve ser um mestre que reconhece a combinação de talentos.
+
+Exemplo (Mestre Arcano, ao ver Fogo 15 + Lâminas Pesadas 15):
+
+"Você uniu o calor da forja à força do aço. Está pronto para a
+{Lâmina Vulcânica}."
+
+📟 9. USO DOS OPCODES DO SISTEMA DE PROGRESSÃO NAS QUESTS
+
+Além dos opcodes 180 (HUD) e 181 (toast), as quests podem utilizar:
+
+Opcode 182: atualizar ícone de Vínculo após despertar (opcional, se o
+Domínio despertado se tornar dominante imediatamente). ⚠️ Aguarda Fase 4.
+
+Opcode 183: disparar partículas temáticas ao despertar um Domínio (ex.:
+fagulhas para Fogo, folhas para Natureza). ⚠️ Aguarda Fase 4.
+
+Opcode 184: abrir janela de conhecimento para itens consumíveis. ⚠️ Aguarda Fase 4.
+
+Todos estes opcodes estão na faixa reservada 180‑199 e devem ser registados
+no cliente.
+
+📋 10. DIRETRIZES DE QUALIDADE PARA QUESTS (ATUALIZADO)
 
 Checklist obrigatório antes de marcar uma quest como "Concluída":
 
@@ -320,13 +429,14 @@ Os diálogos do NPC usam {chaves} para destacar ações, itens e locais.
 
 NÃO há chamadas para player:showModalWindow() no fluxo da missão.
 
-Ao aceitar a missão, um Opcode é enviado para exibir/actualizar o HUD de
-Missões.
+Ao aceitar a missão, um Opcode é enviado para exibir/atualizar o HUD de
+Missões (180).
 
-Ao coletar itens, o progresso no HUD é actualizado em tempo real (via eventos
+Ao coletar itens, o progresso no HUD é atualizado em tempo real (via eventos
 de inventário ou kills).
 
-Ao concluir a missão, o HUD é ocultado e uma notificação toast é exibida.
+Ao concluir a missão, o HUD é ocultado e uma notificação toast é exibida
+(181).
 
 A recompensa é entregue directamente no inventário/status e anunciada no chat
 com {destaque}.
@@ -343,37 +453,62 @@ pronouns.lua).
 
 O NPC tem uma personalidade definida e a linguagem da quest reflecte‑a.
 
-A progressão de intimidade é actualizada após a conclusão da quest.
+A progressão de intimidade é atualizada após a conclusão da quest.
 
-O script do NPC está salvo como ISO‑8859‑1.
+O script do NPC e da quest estão salvos como ISO‑8859‑1 e colocados nas
+subpastas Revscript adequadas (ex.: MCR/Tutorial/).
 
-📝 9. EXEMPLO COMPLETO ACTUALIZADO: QUEST "O LAMENTO DA SEREIA"
+(NOVO) Se a quest desperta um Domínio, despertarDominio é chamado e o NPC
+reage narrativamente. ⚠️ Aguarda Fase 2; proteger a chamada.
+
+(NOVO) Se a quest ensina uma habilidade, player:learnHabilidade é usado e o
+jogador é notificado. ⚠️ Aguarda Fase 2.
+
+(NOVO) Se a quest envolve um item de conhecimento, o opcode 184 é usado
+correctamente. ⚠️ Aguarda Fase 4.
+
+(NOVO) Se a quest recompensa com afinidade, adicionarAfinidade é chamado
+com pontos apropriados. ⚠️ Aguarda Fase 2.
+
+(NOVO) O feedback NUNCA contém números de Afinidade, níveis de Domínio ou
+termos técnicos.
+
+📝 11. EXEMPLO COMPLETO ATUALIZADO: QUEST "O LAMENTO DA SEREIA"
+
+(Este exemplo deve ser salvo como ISO‑8859‑1 na subpasta apropriada, ex.:
+MCR/Tutorial/sereia_lunar.lua)
 
 lua
 --[[
 Projeto MCR – NPC Sereia Lunar
 Quest: O Lamento da Sereia
+Versão: 6.1 (com integração ao Sistema de Progressão v2.1.1)
 Salvar como: ISO-8859-1
 --]]
 
-dofile('data/MCR Scripts/npc_utils.lua')
-dofile('data/MCR Scripts/pronouns.lua')
+-- Os módulos npc_utils e pronouns são carregados automaticamente de MCR/Geral/
+-- NÃO é necessário usar dofile.
+
+-- Constantes da Quest
+local STORAGE_QUEST_SEREIA = 50001
+local STORAGE_LAGRIMAS_COLETADAS = 50002
+local QUANTIDADE_NECESSARIA = 5
+local ITEM_LAGRIMA_SEREIA = 11111 -- VERIFICAÇÃO PENDENTE: substituir pelo ID real
+local OPCODE_QUEST_UPDATE = 180
+local OPCODE_TOAST = 181
+local OPCODE_PARTICULAS = 183
+local NPC_ID = 1 -- exemplo, substituir pelo ID real
+local STORAGE_INTIMIDADE = 100010 + NPC_ID
+
+-- Domínio que a quest pode despertar (ex.: Água e Gelo)
+local DOMINIO_AGUA_GELO = 21
 
 local npcName = "Sereia Lunar"
 local npcType = Game.createNpcType(npcName)
 local npcConfig = {}
 npcConfig.name = npcName
 npcConfig.description = "Uma sereia de olhar triste."
-
--- Constantes da Quest
-local STORAGE_QUEST_SEREIA = 50001
-local STORAGE_LAGRIMAS_COLETADAS = 50002
-local QUANTIDADE_NECESSARIA = 5
-local ITEM_LAGRIMA_SEREIA = 11111 -- VERIFICAÇÃO PENDENTE
-local OPCODE_QUEST_UPDATE = 180
-local OPCODE_TOAST = 181
-local NPC_ID = 1 -- exemplo, substituir pelo ID real
-local STORAGE_INTIMIDADE = 100010 + NPC_ID
+npcConfig.outfit = { lookType = 128, lookHead = 0, lookBody = 0, lookLegs = 0, lookFeet = 0, lookAddons = 2 }
 
 local keywordHandler = KeywordHandler:new()
 local npcHandler = NpcHandler:new(keywordHandler)
@@ -383,22 +518,17 @@ local function getItemCount(player, itemId)
 end
 
 -- Callbacks de engine
-npcType.onThink = function(npc, interval)
-    npcHandler:onThink(npc, interval) end
-npcType.onAppear = function(npc, creature)
-    npcHandler:onAppear(npc, creature) end
-npcType.onDisappear = function(npc, creature)
-    npcHandler:onDisappear(npc, creature) end
-npcType.onMove = function(npc, creature, from, to)
-    npcHandler:onMove(npc, creature, from, to) end
-npcType.onSay = function(npc, creature, type, msg)
-    npcHandler:onSay(npc, creature, type, msg) end
-npcType.onCloseChannel = function(npc, player)
-    npcHandler:onCloseChannel(npc, player) end
+npcType.onThink = function(npc, interval) npcHandler:onThink(npc, interval) end
+npcType.onAppear = function(npc, creature) npcHandler:onAppear(npc, creature) end
+npcType.onDisappear = function(npc, creature) npcHandler:onDisappear(npc, creature) end
+npcType.onMove = function(npc, creature, from, to) npcHandler:onMove(npc, creature, from, to) end
+npcType.onSay = function(npc, creature, type, msg) npcHandler:onSay(npc, creature, type, msg) end
+npcType.onCloseChannel = function(npc, player) npcHandler:onCloseChannel(npc, player) end
 
 local function greetCallback(npc, player)
     local playerId = player:getId()
     local subject = Pronouns.getSubject(player)
+    print("DEBUG: greetCallback - player=" .. player:getName() .. " subject=" .. subject)
 
     -- Se não tiver pronome definido, perguntar antes de qualquer coisa
     if subject == "they" then
@@ -409,6 +539,8 @@ local function greetCallback(npc, player)
     end
 
     local intimacy = player:getStorageValue(STORAGE_INTIMIDADE) or 0
+    print("DEBUG: greetCallback - intimacy=" .. intimacy)
+
     local saudacoes = {}
     if intimacy == 0 then
         saudacoes = {
@@ -436,11 +568,14 @@ local function creatureSayCallback(npc, player, type, msg)
     local intimacy = player:getStorageValue(STORAGE_INTIMIDADE) or 0
     local topic = npcHandler:getTopic(playerId)
 
+    print("DEBUG: creatureSayCallback - msg=" .. msg .. " topic=" .. (topic or "nil"))
+
     -- Tópico 200: definição do pronome
     if topic == 200 then
         if NpcUtils.correspondeAcao(msg, {"ele", "masculino", "homem",
                 "macho", "menino", "rapaz", "garoto", "m"}) then
             player:setPronoun(PLAYERPRONOUN_HE)
+            print("DEBUG: creatureSayCallback - pronome definido para HE")
             npcHandler:say("As águas reflectem um espírito masculino. Agora,
                             o que o traz ao meu lago?", npc, player)
             npcHandler:setTopic(playerId, 0)
@@ -448,6 +583,7 @@ local function creatureSayCallback(npc, player, type, msg)
         elseif NpcUtils.correspondeAcao(msg, {"ela", "feminino", "mulher",
                 "fêmea", "menina", "moça", "garota", "dama", "f"}) then
             player:setPronoun(PLAYERPRONOUN_SHE)
+            print("DEBUG: creatureSayCallback - pronome definido para SHE")
             npcHandler:say("Uma alma feminina... As marés dançam à sua volta.
                             Como posso ajudá‑la?", npc, player)
             npcHandler:setTopic(playerId, 0)
@@ -489,11 +625,13 @@ local function creatureSayCallback(npc, player, type, msg)
             npcHandler:say("Que as marés lhe guiem. Retorne quando tiver as
                             lágrimas.", npc, player)
             npcHandler:setTopic(playerId, 0)
+            print("DEBUG: creatureSayCallback - quest iniciada")
         end
     elseif player:getStorageValue(STORAGE_QUEST_SEREIA) == 1 then
         if NpcUtils.correspondeAcao(msg, {"entregar", "consegui", "trouxe",
                 "terminei", "completei", "pronto"}) then
             local quantidade = getItemCount(player, ITEM_LAGRIMA_SEREIA)
+            print("DEBUG: creatureSayCallback - quantidade=" .. quantidade)
             if quantidade >= QUANTIDADE_NECESSARIA then
                 player:removeItem(ITEM_LAGRIMA_SEREIA, QUANTIDADE_NECESSARIA)
                 player:setStorageValue(STORAGE_QUEST_SEREIA, 2)
@@ -508,14 +646,25 @@ local function creatureSayCallback(npc, player, type, msg)
                 player:addItem(22222, 100) -- VERIFICAR ID
                 player:addExperience(500)
 
-                -- Actualizar intimidade
+                -- (NOVO) Despertar Domínio Água e Gelo se for a primeira vez
+                -- ⚠️ Verificar se a função despertarDominio existe (Fase 2)
+                if despertarDominio and player:getDominioNivel and player:getDominioNivel(DOMINIO_AGUA_GELO) == 0 then
+                    despertarDominio(player, DOMINIO_AGUA_GELO)
+                    -- Feedback visual de partículas (opcode 183, futura Fase 4)
+                    local particulaData = { tipo = "agua", intensidade = "despertar" }
+                    player:sendExtendedOpcode(OPCODE_PARTICULAS, json.encode(particulaData))
+                    print("DEBUG: creatureSayCallback - dominio Agua e Gelo despertado")
+                end
+
+                -- Atualizar intimidade
                 local novaIntimidade = math.min(intimacy + 1, 3)
                 player:setStorageValue(STORAGE_INTIMIDADE, novaIntimidade)
 
                 npcHandler:say("Minha eterna gratidão! As lágrimas voltaram
-                                ao lar. Tome os seus {100 Fragmentos de Prata
-                                Lunar} e {500 pontos de experiência} como
-                                recompensa.", npc, player)
+                                ao lar. Sinto que as águas a reconhecem agora...
+                                Tome os seus {100 Fragmentos de Prata Lunar} e
+                                {500 pontos de experiência} como recompensa.",
+                                npc, player)
                 npcHandler:setTopic(playerId, 0)
             else
                 npcHandler:say("Ainda faltam lágrimas. Você tem "
@@ -545,7 +694,7 @@ npcHandler:setMessage(MESSAGE_WALKAWAY, "Você partiu sem se despedir...")
 npcHandler:addModule(FocusModule:new(), npcConfig.name, true, true, true)
 
 npcType:register(npcConfig)
-⚠️ ARMADILHAS E LIÇÕES APRENDIDAS
+⚠️ ARMADILHAS E LIÇÕES APRENDIDAS (ATUALIZADAS)
 
 Tags {{#RRGGBB}} não são processadas pelo cliente; apenas {chaves} funcionam.
 
@@ -562,7 +711,7 @@ Opcode duplicado: Certifique‑se de que o opcode usado não conflita com outro
 sistema. Consulte a tabela de faixas no Guia de Configuração.
 
 Utilize SEMPRE o módulo pronouns.lua para obter o pronome do personagem.
-Não use storage 100001.
+Não use storage 100001. O módulo é carregado automaticamente de MCR/Geral/.
 
 A progressão de intimidade deve ser visível na linguagem. Não subestime o
 poder de um "meu caro amigo" após várias quests.
@@ -570,44 +719,50 @@ poder de um "meu caro amigo" após várias quests.
 A personalidade do NPC deve ser consistente ao longo de todas as falas. Um NPC
 rude que de repente fala de forma poética quebra a imersão.
 
+⚠️ v2.1.1 – Despertar de Domínio: Verificar se despertarDominio e
+getDominioNivel estão implementados antes de usar. Se não, a quest
+funcionará mas sem o despertar.
+
+⚠️ v2.1.1 – Opcode 183 (partículas): Garantir que o listener no cliente está
+activo. Caso contrário, o envio do opcode será inofensivo (sem erro).
+
+⚠️ v2.1.1 – Evitar spam de notificações: Um jogador pode completar várias
+quests rapidamente. Assegure‑se de que o cooldown de toasts está
+configurado para 3‑5 segundos entre mensagens.
+
+⚠️ REVSCRIPT – Os scripts devem estar nas pastas certas. O exemplo acima
+deve ser colocado em MCR/Tutorial/ (ou subpasta da quest) e o Revscript
+encarrega‑se do carregamento.
+
 🔍 CHECKLIST DE REVISÃO PARA O ASSISTENTE (QUESTS)
 
-Diálogos usam {chaves} para destacar ações, itens e locais?
-
-NENHUMA chamada a player:showModalWindow() no fluxo de progresso da
-missão?
-
-Ao aceitar, Opcode 180 enviado para HUD?
-
-Ao concluir, HUD limpo e Opcode 181 enviado para Toast?
-
-Recompensa entregue e anunciada no chat com {destaque}?
-
-Storages na faixa 50000–50999?
-
-Opcodes na faixa 180–199?
-
-NPC utiliza NpcUtils (sinónimos, tratamento, variação)?
-
-IDs de itens verificados (ou marcados como VERIFICAÇÃO PENDENTE)?
-
-Texto em PT‑BR impecável, com personalização por pronome (via
-pronouns.lua)?
-
-A personalidade do NPC está reflectida em todas as falas da quest?
-
-A progressão de intimidade é actualizada e visível após a quest?
-
-Script salvo como ISO‑8859‑1?
-
-Inclui definição de pronome (tópico 200) se o jogador não o tiver?
+☐ Diálogos usam {chaves} para destacar ações, itens e locais?
+☐ NENHUMA chamada a player:showModalWindow() no fluxo de progresso da missão?
+☐ Ao aceitar, Opcode 180 enviado para HUD?
+☐ Ao concluir, HUD limpo e Opcode 181 enviado para Toast?
+☐ Recompensa entregue e anunciada no chat com {destaque}?
+☐ Storages na faixa 50000–50999?
+☐ Opcodes na faixa 180–199?
+☐ NPC utiliza NpcUtils (sinónimos, tratamento, variação)?
+☐ IDs de itens verificados (ou marcados como VERIFICAÇÃO PENDENTE)?
+☐ Texto em PT‑BR impecável, com personalização por pronome (via pronouns.lua)?
+☐ A personalidade do NPC está reflectida em todas as falas da quest?
+☐ A progressão de intimidade é atualizada e visível após a quest?
+☐ Scripts salvos como ISO‑8859‑1 e colocados nas subpastas Revscript correctas?
+☐ Inclui definição de pronome (tópico 200) se o jogador não o tiver?
+☐ (NOVO) Se a quest desperta um Domínio, despertarDominio é chamado? (Verificar dependência da Fase 2)
+☐ (NOVO) Se a quest ensina uma habilidade, player:learnHabilidade é usado? (Verificar dependência da Fase 2)
+☐ (NOVO) O feedback de despertar/habilidade usa narrativa poética, sem números?
+☐ (NOVO) Itens de conhecimento usam opcode 184 e janela modal? (Verificar dependência da Fase 4)
+☐ (NOVO) O sistema de progressão (Domínios, Estados de Alma) é respeitado e não
+exposto tecnicamente?
 
 📤 COMO ATUALIZAR O REPOSITÓRIO GIT
 
 git add "<arquivos alterados>"
-git commit -m "feat(auth): <Comentário>"
+git commit -m "feat(quest): Atualiza guia SQH com v2.1.1 e Revscript"
 git push origin main
 
 ⚠️ PowerShell: aspas duplas em caminhos com espaços.
 
-FIM DO GUIA DE QUESTS (SISTEMA HÍBRIDO SQH) — VERSÃO 5.1
+FIM DO GUIA DE QUESTS (SISTEMA HÍBRIDO SQH) — VERSÃO 6.1

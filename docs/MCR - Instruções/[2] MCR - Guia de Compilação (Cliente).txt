@@ -1,37 +1,41 @@
 PROJETO MCR – GUIA DE COMPILAÇÃO (CLIENTE)
-Versão 2.3 – Conversão de nome do personagem no entergame.lua
+Versão 2.5 – Reutilização de modos de luta nativos para Posturas, opcodes de Estados de Alma (182/183), janela de conhecimento (184) e integração com o Sistema de Progressão v2.1.1
 Arquivo: [2] MCR - Guia de Compilação (Cliente).txt
 
 🎯 OBJETIVO DESTE GUIA
 Fornecer todas as instruções, dependências, customizações e verificações necessárias para compilar o OTClient Redemption do Projeto MCR a partir do código‑fonte. Este guia também estabelece as regras que o assistente DEVE seguir ao auxiliar em tarefas relacionadas à compilação, modificação de arquivos C++ do cliente ou ajustes nos módulos Lua que dependem de alterações no motor.
 
+Esta versão atualiza o cliente para a versão 2.1.0 do Sistema de Progressão do Aventureiro: o HUD de Estados de Alma (opcodes 182/183), a janela de conhecimento (opcode 184) e a confirmação de que as Posturas de Combate (Ímpeto, Equilíbrio, Guarda) reutilizam os modos de luta nativos (Full Attack, Balanced, Full Defense) sem necessidade de novas interfaces.
+
+🚧 ESTADO ATUAL DA IMPLEMENTAÇÃO (FASE 4 – CLIENTE)
+
+De acordo com o [Plano de Ação] Consolidado, a **Fase 4 (Cliente) ainda não foi iniciada**. Isto significa que:
+- Os listeners para os opcodes 182 (ícone de Vínculo), 183 (partículas de Estado de Alma) e 184 (janela de conhecimento) **ainda não foram implementados** nos módulos Lua do OTClient.
+- As Posturas de Combate reutilizam os modos de luta nativos (Full Attack, Balanced, Full Defense) que já funcionam no cliente, portanto nenhuma modificação é necessária para que o servidor receba o fightMode correcto. Os efeitos visuais e de jogabilidade dependem dos scripts do servidor (e, por sua vez, dos métodos C++ da Fase 2).
+- O opcode 200 (migração de conta) já está implementado e funcional.
+- As customizações de máscara de Alma, cache portátil, tradução da interface e conversão de nome (UTF‑8 para Latin‑1) estão aplicadas e em funcionamento.
+- Qualquer novo módulo Lua para interface deve ser salvo como ISO‑8859‑1.
+- As directrizes de codificação C++ (escapes octais para strings, comentários em PT‑BR) aplicam-se integralmente a qualquer modificação no código‑fonte do OTClient.
+
 ⚠️ REGRAS DE REVISÃO PARA O ASSISTENTE (C++ CLIENTE / OTCLIENT)
 
 Ao modificar QUALQUER arquivo .cpp/.h no diretório OTClient/src/, o assistente DEVE:
 
-Garantir que TODAS as strings de interface (menus, mensagens de toast, labels) estejam em PT‑BR, com acentuação correcta. Utilizar escapes octais Latin‑1 (ex.: "Configura\347\343o") para garantir compatibilidade.
-
-Manter comentários em PT‑BR; nomes de funções e variáveis em inglês (camelCase).
-
-Verificar se a alteração preserva a compatibilidade com o servidor Canary (protocolo 15.00).
-
-Se modificar a comunicação de rede (HTTP, ProtocolGame, Extended Opcodes), garantir que as portas usadas são 8080 (Login Server) e 7173 (Game), conforme documentado.
-
-Toda nova interface gráfica em C++ deve utilizar os recursos existentes do motor (g_ui, displays) e ser documentada para integração Lua.
-
-Após a edição, listar explicitamente os arquivos modificados para compilação selectiva.
+- Garantir que TODAS as strings de interface (menus, mensagens de toast, labels) estejam em PT‑BR, com acentuação correcta. Utilizar OBRIGATORIAMENTE escapes octais Latin‑1 (ex.: "Configura\347\343o") para garantir compatibilidade entre compiladores e sistemas. NÃO usar UTF‑8 diretamente nas strings C++.
+- Manter comentários em PT‑BR; nomes de funções e variáveis em inglês (camelCase).
+- Verificar se a alteração preserva a compatibilidade com o servidor Canary (protocolo 15.00).
+- Se modificar a comunicação de rede (HTTP, ProtocolGame, Extended Opcodes), garantir que as portas usadas são 8080 (Login Server) e 7173 (Game), conforme documentado.
+- Toda nova interface gráfica em C++ deve utilizar os recursos existentes do motor (g_ui, displays) e ser documentada para integração Lua.
+- Após a edição, listar explicitamente os arquivos modificados para compilação selectiva.
 
 📦 DEPENDÊNCIAS (AMBIENTE WINDOWS)
 
 Ferramentas Obrigatórias:
 
-Visual Studio 2022 (Community ou superior) com carga de trabalho "Desenvolvimento para desktop com C++".
-
-CMake 3.20 ou superior.
-
-Git for Windows.
-
-vcpkg (o mesmo utilizado para o servidor, ou um clone separado).
+- Visual Studio 2022 (Community ou superior) com carga de trabalho "Desenvolvimento para desktop com C++".
+- CMake 3.20 ou superior.
+- Git for Windows.
+- vcpkg (o mesmo utilizado para o servidor, ou um clone separado).
 
 Bibliotecas Requeridas (instalar via vcpkg, para x64-windows):
 .\vcpkg install boost-algorithm:x64-windows boost-asio:x64-windows
@@ -71,193 +75,57 @@ Copie o otclient.exe para a raiz do diretório do OTClient (onde está o init.lu
 
 As seguintes modificações estão presentes nos fontes do repositório ProjetoMCR/OTClient. O assistente NÃO precisa reaplicá‑las, mas deve conhecê‑las para manutenção.
 
-Cache Portátil (init.lua)
+- Cache Portátil (init.lua): pasta cache/ local, dispensando %APPDATA%.
+- Tradução Parcial de Interfaces: módulos entergame, characterlist, registro em PT‑BR.
+- Máscara de Alma (Guest_ → Alma): implementada em creature.cpp, game.cpp e entergame.lua.
+- Método Game::logout para migração de conta (opcode 200): implementado em game.h/cpp e registado em luafunctions.cpp.
+- Tradução do código‑fonte do OTClient para PT‑BR com escapes octais Latin‑1.
+- Comando look com pronome do personagem (integrado com pronouns.lua).
+- Conversão de nome do personagem no entergame.lua (UTF‑8 → Latin‑1).
 
-Linha original substituída: g_resources.setupUserWriteDir(('%s/'):format(g_app.getCompactName()))
+🎮 REUTILIZAÇÃO DOS MODOS DE LUTA NATIVOS PARA POSTURAS (v2.1.1)
 
-Nova linha: g_resources.setWriteDir(g_resources.getWorkDir() .. 'cache')
+O cliente já possui nativamente os modos de luta Full Attack, Balanced e Full Defense, acessíveis por hotkeys (Ctrl+A, Ctrl+B, Ctrl+D) e ícones no painel de combate. Para o Sistema de Progressão v2.1.1, estes mesmos modos representam as Posturas de Combate:
 
-Resultado: cache em pasta local (cache/ na raiz), dispensando %APPDATA%.
+- Full Attack → Ímpeto
+- Balanced → Equilíbrio
+- Full Defense → Guarda
 
-Necessário criar manualmente a pasta cache/ ou garantir que o motor a crie.
+Nenhuma modificação é necessária no cliente. O servidor interpreta o fightMode recebido e aplica os efeitos correspondentes (danos, alcances, sangramentos, defesas) conforme a arma equipada e a Especialização.
 
-Tradução Parcial de Interfaces (Em Andamento)
+Os ícones e as hotkeys permanecem exactamente os mesmos. Apenas o feedback narrativo (mensagens no chat) usará a terminologia MCR quando a postura for alterada, mas essa comunicação é gerida pelo servidor.
 
-Alguns módulos essenciais (entergame, characterlist) já têm strings traduzidas para PT‑BR.
+📡 NOVOS OPCODES PARA O SISTEMA DE PROGRESSÃO (A IMPLEMENTAR NO CLIENTE)
 
-A interface de criação de conta (registro.lua) e a janela .otui associada estão em PT‑BR.
+⚠️ Os listeners para estes opcodes ainda não foram implementados. A descrição abaixo serve de especificação para quando a Fase 4 for iniciada.
 
-Trabalho contínuo: toda string fixa exibida ao jogador deve ser traduzida.
+O cliente deve escutar e processar os seguintes opcodes estendidos (faixa 180‑255):
 
-Máscara de Alma (Guest_ → Alma) — IMPLEMENTAÇÃO COMPLETA
+- Opcode 182 – Ícone do Vínculo (Estado de Alma): o servidor envia o ID do domínio dominante para atualizar o ícone no HUD e a tooltip poética.
+- Opcode 183 – Partículas de Estado de Alma: dispara efeitos visuais temáticos (fagulhas, folhas, brilho) sobre o personagem.
+- Opcode 184 – Examinar Conhecimento (janela modal): acionado quando o jogador clica com o botão direito num item de conhecimento. Exibe a janela modal com título, descrição narrativa, botão "Aprender" e "Fechar". Ao confirmar, envia um pacote de volta ao servidor.
 
-Objectivo: Substituir visualmente qualquer nome de personagem que comece com "Guest_" por "Alma" em toda a interface do cliente (lista de personagens, nome sobre a cabeça, chat, barras de status, battle list, look).
+A implementação desses opcodes pode ser feita nos módulos Lua do cliente (ex.: adicionar listeners em `modules/core/opcodes.lua` ou módulo dedicado). Exemplo de registo para o opcode 184:
 
-Arquivos C++ modificados:
-
-OTClient/src/client/creature.h: mantida a declaração original de getName() e setName().
-
-OTClient/src/client/creature.cpp: função setName() alterada para, ao receber um nome iniciado por "Guest_", armazenar "Alma" no CachedText m_name.
-Código adicionado:
-
-cpp
-void Creature::setName(const std::string_view name) {
-std::string finalName{ name };
-if (finalName.size() >= 6 && finalName.substr(0, 6) == "Guest_") {
-finalName = "Alma";
-}
-if (finalName == m_name.getText()) return;
-const auto& oldName = m_name.getText();
-m_name.setText(finalName);
-callLuaField("onChangeName", finalName, oldName);
-}
-OTClient/src/client/game.cpp: função loginWorld() mascara m_characterName; função processTalk() substitui o nome do emissor no chat.
-Código adicionado em loginWorld:
-
-cpp
-std::string maskedName{ characterName };
-if (characterName.size() >= 6 && characterName.substr(0, 6) == "Guest_") {
-maskedName = "Alma";
-}
-m_localPlayer->setName(maskedName);
-...
-m_characterName = maskedName;
-Código adicionado em processTalk:
-
-cpp
-std::string displayName{ name };
-if (displayName.size() >= 6 && displayName.substr(0, 6) == "Guest_") {
-displayName = "Alma";
-}
-g_lua.callGlobalField("g_game", "onTalk", displayName, level, mode, text, channelId, pos);
-Arquivo Lua cliente modificado:
-
-modules/client_entergame/entergame.lua: função onCharacterList() alterada para exibir "Alma" na lista de personagens.
-
-O módulo Lua alma.lua, antes necessário, foi removido por já não ser preciso.
-
-A máscara é puramente visual; o nome real continua a ser usado para autenticação e pelo servidor (ex.: NPC Oráculo).
-
-Método logout para migração de conta (Game::logout) — NOVA CUSTOMIZAÇÃO
-
-Adicionado método público void logout(bool restartConnection = false) na classe Game.
-
-Declaração em OTClient/src/client/game.h:
-
-cpp
-void logout(bool restartConnection = false);
-Implementação em OTClient/src/client/game.cpp:
-
-cpp
-void Game::logout(bool restartConnection)
-{
-if (!isOnline()) return;
-if (m_protocolGame) {
-m_protocolGame->sendLogout();
-m_protocolGame->disconnect();
-m_protocolGame = nullptr;
-}
-if (isOnline()) {
-m_online = false;
-g_lua.callGlobalField("g_game", "onGameEnd");
-resetGameStates();
-m_worldName.clear();
-m_characterName.clear();
-g_map.cleanDynamicThings();
-}
-g_lua.callGlobalField("g_game", "onLogout", restartConnection);
-}
-Registado em Lua no ficheiro OTClient/src/client/luafunctions.cpp:
-
-cpp
-g_lua.bindSingletonFunction("g_game", "logout", &Game::logout, &g_game);
-Este método é chamado pelo callback do opcode 200 (migração de conta do Oráculo) para desligar a Alma de forma síncrona e imediata, sem atrasos causados pelo event dispatcher.
-
-A função expõe em Lua g_game.logout(false), permitindo ao cliente trocar de conta directamente após receber as novas credenciais.
-
-Tradução do código‑fonte do OTClient para PT‑BR — NOVA CUSTOMIZAÇÃO
-
-Pipeline automática supervisionada, com revisão manual.
-
-Uso de escapes octais Latin‑1 para strings acentuadas, garantindo compatibilidade total e eliminando problemas de BOM/encoding.
-
-Protecção rigorosa dos bindings Lua: funções como Game::logout, Creature::setName, ProtocolGame::sendExtendedOpcode mantiveram os nomes originais.
-
-Comentários traduzidos para PT‑BR (com caracteres ASCII sempre que possível).
-
-Comando look com pronome do personagem (já integrado no servidor e cliente)
-
-O módulo pronouns.lua é utilizado pelo on_look.lua e player.lua para que a descrição "Você vê" seja adaptada ao pronome do personagem (ex.: "Você vê um aventureiro" / "uma aventureira"). Isto requer o funcionamento correcto do sistema de pronomes (coluna players.pronoun).
-
-🔤 Conversão do nome do personagem no módulo entergame.lua
-
-O nome do personagem é recebido pelo cliente através do JSON de login (HTTP) em UTF‑8. Como o OTClient processa strings Lua como ISO‑8859‑1 (Latin‑1), é necessário converter o nome para Latin‑1 antes de o utilizar na interface.
-
-Para isso, foi adicionada a função utf8ToLatin1 no módulo modules/client_entergame/entergame.lua e a conversão é aplicada em dois pontos:
-
-No onCharacterList, após a máscara de Alma.
-
-No doAutoLogin, imediatamente após receber a lista de personagens do Login Server.
-
-Consulte o Guia de Tradução e Localização (PT‑BR) para ver a função completa e o procedimento detalhado.
+```lua
+ProtocolGame.registerExtendedOpcode(184, function(protocol, opcode, buffer)
+    if not buffer or #buffer == 0 then return end
+    local data = json.decode(buffer)
+    -- exibir janela modal com data.title, data.description, etc.
+end)
+Para os opcodes 182 e 183, o tratamento será semelhante, atualizando o HUD e disparando sistemas de partículas (se disponíveis).
 
 🖥️ MAP EDITOR (RME) – SUPORTE A LUA ISO‑8859‑1
 
-O Projeto MCR utiliza uma versão modificada do Remere's Map Editor (RME) com
-suporte a scripts Lua de monstros e NPCs em ISO‑8859‑1.
+O Projeto MCR utiliza uma versão modificada do Remere's Map Editor (RME) com suporte a scripts Lua de monstros e NPCs em ISO‑8859‑1. As alterações incluem:
 
-As seguintes alterações estão presentes no código‑fonte do RME (disponível
-no repositório do projeto):
+Função de conversão ISO‑8859‑1 → UTF‑8 (encoding_utils.h)
 
-FICHEIRO encoding_utils.h
-Função inline que converte uma string de ISO‑8859‑1 para UTF‑8.
-Local: source/encoding_utils.h
+Parser Lua estendido (resolveLocalVar, parseNpcConfig)
 
-cpp
-inline std::string latin1_to_utf8(const std::string& input) {
-std::string output;
-output.reserve(input.size());
-for (unsigned char c : input) {
-if (c < 0x80) output.push_back(c);
-else {
-output.push_back(0xC0 | (c >> 6));
-output.push_back(0x80 | (c & 0x3F));
-}
-}
-return output;
-}
+Modificações em monsters.cpp e npcs.cpp
 
-PARSER LUA ESTENDIDO (lua_parser.h)
-Foram adicionadas duas novas funções inline:
-
-resolveLocalVar: resolve variáveis locais como "local npcName = "Oráculo""
-
-parseNpcConfig: extrai nome e outfit de blocos npcConfig
-
-Estas funções permitem que o RME reconheça NPCs que usam o padrão:
-lua
-local npcName = "Oráculo"
-local npcType = Game.createNpcType(npcName)
-local npcConfig = {
-name = npcName,
-outfit = { ... }
-}
-
-MODIFICAÇÕES EM monsters.cpp E npcs.cpp
-Nos métodos loadFromLuaDir, a leitura do conteúdo dos ficheiros .lua
-é agora feita com conversão ISO‑8859‑1 → UTF‑8:
-
-cpp
-std::string rawContent = LuaParser::readFileContent(filePath.ToStdString());
-std::string content = latin1_to_utf8(rawContent);
-
-Além disso, em npcs.cpp, o fallback de parsing tenta as novas funções
-resolveLocalVar e parseNpcConfig quando parseCreateCall falha.
-
-COMPILAÇÃO DO RME
-A compilação do RME utiliza o mesmo ambiente do OTClient (Visual Studio,
-vcpkg). Consulte a documentação do repositório do Map Editor para as
-dependências específicas (geralmente wxWidgets e o mesmo toolchain).
+Consulte o Guia [2] (este documento) e o repositório para compilar o RME.
 
 🧩 CONFIGURAÇÕES ESPECÍFICAS DO OTCLIENT PÓS‑COMPILAÇÃO
 
@@ -275,58 +143,48 @@ httpLogin = true,
 url = "http://127.0.0.1/",
 }
 }
-OTCFeatures: Não configuráveis directamente no cliente; são recebidas do servidor. O servidor deve ter OTCFEATURES adequadas (Guia de Configuração).
+OTCFeatures: Não configuráveis directamente no cliente; são recebidas do servidor.
 
-Fontes: O cliente já vem com as fontes bitmap listadas no Guia de Interface. Não é necessário instalar fontes adicionais no sistema.
+Fontes: O cliente já vem com as fontes bitmap listadas no Guia de Interface.
 
 ⚠️ ARMADILHAS E LIÇÕES APRENDIDAS
 
-Cache em %APPDATA%: No desenvolvimento, limpar cache foi um problema constante. A solução de cache portátil (pasta local) resolveu isso completamente (Fase 19).
+Cache em %APPDATA%: use a cache local (cache/).
 
-Módulos de bot/walking: O OTClient Redemption inclui alguns módulos que podem causar travamentos ou comportamentos indesejados se não removidos (Fase 2.4).
+Módulos de bot/walking: remova ou desabilite se causarem travamentos.
 
-Codificação de scripts Lua carregados com dofile: Mesmo que o C++ do motor trabalhe com UTF‑8, o interpretador Lua do OTClient processa arquivos .lua como Latin‑1 por padrão. Scripts com acentos devem ser salvos como ISO‑8859‑1 (Fase 22.3).
+Codificação de scripts Lua: salvar como ISO‑8859‑1.
 
-Métodos setModal, center: A versão Redemption não suporta certos métodos convenientes; a interface deve ser definida via OTUI com modal: true, center: true ou calculando posições manualmente (Fase 11).
+Métodos setModal, center: use propriedades OTML ou cálculo manual.
 
-Login HTTP: A substituição do ProtocolLogin por HTTP.post evitou travamentos e "Things are not loaded" (Fase 12). O login via HTTP é a única forma suportada no fluxo MCR.
+Login HTTP: use HTTP.post, não ProtocolLogin.
 
-Máscara de nome via Lua: Tentativas de alterar o nome de exibição do jogador local apenas com scripts Lua falharam porque o motor não expõe essa capacidade. A solução exigiu modificar directamente a função setName() da classe Creature (Fase actual).
+Máscara de nome via Lua: requer modificação em C++ (creature::setName).
 
-Escapes octais vs UTF‑8: Mesmo que o compilador suporte UTF‑8, os escapes octais garantem que o código seja portável e imune a alterações de code page do editor. Use SEMPRE \ooo para acentos (ex.: "N\355vel").
+Escapes octais: usar SEMPRE para acentos no C++ do cliente. NÃO usar UTF‑8 diretamente nas strings.
+
+A coluna lastlogin EXISTE na tabela players do schema actual do Canary (confirmado no banco de dados do projecto). O cliente não interage diretamente com ela, mas scripts podem usar essa informação.
 
 🔍 CHECKLIST DE REVISÃO PARA O ASSISTENTE (C++ CLIENTE)
 
 Antes de finalizar qualquer modificação em arquivos .cpp/.h do OTClient, o assistente DEVE verificar:
 
-Strings de interface expostas ao jogador (labels, botões, menus) estão em PT‑BR, com acentuação correcta?
-
-Comentários de código em PT‑BR; nomes de funções/variáveis em inglês?
-
-A modificação mantém compatibilidade com o servidor Canary (protocolo 15.00)?
-
-Novos caminhos de arquivo ou diretórios respeitam a estrutura do cliente?
-
-A comunicação de rede utiliza as portas correctas (8080 HTTP, 7173 game)?
-
-Se adicionou bindings Lua, a documentação foi actualizada?
-
-A máscara de Alma permanece funcional após as alterações?
-
-O método g_game.logout(false) não foi afectado?
-
-Todas as novas strings acentuadas usam escapes octais Latin‑1?
-
-Nomes de bindings Lua (métodos, classes) permanecem inalterados?
-
-O nome do personagem recebido via HTTP é convertido de UTF‑8 para Latin‑1 no entergame.lua?
+☐ Strings de interface expostas ao jogador estão em PT‑BR com escapes octais Latin‑1 (OBRIGATÓRIO)?
+☐ Comentários em PT‑BR; nomes de funções/variáveis em inglês?
+☐ A modificação mantém compatibilidade com o servidor Canary (protocolo 15.00)?
+☐ Os opcodes 182, 183 e 184 estão registados no cliente (Lua ou C++)? (Verificar estado da Fase 4)
+☐ Os modos de luta nativos permanecem inalterados (Full Attack, Balanced, Full Defense)?
+☐ A máscara de Alma continua funcional?
+☐ O método g_game.logout(false) não foi afectado?
+☐ O nome do personagem recebido via HTTP é convertido de UTF‑8 para Latin‑1?
+☐ O servidor de login está acessível (portas 8080, 7173)?
 
 📤 COMO ATUALIZAR O REPOSITÓRIO GIT
 
 git add "<arquivos alterados>"
-git commit -m "feat(auth): <Comentário>"
+git commit -m "feat(client): <Comentário>"
 git push origin main
 
 ⚠️ PowerShell: aspas duplas em caminhos com espaços.
 
-FIM DO GUIA DE COMPILAÇÃO (CLIENTE) — VERSÃO 2.3
+FIM DO GUIA DE COMPILAÇÃO (CLIENTE) — VERSÃO 2.5
