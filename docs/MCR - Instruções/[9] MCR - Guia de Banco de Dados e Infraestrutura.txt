@@ -1,33 +1,36 @@
 PROJETO MCR – GUIA DE BANCO DE DADOS E INFRAESTRUTURA
-(Versão 3.4 – Integração com o Sistema de Progressão v2.1.1, novas tabelas e estrutura Revscript)
+(Versão 4.0 – Integração total com o SPA v3.2.0, novas tabelas, IDs actualizados e estrutura Revscript)
 Arquivo: [9] MCR - Guia de Banco de Dados e Infraestrutura.txt
 
 🎯 OBJETIVO DESTE GUIA
 Fornecer todas as informações, procedimentos e regras para configurar, manter e
-modificar o banco de dados do Projeto MCR. Esta versão adiciona as tabelas do
-Sistema de Progressão do Aventureiro v2.1.1 (dominios_def, habilidades_def,
-player_dominios, player_habilidades), confirma a vocação padrão 0 para todos os
-personagens e reflecte a organização dos scripts do servidor na estrutura
-Revscript (pasta data-canary/scripts/MCR/).
+modificar o banco de dados do Projeto MCR. Esta versão consolida as tabelas do
+Sistema de Progressão do Aventureiro (SPA v3.2.0) com os IDs de Domínios
+actualizados (incluindo Escudo = 15, Runologia = 22, e as Especialidades 100+),
+confirma a vocação padrão 0 para todos os personagens e reflecte a organização
+dos scripts do servidor na estrutura Revscript (pasta data-canary/scripts/MCR/).
 
 🚧 ESTADO ATUAL DA IMPLEMENTAÇÃO
 
-De acordo com o [Plano de Ação] Consolidado, a Fase 1 (Banco de Dados) está
-**concluída**. Isto significa que:
+O SPA v3.2.0 está totalmente implementado, incluindo todas as APIs C++. O banco
+de dados reflecte este estado:
 
-- As tabelas `dominios_def`, `habilidades_def`, `player_dominios` e
-  `player_habilidades` já estão criadas e populadas com a hierarquia completa
-  de Domínios, incluindo Runologia (ID 25).
-- A coluna `vocation` na tabela `players` tem valor padrão 0 (Aventureiro),
-  aplicado a todos os novos personagens.
-- As colunas `accounts.created_at` e `accounts.player_pronoun` existem e são
-  usadas pelo Login Server e Oráculo.
-- A coluna `lastlogin` existe na tabela `players` (confirmado no schema actual
-  do Canary 3.4.1 utilizado pelo projecto).
-- As tabelas de progressão estão prontas para receber dados, mas os métodos
-  C++ que as alimentam (Fase 2) ainda não foram implementados.
-- Scripts Lua que lêem ou escrevem nestas tabelas devem verificar a existência
-  dos métodos antes de os chamar.
+As tabelas dominios_def, habilidades_def, player_dominios e
+player_habilidades estão criadas e populadas com a hierarquia completa
+de Domínios do SPA v3.2.0.
+
+A coluna vocation na tabela players tem valor padrão 0 (Aventureiro),
+aplicado a todos os novos personagens.
+
+As colunas accounts.created_at e accounts.player_pronoun existem e são
+usadas pelo Login Server e Oráculo.
+
+A coluna lastlogin existe na tabela players (confirmado no schema actual
+do Canary 3.4.1 utilizado pelo projecto).
+
+Todos os métodos C++ que alimentam as tabelas de progressão
+(addDominioAfinidade, addDominioAfinidadeBatch, learnHabilidade, etc.)
+estão implementados e a funcionar.
 
 Todas as directrizes de charset, criação de tabelas e população inicial
 descritas neste guia reflectem o estado actual e funcional do banco de dados.
@@ -56,33 +59,36 @@ players, etc.) e com as consultas do Login Server.
 Documentar novos campos ou tabelas para que o assistente saiba da sua
 existência em interacções futuras.
 
-A coluna created_at (INT, default 0) na tabela accounts é essencial para a
-limpeza de contas guest. Não a remova ou altere sem atualizar o Login Server.
+A coluna created_at (INT, default 0) na tabela accounts é essencial
+para a limpeza de contas guest. Não a remova ou altere sem atualizar o Login
+Server.
 
-A coluna player_pronoun (TINYINT, default 0) na tabela accounts armazena o
-pronome do JOGADOR (0 = não definido, 1 = jogador, 2 = jogadora). É utilizada
-pelo Oráculo ao se dirigir ao dono da conta.
+A coluna player_pronoun (TINYINT, default 0) na tabela accounts armazena
+o pronome do JOGADOR (0 = não definido, 1 = jogador, 2 = jogadora). É
+utilizada pelo Oráculo ao se dirigir ao dono da conta.
 
-A coluna pronoun na tabela players é NATIVA do Canary e armazena o pronome
-do PERSONAGEM (0 = usa o sexo, 2 = ela, 3 = ele, etc.). NÃO utilize storages
-manuais para este fim.
+A coluna pronoun na tabela players é NATIVA do Canary e armazena o
+pronome do PERSONAGEM (0 = usa o sexo, 2 = ela, 3 = ele, etc.). NÃO utilize
+storages manuais para este fim.
 
-A coluna lastlogin na tabela players EXISTE no schema actual (confirmado via
-phpMyAdmin). Pode ser utilizada para lógica de inicialização/migração.
+A coluna lastlogin na tabela players EXISTE no schema actual (confirmado
+via phpMyAdmin). Pode ser utilizada para lógica de inicialização/migração.
 
-Ao criar scripts que manipulam itens (especialmente missões, tutorial e lojas),
-o assistente DEVE utilizar a Lista de Itens Úteis como referência rápida de IDs
-já traduzidos. O ficheiro items.xml permanece a fonte canónica, mas a lista
-facilita a busca por itens comuns.
+Ao criar scripts que manipulam itens (especialmente missões, tutorial e
+lojas), o assistente DEVE utilizar a Lista de Itens Úteis como referência
+rápida de IDs já traduzidos. O ficheiro items.xml permanece a fonte
+canónica, mas a lista facilita a busca por itens comuns.
 
-⚠️ NOVO (v2.1.1): As tabelas do Sistema de Progressão (dominios_def,
-habilidades_def, player_dominios, player_habilidades) são parte integrante do
-banco. Se ainda não existirem, devem ser criadas com os comandos fornecidos na
-secção 3.4. A população inicial deve incluir a Runologia (ID 25).
+⚠️ SPA v3.2.0: As tabelas do Sistema de Progressão (dominios_def,
+habilidades_def, player_dominios, player_habilidades) são parte
+integrante do banco. Se ainda não existirem, devem ser criadas com os
+comandos fornecidos na secção 3.4. A população inicial deve incluir os
+Domínios Primários, Secundários e Especialidades conforme a hierarquia
+actual.
 
-⚠️ NOVO (v2.1.1): A coluna vocation em players DEVE ter valor padrão 0
-(Aventureiro). O script de criação de personagens (Oráculo) já a define como 0,
-mas o DBA deve garantir que a alteração na tabela foi aplicada:
+⚠️ SPA v3.2.0: A coluna vocation em players DEVE ter valor padrão 0
+(Aventureiro). O script de criação de personagens (Oráculo) já a define como
+0, mas o DBA deve garantir que a alteração na tabela foi aplicada:
 ALTER TABLE players MODIFY vocation INT NOT NULL DEFAULT 0;
 
 🗄️ 1. AMBIENTE: XAMPP (MARIADB)
@@ -103,7 +109,7 @@ Local do arquivo: D:\Programas\Xampp\mysql\bin\my.ini
 
 Parâmetros obrigatórios:
 
-```text
+text
 [client]
 default-character-set = utf8mb4
 
@@ -122,9 +128,7 @@ Definição da Senha do Root (MariaDB):
 
 sql
 SET PASSWORD FOR 'root'@'localhost' = PASSWORD('<Senha>');
-⚠️ DIFERENÇA CRÍTICA: O comando ALTER USER ... IDENTIFIED WITH
-mysql_native_password NÃO funciona no MariaDB. Use SEMPRE SET PASSWORD FOR...
-(Fase 33)
+⚠️ DIFERENÇA CRÍTICA: O comando ALTER USER ... IDENTIFIED WITH mysql_native_password NÃO funciona no MariaDB. Use SEMPRE SET PASSWORD FOR...
 
 🛠️ 2. CRIAÇÃO DO BANCO DE DADOS
 
@@ -159,8 +163,8 @@ sex, posx, posy, posz, town_id, pronoun (TINYINT), lastlogin (INT), etc.
 É complementado por dezenas de outras tabelas para houses, guilds, store, daily
 rewards, etc.
 
-O Login Server acessa as mesmas tabelas accounts e players. Qualquer alteração
-nessas tabelas DEVE ser sincronizada com o código do Login Server.
+O Login Server acessa as mesmas tabelas accounts e players. Qualquer
+alteração nessas tabelas DEVE ser sincronizada com o código do Login Server.
 
 3.1 ADIÇÕES MCR AO SCHEMA ORIGINAL
 
@@ -171,24 +175,33 @@ criação.
 
 accounts.player_pronoun: Coluna TINYINT. Define como o Oráculo deve se
 dirigir ao JOGADOR (dono da conta). Valores:
+
 0 = não definido (perguntará novamente)
+
 1 = jogador (tratamento masculino)
+
 2 = jogadora (tratamento feminino)
 
 players.pronoun: Coluna TINYINT nativa do Canary. Define o pronome do
 PERSONAGEM (como o mundo deve se referir a ele). Valores:
+
 0 = não definido (usa o sexo do personagem como fallback)
+
 1 = they (neutro) – disponível, mas não exposto pelo Oráculo por enquanto
+
 2 = she (ela)
+
 3 = he (ele)
+
 4 = ze
+
 5 = usar o nome (name)
 O Oráculo grava directamente 2 ou 3 durante a criação/gerenciamento.
 
-players.lastlogin: Coluna INT (timestamp Unix). EXISTENTE no schema actual do
-Canary 3.4.1 (confirmado no banco de dados do projecto). Armazena o timestamp
-do último login do personagem. Pode ser utilizada por scripts de inicialização
-(verificar se é o primeiro login) ou migração.
+players.lastlogin: Coluna INT (timestamp Unix). EXISTENTE no schema actual
+do Canary 3.4.1 (confirmado no banco de dados do projecto). Armazena o
+timestamp do último login do personagem. Pode ser utilizada por scripts de
+inicialização (verificar se é o primeiro login) ou migração.
 
 Rotina de limpeza de contas guest (implementada no Login Server):
 Remove contas com prefixo guest_ e created_at anterior a 30 minutos, assim
@@ -204,51 +217,49 @@ DELETE FROM accounts WHERE name LIKE 'guest\_%'
 AND created_at < UNIX_TIMESTAMP() - 1800;
 3.2 VERIFICAÇÃO DE COMPATIBILIDADE
 
-O Canary 3.4.1 POSSUI a coluna "lastlogin" na tabela players (confirmado pela
-estrutura actual do banco). O Login Server foi ajustado para lidar com essa
-coluna. Se o schema for atualizado, verificar novamente.
+O Canary 3.4.1 POSSUI a coluna lastlogin na tabela players (confirmado
+pela estrutura actual do banco). O Login Server foi ajustado para lidar com
+essa coluna. Se o schema for atualizado, verificar novamente.
 
-O campo "email" na tabela accounts é mantido como string vazia, pois o MCR não
-utiliza e‑mail para autenticação.
+O campo email na tabela accounts é mantido como string vazia, pois o MCR
+não utiliza e‑mail para autenticação.
 
 A coluna created_at deve existir na tabela accounts. Se estiver ausente,
 adicione‑a com:
 
 sql
 ALTER TABLE accounts ADD COLUMN created_at INT NOT NULL DEFAULT 0;
-A coluna player_pronoun deve ser adicionada manualmente (ainda não faz parte do
-schema.sql original):
+A coluna player_pronoun deve ser adicionada manualmente (ainda não faz parte
+do schema.sql original):
 
 sql
 ALTER TABLE accounts ADD COLUMN player_pronoun TINYINT NOT NULL DEFAULT 0;
-A coluna pronoun já existe na tabela players (nativa do Canary). Não precisa ser
-criada.
+A coluna pronoun já existe na tabela players (nativa do Canary). Não
+precisa ser criada.
 
-3.3 VOCAÇÃO PADRÃO (v2.1.1)
+3.3 VOCAÇÃO PADRÃO (SPA v3.2.0)
 
-A partir do Sistema de Progressão v2.1.1, todo personagem é um Aventureiro
-(vocation = 0). As vocações antigas (1‑5) não são mais usadas. Para garantir que
-o banco reflicta essa mudança:
+A partir do SPA v3.2.0, todo personagem é um Aventureiro (vocation = 0). As
+vocações antigas (1‑5) não são mais usadas. Para garantir que o banco reflicta
+essa mudança:
 
 sql
 ALTER TABLE players MODIFY vocation INT NOT NULL DEFAULT 0;
 Se houver personagens antigos com vocation diferente de 0, o script de migração
-(parte do evento_login.lua na pasta MCR/Dominio) irá convertê‑los
-automaticamente.
+(parte do login.lua na pasta MCR/SPA) irá convertê‑los automaticamente.
 
-3.4 TABELAS DO SISTEMA DE PROGRESSÃO (v2.1.1)
+3.4 TABELAS DO SPA v3.2.0
 
-O Sistema de Progressão do Aventureiro utiliza quatro tabelas novas, que devem
-ser criadas com charset utf8mb4.
+O SPA utiliza quatro tabelas, que devem ser criadas com charset utf8mb4.
 
 sql
--- Tabela de definição de Domínios (Primários e Especializações)
+-- Tabela de definição de Domínios (Primários, Secundários e Especialidades)
 CREATE TABLE dominios_def (
-    id SMALLINT AUTO_INCREMENT PRIMARY KEY,
+    id SMALLINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     nome VARCHAR(50) NOT NULL,
     descricao VARCHAR(255),
     icone VARCHAR(50),
-    parent_id SMALLINT DEFAULT NULL,
+    parent_id SMALLINT UNSIGNED DEFAULT NULL,
     FOREIGN KEY (parent_id) REFERENCES dominios_def(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -256,11 +267,11 @@ CREATE TABLE dominios_def (
 CREATE TABLE habilidades_def (
     id INT AUTO_INCREMENT PRIMARY KEY,
     nome VARCHAR(50) NOT NULL,
-    dominio_id SMALLINT NOT NULL,
-    tipo ENUM('ativa','passiva') NOT NULL,
+    dominio_id SMALLINT UNSIGNED NOT NULL,
+    tipo ENUM('passiva','gatilho','transformacao') NOT NULL,
     requisito_afinidade INT DEFAULT 0,
     descricao TEXT,
-    sinergia_dominio_id SMALLINT DEFAULT NULL,
+    sinergia_dominio_id SMALLINT UNSIGNED DEFAULT NULL,
     sinergia_afinidade INT DEFAULT NULL,
     FOREIGN KEY (dominio_id) REFERENCES dominios_def(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -268,7 +279,7 @@ CREATE TABLE habilidades_def (
 -- Tabela de progressão do jogador por Domínio
 CREATE TABLE player_dominios (
     player_id INT NOT NULL,
-    dominio_id SMALLINT NOT NULL,
+    dominio_id SMALLINT UNSIGNED NOT NULL,
     afinidade INT DEFAULT 0,
     despertado TINYINT DEFAULT 0,
     PRIMARY KEY (player_id, dominio_id),
@@ -284,7 +295,7 @@ CREATE TABLE player_habilidades (
     FOREIGN KEY (player_id) REFERENCES players(id) ON DELETE CASCADE,
     FOREIGN KEY (habilidade_id) REFERENCES habilidades_def(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-População inicial dos Domínios (executar após criar dominios_def):
+População inicial dos Domínios (SPA v3.2.0) – executar após criar dominios_def:
 
 sql
 -- Primários
@@ -294,53 +305,65 @@ INSERT INTO dominios_def (id, nome, descricao, icone) VALUES
 (3, 'Ofícios', 'Habilidade manual e criação', 'oficios.png'),
 (4, 'Natureza', 'Ligação com o mundo natural', 'natureza.png');
 
--- Especializações de Combate
+-- Secundários de Combate
 INSERT INTO dominios_def (id, nome, descricao, icone, parent_id) VALUES
-(10, 'Lâminas Leves', 'Espadas e adagas', 'lam_leves.png', 1),
-(11, 'Lâminas Pesadas', 'Montantes e espadas largas', 'lam_pesadas.png', 1),
-(12, 'Impacto', 'Machados, clavas e martelos', 'impacto.png', 1),
+(10, 'Lâminas', 'Espadas de todos os tipos', 'laminas.png', 1),
+(11, 'Machados', 'Machados e armas de corte pesado', 'machados.png', 1),
+(12, 'Clavas', 'Clavas, martelos e maças', 'clavas.png', 1),
 (13, 'Precisão', 'Arcos, bestas e armas de arremesso', 'precisao.png', 1),
-(14, 'Corpo a Corpo Desarmado', 'Luta sem armas', 'desarmado.png', 1);
+(14, 'Desarmado', 'Luta sem armas', 'desarmado.png', 1),
+(15, 'Escudo', 'Defesa com escudo', 'escudo.png', 1);
 
--- Especializações de Magia
+-- Secundários de Magia
 INSERT INTO dominios_def (id, nome, descricao, icone, parent_id) VALUES
-(20, 'Fogo', 'Domínio das chamas', 'fogo.png', 2),
-(21, 'Água e Gelo', 'Domínio da água e do frio', 'agua_gelo.png', 2),
-(22, 'Terra e Magia Natural', 'Domínio da terra, plantas e venenos', 'terra_natural.png', 2),
-(23, 'Ar e Eletricidade', 'Domínio dos ventos e relâmpagos', 'ar_eletric.png', 2),
-(24, 'Espectro', 'Dualidade entre luz e escuridão', 'espectro.png', 2),
-(25, 'Runologia', 'Escrita e activação de runas mágicas', 'runologia.png', 2);
+(20, 'Elementos', 'Magias elementais (fogo, água, terra, ar)', 'elementos.png', 2),
+(21, 'Espectro', 'Dualidade entre luz e escuridão', 'espectro.png', 2),
+(22, 'Runologia', 'Runas, wands e rods', 'runologia.png', 2);
 
--- Especializações de Ofícios
+-- Especialidades de Arma
 INSERT INTO dominios_def (id, nome, descricao, icone, parent_id) VALUES
-(30, 'Craft', 'Criação de armas, armaduras e objetos', 'craft.png', 3),
-(31, 'Mineração', 'Extração de minérios e gemas', 'mineracao.png', 3),
-(32, 'Pesca', 'Pesca e coleta de tesouros submersos', 'pesca.png', 3);
+(100, 'Espadas Leves', 'Espadas de uma mão', 'espadas_leves.png', 10),
+(101, 'Espadas Pesadas', 'Espadas de duas mãos', 'espadas_pesadas.png', 10),
+(110, 'Machados Leves', 'Machados de uma mão', 'machados_leves.png', 11),
+(111, 'Machados Pesados', 'Machados de duas mãos', 'machados_pesados.png', 11),
+(112, 'Clavas Leves', 'Clavas de uma mão', 'clavas_leves.png', 12),
+(113, 'Clavas Pesadas', 'Clavas de duas mãos', 'clavas_pesadas.png', 12),
+(120, 'Arcos', 'Arcos e bestas', 'arcos.png', 13),
+(121, 'Arremesso', 'Lanças, estrelas e dardos', 'arremesso.png', 13),
+(130, 'Desarmado Leve', 'Punhos e agilidade', 'desarmado_leve.png', 14),
+(131, 'Desarmado Pesado', 'Golpes pesados sem arma', 'desarmado_pesado.png', 14);
 
--- Especializações de Natureza
+-- Especialidades Mágicas
 INSERT INTO dominios_def (id, nome, descricao, icone, parent_id) VALUES
-(40, 'Domesticação', 'Comando e ligação com criaturas', 'domesticacao.png', 4),
-(41, 'Cultivo', 'Plantio e colheita', 'cultivo.png', 4),
-(42, 'Rastreamento', 'Detecção de seres e rastros', 'rastreamento.png', 4),
-(43, 'Sobrevivência', 'Resistência a ambientes e privações', 'sobrevivencia.png', 4);
-Inserção de habilidades iniciais (exemplos) – executar após criar habilidades_def:
+(23, 'Fogo e Ar', 'Magias de fogo e energia', 'fogo_ar.png', 20),
+(24, 'Água e Gelo', 'Magias de água e gelo', 'agua_gelo.png', 20),
+(25, 'Terra e Veneno', 'Magias de terra e veneno', 'terra_veneno.png', 20),
+(200, 'Sagrado e Morte', 'Magias sagradas e de morte', 'sagrado_morte.png', 21),
+(210, 'Wands', 'Varinhas mágicas', 'wands.png', 22),
+(211, 'Rods', 'Báculos mágicos', 'rods.png', 22),
+(212, 'Runas', 'Runas mágicas', 'runas.png', 22);
+
+-- Outros
+INSERT INTO dominios_def (id, nome, descricao, icone) VALUES
+(400, 'Sobrevivência', 'Resistência a ambientes e privações', 'sobrevivencia.png');
+Inserção de habilidades iniciais (exemplos):
 
 sql
 INSERT INTO habilidades_def (id, nome, dominio_id, tipo, requisito_afinidade, descricao) VALUES
-(1, 'Bola de Fogo', 20, 'ativa', 0, 'Lança uma bola de fogo.'),
-(2, 'Chama Interior', 20, 'passiva', 15, 'Ataques de fogo têm chance de incendiar o alvo.'),
-(3, 'Golpe Cortante', 10, 'ativa', 0, 'Um golpe rápido de espada.'),
-(4, 'Defesa com Escudo', 11, 'passiva', 10, 'Melhora o bloqueio com escudo.'),
+(1, 'Bola de Fogo', 23, 'ativa', 0, 'Lança uma bola de fogo.'),
+(2, 'Chama Interior', 23, 'passiva', 15, 'Ataques de fogo têm chance de incendiar o alvo.'),
+(3, 'Golpe Cortante', 100, 'ativa', 0, 'Um golpe rápido de espada.'),
+(4, 'Defesa com Escudo', 15, 'passiva', 10, 'Melhora o bloqueio com escudo.'),
 (5, 'Eco Arcano', 2, 'passiva', 15, 'Magias elementais têm chance de ecoar (50% do efeito).');
 -- Completar para os demais Domínios conforme o design.
 3.5 ESTRUTURA REVSCRIPT (INFORMAÇÃO RELACIONADA)
 
 Embora não afecte directamente o banco de dados, os scripts Lua que consomem
 essas tabelas residem em data-canary/scripts/MCR/, organizados em subpastas
-como Dominio, Criacao, Geral. O motor Revscript carrega automaticamente todos
+como SPA, Criacao, Geral. O motor Revscript carrega automaticamente todos
 os ficheiros .lua nessas pastas, portanto, qualquer script que manipule os
-dados de progressão (ex.: evento_login.lua, config_dominios.lua) deve ser
-colocado na subpasta correspondente.
+dados de progressão (ex.: login.lua, constantes.lua) deve ser colocado na
+subpasta correspondente.
 
 🔐 4. phpMyAdmin
 
@@ -356,7 +379,7 @@ $cfg['Servers'][$i]['auth_type'] = 'config';
 $cfg['Servers'][$i]['user'] = 'root';
 $cfg['Servers'][$i]['password'] = '<Senha>';
 ⚠️ Se auth_type = 'config' e a senha NÃO for configurada, o phpMyAdmin tentará
-conectar sem senha e falhará com "using password: NO". (Fase 33)
+conectar sem senha e falhará com "using password: NO".
 
 💾 5. BACKUP E RESTAURAÇÃO
 
@@ -402,7 +425,7 @@ MYSQL_PASS=<Senha>
 Ambos os sistemas precisam estar rodando para o fluxo completo de autenticação e
 jogo funcionar.
 
-📚 7. RECURSOS COMPLEMENTARES: LISTA DE ITENS ÚTEIS (NOVA SECÇÃO)
+📚 7. RECURSOS COMPLEMENTARES: LISTA DE ITENS ÚTEIS
 
 Além do schema SQL e do ficheiro items.xml, o projecto dispõe de uma Lista de
 Itens Úteis ([Aquivo Complementar] Lista de Items Uteis.txt) que contém mais de
@@ -433,58 +456,59 @@ reflectidas na lista.
 
 MariaDB vs MySQL: O XAMPP actual usa MariaDB. O comando ALTER USER não
 funciona. Use SET PASSWORD FOR 'root'@'localhost' = PASSWORD('senha');
-(Fase 33)
 
 Acesso negado (Access denied): Senha incorrecta no config.lua ou .env.
 Verificar se a senha foi definida no MariaDB e se os serviços estão rodando.
-(Fase 33)
 
-Erro 10061 (Can't connect): O serviço MySQL/MariaDB não está rodando. Iniciar
-pelo XAMPP Control Panel. (Fase 33)
+Erro 10061 (Can't connect): O serviço MySQL/MariaDB não está rodando.
+Iniciar pelo XAMPP Control Panel.
 
 Coluna lastlogin: O schema do Canary 3.4.1 POSSUI a coluna lastlogin na
 tabela players (confirmado na estrutura actual do banco). Pode ser usada
 normalmente em scripts Lua e consultas SQL.
 
-Charset incorrecto: Dados salvos com charset errado (latin1) podem corromper
-caracteres acentuados. Sempre force utf8mb4 em todas as camadas. (Fase 32)
+Charset incorrecto: Dados salvos com charset errado (latin1) podem
+corromper caracteres acentuados. Sempre force utf8mb4 em todas as camadas.
 
 phpMyAdmin sem senha configurada: Mesmo com senha no MySQL, o phpMyAdmin
-precisa da senha no config.inc.php. (Fase 33)
+precisa da senha no config.inc.php.
 
 Personagens de teste: Para testar o fluxo de criação de personagem, é útil
 criar personagens manualmente via SQL:
 
 sql
-INSERT INTO players (name, account_id, level, vocation, sex, posx, posy,
-                     posz, town_id, ...) VALUES (...);
+INSERT INTO players (name, account_id, level, vocation, sex, posx, posy, posz, town_id, ...) VALUES (...);
 Coluna created_at: Necessária para expiração de contas guest. Deve ser
 adicionada manualmente caso o schema não a possua.
 
-Coluna player_pronoun: Armazena o pronome do JOGADOR (dono da conta). Deve ser
-adicionada com ALTER TABLE accounts ADD COLUMN player_pronoun TINYINT NOT NULL
-DEFAULT 0;
+Coluna player_pronoun: Armazena o pronome do JOGADOR (dono da conta).
+Deve ser adicionada com ALTER TABLE accounts ADD COLUMN player_pronoun TINYINT NOT NULL DEFAULT 0;
 
 Coluna pronoun: NATIVA do Canary. Armazena o pronome do PERSONAGEM. NÃO
 utilize o storage 100001 para essa finalidade.
 
 Conversão de loots e addItem: Scripts como 0-converter-loot.py e
-0-converter-additem.py foram criados para migrar referências de itens de nome
-para ID, garantindo consistência com o items.xml traduzido.
+0-converter-additem.py foram criados para migrar referências de itens de
+nome para ID, garantindo consistência com o items.xml traduzido.
 
-⚠️ Tabelas de progressão (v2.1.1): Se as tabelas dominios_def,
+⚠️ SPA v3.2.0 – Tabelas de progressão: Se as tabelas dominios_def,
 habilidades_def, player_dominios e player_habilidades não existirem, os
-scripts do sistema não funcionarão. Crie‑as com os comandos fornecidos.
+scripts do SPA não funcionarão. Crie‑as com os comandos fornecidos.
 
-⚠️ Vocação 0 (v2.1.1): Qualquer personagem criado manualmente ou via ferramenta
-externa deve ter vocation = 0. A migração de personagens antigos é tratada
-pelo script evento_login.lua na pasta MCR/Dominio.
+⚠️ SPA v3.2.0 – IDs actualizados: A hierarquia de Domínios foi revista.
+Confirme que os IDs correspondem aos listados em constantes.lua (SPA):
+Escudo = 15, Runologia = 22, Fogo e Ar = 23, Água e Gelo = 24,
+Terra e Veneno = 25, Sagrado e Morte = 200, Wands = 210, Rods = 211,
+Runas = 212, Sobrevivência = 400.
+
+⚠️ SPA v3.2.0 – Vocação 0: Qualquer personagem criado manualmente ou via
+ferramenta externa deve ter vocation = 0. A migração de personagens antigos
+é tratada pelo script login.lua na pasta MCR/SPA.
 
 🔍 CHECKLIST DE REVISÃO PARA O ASSISTENTE (BANCO DE DADOS E INFRA)
 
 ☐ Senhas reais NÃO aparecem; placeholder <Senha> usado?
-☐ Todo novo banco/tabela/coluna criado com CHARSET utf8mb4 COLLATE
-utf8mb4_unicode_ci?
+☐ Todo novo banco/tabela/coluna criado com CHARSET utf8mb4 COLLATE utf8mb4_unicode_ci?
 ☐ Sintaxe compatível com MariaDB (SET PASSWORD FOR, não ALTER USER)?
 ☐ Comandos SQL fornecidos na íntegra?
 ☐ Recomendação de backup antes de operações destrutivas?
@@ -495,20 +519,18 @@ utf8mb4_unicode_ci?
 ☐ A coluna pronoun é usada para o pronome do personagem (sem storages manuais)?
 ☐ A coluna lastlogin EXISTE e pode ser usada (confirmado no schema actual)?
 ☐ A rotina de limpeza de contas guest está configurada e testada?
-☐ Ao criar novos scripts com itens, a Lista de Itens Úteis foi consultada para
-confirmar IDs?
+☐ Ao criar novos scripts com itens, a Lista de Itens Úteis foi consultada para confirmar IDs?
 ☐ Os IDs usados coincidem com o ficheiro items.xml actual?
-☐ As tabelas do Sistema de Progressão (dominios_def, habilidades_def,
-player_dominios, player_habilidades) foram criadas e estão populadas?
+☐ As tabelas do SPA (dominios_def, habilidades_def, player_dominios, player_habilidades) foram criadas e estão populadas com os IDs actualizados?
 ☐ A coluna vocation em players tem DEFAULT 0?
-☐ Os dados de Runologia (ID 25) foram inseridos em dominios_def?
+☐ Os dados de Runologia (ID 22), Escudo (15) e especialidades (100+) foram inseridos em dominios_def?
 
 📤 COMO ATUALIZAR O REPOSITÓRIO GIT
 
+text
 git add "<arquivos alterados>"
-git commit -m "docs: Atualiza guia de BD com tabelas da progressão v2.1.1"
+git commit -m "docs: Atualiza guia de BD com SPA v3.2.0 e IDs actualizados"
 git push origin main
-
 ⚠️ Arquivos de configuração com senhas NÃO são versionados.
 
-FIM DO GUIA DE BANCO DE DADOS E INFRAESTRUTURA — VERSÃO 3.4
+FIM DO GUIA DE BANCO DE DADOS E INFRAESTRUTURA — VERSÃO 4.0

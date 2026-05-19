@@ -1,39 +1,45 @@
 PROJETO MCR – GUIA DE COMPILAÇÃO (SERVIDOR)
-Versão 3.4 – Sistema de Progressão v2.1.1, novos métodos Lua (Estados de Alma, Posturas), Revscript e evento onHealthChange planeado
+Versão 4.0 – Sistema de Progressão do Aventureiro (SPA v3.2.0), novos métodos Lua (buffer, histórico, estados, knockback, lotes), estrutura Revscript e integração de cores
 Arquivo: [1] MCR - Guia de Compilação (Servidor).txt
 
 🎯 OBJETIVO DESTE GUIA
-Fornecer todas as instruções, dependências, customizações e verificações necessárias para compilar o servidor Canary do Projeto MCR a partir do código‑fonte. Esta versão incorpora os novos métodos Lua exigidos pelo Sistema de Progressão do Aventureiro v2.1.1 (Estados de Alma, Posturas de Combate, progressão multi‑domínio), a estrutura de scripts baseada em Revscript e o planeamento do evento onHealthChange. O assistente DEVE seguir estas directrizes ao modificar o código C++.
+Fornecer todas as instruções, dependências, customizações e verificações necessárias para compilar o servidor Canary do Projeto MCR a partir do código‑fonte. Esta versão incorpora todos os métodos Lua exigidos pelo Sistema de Progressão do Aventureiro (SPA v3.2.0), incluindo gerenciamento de afinidades em lote, histórico de ações (para Lampejos e Vínculos), knockback, modificadores de velocidade e stealth, além da estrutura modular de scripts em data-canary/scripts/MCR/SPA/. O assistente DEVE seguir estas directrizes ao modificar o código C++.
 
-🚧 ESTADO ATUAL DA IMPLEMENTAÇÃO (FASE 2 – C++)
+🚧 ESTADO ATUAL DA IMPLEMENTAÇÃO
 
-De acordo com o [Plano de Ação] Consolidado, a **Fase 2 (C++) ainda não foi iniciada**. Isto significa que:
-- Os métodos Lua listados na secção 6 ("Novos Métodos Lua para o Sistema de Progressão v2.1.1") **ainda não existem** no código-fonte. Eles são o próximo passo estrutural e devem ser implementados antes que os scripts de progressão multi-domínio e Estados de Alma possam funcionar.
-- A lógica de Estados de Alma (deque de acções, Lampejo, Vínculo, Maestria) e o evento onHealthChange são **planeados** e descritos aqui como referência de design. Nenhum script Lua deve tentar chamar `player:getEstadoAlma()` ou `player:registerDominioAction()` até que esta fase seja concluída.
-- O servidor actual já suporta `vocation = 0`, remoção de restrições de vocação, e a estrutura base de bindings. Scripts que não dependem dos novos métodos (como o Oráculo, diálogos básicos e o SQH) podem ser desenvolvidos e testados normalmente.
-- Todas as directrizes de codificação (escapes octais, comentários em PT‑BR, preservação de bindings) estão em vigor e devem ser seguidas em qualquer modificação do código C++.
+Todos os métodos C++ descritos neste guia já estão implementados e funcionais no código‑fonte do servidor. Não há mais dependências em fases futuras. Os scripts da pasta MCR/SPA/ utilizam‑nos plenamente.
 
 ⚠️ REGRAS DE REVISÃO PARA O ASSISTENTE (C++ – SERVIDOR CANARY)
 
 Ao modificar QUALQUER arquivo .cpp/.h no diretório Canary/src/, o assistente DEVE:
 
-- Garantir que TODAS as strings visíveis ao jogador (sendTextMessage, sendCancelMessage, logs de sistema) estejam em PT‑BR, com acentuação correcta. Os caracteres acentuados DEVEM ser escritos OBRIGATORIAMENTE como escapes octais Latin‑1 (ex.: "N\355vel", "Voca\347\343o"). NÃO é permitido usar UTF‑8 diretamente nas strings; usar escapes octais garante portabilidade e evita problemas de compilador.
-- Manter comentários em PT‑BR, excepto em nomes de funções/variáveis que permanecem em inglês (camelCase ou snake_case).
-- Verificar se a alteração mantém compatibilidade com o protocolo 15.00 e não quebra bindings Lua existentes (registerMethod, registerClass).
-- Se adicionar novos métodos expostos ao Lua, seguir a convenção de nomenclatura minúsculas_com_underscore e incluir validação de parâmetros (número e tipo). Documentar cada novo método neste guia.
-- Se alterar comunicação de rede (ProtocolGame), garantir que opcodes estendidos estejam na faixa reservada (160–255) e sejam documentados.
-- Toda nova consulta SQL DEVE usar placeholders parametrizados (evitar concatenação).
-- Após a edição, listar explicitamente os arquivos modificados para compilação selectiva.
-- O sistema de progressão usa Revscript: os scripts Lua ficam na pasta `data-canary/scripts/MCR/Dominio/`. O motor carrega‑os automaticamente; não é necessário alterar o C++ para registar scripts.
+Garantir que TODAS as strings visíveis ao jogador (sendTextMessage, sendCancelMessage, logs de sistema) estejam em PT‑BR, com acentuação correcta. Os caracteres acentuados DEVEM ser escritos OBRIGATORIAMENTE como escapes octais Latin‑1 (ex.: "N\355vel", "Voca\347\343o"). NÃO é permitido usar UTF‑8 directamente nas strings; usar escapes octais garante portabilidade e evita problemas de compilador.
+
+Manter comentários em PT‑BR, excepto em nomes de funções/variáveis que permanecem em inglês (camelCase ou snake_case).
+
+Verificar se a alteração mantém compatibilidade com o protocolo 15.00 e não quebra bindings Lua existentes (registerMethod, registerClass).
+
+Se adicionar novos métodos expostos ao Lua, seguir a convenção de nomenclatura minúsculas_com_underscore e incluir validação de parâmetros (número e tipo). Documentar cada novo método neste guia.
+
+Se alterar comunicação de rede (ProtocolGame), garantir que opcodes estendidos estejam na faixa reservada (160–255) e sejam documentados.
+
+Toda nova consulta SQL DEVE usar placeholders parametrizados (evitar concatenação).
+
+Após a edição, listar explicitamente os arquivos modificados para compilação selectiva.
+
+O sistema de progressão usa Revscript: os scripts Lua ficam na pasta data-canary/scripts/MCR/SPA/. O motor carrega‑os automaticamente; não é necessário alterar o C++ para registar scripts.
 
 📦 DEPENDÊNCIAS (AMBIENTE WINDOWS)
 
 Ferramentas Obrigatórias:
 
-- Visual Studio 2022 (Community ou superior) com carga de trabalho "Desenvolvimento para desktop com C++".
-- CMake 3.20 ou superior (adicionar ao PATH).
-- Git for Windows.
-- vcpkg (gerenciador de bibliotecas). Instale em C:\vcpkg (ou caminho sem espaços).
+Visual Studio 2022 (Community ou superior) com carga de trabalho "Desenvolvimento para desktop com C++".
+
+CMake 3.20 ou superior (adicionar ao PATH).
+
+Git for Windows.
+
+vcpkg (gerenciador de bibliotecas). Instale em C:\vcpkg (ou caminho sem espaços).
 
 Comandos de instalação do vcpkg:
 git clone https://github.com/Microsoft/vcpkg.git C:\vcpkg
@@ -73,81 +79,149 @@ Copie o executável para a raiz do servidor (onde estão data/, config.lua) ou c
 
 As seguintes modificações já estão presentes nos fontes do repositório ProjetoMCR/Canary. O assistente NÃO precisa reaplicá‑las, mas deve conhecê‑las para manutenção e depuração.
 
-- Console UTF‑8 (main.cpp): SetConsoleOutputCP(CP_UTF8) e SetConsoleCP(CP_UTF8).
-- Identidade do Servidor (canary_server.cpp / canary_server.hpp): strings de log em PT‑BR, título "Projeto MCR".
-- Bindings Lua Preservados: nenhuma remoção de métodos. Apenas adições documentadas.
-- Remoção de restrições de vocação: vocation 0 permitido em itens e magias (item.cpp, player.cpp, spells.cpp).
+Console UTF‑8 (main.cpp): SetConsoleOutputCP(CP_UTF8) e SetConsoleCP(CP_UTF8).
 
-🚀 Novos Métodos Lua para o Sistema de Progressão v2.1.1 (A IMPLEMENTAR)
+Identidade do Servidor (canary_server.cpp / canary_server.hpp): strings de log em PT‑BR, título "Projeto MCR".
 
-Estes métodos devem ser adicionados a player.h/cpp e expostos em luascript.cpp. São essenciais para o funcionamento dos Estados de Alma, progressão multi‑domínio e Posturas de Combate. ⚠️ NENHUM destes métodos existe ainda — a implementação é o objectivo da Fase 2.
+Bindings Lua Preservados: nenhuma remoção de métodos. Apenas adições documentadas.
 
-- player:getDominioAfinidade(dominioId) – retorna a afinidade acumulada no Domínio.
-- player:addDominioAfinidade(dominioId, valor) – adiciona afinidade (gerida pelos scripts).
-- player:setDominioDespertado(dominioId, bool) – marca o Domínio como despertado.
-- player:hasHabilidade(habilidadeId) – verifica se o jogador conhece a habilidade.
-- player:learnHabilidade(habilidadeId) – concede uma habilidade permanentemente.
-- player:getEstadoAlma(dominioId) – retorna "lampejo", "vinculo", "maestria" ou nil.
-- player:registerDominioAction(dominioId) – regista uma acção no deque de histórico para cálculo dos Estados de Alma.
-- player:getDominioNivel(dominioId) — retorna o nível actual do Domínio. 
+Remoção de restrições de vocação: vocation 0 permitido em itens e magias (item.cpp, player.cpp, spells.cpp).
 
-Lógica interna necessária em player.cpp:
+🚀 Novos Métodos Lua para o SPA v3.2.0 (IMPLEMENTADOS)
 
-- std::deque<ActionRecord> onde cada registo contém timestamp e lista de domínios envolvidos.
-- Método calculateEstadosAlma() chamado por registerDominioAction (ou periodicamente):
-  - Lampejo: 3 acções consecutivas da mesma especialização em 2 minutos.
-  - Vínculo: >60% das acções nos últimos 15 minutos associadas a uma especialização.
-- Cache dos estados para evitar recálculo excessivo.
+Estes métodos estão implementados em player.h/cpp e expostos em luascript.cpp. São essenciais para o funcionamento do buffer de progressão, Lampejos, Vínculos, Posturas e habilidades. Todos estão activos e podem ser usados pelos scripts da pasta MCR/SPA/.
 
-📅 EVENTO onHealthChange (FUTURO)
+player:getDominioAfinidade(dominioId) – retorna a afinidade acumulada no Domínio.
 
-Actualmente o Canary não possui um evento onHealthChange nativo. Este evento será adicionado no futuro para permitir a progressão contínua por dano. O planeamento é:
+player:addDominioAfinidade(dominioId, valor) – adiciona afinidade (INSERT ... ON DUPLICATE KEY UPDATE).
 
-- Disparar o evento Lua em Game::combatChangeHealth (ou equivalente), antes ou depois do dano.
-- Assinatura Lua: onHealthChange(creature, attacker, primaryDamage, primaryType, secondaryDamage, secondaryType, origin).
-- O script `dominio_healthchange.lua` (já esboçado) usará este evento para distribuir afinidade com base no dano causado.
+player:addDominioAfinidadeBatch(tabela) – adiciona afinidades em lote, recebendo uma tabela {[dominioId] = pontos}. Optimizado para múltiplas actualizações.
 
-Enquanto este evento não existir, a progressão por dano NÃO estará activa. A progressão por morte (onKill) e por uso de ferramentas continuará a funcionar.
+player:getDominioAfinidades(dominio1, dominio2, ...) – consulta várias afinidades de uma vez, retornando uma tabela {[dominioId] = valor}.
+
+player:setDominioDespertado(dominioId, bool) – marca o Domínio como despertado (1/0).
+
+player:hasHabilidade(habilidadeId) – verifica se o jogador conhece a habilidade (consulta a BD).
+
+player:learnHabilidade(habilidadeId) – concede uma habilidade permanentemente (insere na BD).
+
+player:getHabilidades() – retorna uma tabela com os IDs de todas as habilidades aprendidas.
+
+player:registerDominioAction(dominioId) – regista uma acção no histórico do jogador (usado para Lampejos/Vínculos).
+
+player:getActionHistory(maxCount) – retorna as últimas acções como tabela de {dominioId, timestamp}.
+
+player:clearActionHistory() – limpa todo o histórico de acções.
+
+player:getDominioState(dominioId) – retorna o estado de alma: 0 = normal, 1 = Lampejo, 2 = Vínculo.
+
+player:setDominioState(dominioId, state) – define o estado (0,1,2).
+
+player:getAllActiveStates() – retorna uma tabela {[dominioId] = state} para domínios com estado > 0.
+
+player:setAttackSpeedModifier(mod) – multiplicador da velocidade de ataque (0.1 a infinito).
+
+player:getAttackSpeedModifier() – retorna o valor actual.
+
+player:setStealth(bool) – activa/desactiva furtividade (invisibilidade condicional).
+
+player:isStealth() – verifica se está furtivo.
+
+player:setCanPushCreatures(bool) – permite empurrar criaturas ao andar.
+
+player:setLifeLeechModifier(percent) – define % de life leech.
+
+player:setManaLeechModifier(percent) – define % de mana leech.
+
+player:setDamageTakenModifier(mod) – multiplicador do dano recebido.
+
+creature:knockback(direction) – empurra a criatura na direcção (0‑3, mesma orientação do jogo).
+
+player:setStorages({[key] = value, ...}) – escreve múltiplas storages de uma vez.
+
+player:getStorages(key1, key2, ...) – lê múltiplas storages, retorna tabela {[key] = value}.
+
+⚙️ Lógica interna já presente em player.cpp:
+
+std::deque<ActionRecord> para o histórico de acções.
+
+Estados de alma (Lampejo/Vínculo) controlados via setDominioState e getAllActiveStates, consumidos pelos scripts de sintonia.
+
+Buffer de afinidade gerido via storages temporárias (95001+dominioId); o descarregamento em lote usa addDominioAfinidadeBatch para minimizar queries.
+
+📅 EVENTO onHealthChange (JÁ IMPLEMENTADO)
+O evento onHealthChange está presente no Canary e é usado pelo script ProgDefesa (eventos.lua) para progressão de Sobrevivência e Escudo ao receber dano.
 
 🛠️ PIPELINE DE TRADUÇÃO AUTOMÁTICA
 
 A partir da versão actual, TODO o código C++ do servidor foi traduzido para PT‑BR através de uma pipeline automática supervisionada. As directrizes abaixo DEVEM ser mantidas em qualquer modificação futura:
 
-- Strings de interface e logs: PT‑BR com escapes octais Latin‑1 (OBRIGATÓRIO). NUNCA colocar texto acentuado em UTF‑8 diretamente nas strings C++. Exemplo correcto: "N\355vel de magia \351 alto." Exemplo INCORRECTO: "Nível de magia é alto."
-- Bindings Lua intactos: nomes de funções registadas NUNCA são alterados.
-- Cabeçalhos (.h/.hpp): comentários traduzidos, definições de classes/macros intactas.
+Strings de interface e logs: PT‑BR com escapes octais Latin‑1 (OBRIGATÓRIO). NUNCA colocar texto acentuado em UTF‑8 directamente nas strings C++. Exemplo correcto: "N\355vel de magia \351 alto." Exemplo INCORRECTO: "Nível de magia é alto."
+
+Bindings Lua intactos: nomes de funções registadas NUNCA são alterados.
+
+Cabeçalhos (.h/.hpp): comentários traduzidos, definições de classes/macros intactas.
 
 Consulte a lista completa de scripts da pipeline no Índice Geral (Ferramentas de Automação).
 
-🗂️ ESTRUTURA DE PASTAS REVSCRIPT PARA O SISTEMA DE PROGRESSÃO
+🗂️ ESTRUTURA DE PASTAS REVSCRIPT PARA O SPA
 
 Os scripts do Sistema de Progressão do Aventureiro residem em:
 
-`data-canary/scripts/MCR/Dominio/`
+data-canary/scripts/MCR/SPA/
 
-O Canary, com suporte a Revscript, carrega automaticamente todos os ficheiros .lua nessa pasta e subpastas. Não é necessário registá‑los manualmente no config.lua ou em qualquer outro lugar. A estrutura recomendada é:
-data-canary/scripts/MCR/Dominio/
-├── config_dominios.lua
-├── dominio_utils.lua
-├── evento_login.lua
-├── evento_kill.lua
-├── evento_postura.lua
-├── evento_ferramentas.lua
-├── evento_healthchange.lua (futuro)
+Módulos de apoio e constantes globais estão em:
+
+data-canary/scripts/MCR/Geral/
+
+O Canary, com suporte a Revscript, carrega automaticamente todos os ficheiros .lua nessas pastas e subpastas. A estrutura actual é:
+data-canary/scripts/MCR/SPA/
+├── constantes.lua
+├── postura_config.lua
+├── progressao.lua
+├── sintonia.lua
+├── passivas.lua
+├── postura.lua
+├── buff_system.lua
+├── executor_habilidades.lua
+├── eventos.lua
+├── passivas_ataque.lua
+├── login.lua
+├── habilidades/
+│ ├── habilidade_gabarito.lua
+│ └── inicializar_habilidades.lua
+└── (futuros ficheiros modulares de habilidades)
+
+data-canary/scripts/MCR/Geral/
+├── texto_colorido.lua
+├── util_armas.lua
+├── util_criaturas.lua
+├── util_efeitos.lua
+├── pronouns.lua
+├── npc_utils.lua
 └── ...
 
-text
-
-Scripts genéricos e utilitários partilhados (como `pronouns.lua`, `npc_utils.lua`) ficam em `data-canary/scripts/MCR/Geral/` e também são carregados automaticamente. O uso de `dofile` para estes módulos é desnecessário se eles estiverem na estrutura Revscript — as funções que expõem tornam-se globais. Contudo, se um script estiver fora da árvore Revscript, `dofile` com caminho relativo a `data-canary/` ainda pode ser usado.
+Todos os módulos em Geral/ e SPA/ são carregados automaticamente. As funções e tabelas definidas neles (ex.: COR, c(), adicionarAfinidade, getWeaponEspecialidade, etc.) tornam‑se globais e podem ser usadas por qualquer script, inclusive fora da árvore SPA.
 
 ⚠️ ARMADILHAS E LIÇÕES APRENDIDAS
 
-- Codificação de console: SetConsoleOutputCP(CP_UTF8) é imprescindível para logs em PT‑BR.
-- Tradução de logs: use SEMPRE escapes octais para todos os acentos nas strings C++. Não confie em UTF‑8 direto.
-- Conexão com MariaDB: verificar senha em config.lua e se o serviço está rodando.
-- Compilação com vcpkg: mantenha o vcpkg atualizado.
-- Escapes octais vs UTF‑8: use sempre escapes octais para portabilidade. Esta é uma regra absoluta no MCR.
-- A coluna `lastlogin` EXISTE na tabela `players` do schema actual do Canary (verificado no banco de dados do projecto). Pode ser usada para lógica de inicialização/migração de personagens no evento_login.lua.
+Codificação de console: SetConsoleOutputCP(CP_UTF8) é imprescindível para logs em PT‑BR.
+
+Tradução de logs: use SEMPRE escapes octais para todos os acentos nas strings C++. Não confie em UTF‑8 directo.
+
+Conexão com MariaDB: verificar senha em config.lua e se o serviço está rodando.
+
+Compilação com vcpkg: mantenha o vcpkg atualizado.
+
+Escapes octais vs UTF‑8: use sempre escapes octais para portabilidade. Esta é uma regra absoluta no MCR.
+
+A coluna lastlogin EXISTE na tabela players do schema actual do Canary (verificado no banco de dados do projecto). Pode ser usada para lógica de inicialização/migração de personagens no evento_login.lua.
+
+O SPA exige que o buffer de afinidade seja descarregado periodicamente; o método addDominioAfinidadeBatch deve ser eficiente para evitar lag.
+
+A função player:getAllActiveStates() deve ser usada para obter os estados de alma; não itere manualmente sobre todos os domínios.
+
+As cores definidas em texto_colorido.lua devem ser mantidas consistentes com as constantes usadas nos scripts do servidor.
 
 🔍 CHECKLIST DE REVISÃO PARA O ASSISTENTE (C++ SERVIDOR)
 
@@ -158,13 +232,12 @@ Antes de finalizar qualquer modificação em arquivos .cpp/.h do Canary, o assis
 ☐ A modificação mantém compatibilidade com o protocolo 15.00?
 ☐ Novos métodos Lua seguem a convenção minúsculas_com_underscore?
 ☐ Novos métodos Lua têm validação de parâmetros?
-☐ Os métodos da lista acima foram implementados (ou planeados com nota de dependência)?
-☐ A lógica de Estados de Alma está funcional (deque, thresholds) — se aplicável?
-☐ O evento onHealthChange está correctamente planeado (ou adiado com nota)?
+☐ Os métodos listados na secção "Novos Métodos Lua" permanecem funcionais e sem regressões?
 ☐ Nomes de bindings Lua NÃO foram alterados?
 ☐ Ficheiros de cabeçalho mantidos intactos?
 ☐ Novas consultas SQL usam placeholders parametrizados?
 ☐ O servidor compila sem warnings novos?
+☐ Os scripts da pasta MCR/SPA/ são carregados correctamente pelo Revscript e as funções globais (COR, c(), etc.) estão acessíveis?
 
 📤 COMO ATUALIZAR O REPOSITÓRIO GIT
 
@@ -174,4 +247,4 @@ git push origin main
 
 ⚠️ PowerShell: aspas duplas em caminhos com espaços.
 
-FIM DO GUIA DE COMPILAÇÃO (SERVIDOR) — VERSÃO 3.4
+FIM DO GUIA DE COMPILAÇÃO (SERVIDOR) — VERSÃO 4.0

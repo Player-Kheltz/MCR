@@ -1,7 +1,7 @@
 📘 Guia do Sistema de Progressão do Aventureiro (SPA)
-Projeto MCR — Versão 3.2.0
+Projeto MCR — Versão 3.2.1
 Autor: Kheltz (Criador do Projeto MCR)
-Última actualização: 17 de Maio de 2026
+Última atualização: 18 de Maio de 2026
 
 🌌 Apresentação para o Jogador
 Bem‑vindo, aventureiro.
@@ -25,13 +25,18 @@ Receber dano → afinidade em Sobrevivência.
 Conforme a tua afinidade cresce, tu ganhas níveis nesse domínio.
 Cada nível desbloqueia novas habilidades e melhora as existentes, tornando‑te progressivamente mais poderoso naquele estilo de jogo.
 
+Os teus pontos de afinidade são acumulados durante o combate e processados a cada poucos segundos, garantindo que o servidor se mantém rápido e responsivo mesmo nos momentos mais intensos.
+
 🗺️ 2. Os Domínios
 Os domínios estão organizados em três camadas:
 
 Camada	Descrição	Exemplo
 Primário	O mais abrangente — beneficia todos os estilos de combate ou magia.	Combate, Magia
-Secundário	O tipo de arma ou magia.	Lâminas, Machados, Runologia
+Secundário	O tipo de arma ou magia.	Lâminas, Machados, Clavas, Precisão, Desarmado, Escudo, Runologia
 Especialidade	A variante exacta: leve, pesada, com ou sem escudo.	Espadas Leves, Arremesso, Desarmado Pesado
+Novidade: O Escudo é agora um domínio próprio!
+Sempre que bloqueias um ataque com o teu escudo, ganhas afinidade em Escudo. Isto desbloqueia habilidades defensivas exclusivas, como a Batida de Escudo — um empurrão que afasta os inimigos quando te atacam.
+
 Afinidade ganha num domínio espalha‑se automaticamente para os seus pais:
 50% para a especialidade → 33% para o secundário → 17% para o primário.
 
@@ -65,6 +70,9 @@ Vínculo	Mais de 50% das últimas 30 acções são do mesmo domínio.	Bónus sig
 Estes estados são silenciosos — não há mensagens no chat (excepto quando um Vínculo se forma ou quebra).
 Tu sente‑los através da fluidez dos teus ataques e do poder dos teus golpes.
 
+**Maestria: o Vínculo Eterno**
+Quando atinge o nível 20 num domínio, alcanças a Maestria. A partir desse momento, o Vínculo com esse domínio torna‑se **permanente** — não precisas continuar a usar a mesma arma ou magia para manter os benefícios. O domínio está gravado em ti, e os seus bónus de velocidade e dano acompanham‑te sempre que empunhas algo relacionado.
+
 🛡️ 5. Habilidades — A Essência do Teu Estilo
 Ao ganhares níveis nos domínios, desbloqueias habilidades automáticas.
 Estas habilidades disparam durante o combate, com uma probabilidade que aumenta com os teus Lampejos e Vínculos.
@@ -72,6 +80,11 @@ Estas habilidades disparam durante o combate, com uma probabilidade que aumenta 
 Cada habilidade evolui contigo.
 Uma habilidade aprendida no nível 5 de um domínio será fraca no início, mas tornar‑se‑á devastadora quando atingires a Maestria (nível 20).
 Se aprenderes uma habilidade mais cedo (por exemplo, através de um NPC ou quest), ela funcionará na mesma — mas com o poder correspondente ao teu nível actual.
+
+As habilidades dividem‑se em:
+- **Passivas**: sempre activas, melhoram atributos ou adicionam efeitos subtis.
+- **De Gatilho**: disparam em momentos específicos (ao atacar, ao matar, ao receber dano).
+- **Transformações**: alteram temporariamente o comportamento do personagem (ex.: entrar em furtividade).
 
 As habilidades respeitam o feedback visual do Tibia:
 
@@ -83,29 +96,51 @@ Condições como sangramento, atordoamento e veneno usam os efeitos nativos do j
 
 Nada de "dano invisível" — tudo o que o SPA faz é real e visível.
 
-🎨 6. Cores e Feedback
-O SPA usa um sistema de cores para te manter informado sem poluir o chat:
+🎯 6. Passivas de Auto‑Ataque — O Teu Toque Pessoal
+A partir do nível 15 de um domínio, o teu próprio ataque normal ganha um efeito especial, dependendo da arma que usas e da postura em que te encontras.
+
+Exemplos:
+
+Espadas Leves (Duelista): no Ímpeto, os teus golpes têm 20% de chance de causar um sangramento leve.
+
+Espadas Pesadas (Vórtice): no Ímpeto, 25% de chance de empurrar o inimigo com um golpe poderoso.
+
+Machados Pesados (Carrasco): no Ímpeto, 15% de chance de causar medo em inimigos com menos de metade da vida.
+
+Desarmado Leve (Punhos Velozes): no Ímpeto, 15% de chance de desferir um segundo golpe rápido.
+
+Escudo (Defensor): na Guarda, 15% de chance de empurrar o atacante ao receber um golpe.
+
+Quando atinges a Maestria (nível 20), este efeito passivo funciona em todas as posturas, tornando‑te verdadeiramente imbatível no teu estilo de combate.
+
+🎨 7. Cores e Feedback
+O SPA usa um sistema de cores para te manter informado sem poluir o chat.
+Cada cor foi escolhida para que, ao bater o olho, tu já saibas do que se trata:
 
 Cor	Significado	Exemplo
-🟢 Verde	Cura, sucesso	"Você aprendeu Hemorragia!"
-🔵 Azul	Informação do sistema	"Sua afinidade com Lâminas se aprofunda."
+🟢 Verde esmeralda	Cura, sucesso	"Você aprendeu Hemorragia!"
+🔵 Azul médio	Informação do sistema	"Sua afinidade com Lâminas se aprofunda."
 🟠 Laranja	Avisos de combo	"[Disparo Duplo] Duas flechas partem em uníssono!"
-🔴 Vermelho	Dano, inimigos	"Centopeia" (nome do monstro)
+🔴 Vermelho	Dano, inimigos, perigo	"Centopeia" (nome do monstro)
 🟡 Dourado	Maestria, conquistas	"Você se tornou um Mestre das Lâminas!"
+🟣 Roxo	Desarmado, misterioso	"O chi flui através de ti."
 As palavras‑chave (nomes de domínios, monstros, habilidades) são sempre coloridas.
 O texto narrativo permanece na cor padrão do canal, para não cansar os olhos.
 
-🔧 Documentação Técnica do SPA (Referência Completa)
-Esta secção descreve integralmente a arquitectura interna do SPA, todas as estruturas de dados, APIs, constantes e fluxos de execução. Destina‑se a programadores que irão manter, depurar ou expandir o sistema.
+Os NPCs também usam estas cores!
+Quando falas com um habitante de MCR, as opções importantes, comandos, nomes de itens e locais aparecem destacados, tornando os diálogos muito mais intuitivos.
+
+**Nota importante**: A tabela completa de cores está definida no ficheiro `data-canary/scripts/MCR/Geral/texto_colorido.lua` (tabela `COR`). Consulte esse ficheiro para todas as constantes disponíveis; a lista acima é apenas um resumo.
+
+🔧 Documentação Técnica para o Desenvolvedor
+Esta secção descreve a arquitectura interna do SPA, todas as estruturas de dados, APIs, constantes e fluxos de execução. Destina‑se a programadores que irão manter, depurar ou expandir o sistema.
 
 📂 1. Estrutura de Ficheiros e Ordem de Carregamento
-Os ficheiros Lua são carregados pelo motor na seguinte ordem (definida em scripts.xml ou equivalente). A ordem é crucial para que as dependências globais estejam disponíveis.
-
 text
 data-canary/scripts/MCR/
 ├── Geral/
-│   ├── texto_colorido.lua          # Tabela COR + funções c() e enviarMsgColorida()
-│   ├── constantes.lua              # Todos os IDs de domínios, weapon types, storages, NIVEL_PONTOS, SPEED_MIN, DAMAGE_MAX, DOMAIN_TREE
+│   ├── texto_colorido.lua          # Tabela COR (v9.1) + funções c() e enviarMsgColorida()
+│   ├── constantes.lua              # IDs de domínios, weapon types, NIVEL_PONTOS, SPEED_MIN, DAMAGE_MAX, DOMAIN_TREE, STORAGE
 │   ├── util_armas.lua              # DOMINIO_NOMES, hasShield, getWeaponType, getWeaponId, isWeaponTwoHanded, getWeaponEspecialidade
 │   ├── util_criaturas.lua          # getCreaturesInArea, getCreatureDistance
 │   └── util_efeitos.lua            # sendDistanceEffect
@@ -116,30 +151,24 @@ data-canary/scripts/MCR/
 │   ├── passivas.lua                # aplicarPassivasBasicas
 │   ├── postura.lua                 # aplicarPostura, eventos PosturaChange/PosturaDmg/PosturaThink/PosturaLogout
 │   ├── buff_system.lua             # applySpeedBurst, applyNextAttackCondition, applyDamageBoost, applyLifeLeech, processBuffs, applyPendingCondition, BuffThink
-│   ├── executor_habilidades.lua    # carregarHabilidadesConhecidas, jogadorConheceHabilidade, aprenderHabilidade, desaprenderHabilidade, armaCompativeis, calcularChanceFinal, atualizarContadorAtaques, executarHabilidades, atualizarTransformacoes
+│   ├── executor_habilidades.lua    # Motor de execução das habilidades de gatilho
 │   ├── eventos.lua                 # CriatureEvents: ProgDano, ProgKill, ProgItem, ProgSpell, ProgDefesa
-│   ├── login.lua                   # Eventos de login/logout: inicialização de storages, registo de eventos think, descarregar buffer
+│   ├── passivas_ataque.lua         # Efeitos passivos de auto‑ataque por domínio e nível
+│   ├── login.lua                   # Inicialização, registo de thinks, descarregamento de buffer no logout
 │   └── habilidades/
-│       ├── habilidade_gabarito.lua # Documentação de todos os campos de uma habilidade (não executável)
+│       ├── habilidade_gabarito.lua # Documentação de todos os campos de uma habilidade
 │       ├── inicializar_habilidades.lua # Define HABILIDADES = {} (temporário)
 │       └── ... (futuros ficheiros modulares)
 └── talkactions/
-    ├── comando_semideus.lua
-    ├── comando_resetfull_spa.lua
-    ├── comando_aprender_todas.lua
-    ├── comando_fistcheck.lua
+    ├── comandos_spa.lua            # !semideus, !resetspa, !aprendertodas, !fistcheck, !frases, !todascores, !testarbatch, !ajuda
     └── ...
 🧬 2. Tabelas da Base de Dados
 2.1 dominios_def
-Armazena a definição de todos os domínios.
-
 Coluna	Tipo	Descrição
-id	smallint UNSIGNED	Identificador único do domínio (ex.: 100, 15).
+id	smallint UNSIGNED	Identificador único do domínio.
 nome	varchar(50)	Nome legível.
 descricao	text	Descrição opcional.
 2.2 player_dominios
-Regista a afinidade de cada jogador por domínio.
-
 Coluna	Tipo	Descrição
 player_id	int(11)	FK para players.id.
 dominio_id	smallint UNSIGNED	FK para dominios_def.id.
@@ -148,8 +177,6 @@ despertado	tinyint(1)	Se o domínio já foi despertado (1 = sim).
 Chave primária composta: (player_id, dominio_id).
 
 2.3 habilidades_def
-Definição estática das habilidades (usada para documentação e pelo cliente, se necessário).
-
 Coluna	Tipo	Descrição
 id	int	ID único da habilidade.
 nome	varchar(50)	Nome da habilidade.
@@ -158,15 +185,13 @@ tipo	enum('passiva','gatilho','transformacao')	Tipo de habilidade.
 requisito_afinidade	int	Nível mínimo do domínio para aprender.
 descricao	text	Descrição curta do efeito.
 2.4 player_habilidades
-Habilidades que o jogador já aprendeu.
-
 Coluna	Tipo	Descrição
 player_id	int(11)	FK para players.id.
 habilidade_id	int	FK para habilidades_def.id.
 Chave primária composta: (player_id, habilidade_id).
 
 🧩 3. Constantes Globais (constantes.lua)
-3.1 IDs de Domínios (excertos)
+3.1 IDs de Domínios (excerto)
 lua
 DOMINIO_COMBATE = 1
 DOMINIO_MAGIA = 2
@@ -175,7 +200,7 @@ DOMINIO_MACHADOS = 11
 DOMINIO_CLAVAS = 12
 DOMINIO_PRECISAO = 13
 DOMINIO_DESARMADO = 14
-DOMINIO_ESCUDO = 15
+DOMINIO_ESCUDO = 15   -- Novo domínio
 DOMINIO_ESPADAS_LEVES = 100
 DOMINIO_ESPADAS_PESADAS = 101
 ...
@@ -187,35 +212,29 @@ WEAPON_SWORD = 1
 WEAPON_CLUB = 2
 WEAPON_AXE = 3
 WEAPON_SHIELD = 4
-WEAPON_DISTANCE = 5
+WEAPON_DISTANCE = 5   -- Arcos
 WEAPON_WAND = 6
 WEAPON_AMMO = 7
-WEAPON_MISSILE = 8   -- lanças, estrelas, etc.
-WEAPON_FIST = 9      -- desarmado
+WEAPON_MISSILE = 8    -- Lanças, estrelas (arremesso)
+WEAPON_FIST = 9       -- Desarmado
 3.3 Hierarquia (DOMAIN_TREE)
 lua
 DOMAIN_TREE = {
     [100] = { secondary = 10, primary = 1 },
     [101] = { secondary = 10, primary = 1 },
     ...
-    [15]  = { primary = 1 },
+    [15]  = { primary = 1 },   -- Escudo
     ...
 }
-A função buildDomainHierarchy() preenche as tabelas globais:
+A função buildDomainHierarchy() preenche domainHierarchy, secondaryParent e ALL_DOMINIOS.
 
-domainHierarchy[especialidade] = secundario
-
-secondaryParent[secundario] = primario
-
-ALL_DOMINIOS (lista de todos os IDs)
-
-3.4 Curva de Progressão
+3.4 Curva de Progressão (teste)
 lua
 NIVEL_PONTOS = { 50, 100, 150, ..., 1000 }  -- 20 níveis
-3.5 Limites
+3.5 Limites Globais
 lua
-SPEED_MIN = 0.40   -- velocidade máxima (multiplicador)
-DAMAGE_MAX = 1.80  -- dano máximo (multiplicador)
+SPEED_MIN = 0.40
+DAMAGE_MAX = 1.80
 3.6 Storages do SPA
 lua
 STORAGE = {
@@ -234,117 +253,117 @@ STORAGE = {
     LAMPEJO_EXPIRE      = 92001,
 }
 🧠 4. API C++ (Métodos Adicionados ao Player)
-Todos os métodos abaixo estão registados no Lua através de PlayerFunctions e podem ser chamados nos scripts.
-
 4.1 Domínios e Afinidade
-Método Lua	Assinatura C++	Descrição
-player:getDominioAfinidade(dominioId)	int32_t getDominioAfinidade(uint16_t) const	Consulta a afinidade na BD.
-player:addDominioAfinidade(dominioId, pontos)	void addDominioAfinidade(uint16_t, int32_t)	Adiciona afinidade (INSERT ... ON DUPLICATE KEY UPDATE).
-player:addDominioAfinidadeBatch(tabela)	void addDominioAfinidadeBatch(std::map<uint16_t, int32_t>)	Adiciona afinidade em lote (várias queries individuais).
-player:getDominioAfinidades(dominios)	std::map<uint16_t, int32_t> getDominioAfinidades(std::vector<uint16_t>) const	Consulta afinidades com IN (...).
-player:setDominioDespertado(dominioId, bool)	void setDominioDespertado(uint16_t, bool)	Marca o domínio como despertado.
-player:hasHabilidade(habilidadeId)	bool hasHabilidade(uint16_t) const	Verifica se a habilidade foi aprendida (tabela player_habilidades).
-player:learnHabilidade(habilidadeId)	void learnHabilidade(uint16_t)	Aprende uma habilidade (insere na BD).
+Método Lua	Descrição
+player:getDominioAfinidade(dominioId)	Consulta a afinidade na BD.
+player:addDominioAfinidade(dominioId, pontos)	Adiciona afinidade (INSERT ... ON DUPLICATE KEY UPDATE).
+player:addDominioAfinidadeBatch(tabela)	Adiciona afinidade em lote (várias queries individuais).
+player:getDominioAfinidades(dominios)	Consulta afinidades com IN (...).
+player:setDominioDespertado(dominioId, bool)	Marca o domínio como despertado.
+player:hasHabilidade(habilidadeId)	Verifica se a habilidade foi aprendida.
+player:learnHabilidade(habilidadeId)	Aprende uma habilidade (insere na BD).
 4.2 Histórico de Ações (Sintonia)
 Método Lua	Descrição
-player:registerDominioAction(dominioId)	Regista uma ação com timestamp para cálculo de Lampejos/Vínculos.
-player:getActionHistory(maxCount)	Retorna as últimas ações como tabela de {dominioId, timestamp}.
+player:registerDominioAction(dominioId)	Regista uma ação com timestamp.
+player:getActionHistory(maxCount)	Retorna as últimas ações.
 player:clearActionHistory()	Limpa o histórico.
 4.3 Estados de Alma
 Método Lua	Descrição
 player:getDominioState(dominioId)	0 = normal, 1 = Lampejo, 2 = Vínculo.
 player:setDominioState(dominioId, state)	Define o estado.
-player:getAllActiveStates()	Retorna {[dominioId] = state} para todos os domínios com Lampejo ou Vínculo.
+player:getAllActiveStates()	Retorna {[dominioId] = state}.
 4.4 Modificadores de Combate
 Método Lua	Descrição
-player:setAttackSpeedModifier(mod)	Multiplicador da velocidade de ataque (1.0 = normal).
+player:setAttackSpeedModifier(mod)	Multiplicador da velocidade de ataque.
 player:getAttackSpeedModifier()	Retorna o valor atual.
-player:setManaRegenModifier(mod)	Multiplicador da regeneração de mana.
-player:setHealthRegenModifier(mod)	Multiplicador da regeneração de vida.
-player:setManaRegenTicksModifier(mod)	Ajusta o intervalo entre ticks de mana.
-player:setHealthRegenTicksModifier(mod)	Ajusta o intervalo entre ticks de vida.
-player:setRangeModifier(mod)	Altera o alcance de ataque (em tiles).
 player:setStealth(bool)	Activa/desactiva furtividade.
 player:isStealth()	Verifica se está furtivo.
 player:setCanPushCreatures(bool)	Permite empurrar criaturas.
-player:canPushCreatures()	Verifica se pode empurrar.
 player:setLifeLeechModifier(percent)	Define % de life leech.
-player:getLifeLeechModifier()	Retorna o valor.
 player:setManaLeechModifier(percent)	Define % de mana leech.
-player:getManaLeechModifier()	Retorna o valor.
-player:setDamageTakenModifier(mod)	Multiplicador do dano recebido (ex.: 0.85 = 15% de redução).
-player:getDamageTakenModifier()	Retorna o valor.
+player:setDamageTakenModifier(mod)	Multiplicador do dano recebido.
 4.5 Knockback
 Método Lua	Descrição
 creature:knockback(direction)	Empurra a criatura na direção (0‑3).
-4.6 Storages (nativos do Canary, mas usados extensivamente)
+4.6 Storages (nativos + novos em lote)
 Método Lua	Descrição
 player:setStorageValue(key, value)	Guarda um valor inteiro.
 player:getStorageValue(key)	Lê um valor inteiro.
-Novos métodos em lote:
-
-Método Lua	Assinatura C++	Descrição
-player:getStorages(key1, key2, ...)	std::map<uint32_t, int32_t> getStorages(std::vector<uint32_t>)	Lê múltiplas storages de uma vez.
-player:setStorages({[key]=value, ...})	void setStorages(std::map<uint32_t, int32_t>)	Escreve múltiplas storages de uma vez.
+player:getStorages(key1, key2, ...)	Lê múltiplas storages de uma vez.
+player:setStorages({[key]=value, ...})	Escreve múltiplas storages de uma vez.
 ⚙️ 5. Fluxo de Dados Detalhado
 5.1 Ataque Físico
 ProgDano (eventos.lua) captura onDealtDamage.
 
 Identifica o domínio da arma via getWeaponEspecialidade.
 
-Chama adicionarAfinidade(player, dom, pontos).
+Chama adicionarAfinidade(player, dom, pontos) (buffer).
 
-Acumula pontos em STORAGE.AFINIDADE_BUFFER + dom.
+Chama onDominioAction(player, dom) (Lampejos/Vínculos).
 
-Chama player:registerDominioAction(dom).
+Chama executarHabilidades(player, "onAttack", ...) (habilidades de gatilho).
 
-Chama onDominioAction(player, dom) (sintonia.lua) para avaliar Lampejos/Vínculos.
+Chama aplicarPassivasAtaque(player, target, damage, primary) (passivas de auto‑ataque).
 
-Chama executarHabilidades(player, "onAttack", target, damage, primary) (executor_habilidades.lua).
-
-Verifica habilidades de gatilho compatíveis, condições, chances e aplica efeitos.
-
-PosturaDmg (postura.lua) processa knockback, furtividade, applyPendingCondition e processBuffs.
+PosturaDmg (postura.lua) processa stealth, applyPendingCondition, processBuffs.
 
 5.2 Ciclo Periódico (SintoniaThink, a cada 2s)
-descarregarBuffer(player) (progressao.lua):
-
-Lê todos os buffers 95001 + dom.
-
-Chama player:addDominioAfinidadeBatch(dados).
-
-Para cada domínio com ganhos, chama verificarDesbloqueio.
+descarregarBuffer(player) envia afinidades acumuladas para a BD em lote.
 
 Expira Lampejos cujo tempo acabou.
 
-Verifica Vínculos que não tiveram ação recente.
+Verifica Vínculos que não tiveram ação recente (exceto domínios com Maestria).
 
 Chama aplicarBonus(player):
 
-Calcula bónus de velocidade/dano a partir dos estados activos.
+Calcula bónus de velocidade/dano.
 
-Se os valores mudaram (comparação com storages actuais), actualiza 90004/90005 e chama aplicarPostura.
+Se mudaram, actualiza storages e chama aplicarPostura.
 
 5.3 Logout
 ProgressaoLogout (login.lua) chama descarregarBuffer(player).
 
 PosturaLogout (postura.lua) limpa modificadores e storages.
 
-🎨 6. Sistema de Cores
-A tabela COR (em texto_colorido.lua) contém constantes de cores no formato #RRGGBB. A função c(texto, cor) retorna {texto, cor}, que é interpretado pelo OTClient Redemption.
-A função enviarMsgColorida(player, texto) envia a string formatada para o canal 24 (MESSAGE_INFO_DESCR).
-O canal 23 (MESSAGE_STATUS_WARNING) é usado para feedback de combate.
+🎨 6. Sistema de Cores (v9.0)
+A tabela COR foi revista com teoria cromática para fundo escuro e inclui novas entradas para missões e NPCs.
+
+Constante	Cor	Uso
+MISSAO_MATAR	#E74C3C	Missão de combate
+MISSAO_COLETAR	#2ECC71	Missão de coleta
+MISSAO_ENTREGAR	#F1C40F	Missão de entrega
+MISSAO_EXPLORAR	#3498DB	Missão de exploração
+NPC_OPCAO	#F7DC6F	Opção que o jogador pode escolher
+NPC_COMANDO	#85C1E9	Comando que o jogador pode digitar
+NPC_ITEM	#E67E22	Nome de item
+NPC_LOCAL	#2ECC71	Nome de local
+...	...	...
+A função c(texto, cor) retorna {texto, cor}.
+A função enviarMsgColorida(player, texto) envia para o canal 24.
+
+**A lista completa das constantes está no ficheiro `data-canary/scripts/MCR/Geral/texto_colorido.lua`. Use‑a como referência canónica.**
 
 🧪 7. Comandos de Teste
-Comando	Ficheiro	Função
-!semideus	comando_semideus.lua	Seta addDominioAfinidade para 20000 em todos os domínios.
-!resetfull	comando_resetfull_spa.lua	Remove afinidades (subtrai o valor actual), limpa storages, estados e BD.
-!aprendertodas	comando_aprender_todas.lua	Aprende todas as habilidades da tabela HABILIDADES.
-!frases	teste_frases_spa.lua	Exibe todas as mensagens coloridas para validação.
-!todascores	teste_todas_cores.lua	Lista todas as cores da tabela COR.
-!fistcheck	comando_fistcheck.lua	Mostra o estado das condições de Desarmado.
+Comando	Função
+!semideus	Maximiza todos os domínios (afinidade 20000).
+!resetspa	Zera completamente o progresso do SPA (BD, memória, storages).
+!aprendertodas	Aprende todas as habilidades.
+!frases	Exibe todas as mensagens coloridas do SPA.
+!todascores	Lista todas as cores da tabela COR.
+!fistcheck	Diagnóstico do bónus de Desarmado.
+!testarbatch	Testa as funções em lote (getStorages, addDominioAfinidadeBatch).
 📝 8. Habilidade Gabarito
-O ficheiro habilidade_gabarito.lua lista todos os campos que uma entrada em HABILIDADES pode conter, com anotações sobre obrigatoriedade e valores possíveis. Serve como referência para criação de novas habilidades.
+O ficheiro habilidade_gabarito.lua documenta todos os campos que uma habilidade pode ter:
+
+nome, tipo (passiva, gatilho, transformacao), dominio, nivelMin
+
+gatilho, chanceBase, chanceLampejo, chanceVinculo
+
+buffType (speedBurst, nextAttackCondition, damageBoost, lifeLeech, custom)
+
+async, efeito, efeitoVisual, posturaMod
+
+condicao (cercado, vidaBaixa, distancia4, 5Golpes)
 
 🔮 9. Roadmap Técnico
 Gerar os ficheiros modulares de habilidades (um por domínio).
@@ -359,4 +378,4 @@ Corrigir projécteis para corresponderem ao tipo de arma.
 
 Balanceamento final da curva NIVEL_PONTOS e limites SPEED_MIN/DAMAGE_MAX.
 
-Documento actualizado em 17 de Maio de 2026.
+Documento actualizado em 18 de Maio de 2026.

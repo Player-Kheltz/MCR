@@ -1,14 +1,17 @@
 PROJETO MCR – GUIA DE CRIAÇÃO DE CONTA E PERSONAGEM
-(Versão 5.1 – Integração com o Sistema de Progressão v2.1.1, Revscript e estrutura modular de scripts)
+(Versão 6.0 – Integração com o SPA v3.2.0, vocação única (Aventureiro), Revscript e progressão em pleno funcionamento)
 Arquivo: [8] MCR - Guia de Criação de Conta e Personagem.txt
 
 🎯 OBJETIVO DESTE GUIA
 Documentar o sistema de autenticação e gerenciamento de contas do Projeto MCR,
 totalmente integrado ao mundo do jogo através do Salão dos Destinos e do NPC
-Oráculo. Esta versão 5.1 atualiza o guia para reflectir o Sistema de Progressão
-do Aventureiro v2.1.1 (sem vocações), a estrutura de scripts baseada em
-Revscript (pasta data-canary/scripts/MCR/) e a transição final para a Ilha do
-Despertar (Eridanus), onde o tutorial introduz os primeiros Domínios.
+Oráculo. Esta versão 6.0 actualiza o guia para reflectir o Sistema de
+Progressão do Aventureiro (SPA v3.2.0), que substitui completamente as vocações
+tradicionais, e confirma que todos os métodos e scripts do SPA estão operacionais
+desde o primeiro login. A criação de personagem permanece inalterada em sua
+essência (Nome → Pronome → Sexo), sem qualquer escolha de vocação — o
+personagem é sempre um Aventureiro (vocation = 0). A benção narrativa do
+Oráculo agora ecoa o despertar dos Domínios que ocorrerá em Eridanus.
 
 Componentes abordados:
 
@@ -41,85 +44,70 @@ carregados automaticamente.
 
 🚧 ESTADO ATUAL DA IMPLEMENTAÇÃO
 
-De acordo com o [Plano de Ação] Consolidado, o sistema de criação de conta e
-personagem está **funcional e operacional**. Pontos importantes:
+O SPA v3.2.0 está totalmente implementado e funcional. O sistema de criação de
+conta e personagem reflecte este estado:
 
-- O botão "Salão dos Destinos" substitui "Criar Conta" e funciona com o endpoint /guest_login.
-- O Oráculo já não pergunta vocação; o personagem é criado com vocation = 0 (Aventureiro) e a benção narrativa substitui a escolha de classe.
-- A ordem de criação é Nome → Pronome → Sexo, sem escolha de vocação.
-- O opcode 200 (migração de conta) está implementado e funcional.
-- A máscara de Alma está aplicada no cliente e servidor.
-- Os scripts do Oráculo residem em `data-canary/scripts/MCR/Criacao/` e são carregados automaticamente.
-- As validações de nome (lista branca, sem ã/õ, sem Guest_) estão aplicadas.
-- A variável `VOCATIONS` no .env do Login Server foi ajustada para "0".
-- O equipamento inicial é fornecido pelo NPC Eldrin em Eridanus (ver Guia [12]); o Escudo de Madeira é recompensa de missão, não item inicial.
+O botão "Salão dos Destinos" substitui "Criar Conta" e funciona com o endpoint /guest_login.
+
+O Oráculo não pergunta vocação; o personagem é criado com vocation = 0 (Aventureiro) e a benção narrativa substitui a escolha de classe.
+
+A ordem de criação é Nome → Pronome → Sexo, sem escolha de vocação.
+
+O opcode 200 (migração de conta) está implementado e funcional.
+
+A máscara de Alma está aplicada no cliente e servidor.
+
+Os scripts do Oráculo residem em data-canary/scripts/MCR/Criacao/ e são carregados automaticamente.
+
+As validações de nome (lista branca, sem ã/õ, sem Guest_) estão aplicadas.
+
+A variável VOCATIONS no .env do Login Server está definida como "0".
+
+O equipamento inicial é fornecido pelo NPC Eldrin em Eridanus (ver Guia [12]); o Escudo de Madeira é recompensa de missão, não item inicial.
+
+O SPA começa a funcionar imediatamente após o primeiro login: o script login.lua em MCR/SPA/ inicializa as storages, aplica a postura Equilíbrio e prepara o buffer de progressão.
 
 Este guia reflecte o estado actual e funcional do sistema. As referências à
-progressão futura (Domínios, Estados de Alma) são apenas de contexto.
+progressão (Domínios, Lampejos, Vínculos) são de contexto: tudo está pronto
+para a jornada.
 
 ⚠️ REGRAS DE REVISÃO PARA O ASSISTENTE (AUTENTICAÇÃO E CRIAÇÃO)
 
-RESPEITE O PILAR "100% NO CLIENTE": toda interação ocorre dentro do OTClient,
-sem site externo.
+RESPEITE O PILAR "100% NO CLIENTE": toda interação ocorre dentro do OTClient, sem site externo.
 
-IMERSÃO: o Salão dos Destinos é um local sagrado; o Oráculo é um personagem
-místico que guia o jogador com diálogos narrativos.
+IMERSÃO: o Salão dos Destinos é um local sagrado; o Oráculo é um personagem místico que guia o jogador com diálogos narrativos.
 
-Use a API moderna de NPC: Game.createNpcType, callbacks obrigatórios,
-creatureSayCallback(npc, player, type, msg), npcHandler:say com npc/player.
+Use a API moderna de NPC: Game.createNpcType, callbacks obrigatórios, creatureSayCallback(npc, player, type, msg), npcHandler:say com npc/player.
 
-Destaque palavras com {chaves}, jamais {{#RRGGBB}}. Sempre use espaço entre a
-chave de fecho e a pontuação (ex.: {Sim} ? e NUNCA {Sim}?).
+Destaque palavras com {chaves}, jamais {{#RRGGBB}}. Sempre use espaço entre a chave de fecho e a pontuação (ex.: {Sim} ? e NUNCA {Sim}?).
 
-Todos os scripts Lua que exibem strings ao jogador devem ser salvos como
-ISO‑8859‑1.
+Todos os scripts Lua que exibem strings ao jogador devem ser salvos como ISO‑8859‑1.
 
-Valide nomes de personagem com a LISTA BRANCA de caracteres (solução
-provisória até correção definitiva de encoding no cliente).
+Valide nomes de personagem com a LISTA BRANCA de caracteres (solução provisória até correção definitiva de encoding no cliente).
 
-O Login Server usa padrão error_code para evitar acentos no JSON; as mensagens
-mapeadas no cliente Lua estão em ISO‑8859‑1.
+O Login Server usa padrão error_code para evitar acentos no JSON; as mensagens mapeadas no cliente Lua estão em ISO‑8859‑1.
 
 Contas guest são temporárias. O Alma NUNCA é persistido em contas permanentes.
 
-O botão "Criar Conta" tradicional foi REMOVIDO. O único ponto de entrada para
-novos jogadores é o botão "Salão dos Destinos".
+O botão "Criar Conta" tradicional foi REMOVIDO. O único ponto de entrada para novos jogadores é o botão "Salão dos Destinos".
 
-A MÁSCARA DE ALMA É OBRIGATÓRIA: em todas as interfaces do cliente e nas
-mensagens do servidor, o nome Guest_* deve ser exibido como "Alma".
+A MÁSCARA DE ALMA É OBRIGATÓRIA: em todas as interfaces do cliente e nas mensagens do servidor, o nome Guest_* deve ser exibido como "Alma".
 
-O script do Oráculo (oraculo.lua) e quaisquer scripts auxiliares DEVEM conter
-prints de debug (DEBUG:) que mostrem cada etapa do fluxo.
+O script do Oráculo (oraculo.lua) e quaisquer scripts auxiliares DEVEM conter prints de debug (DEBUG:) que mostrem cada etapa do fluxo.
 
-O Oráculo pergunta o pronome da CONTA (Jogador/Jogadora) apenas após o
-jogador escolher "Criar" ou, no gerenciamento, se a conta ainda não o tiver
-definido. O valor é guardado em accounts.player_pronoun e nunca mais
-perguntado. O pronome do PERSONAGEM continua a ser perguntado durante a
-criação do personagem.
+O Oráculo pergunta o pronome da CONTA (Jogador/Jogadora) apenas após o jogador escolher "Criar" ou, no gerenciamento, se a conta ainda não o tiver definido. O valor é guardado em accounts.player_pronoun e nunca mais perguntado. O pronome do PERSONAGEM continua a ser perguntado durante a criação do personagem.
 
-A ordem de criação do personagem é Nome → Pronome (Ele/Ela) → Sexo
-(Masculino/Feminino). NÃO há mais escolha de vocação. O personagem é sempre
-um Aventureiro (vocation = 0). O Oráculo oferece uma benção narrativa em
-vez de perguntar a vocação.
+A ordem de criação do personagem é Nome → Pronome (Ele/Ela) → Sexo (Masculino/Feminino). NÃO há mais escolha de vocação. O personagem é sempre um Aventureiro (vocation = 0). O Oráculo oferece uma benção narrativa em vez de perguntar a vocação.
 
-Todas as opções de menu oferecem a possibilidade de {Voltar}, permitindo que o
-jogador retorne ao menu anterior sem perder a sessão.
+Todas as opções de menu oferecem a possibilidade de {Voltar}, permitindo que o jogador retorne ao menu anterior sem perder a sessão.
 
-Após a criação bem‑sucedida do personagem, o jogador é enviado para a Ilha do
-Despertar (Eridanus), onde o tutorial o iniciará nos primeiros Domínios.
+Após a criação bem‑sucedida do personagem, o jogador é enviado para a Ilha do Despertar (Eridanus), onde o tutorial o iniciará nos primeiros Domínios.
 
-O equipamento inicial é concedido pelo NPC Eldrin, conforme documentado no
-Guia de Conteúdo Inicial e Tutorial e na Lista de Itens Úteis. O assistente
-deve garantir que os IDs dos itens correspondem aos do ficheiro items.xml
-traduzido.
+O equipamento inicial é concedido pelo NPC Eldrin, conforme documentado no Guia de Conteúdo Inicial e Tutorial e na Lista de Itens Úteis. O assistente deve garantir que os IDs dos itens correspondem aos do ficheiro items.xml traduzido.
 
-⚠️ ESTRUTURA REVSCRIPT (v5.1): Os scripts do Oráculo e de suporte ao fluxo de
-criação devem ser colocados em data-canary/scripts/MCR/Criacao/ (ou
-subpasta equivalente). O Canary carrega automaticamente qualquer ficheiro
-.lua nessas pastas, sem necessidade de registo manual. Mantenha o código
-modular: separe a lógica de criação, gerenciamento e saudação em ficheiros
-distintos, se desejado. Os módulos partilhados (pronouns.lua, npc_utils.lua)
-em MCR/Geral/ são carregados automaticamente e não precisam de dofile.
+⚠️ ESTRUTURA REVSCRIPT (v6.0): Os scripts do Oráculo e de suporte ao fluxo de criação devem ser colocados em data-canary/scripts/MCR/Criacao/ (ou subpasta equivalente). O Canary carrega automaticamente qualquer ficheiro .lua nessas pastas, sem necessidade de registo manual. Mantenha o código modular: separe a lógica de criação, gerenciamento e saudação em ficheiros distintos, se desejado. Os módulos partilhados (pronouns.lua, npc_utils.lua, texto_colorido.lua) em MCR/Geral/ são carregados automaticamente e não precisam de dofile.
+
+⚠️ SPA v3.2.0: O personagem criado tem vocation = 0 e começará a acumular Afinidade assim que realizar acções. Não é necessária nenhuma inicialização extra; o script login.lua do SPA trata de tudo no primeiro login.
 
 🗺️ 1. VISÃO GERAL DO FLUXO
 
@@ -127,30 +115,21 @@ FLUXO PARA NOVOS JOGADORES (CRIAÇÃO DE CONTA):
 
 Jogador clica no botão "Salão dos Destinos" na tela inicial.
 
-O cliente solicita ao Login Server (GET /guest_login) uma conta guest
-temporária e o personagem Alma.
+O cliente solicita ao Login Server (GET /guest_login) uma conta guest temporária e o personagem Alma.
 
-O cliente automaticamente faz login com as credenciais recebidas e entra no
-jogo com Alma no Salão dos Destinos.
+O cliente automaticamente faz login com as credenciais recebidas e entra no jogo com Alma no Salão dos Destinos.
 
-O Oráculo saúda automaticamente a Alma (sem necessidade de "hi") e pergunta
-se deseja {Criar} uma nova conta ou {Gerenciar} uma já existente.
+O Oráculo saúda automaticamente a Alma (sem necessidade de "hi") e pergunta se deseja {Criar} uma nova conta ou {Gerenciar} uma já existente.
 
-Se escolher "Criar", o Oráculo pergunta primeiro se é {Jogador} ou
-{Jogadora}, e só depois solicita nome de conta, senha e criação de
-personagem.
+Se escolher "Criar", o Oráculo pergunta primeiro se é {Jogador} ou {Jogadora}, e só depois solicita nome de conta, senha e criação de personagem.
 
-Na criação do personagem: nome → pronome (Ele/Ela) → sexo (corpo). O
-Oráculo então oferece a benção narrativa e envia o jogador para Eridanus.
+Na criação do personagem: nome → pronome (Ele/Ela) → sexo (corpo). O Oráculo então oferece a benção narrativa e envia o jogador para Eridanus.
 
-Se escolher "Gerenciar", o Oráculo pede credenciais e, se necessário,
-pergunta o pronome da conta antes de mostrar as opções de administração.
+Se escolher "Gerenciar", o Oráculo pede credenciais e, se necessário, pergunta o pronome da conta antes de mostrar as opções de administração.
 
-Após a criação ou selecção de personagem, o Oráculo envia um opcode (200)
-com as novas credenciais.
+Após a criação ou selecção de personagem, o Oráculo envia um opcode (200) com as novas credenciais.
 
-O cliente usa o método síncrono g_game.logout(false) para desligar a Alma
-e imediatamente inicia o login com a conta permanente. Transição em <250 ms.
+O cliente usa o método síncrono g_game.logout(false) para desligar a Alma e imediatamente inicia o login com a conta permanente. Transição em <250 ms.
 
 FLUXO PARA JOGADORES EXISTENTES (GERENCIAMENTO DE CONTA):
 
@@ -162,14 +141,11 @@ O Oráculo pergunta se deseja {Criar} ou {Gerenciar}.
 
 Ao escolher "Gerenciar", fornece nome de conta e senha.
 
-O Oráculo valida as credenciais; se player_pronoun for 0, pergunta e
-atualiza a coluna.
+O Oráculo valida as credenciais; se player_pronoun for 0, pergunta e atualiza a coluna.
 
-Oferece opções: alterar senha, gerenciar personagens, criar novo personagem,
-ou entrar no jogo.
+Oferece opções: alterar senha, gerenciar personagens, criar novo personagem, ou entrar no jogo.
 
-Para entrar, envia opcode 200 com as credenciais da conta permanente e o
-personagem escolhido.
+Para entrar, envia opcode 200 com as credenciais da conta permanente e o personagem escolhido.
 
 🌌 2. BOTÃO "SALÃO DOS DESTINOS" (ENTRADA ÚNICA)
 
@@ -181,19 +157,15 @@ modules/client_entergame/salao_destinos.lua (novo, opcional)
 
 modules/client_entergame/entergame.otui (se botão for adicionado via OTUI)
 
-O botão "Salão dos Destinos" aparece na tela inicial, abaixo de "Entrar". Não
-há mais botão "Criar Conta".
+O botão "Salão dos Destinos" aparece na tela inicial, abaixo de "Entrar". Não há mais botão "Criar Conta".
 
 Evento onClick:
 
-Exibe uma breve mensagem "Conectando ao Salão dos Destinos..." (pode ser um
-label no próprio menu, sem janela modal).
+Exibe uma breve mensagem "Conectando ao Salão dos Destinos..." (pode ser um label no próprio menu, sem janela modal).
 
-Realiza uma requisição HTTP GET para http://127.0.0.1:8080/guest_login (sem
-parâmetros, pois é um pedido de conta guest).
+Realiza uma requisição HTTP GET para http://127.0.0.1:8080/guest_login (sem parâmetros, pois é um pedido de conta guest).
 
-Ao receber a resposta JSON {account, password, character}, chama a função
-g_entergame.doAutoLogin(account, password, character).
+Ao receber a resposta JSON {account, password, character}, chama a função g_entergame.doAutoLogin(account, password, character).
 
 A função doAutoLogin (implementada em entergame.lua) faz:
 
@@ -201,78 +173,59 @@ HTTP GET /login com account e password.
 
 Obtém a lista de personagens (que conterá apenas "Alma").
 
-Seleciona automaticamente "Alma" e inicia a conexão ao servidor de jogo
-(ProtocolGame na porta 7173).
+Seleciona automaticamente "Alma" e inicia a conexão ao servidor de jogo (ProtocolGame na porta 7173).
 
-O jogador nunca vê a tela de seleção de personagens; a transição é directa
-para dentro do jogo.
+O jogador nunca vê a tela de seleção de personagens; a transição é directa para dentro do jogo.
 
 Observações técnicas:
 
 O botão e as funções devem ser escritos em Lua e salvos como ISO‑8859‑1.
 
-A resposta do /guest_login pode ser tratada como UTF‑8 (Go), mas os dados
-(nome da conta guest, senha) não contêm acentos, então não há risco de
-corrupção.
+A resposta do /guest_login pode ser tratada como UTF‑8 (Go), mas os dados (nome da conta guest, senha) não contêm acentos, então não há risco de corrupção.
 
-O módulo entergame.lua deve ser ajustado para suportar o bypass da tela de
-seleção quando o parâmetro character é fornecido.
+O módulo entergame.lua deve ser ajustado para suportar o bypass da tela de seleção quando o parâmetro character é fornecido.
 
 👤 3. CONTAS GUEST E PERSONAGEM ALMA TEMPORÁRIO
 
 Conceito:
 
-Uma conta guest é criada com nome no formato "guest_" + string aleatória
-(ex.: guest_a1b2c3d4). A senha é gerada aleatoriamente e não é mostrada.
+Uma conta guest é criada com nome no formato "guest_" + string aleatória (ex.: guest_a1b2c3d4). A senha é gerada aleatoriamente e não é mostrada.
 
-Imediatamente, um personagem com nome "Guest_" + string aleatória
-(ex.: Guest_x7k2m9) é inserido na tabela players, associado a essa conta, com
-posição inicial no Salão dos Destinos.
+Imediatamente, um personagem com nome "Guest_" + string aleatória (ex.: Guest_x7k2m9) é inserido na tabela players, associado a essa conta, com posição inicial no Salão dos Destinos.
 
-Esse personagem é um dummy: ao logar, o script de login (evento_login.lua na
-pasta MCR/Dominio) reseta seus atributos para estado inicial (level 1,
-vocation 0, sem itens, sem skills) e teleporta‑o ao Salão.
+Esse personagem é um dummy: ao logar, o script de login (evento_login.lua na pasta MCR/SPA) reseta seus atributos para estado inicial (level 1, vocation 0, sem itens, sem skills) e teleporta‑o ao Salão.
 
-Ele NUNCA é atribuído a contas permanentes. Sua única função é permitir a
-interação com o Oráculo.
+Ele NUNCA é atribuído a contas permanentes. Sua única função é permitir a interação com o Oráculo.
 
-Máscara de Alma: O nome real do personagem (Guest_*) jamais é exibido ao
-jogador. Em toda a interface do cliente (lista de personagens, nome sobre a
-cabeça, chat, barras de status, battle list) e nas mensagens do servidor
-(look), o nome é substituído por "Alma". Consulte o Guia [10] e os Guias
-de Compilação para os detalhes de implementação.
+Máscara de Alma: O nome real do personagem (Guest_*) jamais é exibido ao jogador. Em toda a interface do cliente (lista de personagens, nome sobre a cabeça, chat, barras de status, battle list) e nas mensagens do servidor (look), o nome é substituído por "Alma". Consulte o Guia [10] e os Guias de Compilação para os detalhes de implementação.
 
-⚠️ IMPORTANTE: O Alma possui vocation = 0, garantindo que qualquer verificação
-de vocação no servidor seja irrelevante.
+⚠️ IMPORTANTE: O Alma possui vocation = 0, garantindo que qualquer verificação de vocação no servidor seja irrelevante.
 
 Criação da conta guest (Login Server):
 Endpoint: GET /guest_login
-Resposta: { "account": "guest_xyz", "password": "senhaAleatoria",
-"character": "Guest_xyz" }
+Resposta: { "account": "guest_xyz", "password": "senhaAleatoria", "character": "Guest_xyz" }
 
 Implementação no Go:
 
-Gerar nome da conta ("guest_") e nome do personagem ("Guest_") com 8
-caracteres aleatórios.
+Gerar nome da conta ("guest_") e nome do personagem ("Guest_") com 8 caracteres aleatórios.
 
-Inserir em accounts (name = guest_xyz, password = hash SHA1,
-email = account name, created_at = timestamp, player_pronoun = 0).
+Inserir em accounts (name = guest_xyz, password = hash SHA1, email = account name, created_at = timestamp, player_pronoun = 0).
 
-Inserir em players (name = Guest_xyz, account_id = id da conta guest,
-vocation = 0, posição do Salão, etc.).
+Inserir em players (name = Guest_xyz, account_id = id da conta guest, vocation = 0, posição do Salão, etc.).
 
 Retornar JSON.
 
 Limpeza automática:
 
-Uma rotina no Login Server remove contas guest cujo created_at seja anterior a
-30 minutos:
-DELETE FROM players WHERE name LIKE 'Guest_%' AND account_id IN
-(SELECT id FROM accounts WHERE name LIKE 'guest_%'
-AND created_at < UNIX_TIMESTAMP() - 1800);
-DELETE FROM accounts WHERE name LIKE 'guest_%'
-AND created_at < UNIX_TIMESTAMP() - 1800;
+Uma rotina no Login Server remove contas guest cujo created_at seja anterior a 30 minutos:
 
+sql
+DELETE FROM players WHERE name LIKE 'Guest\_%' AND account_id IN (
+    SELECT id FROM accounts WHERE name LIKE 'guest\_%'
+    AND created_at < UNIX_TIMESTAMP() - 1800
+);
+DELETE FROM accounts WHERE name LIKE 'guest\_%'
+AND created_at < UNIX_TIMESTAMP() - 1800;
 🏛️ 4. SALÃO DOS DESTINOS (ÁREA SAGRADA)
 
 Área inacessível por meios normais (sem portas, escadas, teleports).
@@ -281,8 +234,7 @@ Acesso exclusivo via login com Alma (conta guest).
 
 Posição central: exemplo (1000, 1000, 7).
 
-Contém o NPC Oráculo e um tile de temple (para fins de respawn, se
-necessário).
+Contém o NPC Oráculo e um tile de temple (para fins de respawn, se necessário).
 
 Visual impactante, atmosfera de "entre mundos".
 
@@ -292,28 +244,19 @@ Nenhum outro NPC ou jogador pode entrar, exceto Almas convidadas.
 
 5.1 SAUDAÇÃO E IDENTIFICAÇÃO
 
-O Oráculo saúda automaticamente a Alma assim que ela surge no Salão, sem
-necessidade de "hi". A saudação é gerenciada pelo onThink +
-MESSAGE_GREET.
+O Oráculo saúda automaticamente a Alma assim que ela surge no Salão, sem necessidade de "hi". A saudação é gerenciada pelo onThink + MESSAGE_GREET.
 
-A saudação NÃO pergunta o pronome. Em vez disso, oferece as opções:
-"Deseja {Criar} uma nova conta ou {Gerenciar} uma já existente ?"
+A saudação NÃO pergunta o pronome. Em vez disso, oferece as opções: "Deseja {Criar} uma nova conta ou {Gerenciar} uma já existente ?"
 
-O pronome da conta (Jogador/Jogadora) é perguntado apenas quando o jogador
-escolhe "Criar" ou, durante o gerenciamento, se o campo
-accounts.player_pronoun estiver 0.
+O pronome da conta (Jogador/Jogadora) é perguntado apenas quando o jogador escolhe "Criar" ou, durante o gerenciamento, se o campo accounts.player_pronoun estiver 0.
 
-No fluxo de criação, o Oráculo define data.playerPronoun através do tópico
-5 e depois prossegue para o nome da conta (tópico 10).
+No fluxo de criação, o Oráculo define data.playerPronoun através do tópico 5 e depois prossegue para o nome da conta (tópico 10).
 
-No fluxo de gerenciamento, se não houver pronome gravado, o Oráculo envia
-para o tópico 21, onde pergunta e persiste o valor, indo depois para o menu
-principal (tópico 30).
+No fluxo de gerenciamento, se não houver pronome gravado, o Oráculo envia para o tópico 21, onde pergunta e persiste o valor, indo depois para o menu principal (tópico 30).
 
 5.2 FLUXO DE CRIAÇÃO DE CONTA NOVA
 
-a. Após escolher "Criar", o Oráculo pergunta "Você é um {Jogador} ou uma
-{Jogadora}?" (tópico 5).
+a. Após escolher "Criar", o Oráculo pergunta "Você é um {Jogador} ou uma {Jogadora}?" (tópico 5).
 b. Guarda data.playerPronoun e ajusta a variável tratamento.
 c. Solicita nome de conta (3 a 32 caracteres, sem espaços, sem " \ { }).
 d. Solicita senha (mínimo 3 caracteres, sem espaços, sem " \ { }).
@@ -328,61 +271,43 @@ Pronome ({Ele} ou {Ela}) → salvo em players.pronoun (3 ou 2).
 
 Sexo (corpo: {Masculino} ou {Feminino}) → salvo em players.sex.
 
-⚠️ NÃO há pergunta sobre vocação. O Oráculo simplesmente prossegue para a
-benção narrativa (ver abaixo).
+⚠️ NÃO há pergunta sobre vocação. O Oráculo simplesmente prossegue para a benção narrativa (ver abaixo).
 
-i. Após o sexo, o Oráculo oferece a benção narrativa:
+i. Após o sexo, o Oráculo oferece a benção narrativa (actualizada para o SPA v3.2.0):
 
-"O véu se fecha sobre o seu destino. Não vejo um caminho único, mas uma
-tapeçaria de fios infinitos. Você não será limitado por títulos, jovem
-aventureiro. O mundo lhe ensinará tudo, se tiver a ousadia de buscar.
-Que as estrelas guiem o seu despertar."
+"O véu se fecha sobre o seu destino. Não vejo um caminho único, mas uma tapeçaria de fios infinitos. Você não será limitado por títulos, jovem aventureiro. Suas acções tecerão seus talentos; o mundo lhe ensinará tudo, se tiver a ousadia de buscar. Que as estrelas guiem o seu despertar."
 
-j. O personagem é criado internamente com vocation = 0 e enviado para a Ilha do
-Despertar (Eridanus) via teleporte (ou armazenamento de última posição).
-
-k. O Oráculo envia o opcode 200 com as credenciais da nova conta e o nome do
-personagem criado para que o cliente migre da Alma para a conta permanente.
+j. O personagem é criado internamente com vocation = 0 e enviado para a Ilha do Despertar (Eridanus) via teleporte (ou armazenamento de última posição).
+k. O Oráculo envia o opcode 200 com as credenciais da nova conta e o nome do personagem criado para que o cliente migre da Alma para a conta permanente.
 
 5.3 FLUXO DE GERENCIAMENTO DE CONTA EXISTENTE
 
-a. Oráculo solicita: "Digite o nome da sua conta e a senha, separados por um
-espaço."
+a. Oráculo solicita: "Digite o nome da sua conta e a senha, separados por um espaço."
 b. Valida as credenciais (consulta accounts e verifica hash SHA1).
 c. Verifica o campo player_pronoun na tabela accounts:
 
-Se for 0 (não definido), pergunta "Você é um {Jogador} ou uma {Jogadora}?"
-(tópico 21) e atualiza a coluna.
+Se for 0 (não definido), pergunta "Você é um {Jogador} ou uma {Jogadora}?" (tópico 21) e atualiza a coluna.
 
 Se já estiver definido, usa‑o e mostra o menu de opções (tópico 30).
 
 d. Oferece menu: {Senha}, {Personagem}, {Criar} ou {Entrar}.
-
 e. Subfluxos:
 
 Alterar senha: pede nova senha, valida, atualiza hash.
 
-Gerenciar personagens: lista personagens, opções de {Apagar} ou {Alterar}
-(nome, sexo, pronome).
+Gerenciar personagens: lista personagens, opções de {Apagar} ou {Alterar} (nome, sexo, pronome).
 
-Criar novo personagem: mesmo fluxo de criação de personagem descrito em
-5.2h, sem perguntar vocação.
+Criar novo personagem: mesmo fluxo de criação de personagem descrito em 5.2h, sem perguntar vocação.
 
-Entrar: envia opcode 200 com o personagem escolhido (ou selecciona
-automaticamente se só houver um).
+Entrar: envia opcode 200 com o personagem escolhido (ou selecciona automaticamente se só houver um).
 
 5.4 PROTEÇÃO DE CAMPOS
 
-Para evitar que o jogador acidentalmente use palavras de menu como nome ou
-senha, os tópicos 10 (nome da conta), 11 (senha), 40 (nova senha) e 50 (nome do
-personagem) incluem uma verificação inicial: se a mensagem corresponder a
-qualquer comando de menu (Senha, Personagem, Criar, Entrar, Voltar, etc.), a
-operação é cancelada e o Oráculo retorna ao menu apropriado.
+Para evitar que o jogador acidentalmente use palavras de menu como nome ou senha, os tópicos 10 (nome da conta), 11 (senha), 40 (nova senha) e 50 (nome do personagem) incluem uma verificação inicial: se a mensagem corresponder a qualquer comando de menu (Senha, Personagem, Criar, Entrar, Voltar, etc.), a operação é cancelada e o Oráculo retorna ao menu apropriado.
 
 5.5 OPÇÃO DE VOLTAR
 
-Em praticamente todos os menus, o jogador pode digitar {Voltar} para retornar
-ao menu anterior, mantendo a sessão autenticada.
+Em praticamente todos os menus, o jogador pode digitar {Voltar} para retornar ao menu anterior, mantendo a sessão autenticada.
 
 5.6 SEGURANÇA
 
@@ -430,70 +355,55 @@ Não há exigência de letras + números.
 
 /login (existente): autentica e retorna lista de personagens.
 
-/register (existente): opcional, pode ser mantido para registro directo via
-interface web, mas o fluxo principal usa o Oráculo.
+/register (existente): opcional, pode ser mantido para registro directo via interface web, mas o fluxo principal usa o Oráculo.
 
 7.2 OPCODE 200 – MIGRAÇÃO DE CONTA
 
-O servidor envia ao cliente as novas credenciais para que ele troque de conta
-sem sair do jogo.
+O servidor envia ao cliente as novas credenciais para que ele troque de conta sem sair do jogo.
 
 Estrutura do JSON enviado pelo Oráculo:
-{
-"account": "contaDestino",
-"password": "senhaDestino",
-"character": "PersonagemEscolhido" // opcional
-}
 
+json
+{
+    "account": "contaDestino",
+    "password": "senhaDestino",
+    "character": "PersonagemEscolhido" // opcional
+}
 Se "character" for fornecido, o cliente deve:
 
-Desconectar da conta guest (sem salvar estado do Alma) usando
-g_game.logout(false).
+Desconectar da conta guest (sem salvar estado do Alma) usando g_game.logout(false).
 
 Fazer login HTTP com as novas credenciais.
 
 Selecionar automaticamente o personagem indicado e entrar no jogo.
 
-Isso permite uma transição absolutamente fluida: o jogador sai do Alma e aparece
-com seu novo personagem no templo inicial (ou no local definido).
+Isso permite uma transição absolutamente fluida: o jogador sai do Alma e aparece com seu novo personagem no templo inicial (ou no local definido).
 
 7.3 IMPLEMENTAÇÃO NO CLIENTE (entergame.lua)
 
-Registrar listener para opcode 200 (ProtocolGame.registerExtendedOpcode).
+Registar listener para opcode 200 (ProtocolGame.registerExtendedOpcode).
 
-Na função de callback, chamar g_game.logout(false) e imediatamente
-g_entergame.doAutoLogin com as credenciais recebidas.
+Na função de callback, chamar g_game.logout(false) e imediatamente g_entergame.doAutoLogin com as credenciais recebidas.
 
-A função doAutoLogin deve ser robusta o suficiente para pular o menu
-principal e a seleção de personagens quando o parâmetro character está
-presente.
+A função doAutoLogin deve ser robusta o suficiente para pular o menu principal e a seleção de personagens quando o parâmetro character está presente.
 
 🎭 8. MÁSCARA DE ALMA – IMPLEMENTAÇÃO COMPLETA
 
-O nome do personagem convidado jamais deve ser exibido como "Guest_*". Em todos
-os contextos visuais para o jogador, o nome deve aparecer como "Alma".
+O nome do personagem convidado jamais deve ser exibido como "Guest_*". Em todos os contextos visuais para o jogador, o nome deve aparecer como "Alma".
 
 8.1 NO CLIENTE (C++)
 
-Arquivo: OTClient/src/client/creature.cpp
-Função setName() alterada para converter qualquer nome com prefixo "Guest_"
-em "Alma".
+Arquivo: OTClient/src/client/creature.cpp – setName() alterada para converter qualquer nome com prefixo "Guest_" em "Alma".
 
-Arquivo: OTClient/src/client/game.cpp
-Função loginWorld() mascara o nome antes de guardá‑lo no LocalPlayer e em
-m_characterName.
-Função processTalk() mascara o nome do emissor no chat.
+Arquivo: OTClient/src/client/game.cpp – loginWorld() mascara o nome antes de guardá‑lo no LocalPlayer e em m_characterName. processTalk() mascara o nome do emissor no chat.
 
 8.2 NO CLIENTE (Lua)
 
-Arquivo: modules/client_entergame/entergame.lua
-Função onCharacterList() alterada para exibir "Alma" na lista de personagens.
+Arquivo: modules/client_entergame/entergame.lua – onCharacterList() alterada para exibir "Alma" na lista de personagens.
 
 8.3 NO SERVIDOR (Lua) — Mensagens de "look"
 
-Arquivo: data/creaturescripts/scripts/player.lua (Player:onLookInBattleList)
-e data/events/scripts/on_look.lua (handleCreatureDescription) aplicam a
-máscara.
+Arquivo: data/creaturescripts/scripts/player.lua (Player:onLookInBattleList) e data/events/scripts/on_look.lua (handleCreatureDescription) aplicam a máscara.
 
 8.4 O QUE NÃO MUDOU
 
@@ -509,52 +419,35 @@ A máscara é puramente visual e não afeta a lógica de jogo.
 
 📋 9. PRONOME DA CONTA E PRONOME DO PERSONAGEM
 
-Pronome da conta: como o Oráculo deve se dirigir ao JOGADOR (pessoa real).
-Armazenado em accounts.player_pronoun (0 = indefinido, 1 = jogador,
-2 = jogadora). É perguntado na primeira saudação e fica registrado
-permanentemente.
+Pronome da conta: como o Oráculo deve se dirigir ao JOGADOR (pessoa real). Armazenado em accounts.player_pronoun (0 = indefinido, 1 = jogador, 2 = jogadora). É perguntado na primeira saudação e fica registrado permanentemente.
 
-Pronome do personagem: como os NPCs e o mundo devem se referir ao avatar.
-Armazenado na coluna nativa players.pronoun (0 = usa o sexo, 2 = ela,
-3 = ele). É perguntado durante a criação do personagem (ordem: nome →
-pronome → sexo). NÃO há mais pergunta de vocação.
+Pronome do personagem: como os NPCs e o mundo devem se referir ao avatar. Armazenado na coluna nativa players.pronoun (0 = usa o sexo, 2 = ela, 3 = ele). É perguntado durante a criação do personagem (ordem: nome → pronome → sexo). NÃO há mais pergunta de vocação.
 
-Esta separação garante que o jogador seja tratado de forma pessoal pelo Oráculo,
-enquanto cada personagem pode ter sua própria identidade independente.
+Esta separação garante que o jogador seja tratado de forma pessoal pelo Oráculo, enquanto cada personagem pode ter sua própria identidade independente.
 
 📦 10. EQUIPAMENTO INICIAL DO TUTORIAL
 
-Após a criação do personagem, o jogador não recebe itens directamente no Salão.
-Ele é teleportado para a Praia do Náufrago, na Ilha do Despertar, onde o NPC
-Eldrin fornece o equipamento inicial listado abaixo. Estes itens estão
-documentados na Lista de Itens Úteis (arquivo complementar) e os seus IDs devem
-ser conferidos no ficheiro items.xml traduzido.
+Após a criação do personagem, o jogador não recebe itens directamente no Salão. Ele é teleportado para a Praia do Náufrago, na Ilha do Despertar, onde o NPC Eldrin fornece o equipamento inicial listado abaixo. Estes itens estão documentados na Lista de Itens Úteis (arquivo complementar) e os seus IDs devem ser conferidos no ficheiro items.xml traduzido.
 
-ID    | Nome do Item (PT‑BR) | Função inicial
-2854  | Mochila             | Inventário
-2920  | Tocha               | Iluminação
-3552  | Botas de Couro      | Protecção básica
-3561  | Jaqueta             | Protecção básica
-3559  | Calças de Couro     | Protecção básica
-3264  | Espada              | Arma inicial
-3412  | Escudo de Madeira   | Defesa (obtido após missão do tutorial com Thorne)
+ID	Nome do Item (PT‑BR)	Função inicial
+2854	Mochila	Inventário
+2920	Tocha	Iluminação
+3552	Botas de Couro	Protecção básica
+3561	Jaqueta	Protecção básica
+3559	Calças de Couro	Protecção básica
+3264	Espada	Arma inicial
+3412	Escudo de Madeira	Defesa (obtido após missão do tutorial com Thorne)
+⚠️ NOTA: O Escudo de Madeira (ID 3412) NÃO faz parte do equipamento inicial entregue por Eldrin na chegada. Ele é a recompensa da missão "O Peso do Aço" com Thorne, conforme documentado no Guia de Conteúdo Inicial e Tutorial [12].
 
-⚠️ NOTA: O Escudo de Madeira (ID 3412) NÃO faz parte do equipamento inicial
-entregue por Eldrin na chegada. Ele é a recompensa da missão "O Peso do Aço"
-com Thorne, conforme documentado no Guia de Conteúdo Inicial e Tutorial [12].
+O assistente deve garantir que o script de tutorial ou o NPC Eldrin conceda apenas os seis primeiros itens no primeiro encontro.
 
-O assistente deve garantir que o script de tutorial ou o NPC Eldrin conceda
-apenas os seis primeiros itens no primeiro encontro.
+🗂️ 11. ESTRUTURA REVSCRIPT PARA SCRIPTS DO ORÁCULO (v6.0)
 
-🗂️ 11. ESTRUTURA REVSCRIPT PARA SCRIPTS DO ORÁCULO (v5.1)
-
-Os scripts responsáveis pelo funcionamento do Oráculo e pelo fluxo de criação
-estão localizados em:
+Os scripts responsáveis pelo funcionamento do Oráculo e pelo fluxo de criação estão localizados em:
 
 E:\Projeto MCR\Canary\data-canary\scripts\MCR\Criacao\
 
-Esta pasta é carregada automaticamente pelo Canary (Revscript). Dentro dela,
-pode‑se organizar os ficheiros da seguinte forma:
+Esta pasta é carregada automaticamente pelo Canary (Revscript). Dentro dela, pode‑se organizar os ficheiros da seguinte forma:
 
 oraculo.lua – script principal do NPC (chama módulos auxiliares).
 
@@ -566,60 +459,46 @@ gerenciamento.lua – lógica de gerenciamento de conta existente.
 
 validacao_nome.lua – funções de validação de nomes.
 
-Cada ficheiro pode expor funções globais ou simplesmente adicionar handlers ao
-NPC. O Revscript carrega todos os ficheiros automaticamente; a ordem de
-carregamento pode ser gerida pelo próprio motor. É boa prática manter as
-dependências mínimas e usar tabelas globais (ex.: MCR = MCR or {}) para
-partilhar funções entre scripts.
+Cada ficheiro pode expor funções globais ou simplesmente adicionar handlers ao NPC. O Revscript carrega todos os ficheiros automaticamente; a ordem de carregamento pode ser gerida pelo próprio motor. É boa prática manter as dependências mínimas e usar tabelas globais (ex.: MCR = MCR or {}) para partilhar funções entre scripts.
 
-Os módulos partilhados pronouns.lua e npc_utils.lua estão em
-`data-canary/scripts/MCR/Geral/` e são carregados automaticamente. NÃO é
-necessário usar `dofile` para carregá-los; as funções que expõem são globais.
+Os módulos partilhados pronouns.lua, npc_utils.lua e texto_colorido.lua estão em data-canary/scripts/MCR/Geral/ e são carregados automaticamente. NÃO é necessário usar dofile para carregá-los; as funções que expõem são globais.
 
-A mesma lógica se aplica a outros sistemas: cada domínio do jogo (progressão,
-tutorial, quests) terá sua própria subpasta dentro de MCR/.
+A mesma lógica se aplica a outros sistemas: cada domínio do jogo (progressão, tutorial, quests) terá sua própria subpasta dentro de MCR/.
 
 ⚠️ ARMADILHAS E LIÇÕES APRENDIDAS
 
 Saudação automática exigiu substituir FocusModule por onThink + MESSAGE_GREET.
 
-Nunca usar "}?" junto; sempre "} ?" para evitar erro visual no cliente.
+Nunca usar }?" junto; sempre "} ?" para evitar erro visual no cliente.
 
-A ordem de criação (nome → pronome → sexo) foi ajustada para melhor
-narrativa; a vocação foi removida completamente.
+A ordem de criação (nome → pronome → sexo) foi ajustada para melhor narrativa; a vocação foi removida completamente.
 
 Sempre oferecer opção de {Voltar} para evitar que o jogador fique preso.
 
 Atualizar player_pronoun no gerenciamento para evitar perguntas repetidas.
 
-Os campos de nome e senha agora detectam palavras de menu e cancelam a
-operação em vez de usá‑las como valor, prevenindo alterações acidentais.
+Os campos de nome e senha agora detectam palavras de menu e cancelam a operação em vez de usá‑las como valor, prevenindo alterações acidentais.
 
-⚠️ v5.1 – Vocação: A ausência da pergunta de vocação quebra a expectativa de
-jogadores antigos. A benção narrativa do Oráculo é essencial para comunicar
-que o Aventureiro não tem um caminho fixo.
+⚠️ SPA v3.2.0 – Vocação: A ausência da pergunta de vocação quebra a expectativa de jogadores antigos. A benção narrativa do Oráculo é essencial para comunicar que o Aventureiro não tem um caminho fixo.
 
-⚠️ v5.1 – Revscript: Ao mover scripts para subpastas, garanta que não há
-conflitos de nomes de eventos (ex.: dois ficheiros registando o mesmo
-CreatureEvent). Use nomes únicos para os eventos.
+⚠️ SPA v3.2.0 – Revscript: Ao mover scripts para subpastas, garanta que não há conflitos de nomes de eventos (ex.: dois ficheiros registando o mesmo CreatureEvent). Use nomes únicos para os eventos.
 
-⚠️ v5.1 – Módulos globais: pronouns.lua e npc_utils.lua são carregados automaticamente de MCR/Geral/. Não use dofile para eles.
+⚠️ SPA v3.2.0 – Módulos globais: pronouns.lua, npc_utils.lua e texto_colorido.lua são carregados automaticamente de MCR/Geral/. Não use dofile para eles.
+
+⚠️ SPA v3.2.0 – Primeiro login: O script login.lua em MCR/SPA/ inicializa automaticamente as storages do SPA, aplica a postura Equilíbrio e prepara o buffer de progressão. Nenhuma acção extra é necessária no momento da criação do personagem.
 
 🔍 CHECKLIST DE REVISÃO PARA O ASSISTENTE
 
 ☐ Toda a experiência ocorre dentro do OTClient?
-☐ Botão "Salão dos Destinos" substitui "Criar Conta" e funciona com
-/guest_login?
+☐ Botão "Salão dos Destinos" substitui "Criar Conta" e funciona com /guest_login?
 ☐ A função doAutoLogin permite entrada directa com Alma?
 ☐ Alma é criado automaticamente pelo Login Server e removido por limpeza?
 ☐ O Oráculo verifica se o jogador é Alma e conta guest?
 ☐ Saudação automática funciona sem "hi"?
-☐ Pronome da conta (Jogador/Jogadora) é perguntado e armazenado em
-accounts.player_pronoun?
-☐ Pronome do personagem (Ele/Ela) é perguntado e armazenado em
-players.pronoun (2 ou 3)?
+☐ Pronome da conta (Jogador/Jogadora) é perguntado e armazenado em accounts.player_pronoun?
+☐ Pronome do personagem (Ele/Ela) é perguntado e armazenado em players.pronoun (2 ou 3)?
 ☐ Ordem de criação: Nome → Pronome → Sexo? NÃO há pergunta de vocação?
-☐ O Oráculo oferece a benção narrativa ao final da criação?
+☐ O Oráculo oferece a benção narrativa actualizada ao final da criação?
 ☐ Validações de conta/senha: mínimo 3 caracteres, sem " \ { }, sem espaços?
 ☐ Validações de nome: lista branca, sem ã/õ, bloqueio de Guest_?
 ☐ Opção {Voltar} disponível em todos os menus?
@@ -636,11 +515,14 @@ players.pronoun (2 ou 3)?
 ☐ O personagem criado tem vocation = 0?
 ☐ O Alma tem vocation = 0?
 ☐ O Escudo de Madeira (3412) NÃO está na lista de equipamento inicial?
+☐ O script login.lua do SPA está presente em MCR/SPA/ e inicializa as storages correctamente?
 
 📤 COMO ATUALIZAR O REPOSITÓRIO GIT
 
+text
 git add "<arquivos alterados>"
-git commit -m "feat(auth): Atualiza guia de criação com vocação removida e Revscript"
+git commit -m "feat(auth): Atualiza guia de criação com SPA v3.2.0 e benção narrativa"
 git push origin main
+⚠️ PowerShell: aspas duplas em caminhos com espaços.
 
-FIM DO GUIA DE CRIAÇÃO DE CONTA E PERSONAGEM — VERSÃO 5.1
+FIM DO GUIA DE CRIAÇÃO DE CONTA E PERSONAGEM — VERSÃO 6.0

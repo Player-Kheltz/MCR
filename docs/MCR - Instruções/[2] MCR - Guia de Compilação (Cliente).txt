@@ -1,41 +1,59 @@
 PROJETO MCR – GUIA DE COMPILAÇÃO (CLIENTE)
-Versão 2.5 – Reutilização de modos de luta nativos para Posturas, opcodes de Estados de Alma (182/183), janela de conhecimento (184) e integração com o Sistema de Progressão v2.1.1
+Versão 3.0 – Integração total com o Sistema de Progressão do Aventureiro (SPA v3.2.0), opcodes de feedback visual, suporte a cores no chat e estrutura Revscript
 Arquivo: [2] MCR - Guia de Compilação (Cliente).txt
 
 🎯 OBJETIVO DESTE GUIA
 Fornecer todas as instruções, dependências, customizações e verificações necessárias para compilar o OTClient Redemption do Projeto MCR a partir do código‑fonte. Este guia também estabelece as regras que o assistente DEVE seguir ao auxiliar em tarefas relacionadas à compilação, modificação de arquivos C++ do cliente ou ajustes nos módulos Lua que dependem de alterações no motor.
 
-Esta versão atualiza o cliente para a versão 2.1.0 do Sistema de Progressão do Aventureiro: o HUD de Estados de Alma (opcodes 182/183), a janela de conhecimento (opcode 184) e a confirmação de que as Posturas de Combate (Ímpeto, Equilíbrio, Guarda) reutilizam os modos de luta nativos (Full Attack, Balanced, Full Defense) sem necessidade de novas interfaces.
+Esta versão actualiza o cliente para o SPA v3.2.0: os opcodes 182 (ícone de Vínculo), 183 (partículas de Estado de Alma) e 184 (janela de conhecimento) já estão planeados e devem ser implementados conforme descrito; as Posturas de Combate (Ímpeto, Equilíbrio, Guarda) reutilizam os modos de luta nativos sem necessidade de novas interfaces; e o cliente está preparado para exibir as mensagens coloridas geradas pelo servidor (canal 24) através da função c() e da tabela COR.
 
-🚧 ESTADO ATUAL DA IMPLEMENTAÇÃO (FASE 4 – CLIENTE)
+🚧 ESTADO ATUAL DA IMPLEMENTAÇÃO
 
-De acordo com o [Plano de Ação] Consolidado, a **Fase 4 (Cliente) ainda não foi iniciada**. Isto significa que:
-- Os listeners para os opcodes 182 (ícone de Vínculo), 183 (partículas de Estado de Alma) e 184 (janela de conhecimento) **ainda não foram implementados** nos módulos Lua do OTClient.
-- As Posturas de Combate reutilizam os modos de luta nativos (Full Attack, Balanced, Full Defense) que já funcionam no cliente, portanto nenhuma modificação é necessária para que o servidor receba o fightMode correcto. Os efeitos visuais e de jogabilidade dependem dos scripts do servidor (e, por sua vez, dos métodos C++ da Fase 2).
-- O opcode 200 (migração de conta) já está implementado e funcional.
-- As customizações de máscara de Alma, cache portátil, tradução da interface e conversão de nome (UTF‑8 para Latin‑1) estão aplicadas e em funcionamento.
-- Qualquer novo módulo Lua para interface deve ser salvo como ISO‑8859‑1.
-- As directrizes de codificação C++ (escapes octais para strings, comentários em PT‑BR) aplicam-se integralmente a qualquer modificação no código‑fonte do OTClient.
+O SPA v3.2.0 está totalmente funcional no servidor. No cliente, a situação é a seguinte:
+
+A comunicação por opcodes estendidos (extendedOpcode = true) já está habilitada.
+
+O opcode 200 (migração de conta) está implementado e funcional.
+
+Os modos de luta nativos (Full Attack, Balanced, Full Defense) são usados para as Posturas; nenhuma modificação é necessária.
+
+O sistema de cores do SPA funciona através do canal 24 (mensagens coloridas); o OTClient Redemption suporta este canal nativamente, sem modificações adicionais.
+
+Os listeners para os opcodes 182, 183 e 184 ainda precisam ser implementados nos módulos Lua do cliente (ex.: em modules/game_spa/). As especificações abaixo servem de guia para essa implementação.
+
+As customizações de máscara de Alma, cache portátil, tradução da interface e conversão de nome (UTF‑8 para Latin‑1) estão aplicadas e em funcionamento.
+
+Qualquer novo módulo Lua para interface deve ser salvo como ISO‑8859‑1.
+
+As directrizes de codificação C++ (escapes octais para strings, comentários em PT‑BR) aplicam‑se integralmente a qualquer modificação no código‑fonte do OTClient.
 
 ⚠️ REGRAS DE REVISÃO PARA O ASSISTENTE (C++ CLIENTE / OTCLIENT)
 
 Ao modificar QUALQUER arquivo .cpp/.h no diretório OTClient/src/, o assistente DEVE:
 
-- Garantir que TODAS as strings de interface (menus, mensagens de toast, labels) estejam em PT‑BR, com acentuação correcta. Utilizar OBRIGATORIAMENTE escapes octais Latin‑1 (ex.: "Configura\347\343o") para garantir compatibilidade entre compiladores e sistemas. NÃO usar UTF‑8 diretamente nas strings C++.
-- Manter comentários em PT‑BR; nomes de funções e variáveis em inglês (camelCase).
-- Verificar se a alteração preserva a compatibilidade com o servidor Canary (protocolo 15.00).
-- Se modificar a comunicação de rede (HTTP, ProtocolGame, Extended Opcodes), garantir que as portas usadas são 8080 (Login Server) e 7173 (Game), conforme documentado.
-- Toda nova interface gráfica em C++ deve utilizar os recursos existentes do motor (g_ui, displays) e ser documentada para integração Lua.
-- Após a edição, listar explicitamente os arquivos modificados para compilação selectiva.
+Garantir que TODAS as strings de interface (menus, mensagens de toast, labels) estejam em PT‑BR, com acentuação correcta. Utilizar OBRIGATORIAMENTE escapes octais Latin‑1 (ex.: "Configura\347\343o") para garantir compatibilidade entre compiladores e sistemas. NÃO usar UTF‑8 directamente nas strings C++.
+
+Manter comentários em PT‑BR; nomes de funções e variáveis em inglês (camelCase).
+
+Verificar se a alteração preserva a compatibilidade com o servidor Canary (protocolo 15.00).
+
+Se modificar a comunicação de rede (HTTP, ProtocolGame, Extended Opcodes), garantir que as portas usadas são 8080 (Login Server) e 7173 (Game), conforme documentado.
+
+Toda nova interface gráfica em C++ deve utilizar os recursos existentes do motor (g_ui, displays) e ser documentada para integração Lua.
+
+Após a edição, listar explicitamente os arquivos modificados para compilação selectiva.
 
 📦 DEPENDÊNCIAS (AMBIENTE WINDOWS)
 
 Ferramentas Obrigatórias:
 
-- Visual Studio 2022 (Community ou superior) com carga de trabalho "Desenvolvimento para desktop com C++".
-- CMake 3.20 ou superior.
-- Git for Windows.
-- vcpkg (o mesmo utilizado para o servidor, ou um clone separado).
+Visual Studio 2022 (Community ou superior) com carga de trabalho "Desenvolvimento para desktop com C++".
+
+CMake 3.20 ou superior.
+
+Git for Windows.
+
+vcpkg (o mesmo utilizado para o servidor, ou um clone separado).
 
 Bibliotecas Requeridas (instalar via vcpkg, para x64-windows):
 .\vcpkg install boost-algorithm:x64-windows boost-asio:x64-windows
@@ -75,45 +93,62 @@ Copie o otclient.exe para a raiz do diretório do OTClient (onde está o init.lu
 
 As seguintes modificações estão presentes nos fontes do repositório ProjetoMCR/OTClient. O assistente NÃO precisa reaplicá‑las, mas deve conhecê‑las para manutenção.
 
-- Cache Portátil (init.lua): pasta cache/ local, dispensando %APPDATA%.
-- Tradução Parcial de Interfaces: módulos entergame, characterlist, registro em PT‑BR.
-- Máscara de Alma (Guest_ → Alma): implementada em creature.cpp, game.cpp e entergame.lua.
-- Método Game::logout para migração de conta (opcode 200): implementado em game.h/cpp e registado em luafunctions.cpp.
-- Tradução do código‑fonte do OTClient para PT‑BR com escapes octais Latin‑1.
-- Comando look com pronome do personagem (integrado com pronouns.lua).
-- Conversão de nome do personagem no entergame.lua (UTF‑8 → Latin‑1).
+Cache Portátil (init.lua): pasta cache/ local, dispensando %APPDATA%.
 
-🎮 REUTILIZAÇÃO DOS MODOS DE LUTA NATIVOS PARA POSTURAS (v2.1.1)
+Tradução Parcial de Interfaces: módulos entergame, characterlist, registro em PT‑BR.
 
-O cliente já possui nativamente os modos de luta Full Attack, Balanced e Full Defense, acessíveis por hotkeys (Ctrl+A, Ctrl+B, Ctrl+D) e ícones no painel de combate. Para o Sistema de Progressão v2.1.1, estes mesmos modos representam as Posturas de Combate:
+Máscara de Alma (Guest_ → Alma): implementada em creature.cpp, game.cpp e entergame.lua.
 
-- Full Attack → Ímpeto
-- Balanced → Equilíbrio
-- Full Defense → Guarda
+Método Game::logout para migração de conta (opcode 200): implementado em game.h/cpp e registado em luafunctions.cpp.
+
+Tradução do código‑fonte do OTClient para PT‑BR com escapes octais Latin‑1.
+
+Comando look com pronome do personagem (integrado com pronouns.lua).
+
+Conversão de nome do personagem no entergame.lua (UTF‑8 → Latin‑1).
+
+🎮 REUTILIZAÇÃO DOS MODOS DE LUTA NATIVOS PARA POSTURAS (SPA v3.2.0)
+
+O cliente já possui nativamente os modos de luta Full Attack, Balanced e Full Defense, acessíveis por hotkeys (Ctrl+A, Ctrl+B, Ctrl+D) e ícones no painel de combate. Para o SPA, estes mesmos modos representam as Posturas de Combate:
+
+Full Attack → Ímpeto
+
+Balanced → Equilíbrio
+
+Full Defense → Guarda
 
 Nenhuma modificação é necessária no cliente. O servidor interpreta o fightMode recebido e aplica os efeitos correspondentes (danos, alcances, sangramentos, defesas) conforme a arma equipada e a Especialização.
 
-Os ícones e as hotkeys permanecem exactamente os mesmos. Apenas o feedback narrativo (mensagens no chat) usará a terminologia MCR quando a postura for alterada, mas essa comunicação é gerida pelo servidor.
+Os ícones e as hotkeys permanecem exactamente os mesmos. O feedback narrativo (ex.: "Postura ajustada: Ímpeto adaptada à sua arma.") é enviado pelo servidor via chat colorido (canal 24) e exibido normalmente pelo cliente.
 
 📡 NOVOS OPCODES PARA O SISTEMA DE PROGRESSÃO (A IMPLEMENTAR NO CLIENTE)
 
-⚠️ Os listeners para estes opcodes ainda não foram implementados. A descrição abaixo serve de especificação para quando a Fase 4 for iniciada.
+O SPA utiliza os seguintes opcodes estendidos para feedback visual. Actualmente, os listeners para estes opcodes ainda não foram implementados no cliente. A descrição abaixo serve de especificação para a implementação, que pode ser feita em módulos Lua (ex.: modules/game_spa/spa_opcodes.lua).
 
-O cliente deve escutar e processar os seguintes opcodes estendidos (faixa 180‑255):
+Opcode 182 – Ícone do Vínculo (Estado de Alma): o servidor envia o ID do domínio dominante e uma tooltip poética para actualizar um ícone no HUD.
+Dados (JSON): { "dominioId": 100, "tooltip": "O aço canta nas suas mãos." }
 
-- Opcode 182 – Ícone do Vínculo (Estado de Alma): o servidor envia o ID do domínio dominante para atualizar o ícone no HUD e a tooltip poética.
-- Opcode 183 – Partículas de Estado de Alma: dispara efeitos visuais temáticos (fagulhas, folhas, brilho) sobre o personagem.
-- Opcode 184 – Examinar Conhecimento (janela modal): acionado quando o jogador clica com o botão direito num item de conhecimento. Exibe a janela modal com título, descrição narrativa, botão "Aprender" e "Fechar". Ao confirmar, envia um pacote de volta ao servidor.
+Opcode 183 – Partículas de Estado de Alma: dispara efeitos visuais temáticos (fagulhas, folhas, brilho) sobre o personagem quando um Lampejo ou Vínculo se forma.
+Dados (JSON): { "tipo": "fogo", "intensidade": "vinculo" }
 
-A implementação desses opcodes pode ser feita nos módulos Lua do cliente (ex.: adicionar listeners em `modules/core/opcodes.lua` ou módulo dedicado). Exemplo de registo para o opcode 184:
+Opcode 184 – Examinar Conhecimento (janela modal): acionado quando o jogador clica com o botão direito num item de conhecimento. Exibe a janela modal com título, descrição narrativa, botão "Aprender" e "Fechar". Ao confirmar, envia um pacote de volta ao servidor.
+Dados (JSON): { "titulo": "Livro de Feitiços", "descricao": "Um antigo tratado...", "habilidadeId": 10, "compreensivel": true }
 
-```lua
+A implementação desses opcodes pode ser feita nos módulos Lua do cliente. Exemplo de registo para o opcode 184:
+
+lua
 ProtocolGame.registerExtendedOpcode(184, function(protocol, opcode, buffer)
     if not buffer or #buffer == 0 then return end
     local data = json.decode(buffer)
-    -- exibir janela modal com data.title, data.description, etc.
+    -- exibir janela modal com data.titulo, data.descricao, etc.
 end)
 Para os opcodes 182 e 183, o tratamento será semelhante, atualizando o HUD e disparando sistemas de partículas (se disponíveis).
+
+📟 SISTEMA DE CORES DO SPA (CANAL 24)
+
+O SPA envia mensagens coloridas através do canal 24 (sendTextMessage(24, texto)), utilizando a função c() para formatar blocos de texto com cores (ex.: "{" .. nome .. ", " .. cor .. "}"). O OTClient Redemption suporta nativamente a exibição de texto colorido neste canal, herdando a sintaxe de realce com chaves do protocolo Tibia. Nenhuma modificação é necessária no motor do cliente para que as cores sejam exibidas correctamente.
+
+Os módulos Lua do servidor responsáveis por esta funcionalidade são texto_colorido.lua (tabela COR e função c()) e util_armas.lua (funções auxiliares). O cliente apenas precisa garantir que o canal 24 esteja habilitado e que o módulo de chat processe as mensagens recebidas — comportamento padrão do OTClient Redemption.
 
 🖥️ MAP EDITOR (RME) – SUPORTE A LUA ISO‑8859‑1
 
@@ -134,14 +169,14 @@ Deve conter a entrada para o Projeto MCR:
 
 lua
 Servers = {
-{
-name = "Projeto MCR",
-host = "127.0.0.1",
-port = 8080,
-client = 1500,
-httpLogin = true,
-url = "http://127.0.0.1/",
-}
+    {
+        name = "Projeto MCR",
+        host = "127.0.0.1",
+        port = 8080,
+        client = 1500,
+        httpLogin = true,
+        url = "http://127.0.0.1/",
+    }
 }
 OTCFeatures: Não configuráveis directamente no cliente; são recebidas do servidor.
 
@@ -163,7 +198,11 @@ Máscara de nome via Lua: requer modificação em C++ (creature::setName).
 
 Escapes octais: usar SEMPRE para acentos no C++ do cliente. NÃO usar UTF‑8 diretamente nas strings.
 
-A coluna lastlogin EXISTE na tabela players do schema actual do Canary (confirmado no banco de dados do projecto). O cliente não interage diretamente com ela, mas scripts podem usar essa informação.
+A coluna lastlogin EXISTE na tabela players do schema actual do Canary (confirmado no banco de dados do projecto). O cliente não interage directamente com ela, mas scripts podem usar essa informação.
+
+As cores do SPA são exibidas via canal 24; se não aparecerem, verificar se o módulo de chat do OTClient está a processar mensagens do canal 24 (por padrão, sim).
+
+Os opcodes 182, 183 e 184 precisam de listeners no cliente; se não forem implementados, o feedback visual do SPA ficará limitado ao chat.
 
 🔍 CHECKLIST DE REVISÃO PARA O ASSISTENTE (C++ CLIENTE)
 
@@ -172,12 +211,13 @@ Antes de finalizar qualquer modificação em arquivos .cpp/.h do OTClient, o ass
 ☐ Strings de interface expostas ao jogador estão em PT‑BR com escapes octais Latin‑1 (OBRIGATÓRIO)?
 ☐ Comentários em PT‑BR; nomes de funções/variáveis em inglês?
 ☐ A modificação mantém compatibilidade com o servidor Canary (protocolo 15.00)?
-☐ Os opcodes 182, 183 e 184 estão registados no cliente (Lua ou C++)? (Verificar estado da Fase 4)
+☐ Os opcodes 182, 183 e 184 estão registados no cliente (Lua ou C++)? (Verificar estado actual)
 ☐ Os modos de luta nativos permanecem inalterados (Full Attack, Balanced, Full Defense)?
 ☐ A máscara de Alma continua funcional?
 ☐ O método g_game.logout(false) não foi afectado?
 ☐ O nome do personagem recebido via HTTP é convertido de UTF‑8 para Latin‑1?
 ☐ O servidor de login está acessível (portas 8080, 7173)?
+☐ O canal 24 exibe as mensagens coloridas do SPA correctamente?
 
 📤 COMO ATUALIZAR O REPOSITÓRIO GIT
 
@@ -187,4 +227,4 @@ git push origin main
 
 ⚠️ PowerShell: aspas duplas em caminhos com espaços.
 
-FIM DO GUIA DE COMPILAÇÃO (CLIENTE) — VERSÃO 2.5
+FIM DO GUIA DE COMPILAÇÃO (CLIENTE) — VERSÃO 3.0

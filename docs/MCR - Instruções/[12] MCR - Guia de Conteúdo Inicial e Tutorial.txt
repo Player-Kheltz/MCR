@@ -1,265 +1,324 @@
 PROJETO MCR – GUIA DE CONTEÚDO INICIAL E TUTORIAL
-Versão 3.1 – O Despertar em Eridanus (Integração total com o Sistema de Progressão v2.1.1 e Revscript)
+(Versão 5.0 – Integração total com o SPA v3.2.0, sistema de cores, missões e progressão em Eridanus)
 Arquivo: [12] MCR - Guia de Conteúdo Inicial e Tutorial.txt
 
 🎯 OBJETIVO DESTE GUIA
-Fornecer ao assistente/desenvolvedor todas as diretrizes, regras, exemplos e listas para conceber a primeira experiência do jogador após a criação do personagem. A Ilha do Despertar, também chamada Eridanus, é uma área tutorial onde o recém‑chegado aprende mecânicas essenciais, desperta os primeiros Domínios da sua Jornada e prepara‑se para explorar o continente principal.
+Descrever, passo a passo, a Ilha do Despertar (Eridanus) — o cenário de tutorial do Projeto MCR. Aqui o novo Aventureiro aprende, de forma orgânica e narrativa, todas as mecânicas fundamentais: combate, posturas, ferramentas, pesca, runas, ofícios e a progressão por Domínios. Nenhuma janela modal, nenhum texto frio; tudo é ensinado por NPCs com personalidade, missões com {destaque} e feedback colorido.
 
-Esta versão 3.1 integra totalmente o Sistema de Progressão do Aventureiro v2.1.1 ([Documentação] MCR - Sistema de Progressão do Aventureiro.txt), adoptando os Estados de Alma (Lampejo, Vínculo, Maestria), as Posturas de Combate (Ímpeto, Equilíbrio, Guarda) e a progressão multi‑domínio. O tutorial foi reprojectado para que o despertar de cada Domínio seja um momento narrativo memorável, e para que as novas mecânicas de combate e sintonia sejam introduzidas de forma orgânica. A arquitectura Revscript posiciona os scripts do tutorial em data-canary/scripts/MCR/Tutorial/, carregados automaticamente.
+A versão 5.0 reflecte o SPA v3.2.0 plenamente operacional: os despertares de Domínio, o ganho de afinidade, os Lampejos, os Vínculos e as Posturas estão todos activos. Os scripts de Eridanus residem em data-canary/scripts/MCR/Tutorial/ e são carregados automaticamente pelo Revscript.
 
 🚧 ESTADO ATUAL DA IMPLEMENTAÇÃO
+Todo o conteúdo descrito neste guia pode ser implementado imediatamente. Não há dependências de fases futuras. As funções do SPA (adicionarAfinidade, despertarDominio, getNivelPorAfinidade, etc.) e o sistema de cores (c(), COR) estão disponíveis como globais.
 
-Conforme o [Plano de Ação] Consolidado, a Fase 2 (C++) ainda não foi iniciada. Por isso:
-As missões do tutorial podem ser implementadas com toda a estrutura SQH (chat, HUD, toasts) e diálogos completos, exceto as chamadas a despertarDominio(player, id) e player:getDominioNivel(id). Essas funções devem ser protegidas com verificação de existência (if despertarDominio then ...) ou deixadas como comentário.
-O feedback narrativo de despertar ("O aço já não é um estranho...") já pode ser exibido, mas o efeito mecânico (ganho de Afinidade, Estado de Alma) não ocorrerá até a implementação dos métodos C++.
-As Posturas de Combate são introduzidas narrativamente por Thorne, mas os comportamentos específicos por arma dependem de scripts que consomem os métodos da Fase 2.
-A janela de conhecimento (opcode 184) para o Livro de Feitiços não está implementada no cliente (Fase 4). O item pode ser entregue e a descrição aparecer no chat, mas a mecânica de "Aprender" não funcionará.
-Os seis itens iniciais são entregues por Eldrin; o Escudo de Madeira (ID 3412) é recompensa da missão com Thorne.
-O restante — pronomes, intimidade, variação de diálogos, lógica das missões — é totalmente funcional e pode ser criado desde já.
-Use este guia como o plano completo, mas ancore a codificação no que realmente está disponível hoje.
+⚠️ REGRAS DE REVISÃO PARA O ASSISTENTE (TUTORIAL)
 
-⚠️ REGRAS DE REVISÃO PARA O ASSISTENTE (CONTEÚDO INICIAL E TUTORIAL)
+Imersão primeiro: Cada mecânica é apresentada por um NPC com personalidade. O jogador nunca lê um manual; ele ouve um personagem.
 
-Ao criar, modificar ou expandir QUALQUER elemento do tutorial, o assistente DEVE:
-IMERSÃO PURA — Zero linguagem técnica. Nenhum número de ID, nome de storage ou "Domínio" aparece no chat, HUD ou qualquer mensagem visível.
-TOM ACOLHEDOR — Os NPCs são habitantes de um mundo fantástico, não manuais de instrução.
-APRENDIZADO PELA AÇÃO — O jogador aprende fazendo. O NPC pede uma tarefa; ao cumpri‑la, o jogador entende a mecânica e desperta capacidades.
-INTEGRAÇÃO COM A JORNADA DO AVENTUREIRO — Cada missão secundária, ao ser concluída, deve chamar funções do sistema de progressão (ex.: despertarDominio, adicionarAfinidade) sem que o jogador perceba. O feedback é puramente narrativo. O tutorial também introduz, subtilmente, o conceito de Posturas (através dos diálogos de Thorne) e a percepção de Estados de Alma (Lyra comenta o Lampejo do Fogo). ⚠️ Proteger as chamadas até a Fase 2.
-SISTEMA DE QUESTS HÍBRIDO (SQH) — Todas as missões seguem o Guia [7]: {destaque} no chat, HUD de progresso (opcode 180), notificações toast (opcode 181). NUNCA usar janela modal para progresso de missão.
-CODIFICAÇÃO — Todos os scripts Lua (.lua) devem ser salvos como ISO‑8859‑1. Itens referenciados por ID, nunca por nome no código.
-PRONOME — O pronome do personagem (pronouns.lua) é usado por todos os NPCs em todas as falas. O módulo é carregado automaticamente de MCR/Geral/; não usar dofile.
-ECONOMIA DE CONHECIMENTO — Itens que ensinam algo (ex.: Livro de Feitiços) devem ser consumíveis e utilizar a janela modal de conhecimento (opcode 184) para confirmar o aprendizado. (Janela modal futura; no momento, o item pode ser entregue com descrição narrativa.)
-ESTRUTURA REVSCRIPT — Os scripts do tutorial (NPCs e eventos locais) residem em data-canary/scripts/MCR/Tutorial/. Scripts genéricos de progressão que não são exclusivos do tutorial (ex.: evento_kill.lua) ficam em MCR\Dominio. Cada pasta é auto‑suficiente e carregada automaticamente.
+Aprender fazendo: As missões exigem que o jogador execute a acção (atacar, pescar, minerar, etc.). A recompensa é o despertar do Domínio e a afinidade inicial.
 
-🌌 1. A LENDA DE ERIDANUS — CONTEXTO NARRATIVO
+Cores e {chaves}: Todas as falas usam c() para itens, locais, domínios e acções importantes.
 
-"Ao abandonar o Salão dos Destinos, a tua alma materializa‑se numa praia varrida pelo vento. Uma voz calorosa saúda‑te: 'Bem‑vindo a Eridanus, viajante. As ondas trouxeram‑te e o destino ainda não te soltou.' Não és guerreiro, nem mago, nem druida. És um Aventureiro – um espírito livre que o mundo ainda há‑de moldar. A Ilha do Despertar é o teu primeiro caderno de notas; cada habitante tem algo a ensinar, cada canto esconde um segredo. Não há pressa. O horizonte espera."
-A história do tutorial:
-O personagem naufragou em Eridanus.
-Encontra Eldrin, o Guardião da Ilha, que o orienta.
-Para sair da ilha, precisa de provar que está pronto — completando missões que, ao mesmo tempo, o iniciam nos primeiros Domínios e lhe ensinam as mecânicas do mundo.
-No final, um altar sagrado libera a passagem para o continente.
+Sem números expostos: O jogador não vê "Afinidade +50". Vê "Sentes o calor da forja a reconhecer-te."
 
-🗺️ 2. A ILHA DO DESPERTAR — ÁREA E AMBIENTE
+IDs de itens: Confirmar sempre com a Lista de Itens Úteis e o items.xml traduzido.
 
-A ilha é compacta, acolhedora e segura (protecção de PvP, sem perda de itens ao morrer). Elementos principais:
-Praia do Náufrago: ponto de chegada. Areia, conchas, destroços.
-Templo Interior: pequena construção com tile de protecção (temple) e NPC Eldrin.
-Floresta Serena: área de caça fraca (ratos, coelhos, slimes). Contém ervas e itens de coleta.
-Gruta Sussurrante: caverna rasa com morcegos e um baú com Livro de Feitiços.
-Vilarejo de Eri: cabanas dos NPCs especializados.
-Lagoa Tranquila: área de pesca.
-Altar da Partida: local de saída da ilha, bloqueado até à conclusão da missão principal (storage 50010 = 2).
+Scripts salvos como ISO‑8859‑1 e colocados em MCR/Tutorial/.
 
-👤 3. OS HABITANTES DE ERIDANUS — NPCs E PERSONALIDADES
+Verificar a existência dos métodos do SPA (todos estão activos no v3.2.0).
 
-NPC	Personalidade	Função no tutorial
-Eldrin, o Guardião	Sábio e acolhedor	Boas‑vindas, missão principal, orientação geral
-Thorne, o Ferreiro	Rude e brincalhão	Ensina combate com armas brancas e escudos, introduz Posturas
-Lyra, a Curandeira	Mística e serena	Ensina cura, poções, runas, magias básicas, percebe Estados de Alma
-Corvus, o Pescador	Paciente e irónico	Ensina pesca e recolha de itens
-Mira, a Cartógrafa	Curiosa e precisa	Ensina uso de ferramentas (pá, corda, picareta)
-Cada NPC possui:
+🗺️ 1. VISÃO GERAL DE ERIDANUS
 
-Saudação personalizada por pronome (usa pronouns.lua, global).
-Variação de frases (NpcUtils.escolherFraseVariada, global).
-Progressão de intimidade (storage 100010 + npcId).
-Tópico 200 para definição de pronome, se necessário (Guia [6]).
+Eridanus é uma ilha pequena, autossuficiente, desenhada para ensinar as mecânicas do Projeto MCR num ambiente seguro. Não há monstros letais para um recém‑chegado; os perigos são controlados (bonecos de treino, animais fracos). A ilha contém:
 
-📦 4. ITENS DO TUTORIAL — IDs REAIS DO ITEMS.XML
+Praia do Náufrago – Local de chegada. NPC Eldrin, o Guardião.
 
-Equipamento inicial (entregue por Eldrin na chegada):
+Acampamento dos Despertos – Centro nevrálgico com a maioria dos NPCs.
 
-ID	Nome do Item (PT‑BR)	Uso no Tutorial
-2854	Mochila	Inventário inicial
-2920	Tocha	Iluminação
-3552	Botas de Couro	Protecção básica
-3561	Jaqueta	Armadura básica
-3559	Calças de Couro	Pernas básicas
-3264	Espada	Arma inicial
-⚠️ NOTA: O Escudo de Madeira (ID 3412) NÃO faz parte do equipamento inicial. É a recompensa da missão "O Peso do Aço" com Thorne.
+Floresta Baixa – Árvores, ervas, pequenos animais. Local das lições de Natureza e Pesca.
 
-Itens para a missão "O Peso do Aço" (Combate):
+Caverna Rasa – Minérios básicos e o NPC Mira.
 
-ID	Nome	Uso
-3264	Espada	Arma principal
-3412	Escudo de Madeira	Recompensa após completar
-3274	Machado	Arma opcional
-3270	Clava	Arma opcional
-3350	Arco	Arma de distância opcional
-3447	Flecha	Munição para arco
-Itens para a missão "O Sopro da Vida" (Cura e Poções):
+Ruínas Arcanas – Local místico para a lição de Runologia com Lyra.
 
-ID	Nome	Uso
-266	Poção de Vida	Ensinar uso de poções de cura
-268	Poção de Mana	Ensinar uso de poções de mana
-2876	Vaso	Buscar água na fonte
-3734	Erva de Sangue	Coleta na floresta
-Itens para a missão "Segredos da Terra" (Ferramentas e Exploração):
+Campo de Treino – Onde Thorne ensina as Posturas e o combate.
 
-ID	Nome	Uso
-3457	Pá	Ensinar a cavar
-3003	Corda	Ensinar a subir/descer
-3456	Picareta	Ensinar a minerar
-3483	Vara de Pesca	Ensinar a pescar
-3580	Lúcio do Norte	Peixe para entrega
-3578	Peixe	Peixe para entrega
-3492	Verme	Isca de pesca
-Itens para a missão "A Essência do Aventureiro" (Primeira Magia):
+A progressão é não‑linear dentro da ilha; o jogador pode explorar livremente, mas cada NPC oferece uma missão introdutória ao seu Domínio.
 
-ID	Nome	Uso
-3147	Runa em Branco	Base para criar runa
-3174	Runa de Míssil Mágico Leve	Primeira runa de ataque
-3152	Runa de Cura Intensa	Primeira runa de cura (via Livro de Feitiços)
-3059	Livro de Feitiços	Item de conhecimento (examinável)
-Recompensa final:
+🏖️ 2. A CHEGADA – NPC ELDRIN, O GUARDIÃO
 
-ID	Nome	Uso
-3018	Amuleto de Escaravelho	Recompensa simbólica de Eldrin
+Localização: Praia do Náufrago (posição inicial).
 
-📜 5. MISSÕES DO TUTORIAL — ESTRUTURA SQH COM DESPERTAR DE DOMÍNIOS
+Personalidade: Ancião sábio e caloroso. Fala com metáforas náuticas.
 
-Storages usadas: 50010–50019. Opcodes: 180 (HUD), 181 (toasts), 182 (ícone de Vínculo, futuro), 184 (modal de conhecimento, futuro).
+Função: Equipar o jogador e ensinar o básico da interface.
 
-5.1 MISSÃO PRINCIPAL: "O Caminho do Aventureiro"
-NPC: Eldrin
-Storage: 50010
-Objectivo: Completar as 4 missões secundárias.
-HUD: "O Caminho do Aventureiro — Tarefas concluídas: x/4"
-Ao concluir as 4, Eldrin libera o Altar da Partida e entrega o Amuleto de Escaravelho (ID 3018).
+Script: MCR/Tutorial/eldrin.lua
 
-5.2 MISSÃO SECUNDÁRIA 1: "O Peso do Aço" (Combate e Posturas)
-NPC: Thorne
-Storage: 50011
-Objectivo: Equipar Espada (ID 3264) e derrotar 3 Bonecos de Treino. Depois, opcionalmente, testar Machado (3274), Clava (3270) e Arco (3350) em mais 2 bonecos cada.
-HUD: "O Peso do Aço – Bonecos derrotados: x/3 (Espada), x/2 (outras)"
-Conclusão: Thorne entrega Escudo de Madeira (ID 3412) e profere:
-"Sinto que o aço já não é uma ferramenta estranha em suas mãos. Você e a lâmina estão a começar a entender‑se. Continue assim, Aventureiro."
-🌟 Despertar interno: Ao completar, o sistema deve chamar despertarDominio(player, DOMINIO_LAMINAS_LEVES). ⚠️ Proteger com verificação de existência.
-Thorne também ensina a alternar as Posturas de Combate: "O bom guerreiro muda conforme a dança da luta. Experimente a agressividade, o equilíbrio ou a defesa — cada um tem o seu preço." O jogador é encorajado a usar as teclas de ataque/defesa para sentir os modos Ímpeto, Equilíbrio e Guarda. Nenhum valor é exibido; apenas as animações e a velocidade dos golpes mudam. (Modos nativos já funcionais.)
+Diálogo de saudação:
+"Ah, mais um náufrago! As ondas trazem‑me sempre boas surpresas. Chamo‑me Eldrin. Precisas de agasalho e uma arma; a ilha não é cruel, mas também não é mansa. Aceitas a minha ajuda?"
 
-5.3 MISSÃO SECUNDÁRIA 2: "O Sopro da Vida" (Cura, Poções e Runas)
-NPC: Lyra
-Storage: 50012
-Objectivo: Recolher 3 Ervas de Sangue (ID 3734) na floresta e encher um Vaso (ID 2876) com água na fonte.
-HUD: "O Sopro da Vida – Ervas: x/3, Água: 0/1"
-Conclusão parcial: Lyra prepara Poção de Vida (266) e Poção de Mana (268); ensina a usar poções.
-Em seguida, entrega Runa em Branco (ID 3147) e ensina a transformá‑la em Runa de Míssil Mágico Leve (ID 3174). O jogador usa a runa num alvo.
-🌟 Despertar interno: Ao criar e usar a primeira runa de ataque, o sistema deve chamar despertarDominio(player, DOMINIO_FOGO). Lyra comenta:
-"Pela primeira vez, o calor obedeceu à sua vontade. Você sente algo novo a despertar... um Lampejo que vai muito além das ervas que colheu."
-Ao sentir o Lampejo, Lyra explica que a persistência num estilo pode trazer um Vínculo mais profundo, mas sem forçar. ⚠️ Toda a lógica de Lampejo depende da Fase 2.
+Tópicos:
 
-5.4 MISSÃO SECUNDÁRIA 3: "Segredos da Terra" (Ferramentas e Exploração)
-NPC: Mira
-Storage: 50013
-Objectivo: Usar Pá (ID 3457) para desenterrar item na praia; Corda (ID 3003) para descer a um poço; Picareta (ID 3456) para minerar cristal na gruta. Depois, visitar Corvus para pescar.
-HUD: "Segredos da Terra – Itens encontrados: x/3, Peixes: 0/2"
-Sub‑missão com Corvus: pescar 2 Peixes (ID 3578) ou Lúcios (ID 3580) com Vara de Pesca (ID 3483) e Verme (ID 3492).
-Conclusão: Mira dá ao jogador os itens como recompensa.
-🌟 Despertar interno (Mineração): Ao minerar o cristal, o sistema deve chamar despertarDominio(player, DOMINIO_MINERACAO). Mira comenta:
-"Você arrancou um cristal da terra firme. A rocha cedeu‑lhe. Sabe o que isso significa? A terra já o reconhece. É o seu primeiro passo como mineiro."
-🌟 Despertar interno (Pesca): Ao pescar o primeiro peixe, o sistema deve chamar despertarDominio(player, DOMINIO_PESCA). Corvus, sorrindo, diz:
-"Ah! O peixe mordeu a isca! E você sentiu a linha estremecer antes mesmo de puxar... Isso não se ensina, rapaz/rapariga. É um dom que acordou agora."
+{aceitar} ou {sim}: Eldrin entrega os itens iniciais e explica brevemente o inventário.
 
-5.5 MISSÃO SECUNDÁRIA 4: "A Essência do Aventureiro" (Primeira Magia e Livro de Feitiços)
-NPC: Lyra
-Storage: 50014
-Objectivo: Encontrar o Livro de Feitiços (ID 3059) na Gruta Sussurrante e levá‑lo a Lyra.
-HUD: "A Essência do Aventureiro – Livro de Feitiços: 0/1"
-Ao entregar: Lyra explica que o livro contém um conhecimento que o Aventureiro deve decidir se quer aprender.
-O jogador recebe o Livro de Feitiços de volta como item de conhecimento.
-Ao clicar no livro, o cliente deverá enviar opcode 184 (Examinar Conhecimento). ⚠️ Opcode futuro; enquanto isso, o item pode ser examinado com descrição narrativa no chat.
-O servidor retornaria JSON com a descrição e a habilidade contida (Runa de Cura Intensa, ID 3152).
-O cliente exibiria a janela modal com os botões "Aprender" e "Fechar".
-Se o jogador escolhesse "Aprender", o livro seria consumido e ele aprenderia a magia.
-🌟 Despertar interno: Ao aprender a runa de cura, o sistema deve chamar despertarDominio(player, DOMINIO_TERRA_NATURAL). Lyra observa:
-"Você sente isso? A energia que corre nas suas veias agora também cura... Isso não é ofício de boticário. É um dom que você acaba de desbloquear. Algo dentro de si acordou."
-Mecânicas ensinadas: aprendizado de magias, decisão sobre conhecimento, janela modal de confirmação (futura), o conceito de que o Aventureiro pode aprender qualquer magia.
+c("{Mochila}", COR.NPC_ITEM), c("{Tocha}", COR.NPC_ITEM), c("{Botas}", COR.NPC_ITEM), c("{Jaqueta}", COR.NPC_ITEM), c("{Calças}", COR.NPC_ITEM), c("{Espada}", COR.NPC_ITEM) — tudo colorido.
 
-⚔️ 6. A FILOSOFIA DO AVENTUREIRO — SEM VOCAÇÕES FIXAS
+Se o jogador clicar em c("Espada", COR.NPC_ITEM), Eldrin dirá: "Uma lâmina simples, mas bem forjada. Empunha‑a com respeito e descobrirás o teu primeiro Domínio."
 
-Durante todo o tutorial, o jogador é tratado como "Aventureiro" ou "jovem aventureiro". Em momento algum se menciona "Knight", "Druid", "Sorcerer", "Paladin" ou qualquer vocação tradicional.
-Eldrin reforça logo no início:
-"Não te apresses a escolher um caminho. O mundo é vasto e cada saber tem o seu preço. Sê um Aventureiro, e o conhecimento virá até ti."
-Após cada missão, o jogador sente‑se mais capaz, não porque "subiu de nível numa classe", mas porque descobriu algo novo sobre si mesmo e o mundo. As Lâminas, o Fogo, a Terra — tudo são facetas de um mesmo espírito.
+Itens entregues (IDs da Lista de Itens Úteis):
 
-📋 7. SEQUÊNCIA COMPLETA DO TUTORIAL
+ID	Item
+2854	Mochila
+2920	Tocha
+3552	Botas de Couro
+3561	Jaqueta
+3559	Calças de Couro
+3264	Espada
+Após entregar os itens, Eldrin sugere: "Vai ao Acampamento dos Despertos, a norte. Lá encontrarás Thorne, um mestre de armas. Diz‑lhe que eu te enviei."
 
-Chegada à praia: Eldrin saúda, entrega equipamento base (6 itens iniciais), oferece missão principal.
-Visita a Thorne (Combate): missão "O Peso do Aço" → Despertar Lâminas Leves (futuro); introdução às Posturas (já funcional).
-Visita a Lyra (Cura e Magia): missão "O Sopro da Vida" → Despertar Terra e Magia Natural e Fogo (futuro); percepção do Lampejo (narrativa, mecânica futura).
-Visita a Mira (Ferramentas): missão "Segredos da Terra" → Despertar Mineração e Pesca (futuro).
-Regresso a Lyra (Magia): missão "A Essência do Aventureiro" → Despertar outro Domínio natural (futuro), uso do Livro de Feitiços (opcode 184 futuro).
-Regresso a Eldrin: com as 4 missões completas, Eldrin entrega o Amuleto de Escaravelho e libera o Altar da Partida.
-Saída da ilha: Ao usar o Altar, o jogador é teletransportado para o continente principal (posição a definir).
+⚔️ 3. O PESO DO AÇO – NPC THORNE, O MESTRE DE ARMAS
 
-🧠 8. INTEGRAÇÃO TÉCNICA
+Localização: Campo de Treino (a norte da praia).
 
-8.1 SCRIPTS A CRIAR/MODIFICAR (PASTA MCR/Tutorial/)
-eldrin.lua
-thorne.lua
-lyra.lua
-mira.lua
-corvus.lua
-tutorial_eventos.lua (gestão de progresso, armadilhas, spawns especiais)
-tutorial_spawn.lua (posicionamento inicial e povoamento)
-Os scripts usam módulos globais de MCR/Geral/ (pronouns, npc_utils) e constantes de MCR/Dominio/ (config_dominios). Nenhum dofile é necessário; tudo é carregado automaticamente.
+Personalidade: Guerreiro veterano, voz grave, mas paciente.
 
-8.2 STORAGES
-50010 a 50014 (missões)
-100010 + npcId (intimidade)
+Função: Ensinar combate, posturas e despertar Lâminas Leves (Domínio 100).
 
-8.3 OPCODES
-180: Atualização do HUD de missões (funcional)
-181: notificação toast (funcional)
-182: Atualização do ícone de Vínculo (futuro)
-183: efeitos de partículas (futuro)
-184: Examinar Conhecimento (janela modal do Livro de Feitiços, futuro)
+Script: MCR/Tutorial/thorne.lua
 
-8.4 CONSUMO DE ITENS DE CONHECIMENTO
-O Livro de Feitiços (ID 3059) é entregue ao jogador como item. Enquanto o opcode 184 não está implementado, o item pode ser examinado com uma descrição narrativa e a missão pode ser concluída com a entrega a Lyra, que ensina a magia directamente via chat (simulando o aprendizado). Quando o sistema estiver completo, o fluxo será revisto.
+Missão: "O Peso do Aço"
 
-8.5 INTERACÇÃO COM SCRIPTS DE PROGRESSÃO GLOBAL
-Os eventos que disparam ganho de Afinidade (ex.: evento_kill.lua em MCR/Dominio) actuam independentemente. Assim, ao derrotar os bonecos de treino ou criaturas na floresta, o jogador já começa a acumular Afinidade mesmo antes do despertar, embora o Lampejo só se manifeste depois do despertar formal (mecânica futura).
+Diálogo inicial:
+"Eldrin mandou‑te, hein? Veremos se a areia da praia já te deu calos. Pega na tua espada e ataca aqueles bonecos de treino."
 
-🔗 9. INTEGRAÇÃO COM OS OUTROS GUIAS
+Objectivo: Causar 100 de dano em bonecos de treino (ou derrotar 3).
 
-Aspecto	Guia(s)
-Diálogos, pronomes, personalidade	[6] Narrativa e Diálogos
-Estrutura das missões (SQH)	[7] Quests (Sistema Híbrido SQH)
-Codificação dos scripts Lua (ISO‑8859‑1)	[10] Tradução e Localização
-Interface do cliente (chat, HUD, toasts, modais)	[5] Interface (OTUI e Lua Cliente)
-IDs de itens	[9] Banco de Dados + Lista de Itens Úteis
-Progressão, Domínios, Estados de Alma, Posturas	[Documentação] Sistema de Progressão
-Configuração de spawns e teleports	[3] Configuração (Servidor e Rede)
-Experiência global do jogador	[11] Guia de Experiência do Jogador
-Estrutura Revscript e pastas	[0] Índice Geral; [1] Compilação (Servidor)
-🔍 CHECKLIST DE REVISÃO PARA O ASSISTENTE
+Mecânicas:
 
-☐ Tutorial começa após criação do personagem, sem acesso ao Salão.
-☐ Todos os NPCs usam pronome correto e variação de frases.
-☐ Nenhuma mensagem contém termos técnicos ("Domínio", "Afinidade", "nível", "XP", IDs).
-☐ Missões usam exclusivamente {destaque} no chat.
-☐ HUD da missão principal e secundárias atualizado via opcode 180.
-☐ Toasts enviados ao concluir cada objectivo.
-☐ Progressão de intimidade com os NPCs funciona.
-☐ Todos os IDs conferem com o items.xml.
-☐ Altar da Partida bloqueado até storage 50010 = 2.
-☐ Ilha é segura (sem PvP, sem perda de itens ao morrer).
-☐ Equipamento inicial entregue conforme tabela (6 itens, sem escudo).
-☐ Todas as ferramentas são ensinadas com uso prático.
-☐ Combate com múltiplos tipos de armas é experimentado; Posturas são apresentadas.
-☐ Criação e uso de runas são ensinados; o Lampejo do Fogo é mencionado.
-☐ Livro de Feitiços tem tratamento narrativo; janela modal de conhecimento é futura.
-☐ Ao fim de cada missão secundária, a chamada a despertarDominio está protegida (verificação de existência) e o NPC reage narrativamente.
-☐ O HUD de Estado de Alma (ícone) e partículas são mencionados apenas como planeamento.
-☐ Scripts Lua salvos como ISO‑8859‑1 e organizados nas pastas MCR/Tutorial/ e MCR/Dominio/.
-☐ O jogador nunca lê ou ouve "vocação"; é sempre "Aventureiro".
+O jogador ataca o boneco. Cada golpe activa ProgDano (SPA), que chama adicionarAfinidade(player, DOM_ESPADAS_LEVES, pontos).
 
-📤 ATUALIZAÇÃO DO REPOSITÓRIO
+Ao atingir o objectivo, despertarDominio(player, 100) é chamado.
 
-git add "docs/MCR - Guia de Conteudo Inicial e Tutorial.txt"
-git commit -m "docs: atualiza tutorial v3.1 com sistema de progressão v2.1.1 e Revscript"
+Thorne exclama: "O aço já não é um estranho em suas mãos. Sentes isso? É o teu primeiro passo nas " .. c("Lâminas", COR.DOM_COMBATE_LAMINAS) .. ". Chama‑se a isso um Despertar."
+
+Recompensa:
+
+c("{Escudo de Madeira}", COR.ITEM_COMUM) (ID 3412).
+
+50 pontos de afinidade em Lâminas Leves.
+
+Thorne explica as Posturas: "Agora que tens um escudo, podes escolher como lutar. Usa " .. c("Ímpeto", COR.POSTURA_IMPETO) .. " para atacar, " .. c("Equilíbrio", COR.POSTURA_EQUILIBRIO) .. " para te adaptares, ou " .. c("Guarda", COR.POSTURA_GUARDA) .. " para te defenderes. Experimenta‑as com Ctrl+A, Ctrl+B e Ctrl+D."
+
+Pós‑missão: Thorne permanece como instrutor; comenta a postura actual do jogador e, futuramente, pode ensinar habilidades de Lâminas.
+
+🌿 4. O TOQUE DA TERRA – NPC LYRA, A HERBALISTA
+
+Localização: Acampamento dos Despertos, junto a uma horta.
+
+Personalidade: Jovem, doce, ligada à natureza.
+
+Função: Ensinar a colheita de ervas, despertar Terra e Magia Natural (Domínio 25) e introduzir poções.
+
+Script: MCR/Tutorial/lyra.lua
+
+Missão: "As Lágrimas da Floresta"
+
+Diálogo inicial:
+"Bem‑vindo, Aventureiro! A floresta dá‑nos muito, mas precisamos de a ouvir. Consegues colher " .. c("{5 Ervas Lunares}", COR.NPC_ITEM) .. " para mim? Crescem perto das árvores antigas."
+
+Objectivo: Usar um c("{Foice}", COR.NPC_ITEM) (entregue por Lyra, ID 3456) em arbustos especiais na Floresta Baixa.
+
+Mecânicas:
+
+Ao usar a foice, o evento ProgItem dispara adicionarAfinidade(player, DOM_TERRA_VENENO, pontos).
+
+Após colher 5 ervas, despertarDominio(player, 25).
+
+Lyra: "Sentes a terra a responder‑te? É o domínio da " .. c("Terra e Magia Natural", COR.ELEM_TERRA) .. ". As plantas confiam em ti agora."
+
+Recompensa:
+
+c("{5 Poções de Vida}", COR.ITEM_RARO) (ID 266).
+
+c("{Receita: Poção de Vida}", COR.ITEM_COMUM) (pergaminho, pode ser aprendido via opcode 184 no futuro ou usado como item de missão).
+
+Lyra ensina a beber poções: "Quando a vida te faltar, usa uma poção. O teu corpo agradecerá."
+
+🔥 5. A PRIMEIRA RUNA – NPC KAZ, O RUNÓLOGO
+
+Localização: Ruínas Arcanas (a este do acampamento).
+
+Personalidade: Misterioso, irónico, apaixonado por runas.
+
+Função: Ensinar a criar runas, despertar Runologia (Domínio 22) e Fogo e Ar (Domínio 23).
+
+Script: MCR/Tutorial/kaz.lua
+
+Missão: "O Sussurro do Fogo"
+
+Diálogo inicial:
+"As runas não são meros rabiscos. São a voz do cosmos. Queres aprender a falar? Cria uma " .. c("{Runa de Fogo}", COR.ITEM_RARO) .. " comigo."
+
+Objectivo: Kaz entrega um c("{Pergaminho em Branco}", COR.ITEM_COMUM) (ID 3458). O jogador usa o pergaminho numa "Fonte Rúnica" (tile especial) próxima.
+
+Mecânicas:
+
+Ao usar o pergaminho na fonte, adicionarAfinidade(player, DOM_RUNOLOGIA, pontos) e adicionarAfinidade(player, DOM_FOGO_AR, pontos).
+
+despertarDominio(player, 22) e despertarDominio(player, 23) são chamados.
+
+Kaz: "O fogo falou por ti. Bem‑vindo à " .. c("Runologia", COR.DOM_MAGIA_RUNOLOGIA) .. ". E sente o calor nos teus dedos: é o domínio do " .. c("Fogo e Ar", COR.ELEM_FOGO) .. "."
+
+Recompensa:
+
+c("{3 Runas de Fogo}", COR.ITEM_RARO) (ID 2305).
+
+Kaz ensina a usar runas: "Arremessa‑as aos teus inimigos. O fogo fará o resto."
+
+⛏️ 6. O VEIO DA TERRA – NPC MIRA, A MINEIRA
+
+Localização: Caverna Rasa (a oeste).
+
+Personalidade: Mulher forte, pragmática, mãos calejadas.
+
+Função: Ensinar mineração, despertar Mineração (Domínio 31) e Craft (Domínio 30).
+
+Script: MCR/Tutorial/mira.lua
+
+Missão: "O Brilho da Rocha"
+
+Diálogo inicial:
+"Queres ser útil? Então pega nesta " .. c("{Picareta}", COR.NPC_ITEM) .. " e traz‑me " .. c("{3 Minérios de Ferro}", COR.NPC_ITEM) .. ". As paredes da caverna não mordem. Ainda."
+
+Objectivo: Minerar 3 pedras de minério na Caverna Rasa.
+
+Mecânicas:
+
+Ao usar a picareta (ID 3456), ProgItem dispara adicionarAfinidade(player, DOM_OFICIO_MINERACAO, pontos).
+
+Ao entregar os 3 minérios, despertarDominio(player, 31).
+
+Mira: "A rocha conhece‑te agora. És um " .. c("Mineiro", COR.DOM_OFICIO_MINERACAO) .. ". E quem extrai também cria: o " .. c("Craft", COR.DOM_OFICIO_CRAFT) .. " está ao teu alcance." (despertarDominio(player, 30) também pode ser activado, ou ganha afinidade em Craft).
+
+Recompensa:
+
+c("{3 Minérios de Ferro}", COR.ITEM_COMUM) (o jogador fica com eles).
+
+Mira forja um c("{Martelo}", COR.ITEM_COMUM) (ID 3308) para o jogador: "Usa‑o para criar os teus próprios artefactos."
+
+🎣 7. O CHAMADO DAS PROFUNDEZAS – NPC CORVUS, O PESCADOR
+
+Localização: Lagoa na Floresta Baixa.
+
+Personalidade: Velho paciente, conta histórias de monstros marinhos.
+
+Função: Ensinar pesca, despertar Pesca (Domínio 32).
+
+Script: MCR/Tutorial/corvus.lua
+
+Missão: "O Peixe que Traz Sorte"
+
+Diálogo inicial:
+"A pesca é a arte da espera. Mas não te preocupes, a lagoa é generosa. Pega nesta " .. c("{Vara de Pescar}", COR.NPC_ITEM) .. " e traz‑me um " .. c("{Peixe Colorido}", COR.ITEM_RARO) .. "."
+
+Objectivo: Pescar um Peixe Colorido (item especial, chance de 20% a cada tentativa).
+
+Mecânicas:
+
+Ao usar a vara de pescar (ID 3483), ProgItem dispara adicionarAfinidade(player, DOM_OFICIO_PESCA, pontos).
+
+Ao pescar o item especial e entregá‑lo, despertarDominio(player, 32).
+
+Corvus: "As águas já te aceitaram. És um " .. c("Pescador", COR.DOM_OFICIO_PESCA) .. ". Os peixes sussurrarão os teus segredos."
+
+Recompensa:
+
+c("{5 Peixes}", COR.ITEM_COMUM) (para regeneração).
+
+Uma dica sobre tesouros submersos: "Com mais prática, podes encontrar muito mais do que peixes."
+
+🎖️ 8. O DESPERTAR COMPLETO – CONCLUSÃO DO TUTORIAL
+
+Após completar as cinco missões (Eldrin, Thorne, Lyra, Kaz, Mira, Corvus), o jogador possui:
+
+Domínios despertados: Lâminas Leves (100), Terra e Magia Natural (25), Runologia (22), Fogo e Ar (23), Mineração (31), Pesca (32), e afinidade inicial em vários outros.
+
+Posturas de Combate explicadas e experimentadas.
+
+Equipamento inicial completo (espada, escudo, ferramentas, runas, poções).
+
+Compreensão do sistema de cores, {destaque}, HUD e toasts.
+
+NPC de encerramento – Eldrin (retorna ao diálogo):
+"Vejo nos teus olhos o brilho de quem já não é um náufrago. Os Domínios despertaram em ti. Agora, o mundo espera‑te. A cidade de " .. c("Thais", COR.NPC_LOCAL) .. " fica a sul da ilha. Leva o que aprendeste e torna‑te na lenda que quiseres ser."
+
+Teleporte para o continente: Opcode 200 ou um tile de teleport para a mainland, dependendo da configuração.
+
+🗂️ 9. ESTRUTURA DE PASTAS
+
+Todos os scripts do tutorial residem em:
+
+text
+data-canary/scripts/MCR/Tutorial/
+├── eldrin.lua
+├── thorne.lua
+├── lyra.lua
+├── kaz.lua
+├── mira.lua
+├── corvus.lua
+└── conclusao.lua (opcional)
+Os módulos globais em MCR/Geral/ (texto_colorido.lua, pronouns.lua, npc_utils.lua, util_armas.lua) e os do SPA em MCR/SPA/ são carregados automaticamente.
+
+📋 10. ITENS DO TUTORIAL – LISTA RÁPIDA
+
+ID	Item	Entregue por	Função
+2854	Mochila	Eldrin	Inventário
+2920	Tocha	Eldrin	Iluminação
+3552	Botas de Couro	Eldrin	Protecção
+3561	Jaqueta	Eldrin	Protecção
+3559	Calças de Couro	Eldrin	Protecção
+3264	Espada	Eldrin	Arma inicial
+3412	Escudo de Madeira	Thorne	Defesa (missão)
+3456	Foice	Lyra	Colheita
+266	Poção de Vida	Lyra	Cura
+3458	Pergaminho em Branco	Kaz	Runologia
+2305	Runa de Fogo	Kaz	Magia
+3456	Picareta	Mira	Mineração
+3308	Martelo	Mira	Craft
+3483	Vara de Pescar	Corvus	Pesca
+⚠️ ARMADILHAS E LIÇÕES APRENDIDAS
+
+Confirmar sempre os IDs no items.xml; a Lista de Itens Úteis é uma referência rápida, mas o XML é a fonte canónica.
+
+Os diálogos devem ser salvos como ISO‑8859‑1. Testar acentos: "Lâminas", "Poção".
+
+Verificar se despertarDominio e adicionarAfinidade estão disponíveis (sim, no v3.2.0).
+
+Não sobrecarregar o jogador com muitas cores; apenas palavras‑chave.
+
+Oferecer sempre a opção de voltar ao diálogo principal.
+
+Manter a progressão de intimidade com cada NPC (storage 100010+).
+
+🔍 CHECKLIST DE REVISÃO PARA O ASSISTENTE (TUTORIAL)
+
+☐ Eldrin equipa o jogador correctamente (6 itens)?
+☐ Thorne desperta Lâminas Leves e ensina Posturas?
+☐ Lyra desperta Terra e Magia Natural?
+☐ Kaz desperta Runologia e Fogo e Ar?
+☐ Mira desperta Mineração e Craft?
+☐ Corvus desperta Pesca?
+☐ Todos os diálogos usam c() para itens, locais, domínios e acções?
+☐ As cores são as apropriadas (COR.NPC_, COR.DOM_, etc.)?
+☐ As missões usam HUD (180) e toasts (181) para progresso?
+☐ Os IDs dos itens foram confirmados?
+☐ Scripts salvos como ISO‑8859‑1 e em MCR/Tutorial/?
+☐ O fluxo final redirecciona para o continente?
+
+📤 COMO ATUALIZAR O REPOSITÓRIO GIT
+
+bash
+git add "docs/MCR - Guia de Conteúdo Inicial e Tutorial.txt"
+git commit -m "docs: atualiza tutorial com SPA v3.2.0, cores e missões"
 git push origin main
-
-FIM DO GUIA DE CONTEÚDO INICIAL E TUTORIAL — VERSÃO 3.1
+FIM DO GUIA DE CONTEÚDO INICIAL E TUTORIAL — VERSÃO 5.0

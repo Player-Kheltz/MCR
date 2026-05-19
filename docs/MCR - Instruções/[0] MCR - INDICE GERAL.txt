@@ -1,5 +1,5 @@
 PROJETO MCR – ÍNDICE GERAL E PILARES PERMANENTES
-Versão: 3.1 (Atualização para o Sistema de Progressão v2.1.1, Estados de Alma, Posturas de Combate e Revscript – com indicador de estado actual)
+Versão: 4.0 – Sistema de Progressão do Aventureiro (SPA v3.2.0), cores, lampejos, vínculos e nova estrutura de scripts
 Arquivo: [0] MCR - INDICE GERAL.txt
 
 🎯 FUNÇÃO DESTE ARQUIVO
@@ -24,8 +24,9 @@ Todas as strings visíveis ao jogador, todos os comentários de código (C++, Lu
 ▶ PILAR 4 – IMERSÃO NARRATIVA (AVENTURA FANTASIOSA)
 O mundo MCR é um universo de fantasia original. NPCs possuem personalidade, variação de discurso e reagem ao contexto do jogador (sexo, vocação, progresso em missões, níveis de Domínio). A ambientação é rica, coerente e totalmente desvinculada do Tibia oficial. O jogador é sempre um Aventureiro; não existem vocações tradicionais.
 
-▶ PILAR 5 – EXPERIÊNCIA DE JOGO MODERNA (CHAT COM {CHAVES} + HUD + TOAST)
-Interacções narrativas usam o chat com palavras destacadas entre {chaves} (destaque nativo do cliente). O progresso de missões é exibido em HUD persistente. Feedback imediato é dado por notificações toast. Janelas modais são RESTRITAS a confirmações críticas irreversíveis, Loja e Banco. Jamais para progresso de missão.
+▶ PILAR 5 – EXPERIÊNCIA DE JOGO MODERNA (CHAT COM {CHAVES} + HUD + TOAST + CORES)
+Interacções narrativas usam o chat com palavras destacadas entre {chaves} (destaque nativo do cliente). O progresso de missões é exibido em HUD persistente. Feedback imediato é dado por notificações toast. Janelas modais são RESTRITAS a confirmações críticas irreversíveis, Loja e Banco. Jamais para progresso de missão. 
+O novo sistema de cores (COR e função c()) é utilizado para diferenciar visualmente domínios, posturas, estados de alma, NPCs e missões.
 
 ▶ PILAR 6 – RASTREABILIDADE OBRIGATÓRIA POR LOGS (DEBUG FRIENDLY)
 Todo script que contenha lógica condicional (tópicos, estados, validações) DEVE incluir mensagens de debug no console do servidor, utilizando o prefixo "DEBUG:". O objectivo é fornecer ao assistente e ao desenvolvedor uma trilha completa do que está a ser interpretado pelo código, facilitando depuração, manutenção e futuras interacções com o assistente.
@@ -45,76 +46,85 @@ Os logs DEVEM ser escritos em português (exceto os nomes de variáveis) e devem
 - Resultados de consultas ou verificações importantes.
 - Erros inesperados (pcall, p.ex.).
 
-▶ PILAR 7 – PROGRESSÃO ORGÂNICA E MODULAR (NOVO)
-O Sistema de Progressão do Aventureiro substitui completamente as vocações. O jogador evolui ao realizar acções no mundo, ganhando Afinidade em Domínios (Primários e Especializações). Os Estados de Alma (Lampejo, Vínculo, Maestria) e as Posturas de Combate (Ímpeto, Equilíbrio, Guarda) são automatizados e não requerem intervenção directa do jogador além do estilo de jogo. Toda a progressão é invisível (sem números), comunicada apenas por feedback narrativo, efeitos visuais e o Jornal do Aventureiro (futuro). O sistema é modular: novos Domínios, habilidades e comportamentos são adicionados via banco de dados e scripts Lua na pasta `data-canary/scripts/MCR/Dominio` (Revscript), sem alterar o núcleo C++ desnecessariamente.
+▶ PILAR 7 – PROGRESSÃO ORGÂNICA E MODULAR (ACTUALIZADO)
+O Sistema de Progressão do Aventureiro (SPA) substitui completamente as vocações. O jogador evolui ao realizar acções no mundo, ganhando Afinidade em Domínios (Primários, Secundários e Especialidades). Os Estados de Alma (Lampejo e Vínculo) e as Posturas de Combate (Ímpeto, Equilíbrio, Guarda) são automatizados e não requerem intervenção directa do jogador além do estilo de jogo. Toda a progressão é comunicada por feedback narrativo, efeitos visuais e o Jornal do Aventureiro (futuro). O sistema é modular: novos Domínios, habilidades e comportamentos são adicionados via banco de dados e scripts Lua na pasta `data-canary/scripts/MCR/SPA` (Revscript), sem alterar o núcleo C++ desnecessariamente.
 
-🚧 ESTADO ATUAL DA IMPLEMENTAÇÃO (v2.1.1)
+🚧 ESTADO ATUAL DA IMPLEMENTAÇÃO (SPA v3.2.0)
 
-Esta secção descreve o que já está realmente funcional e o que ainda está em desenvolvimento, para orientar criadores de conteúdo e programadores. O documento canónico que dita o andamento é o [Plano de Ação] Consolidado - Jornada do Aventureiro e Tutorial.
+Esta secção descreve o que já está realmente funcional e o que ainda está em desenvolvimento, para orientar criadores de conteúdo e programadores. O SPA encontra-se **totalmente implementado**, incluindo todas as APIs C++ necessárias.
 
 **O que está IMPLEMENTADO e pode ser usado:**
 - Base do servidor Canary, OTClient e Login Server compilando e funcionando.
 - Sistema de criação de conta e personagem (Oráculo) com vocation = 0 (Aventureiro) e sem escolha de vocação.
 - Máscara de Alma e transição de conta guest para permanente via opcode 200.
 - Estrutura de Domínios no banco de dados (tabelas dominios_def, habilidades_def, player_dominios, player_habilidades) e vocação padrão 0.
-- Scripts base de progressão (config_dominios.lua e dominio_utils.lua) com distribuição multi-domínio básica.
+- Todos os métodos C++ listados na Documentação Técnica do SPA:
+  - player:getDominioAfinidade, addDominioAfinidade, addDominioAfinidadeBatch, getDominioAfinidades, setDominioDespertado, hasHabilidade, learnHabilidade
+  - player:registerDominioAction, getActionHistory, clearActionHistory
+  - player:getDominioState, setDominioState, getAllActiveStates
+  - player:setAttackSpeedModifier, setStealth, setCanPushCreatures, setLifeLeechModifier, setManaLeechModifier, setDamageTakenModifier
+  - creature:knockback
+  - player:getStorages, setStorages (operações em lote)
+- Buffer de progressão, descarregamento periódico, Lampejos e Vínculos funcionais.
+- Posturas de combate (Ímpeto, Equilíbrio, Guarda) aplicadas dinamicamente com base no fightMode.
+- Sistema de cores integrado (texto_colorido.lua) e funções c() e enviarMsgColorida().
+- Scripts completos na pasta `data-canary/scripts/MCR/SPA/`:
+  - constantes.lua, postura_config.lua, progressao.lua, sintonia.lua, passivas.lua, postura.lua, buff_system.lua, executor_habilidades.lua, eventos.lua, passivas_ataque.lua, login.lua, etc.
+- Comandos de teste: !semideus, !resetspa, !aprendertodas, !fistcheck, !frases, !todascores, !testarbatch, !ajuda.
 - Sistema de Quests Híbrido (SQH) usando chat com {chaves}, HUD e toasts.
-- Código C++ traduzido para PT‑BR com escapes octais.
 
-**O que AINDA NÃO está implementado (aguarda a Fase 2 – C++):**
-- Métodos Lua: player:getDominioNivel(), player:getDominioAfinidade(), player:getEstadoAlma(), player:registerDominioAction() e despertarDominio().
-- Lógica de Estados de Alma (Lampejo, Vínculo, Maestria) e progressão por dano (evento onHealthChange).
-- Posturas de Combate (Ímpeto, Equilíbrio, Guarda) embora o fightMode nativo já mude, os efeitos temáticos dependem de scripts que consumirão os métodos acima.
-- Integração narrativa completa: NPCs que reagem a níveis de Domínio ou Estados de Alma. As falas estão escritas nos guias, mas os gatilhos (getDominioNivel, getEstadoAlma) retornarão nil/zero até a Fase 2 ser concluída.
-- Tutorial da Ilha do Despertar (Eridanus) com despertares de Domínio. O roteiro está pronto, mas a activação depende dos métodos C++.
+**O que AINDA NÃO está implementado (roadmap futuro):**
+- Geração dos ficheiros modulares de habilidades (um por domínio).
+- Repovoamento completo das tabelas habilidades_def e player_habilidades.
+- Escalabilidade total das passivas (níveis I, II, III, IV).
+- Balanceamento final da curva NIVEL_PONTOS e limites SPEED_MIN / DAMAGE_MAX.
+- Integração narrativa completa: NPCs que reagem a níveis de Domínio ou Estados de Alma (os métodos já existem, faltam os diálogos).
+- O Tutorial da Ilha do Despertar (Eridanus) com despertares de Domínio, ainda por activar.
 
-Portanto, ao escrever scripts ou diálogos que envolvam Domínios, Estados de Alma ou Posturas, utilize as directrizes dos guias como o comportamento *alvo*, mas verifique se o método de C++ correspondente já existe antes de o invocar. O Plano de Acção é o seu guia de dependências.
+Portanto, ao escrever scripts ou diálogos que envolvam Domínios, Estados de Alma ou Posturas, utilize as directrizes do Guia do SPA e os métodos já disponíveis. O Plano de Acção anterior foi substituído pelo roadmap técnico incluído no próprio Guia do SPA.
 
 🗂️ ÍNDICE DE DOCUMENTOS (GUIAS TEMÁTICOS)
 
 Os documentos abaixo compõem o conhecimento completo do Projeto MCR. Cada um é autossuficiente e contém regras, checklists, exemplos e instruções específicas para o assistente.
 
 [1] MCR - Guia de Compilação (Servidor).txt
-Como compilar o Canary a partir do código‑fonte, com todas as customizações MCR (identidade visual, console UTF‑8, bindings, novos métodos Lua para Estados de Alma e progressão).
+Como compilar o Canary a partir do código‑fonte, com todas as customizações MCR (identidade visual, console UTF‑8, bindings, novos métodos Lua para o SPA).
 
 [2] MCR - Guia de Compilação (Cliente).txt
-Como compilar o OTClient Redemption, configurar cache portátil, aplicar customizações visuais e integrar os módulos MCR (incluindo reutilização dos modos de luta nativos para Posturas).
+Como compilar o OTClient Redemption, configurar cache portátil, aplicar customizações visuais e integrar os módulos MCR (incluindo a reutilização dos modos de luta nativos para Posturas e os opcodes do sistema de cores).
 
 [3] MCR - Guia de Configuração (Servidor e Rede).txt
-Configuração completa de config.lua, OTCFEATURES, portas, .env do Login Server, firewall, segurança e faixas de storages/opcodes reservados para o sistema de progressão.
+Configuração completa de config.lua, OTCFEATURES, portas, .env do Login Server, firewall, segurança e faixas de storages/opcodes reservados para o SPA.
 
 [4] MCR - Guia do Login Server.txt
 API REST (Go): endpoints /register, /login, /guest_login. Padrão de error_code, hash SHA1, variáveis de ambiente, CORS, tratamento de panics.
 
 [5] MCR - Guia de Interface (OTUI e Lua Cliente).txt
-Sintaxe OTUI, fontes bitmap, codificação de scripts Lua como ISO‑8859‑1, métodos proibidos. Uso dos opcodes 182 (ícone de Vínculo), 183 (partículas de Estados de Alma) e 184 (janela de Conhecimento).
+Sintaxe OTUI, fontes bitmap, codificação de scripts Lua como ISO‑8859‑1, métodos proibidos. Uso dos opcodes 182 (ícone de Vínculo), 183 (partículas de Estados de Alma) e 184 (janela de Conhecimento). Integração do sistema de cores no cliente.
 
 [6] MCR - Guia de Narrativa e Diálogos.txt
-Biblioteca npc_utils.lua, reconhecimento de sinónimos, personalização por sexo/vocação, variação de frases, progressão de intimidade e reacção aos níveis de Domínio do Aventureiro.
+Biblioteca npc_utils.lua, reconhecimento de sinónimos, personalização por sexo/pronome, variação de frases, progressão de intimidade e reacção aos níveis de Domínio e Estados de Alma do Aventureiro, usando as constantes e cores do SPA.
 
 [7] MCR - Guia de Quests (Sistema Híbrido SQH).txt
-Sistema de Quests Híbrido: chat com {destaque}, HUD de missões, notificações toast. Integração com despertares de Domínio e feedback narrativo.
+Sistema de Quests Híbrido: chat com {destaque}, HUD de missões, notificações toast, cores do SPA. Integração com despertares de Domínio, afinidade e feedback narrativo.
 
 [8] MCR - Guia de Criação de Conta e Personagem.txt
 Fluxo do Account Manager "Alma", Salão dos Destinos, NPC Oráculo, validação de nomes, escolha de sexo e vocação (já adaptado para Aventureiro, vocation = 0).
 
 [9] MCR - Guia de Banco de Dados e Infraestrutura.txt
-Configuração do MySQL/MariaDB, charset utf8mb4, tabelas, schema. Inclui as tabelas do sistema de progressão (dominios_def, habilidades_def, player_dominios, player_habilidades).
+Configuração do MySQL/MariaDB, charset utf8mb4, tabelas, schema. Inclui as tabelas do sistema de progressão (dominios_def, habilidades_def, player_dominios, player_habilidades) com os novos IDs do SPA.
 
 [10] MCR - Guia de Tradução e Localização (PT‑BR).txt
-Regras completas de codificação de arquivos (UTF‑8 vs ISO‑8859‑1), error_code, pipeline de tradução automática.
+Regras completas de codificação de arquivos (UTF‑8 vs ISO‑8859‑1), error_code, pipeline de tradução automática. Inclui as novas cores e a função c() para manter o texto impecável.
 
 [11] MCR - Guia de Experiência do Jogador.txt
-Visão completa daquilo que o jogador vê, sente e percorre no Projeto MCR, agora com a progressão horizontal, Estados de Alma e Posturas como parte da jornada.
+Visão completa daquilo que o jogador vê, sente e percorre no Projeto MCR, com a progressão horizontal, Lampejos, Vínculos, Posturas e o sistema de cores a enriquecer a jornada.
 
 [12] MCR - Guia de Conteúdo Inicial e Tutorial.txt
-A Ilha do Despertar (Eridanus). Estrutura das missões, NPCs, itens com IDs reais, ensinamento de todas as mecânicas básicas (combate, ferramentas, poções, runas, pesca, etc.) e integração com os despertares de Domínio.
+A Ilha do Despertar (Eridanus). Estrutura das missões, NPCs, itens com IDs reais, ensinamento de todas as mecânicas básicas (combate, ferramentas, poções, runas, pesca, etc.) e integração com os despertares de Domínio do SPA.
 
-[Documentação] MCR - Sistema de Progressão do Aventureiro (v2.1.1).txt
-**NOVA** – Documento canónico do sistema de progressão: hierarquia de Domínios, Afinidade, Estados de Alma, Posturas de Combate, progressão multi-domínio, sinergias, utilidades fora de combate e regras de notificação.
-
-[Plano de Ação] Consolidado - Jornada do Aventureiro e Tutorial (v2.1.1).txt
-**NOVA** – Roteiro faseado para implementar o Sistema de Progressão e o Tutorial de Eridanus, integrando as mecânicas da v2.1.1, com checklist e estado actual do desenvolvimento.
+[Documentação] MCR - Sistema de Progressão do Aventureiro (SPA v3.2.0).txt
+**CANÓNICO** – Documento completo do SPA: hierarquia de Domínios, Afinidade, Lampejos, Vínculos, Posturas de Combate, progressão multi-domínio, sinergias, utilidades fora de combate, cores, APIs e código de referência.
 
 📁 ARQUIVOS COMPLEMENTARES
 
@@ -154,7 +164,7 @@ Consulte o Guia [2] para instruções de compilação.
 
 SEMPRE que você, assistente, for modificar ou criar QUALQUER arquivo do projecto (C++, Lua servidor, Lua cliente, OTUI, Go, configuração), você DEVE:
 
-- Identificar TODOS os guias temáticos que se aplicam ao contexto da tarefa. Exemplo: ao editar um script Lua de NPC, aplique os guias [6] Narrativa, [7] Quests, [10] Tradução e [3] Configuração (para storages/IDs).
+- Identificar TODOS os guias temáticos que se aplicam ao contexto da tarefa. Exemplo: ao editar um script Lua de NPC, aplique os guias [6] Narrativa, [7] Quests, [10] Tradução e [3] Configuração (para storages/IDs), e também a documentação do SPA para cores e constantes.
 - Carregar mentalmente as "Regras de Revisão para o Assistente" de cada um desses guias.
 - Executar uma revisão tripla que combine as listas de verificação de TODOS os guias pertinentes.
 - Incluir na resposta a secção "✅ Autorevisão do Assistente", listando quais guias foram consultados e marcando os checklists específicos e universais.
@@ -175,4 +185,4 @@ Estrutura: Canary/ | OTClient/ | LoginServer/ | docs/ | MyAAC/
 
 Toda alteração de código ou documentação DEVE ser commitada neste repositório. Consulte o MCR - Guia de Configuração para instruções de versionamento com Git.
 
-FIM DO ÍNDICE GERAL (VERSÃO 3.1)
+FIM DO ÍNDICE GERAL (VERSÃO 4.0)
