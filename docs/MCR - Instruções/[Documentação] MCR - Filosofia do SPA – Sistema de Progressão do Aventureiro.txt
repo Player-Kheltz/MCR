@@ -1,0 +1,277 @@
+📘 Filosofia do SPA – Sistema de Progressão do Aventureiro
+==========================================================
+Projeto MCR – Documento Canónico de Design
+Versão 4.0 – Maio de 2026
+
+🌌 1. O Fim das Vocações – O Nascimento do Aventureiro
+
+No Projeto MCR, a primeira escolha que o jogador enfrenta não é uma classe.
+Não há Knight, Paladin, Sorcerer ou Druid. Não há Monk ou qualquer outra
+vocação pré‑definida. Há apenas o Aventureiro – uma tela em branco, um
+espírito curioso que despertou nas areias de Eridanus e cujo destino será
+escrito pelas suas próprias acções.
+
+O Sistema de Progressão do Aventureiro (SPA) é a resposta a uma pergunta
+simples: "E se o teu personagem evoluísse exactamente naquilo que tu fazes?"
+Se passas os dias a minerar, tornas‑te um mestre da rocha. Se enfrentas
+dragões com uma espada longa, o aço reconhece‑te. Se canalizas o fogo através
+de um bastão arcano, as chamas tornam‑se uma extensão da tua vontade. Nada é
+imposto. Tudo é conquistado.
+
+O SPA não é um sistema de progressão vertical tradicional. Não há um "nível
+de classe" que sobe de 1 a 100. Em vez disso, o Aventureiro progride
+horizontalmente, ganhando afinidade em Domínios que reflectem os seus
+interesses e acções. Esta progressão é silenciosa – não há números a poluir
+o ecrã – mas profundamente sentida: os ataques tornam‑se mais fluidos, as
+magias mais poderosas, as ferramentas mais eficazes.
+
+🧭 2. Domínios – O Mapa do Conhecimento
+
+Um Domínio é uma área de conhecimento ou perícia. Eles estão organizados
+numa hierarquia de três camadas, como uma árvore genealógica do saber:
+
+Primários: as grandes famílias (Combate, Magia, Ofícios, Natureza).
+
+Secundários: os ramos principais (Lâminas, Precisão, Runologia, Escudo).
+
+Especialidades: as técnicas específicas (Espadas Leves, Arremesso, Wands).
+
+Quando um Aventureiro realiza uma acção – atacar com uma espada, lançar uma
+magia de fogo, pescar um peixe – ele ganha Afinidade na especialidade
+correspondente. Essa afinidade espalha‑se automaticamente para os níveis
+superiores da hierarquia, garantindo que o conhecimento nunca é estanque.
+Um mestre das Espadas Leves também será, inevitavelmente, um profundo
+conhecedor das Lâminas e do Combate como um todo.
+
+A beleza do sistema está na sua modularidade. Novos domínios podem ser
+adicionados a qualquer momento – Dobradores de Elementos, Artesãos Rúnicos,
+Domadores de Bestas – sem quebrar a estrutura existente. O motor do SPA foi
+desenhado para ser infinitamente expansível.
+
+📐 3. Afinidade – A Moeda do Crescimento
+
+Afinidade é a medida do teu envolvimento com um Domínio. Ela é ganha
+automaticamente:
+
+Ao causar dano físico com uma arma (especialidade correspondente).
+
+Ao causar dano mágico (domínio elemental respectivo).
+
+Ao matar criaturas (especialidade da arma usada).
+
+Ao usar ferramentas (mineração, pesca, craft).
+
+Ao receber dano (Sobrevivência).
+
+Os pontos são acumulados num buffer em memória (storages 95001+dominioId) e
+descarregados para a base de dados a cada 2 segundos, usando operações em
+lote para máxima performance. A quantidade de afinidade ganha é
+proporcional ao dano causado ou ao esforço despendido.
+
+A curva de progressão é cuidadosamente calibrada para proporcionar uma
+jornada recompensadora. Um jogador médio, caçando de forma consistente,
+atingirá o nível 5 de um domínio em cerca de 1 hora, o nível 10 em 5 horas,
+o nível 15 em 30 horas e o nível 20 – a Maestria – em 100 horas de dedicação
+genuína.
+
+✨ 4. Lampejos e Vínculos – A Sintonia Natural
+
+Quanto mais usas um domínio, mais "sintonizado" ficas com ele. O SPA
+monitoriza as tuas acções recentes e concede estados especiais que
+recompensam a consistência de estilo.
+
+Lampejo: Ocorre quando 3 das últimas 5 acções são do mesmo domínio.
+É um estado breve (8 segundos) que concede um bónus moderado de
+velocidade e dano. É o momento em que a espada parece mais leve, a
+flecha voa mais direita, ou o fogo crepita com mais intensidade.
+
+Vínculo: Forma‑se quando mais de 50% das últimas 30 acções são do
+mesmo domínio. É um estado duradouro que concede bónus significativos
+e se mantém enquanto continuas a usar o domínio. Quando um Vínculo se
+forma, o mundo reage: faíscas saem da lâmina, o ar à volta do
+personagem distorce‑se com o calor do fogo, ou o escudo brilha com uma
+luz protetora.
+
+Quando atinges o nível 20 num domínio, alcanças a Maestria. A partir desse
+momento, o Vínculo com esse domínio torna‑se permanente. Mesmo que deixes
+de usar a espada durante horas, o aço nunca te esquecerá. Os bónus de
+velocidade e dano acompanham‑te sempre que empunhas algo relacionado.
+
+Os Estados de Alma são calculados automaticamente a cada 2 segundos e nunca
+expõem números ao jogador. Apenas mensagens poéticas – "Sentes um Lampejo de
+poder em Lâminas" – sinalizam as transições.
+
+⚔️ 5. Posturas de Combate – A Dança do Aço
+
+A qualquer momento, o Aventureiro pode alternar entre três Posturas,
+usando as hotkeys nativas do Tibia (Ctrl+A, Ctrl+B, Ctrl+D):
+
+Ímpeto (Full Attack): O caminho do agressor. Mais dano, mais velocidade,
+mas defesa reduzida. As habilidades de ataque tornam‑se mais agressivas.
+
+Equilíbrio (Balanced): O caminho do versátil. Valores intermédios, sem
+extremos. Permite usar tanto habilidades de ataque como de defesa.
+
+Guarda (Full Defense): O caminho do protetor. Menos dano, mas defesa,
+regeneração e efeitos de controlo amplificados. As habilidades
+defensivas brilham aqui.
+
+A postura interage profundamente com o equipamento e o domínio:
+
+Armas de duas mãos → estilo Pesado (mais dano, knockback).
+
+Armas de uma mão sem escudo → estilo Leve (mais velocidade).
+
+Com escudo → benefícios defensivos adicionais, chance de empurrar.
+
+As posturas são aplicadas dinamicamente pelo postura.lua, que lê as
+storages do SPA, calcula os modificadores finais e ajusta a velocidade de
+ataque, regeneração, furtividade e leech do jogador em tempo real.
+
+🛡️ 6. Habilidades – A Essência do Teu Estilo
+
+As habilidades são o coração do SPA. Elas representam técnicas, golpes
+especiais e talentos passivos que o Aventureiro desbloqueia ao progredir
+nos seus domínios.
+
+6.1 Tipos de Habilidade
+
+Passivas: Estão sempre activas. Melhoram atributos, adicionam efeitos
+subtis ou alteram permanentemente o comportamento do personagem.
+Exemplo: "Lâmina Ágil" (+% esquiva por nível de Espadas Leves).
+
+De Gatilho: Disparam em momentos específicos durante o combate.
+Exemplo: "Corte Dilacerante" (ao atacar, 12% de chance de causar
+sangramento). Estas habilidades são limitadas a 2 por evento e têm um
+cooldown global de 200ms para evitar spam.
+
+Transformações: Alteram temporariamente o comportamento do personagem
+com base nos Estados de Alma (Lampejo/Vínculo). Exemplo: "Lâmina
+Espiritual" (converte parte do dano físico em elemental durante o
+Vínculo).
+
+6.2 A Árvore I‑IV – Os Marcos da Maestria
+
+Cada especialidade (ex.: Espadas Leves) possui uma árvore de progressão
+interna, composta por quatro habilidades principais:
+
+I (nível 5): A primeira revelação. Uma passiva que define a identidade
+do estilo (ex.: +esquiva, +dano elemental).
+
+II (nível 10): O aprofundamento. Uma passiva que expande a primeira
+(ex.: ignora % de armadura, chance de reduzir defesa).
+
+III (nível 15): A assinatura. Uma habilidade de gatilho ou transformação
+que encapsula o estilo (ex.: "Dança das Lâminas" para Espadas Leves,
+"Pancada Devastadora" para Espadas Pesadas).
+
+IV (nível 20): A Maestria. Evolui a habilidade III para o seu estado
+máximo e, como recompensa suprema, ensina a versão básica do III à
+especialidade irmã (ex.: um mestre das Espadas Leves concede "Dança
+das Lâminas" às Espadas Pesadas, e vice‑versa).
+
+6.3 Habilidades Complementares
+
+Além da árvore I‑IV, cada especialidade possui um vasto leque de
+habilidades complementares – 7 de gatilho, 5 passivas e 3 transformações –
+que se desbloqueiam em níveis variados, criando uma curva de aprendizagem
+rica e imprevisível. Estas habilidades são exclusivas da especialidade e
+escalam com o nível do domínio.
+
+6.4 Escalonamento
+
+Todas as habilidades do SPA escalam com o nível do domínio. Uma habilidade
+aprendida no nível 5 será modesta, mas tornar‑se‑á devastadora quando o
+jogador atingir a Maestria. O dano extra, a duração dos efeitos, a chance
+de ativação – tudo é multiplicado pelo getNivelPorAfinidade dentro de
+cada função de efeito. Isto garante que o investimento num domínio é sempre
+recompensado, sem criar rupturas na progressão.
+
+🖐️ 7. Chi, Virtudes e Serenidade – O Caminho do Desarmado
+
+O domínio Desarmado (14) foi profundamente expandido com a integração das
+mecânicas do Monk nativo do Tibia. O Aventureiro que luta sem armas – ou
+com as novas armas de Monge (Katar, Nunchaku, Bastões) – tem acesso a um
+sistema de recursos único.
+
+Chi (Harmony): Acumula pontos de Chi ao atacar. Pode ser gasto para
+desencadear habilidades poderosas, como a "Rajada de Golpes" ou a
+"Palma do Dragão". O Chi máximo é 5 e é gerido via player:fillHarmony()
+ou pela storage STORAGE.HARMONY.
+
+Virtudes: Três filosofias que o Aventureiro pode adotar como passivas:
+
+Harmonia: parte do dano causado recupera a tua vida.
+
+Justiça: causa mais dano a inimigos feridos.
+
+Sustentação: as tuas curas são mais fortes.
+As virtudes são definidas com player:setVirtue(Virtue_t.Harmony) e
+os seus efeitos são aplicados pelo postura.lua e habilidades.
+
+Serenidade: Um estado especial alcançado quando o Chi está no máximo
+ou ao atingir a Maestria. Concede benefícios adicionais de dano e
+cura, e é aplicado via player:setSerene(true).
+
+As armas de Monk, que incluem tipos como dualwielding (Garras, Katar)
+e two-handed (Nunchaku, Bastões), são totalmente suportadas. O motor
+reconhece os seus atributos especiais – elementalbond, skillfist,
+magiclevelpoints – e o SPA utiliza‑os para criar sinergias.
+
+Sinergias e Hibridismo – O Mago de Combate
+
+O SPA recompensa a experimentação e a combinação de domínios. Um dos
+exemplos mais poderosos é o Bastão Arcano (especialidade 132), que cria
+uma ponte entre o combate corpo‑a‑corpo e a magia elemental.
+
+Um Aventureiro que empunhe um Bastão de Fogo (ex.: Cobra Bo) e tenha
+níveis elevados em Bastões Arcanos e Fogo e Ar (23) verá os seus ataques
+causarem dano de fogo, com chance de queimadura, e as suas magias de fogo
+tornarem‑se mais poderosas. É a fusão perfeita entre o guerreiro e o mago.
+
+Da mesma forma, um mestre da Precisão (13) que tenha investido em Arremesso
+(121) e Arcos (120) desbloqueará sinergias que lhe permitem usar os bónus
+de paciência do Atirador enquanto arremessa, e os bónus de mobilidade do
+Atleta enquanto dispara. Nenhum estilo é uma ilha.
+
+O Motor do SPA – Modularidade e Performance
+
+Por baixo da camada narrativa, o SPA é um motor de progressão genérico,
+desenhado para ser infinitamente expansível.
+
+O SPAManager (C++) permite registar novos domínios em tempo real,
+via Lua, sem recompilar o servidor.
+
+O Event Bus (SPA.onEvent / SPA.dispatchEvent) permite que qualquer
+script Lua reaja a qualquer acção do jogo – dano, morte, login, uso de
+item – sem modificar o código C++.
+
+Os Modificadores de Combate Dinâmicos (player:setCombatModifier)
+permitem que habilidades e domínios ajustem parâmetros de combate com
+chaves textuais, criando sinergias complexas sem depender de storages
+fixas.
+
+As consultas de afinidade são feitas em lote, minimizando a carga na
+base de dados.
+
+Todo o sistema de habilidades, posturas, Lampejos e Vínculos é
+processado em Lua, com ganchos de performance no C++ onde necessário
+(ex.: knockback, setAttackSpeedModifier).
+
+O Aventureiro – A Tua Lenda
+
+No centro de tudo está o jogador. O SPA não é um sistema para ser
+"vencido" – é um sistema para ser vivido. Cada Aventureiro é único, não
+porque escolheu uma classe no ecrã de criação, mas porque passou 100
+horas a pescar nos lagos de Eridanus, ou porque desafiou os dragões do
+norte com uma espada longa até que o aço se tornou parte de si.
+
+O SPA respeita o teu tempo, a tua curiosidade e a tua identidade. As
+escolhas que fazes ecoam pelo mundo: os NPCs reconhecem o teu domínio, os
+teus golpes carregam a tua história, e as tuas habilidades são a
+assinatura do teu estilo.
+
+Este documento é o testemunho de uma filosofia: a de que um jogo de RPG
+deve ser sobre quem tu és, não sobre o que o sistema diz que deves ser.
+
+Fim do Documento.
