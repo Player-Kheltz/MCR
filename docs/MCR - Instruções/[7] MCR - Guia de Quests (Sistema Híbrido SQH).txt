@@ -1,5 +1,5 @@
 PROJETO MCR – GUIA DE QUESTS (SISTEMA HÍBRIDO SQH)
-(Versão 7.0 – Integração total com o SPA v3.2.0, despertares de Domínio, feedback narrativo colorido e estrutura Revscript)
+(Versão 7.1 – Integração total com o SPA v4.2, despertares de Domínio, Maestria, Sinergia Elemental, feedback narrativo colorido e estrutura Revscript)
 Arquivo: [7] MCR - Guia de Quests (Sistema Híbrido SQH).txt
 
 🎯 OBJETIVO DESTE GUIA
@@ -8,13 +8,14 @@ O Sistema de Quests Híbrido (SQH) combina a profundidade narrativa do chat com
 a conveniência de feedback visual moderno (HUD, notificações toast), sem jamais
 recorrer a janelas modais para progresso de missão.
 
-A versão 7.0 integra totalmente o Sistema de Progressão do Aventureiro (SPA v3.2.0):
+A versão 7.1 integra totalmente o Sistema de Progressão do Aventureiro (SPA v4.2):
 as quests são agora o principal veículo para o despertar de Domínios, o ganho
-inicial de Afinidade, o aprendizado de habilidades e a introdução aos Lampejos,
-Vínculos e Posturas de Combate. Os NPCs reagem ao progresso do jogador nos
-Domínios, e as recompensas podem incluir habilidades, sinergias e itens de
-conhecimento consumíveis. Todo o feedback é colorido, utilizando a tabela COR
-e a função c() do SPA.
+inicial de Afinidade, o aprendizado de habilidades, a introdução à Maestria
+(Vínculo permanente no nível 20), à Sinergia Elemental e ao Arremesso de Escudo.
+Os NPCs reagem ao progresso do jogador nos Domínios, e as recompensas podem
+incluir habilidades, sinergias, itens de conhecimento consumíveis e armas
+elementais que desbloqueiam sinergias mágicas. Todo o feedback é colorido,
+utilizando a tabela COR v9.1 e a função c() do SPA.
 
 Todos os métodos C++ necessários já estão implementados; os scripts de quest
 podem utilizar imediatamente as funções de progressão.
@@ -26,7 +27,7 @@ cada ficheiro, permitindo que as quests sejam auto‑suficientes e modulares.
 
 🚧 ESTADO ATUAL DA IMPLEMENTAÇÃO
 
-O SPA v3.2.0 está totalmente implementado, incluindo todas as APIs C++ descritas
+O SPA v4.2 está totalmente implementado, incluindo todas as APIs C++ descritas
 na documentação do sistema. Consequentemente:
 
 Os métodos player:getDominioAfinidade(dominioId), adicionarAfinidade(),
@@ -36,11 +37,11 @@ estão disponíveis e podem ser usados imediatamente.
 Não existem mais "fases pendentes". Todo o comportamento descrito neste guia
 pode ser implementado em produção.
 
-O sistema de cores (tabela COR, função c()) é global e deve ser utilizado para
+O sistema de cores (tabela COR v9.1, função c()) é global e deve ser utilizado para
 todas as comunicações visuais relacionadas com a quest.
 
 A estrutura de pastas é Revscript: scripts em MCR/Tutorial/, MCR/Geral/, etc.
-Os módulos texto_colorido.lua, pronouns.lua e npc_utils.lua são carregados
+Os módulos texto_colorido.lua (v9.1), pronouns.lua e npc_utils.lua são carregados
 automaticamente e estão disponíveis como globais.
 
 Este guia contém:
@@ -49,7 +50,7 @@ A filosofia do SQH (actualizada com imersão e pronomes).
 
 O fluxograma de interação obrigatório.
 
-Destaque de palavras no chat com {chaves} e cores.
+Destaque de palavras no chat com {chaves} e cores (v9.1).
 
 HUD de Missões (Quest Tracker).
 
@@ -61,7 +62,7 @@ Progressão de intimidade (storages 100010+) a influenciar a narrativa da quest.
 
 Personalidade do NPC como molde para o tom da missão.
 
-Integração com o SPA: despertares, afinidade, habilidades, sinergias e itens de conhecimento.
+Integração com o SPA v4.2: despertares, afinidade, habilidades, sinergias, Maestria, Sinergia Elemental e itens de conhecimento.
 
 Directrizes de qualidade.
 
@@ -79,8 +80,9 @@ recusar ou progredir missões. Apenas Loja, Banco e confirmações críticas
 irreversíveis podem usar modais, e SEMPRE com fala introdutória no chat.
 
 Destacar palavras‑chave no chat utilizando SOMENTE {chaves} (ex.: {aceitar},
-{5 Lágrimas de Sereia}). Adicionalmente, usar as cores do SPA através da
-função c() para dar ênfase a elementos narrativos, itens, locais e recompensas.
+{5 Lágrimas de Sereia}). Adicionalmente, usar as cores do SPA v4.2 através da
+função c() para dar ênfase a elementos narrativos, itens, locais, recompensas
+e tipos de missão (MISSAO_MATAR, MISSAO_COLETAR, etc.).
 
 Notificar o cliente via sendExtendedOpcode (faixa 180‑199) sempre que o estado
 da missão mudar, actualizando o HUD e exibindo toasts.
@@ -113,26 +115,33 @@ Antes de iniciar a quest, se o jogador ainda não tiver o pronome definido
 (players.pronoun = 0), o NPC deve perguntar e armazenar o valor, de forma
 adequada à sua personalidade.
 
-⚠️ SPA v3.2.0: As quests devem utilizar as funções do SPA para despertar
+⚠️ SPA v4.2: As quests devem utilizar as funções do SPA para despertar
 Domínios (despertarDominio), conceder afinidade (adicionarAfinidade),
 ensinar habilidades (player:learnHabilidade) e verificar níveis
 (getNivelPorAfinidade). Estes métodos estão totalmente operacionais.
 
-⚠️ SPA v3.2.0: Itens de conhecimento (ex.: Livro de Feitiços) devem usar a
+⚠️ SPA v4.2: Quests podem recompensar com armas elementais (ex.: Espada de Fogo)
+que ativarão automaticamente a Sinergia Elemental com o domínio correspondente
+(Fogo e Ar, 23). O feedback narrativo deve celebrar essa ligação.
+
+⚠️ SPA v4.2: Itens de conhecimento (ex.: Livro de Feitiços) devem usar a
 janela modal via opcode 184, permitindo que o jogador decida se aprende
 ou guarda/vende. (Opcode 184 ainda não implementado no cliente – especificação
 presente no Guia de Interface)
 
-⚠️ SPA v3.2.0: As recompensas podem incluir o desbloqueio de sinergias
+⚠️ SPA v4.2: As recompensas podem incluir o desbloqueio de sinergias
 (habilidades que exigem dois Domínios), devidamente notificadas com
 mensagem narrativa colorida.
+
+⚠️ SPA v4.2: Quests de Maestria (nível 20) podem conceder o título narrativo
+de "Mestre" e habilidades especiais.
 
 ⚠️ REVSCRIPT: Os scripts das quests e dos NPCs devem ser colocados nas
 subpastas adequadas (ex.: MCR/Tutorial/ para as missões de Eridanus,
 MCR/Geral/ para utilitários como npc_utils.lua). O Revscript carrega
 automaticamente todos os ficheiros .lua.
 
-🧠 1. FILOSOFIA DO SQH (ACTUALIZADA SPA v3.2.0)
+🧠 1. FILOSOFIA DO SQH (ACTUALIZADA SPA v4.2)
 
 O SQH resolve a tensão entre imersão narrativa e usabilidade moderna.
 Antigamente, quests em OTs exigiam que o jogador adivinhasse palavras mágicas
@@ -142,9 +151,9 @@ No MCR:
 
 O CHAT é o palco da história. O jogador LÊ o que o NPC diz e se conecta com a
 narrativa. Palavras‑chave são DESTACADAS COM {CHAVES} para indicar o que é
-importante, eliminando a adivinhação. Agora, com o sistema de cores, podemos
-envolver itens, locais e recompensas nas suas cores temáticas, reforçando a
-comunicação visual sem poluir.
+importante, eliminando a adivinhação. Agora, com o sistema de cores v9.1,
+podemos envolver itens, locais, recompensas e tipos de missão nas suas cores
+temáticas, reforçando a comunicação visual sem poluir.
 
 O HUD DE MISSÕES mostra o progresso em tempo real, sem poluir o chat.
 
@@ -157,9 +166,10 @@ A narrativa da quest é PERSONALIZADA ao pronome do personagem (via coluna
 players.pronoun) e à relação que o jogador construiu com o NPC.
 
 A quest é o PRINCIPAL MEIO de despertar Domínios. Cada missão significativa
-pode iniciar o jogador numa nova Especialização, conceder afinidade extra
-ou ensinar uma habilidade única. O feedback é sempre narrativo e colorido,
-nunca técnico.
+pode iniciar o jogador numa nova Especialização, conceder afinidade extra,
+ensinar uma habilidade única, oferecer uma arma elemental que desbloqueia
+Sinergia Elemental, ou até consagrar a Maestria do Aventureiro. O feedback é
+sempre narrativo e colorido, nunca técnico.
 
 Itens de conhecimento (pergaminhos, receitas, grimórios) são CONSUMÍVEIS e
 opcionais: o jogador pode aprendê‑los, vendê‑los ou guardá‑los para
@@ -222,16 +232,18 @@ e) Atualiza o nível de intimidade com o NPC (ex.: storage 100010 + npcId de 0
 para 1 ou 2).
 f) Se a quest envolve um despertar de Domínio, chama despertarDominio(player, domId) e envia feedback narrativo com cor.
 g) Se a quest recompensa com uma habilidade, chama player:learnHabilidade(habilidadeId) e notifica com cor.
-h) Envia Opcodes para LIMPAR o HUD e exibir TOAST de conclusão.
-i) NPC dá uma fala narrativa de sucesso, destacando a recompensa com cores,
+h) Se a quest entrega uma arma elemental (ex.: Espada de Fogo), o NPC comenta a Sinergia Elemental que o jogador poderá explorar.
+i) Se a quest celebra a Maestria (nível 20), o NPC confere o título de "Mestre" e reconhece o Vínculo permanente.
+j) Envia Opcodes para LIMPAR o HUD e exibir TOAST de conclusão.
+k) NPC dá uma fala narrativa de sucesso, destacando a recompensa com cores,
 e usando um tom mais caloroso se a intimidade subiu. Se um Domínio foi
 despertado, o NPC faz uma observação poética sobre a mudança no Aventureiro.
 
 🔑 3. DESTAQUE DE PALAVRAS COM {CHAVES} E CORES
 
-Convenção MCR actualizada:
+Convenção MCR actualizada (v9.1):
 
-Toda ação que o jogador deve digitar: {aceitar}, {entregar}, {missão}
+Toda ação que o jogador deve digitar: c("{aceitar}", COR.NPC_INTENCAO), c("{entregar}", COR.NPC_COMANDO), c("{missão}", COR.MISSAO_MATAR) ou conforme o tipo.
 
 Itens de quest: c("{5 Lágrimas de Sereia}", COR.NPC_ITEM)
 
@@ -287,6 +299,10 @@ Use toasts para:
 
 "Você aprendeu uma nova habilidade!" (ao aprender via quest)
 
+"Sinergia Elemental descoberta: Fogo e Ar!"
+
+"Você alcançou a Maestria! O Vínculo é permanente."
+
 Para as mensagens dos toasts, utilize as cores do SPA para dar identidade visual.
 
 📦 6. VALIDAÇÕES DE ITENS E INVENTÁRIO
@@ -326,6 +342,8 @@ Habilidade: player:learnHabilidade(habilidadeId)
 Afinidade: adicionarAfinidade(player, domId, pontos)
 
 Despertar: despertarDominio(player, domId)
+
+Arma Elemental: player:addItem(ARMA_FOGO_ID, 1) com comentário sobre Sinergia Elemental
 
 Todas devem ser anunciadas no chat com cores.
 
@@ -368,10 +386,11 @@ Intimidade 1: "Ah, o nobre senhor voltou! Já sabia que podia confiar em si."
 
 Intimidade 3: "Meu caríssimo amigo! Sempre há lugar para si na minha mesa."
 
-🌠 8. INTEGRAÇÃO COM O SPA v3.2.0
+🌠 8. INTEGRAÇÃO COM O SPA v4.2
 
-As quests são o veículo principal para o despertar de Domínios e o aprendizado
-de habilidades. Todos os métodos do SPA estão implementados e disponíveis.
+As quests são o veículo principal para o despertar de Domínios, o aprendizado
+de habilidades e a descoberta da Sinergia Elemental e da Maestria. Todos os
+métodos do SPA estão implementados e disponíveis.
 
 8.1 DESPERTAR DE DOMÍNIOS EM QUESTS
 
@@ -435,6 +454,34 @@ if nivelFogo >= 15 and nivelLaminas >= 15 then
     npcHandler:say("Você uniu o calor da forja à força do aço. Está pronto para a " .. c("{Lâmina Vulcânica}", COR.ITEM_EPICO) .. ".", npc, player)
     player:learnHabilidade(HAB_LAMINA_VULCANICA)
 end
+8.6 ARMAS ELEMENTAIS E SINERGIA ELEMENTAL
+
+Quests podem recompensar o jogador com armas que possuem elementalBond ou
+elementType definidos. Ao equipá‑las, a Sinergia Elemental do SPA v4.2 activa
+automaticamente as habilidades do domínio elemental correspondente. O NPC deve
+comentar essa ligação especial.
+
+Exemplo (Ferryn, o Ferreiro Arcano, entrega uma Espada de Fogo):
+
+lua
+player:addItem(3280, 1) -- ID da Espada de Fogo
+enviarMsgColorida(player, c("Você recebeu uma ", COR.RARIDADE_OURO) .. c("Espada de Fogo", COR.ELEM_FOGO) .. c("!", COR.RARIDADE_OURO))
+npcHandler:say("Essa lâmina não é forjada apenas com aço. O " .. c("fogo", COR.ELEM_FOGO) .. " vive nela. Empunhe‑a e descobrirá que o elemento a reconhece.", npc, player)
+-- A partir deste momento, o SPA v4.2 activa automaticamente habilidades de Fogo e Ar (23)
+8.7 QUESTS DE MAESTRIA (NÍVEL 20)
+
+Quests especiais podem ser desbloqueadas quando o jogador atinge a Maestria
+(nível 20) num Domínio. Estas quests consagram o Aventureiro como Mestre e
+podem conceder habilidades únicas, títulos narrativos e o reconhecimento eterno
+do mundo.
+
+Exemplo (A Prova do Mestre das Chamas):
+
+lua
+local nivelFogo = getNivelPorAfinidade(player:getDominioAfinidade(DOMINIO_FOGO_AR) or 0)
+if nivelFogo >= 20 then
+    npcHandler:say("Você é um " .. c("Mestre das Chamas", COR.RARIDADE_LENDARIO) .. ". O fogo nunca o abandonará. Está pronto para a sua prova final?", npc, player)
+end
 📟 9. USO DOS OPCODES DO SPA NAS QUESTS
 
 Além dos opcodes 180 (HUD) e 181 (toast), as quests podem utilizar:
@@ -452,7 +499,7 @@ Todos estes opcodes estão na faixa reservada 180‑199 e os listeners devem ser
 Checklist obrigatório antes de marcar uma quest como "Concluída":
 
 ☐ Os diálogos do NPC usam {chaves} para destacar ações, itens e locais.
-☐ As cores do SPA são usadas para reforçar elementos narrativos (itens, locais, recompensas).
+☐ As cores do SPA v4.2 são usadas para reforçar elementos narrativos (itens, locais, recompensas, tipos de missão).
 ☐ NÃO há chamadas para player:showModalWindow() no fluxo da missão.
 ☐ Ao aceitar a missão, Opcode 180 é enviado para exibir/actualizar o HUD de Missões.
 ☐ Ao coletar itens, o progresso no HUD é actualizado em tempo real.
@@ -469,6 +516,8 @@ Checklist obrigatório antes de marcar uma quest como "Concluída":
 ☐ Se a quest ensina uma habilidade, player:learnHabilidade é usado e o jogador é notificado com cor.
 ☐ Se a quest envolve um item de conhecimento, o opcode 184 é usado correctamente (envio pelo servidor; cliente pendente).
 ☐ Se a quest recompensa com afinidade, adicionarAfinidade é chamado com pontos apropriados.
+☐ Se a quest entrega uma arma elemental, o NPC comenta a Sinergia Elemental.
+☐ Se a quest celebra a Maestria (nível 20), o NPC confere título e reconhece o Vínculo permanente.
 ☐ O feedback NUNCA contém números de Afinidade, níveis de Domínio ou termos técnicos.
 
 📝 11. EXEMPLO COMPLETO ACTUALIZADO: QUEST "O LAMENTO DA SEREIA"
@@ -480,7 +529,7 @@ lua
 --[[
 Projeto MCR – NPC Sereia Lunar
 Quest: O Lamento da Sereia
-Versão: 7.0 (com integração ao SPA v3.2.0 e cores)
+Versão: 7.1 (com integração ao SPA v4.2 e cores v9.1)
 Salvar como: ISO-8859-1
 --]]
 
@@ -687,18 +736,20 @@ Utilize SEMPRE o módulo pronouns.lua; não use storage 100001.
 
 A progressão de intimidade deve ser visível na linguagem.
 
-⚠️ SPA v3.2.0 – Todos os métodos de progressão estão disponíveis; não é necessário verificar existência.
+⚠️ SPA v4.2 – Todos os métodos de progressão estão disponíveis; não é necessário verificar existência.
 
-⚠️ SPA v3.2.0 – Ao conceder afinidade, use adicionarAfinidade() (que acumula no buffer) e deixe o descarregamento para o think do SPA.
+⚠️ SPA v4.2 – Ao conceder afinidade, use adicionarAfinidade() (que acumula no buffer) e deixe o descarregamento para o think do SPA.
 
-⚠️ SPA v3.2.0 – Cuidado com spam de notificações; assegure cooldown entre toasts.
+⚠️ SPA v4.2 – Armas elementais entregues como recompensa ativarão automaticamente a Sinergia Elemental. O NPC deve comentar isso.
+
+⚠️ SPA v4.2 – Cuidado com spam de notificações; assegure cooldown entre toasts.
 
 ⚠️ REVSCRIPT – Scripts devem estar nas pastas certas. O exemplo acima deve ser colocado em MCR/Tutorial/.
 
 🔍 CHECKLIST DE REVISÃO PARA O ASSISTENTE (QUESTS)
 
 ☐ Diálogos usam {chaves} para destacar ações, itens e locais?
-☐ Cores do SPA aplicadas (COR.NPC_, COR.ITEM_, COR.DOM_*)?
+☐ Cores do SPA v4.2 aplicadas (COR.NPC_, COR.ITEM_, COR.DOM_*, COR.MISSAO_*)?
 ☐ NENHUMA chamada a player:showModalWindow() no fluxo de progresso da missão?
 ☐ Ao aceitar, Opcode 180 enviado para HUD?
 ☐ Ao concluir, HUD limpo e Opcode 181 enviado para Toast?
@@ -714,16 +765,18 @@ A progressão de intimidade deve ser visível na linguagem.
 ☐ Inclui definição de pronome (tópico 200) se o jogador não o tiver?
 ☐ Se a quest desperta um Domínio, despertarDominio é chamado e o NPC reage narrativamente?
 ☐ Se a quest ensina uma habilidade, player:learnHabilidade é usado e notificado com cor?
+☐ Se a quest entrega uma arma elemental, o NPC comenta a Sinergia Elemental?
+☐ Se a quest celebra a Maestria, o NPC confere título e reconhece o Vínculo permanente?
 ☐ O feedback de despertar/habilidade usa narrativa poética, sem números?
 ☐ Itens de conhecimento usam opcode 184 (envio pelo servidor; cliente pendente)?
-☐ O sistema de progressão (Domínios, Lampejos, Vínculos) é respeitado e não exposto tecnicamente?
+☐ O sistema de progressão (Domínios, Lampejos, Vínculos, Maestria, Sinergia Elemental) é respeitado e não exposto tecnicamente?
 
 📤 COMO ATUALIZAR O REPOSITÓRIO GIT
 
 text
 git add "<arquivos alterados>"
-git commit -m "feat(quest): Atualiza guia SQH com SPA v3.2.0, cores e métodos completos"
+git commit -m "feat(quest): Atualiza guia SQH com SPA v4.2, Sinergia Elemental, Maestria e cores v9.1 (v7.1)"
 git push origin main
 ⚠️ PowerShell: aspas duplas em caminhos com espaços.
 
-FIM DO GUIA DE QUESTS (SISTEMA HÍBRIDO SQH) — VERSÃO 7.0
+FIM DO GUIA DE QUESTS (SISTEMA HÍBRIDO SQH) — VERSÃO 7.1

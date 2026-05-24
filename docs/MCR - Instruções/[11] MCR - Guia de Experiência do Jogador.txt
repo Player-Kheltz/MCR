@@ -1,19 +1,21 @@
 PROJETO MCR – GUIA DE EXPERIÊNCIA DO JOGADOR
-Versão 4.2 – A jornada completa, do Alma ao herói, com SPA v3.2.1, sistema de cores e progressão totalmente activa
+Versão 4.2.1 – A jornada completa, do Alma ao herói, com SPA v4.2, sistema de cores, sinergia elemental e progressão totalmente activa
 Arquivo: [11] MCR - Guia de Experiência do Jogador.txt
 
 🎯 OBJETIVO DESTE GUIA
 Fornecer ao assistente/desenvolvedor uma visão completa e integrada daquilo que o jogador vê, sente e percorre no Projeto MCR — do primeiro clique no Salão dos Destinos até à consagração como herói de um mundo vivo. Este guia funciona como bússola de design: cada decisão técnica (interface, fluxo de criação, diálogos, progressão) deve ser validada contra a experiência descrita aqui. Se um sistema não contribui para esta jornada, ou a enfraquece, está a violar os pilares do projecto.
 
-A versão 4.2 celebra o **Sistema de Progressão do Aventureiro (SPA v3.2.1)** totalmente implementado. Todas as mecânicas descritas — Domínios, Lampejos, Vínculos, Maestria (Vínculo permanente), Posturas de Combate, sistema de cores, interacção com palavras clicáveis — estão **activas e funcionais** no servidor. O tom mantém‑se imersivo e poético, mas o texto técnico foi actualizado para reflectir a natureza exacta da Maestria e a terminologia «habilidades de gatilho».
+A versão 4.2.1 celebra o **Sistema de Progressão do Aventureiro (SPA v4.2)** totalmente implementado. Todas as mecânicas descritas — Domínios, Lampejos, Vínculos, Maestria (Vínculo permanente), Posturas de Combate, sinergia elemental, Arremesso de Escudo, sistema de cores, interacção com palavras clicáveis — estão **activas e funcionais** no servidor. O tom mantém‑se imersivo e poético, mas o texto técnico foi actualizado para reflectir a natureza exacta da Maestria, a sinergia elemental e a terminologia «habilidades de gatilho».
 
 🚧 ESTADO ATUAL DA IMPLEMENTAÇÃO
 Todos os elementos descritos neste guia são jogáveis:
 - Fluxo do Salão dos Destinos, criação de conta/personagem sem vocação, máscara de Alma, transição para Eridanus.
-- SPA v3.2.1: buffer de progressão, Lampejos, Vínculos, Maestria (Vínculo permanente), Posturas, habilidades de gatilho, sinergias.
-- Sistema de cores (tabela COR, função c()) e palavras clicáveis nos diálogos.
-- SQH (missões) com HUD, toasts e cores.
+- SPA v4.2: buffer de progressão, Lampejos, Vínculos, Maestria (Vínculo permanente no nível 20), Posturas, habilidades de gatilho, sinergias, sinergia elemental.
+- Sistema de cores (tabela COR v9.1) e palavras clicáveis nos diálogos.
+- SQH (missões) com HUD, toasts e cores temáticas (MISSAO_MATAR, MISSAO_COLETAR, etc.).
 - Progressão de intimidade e pronomes.
+- Arremesso de Escudo (domínio 140) como estilo de combate distinto (escudo sem arma).
+- Chi, Virtudes (Harmony, Justice, Sustain) e Serenidade para o caminho do Desarmado.
 - Elementos visuais avançados (opcodes 182, 183, 184) já estão planeados e podem ser activados no cliente; enquanto isso, o feedback textual e colorido cumpre o seu papel.
 
 ⚠️ REGRAS DE REVISÃO PARA O ASSISTENTE (EXPERIÊNCIA DO JOGADOR)
@@ -24,10 +26,10 @@ Ao projectar ou modificar QUALQUER sistema, interface ou interacção, o assiste
 - **Respeito pela identidade** — O mundo reconhece o pronome do personagem e reage de forma coerente. Nenhum NPC trata o jogador de forma genérica quando já existe relação. A progressão dos Domínios torna‑se visível na forma como os outros o tratam.
 - **Feedback constante** — Cada acção tem resposta visual ou textual: HUD, toasts, falas de NPC, mensagens coloridas no chat. O jogador nunca se pergunta "funcionou?".
 - **Curva de aprendizagem suave** — Os primeiros passos ensinam sem parecer um tutorial. O Salão dos Destinos, o Oráculo e as primeiras missões são a escola natural do aventureiro.
-- **Progressão com significado** — Realizar acções (combater, minerar, criar runas) faz o Aventureiro evoluir em Domínios. Todos os níveis, despertar de Domínios e Maestria são imediatos e visíveis. A Maestria garante um Vínculo permanente com o domínio.
+- **Progressão com significado** — Realizar acções (combater, minerar, criar runas, arremessar o escudo) faz o Aventureiro evoluir em Domínios. Todos os níveis, despertar de Domínios e Maestria são imediatos e visíveis. A Maestria garante um Vínculo permanente com o domínio. A sinergia elemental permite que armas mágicas (Espada de Fogo, Bastão de Gelo) desbloqueiem habilidades elementais automaticamente.
 - **Estilo dual** — Usar um tom inspirador e imersivo para descrever a experiência, e um tom técnico e directo para explicar o fluxo ao assistente.
 - **Sistema de Cores** — As palavras‑chave (acções, itens, locais, habilidades, domínios, valores) devem ser coloridas usando a função `c(texto, cor)`. **Nunca colorir frases inteiras.** As palavras coloridas são clicáveis; os NPCs devem fornecer explicações breves e retornar ao contexto original.
-- **Modularidade Revscript** — A experiência é suportada por scripts organizados em `data-canary/scripts/MCR/`. Os módulos base (`texto_colorido.lua`, `pronouns.lua`, `npc_utils.lua`) em `MCR/Geral/` são carregados automaticamente.
+- **Modularidade Revscript** — A experiência é suportada por scripts organizados em `data-canary/scripts/MCR/SPA/` (subpastas core/, habilidades/, comandos/). Os módulos base (`texto_colorido.lua` v9.1, `pronouns.lua`, `npc_utils.lua`) em `MCR/Geral/` são carregados automaticamente.
 
 🌌 1. A PORTA ENTRE MUNDOS — O SALÃO DOS DESTINOS
 
@@ -59,15 +61,15 @@ Fluxo técnico para o assistente:
 "O templo de principiantes recebe o aventureiro com a luz suave de velas e o murmúrio de fontes antigas. Não há pressa. Um NPC ancião aproxima‑se e oferece as boas‑vindas, tratando‑o pelo pronome que o Oráculo já registou. As primeiras tarefas — 'leva este recado ao ferreiro', 'apanha ervas para o boticário' — são simples, mas revelam que este mundo fala, reage e lembra."
 
 Estrutura para o assistente:
-- O script de posicionamento inicial (parte de `login.lua` na pasta `MCR/SPA`) coloca o novo personagem na Praia do Náufrago.
+- O script de posicionamento inicial (parte de `login.lua` na pasta `MCR/SPA/core`) coloca o novo personagem na Praia do Náufrago.
 - O NPC Eldrin, o Guardião, é o primeiro a saudar. Utiliza o módulo `pronouns.lua` para flexionar o discurso e a função `c()` para colorir palavras como `c(Eldrin, COR.NPC_NOME)`, `c(aceitar, COR.NPC_INTENCAO)`.
 - As primeiras missões (SQH) são mini‑tutoriais disfarçados: ensinam a usar o chat (reconhecer palavras coloridas e clicáveis), a entregar itens, a equipar armas e a ver o progresso no HUD.
-- Durante o tutorial, o jogador desperta organicamente os primeiros Domínios: Lâminas Leves ao treinar com Thorne, Terra e Magia Natural ao colher ervas com Lyra, Fogo ao criar a primeira runa, Mineração ao usar a picareta com Mira, Pesca ao lançar a vara com Corvus. Em cada momento, uma mensagem narrativa colorida sinaliza a mudança — por exemplo, `c("O aço já não é um estranho em suas mãos.", COR.SISTEMA_NEUTRO)` — e um toast pode reforçar o despertar.
+- Durante o tutorial, o jogador desperta organicamente os primeiros Domínios: Lâminas Leves ao treinar com Thorne, Terra e Magia Natural ao colher ervas com Lyra, Fogo ao criar a primeira runa, Mineração ao usar a picareta com Mira, Pesca ao lançar a vara com Corvus, Arremesso de Escudo ao empunhar apenas um escudo com Thorne. Em cada momento, uma mensagem narrativa colorida sinaliza a mudança — por exemplo, `c("O aço já não é um estranho em suas mãos.", COR.SISTEMA_NEUTRO)` — e um toast pode reforçar o despertar.
 - Se o jogador clicar numa palavra como `c("Lâminas", COR.DOM_COMBATE_LAMINAS)` durante a conversa, o NPC explica o significado do domínio e retorna ao assunto anterior, sem perder o progresso.
 
 📜 4. O MUNDO REAGE — PERSONALIZAÇÃO E IMERSÃO NARRATIVA
 
-"Ao contrário dos mundos estáticos, no Projeto MCR a identidade do jogador ecoa. À medida que o Aventureiro mergulha no fogo, na forja ou na floresta, os habitantes percebem. Um ferreiro que antes resmungava agora acena com respeito, porque sente a afinidade do Aventureiro com o Craft. Um mestre espadachim sussurra sobre técnicas secretas apenas para aqueles cujo Vínculo com as Lâminas já é profundo. Cada NPC tem personalidade própria: o sábio fala com poesia, o mercador com astúcia, o guarda com secura."
+"Ao contrário dos mundos estáticos, no Projeto MCR a identidade do jogador ecoa. À medida que o Aventureiro mergulha no fogo, na forja ou na floresta, os habitantes percebem. Um ferreiro que antes resmungava agora acena com respeito, porque sente a afinidade do Aventureiro com o Craft. Um mestre espadachim sussurra sobre técnicas secretas apenas para aqueles cujo Vínculo com as Lâminas já é profundo. E quando um Aventureiro atinge a Maestria, o mundo reconhece‑o como um verdadeiro Mestre — e esse título jamais se desvanece. Cada NPC tem personalidade própria: o sábio fala com poesia, o mercador com astúcia, o guarda com secura."
 
 Mecanismos envolvidos:
 - **Pronomes:** `Pronouns.getSubject(player)`, `getObject()`, `getPossessive()` — todos os NPCs usam.
@@ -76,12 +78,13 @@ Mecanismos envolvidos:
 - **Cores nos diálogos:** cada NPC utiliza as constantes `COR.NPC_*` apropriadas.
 - **Palavras clicáveis explicativas:** quando o jogador clica numa palavra como `c("Lâminas", COR.DOM_COMBATE_LAMINAS)`, o NPC responde com uma breve explicação e retorna ao fluxo anterior.
 - **Reacção a Domínios e Estados de Alma:** Os NPCs agora verificam `getNivelPorAfinidade()` e `getDominioState()` para oferecer diálogos contextualizados (ex.: o ferreiro elogia a vossa mestria em Lâminas; o arquivista sente o Vínculo com o Fogo). Quando o jogador atinge a **Maestria** (nível 20), o Vínculo torna‑se permanente, e os NPCs podem notar essa diferença: "O fogo nunca mais te abandonará, pois és um Mestre das Chamas."
+- **Reacção à sinergia elemental:** Um NPC mago pode notar quando o Aventureiro empunha uma arma imbuída com um elemento: "Essa lâmina carrega o poder do fogo... Vejo que o elemento já te reconhece."
 
 ⚔️ 5. PROGRESSÃO E SISTEMAS DE JOGO
 
 O jogador avança através de:
 
-- **Domínios e Especializações** — Tudo o que o Aventureiro faz contribui para a sua mestria. O feedback vem do mundo com mensagens coloridas: `c("Sua afinidade com ", COR.SISTEMA_INFO) .. c("Lâminas", COR.DOM_COMBATE_LAMINAS) .. c(" se aprofunda.", COR.SISTEMA_INFO)`
+- **Domínios e Especializações** — Tudo o que o Aventureiro faz contribui para a sua mestria. O feedback vem do mundo com mensagens coloridas: `c("Sua afinidade com ", COR.SISTEMA_INFO) .. c("Lâminas", COR.DOM_COMBATE_LAMINAS) .. c(" se aprofunda.", COR.SISTEMA_INFO)`. O novo domínio **Arremesso de Escudo** (140) permite que um Aventureiro sem arma, mas com escudo, lute à distância, arremessando o escudo como um projétil contundente.
 
 - **Estados de Alma (Lampejo e Vínculo)** — Manifestações automáticas da afinidade. Quando um Vínculo se forma, o jogador vê: `c("Você aprofunda um Vínculo com ", COR.SISTEMA_INFO) .. c("Lâminas", COR.DOM_COMBATE_LAMINAS) .. c(".", COR.SISTEMA_INFO)`. A palavra do domínio é colorida e clicável. Ao atingir o nível 20, esse Vínculo torna‑se **permanente** — o jogador não precisa mais manter o estilo para usufruir dos bónus.
 
@@ -89,7 +92,9 @@ O jogador avança através de:
 
 - **Posturas de Combate (Ímpeto, Equilíbrio, Guarda)** — Usando os modos de luta nativos, o jogador altera dinamicamente o comportamento. Ao mudar de postura, recebe: `c("Postura ajustada: ", COR.POSTURA_INFO) .. c("Ímpeto", COR.POSTURA_IMPETO) .. c(" adaptada à sua arma.", COR.POSTURA_INFO)`.
 
-- **Habilidades de Gatilho e Sinergias** — As habilidades que disparam em combate (de gatilho) são o coração do SPA. Ao activar uma, o jogador vê: `c("[" .. hab.nome .. "] ", hab.cor) .. mensagem .. "! " .. c(hab.descricaoEfeito, COR.COMBO_AVISO)`. Sinergias desbloqueiam‑se automaticamente quando dois domínios atingem o nível 15.
+- **Habilidades de Gatilho e Sinergias** — As habilidades que disparam em combate (de gatilho) são o coração do SPA. Ao activar uma, o jogador vê: `c("[" .. hab.nome .. "] ", hab.cor) .. mensagem .. "! " .. c(hab.descricaoEfeito, COR.COMBO_AVISO)`. Sinergias desbloqueiam‑se automaticamente quando dois domínios atingem o nível 15. A **sinergia elemental** permite que uma arma de fogo (ex.: Espada de Fogo) active automaticamente habilidades do domínio Fogo e Ar (23), além das habilidades de Espadas.
+
+- **Chi, Virtudes e Serenidade** — Exclusivos do caminho Desarmado. O Aventureiro acumula Chi ao atacar, pode gastá‑lo em habilidades poderosas, e adoptar uma Virtude (Harmony, Justice, Sustain) que molda o seu estilo de luta. A Serenidade é alcançada com o Chi no máximo ou na Maestria.
 
 - **Missões (SQH)** — Oferecidas no chat com palavras coloridas conforme o tipo: `c("Matar 5 Orcs", COR.MISSAO_MATAR)`, `c("Coletar 10 Ervas", COR.MISSAO_COLETAR)`, etc. HUD (opcode 180) e toasts (opcode 181) mantêm o progresso visível.
 
@@ -121,6 +126,7 @@ Regras técnicas:
 - **Imersão narrativa** com palavras clicáveis e coloridas
 - **Respeito à identidade**
 - **Progressão horizontal e orgânica** com Maestria garantindo Vínculo permanente
+- **Sinergia elemental** que recompensa a combinação de estilos
 - **Tradução total para PT‑BR**
 - **Sistema de cores inteligente**
 - **Código aberto e customizável**
@@ -139,7 +145,7 @@ Regras técnicas:
 | Missões e progresso visual | [7] Quests (Sistema Híbrido SQH) |
 | Codificação de textos e cores | [10] Tradução e Localização (PT‑BR) |
 | Interface do cliente | [5] Interface (OTUI e Lua Cliente) |
-| Progressão do Aventureiro | [Documentação] SPA v3.2.1 |
+| Progressão do Aventureiro | [Documentação] SPA v4.2 |
 | Tutorial de Eridanus | [12] Conteúdo Inicial e Tutorial |
 | Configuração de portas e redes | [3] Configuração (Servidor e Rede) |
 | Autenticação e guest accounts | [4] Login Server |
@@ -162,19 +168,22 @@ Regras técnicas:
 ☐ HUD (180) e toasts (181) com cores temáticas?
 ☐ Mensagens de progressão usam `c()` para colorir domínios e habilidades?
 ☐ Posturas alteradas pelos modos nativos com feedback colorido?
+☐ Arremesso de Escudo (140) acessível ao usar escudo sem arma?
+☐ Sinergia elemental activa habilidades mágicas com armas elementais?
 ☐ Progressão de intimidade afecta a linguagem?
 ☐ Janelas modais apenas para Banco, Loja, conhecimento e acções irreversíveis?
 ☐ Texto visível em PT‑BR, ISO‑8859‑1 (Lua) ou escapes octais (C++)?
 ☐ Sistemas sociais acessíveis e funcionais?
 ☐ A Maestria garante Vínculo permanente, e isso está reflectido no feedback?
+☐ O sistema de Chi e Virtudes funciona para o caminho Desarmado?
 
 📤 COMO ATUALIZAR O REPOSITÓRIO GIT
 
 ```bash
 git add "docs/MCR - Guia de Experiencia do Jogador.txt"
-git commit -m "docs: atualiza Guia de Experiência do Jogador v4.2 (Maestria = Vínculo permanente, terminologia gatilho)"
+git commit -m "docs: atualiza Guia de Experiência do Jogador v4.2.1 (SPA v4.2, sinergia elemental, Arremesso de Escudo)"
 git push origin main
 
 ⚠️ PowerShell: aspas duplas em caminhos com espaços.
 
-FIM DO GUIA DE EXPERIÊNCIA DO JOGADOR — VERSÃO 4.2
+FIM DO GUIA DE EXPERIÊNCIA DO JOGADOR — VERSÃO 4.2.1

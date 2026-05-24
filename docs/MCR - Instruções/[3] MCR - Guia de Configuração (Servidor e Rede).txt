@@ -1,5 +1,5 @@
 PROJETO MCR – GUIA DE CONFIGURAÇÃO (SERVIDOR E REDE)
-Versão 4.0 – Suporte ao Sistema de Progressão do Aventureiro (SPA v3.2.0), novas faixas de storages, opcodes e estrutura Revscript
+Versão 4.1 – Suporte ao Sistema de Progressão do Aventureiro (SPA v4.2), novas faixas de storages, opcodes e estrutura Revscript consolidada
 Arquivo: [3] MCR - Guia de Configuração (Servidor e Rede).txt
 
 🎯 OBJETIVO DESTE GUIA
@@ -17,29 +17,31 @@ Configuração do banco de dados (acesso e charset).
 
 Definição dos pronomes do personagem (coluna nativa players.pronoun) e do pronome da conta (accounts.player_pronoun).
 
-Faixas de storages reservados para o SPA e sistemas globais.
+Faixas de storages reservados para o SPA v4.2 e sistemas globais.
 
-Estrutura de pastas Revscript para os scripts do SPA (data-canary/scripts/MCR/SPA/ e Geral/).
+Estrutura de pastas Revscript para os scripts do SPA (data-canary/scripts/MCR/SPA/core/, habilidades/, comandos/ e Geral/).
 
 Referência às ferramentas de automação (pipeline de tradução).
 
 Versionamento com Git (boas práticas).
 
-Toda vez que for necessário ajustar uma porta, adicionar uma flag ou depurar um erro de conexão, este guia é a referência primária. A versão 4.0 actualiza as faixas de opcodes e storages para acomodar o SPA v3.2.0, confirma a disponibilidade de todos os métodos C++ e incorpora a nova estrutura de scripts modulares.
+Toda vez que for necessário ajustar uma porta, adicionar uma flag ou depurar um erro de conexão, este guia é a referência primária. A versão 4.1 actualiza as faixas de opcodes e storages para acomodar o SPA v4.2, confirma a disponibilidade de todos os métodos C++ e incorpora a nova estrutura de scripts modulares (core/, habilidades/, comandos/).
 
 🚧 ESTADO ATUAL DA IMPLEMENTAÇÃO
 
-O SPA v3.2.0 está totalmente implementado no servidor:
+O SPA v4.2 está totalmente implementado no servidor:
 
-Todos os métodos C++ necessários (getDominioAfinidade, addDominioAfinidadeBatch, registerDominioAction, getDominioState, setAttackSpeedModifier, knockback, setStorages, etc.) estão disponíveis e a funcionar.
+Todos os métodos C++ necessários (getDominioAfinidade, addDominioAfinidadeBatch, registerDominioAction, getDominioState, setAttackSpeedModifier, knockback, setStorages, getAmmo, setCombatModifier, etc.) estão disponíveis e a funcionar.
 
-Os scripts em data-canary/scripts/MCR/SPA/ e Geral/ estão completos e são carregados automaticamente pelo Revscript.
+Os scripts em data-canary/scripts/MCR/SPA/core/ e subpastas estão completos e são carregados automaticamente pelo Revscript.
 
 As faixas de storages e opcodes aqui definidas são aplicáveis de imediato.
 
 Os opcodes 182, 183 e 184 estão reservados para feedback visual do SPA; os listeners no cliente ainda precisam ser implementados (ver Guia [2]).
 
 As Posturas de Combate reutilizam o fightMode nativo; nenhuma configuração extra é necessária.
+
+O Arremesso de Escudo (domínio 140) e a Sinergia Elemental são suportados nativamente.
 
 A variável VOCATIONS no .env está definida como "0" (Aventureiro) e é plenamente suportada.
 
@@ -77,13 +79,13 @@ O pronome do personagem é armazenado na coluna nativa players.pronoun. O storag
 
 O pronome da conta (jogador/jogadora) é armazenado em accounts.player_pronoun.
 
-As faixas de storages reservados para sistemas globais (100010+ para intimidade, 50000+ para missões) continuam válidas. As storages do SPA usam a faixa 90000–96999, conforme definido no módulo constantes.lua.
+As faixas de storages reservados para sistemas globais (100010+ para intimidade, 50000+ para missões) continuam válidas. As storages do SPA v4.2 usam a faixa 90000–96999, conforme definido no módulo constantes.lua (SPA/core/).
 
 Os opcodes 182 (ícone de Vínculo), 183 (partículas de Estado de Alma) e 184 (janela de conhecimento) estão reservados para o SPA, dentro da faixa 180‑199. Não há conflito com o SQH.
 
 As Posturas de Combate (Ímpeto, Equilíbrio, Guarda) reutilizam os modos de luta nativos (fightMode). Nenhuma configuração extra é necessária.
 
-Os scripts do SPA são carregados automaticamente pelo Revscript a partir das pastas data-canary/scripts/MCR/SPA/ e data-canary/scripts/MCR/Geral/. O desenvolvedor deve garantir que essas pastas existem e contêm os scripts .lua necessários.
+Os scripts do SPA v4.2 são carregados automaticamente pelo Revscript a partir das pastas data-canary/scripts/MCR/SPA/core/, habilidades/, comandos/ e data-canary/scripts/MCR/Geral/. O desenvolvedor deve garantir que essas pastas existem e contêm os scripts .lua necessários.
 
 📄 1. CONFIGURAÇÃO DO CANARY (config.lua)
 
@@ -158,7 +160,7 @@ OTCFEATURES = {
     imbuementSystem = true,
     analytics = false             -- Sempre desabilitado
 }
-Os opcodes estendidos usados pelo SPA (182, 183, 184) dependem de extendedOpcode = true. Esta flag já está activa e garante a comunicação bidirecional. O canal 24, usado para as mensagens coloridas do SPA, não requer nenhuma flag adicional.
+Os opcodes estendidos usados pelo SPA v4.2 (182, 183, 184) dependem de extendedOpcode = true. Esta flag já está activa e garante a comunicação bidirecional. O canal 24, usado para as mensagens coloridas do SPA, não requer nenhuma flag adicional.
 
 🌐 3. LOGIN SERVER – ARQUIVO .env
 
@@ -183,10 +185,10 @@ SERVER_IP=127.0.0.1
 SERVER_NAME=Projeto MCR
 SERVER_PORT=7173          # ⚠️ DEVE SER 7173 (gamePort), NUNCA 7172. Erro 10060 se errado.
 SERVER_LOCATION=Brasil
-VOCATIONS=0               # Apenas Aventureiro (vocation 0). O SPA substitui as vocações tradicionais.
+VOCATIONS=0               # Apenas Aventureiro (vocation 0). O SPA v4.2 substitui as vocações tradicionais.
 ⚠️ LIÇÃO CRÍTICA: O campo SERVER_PORT é a porta do ProtocolGame (7173). Um valor errado (7172) causou timeout 10060. Verifique SEMPRE essa variável após alterações no config.lua.
 
-⚠️ ATUALIZAÇÃO SPA v3.2.0: A variável VOCATIONS é "0". O MCR não tem múltiplas vocações; todos os personagens são Aventureiros. Se o Login Server exigir uma lista, mantenha apenas {0}.
+⚠️ ATUALIZAÇÃO SPA v4.2: A variável VOCATIONS é "0". O MCR não tem múltiplas vocações; todos os personagens são Aventureiros. Se o Login Server exigir uma lista, mantenha apenas {0}.
 
 🔥 4. FIREWALL E CONECTIVIDADE
 
@@ -233,7 +235,7 @@ sql
 SET PASSWORD FOR 'root'@'localhost' = PASSWORD('<Senha>');
 phpMyAdmin: configurar config.inc.php com $cfg['Servers'][$i]['password'] = '<Senha>'; e $cfg['Servers'][$i]['auth_type'] = 'config'; (para evitar tela de login).
 
-As tabelas do SPA (dominios_def, habilidades_def, player_dominios, player_habilidades) já fazem parte do schema MCR e estão populadas com a hierarquia de domínios actualizada (incluindo Escudo = 15, Runologia = 22, e as Especialidades 100+).
+As tabelas do SPA v4.2 (dominios_def, habilidades_def, player_dominios, player_habilidades) já fazem parte do schema MCR e estão populadas com a hierarquia de domínios actualizada (incluindo Escudo = 15, Runologia = 22, Arremesso de Escudo = 140 e as Especialidades 100+).
 
 📚 6. VERSIONAMENTO COM GIT (BOAS PRÁTICAS)
 
@@ -269,30 +271,32 @@ lua
 local subject = Pronouns.getSubject(player)  -- "he", "she" ou "they"
 Este módulo consulta automaticamente player:getPronoun() e faz fallback para o sexo do personagem quando o valor é 0.
 
-🗂️ 8. STORAGES E OPCODES RESERVADOS PARA O SPA E SISTEMAS GLOBAIS
+🗂️ 8. STORAGES E OPCODES RESERVADOS PARA O SPA v4.2 E SISTEMAS GLOBAIS
 
 A fim de evitar conflitos, as seguintes faixas estão reservadas:
 
 Faixa / ID	Sistema	Descrição
 100010–109999	Intimidade com NPCs	Nível de intimidade: 0=desconhecido, 1=conhecido, 2=amigo, 3=confidente.
 50000–50999	Missões (progresso)	Storages de progresso de missões.
-90000–96999	SPA (Progressão)	Storages de velocidade, dano, regeneração, leech, buffer de afinidade, sintonia, Lampejos, locks de habilidades, buffs, etc. (ver constantes.lua no SPA para a lista exacta).
+90000–96999	SPA (Progressão)	Storages de velocidade, dano, regeneração, leech, buffer de afinidade, sintonia, Lampejos, locks de habilidades, buffs, SkillTrees, Chi, etc. (ver constantes.lua no SPA/core/ para a lista exacta).
 90001	Temporário (accountId)	Usado pelo Oráculo durante gerenciamento de contas.
 Opcodes 180‑199	SQH e SPA	HUD de missões (180), toasts (181), ícone de Vínculo (182), partículas de Estados de Alma (183), janela de conhecimento (184).
 Opcode 200	Migração de conta	Usado pelo Oráculo para transferir o jogador da Alma para a conta permanente.
 Os opcodes 182, 183 e 184 são dedicados ao feedback visual do SPA. O desenvolvedor deve garantir que os listeners no cliente estejam sincronizados com esses números.
 
-As Posturas de Combate NÃO usam opcodes; são baseadas no fightMode enviado pelo cliente (já nativo) e interpretado pelo script postura.lua do lado do servidor.
+As Posturas de Combate NÃO usam opcodes; são baseadas no fightMode enviado pelo cliente (já nativo) e interpretado pelo script postura.lua (SPA/core/) do lado do servidor.
 
 O progresso de Afinidade, níveis e Estados de Alma são armazenados nas tabelas player_dominios e player_habilidades do banco de dados, com buffer temporário em storages (95001+). Storages adicionais podem ser usados para migração, mas devem ser documentados.
 
-🗂️ 9. ESTRUTURA DE PASTAS REVSCRIPT PARA O SPA
+O Arremesso de Escudo (140) e a Sinergia Elemental utilizam as mesmas faixas de storages do SPA (90000+).
+
+🗂️ 9. ESTRUTURA DE PASTAS REVSCRIPT PARA O SPA v4.2
 
 Os scripts do Sistema de Progressão do Aventureiro residem em:
 
 data-canary/scripts/MCR/SPA/
 
-Scripts genéricos e utilitários partilhados (como texto_colorido.lua, pronouns.lua, util_armas.lua, npc_utils.lua) ficam em:
+Scripts genéricos e utilitários partilhados (como texto_colorido.lua v9.1, pronouns.lua, util_armas.lua, npc_utils.lua) ficam em:
 
 data-canary/scripts/MCR/Geral/
 
@@ -301,24 +305,30 @@ O Canary, com suporte a Revscript, carrega automaticamente todos os ficheiros .l
 text
 data-canary/scripts/MCR/
 ├── SPA/
-│   ├── constantes.lua
-│   ├── postura_config.lua
-│   ├── progressao.lua
-│   ├── sintonia.lua
-│   ├── passivas.lua
-│   ├── postura.lua
-│   ├── buff_system.lua
-│   ├── executor_habilidades.lua
-│   ├── eventos.lua
-│   ├── passivas_ataque.lua
-│   ├── login.lua
+│   ├── core/
+│   │   ├── constantes.lua
+│   │   ├── progressao.lua
+│   │   ├── sintonia.lua
+│   │   ├── eventos.lua
+│   │   ├── postura.lua (v6.2)
+│   │   ├── buff_system.lua (v6.1)
+│   │   ├── login.lua
+│   │   ├── think_master.lua (v2.0)
+│   │   ├── skilltree.lua
+│   │   ├── passivas.lua
+│   │   ├── passivas_ataque.lua
+│   │   ├── postura_config.lua
+│   │   └── funcoes_habilidade.lua (v1.0)
 │   ├── habilidades/
+│   │   ├── (ficheiros modulares por domínio)
 │   │   ├── habilidade_gabarito.lua
+│   │   ├── _init_habilidades.lua
 │   │   └── inicializar_habilidades.lua
-│   └── ...
+│   └── comandos/
+│       └── comandos_spa.lua
 ├── Geral/
-│   ├── texto_colorido.lua
-│   ├── util_armas.lua
+│   ├── texto_colorido.lua (v9.1)
+│   ├── util_armas.lua (v6.1)
 │   ├── util_criaturas.lua
 │   ├── util_efeitos.lua
 │   ├── pronouns.lua
@@ -331,7 +341,7 @@ data-canary/scripts/MCR/
 │   ├── eldrin.lua
 │   ├── thorne.lua
 │   └── ...
-Cada script pode conter múltiplos eventos (onLogin, onKill, onFightModeChange, etc.) e é completamente modular. Funções definidas nos módulos em Geral/ e SPA/ tornam‑se globais automaticamente e podem ser chamadas por qualquer outro script sem necessidade de dofile. Por exemplo, as funções c(), enviarMsgColorida(), adicionarAfinidade(), getWeaponEspecialidade() e a tabela COR estão disponíveis globalmente após o carregamento.
+Cada script pode conter múltiplos eventos (onLogin, onKill, onFightModeChange, etc.) e é completamente modular. Funções definidas nos módulos em Geral/ e SPA/core/ tornam‑se globais automaticamente e podem ser chamadas por qualquer outro script sem necessidade de dofile. Por exemplo, as funções c(), enviarMsgColorida(), adicionarAfinidade(), getWeaponEspecialidade(), getElementalProjectile() e a tabela COR (v9.1) estão disponíveis globalmente após o carregamento.
 
 🗺️ 10. CONFIGURAÇÃO DO MAP EDITOR (RME)
 
@@ -369,11 +379,13 @@ Os scripts da pasta MCR/SPA/ são carregados automaticamente (Revscript). Se um 
 
 O módulo pronouns.lua está em data-canary/scripts/MCR/Geral/ e NÃO requer dofile para ser usado.
 
-A tabela COR e a função c() são definidas em texto_colorido.lua (Geral/) e estão disponíveis globalmente. Use c("texto", COR.CONSTANTE) para mensagens coloridas.
+A tabela COR (v9.1) e a função c() são definidas em texto_colorido.lua (Geral/) e estão disponíveis globalmente. Use c("texto", COR.CONSTANTE) para mensagens coloridas.
 
-As storages do SPA (90004–96999) não devem ser usadas por outros sistemas para evitar conflitos. Consulte constantes.lua para a lista exacta.
+As storages do SPA v4.2 (90004–96999) não devem ser usadas por outros sistemas para evitar conflitos. Consulte constantes.lua (SPA/core/) para a lista exacta.
 
 O buffer de afinidade (storages 95001+) é temporário e gerido automaticamente; não o manipule manualmente fora do SPA.
+
+A nova estrutura de pastas (SPA/core/, habilidades/, comandos/) faz parte do SPA v4.2 e deve ser preservada.
 
 🔍 CHECKLIST DE REVISÃO PARA O ASSISTENTE (CONFIGURAÇÃO / INFRAESTRUTURA)
 
@@ -387,19 +399,19 @@ Antes de finalizar qualquer alteração em arquivos de configuração ou sugest�
 ☐ Configuração de charset do banco como utf8mb4 foi mencionada?
 ☐ O pronome do personagem é obtido via players.pronoun e módulo pronouns.lua (sem storage 100001)?
 ☐ O pronome da conta está em accounts.player_pronoun?
-☐ Storages globais e do SPA não estão a ser invadidos por novos sistemas?
-☐ A pasta data-canary/scripts/MCR/SPA/ e MCR/Geral/ existem e contêm os scripts necessários?
+☐ Storages globais e do SPA v4.2 não estão a ser invadidos por novos sistemas?
+☐ A pasta data-canary/scripts/MCR/SPA/core/, habilidades/, comandos/ e MCR/Geral/ existem e contêm os scripts necessários?
 ☐ As Posturas de Combate dependem apenas do fightMode nativo, sem necessidade de config extra?
 ☐ As ferramentas de automação (pipeline) foram consideradas se a alteração envolver tradução de strings?
 ☐ A variável VOCATIONS no .env está definida como "0" (Aventureiro) e documentada?
-☐ As funções globais (COR, c(), adicionarAfinidade, etc.) estão disponíveis e não há conflitos de nomes?
+☐ As funções globais (COR v9.1, c(), adicionarAfinidade, etc.) estão disponíveis e não há conflitos de nomes?
 
 📤 COMO ATUALIZAR O REPOSITÓRIO GIT
 
 text
 git add "<arquivos alterados>"
-git commit -m "feat(config): Atualiza guia de configuração com SPA v3.2.0"
+git commit -m "feat(config): Atualiza guia de configuração com SPA v4.2 e estrutura de pastas consolidada (v4.1)"
 git push origin main
 ⚠️ PowerShell: aspas duplas em caminhos com espaços.
 
-FIM DO GUIA DE CONFIGURAÇÃO (SERVIDOR E REDE) — VERSÃO 4.0
+FIM DO GUIA DE CONFIGURAÇÃO (SERVIDOR E REDE) — VERSÃO 4.1

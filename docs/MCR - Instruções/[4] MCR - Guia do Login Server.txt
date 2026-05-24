@@ -1,15 +1,15 @@
 PROJETO MCR – GUIA DO LOGIN SERVER
-Versão 2.0 – Compatibilidade total com o Sistema de Progressão do Aventureiro (SPA v3.2.0), vocação única (0) e manutenção da limpeza automática
+Versão 2.1 – Compatibilidade total com o Sistema de Progressão do Aventureiro (SPA v4.2), vocação única (0) e manutenção da limpeza automática
 Arquivo: [4] MCR - Guia do Login Server.txt
 
 🎯 OBJETIVO DESTE GUIA
 Fornecer todas as regras, especificações de API, protocolos de erro e lições aprendidas referentes ao Login Server do Projeto MCR. Este componente é responsável por autenticar contas, retornar listas de personagens e gerenciar a criação automática de contas guest (Alma). Toda a comunicação com o cliente é feita via HTTP REST na porta 8080.
 
-Esta versão 2.0 confirma que o Login Server não sofre alterações estruturais com o SPA v3.2.0, uma vez que a progressão, os Domínios, os Lampejos, os Vínculos e as Posturas são geridos inteiramente pelo servidor Canary (C++ e Lua). No entanto, o assistente deve garantir que os personagens criados tenham sempre vocation = 0 (Aventureiro) e que o endpoint /guest_login continue a posicionar o personagem Alma no Salão dos Destinos, de onde o Oráculo o encaminhará para Eridanus após a criação da conta permanente.
+Esta versão 2.1 confirma que o Login Server não sofre alterações estruturais com o SPA v4.2, uma vez que a progressão, os Domínios, a Maestria, a Sinergia Elemental e as Posturas são geridos inteiramente pelo servidor Canary (C++ e Lua). No entanto, o assistente deve garantir que os personagens criados tenham sempre vocation = 0 (Aventureiro) e que o endpoint /guest_login continue a posicionar o personagem Alma no Salão dos Destinos, de onde o Oráculo o encaminhará para Eridanus após a criação da conta permanente.
 
 🚧 ESTADO ATUAL DA IMPLEMENTAÇÃO
 
-O SPA v3.2.0 está totalmente funcional no servidor, mas o Login Server permanece inalterado. Pontos importantes:
+O SPA v4.2 está totalmente funcional no servidor, mas o Login Server permanece inalterado. Pontos importantes:
 
 Os endpoints /register, /login e /guest_login estão implementados e operacionais.
 
@@ -21,7 +21,7 @@ A coluna lastlogin existe na tabela players (confirmado no schema do projeto), m
 
 O padrão error_code (sem acentos) está implementado e o mapeamento para mensagens PT‑BR está no cliente Lua.
 
-A estrutura Revscript do servidor (scripts em data-canary/scripts/MCR/SPA/ e Geral/) não afeta o Login Server, que apenas gere autenticação.
+A estrutura Revscript do servidor (scripts em data-canary/scripts/MCR/SPA/core/ e subpastas) não afeta o Login Server, que apenas gere autenticação.
 
 ⚠️ REGRAS DE REVISÃO PARA O ASSISTENTE (GO – LOGIN SERVER)
 
@@ -47,7 +47,7 @@ A rota /guest_login é um GET e NÃO requer autenticação. Deve criar conta e p
 
 A limpeza de contas guest expiradas é feita pelo próprio Login Server com base na coluna accounts.created_at e na variável de ambiente GUEST_EXPIRATION.
 
-⚠️ ATUALIZAÇÃO SPA v3.2.0: O campo vocation na tabela players deve assumir SEMPRE o valor 0 para novos personagens. Isto aplica‑se tanto ao personagem Alma (criado pelo /guest_login) como a personagens definitivos (criados pelo Oráculo via queries directas). O Login Server não precisa de validar Domínios, Lampejos ou Vínculos; essa lógica pertence ao servidor Canary.
+⚠️ ATUALIZAÇÃO SPA v4.2: O campo vocation na tabela players deve assumir SEMPRE o valor 0 para novos personagens. Isto aplica‑se tanto ao personagem Alma (criado pelo /guest_login) como a personagens definitivos (criados pelo Oráculo via queries directas). O Login Server não precisa de validar Domínios, Lampejos, Vínculos, Maestria ou Sinergia Elemental; essa lógica pertence ao servidor Canary.
 
 📁 ESTRUTURA DO LOGIN SERVER (MCR)
 
@@ -177,7 +177,7 @@ O campo created_at na tabela accounts é preenchido com o timestamp Unix actual.
 
 O campo player_pronoun é definido como 0 (não definido).
 
-⚠️ SPA v3.2.0: O campo vocation do personagem Alma deve ser explicitamente 0 (Aventureiro). O schema já define vocation DEFAULT 0, mas o código Go deve garantir que não há atribuição de vocações antigas (1‑5).
+⚠️ SPA v4.2: O campo vocation do personagem Alma deve ser explicitamente 0 (Aventureiro). O schema já define vocation DEFAULT 0, mas o código Go deve garantir que não há atribuição de vocações antigas (1‑5).
 
 Uma rotina de limpeza remove contas guest inactivas há mais de GUEST_EXPIRATION segundos (padrão 1800 = 30 minutos), utilizando a coluna created_at.
 
@@ -249,9 +249,9 @@ Nome de conta vs Email: O Canary autentica usando o campo email. O Login Server 
 
 Limpeza de contas guest: A rotina de limpeza é executada periodicamente pelo Login Server ou pode ser chamada externamente. Assegure‑se de que a coluna accounts.created_at existe e é preenchida correctamente na criação da conta guest.
 
-⚠️ SPA v3.2.0 – Vocação do personagem convidado: O Alma deve ter vocation = 0. Se o código actual usa um valor hardcoded (ex.: 1 para Knight), corrija para 0. O mesmo se aplica a personagens criados pelo Oráculo (que já usam vocation = 0).
+⚠️ SPA v4.2 – Vocação do personagem convidado: O Alma deve ter vocation = 0. Se o código actual usa um valor hardcoded (ex.: 1 para Knight), corrija para 0. O mesmo se aplica a personagens criados pelo Oráculo (que já usam vocation = 0).
 
-⚠️ SPA v3.2.0 – A variável VOCATIONS no .env foi definida como "0". Se houver código Go que dependa dessa lista, deve ser atualizado para aceitar {0}.
+⚠️ SPA v4.2 – A variável VOCATIONS no .env foi definida como "0". Se houver código Go que dependa dessa lista, deve ser atualizado para aceitar {0}.
 
 🔍 CHECKLIST DE REVISÃO PARA O ASSISTENTE (GO – LOGIN SERVER)
 
@@ -277,8 +277,8 @@ Antes de finalizar qualquer modificação no Login Server, o assistente DEVE ver
 
 text
 git add "<arquivos alterados>"
-git commit -m "feat(auth): Atualiza guia do Login Server com SPA v3.2.0"
+git commit -m "feat(auth): Atualiza guia do Login Server com SPA v4.2 e vocação única (v2.1)"
 git push origin main
 ⚠️ PowerShell: aspas duplas em caminhos com espaços.
 
-FIM DO GUIA DO LOGIN SERVER — VERSÃO 2.0
+FIM DO GUIA DO LOGIN SERVER — VERSÃO 2.1

@@ -1,5 +1,5 @@
 ﻿PROJETO MCR – GUIA DE INTERFACE (OTUI E LUA CLIENTE)
-Versão 3.0 – Integração com o Sistema de Progressão do Aventureiro (SPA v3.2.0), suporte a cores nativas (canal 24), opcodes 182/183/184 e Posturas nativas
+Versão 3.1 – Integração com o Sistema de Progressão do Aventureiro (SPA v4.2), suporte a cores nativas (canal 24), opcodes 182/183/184 e Posturas nativas
 Arquivo: [5] MCR - Guia de Interface (OTUI e Lua Cliente).txt
 
 🎯 OBJETIVO DESTE GUIA
@@ -21,11 +21,11 @@ A máscara de Alma na lista de personagens (integração com entergame.lua).
 
 Callback do opcode 200 para migração instantânea de conta.
 
-Os opcodes do SPA v3.2.0: 182 (ícone de Vínculo), 183 (partículas de Estados de Alma) e 184 (janela de conhecimento) — especificação para implementação.
+Os opcodes do SPA v4.2: 182 (ícone de Vínculo/Maestria), 183 (partículas de Estados de Alma) e 184 (janela de conhecimento) — especificação para implementação.
 
 A reutilização dos modos de luta nativos (Full Attack, Balanced, Full Defense) para as Posturas de Combate.
 
-A exibição das mensagens coloridas do SPA através do canal 24 (suporte nativo do cliente, sem necessidade de alterações no motor).
+A exibição das mensagens coloridas do SPA v4.2 através do canal 24 (suporte nativo do cliente, sem necessidade de alterações no motor).
 
 Referência à pipeline de tradução para manter a interface em PT‑BR.
 
@@ -33,13 +33,13 @@ Sempre que o assistente for criar uma janela, modificar um layout .otui ou escre
 
 🚧 ESTADO ATUAL DA IMPLEMENTAÇÃO
 
-O SPA v3.2.0 está totalmente funcional no servidor e se comunica com o cliente da seguinte forma:
+O SPA v4.2 está totalmente funcional no servidor e se comunica com o cliente da seguinte forma:
 
 O opcode 200 (migração de conta) está implementado e funcional.
 
 As Posturas de Combate usam os modos de luta nativos do cliente, que já funcionam; nenhuma modificação de interface é necessária.
 
-O sistema de cores do SPA (tabela COR, função c()) envia mensagens coloridas pelo canal 24. O OTClient Redemption suporta este canal nativamente — nenhuma modificação é necessária para que as cores apareçam correctamente.
+O sistema de cores do SPA v4.2 (tabela COR v9.1, função c()) envia mensagens coloridas pelo canal 24. O OTClient Redemption suporta este canal nativamente — nenhuma modificação é necessária para que as cores apareçam correctamente.
 
 Os listeners para os opcodes 182, 183 e 184 ainda não existem nos módulos Lua do cliente. As especificações neste guia servem de referência para quando forem implementados.
 
@@ -65,11 +65,11 @@ Máscara de Alma: Qualquer alteração na lista de personagens deve preservar a 
 
 Tradução de interfaces: Todas as strings fixas devem estar em PT‑BR. Para modificações em massa, pode‑se utilizar a pipeline de tradução automática (scripts Python descritos no Índice Geral). Scripts Lua resultantes devem ser convertidos para ISO‑8859‑1 antes de serem salvos.
 
-⚠️ SPA v3.2.0: Os opcodes 182, 183 e 184 são dedicados ao feedback do SPA. O cliente DEVE ter listeners implementados para eles (nos módulos Lua apropriados). Consulte a secção 9.
+⚠️ SPA v4.2: Os opcodes 182, 183 e 184 são dedicados ao feedback do SPA. O cliente DEVE ter listeners implementados para eles (nos módulos Lua apropriados). Consulte a secção 9.
 
-⚠️ SPA v3.2.0: As Posturas de Combate (Ímpeto, Equilíbrio, Guarda) reutilizam os modos de luta nativos do cliente (Full Attack, Balanced, Full Defense). Nenhuma alteração visual ou estrutural é necessária.
+⚠️ SPA v4.2: As Posturas de Combate (Ímpeto, Equilíbrio, Guarda) reutilizam os modos de luta nativos do cliente (Full Attack, Balanced, Full Defense). Nenhuma alteração visual ou estrutural é necessária.
 
-⚠️ SPA v3.2.0 – Cores: As mensagens coloridas geradas pelo servidor (via enviarMsgColorida e canal 24) são exibidas nativamente. O cliente não precisa de alterações para suportar este recurso.
+⚠️ SPA v4.2 – Cores: As mensagens coloridas geradas pelo servidor (via enviarMsgColorida e canal 24) são exibidas nativamente. O cliente não precisa de alterações para suportar este recurso. A tabela COR está na versão 9.1.
 
 📐 1. SINTAXE OTUI (ARQUIVOS .otui)
 
@@ -307,17 +307,17 @@ ProtocolGame.registerExtendedOpcode(200, function(protocol, opcode, buffer)
 end)
 Este código garante uma transição praticamente instantânea entre a Alma e o personagem definitivo, sem atrasos artificiais. A função g_game.logout(false) foi implementada em C++ (Game::logout) e registada em luafunctions.cpp.
 
-📡 9. NOVOS OPCODES DO SPA v3.2.0 (A IMPLEMENTAR NO CLIENTE)
+📡 9. NOVOS OPCODES DO SPA v4.2 (A IMPLEMENTAR NO CLIENTE)
 
 O SPA introduz três Extended Opcodes para feedback visual. O cliente DEVE possuir listeners para todos eles. Actualmente, estes listeners ainda não foram implementados — as especificações abaixo servem de guia para a implementação, que pode ser feita num módulo dedicado (ex.: modules/game_spa/spa_opcodes.lua, salvo como ISO‑8859‑1).
 
-9.1 OPCODE 182 – ÍCONE DO VÍNCULO (ESTADO DE ALMA)
+9.1 OPCODE 182 – ÍCONE DO VÍNCULO / MAESTRIA (ESTADO DE ALMA)
 
-Objectivo: Actualizar o ícone no HUD que representa a especialização dominante (aquela em Vínculo activo).
+Objectivo: Actualizar o ícone no HUD que representa a especialização dominante (aquela em Vínculo activo ou Maestria permanente).
 
-Dados recebidos (JSON): { "dominioId": 100, "tooltip": "O aço canta nas suas mãos." }
+Dados recebidos (JSON): { "dominioId": 100, "tooltip": "O aço canta nas suas mãos.", "maestria": false }
 
-Comportamento do cliente: Exibir ou actualizar o ícone no canto superior direito (hud.otui). A tooltip aparece ao passar o rato.
+Comportamento do cliente: Exibir ou actualizar o ícone no canto superior direito (hud.otui). A tooltip aparece ao passar o rato. Se "maestria" for true, o ícone deve indicar que o Vínculo é permanente.
 
 Exemplo de listener:
 
@@ -325,15 +325,15 @@ lua
 ProtocolGame.registerExtendedOpcode(182, function(protocol, opcode, buffer)
     if not buffer or #buffer == 0 then return end
     local data = json.decode(buffer)
-    -- atualizar HUD com data.dominioId e data.tooltip
+    -- atualizar HUD com data.dominioId, data.tooltip e data.maestria
 end)
 9.2 OPCODE 183 – PARTÍCULAS DE ESTADO DE ALMA
 
-Objectivo: Disparar efeitos visuais temáticos (fagulhas, folhas, brilho) sobre o personagem quando um Lampejo ou Vínculo se forma.
+Objectivo: Disparar efeitos visuais temáticos (fagulhas, folhas, brilho) sobre o personagem quando um Lampejo, Vínculo ou Maestria se forma.
 
-Dados recebidos (JSON): { "tipo": "fogo", "intensidade": "vinculo" }
+Dados recebidos (JSON): { "tipo": "fogo", "intensidade": "maestria" }
 
-Comportamento do cliente: Iniciar uma animação de partículas sobre o jogador local. A intensidade ("lampejo" ou "vinculo") pode alterar a quantidade/densidade.
+Comportamento do cliente: Iniciar uma animação de partículas sobre o jogador local. A intensidade ("lampejo", "vinculo" ou "maestria") pode alterar a quantidade/densidade.
 
 Exemplo de listener:
 
@@ -371,7 +371,7 @@ Todos estes opcodes dependem de extendedOpcode = true no OTCFEATURES (já config
 
 🎮 10. POSTURAS DE COMBATE – REUTILIZAÇÃO DOS MODOS DE LUTA NATIVOS
 
-As Posturas de Combate (Ímpeto, Equilíbrio, Guarda) definidas no SPA v3.2.0 utilizam os modos de luta nativos do cliente Tibia:
+As Posturas de Combate (Ímpeto, Equilíbrio, Guarda) definidas no SPA v4.2 utilizam os modos de luta nativos do cliente Tibia:
 
 Full Attack → Ímpeto
 
@@ -381,13 +381,13 @@ Full Defense → Guarda
 
 Estes modos são acessíveis pelas hotkeys padrão (Ctrl+A, Ctrl+B, Ctrl+D) e pelos ícones no painel de combate do cliente.
 
-NENHUMA modificação é necessária no cliente para suportar esta mecânica. O servidor interpreta o fightMode (0=full attack, 1=balanced, 2=full defense) enviado pelo cliente e aplica os efeitos correspondentes (dano, alcance, sangramento, defesa, etc.) com base na arma equipada e na Especialização.
+NENHUMA modificação é necessária no cliente para suportar esta mecânica. O servidor interpreta o fightMode (0=full attack, 1=balanced, 2=full defense) enviado pelo cliente e aplica os efeitos correspondentes (dano, alcance, sangramento, defesa, furtividade, etc.) com base na arma equipada e na Especialização.
 
 O feedback narrativo (ex.: "Postura ajustada: Ímpeto adaptada à sua arma.") é enviado pelo servidor via chat colorido (canal 24) e exibido normalmente pelo cliente.
 
-📟 11. SISTEMA DE CORES DO SPA – EXIBIÇÃO NO CLIENTE (CANAL 24)
+📟 11. SISTEMA DE CORES DO SPA v4.2 – EXIBIÇÃO NO CLIENTE (CANAL 24)
 
-O SPA v3.2.0 introduz um sistema de cores abrangente, definido no módulo texto_colorido.lua (tabela COR) e utilizado pela função c(). O servidor envia as mensagens coloridas através de player:sendTextMessage(24, texto), onde texto contém blocos no formato {Texto, #Cor}.
+O SPA v4.2 introduz um sistema de cores abrangente, definido no módulo texto_colorido.lua v9.1 (tabela COR) e utilizado pela função c(). O servidor envia as mensagens coloridas através de player:sendTextMessage(24, texto), onde texto contém blocos no formato {Texto, #Cor}.
 
 O OTClient Redemption suporta nativamente a exibição de texto colorido no canal 24, processando a sintaxe de chaves e cores. Nenhuma modificação no motor do cliente é necessária para que as cores do SPA apareçam correctamente.
 
@@ -401,7 +401,7 @@ Os scripts Lua do cliente que porventura processem mensagens do canal 24 não in
 
 Se as cores não aparecerem, verificar:
 
-Se o servidor está a enviar as mensagens correctamente (use o comando !frases para testar).
+Se o servidor está a enviar as mensagens correctamente (use o comando !exibircores para testar).
 
 Se o módulo game_console ou equivalente está a filtrar o canal 24.
 
@@ -411,7 +411,7 @@ Quando o jogador alterna de postura, o servidor envia uma mensagem como:
 
 text
 Postura ajustada: {Ímpeto, #FF4040} adaptada à sua arma.
-O cliente exibe "Ímpeto" na cor vermelha (#FF4040) e o restante do texto na cor padrão do canal. Essa é a mesma mecânica usada para todas as mensagens coloridas do SPA (Lampejos, Vínculos, habilidades, etc.).
+O cliente exibe "Ímpeto" na cor vermelha (#FF4040) e o restante do texto na cor padrão do canal. Essa é a mesma mecânica usada para todas as mensagens coloridas do SPA (Lampejos, Vínculos, Maestria, habilidades, etc.).
 
 ⚠️ ARMADILHAS E LIÇÕES APRENDIDAS
 
@@ -429,11 +429,13 @@ Notificações com acentos corrompidos: Resolvido com error_code no backend e ma
 
 Tentativa de máscara de nome via Lua falhou: O motor não expõe método para alterar o nome de exibição do jogador local. A solução foi modificar a função setName() da classe Creature em C++.
 
-⚠️ SPA v3.2.0 – Listeners de opcode em falta: Se os opcodes 182, 183 e 184 não tiverem listeners, o HUD de Vínculo, as partículas e a janela de conhecimento simplesmente não aparecerão. Verifique se os módulos Lua apropriados contêm os listeners antes de testar.
+⚠️ SPA v4.2 – Listeners de opcode em falta: Se os opcodes 182, 183 e 184 não tiverem listeners, o HUD de Vínculo/Maestria, as partículas e a janela de conhecimento simplesmente não aparecerão. Verifique se os módulos Lua apropriados contêm os listeners antes de testar.
 
-⚠️ SPA v3.2.0 – Cores no canal 24: As cores são suportadas nativamente. Se não aparecerem, o problema está no servidor (envio incorrecto) ou no módulo de chat do cliente (filtros), não na ausência de suporte.
+⚠️ SPA v4.2 – Cores no canal 24: As cores são suportadas nativamente. Se não aparecerem, o problema está no servidor (envio incorrecto) ou no módulo de chat do cliente (filtros), não na ausência de suporte. A tabela COR está na versão 9.1.
 
-⚠️ SPA v3.2.0 – Posturas: Não confundir as mensagens de postura com as de modo de luta. O servidor pode enviar ambas; certifique-se de que o chat não está a filtrar mensagens do canal 24.
+⚠️ SPA v4.2 – Posturas: Não confundir as mensagens de postura com as de modo de luta. O servidor pode enviar ambas; certifique-se de que o chat não está a filtrar mensagens do canal 24.
+
+⚠️ SPA v4.2 – Maestria: O opcode 182 deve suportar um campo "maestria" (boolean) para diferenciar Vínculo temporário de Vínculo permanente.
 
 🔍 CHECKLIST DE REVISÃO PARA O ASSISTENTE (OTUI + LUA CLIENTE)
 
@@ -452,17 +454,18 @@ Antes de finalizar qualquer modificação em .otui ou script Lua cliente, o assi
 ☐ Se foram feitas traduções em massa, os scripts foram passados pela pipeline e convertidos para ISO‑8859‑1?
 ☐ Os listeners para os opcodes 182, 183 e 184 estão implementados no cliente? (Verificar estado actual)
 ☐ A janela de conhecimento (opcode 184) suporta os botões "Aprender" e "Fechar"?
+☐ O opcode 182 suporta o campo "maestria" para diferenciar Vínculo permanente?
 ☐ Os modos de luta nativos (Full Attack/Balanced/Full Defense) permanecem inalterados e funcionais?
 ☐ O callback do opcode 200 (migração de conta) está funcional?
-☐ O canal 24 exibe as mensagens coloridas do SPA correctamente?
+☐ O canal 24 exibe as mensagens coloridas do SPA v4.2 correctamente?
 ☐ As cores das Posturas (Ímpeto, Equilíbrio, Guarda) aparecem no chat ao alternar?
 
 📤 COMO ATUALIZAR O REPOSITÓRIO GIT
 
 text
 git add "<arquivos alterados>"
-git commit -m "feat(client): Atualiza guia de interface com SPA v3.2.0"
+git commit -m "feat(client): Atualiza guia de interface com SPA v4.2 e cores v9.1 (v3.1)"
 git push origin main
 ⚠️ PowerShell: aspas duplas em caminhos com espaços.
 
-FIM DO GUIA DE INTERFACE (OTUI E LUA CLIENTE) — VERSÃO 3.0
+FIM DO GUIA DE INTERFACE (OTUI E LUA CLIENTE) — VERSÃO 3.1

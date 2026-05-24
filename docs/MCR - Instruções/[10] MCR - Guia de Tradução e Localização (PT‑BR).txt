@@ -1,5 +1,5 @@
 PROJETO MCR – GUIA DE TRADUÇÃO E LOCALIZAÇÃO (PT‑BR)
-(Versão 6.0 – Actualização para o SPA v3.2.0, novos termos, sistema de cores e estrutura Revscript)
+(Versão 6.1 – Actualização para o SPA v4.2, novos termos, sistema de cores v9.1 e estrutura Revscript consolidada)
 Arquivo: [10] MCR - Guia de Tradução e Localização (PT‑BR).txt
 
 🎯 OBJETIVO DESTE GUIA
@@ -13,7 +13,7 @@ A codificação correcta de cada tipo de arquivo (UTF‑8 com BOM, ISO‑8859‑
 
 O protocolo de comunicação entre backend e frontend para evitar corrupção de acentos.
 
-O uso correcto do destaque no chat (apenas {chaves}) e a integração com o sistema de cores do SPA v3.2.0 (função c() e tabela COR).
+O uso correcto do destaque no chat (apenas {chaves}) e a integração com o sistema de cores do SPA v4.2 (função c() e tabela COR v9.1).
 
 Regras gramaticais e de estilo para manter a qualidade do texto.
 
@@ -35,11 +35,11 @@ Reforço da máscara de Alma em mensagens do servidor.
 
 Conversão do nome do personagem recebido via JSON de login (HTTP) de UTF‑8 para Latin‑1 no cliente.
 
-⚠️ NOVO (SPA v3.2.0): Terminologia completa do Sistema de Progressão do Aventureiro (Domínios, Lampejo, Vínculo, Maestria, Posturas, Ímpeto, Equilíbrio, Guarda, Afinidade, Sinergia, Despertar) e sua aplicação narrativa e técnica. As cores da tabela COR são agora parte da linguagem visual.
+⚠️ ACTUALIZADO (SPA v4.2): Terminologia completa do Sistema de Progressão do Aventureiro (Domínios, Lampejo, Vínculo, Maestria, Posturas, Ímpeto, Equilíbrio, Guarda, Afinidade, Sinergia, Sinergia Elemental, Arremesso de Escudo, Chi, Virtudes, Serenidade, Despertar) e sua aplicação narrativa e técnica. As cores da tabela COR v9.1 são agora parte da linguagem visual.
 
-⚠️ NOVO (SPA v3.2.0): Estrutura Revscript – os scripts Lua do servidor são organizados em subpastas dentro de data-canary/scripts/MCR/ (ex.: SPA, Dominio, Criacao, Geral). A codificação ISO‑8859‑1 continua obrigatória para todos os scripts que exibem texto ao jogador.
+⚠️ ACTUALIZADO (SPA v4.2): Estrutura Revscript — os scripts Lua do servidor são organizados em subpastas dentro de data-canary/scripts/MCR/SPA/ (core/, habilidades/, comandos/). A codificação ISO‑8859‑1 continua obrigatória para todos os scripts que exibem texto ao jogador.
 
-⚠️ NOVO (SPA v3.2.0): As funções de formatação colorida (c(), enviarMsgColorida) e a tabela COR fazem parte da localização e devem ser usadas de forma consistente.
+⚠️ ACTUALIZADO (SPA v4.2): As funções de formatação colorida (c(), enviarMsgColorida) e a tabela COR (v9.1) fazem parte da localização e devem ser usadas de forma consistente. Novas constantes de cor para missões (MISSAO_*) e NPCs (NPC_*) foram adicionadas.
 
 Este guia NÃO é opcional. Toda modificação no projecto DEVE passar por suas regras.
 
@@ -59,7 +59,7 @@ O módulo pronouns.lua está em data-canary/scripts/MCR/Geral/ e é carregado au
 
 A máscara de Alma e a conversão de nome (UTF‑8 → Latin‑1) estão aplicadas.
 
-O sistema de cores do SPA está em pleno funcionamento: a tabela COR e a função c() são globais e podem ser usadas em qualquer script de NPC, quest ou sistema.
+O sistema de cores do SPA v4.2 está em pleno funcionamento: a tabela COR (v9.1) e a função c() são globais e podem ser usadas em qualquer script de NPC, quest ou sistema.
 
 A coluna lastlogin existe na tabela players e pode ser referenciada sem problemas.
 
@@ -97,9 +97,9 @@ Jamais alterar assinaturas de funções expostas ao Lua (registerMethod, registe
 
 Proteger ficheiros de cabeçalho (.h/.hpp): comentários podem ser traduzidos, mas macros, nomes de classes, enums e inclusões permanecem intactos.
 
-⚠️ NOVO (SPA v3.2.0): Os termos do Sistema de Progressão (Lampejo, Vínculo, Maestria, Ímpeto, Equilíbrio, Guarda) devem ser usados exclusivamente na documentação e em mensagens narrativas quando estritamente necessário. No código, usar os identificadores em inglês (ex.: "lampejo", "vinculo", "maestria", "impeto", "equilibrio", "guarda") como strings internas, sem acentos, para evitar problemas de encoding em comparações. As cores de cada domínio e estado estão definidas na tabela COR e devem ser respeitadas.
+⚠️ ACTUALIZADO (SPA v4.2): Os termos do Sistema de Progressão (Lampejo, Vínculo, Maestria, Ímpeto, Equilíbrio, Guarda, Arremesso de Escudo, Chi, Virtude, Serenidade, Sinergia Elemental) devem ser usados exclusivamente na documentação e em mensagens narrativas quando estritamente necessário. No código, usar os identificadores em inglês (ex.: "lampejo", "vinculo", "maestria", "impeto", "equilibrio", "guarda", "chi", "virtue") como strings internas, sem acentos, para evitar problemas de encoding em comparações. As cores de cada domínio e estado estão definidas na tabela COR v9.1 e devem ser respeitadas.
 
-⚠️ NOVO (SPA v3.2.0): Scripts Lua do servidor que exibem mensagens ao jogador devem ser salvos como ISO‑8859‑1, independentemente da subpasta onde residem (MCR/SPA/, MCR/Dominio/, MCR/Criacao/, etc.). O Revscript não altera a codificação esperada pelo cliente. A função c() e a tabela COR são carregadas globalmente e podem ser usadas sem dofile.
+⚠️ ACTUALIZADO (SPA v4.2): Scripts Lua do servidor que exibem mensagens ao jogador devem ser salvos como ISO‑8859‑1, independentemente da subpasta onde residem (MCR/SPA/core/, MCR/SPA/habilidades/, MCR/SPA/comandos/, MCR/Geral/, etc.). O Revscript não altera a codificação esperada pelo cliente. A função c() e a tabela COR (v9.1) são carregadas globalmente e podem ser usadas sem dofile.
 
 📋 1. ESCOPO DE APLICAÇÃO DO PT‑BR
 
@@ -127,7 +127,7 @@ Documentação do projecto (guias, DevLog, instruções).
 
 Mensagens de "look" (examinar) para criaturas e itens.
 
-As mensagens narrativas do SPA (feedback de Lampejo, Vínculo, Maestria, despertar de Domínio, etc.).
+As mensagens narrativas do SPA (feedback de Lampejo, Vínculo, Maestria, despertar de Domínio, sinergia elemental, etc.).
 
 Podem permanecer em INGLÊS:
 
@@ -145,7 +145,7 @@ Endpoints de API (/register, /login).
 
 Os identificadores internos dos Estados de Alma ("lampejo", "vinculo", "maestria") quando usados em comparações no código.
 
-As constantes da tabela COR (ex.: COR.SISTEMA_INFO, COR.DOM_COMBATE_LAMINAS) que são identificadores em inglês, enquanto as strings de texto associadas são em português.
+As constantes da tabela COR (ex.: COR.SISTEMA_INFO, COR.DOM_COMBATE_LAMINAS, COR.MISSAO_MATAR) que são identificadores em inglês, enquanto as strings de texto associadas são em português.
 
 📝 2. CODIFICAÇÃO POR TIPO DE ARQUIVO (REVISADA)
 
@@ -153,7 +153,7 @@ Esta é a secção MAIS CRÍTICA deste guia. A codificação errada é a causa n
 
 Tipo de Arquivo | Codificação | BOM? | Exemplo
 Scripts Lua do CLIENTE (dofile, módulos) | ISO‑8859‑1 | Não | registro.lua, entergame.lua
-Scripts Lua do SERVIDOR (todas as subpastas) | ISO‑8859‑1 | Não | oraculo.lua, evento_kill.lua, player.lua
+Scripts Lua do SERVIDOR (todas as subpastas) | ISO‑8859‑1 | Não | oraculo.lua, evento_kill.lua, player.lua, constantes.lua, postura.lua, executar_habilidades.lua
 Código C++ (servidor e cliente) com escapes octais (preferível) | UTF‑8 ou ASCII | COM | canary_server.cpp, main.cpp
 Código Go (Login Server) | UTF‑8 | COM | register.go, login.go
 Arquivos .otui (interface) | UTF‑8 | SEM | register_window.otui
@@ -259,7 +259,7 @@ Garantir que o ficheiro entergame.lua está salvo como ISO‑8859‑1 (embora a 
 
 Após esta conversão, o nome do personagem fica em Latin‑1, igual aos nomes que chegam via protocolo de jogo, e será exibido corretamente em toda a interface (chat, lista de personagens, etc.).
 
-🔑 5. DESTAQUE NO CHAT E SISTEMA DE CORES
+🔑 5. DESTAQUE NO CHAT E SISTEMA DE CORES (v9.1)
 
 O OTClient suporta exclusivamente o destaque de palavras envolvidas por {chaves}. Esse realce é herdado do protocolo Tibia e não requer nenhuma modificação no cliente.
 
@@ -267,13 +267,13 @@ Regras:
 
 Utilize {chaves} para destacar ações ({aceitar}, {entregar}), itens ({10 Poções de Vida}), locais ({Floresta Sombria}) e recompensas ({500 pontos de experiência}).
 
-Para cores, utilize EXCLUSIVAMENTE a função c() do SPA, definida em texto_colorido.lua (MCR/Geral/). Exemplo: c("Texto", COR.SISTEMA_INFO). Isso gera a string "{Texto, #5DADE2}", que é interpretada corretamente pelo OTClient.
+Para cores, utilize EXCLUSIVAMENTE a função c() do SPA, definida em texto_colorido.lua v9.1 (MCR/Geral/). Exemplo: c("Texto", COR.SISTEMA_INFO). Isso gera a string "{Texto, #5DADE2}", que é interpretada corretamente pelo OTClient.
 
 NÃO utilize tags {{#RRGGBB}}, HTML, ou qualquer outra sintaxe – elas não produzem efeito visual ou corrompem a exibição.
 
 NUNCA use "}?" junto; sempre "} ?" para evitar corrupção visual no cliente.
 
-As cores devem ser usadas de forma consistente com as constantes da tabela COR:
+As cores devem ser usadas de forma consistente com as constantes da tabela COR v9.1:
 
 Contexto	Constante(s) COR	Exemplo
 Informação do sistema	SISTEMA_INFO, SISTEMA_NEUTRO	"Sua afinidade com Lâminas se aprofunda."
@@ -283,7 +283,8 @@ Dano / inimigos	DANO_FISICO, INIMIGO_MONSTRO	"Centopeia"
 Domínios de combate	DOM_COMBATE_LAMINAS, DOM_COMBATE_IMPACTO, DOM_COMBATE_PRECISAO, DOM_COMBATE_DESARMADO, DOM_ESCUDO	Nome do domínio
 Domínios mágicos	DOM_MAGIA_FOGO, DOM_MAGIA_AGUA_GELO, DOM_MAGIA_TERRA, DOM_MAGIA_SAGRADO, DOM_MAGIA_RUNOLOGIA	Nome do domínio
 Posturas	POSTURA_IMPETO, POSTURA_EQUILIBRIO, POSTURA_GUARDA	"Ímpeto", "Equilíbrio", "Guarda"
-NPCs e interacções	NPC_OPCAO, NPC_COMANDO, NPC_ITEM, NPC_LOCAL, NPC_INTENCAO, NPC_RECUSA	Opções de diálogo
+NPCs e interacções	NPC_OPCAO, NPC_COMANDO, NPC_ITEM, NPC_LOCAL, NPC_INTENCAO, NPC_RECUSA, NPC_ALERTA, NPC_NOME, NPC_EMOCAO, NPC_DIALOGO	Opções de diálogo
+Missões	MISSAO_MATAR, MISSAO_COLETAR, MISSAO_ENTREGAR, MISSAO_EXPLORAR, MISSAO_FALAR, MISSAO_ESCORTAR, MISSAO_CRAFT, MISSAO_TEMPO	Tipo de missão
 Raridades	RARIDADE_OURO, ITEM_RARO, ITEM_EPICO, ITEM_LENDARIO	Itens valiosos
 ✍️ 6. ESTILO E QUALIDADE DO TEXTO
 
@@ -299,7 +300,7 @@ Usar o padrão culto da língua, mas com flexibilidade para personagens caricato
 
 Manter consistência: se um termo foi traduzido de uma forma, usar a mesma tradução em todo o projecto.
 
-Lista de termos padronizados (actualizada para SPA v3.2.0):
+Lista de termos padronizados (actualizada para SPA v4.2):
 
 "Aventureiro" (não "classe", "vocação", "knight", "druid" – o termo vocação foi abolido do jogo; permanece apenas em contexto técnico residual)
 
@@ -329,7 +330,7 @@ Lista de termos padronizados (actualizada para SPA v3.2.0):
 
 "pipeline de tradução" – processo automático + revisão.
 
-⚠️ TERMOS DO SPA (v3.2.0):
+⚠️ TERMOS DO SPA (v4.2):
 
 "Lampejo" – primeiro nível de Estado de Alma.
 
@@ -349,9 +350,21 @@ Lista de termos padronizados (actualizada para SPA v3.2.0):
 
 "Sinergia" – habilidade desbloqueada pela combinação de Domínios.
 
+"Sinergia Elemental" – desbloqueio automático de habilidades mágicas por armas com elemento.
+
+"Arremesso de Escudo" – domínio de combate com escudo sem arma (ID 140).
+
+"Chi" – energia acumulada no combate desarmado.
+
+"Virtude" – filosofia de combate do Desarmado (Harmony, Justice, Sustain).
+
+"Serenidade" – estado especial do Desarmado.
+
 "Despertar" – acto de iniciar um novo Domínio.
 
 "Postura" – modo de combate seleccionado pelo jogador.
+
+"gatilho" – tipo de habilidade que dispara em eventos de combate.
 
 Estes termos podem aparecer na documentação, em logs de debug e em mensagens narrativas (ex.: "Sentes o Lampejo das chamas..."), mas NUNCA devem ser usados com os seus valores numéricos expostos ao jogador. As cores dos domínios e posturas devem ser sempre utilizadas para reforçar o significado visual.
 
@@ -399,7 +412,7 @@ Mensagens de sistema: "Parabéns, você foi promovido/a."
 
 Não definido (0): usar formas neutras ("viajante", "aventureiro(a)") ou perguntar ao jogador qual o pronome desejado e atualizar players.pronoun.
 
-Nos scripts da pasta MCR/SPA, o módulo pronouns.lua está globalmente acessível; basta chamar Pronouns.getSubject(player) directamente.
+Nos scripts da pasta MCR/SPA/core/, o módulo pronouns.lua está globalmente acessível; basta chamar Pronouns.getSubject(player) directamente.
 
 📋 9. TABELA DE ERROR_CODES (ACTUALIZADA)
 
@@ -425,13 +438,13 @@ ISO‑8859‑1 vs ANSI: No Windows, "ANSI" é um apelido para a codificação Wi
 
 Mensagens de look do servidor estavam em inglês: Foram traduzidas ("You see" → "Você vê") e a máscara de Alma foi aplicada para consistência total.
 
-⚠️ SPA v3.2.0 – Termos novos: Ao usar "Lampejo", "Vínculo", "Maestria" em mensagens narrativas, assegure‑se de que a string está em ISO‑8859‑1 e que o termo não é confundido com comandos ou variáveis. Use as cores apropriadas da tabela COR para cada estado/domínio.
+⚠️ SPA v4.2 – Termos novos: Ao usar "Maestria", "Sinergia Elemental", "Arremesso de Escudo", "Chi", "Virtude", "Serenidade" em mensagens narrativas, assegure‑se de que a string está em ISO‑8859‑1 e que o termo não é confundido com comandos ou variáveis. Use as cores apropriadas da tabela COR para cada estado/domínio.
 
-⚠️ SPA v3.2.0 – Cores: A função c() está disponível globalmente e deve ser a única forma de gerar texto colorido. Não construa manualmente strings como "{Texto, #Cor}" a menos que esteja a implementar a própria função c().
+⚠️ SPA v4.2 – Cores: A função c() está disponível globalmente e deve ser a única forma de gerar texto colorido. Não construa manualmente strings como "{Texto, #Cor}" a menos que esteja a implementar a própria função c(). A tabela COR está na versão 9.1, com novas constantes para missões e NPCs.
 
-⚠️ SPA v3.2.0 – Estrutura Revscript: Com scripts espalhados por subpastas, é fácil esquecer a codificação de um ficheiro. Crie o hábito de verificar a codificação ao criar qualquer novo script .lua que contenha acentos.
+⚠️ SPA v4.2 – Estrutura Revscript: Com scripts espalhados por subpastas (core/, habilidades/, comandos/), é fácil esquecer a codificação de um ficheiro. Crie o hábito de verificar a codificação ao criar qualquer novo script .lua que contenha acentos.
 
-⚠️ SPA v3.2.0 – Coluna lastlogin: Confirmada a existência; sem impacto na localização.
+⚠️ SPA v4.2 – Coluna lastlogin: Confirmada a existência; sem impacto na localização.
 
 🔍 CHECKLIST DE REVISÃO PARA O ASSISTENTE (TRADUÇÃO E LOCALIZAÇÃO)
 
@@ -447,8 +460,8 @@ Este checklist DEVE ser aplicado a QUALQUER modificação, independentemente da 
 ☐ Destaque no chat usa apenas {chaves} e a função c() para cores, e NUNCA "}?" junto?
 ☐ O texto soa NATURAL e COERENTE com o universo MCR?
 ☐ A terminologia está padronizada (Aventureiro, personagem, missão)?
-☐ Os termos do SPA (Lampejo, Vínculo, Maestria, Ímpeto, Equilíbrio, Guarda) são usados correctamente e sem expor números?
-☐ As cores da tabela COR são usadas de forma consistente para domínios, estados, posturas, NPCs?
+☐ Os termos do SPA v4.2 (Lampejo, Vínculo, Maestria, Ímpeto, Equilíbrio, Guarda, Sinergia Elemental, Arremesso de Escudo, Chi, Virtude, Serenidade) são usados correctamente e sem expor números?
+☐ As cores da tabela COR v9.1 são usadas de forma consistente para domínios, estados, posturas, NPCs, missões?
 ☐ Mensagens do servidor aplicam a máscara de Alma para personagens Guest_*?
 ☐ Mensagens de look usam "Você vê" (não "You see")?
 ☐ Mensagens dirigidas ao personagem respeitam o pronome (via pronouns.lua)?
@@ -459,14 +472,14 @@ Este checklist DEVE ser aplicado a QUALQUER modificação, independentemente da 
 ☐ O comando look (servidor) utiliza o módulo pronouns.lua para personalizar a descrição?
 ☐ Os nomes de personagens provenientes do JSON de login são convertidos de UTF‑8 para Latin‑1 no entergame.lua?
 ☐ O módulo pronouns.lua é acedido como global (sem dofile) a partir de MCR/Geral/?
-☐ A função c() e a tabela COR são usadas correctamente e as strings resultantes estão em ISO‑8859‑1?
+☐ A função c() e a tabela COR v9.1 são usadas correctamente e as strings resultantes estão em ISO‑8859‑1?
 
 📤 COMO ATUALIZAR O REPOSITÓRIO GIT
 
 git add "<arquivos alterados>"
-git commit -m "feat(lang): Atualiza guia de tradução com SPA v3.2.0 e sistema de cores"
+git commit -m "feat(lang): Atualiza guia de tradução com SPA v4.2 e sistema de cores v9.1"
 git push origin main
 
 ⚠️ PowerShell: aspas duplas em caminhos com espaços.
 
-FIM DO GUIA DE TRADUÇÃO E LOCALIZAÇÃO (PT‑BR) — VERSÃO 6.0
+FIM DO GUIA DE TRADUÇÃO E LOCALIZAÇÃO (PT‑BR) — VERSÃO 6.1

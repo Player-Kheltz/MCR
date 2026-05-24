@@ -1,12 +1,12 @@
 PROJETO MCR – GUIA DE CRIAÇÃO DE CONTA E PERSONAGEM
-(Versão 6.0 – Integração com o SPA v3.2.0, vocação única (Aventureiro), Revscript e progressão em pleno funcionamento)
+(Versão 6.1 – Integração com o SPA v4.2, vocação única (Aventureiro), Revscript e progressão em pleno funcionamento)
 Arquivo: [8] MCR - Guia de Criação de Conta e Personagem.txt
 
 🎯 OBJETIVO DESTE GUIA
 Documentar o sistema de autenticação e gerenciamento de contas do Projeto MCR,
 totalmente integrado ao mundo do jogo através do Salão dos Destinos e do NPC
-Oráculo. Esta versão 6.0 actualiza o guia para reflectir o Sistema de
-Progressão do Aventureiro (SPA v3.2.0), que substitui completamente as vocações
+Oráculo. Esta versão 6.1 actualiza o guia para reflectir o Sistema de
+Progressão do Aventureiro (SPA v4.2), que substitui completamente as vocações
 tradicionais, e confirma que todos os métodos e scripts do SPA estão operacionais
 desde o primeiro login. A criação de personagem permanece inalterada em sua
 essência (Nome → Pronome → Sexo), sem qualquer escolha de vocação — o
@@ -44,7 +44,7 @@ carregados automaticamente.
 
 🚧 ESTADO ATUAL DA IMPLEMENTAÇÃO
 
-O SPA v3.2.0 está totalmente implementado e funcional. O sistema de criação de
+O SPA v4.2 está totalmente implementado e funcional. O sistema de criação de
 conta e personagem reflecte este estado:
 
 O botão "Salão dos Destinos" substitui "Criar Conta" e funciona com o endpoint /guest_login.
@@ -65,11 +65,11 @@ A variável VOCATIONS no .env do Login Server está definida como "0".
 
 O equipamento inicial é fornecido pelo NPC Eldrin em Eridanus (ver Guia [12]); o Escudo de Madeira é recompensa de missão, não item inicial.
 
-O SPA começa a funcionar imediatamente após o primeiro login: o script login.lua em MCR/SPA/ inicializa as storages, aplica a postura Equilíbrio e prepara o buffer de progressão.
+O SPA v4.2 começa a funcionar imediatamente após o primeiro login: o script login.lua em MCR/SPA/core/ inicializa as storages, aplica a postura Equilíbrio, prepara o buffer de progressão, e está pronto para suportar a Maestria, a Sinergia Elemental e o Arremesso de Escudo.
 
 Este guia reflecte o estado actual e funcional do sistema. As referências à
-progressão (Domínios, Lampejos, Vínculos) são de contexto: tudo está pronto
-para a jornada.
+progressão (Domínios, Lampejos, Vínculos, Maestria, Sinergia Elemental) são de
+contexto: tudo está pronto para a jornada.
 
 ⚠️ REGRAS DE REVISÃO PARA O ASSISTENTE (AUTENTICAÇÃO E CRIAÇÃO)
 
@@ -105,9 +105,9 @@ Após a criação bem‑sucedida do personagem, o jogador é enviado para a Ilha
 
 O equipamento inicial é concedido pelo NPC Eldrin, conforme documentado no Guia de Conteúdo Inicial e Tutorial e na Lista de Itens Úteis. O assistente deve garantir que os IDs dos itens correspondem aos do ficheiro items.xml traduzido.
 
-⚠️ ESTRUTURA REVSCRIPT (v6.0): Os scripts do Oráculo e de suporte ao fluxo de criação devem ser colocados em data-canary/scripts/MCR/Criacao/ (ou subpasta equivalente). O Canary carrega automaticamente qualquer ficheiro .lua nessas pastas, sem necessidade de registo manual. Mantenha o código modular: separe a lógica de criação, gerenciamento e saudação em ficheiros distintos, se desejado. Os módulos partilhados (pronouns.lua, npc_utils.lua, texto_colorido.lua) em MCR/Geral/ são carregados automaticamente e não precisam de dofile.
+⚠️ ESTRUTURA REVSCRIPT (v6.1): Os scripts do Oráculo e de suporte ao fluxo de criação devem ser colocados em data-canary/scripts/MCR/Criacao/ (ou subpasta equivalente). O Canary carrega automaticamente qualquer ficheiro .lua nessas pastas, sem necessidade de registo manual. Mantenha o código modular: separe a lógica de criação, gerenciamento e saudação em ficheiros distintos, se desejado. Os módulos partilhados (pronouns.lua, npc_utils.lua, texto_colorido.lua v9.1) em MCR/Geral/ são carregados automaticamente e não precisam de dofile.
 
-⚠️ SPA v3.2.0: O personagem criado tem vocation = 0 e começará a acumular Afinidade assim que realizar acções. Não é necessária nenhuma inicialização extra; o script login.lua do SPA trata de tudo no primeiro login.
+⚠️ SPA v4.2: O personagem criado tem vocation = 0 e começará a acumular Afinidade assim que realizar acções. Não é necessária nenhuma inicialização extra; o script login.lua do SPA (em MCR/SPA/core/) trata de tudo no primeiro login. O sistema está pronto para suportar a Maestria (nível 20 = Vínculo permanente), a Sinergia Elemental e o Arremesso de Escudo.
 
 🗺️ 1. VISÃO GERAL DO FLUXO
 
@@ -193,7 +193,7 @@ Uma conta guest é criada com nome no formato "guest_" + string aleatória (ex.:
 
 Imediatamente, um personagem com nome "Guest_" + string aleatória (ex.: Guest_x7k2m9) é inserido na tabela players, associado a essa conta, com posição inicial no Salão dos Destinos.
 
-Esse personagem é um dummy: ao logar, o script de login (evento_login.lua na pasta MCR/SPA) reseta seus atributos para estado inicial (level 1, vocation 0, sem itens, sem skills) e teleporta‑o ao Salão.
+Esse personagem é um dummy: ao logar, o script de login (evento_login.lua na pasta MCR/SPA/core) reseta seus atributos para estado inicial (level 1, vocation 0, sem itens, sem skills) e teleporta‑o ao Salão.
 
 Ele NUNCA é atribuído a contas permanentes. Sua única função é permitir a interação com o Oráculo.
 
@@ -273,9 +273,9 @@ Sexo (corpo: {Masculino} ou {Feminino}) → salvo em players.sex.
 
 ⚠️ NÃO há pergunta sobre vocação. O Oráculo simplesmente prossegue para a benção narrativa (ver abaixo).
 
-i. Após o sexo, o Oráculo oferece a benção narrativa (actualizada para o SPA v3.2.0):
+i. Após o sexo, o Oráculo oferece a benção narrativa (actualizada para o SPA v4.2):
 
-"O véu se fecha sobre o seu destino. Não vejo um caminho único, mas uma tapeçaria de fios infinitos. Você não será limitado por títulos, jovem aventureiro. Suas acções tecerão seus talentos; o mundo lhe ensinará tudo, se tiver a ousadia de buscar. Que as estrelas guiem o seu despertar."
+"O véu se fecha sobre o seu destino. Não vejo um caminho único, mas uma tapeçaria de fios infinitos. Você não será limitado por títulos, jovem aventureiro. Suas acções tecerão seus talentos; o mundo lhe ensinará tudo, se tiver a ousadia de buscar. Forjará Maestria, descobrirá Sinergias, e o fogo, o aço, a sombra e a luz serão seus professores. Que as estrelas guiem o seu despertar."
 
 j. O personagem é criado internamente com vocation = 0 e enviado para a Ilha do Despertar (Eridanus) via teleporte (ou armazenamento de última posição).
 k. O Oráculo envia o opcode 200 com as credenciais da nova conta e o nome do personagem criado para que o cliente migre da Alma para a conta permanente.
@@ -441,7 +441,7 @@ ID	Nome do Item (PT‑BR)	Função inicial
 
 O assistente deve garantir que o script de tutorial ou o NPC Eldrin conceda apenas os seis primeiros itens no primeiro encontro.
 
-🗂️ 11. ESTRUTURA REVSCRIPT PARA SCRIPTS DO ORÁCULO (v6.0)
+🗂️ 11. ESTRUTURA REVSCRIPT PARA SCRIPTS DO ORÁCULO (v6.1)
 
 Os scripts responsáveis pelo funcionamento do Oráculo e pelo fluxo de criação estão localizados em:
 
@@ -461,7 +461,7 @@ validacao_nome.lua – funções de validação de nomes.
 
 Cada ficheiro pode expor funções globais ou simplesmente adicionar handlers ao NPC. O Revscript carrega todos os ficheiros automaticamente; a ordem de carregamento pode ser gerida pelo próprio motor. É boa prática manter as dependências mínimas e usar tabelas globais (ex.: MCR = MCR or {}) para partilhar funções entre scripts.
 
-Os módulos partilhados pronouns.lua, npc_utils.lua e texto_colorido.lua estão em data-canary/scripts/MCR/Geral/ e são carregados automaticamente. NÃO é necessário usar dofile para carregá-los; as funções que expõem são globais.
+Os módulos partilhados pronouns.lua, npc_utils.lua e texto_colorido.lua (v9.1) estão em data-canary/scripts/MCR/Geral/ e são carregados automaticamente. NÃO é necessário usar dofile para carregá-los; as funções que expõem são globais.
 
 A mesma lógica se aplica a outros sistemas: cada domínio do jogo (progressão, tutorial, quests) terá sua própria subpasta dentro de MCR/.
 
@@ -479,13 +479,13 @@ Atualizar player_pronoun no gerenciamento para evitar perguntas repetidas.
 
 Os campos de nome e senha agora detectam palavras de menu e cancelam a operação em vez de usá‑las como valor, prevenindo alterações acidentais.
 
-⚠️ SPA v3.2.0 – Vocação: A ausência da pergunta de vocação quebra a expectativa de jogadores antigos. A benção narrativa do Oráculo é essencial para comunicar que o Aventureiro não tem um caminho fixo.
+⚠️ SPA v4.2 – Vocação: A ausência da pergunta de vocação quebra a expectativa de jogadores antigos. A benção narrativa do Oráculo é essencial para comunicar que o Aventureiro não tem um caminho fixo, mas pode alcançar a Maestria em qualquer Domínio.
 
-⚠️ SPA v3.2.0 – Revscript: Ao mover scripts para subpastas, garanta que não há conflitos de nomes de eventos (ex.: dois ficheiros registando o mesmo CreatureEvent). Use nomes únicos para os eventos.
+⚠️ SPA v4.2 – Revscript: Ao mover scripts para subpastas, garanta que não há conflitos de nomes de eventos (ex.: dois ficheiros registando o mesmo CreatureEvent). Use nomes únicos para os eventos.
 
-⚠️ SPA v3.2.0 – Módulos globais: pronouns.lua, npc_utils.lua e texto_colorido.lua são carregados automaticamente de MCR/Geral/. Não use dofile para eles.
+⚠️ SPA v4.2 – Módulos globais: pronouns.lua, npc_utils.lua e texto_colorido.lua (v9.1) são carregados automaticamente de MCR/Geral/. Não use dofile para eles.
 
-⚠️ SPA v3.2.0 – Primeiro login: O script login.lua em MCR/SPA/ inicializa automaticamente as storages do SPA, aplica a postura Equilíbrio e prepara o buffer de progressão. Nenhuma acção extra é necessária no momento da criação do personagem.
+⚠️ SPA v4.2 – Primeiro login: O script login.lua em MCR/SPA/core/ inicializa automaticamente as storages do SPA, aplica a postura Equilíbrio e prepara o buffer de progressão. Nenhuma acção extra é necessária no momento da criação do personagem.
 
 🔍 CHECKLIST DE REVISÃO PARA O ASSISTENTE
 
@@ -515,14 +515,14 @@ Os campos de nome e senha agora detectam palavras de menu e cancelam a operaçã
 ☐ O personagem criado tem vocation = 0?
 ☐ O Alma tem vocation = 0?
 ☐ O Escudo de Madeira (3412) NÃO está na lista de equipamento inicial?
-☐ O script login.lua do SPA está presente em MCR/SPA/ e inicializa as storages correctamente?
+☐ O script login.lua do SPA v4.2 está presente em MCR/SPA/core/ e inicializa as storages correctamente?
 
 📤 COMO ATUALIZAR O REPOSITÓRIO GIT
 
 text
 git add "<arquivos alterados>"
-git commit -m "feat(auth): Atualiza guia de criação com SPA v3.2.0 e benção narrativa"
+git commit -m "feat(auth): Atualiza guia de criação com SPA v4.2 e benção narrativa (v6.1)"
 git push origin main
 ⚠️ PowerShell: aspas duplas em caminhos com espaços.
 
-FIM DO GUIA DE CRIAÇÃO DE CONTA E PERSONAGEM — VERSÃO 6.0
+FIM DO GUIA DE CRIAÇÃO DE CONTA E PERSONAGEM — VERSÃO 6.1

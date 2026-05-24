@@ -1,5 +1,5 @@
-📘 Documentação Técnica do Motor SPA – Projeto MCR (v4.1)
-Última atualização: 23 de Maio de 2026
+📘 Documentação Técnica do Motor SPA – Projeto MCR (v4.3)
+Última atualização: 24 de Maio de 2026
 
 Este documento descreve todas as APIs, métodos, constantes, estruturas de dados e sistemas que o servidor Canary expõe ao Sistema de Progressão do Aventureiro. Todas as funcionalidades aqui listadas estão implementadas, compiladas e verificadas através do comando !testespa.
 
@@ -10,130 +10,180 @@ player:getDominioAfinidade(dominioId)	Retorna a afinidade acumulada (inteiro).
 player:addDominioAfinidade(dominioId, pontos)	Adiciona pontos de afinidade (INSERT … ON DUPLICATE KEY UPDATE).
 player:addDominioAfinidadeBatch(tabela)	Adiciona afinidades em lote ({[domId]=pontos}). Otimizado.
 player:getDominioAfinidades(dom1, dom2, …)	Retorna tabela {[domId]=valor}.
-player:setDominioDespertado(dominioId, bool)	Marca o domínio como despertado.
+player:setDominioDespertado(dominioId, bool)	Marca o domínio como despertado (1/0).
 player:hasHabilidade(habilidadeId)	Verifica se a habilidade está aprendida (BD).
-player:learnHabilidade(habilidadeId)	Aprende uma habilidade permanentemente.
+player:learnHabilidade(habilidadeId)	Aprende uma habilidade permanentemente (insere na BD).
 player:getHabilidades()	Retorna lista de IDs das habilidades aprendidas.
 1.2 Histórico de Ações e Estados de Alma
 Método Lua	Descrição
-player:registerDominioAction(dominioId)	Regista uma ação com timestamp (usado para Lampejos/Vínculos).
-player:getActionHistory(maxCount)	Retorna as últimas ações ({dominioId, timestamp}).
-player:clearActionHistory()	Limpa o histórico.
-player:getDominioState(dominioId)	Retorna 0 (normal), 1 (Lampejo) ou 2 (Vínculo).
-player:setDominioState(dominioId, state)	Define o estado.
-player:getAllActiveStates()	Retorna {[dominioId] = state} para estados > 0.
+player:registerDominioAction(dominioId)	Regista uma ação com timestamp. Usado para alimentar a barra de foco que gera Lampejos, Vínculos e a Maestria.
+player:getActionHistory(maxCount)	Retorna as últimas ações como tabela {dominioId, timestamp}.
+player:clearActionHistory()	Limpa todo o histórico de ações.
+player:getDominioState(dominioId)	Retorna 0 (normal), 1 (Lampejo) ou 2 (Vínculo). A Maestria mantém o estado 2 permanentemente.
+player:setDominioState(dominioId, state)	Define o estado (0,1,2).
+player:getAllActiveStates()	Retorna {[dominioId] = state} para todos os domínios com estado > 0.
 1.3 Curva de Progressão
-Definida em constantes.lua (tabela NIVEL_PONTOS). Valores atuais (1800 pontos/hora):
+Definida em constantes.lua na tabela NIVEL_PONTOS. Os valores atuais (para uma taxa de ~1800 pontos/hora) são:
 
 lua
 NIVEL_PONTOS = {
     50, 120, 300, 740, 1800, 2500, 3450, 4750, 6550, 9000,
     12900, 18400, 26300, 37600, 54000, 69000, 87000, 110000, 140000, 180000
 }
-A função getNivelPorAfinidade(acumulado) retorna o nível (1‑20) correspondente.
+A função global getNivelPorAfinidade(acumulado) devolve o nível (1 a 20) correspondente ao total de pontos. Nível 0 significa nenhuma afinidade; nível 20 é a Maestria.
 
 1.4 Hierarquia de Domínios
-A tabela DOMAIN_TREE em constantes.lua define as relações de parentesco. Os IDs primários, secundários e especialidades estão consolidados e incluem os novos domínios de Escudo (15), Runologia (22), Desarmado Puro (130), Armas de Punho (132), Bastões Arcanos (133), Arremesso de Escudo (140), etc.
+A tabela DOMAIN_TREE em constantes.lua define as relações de parentesco entre Primários, Secundários e Especialidades. Os IDs actualmente implementados são:
 
+Primários: Combate (1), Magia (2), Ofícios (3), Natureza (4).
+
+Secundários de Combate: Lâminas (10), Machados (11), Clavas (12), Precisão (13), Artes Marciais (14), Escudo (15).
+
+Secundários de Magia: Elementos (20), Espectro (21), Runologia (22).
+
+Especialidades de Arma: Espadas Leves (100), Espadas Pesadas (101), Machados Leves (110), Machados Pesados (111), Clavas Leves (112), Clavas Pesadas (113), Arcos (120), Arremesso (121), Lutador (130), Armas de Punho (132), Bastões Arcanos (133), Arremesso de Escudo (140).
+
+Especialidades Mágicas: Fogo e Ar (23), Água e Gelo (24), Terra e Veneno (25), Sagrado e Morte (200), Wands (210), Rods (211), Runas (212).
+
+Outros: Sobrevivência (400).
+
+A propagação de afinidade é automática: ao ganhar pontos numa Especialidade, os pontos sobem também para o Secundário e o Primário correspondentes. A hierarquia inversa (domainHierarchy e secondaryParent) é construída no arranque.
+
+1.5 Compatibilidade Elemental
+Desde a v4.2, o SPA suporta sinergia elemental nativa: armas que possuem elementalBond definido no XML (ou elementType nas habilidades) desbloqueiam automaticamente as habilidades do domínio elemental correspondente.
+
+Exemplo: uma Espada de Fogo (dano de fogo) activa tanto as habilidades de Espadas Leves (100) como as de Fogo e Ar (23).
+
+Isto é gerido pela função armaCompativeis no executor_habilidades.lua, que verifica o elemento da arma através de item:getElementalBond() e item:getElementType(), e mapeia para o domínio usando a tabela damageDomains:
+
+lua
+damageDomains = {
+    [COMBAT_FIREDAMAGE]   = 23,
+    [COMBAT_ICEDAMAGE]    = 24,
+    [COMBAT_EARTHDAMAGE]  = 25,
+    [COMBAT_ENERGYDAMAGE] = 23,
+    [COMBAT_DEATHDAMAGE]  = 200,
+    [COMBAT_HOLYDAMAGE]   = 200,
+}
 ⚔️ 2. Posturas de Combate
-As posturas são selecionadas pelos modos de luta nativos do Tibia (fightMode):
+As posturas são selecionadas pelos modos de luta nativos do Tibia (fightMode) e lidas pelo servidor via player:getFightMode().
 
 Modo	Postura SPA	Constante Lua
 Full Attack (1)	Ímpeto	FIGHTMODE_ATTACK
 Balanced (2)	Equilíbrio	FIGHTMODE_BALANCED
 Full Defense (3)	Guarda	FIGHTMODE_DEFENSE
 Métodos relacionados
-
 Método Lua	Descrição
 player:getFightMode()	Retorna o modo actual (1,2,3).
-player:setAttackSpeedModifier(mod)	Multiplicador da velocidade de ataque.
+player:setAttackSpeedModifier(mod)	Multiplicador da velocidade de ataque (0.1 a infinito).
 player:getAttackSpeedModifier()	Valor actual.
 player:setStealth(bool)	Activa/desactiva furtividade.
-player:isStealth()	Verifica furtividade.
-player:setCanPushCreatures(bool)	Permite empurrar criaturas.
+player:isStealth()	Verifica se está furtivo.
+player:setCanPushCreatures(bool)	Permite empurrar criaturas ao andar.
 player:setLifeLeechModifier(percent)	Define % de life leech (0‑100).
 player:setManaLeechModifier(percent)	Define % de mana leech (0‑100).
 player:setDamageTakenModifier(mod)	Multiplicador do dano recebido.
 player:setRangeModifier(tiles)	Ajusta o alcance.
-Buffs temporários (geridos pelo buff_system.lua)
+Buffs temporários (geridos pelo buff_system.lua v6.1)
+Speed Burst (applySpeedBurst): acelera o ataque por X ms usando um token aleatório para evitar conflitos com a reaplicação da postura.
 
-Speed Burst (applySpeedBurst): acelera ataque por X ms, usando sistema de token para evitar conflitos com a postura.
+Damage Boost (applyDamageBoost): adiciona +% de dano por um número limitado de ataques.
 
-Damage Boost (applyDamageBoost): +% dano por N ataques.
+Life Leech / Mana Leech (applyLifeLeech, applyManaLeech): roubo de vida/mana por X segundos, processados directamente no evento PosturaDmg do postura.lua.
 
-Life Leech / Mana Leech (applyLifeLeech, applyManaLeech): roubo de vida/mana por X segundos. Processados diretamente no evento PosturaDmg via postura.lua (sem depender das skills nativas).
-
-Next Attack Condition: aplica condição (sangramento, atordoamento, etc.) no próximo ataque.
+Next Attack Condition: aplica uma condição (sangramento, atordoamento, paralisia, etc.) no próximo ataque do jogador. Usa storages na faixa STORAGE.BUFF_BASE.
 
 🛡️ 3. Sistema de Chi (Harmony) e Virtudes
-Integrado com as mecânicas do Monk nativo do Canary.
+Integrado com as mecânicas do Monk nativo do Canary, o sistema de Chi é usado pelo domínio Artes Marciais (14) e suas especialidades.
 
 Métodos Lua
-
 Método Lua	Descrição
-player:fillHarmony()	Enche a barra de Chi (Harmony).
+player:fillHarmony()	Enche a barra de Harmony (Chi).
 player:getHarmony()	Retorna o valor actual (0‑5).
-player:setHarmony(value)	Define o valor manualmente (usado para gastar Chi).
+player:setHarmony(value)	Define o valor manualmente (usado para gastar Chi em habilidades).
 player:getHarmonyDamage(min, max)	Calcula dano com bónus de Harmony.
 player:setSerene(bool)	Activa/desactiva o estado Serenidade.
-player:setVirtue(virtue)	Define a Virtude (Harmony, Justice, Sustain).
+player:setVirtue(virtue)	Define a Virtude actual.
 player:getVirtue()	Retorna a Virtude actual.
-Constantes Lua: Virtue_t = { None=0, Harmony=1, Justice=2, Sustain=3 }.
+Constantes e storages
+lua
+Virtue_t = {
+    None    = 0,
+    Harmony = 1,   -- parte do dano recupera vida
+    Justice = 2,   -- mais dano a inimigos feridos
+    Sustain = 3,   -- curas mais fortes
+}
 
-A storage STORAGE.HARMONY = 97880 também é usada para controlo fino nos scripts.
+STORAGE.HARMONY = 97880
+STORAGE.CHI_ACCUMULATED = 97881
+A Serenidade é um estado especial que concede bónus adicionais de dano e cura. É activada automaticamente ao atingir a Maestria (nível 20) em Artes Marciais, ou ao encher a barra de Chi.
 
 🎯 4. Habilidades (Skills do SPA)
-As habilidades são definidas em tabelas Lua (HABILIDADES[habId] = {…}) e executadas pelo executor_habilidades.lua. Cada habilidade segue o gabarito documentado em habilidade_gabarito.lua.
+As habilidades são definidas em tabelas Lua HABILIDADES[habId] = {…} e executadas pelo executor_habilidades.lua (v6.9). Cada habilidade segue o gabarito documentado em habilidade_gabarito.lua (v3.1).
 
 Tipos de habilidade
-
 Tipo	Descrição
-"passiva"	Efeito permanente (aplicado no login e ao subir de nível).
-"gatilho"	Disparada por eventos (onAttack, onKill, onBlock, onReceiveDamage).
+"passiva"	Efeito permanente, aplicado no login e ao subir de nível.
+"gatilho"	Disparada por eventos: onAttack, onDealtDamage, onKill, onBlock, onReceiveDamage.
 "transformacao"	Activada/desactivada com base nos Estados de Alma (Lampejo/Vínculo).
-Campos principais (ver gabarito para lista completa)
+Campos principais (lista completa no habilidade_gabarito.lua v3.1)
+Obrigatórios: nome, tipo, dominio (array de IDs), nivelMin, descricaoEfeito, cor, mensagem.
 
-nome, tipo, dominio, nivelMin
+Condicionais (gatilho): gatilho, cooldown, prioridade, categoria, efeito (função Lua).
 
-gatilho, cooldown, prioridade, categoria
+Opcionais: buffType ("speedBurst", "nextAttackCondition", "damageBoost", "lifeLeech", "custom"), buffMultiplier, buffDurationMs, conditionType, conditionDuration, conditionDamage, percentExtra, buffHits, leechPercent, durationSec, condicao ("cercado", "cercadoAlvo", "vidaBaixa", "distancia4", "5Golpes"), chiCusto, efeitoVisual, posturaMod, async.
 
-buffType (speedBurst, nextAttackCondition, damageBoost, lifeLeech, custom)
+Novo: Feedback narrativo dinâmico (v3.1 / executor v6.9)
+O campo mensagem de cada habilidade pode ser:
 
-efeito (função Lua), efeitoVisual, posturaMod
+Uma tabela de funções (player, target) que retornam a string formatada com cores e o nome real do alvo via t:getName().
 
-condicao ("cercado", "cercadoAlvo", "vidaBaixa", "distancia4", "5Golpes")
+Uma única função (player, target).
 
-Nova condição "cercadoAlvo": verifica se o alvo tem pelo menos 2 outros inimigos num raio de 2 tiles. Ideal para habilidades de dano em área centradas no alvo (explosões, ricochetes, magias).
+Uma tabela de strings estáticas (para mensagens que não dependem do alvo).
+
+O executor v6.9 processa estas variantes: se encontrar uma função, chama-a com (player, target) para obter a string final.
+
+Regras absolutas de formatação (cores v10.0):
+
+Começar sempre com c("[Nome da Habilidade] ", corDoDominio).
+
+Usar c(t:getName(), COR.INIMIGO_MONSTRO) para o nome do alvo.
+
+Apenas palavras‑chave são coloridas: condições (COR.COND_*), acções físicas (COR.ACAO_*), inimigo (COR.INIMIGO_MONSTRO).
+
+Nunca usar caracteres que quebrem a codificação ISO‑8859‑1 (travessões —, aspas curvas). Usar hífen - e aspas rectas.
+
+COR v10.0 agrupa as cores em: CONDIÇÕES E EFEITOS, ACÇÕES FÍSICAS, DANO E INIMIGOS, SUCESSO/CURA/ALIADOS, RARIDADES E ITENS, INFORMAÇÃO/SISTEMA, POSTURAS, DOMÍNIOS, ELEMENTOS, NPCs, MISSÕES, FEEDBACK DE COMBATE.
 
 Execução
+O executor_habilidades.lua (v6.9) utiliza um motor de seleção inteligente:
 
-O executor_habilidades.lua (v6.5.1) utiliza um motor de seleção inteligente com prioridade contextual, em vez de depender de chanceBase:
+Filtra as habilidades elegíveis: fora de cooldown, arma compatível (via armaCompativeis), condições cumpridas, Chi suficiente (se chiCusto > 0).
 
-Filtra habilidades elegíveis (fora de cooldown, arma compatível, condições cumpridas, Chi suficiente).
+Classifica por pontuação de prioridade: categoria (aoe, finisher, defense, buff, debuff, chi_spender), postura (posturaMod.chanceMult), contexto de combate (número de inimigos, vida do jogador e do alvo).
 
-Classifica‑as por pontuação de prioridade (categoria, postura, contexto de combate).
+Escolhe a melhor ou uma das 3 melhores ponderadamente (pool size 3, sorteio por peso).
 
-Escolhe a melhor ou uma das 3 melhores ponderadamente.
+Respeita cooldowns individuais por habilidade (campo cooldown, padrão 4s) e um cooldown global entre sequências que diminui com o nível de maestria (6.0s → 3.0s).
 
-Respeita cooldowns individuais por habilidade (campo cooldown, padrão 4s).
+Suporta combos de até 3 habilidades consecutivas desbloqueados por nível de maestria (nível 10 → duplo, 15 → triplo), com chances configuráveis por nível.
 
-Suporta combos de até 3 habilidades consecutivas desbloqueados por nível de maestria (chances configuráveis).
-
-Aplica um cooldown global entre sequências que diminui com o nível de maestria (6.0s → 3.0s).
+Não invoca efeitoVisual para habilidades buffType="custom" (essas gerem os seus próprios visuais), evitando duplicação.
 
 🔧 5. Atributos de Itens Expostos ao Lua
 Métodos disponíveis em qualquer item (userdata: Item):
 
 Método Lua	Descrição
-item:getShootType()	Retorna o tipo de projétil do item (constante CONST_ANI_*).
+item:getShootType()	Retorna o tipo de projétil (constante CONST_ANI_*).
 item:getRange()	Retorna o alcance da arma.
 item:getAttack()	Retorna o ataque base.
 item:getDefense()	Retorna a defesa base.
-item:getArmor()	Retorna a armadura.
+item:getArmor()	Retorna a armadura do item (NÃO funciona em criaturas!).
 item:getSpeed()	Retorna o bónus de velocidade.
 item:getHealthGain()	Retorna o bónus de vida máxima.
 item:getManaGain()	Retorna o bónus de mana máxima.
-item:getTransformEquipTo()	Retorna o ID do item ao equipar.
+item:getTransformEquipTo()	Retorna o ID do item ao equipar (ex.: bola para corda).
 item:getSlotPosition()	Retorna a posição de slot (flags SLOTP_*).
 item:isStackable()	Retorna true se o item é empilhável.
 item:isFluidContainer()	Retorna true se é recipiente de líquidos.
@@ -145,6 +195,7 @@ item:getDecayTime()	Retorna o tempo até expirar.
 item:isShowDuration()	Retorna true se a duração é mostrada.
 item:getAmmoType()	Retorna o tipo de munição (AMMO_ARROW, AMMO_BOLT, etc.).
 item:getElementalBond()	Retorna o tipo de dano elemental (ex.: COMBAT_ENERGYDAMAGE).
+item:getElementType()	Retorna o tipo de dano elemental do Abilities (wandType, combatType).
 item:getMagicLevelPoints()	Bónus de Magic Level do item.
 item:getSkillFist()	Bónus de Fist Fighting.
 item:getSkillSword()	Bónus de Sword.
@@ -152,115 +203,148 @@ item:getSkillAxe()	Bónus de Axe.
 item:getSkillClub()	Bónus de Club.
 item:getSkillDistance()	Bónus de Distance.
 item:getSkillShield()	Bónus de Shielding.
-A tabela ELEMENTAL_BOND em constantes.lua mapeia IDs de itens para tipos de dano, usada como fallback e referência rápida.
+⚠️ Nota importante: getArmor() só funciona em ItemType, não em criaturas. Para simular ignorar armadura de monstros, usar dano percentual extra baseado no nível do domínio.
 
-🔫 5.1 Sistema de Projéteis Dinâmico
-A função global getProjectile(player) em util_armas.lua (v6.1) resolve automaticamente o projétil visual correto:
+5.1 Sistema de Projéteis Dinâmico
+A função global getProjectile(player) em util_armas.lua resolve automaticamente o projétil visual correto:
 
-Armas de distância (arcos/bestas): usa player:getAmmo() (novo método C++) para obter a munição real que está dentro da aljava ou slot de munição, e devolve o shootType dessa munição.
+Armas de distância (arcos/bestas): usa player:getAmmo() para obter a munição real e devolve o shootType dela.
 
 Armas de arremesso (MISSILE): usa item:getShootType() da própria arma.
 
 Wands: usa item:getShootType() da wand.
 
-Fallback genérico por tipo de arma caso nenhum método retorne um valor válido.
+Fallback genérico por tipo de arma (CONST_ANI_ARROW, CONST_ANI_THROWINGSTAR, etc.).
 
-Isto garante que habilidades de múltiplos projéteis exibam sempre a animação correta (flecha flamejante, power bolt, estrela de arremesso, etc.), sem necessidade de tabelas manuais.
+A função global getElementalProjectile(player) retorna três valores:
 
-🌐 6. Barramento de Eventos Universal (Event Bus)
-Implementado via SPAManager (C++) e exposto como SPA.onEvent / SPA.dispatchEvent.
+Projétil visual (CONST_ANI_*) para sendDistanceEffect.
 
-Métodos Lua
+Efeito mágico (CONST_ME_*) para impacto e área.
+
+Tipo de dano (COMBAT_*) para doTargetCombatHealth.
+
+Ambas garantem que habilidades de múltiplos projéteis exibam a animação correta sem tabelas manuais.
+
+🧩 6. Funções Auxiliares para Habilidades
+O ficheiro funcoes_habilidade.lua (v1.0) fornece funções reutilizáveis que encapsulam a lógica comum:
+
+Função	Descrição
+dispararProjetil(player, target, danoBase, extraPercent)	Dispara um projétil elemental com dano proporcional ao danoBase. extraPercent é o multiplicador extra (ex.: 0.2 = +20%).
+dispararRajada(player, target, danoBase, extraPercent, numProjeteis, intervaloMs)	Dispara numProjeteis projéteis em sequência contra o mesmo alvo, com intervalo mínimo de 250ms entre eles.
+explosaoElementalArea(player, target, danoBase, extraPercent, raio)	Cria uma explosão elemental ao redor do alvo. Os projéteis partem do alvo principal para os secundários.
+danoElemental(player, target, dano, efeitoOpcional)	Aplica dano com o elemento da arma e um efeito visual opcional.
+golpeCorpoACorpo(player, target, dano, efeito)	Aplica dano físico com efeito visual no alvo, sem projétil (para habilidades melee).
+empurrarAlvo(player, target)	Empurra o alvo na direção oposta ao jogador.
+Estas funções são globais e podem ser chamadas directamente no campo efeito de qualquer habilidade.
+
+🌐 7. Barramento de Eventos Universal (Event Bus)
+Implementado via SPAManager (C++) e exposto ao Lua com os métodos:
 
 Método Lua	Descrição
-SPA.onEvent(eventName, callback)	Regista uma função Lua para ser chamada quando o evento ocorrer.
-SPA.dispatchEvent(eventName, …)	Dispara um evento, chamando todos os callbacks registados.
+SPA.onEvent(eventName, callback)	Regista uma função Lua para ser chamada quando o evento for disparado.
+SPA.dispatchEvent(eventName, ...)	Dispara um evento, invocando todos os callbacks registados, passando os argumentos adicionais.
 Eventos já disponíveis (disparados pelo motor)
-
 Evento	Argumentos	Local de disparo
 "onPlayerDealtDamage"	player, target, damage, primaryType, secondaryType	combat.cpp
 "onPlayerKill"	player, target	eventos.lua (via ProgKill)
 "onPlayerLogin"	player	player.cpp (onLogin)
-Novos eventos podem ser adicionados facilmente chamando SPA.dispatchEvent em qualquer script Lua ou ponto do C++.
+Novos eventos podem ser adicionados chamando SPA.dispatchEvent em qualquer script Lua ou ponto do C++.
 
-🧩 7. Modificadores de Combate Dinâmicos
-Cada jogador possui um mapa string → double que pode ser manipulado em tempo real para ajustar parâmetros de combate.
-
-Métodos Lua
+🧩 8. Modificadores de Combate Dinâmicos
+Cada jogador possui um mapa interno string → double que pode ser manipulado em tempo real para ajustar parâmetros de combate.
 
 Método Lua	Descrição
-player:setCombatModifier("chave", valor)	Define um modificador (ex.: "fire_damage", 25.0).
-player:getCombatModifier("chave")	Retorna o valor actual.
-Estes modificadores são lidos por habilidades e scripts do SPA, permitindo sinergias dinâmicas sem alterar o C++.
+player:setCombatModifier("chave", valor)	Define um modificador (ex.: "fire_damage", 25.0 para +25% de dano de fogo).
+player:getCombatModifier("chave")	Retorna o valor actual do modificador.
+Estes modificadores são lidos por habilidades e scripts do SPA, permitindo sinergias dinâmicas sem alterar o C++. Exemplos de chaves usadas: "fire_damage", "ice_damage", "physical_damage", "crit_chance".
 
-🖥️ 8. Métodos Nativos Adicionais Expostos
+🖥️ 9. Métodos Nativos Adicionais Expostos
 Método Lua	Descrição
-player:getAmmo()	Novo. Retorna o item da munição real que o jogador está a usar (procura no slot de munição e dentro de aljavas/quivers).
+player:getAmmo()	Retorna o item da munição real que o jogador está a usar (procura no slot de munição e dentro de aljavas/quivers). Essencial para projéteis dinâmicos.
 monster:getRaceId()	Retorna o ID da raça do monstro (ex.: RACE_DRAGON).
 player:getParty()	Retorna o grupo do jogador (ou nil).
 tile:hasFlag(flag)	Verifica propriedades do tile (ex.: TILESTATE_PROTECTIONZONE).
 Game.getWorldType()	Retorna o tipo de mundo (0=PvP, 1=NoPvP, etc.).
-creature:knockback(direction)	Empurra a criatura na direção (0‑3).
-player:getStorages(k1, k2, …)	Lê múltiplas storages de uma vez.
+creature:knockback(direction)	Empurra a criatura na direção (0‑3, mesma orientação do jogo).
+player:getStorages(k1, k2, …)	Lê múltiplas storages de uma vez, retornando {[k]=v}.
 player:setStorages({[k]=v, …})	Escreve múltiplas storages de uma vez.
-📦 9. SkillTrees (Pacotes de Habilidades)
-Implementado 100% em Lua (SPA/skilltree.lua). Permite agrupar várias habilidades e desbloqueá‑las quando o jogador atinge um certo nível em determinados domínios.
+📦 10. SkillTrees (Pacotes de Habilidades)
+Implementado 100% em Lua no ficheiro SPA/skilltree.lua (v6.0). Permite agrupar várias habilidades e desbloqueá‑las quando o jogador atinge um certo nível em determinados domínios.
 
 Funções Lua
-
 Função	Descrição
-SPA.registerSkillTree(nome, config)	Regista um pacote de habilidades.
-SPA.checkSkillTrees(player)	Verifica e desbloqueia pacotes elegíveis.
-A storage STORAGE.SKILLTREE_BASE = 94000 é usada para marcar pacotes já adquiridos.
+SPA.registerSkillTree(nome, config)	Regista um pacote de habilidades. O config deve conter: id (número único), dominios (array de IDs), nivelMin (nível exigido em cada domínio), habilidades (array de IDs de habilidades a desbloquear).
+SPA.checkSkillTrees(player)	Verifica todos os pacotes registados e desbloqueia aqueles cujos requisitos são cumpridos. Chamada automaticamente no login e a cada 2 segundos pelo think_master.
+Exemplo de registo
+lua
+SPA.registerSkillTree("Mago de Combate", {
+    id = 1,
+    dominios = {133, 23},        -- Bastões Arcanos e Fogo e Ar
+    nivelMin = 15,
+    habilidades = {13320, 13321} -- IDs das habilidades a desbloquear
+})
+A storage STORAGE.SKILLTREE_BASE = 94000 é usada para marcar pacotes já adquiridos (bitmask ou array de storages).
 
-🗂️ 10. Módulos Lua de Apoio (sempre globais)
-Módulo	Conteúdo
-constantes.lua	Todos os IDs de domínios, weapon types, curva de progressão, limites globais (SPEED_MIN, DAMAGE_MAX), hierarquia DOMAIN_TREE, storages do SPA.
-texto_colorido.lua	Tabela COR (cores temáticas) e funções c(texto, cor) e enviarMsgColorida(player, texto).
-util_armas.lua (v6.1)	Funções getWeaponType, hasShield, getWeaponEspecialidade, isWeaponTwoHanded, getDistanceAnim, getNomeDominio, getProjectile. Sistema de projéteis dinâmico.
-util_criaturas.lua	getCreaturesInArea, getCreatureDistance.
-util_efeitos.lua	sendDistanceEffect.
-pronouns.lua	Pronouns.getSubject(player), etc.
-npc_utils.lua	NpcUtils.correspondeAcao, getTratamento, escolherFraseVariada.
-postura_config.lua	Tabelas POSTURA_BASE, AGIL_AJUSTES, PESADA_AJUSTES, RUNOLOGIA_*, ARREMESSO_*, SHIELD_POSTURA, função corDominio().
-progressao.lua	Buffer de afinidade (adicionarAfinidade, descarregarBuffer), getNivelPorAfinidade, verificarDesbloqueio.
-sintonia.lua	Lampejos e Vínculos (onDominioAction, aplicarBonus).
-postura.lua (v6.2)	Aplicação de posturas, bónus de Desarmado, knockback, furtividade, life/mana leech. Proteção de Speed Burst via token.
-buff_system.lua (v6.1)	Buffs temporários (speed, dano, leech, condições). Sistema de token para Speed Burst.
-executor_habilidades.lua (v6.5.1)	Motor de seleção inteligente com prioridade contextual, cooldowns individuais, combos e condição cercadoAlvo.
-eventos.lua (v6.0)	Eventos de progressão (ProgDano, ProgKill, ProgDefesa). Geração de Chi, tracking de último domínio.
-passivas_ataque.lua	Efeitos passivos de auto‑ataque por domínio e nível.
-login.lua	Inicialização do jogador, registo de thinks, descarregamento de buffer no logout.
-think_master.lua (v1.0)	Novo. Unifica BuffThink, PosturaThink, SintoniaThink e ShieldThrowThink num único think a cada 2 segundos, reduzindo a carga de eventos.
-⚙️ 11. Performance e Modularidade
-Todas as consultas de afinidade em lote usam addDominioAfinidadeBatch.
+🗂️ 11. Módulos Lua de Apoio
+Todos os módulos abaixo são carregados automaticamente pelo Revscript e expõem funções e tabelas globais.
 
-O buffer de progressão descarrega a cada 2 segundos, minimizando escritas na BD.
+Módulo	Versão	Conteúdo
+constantes.lua	v5.2	IDs de domínios, weapon types, curva de progressão, limites globais (SPEED_MIN, DAMAGE_MAX), hierarquia DOMAIN_TREE, FIST_WEAPON_TYPE, ELEMENTAL_BOND, STORAGE (faixas completas), weaponDomains, damageDomains, Virtue_t.
+texto_colorido.lua	v10.0	Tabela COR com agrupamento lógico: CONDIÇÕES E EFEITOS, ACÇÕES FÍSICAS, DANO E INIMIGOS, SUCESSO/CURA/ALIADOS, RARIDADES E ITENS, INFORMAÇÃO/SISTEMA, POSTURAS, DOMÍNIOS, ELEMENTOS, NPCs, MISSÕES, FEEDBACK DE COMBATE. Funções c(texto, cor) e enviarMsgColorida(player, texto).
+util_armas.lua	v6.1	getWeaponType, hasShield, getWeaponEspecialidade, isWeaponTwoHanded, getDistanceAnim, getNomeDominio, getProjectile, getElementalProjectile, getElementoItem, SHOOT_TYPE_TO_ANI.
+funcoes_habilidade.lua	v1.0	dispararProjetil, dispararRajada, explosaoElementalArea, danoElemental, golpeCorpoACorpo, empurrarAlvo.
+util_criaturas.lua	v5.0	getCreaturesInArea, getCreatureDistance.
+util_efeitos.lua	v5.1	sendDistanceEffect.
+pronouns.lua	–	Pronouns.getSubject, getObject, getPossessive, getReflexive.
+npc_utils.lua	–	NpcUtils.correspondeAcao, getTratamento, escolherFraseVariada.
+postura_config.lua	v5.0	POSTURA_BASE, AGIL_AJUSTES, PESADA_AJUSTES, RUNOLOGIA_*, ARREMESSO_*, SHIELD_POSTURA, corDominio().
+progressao.lua	v5.0	adicionarAfinidade, descarregarBuffer, getNivelPorAfinidade, verificarDesbloqueio.
+sintonia.lua	v6.0	Sistema de barra de foco: onDominioAction (incrementa barra), aplicarBonus (bónus de velocidade/dano por estados de alma).
+postura.lua	v6.2	aplicarPostura (cálculo e aplicação de todos os modificadores), eventos PosturaChange, PosturaDmg, PosturaLogout. Proteção de Speed Burst via token.
+buff_system.lua	v6.1	applySpeedBurst, applyDamageBoost, applyLifeLeech, applyManaLeech, applyNextAttackCondition, processBuffs, applyPendingCondition.
+executor_habilidades.lua	v6.9	Motor de seleção inteligente com prioridade contextual, cooldowns individuais, combos, condição cercadoAlvo, compatibilidade elemental, suporte a mensagens dinâmicas (funções com t:getName()).
+eventos.lua	v6.1	ProgDano, ProgKill, ProgDefesa. Geração de Chi, tracking de LAST_DOMAIN_USED.
+passivas_ataque.lua	v5.0	Efeitos passivos de auto‑ataque por domínio e nível.
+login.lua	v5.3	Inicialização do jogador (distingue Alma vs personagens normais), registo do SPAMasterThink, limpeza de locks, aplicação de passivas e postura inicial.
+think_master.lua	v3.1	Unifica BuffThink, PosturaThink, SintoniaThink e ShieldThrowThink num único think a cada 2 segundos. Inclui decaimento das barras de foco.
+skilltree.lua	v6.0	Sistema de SkillTrees (pacotes de habilidades).
+comandos_spa.lua	v5.0	Comandos de teste: !platinar, !resetspa, !aprendertudo, !aprenderbastoes, !limparlocks, !especialidade, !habilidades, !atributosarma, !testeeventbus, !verificardesarmado, !exibircores, !iteminfo, !debugproj, !maximizar.
+⚙️ 12. Performance e Modularidade
+Consultas em lote: addDominioAfinidadeBatch minimiza escritas na BD.
 
-Os eventos Lua são registados dinamicamente; novos domínios e habilidades podem ser adicionados sem recompilar.
+Buffer de progressão: descarrega a cada 2 segundos, evitando escritas por ação.
+
+Think unificado: think_master.lua (v3.1) reduziu 4 eventos (BuffThink, PosturaThink, SintoniaThink, ShieldThrowThink) para um único SPAMasterThink.
+
+Sistema de token para Speed Burst evita conflitos entre buff_system.lua e postura.lua sem depender de os.mtime().
+
+Funções auxiliares (funcoes_habilidade.lua) reduzem a duplicação de código e facilitam a manutenção.
+
+Projéteis dinâmicos (getElementalProjectile) centralizam a lógica de adaptação elemental.
+
+Eventos Lua registados dinamicamente; novos domínios e habilidades são adicionados sem recompilar o C++.
 
 A tabela SPA é global; qualquer script pode estender o sistema.
 
-Os thinks do jogador foram unificados no think_master.lua (redução de 4 eventos para 1).
-
-O sistema de token para Speed Burst evita conflitos entre buff_system.lua e postura.lua, sem depender de os.mtime().
-
-✅ Resumo do Estado Actual (23/05/2026)
+✅ Resumo do Estado Actual (24/05/2026)
 Motor de progressão genérico (SPAManager) registado e funcional.
 
 Modificadores de combate dinâmicos implementados.
 
-Atributos de itens expandidos: 19 novos métodos expostos (getShootType, getRange, getAttack, getDefense, getArmor, getSpeed, getHealthGain, getManaGain, getTransformEquipTo, getSlotPosition, isStackable, isFluidContainer, getWeaponType, getLightLevel, getLightColor, getDecayTo, getDecayTime, isShowDuration, getAmmoType).
+Atributos de itens expandidos: 20 métodos expostos, incluindo getElementType.
 
 Método player:getAmmo() exposto para obtenção da munição real.
 
-Sistema de projéteis 100% dinâmico via getProjectile().
+Sistema de projéteis 100% dinâmico via getProjectile() e getElementalProjectile().
 
-Nova condição de habilidade: "cercadoAlvo".
+Condições de habilidade: "cercado", "cercadoAlvo", "vidaBaixa", "distancia4", "5Golpes".
 
-Executor de habilidades com seleção inteligente, cooldowns individuais e combos por maestria.
+Executor de habilidades v6.9 com seleção inteligente, combos por maestria, compatibilidade elemental e feedback narrativo dinâmico (funções com nome do alvo).
 
-Thinks unificados no think_master.lua.
+Módulo funcoes_habilidade.lua activo.
+
+Thinks unificados no think_master.lua v3.1.
 
 Raça de monstro, grupo, tile flags e tipo de mundo acessíveis.
 
@@ -268,8 +352,10 @@ Event Bus operacional: SPA.onEvent / SPA.dispatchEvent.
 
 SkillTrees (pacotes de habilidades) prontos para uso.
 
+Cores actualizadas v10.0 com agrupamento lógico.
+
+Gabarito de habilidades v3.1 com regras de feedback narrativo e aviso sobre getArmor().
+
 Todas as APIs verificadas com !testespa.
 
 O SPA está preparado para receber qualquer domínio, habilidade ou mecânica futura sem necessidade de novas alterações no C++.
-
-Fim do documento.

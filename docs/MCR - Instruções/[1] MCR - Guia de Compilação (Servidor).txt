@@ -1,9 +1,9 @@
 PROJETO MCR – GUIA DE COMPILAÇÃO (SERVIDOR)
-Versão 4.0 – Sistema de Progressão do Aventureiro (SPA v3.2.0), novos métodos Lua (buffer, histórico, estados, knockback, lotes), estrutura Revscript e integração de cores
+Versão 4.1 – Sistema de Progressão do Aventureiro (SPA v4.2), novos métodos Lua (buffer, histórico, estados, knockback, lotes, getAmmo, combatModifier), estrutura Revscript e integração de cores
 Arquivo: [1] MCR - Guia de Compilação (Servidor).txt
 
 🎯 OBJETIVO DESTE GUIA
-Fornecer todas as instruções, dependências, customizações e verificações necessárias para compilar o servidor Canary do Projeto MCR a partir do código‑fonte. Esta versão incorpora todos os métodos Lua exigidos pelo Sistema de Progressão do Aventureiro (SPA v3.2.0), incluindo gerenciamento de afinidades em lote, histórico de ações (para Lampejos e Vínculos), knockback, modificadores de velocidade e stealth, além da estrutura modular de scripts em data-canary/scripts/MCR/SPA/. O assistente DEVE seguir estas directrizes ao modificar o código C++.
+Fornecer todas as instruções, dependências, customizações e verificações necessárias para compilar o servidor Canary do Projeto MCR a partir do código‑fonte. Esta versão incorpora todos os métodos Lua exigidos pelo Sistema de Progressão do Aventureiro (SPA v4.2), incluindo gerenciamento de afinidades em lote, histórico de ações (para Lampejos, Vínculos e Maestria), knockback, modificadores de velocidade e stealth, getAmmo (para projéteis dinâmicos) e setCombatModifier (modificadores de combate dinâmicos), além da estrutura modular de scripts em data-canary/scripts/MCR/SPA/core/ e subpastas. O assistente DEVE seguir estas directrizes ao modificar o código C++.
 
 🚧 ESTADO ATUAL DA IMPLEMENTAÇÃO
 
@@ -87,9 +87,9 @@ Bindings Lua Preservados: nenhuma remoção de métodos. Apenas adições docume
 
 Remoção de restrições de vocação: vocation 0 permitido em itens e magias (item.cpp, player.cpp, spells.cpp).
 
-🚀 Novos Métodos Lua para o SPA v3.2.0 (IMPLEMENTADOS)
+🚀 Novos Métodos Lua para o SPA v4.2 (IMPLEMENTADOS)
 
-Estes métodos estão implementados em player.h/cpp e expostos em luascript.cpp. São essenciais para o funcionamento do buffer de progressão, Lampejos, Vínculos, Posturas e habilidades. Todos estão activos e podem ser usados pelos scripts da pasta MCR/SPA/.
+Estes métodos estão implementados em player.h/cpp e expostos em luascript.cpp. São essenciais para o funcionamento do buffer de progressão, Lampejos, Vínculos, Maestria, Posturas, Sinergia Elemental, Arremesso de Escudo e habilidades. Todos estão activos e podem ser usados pelos scripts da pasta MCR/SPA/.
 
 player:getDominioAfinidade(dominioId) – retorna a afinidade acumulada no Domínio.
 
@@ -107,13 +107,13 @@ player:learnHabilidade(habilidadeId) – concede uma habilidade permanentemente 
 
 player:getHabilidades() – retorna uma tabela com os IDs de todas as habilidades aprendidas.
 
-player:registerDominioAction(dominioId) – regista uma acção no histórico do jogador (usado para Lampejos/Vínculos).
+player:registerDominioAction(dominioId) – regista uma acção no histórico do jogador (usado para Lampejos/Vínculos/Maestria).
 
 player:getActionHistory(maxCount) – retorna as últimas acções como tabela de {dominioId, timestamp}.
 
 player:clearActionHistory() – limpa todo o histórico de acções.
 
-player:getDominioState(dominioId) – retorna o estado de alma: 0 = normal, 1 = Lampejo, 2 = Vínculo.
+player:getDominioState(dominioId) – retorna o estado de alma: 0 = normal, 1 = Lampejo, 2 = Vínculo (Maestria garante Vínculo permanente).
 
 player:setDominioState(dominioId, state) – define o estado (0,1,2).
 
@@ -135,11 +135,27 @@ player:setManaLeechModifier(percent) – define % de mana leech.
 
 player:setDamageTakenModifier(mod) – multiplicador do dano recebido.
 
+player:setRangeModifier(tiles) – ajusta o alcance do jogador.
+
 creature:knockback(direction) – empurra a criatura na direcção (0‑3, mesma orientação do jogo).
 
 player:setStorages({[key] = value, ...}) – escreve múltiplas storages de uma vez.
 
 player:getStorages(key1, key2, ...) – lê múltiplas storages, retorna tabela {[key] = value}.
+
+player:getAmmo() – retorna o item da munição real que o jogador está a usar (procura no slot de munição e dentro de aljavas/quivers). Essencial para o sistema de projéteis dinâmicos.
+
+player:getParty() – retorna o grupo do jogador (ou nil).
+
+monster:getRaceId() – retorna o ID da raça do monstro.
+
+player:setCombatModifier("chave", valor) – define um modificador de combate dinâmico (ex.: "fire_damage", 25.0).
+
+player:getCombatModifier("chave") – retorna o valor actual do modificador.
+
+item:getElementalBond() – retorna o tipo de dano elemental do item (COMBAT_FIREDAMAGE, etc.).
+
+item:getElementType() – retorna o elementType do item (wandType, combatType do Abilities).
 
 ⚙️ Lógica interna já presente em player.cpp:
 
@@ -147,7 +163,11 @@ std::deque<ActionRecord> para o histórico de acções.
 
 Estados de alma (Lampejo/Vínculo) controlados via setDominioState e getAllActiveStates, consumidos pelos scripts de sintonia.
 
+Maestria (nível 20) gerida via getNivelPorAfinidade e setDominioState: quando o nível atinge 20, o Vínculo torna‑se permanente e não é removido pela sintonia.
+
 Buffer de afinidade gerido via storages temporárias (95001+dominioId); o descarregamento em lote usa addDominioAfinidadeBatch para minimizar queries.
+
+Modificadores de combate dinâmicos armazenados em mapa string→double, manipulados via setCombatModifier/getCombatModifier.
 
 📅 EVENTO onHealthChange (JÁ IMPLEMENTADO)
 O evento onHealthChange está presente no Canary e é usado pelo script ProgDefesa (eventos.lua) para progressão de Sobrevivência e Escudo ao receber dano.
@@ -164,7 +184,7 @@ Cabeçalhos (.h/.hpp): comentários traduzidos, definições de classes/macros i
 
 Consulte a lista completa de scripts da pipeline no Índice Geral (Ferramentas de Automação).
 
-🗂️ ESTRUTURA DE PASTAS REVSCRIPT PARA O SPA
+🗂️ ESTRUTURA DE PASTAS REVSCRIPT PARA O SPA v4.2
 
 Os scripts do Sistema de Progressão do Aventureiro residem em:
 
@@ -176,24 +196,31 @@ data-canary/scripts/MCR/Geral/
 
 O Canary, com suporte a Revscript, carrega automaticamente todos os ficheiros .lua nessas pastas e subpastas. A estrutura actual é:
 data-canary/scripts/MCR/SPA/
-├── constantes.lua
-├── postura_config.lua
-├── progressao.lua
-├── sintonia.lua
-├── passivas.lua
-├── postura.lua
-├── buff_system.lua
-├── executor_habilidades.lua
-├── eventos.lua
-├── passivas_ataque.lua
-├── login.lua
+├── core/
+│   ├── constantes.lua
+│   ├── postura_config.lua
+│   ├── progressao.lua
+│   ├── sintonia.lua
+│   ├── passivas.lua
+│   ├── postura.lua
+│   ├── buff_system.lua
+│   ├── executor_habilidades.lua
+│   ├── eventos.lua
+│   ├── passivas_ataque.lua
+│   ├── login.lua
+│   ├── think_master.lua
+│   ├── skilltree.lua
+│   └── funcoes_habilidade.lua
 ├── habilidades/
-│ ├── habilidade_gabarito.lua
-│ └── inicializar_habilidades.lua
+│   ├── habilidade_gabarito.lua
+│   ├── inicializar_habilidades.lua
+│   └── (ficheiros modulares por domínio)
+├── comandos/
+│   └── comandos_spa.lua
 └── (futuros ficheiros modulares de habilidades)
 
 data-canary/scripts/MCR/Geral/
-├── texto_colorido.lua
+├── texto_colorido.lua (v9.1)
 ├── util_armas.lua
 ├── util_criaturas.lua
 ├── util_efeitos.lua
@@ -201,7 +228,7 @@ data-canary/scripts/MCR/Geral/
 ├── npc_utils.lua
 └── ...
 
-Todos os módulos em Geral/ e SPA/ são carregados automaticamente. As funções e tabelas definidas neles (ex.: COR, c(), adicionarAfinidade, getWeaponEspecialidade, etc.) tornam‑se globais e podem ser usadas por qualquer script, inclusive fora da árvore SPA.
+Todos os módulos em Geral/ e SPA/ são carregados automaticamente. As funções e tabelas definidas neles (ex.: COR v9.1, c(), adicionarAfinidade, getWeaponEspecialidade, getElementalProjectile, etc.) tornam‑se globais e podem ser usadas por qualquer script, inclusive fora da árvore SPA.
 
 ⚠️ ARMADILHAS E LIÇÕES APRENDIDAS
 
@@ -217,11 +244,15 @@ Escapes octais vs UTF‑8: use sempre escapes octais para portabilidade. Esta é
 
 A coluna lastlogin EXISTE na tabela players do schema actual do Canary (verificado no banco de dados do projecto). Pode ser usada para lógica de inicialização/migração de personagens no evento_login.lua.
 
-O SPA exige que o buffer de afinidade seja descarregado periodicamente; o método addDominioAfinidadeBatch deve ser eficiente para evitar lag.
+O SPA v4.2 exige que o buffer de afinidade seja descarregado periodicamente; o método addDominioAfinidadeBatch deve ser eficiente para evitar lag.
 
 A função player:getAllActiveStates() deve ser usada para obter os estados de alma; não itere manualmente sobre todos os domínios.
 
-As cores definidas em texto_colorido.lua devem ser mantidas consistentes com as constantes usadas nos scripts do servidor.
+As cores definidas em texto_colorido.lua (v9.1) devem ser mantidas consistentes com as constantes usadas nos scripts do servidor.
+
+O método player:getAmmo() é essencial para o sistema de projéteis dinâmicos e deve ser preservado.
+
+Os métodos player:setCombatModifier e getCombatModifier suportam a Sinergia Elemental e outras mecânicas dinâmicas do SPA v4.2.
 
 🔍 CHECKLIST DE REVISÃO PARA O ASSISTENTE (C++ SERVIDOR)
 
@@ -232,12 +263,13 @@ Antes de finalizar qualquer modificação em arquivos .cpp/.h do Canary, o assis
 ☐ A modificação mantém compatibilidade com o protocolo 15.00?
 ☐ Novos métodos Lua seguem a convenção minúsculas_com_underscore?
 ☐ Novos métodos Lua têm validação de parâmetros?
-☐ Os métodos listados na secção "Novos Métodos Lua" permanecem funcionais e sem regressões?
+☐ Os métodos listados na secção "Novos Métodos Lua" permanecem funcionais e sem regressões (incluindo getAmmo e setCombatModifier)?
 ☐ Nomes de bindings Lua NÃO foram alterados?
 ☐ Ficheiros de cabeçalho mantidos intactos?
 ☐ Novas consultas SQL usam placeholders parametrizados?
 ☐ O servidor compila sem warnings novos?
-☐ Os scripts da pasta MCR/SPA/ são carregados correctamente pelo Revscript e as funções globais (COR, c(), etc.) estão acessíveis?
+☐ Os scripts da pasta MCR/SPA/ são carregados correctamente pelo Revscript e as funções globais (COR v9.1, c(), etc.) estão acessíveis?
+☐ O método player:getAmmo() está funcional para suportar projéteis dinâmicos?
 
 📤 COMO ATUALIZAR O REPOSITÓRIO GIT
 
@@ -247,4 +279,4 @@ git push origin main
 
 ⚠️ PowerShell: aspas duplas em caminhos com espaços.
 
-FIM DO GUIA DE COMPILAÇÃO (SERVIDOR) — VERSÃO 4.0
+FIM DO GUIA DE COMPILAÇÃO (SERVIDOR) — VERSÃO 4.1
