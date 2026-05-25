@@ -1,0 +1,330 @@
+PROJETO MCR – GUIA DE CRIAÇÃO DE HABILIDADES
+Versão 1.1 – Sistema de Progressão do Aventureiro (SPA v4.3)
+Arquivo: [13] MCR - Guia de Criacao de Habilidades.txt
+
+🎯 OBJECTIVO DESTE GUIA
+Este documento é a autoridade máxima sobre como criar, organizar e manter as
+habilidades do Sistema de Progressão do Aventureiro (SPA). Define a filosofia
+de design, a estrutura de 35+ habilidades por domínio, os pacotes temáticos, as
+regras de feedback narrativo, as directrizes de implementação e o processo de
+geração. Todo o criador de conteúdo ou assistente DEVE seguir este guia ao
+criar ou modificar qualquer habilidade.
+
+📚 1. FILOSOFIA DE DESIGN
+
+Cada domínio do SPA é uma identidade viva. As suas habilidades não são
+genéricas — são a expressão da sua personalidade. Para garantir isso:
+
+- Cada domínio tem 3 adjectivos-chave e uma frase de assinatura que definem
+  o seu tom narrativo.
+- Nenhuma habilidade é placeholder. Toda a lógica é real e usa as funções
+  auxiliares e os métodos nativos do Canary.
+- A progressão é visível e narrativa, não apenas numérica. O feedback no chat
+  segue o padrão limpo v3.3 (máximo 3‑4 palavras coloridas por frase).
+- As sinergias entre domínios recompensam a experimentação e a profundidade
+  do jogador.
+
+📊 2. ESTRUTURA DE 35+ HABILIDADES POR DOMÍNIO
+
+Cada domínio secundário ou especialidade possui 35+ habilidades organizadas
+em camadas:
+
+| Categoria               | Qt. | Objectivo |
+|-------------------------|-----|-----------|
+| Árvore I‑IV             | 4   | Identidade e assinatura do domínio |
+| Gatilhos de Combate     | 10  | Dano directo, AoE, projécteis, ricochete, etc. |
+| Gatilhos de Condição    | 4   | Sangramento, atordoamento, paralisia, veneno, medo |
+| Gatilhos de Defesa      | 3   | Bloqueio, contra‑ataque, cura, escudo |
+| Gatilhos de Sinergia    | 3   | Habilidades que combinam múltiplos domínios |
+| Passivas de Atributo    | 5   | Bónus permanentes a stats |
+| Passivas de Sinergia    | 3   | Interacção com outros domínios (elemental, armas) |
+| Transformações          | 4   | Lampejo, Vínculo, Maestria, e uma especial |
+|-------------------------|-----|----------------------------------------------|
+| Total                   | 36  | (ajustável para 35 se necessário) |
+
+📦 3. PACOTES TEMÁTICOS (CATÁLOGO)
+
+Cada habilidade pertence a um ou mais pacotes. Os pacotes definem a mecânica
+e o feedback visual da habilidade.
+
+3.1 Dano em Área (Ground)
+- Descrição: Explosão centrada num ponto fixo (geralmente o chão sob o alvo
+  ou o jogador). Não segue o alvo.
+- Exemplos: Terremoto, Grito de Guerra, Erupção no solo.
+- Efeitos visuais: CONST_ME_GROUNDSHAKER, CONST_ME_FIREAREA, CONST_ME_ICEAREA.
+- Fields: Por omissão, não cria fields. Apenas habilidades específicas com o
+  pacote "Fields" podem criá‑los.
+- Alvo: O tile do alvo actual ou o tile do jogador (conforme a habilidade).
+
+3.2 Dano em Área (Alvo)
+- Descrição: Explosão centrada numa criatura alvo. Acompanha o alvo
+  visualmente (efeito no alvo e dano em raio).
+- Exemplos: Cogumelo de Fogo, Explosão Arcana, Tempestade Elemental.
+- Efeitos visuais: CONST_ME_FIREAREA, CONST_ME_ENERGYAREA, CONST_ME_MORTAREA.
+- Fields: Nunca cria fields.
+- Alvo: A criatura que está a ser atacada.
+
+3.3 Ricochete
+- Descrição: Projétil que atinge o alvo principal e depois salta para 1‑3
+  inimigos próximos.
+- Exemplos: Lâmina Ricochete, Raio em Cadeia, Dança do Vento e da Sombra.
+- Efeitos visuais: Projétil (CONST_ANI_*) no primeiro alvo, depois
+  sendDistanceEffect entre alvos.
+
+3.4 Corrente / Ligação
+- Descrição: Liga dois ou mais inimigos. Dano num é replicado nos outros,
+  ou um é puxado na direcção do outro.
+- Exemplos: Raízes Vinculantes (Terra), Descarga Arcana (Energia).
+- Efeitos visuais: CONST_ME_ENERGYHIT entre os alvos ligados.
+
+3.5 Knockback / Deslocamento
+- Descrição: Empurra, puxa ou arremessa o alvo.
+- Exemplos: Investida, Golpe Sísmico, Impacto de Escudo.
+- Efeitos visuais: CONST_ME_HITAREA no alvo. Função empurrarAlvo().
+
+3.6 Condição (Debuff)
+- Descrição: Aplica uma condição negativa (sangramento, atordoamento,
+  paralisia, veneno, medo, queimadura).
+- Exemplos: Dilacerar (sangramento), Pancada Devastadora (atordoamento),
+  Flecha Envenenada (veneno).
+- Efeitos visuais: CONST_ME_DRAWBLOOD, CONST_ME_STUN, CONST_ME_MAGIC_GREEN,
+  CONST_ME_SOUND_RED.
+
+3.7 Buff Pessoal
+- Descrição: Aumenta velocidade de ataque, dano, regeneração, ou concede
+  furtividade temporária.
+- Exemplos: Fúria do Guerreiro (speed burst), Vento nos Pés (speed burst),
+  Camuflagem (stealth).
+- Efeitos visuais: CONST_ME_MAGIC_RED, CONST_ME_MAGIC_BLUE, CONST_ME_POFF.
+
+3.8 Defesa / Contra‑ataque
+- Descrição: Bloqueia e retalia, reduz dano recebido, recupera vida/mana.
+- Exemplos: Contra‑Ataque (onBlock), Escudo Arcano (defesa + cura),
+  Meditação em Combate (defesa + Chi).
+- Efeitos visuais: CONST_ME_HITAREA, CONST_ME_MAGIC_BLUE.
+
+3.9 Transformação
+- Descrição: Altera o estado do jogador durante Lampejo, Vínculo ou Maestria.
+- Exemplos: Berserker (+dano, -defesa), Guardião (+defesa, +regeneração),
+  Avatar de Fogo (+dano elemental).
+- Efeitos visuais: CONST_ME_MAGIC_RED, CONST_ME_MAGIC_BLUE.
+
+3.10 Execução (Finisher)
+- Descrição: Dano massivo contra alvos com vida baixa (<20%). Frequentemente
+  com efeito adicional (medo em área).
+- Exemplos: Sentença do Carrasco, Tiro de Misericórdia, Toque da Morte.
+- Efeitos visuais: CONST_ME_DRAWBLOOD, CONST_ME_MORTAREA.
+
+3.11 Sinergia Elemental
+- Descrição: Habilidade que escala com o elemento da arma (elementalBond).
+  Ex.: armas de fogo desbloqueiam efeitos de queimadura; armas de energia
+  desbloqueiam paralisia.
+- Já implementado via armaCompativeis no executor.
+
+3.12 Sinergia de Domínios
+- Descrição: Habilidade que verifica afinidade em múltiplos domínios e
+  combina os seus efeitos.
+- Exemplos: Tempestade Elemental (Elementos + todas as especialidades),
+  Dança do Vento e da Sombra (Precisão + Espectro).
+- Efeitos visuais: Múltiplos, adaptados aos domínios envolvidos.
+
+3.13 Fields (Campos Elementais)
+- Descrição: Cria campos no chão que causam dano/efeitos a cada tick.
+- Intensidade: Escala com o nível de afinidade do conjurador.
+- Imunidade: O conjurador é sempre imune. Com Maestria elemental (nível 20),
+  o grupo também fica imune.
+- Tipos:
+  | Elemento      | Domínio | Efeito do Field                |
+  |---------------|---------|--------------------------------|
+  | Fogo          | 23      | Queimadura                     |
+  | Gelo          | 24      | Lentidão                       |
+  | Água          | 24      | Redução de velocidade de ataque|
+  | Terra         | 25      | Knockdown (empurrão)           |
+  | Veneno        | 25      | Veneno                         |
+  | Energia       | 26      | Mini‑paralisia                 |
+  | Sagrado       | 200     | Cura aliados, dano a mortos‑vivos|
+  | Morte         | 200     | Dreno de vida                  |
+- Nota: Fields não são criados por omissão. Apenas habilidades específicas
+  (geralmente ligadas a transformações de Maestria) os activam.
+
+⚔️ 4. ATRIBUIÇÃO DE PACOTES POR DOMÍNIO
+
+Cada domínio recebe 3‑4 pacotes principais que definem a sua personalidade.
+
+| Domínio                  | Pacotes Principais                                            |
+|--------------------------|---------------------------------------------------------------|
+| Combate (1)              | Knockback, Buff, Defesa/Contra‑ataque, Finisher               |
+| Magia (2)                | Área (Alvo), Buff, Defesa (escudo arcano), Finisher           |
+| Lâminas (10)             | Condição (sangramento), Ricochete, Buff (velocidade), Finisher|
+| Machados (11)            | Knockback, Condição (sangramento), Área (Ground), Finisher    |
+| Clavas (12)              | Condição (atordoamento), Knockback, Área (Ground), Buff       |
+| Precisão (13)            | Ricochete, Condição (veneno/paralisia), Buff (furtividade), Finisher |
+| Artes Marciais (14)      | Buff (Chi), Defesa/Contra‑ataque, Transformação, Finisher     |
+| Escudo (15)              | Defesa/Contra‑ataque, Knockback, Buff (defesa), Área (Ground) |
+| Elementos (20)           | Área (Alvo), Área (Ground), Corrente/Ligação, Transformação   |
+| Espectro (21)            | Condição (medo/maldição), Defesa (cura), Transformação, Finisher |
+| Runologia (22)           | Área (Alvo), Ricochete, Buff (speed burst), Finisher          |
+| Fogo (23)                | Área (Alvo), Área (Ground), Corrente/Ligação, Transformação, Fields |
+| Água e Gelo (24)         | Área (Alvo), Condição (lentidão/atordoamento), Transformação, Fields |
+| Terra e Veneno (25)      | Área (Ground), Knockback, Condição (veneno), Transformação, Fields |
+| Energia (26)             | Área (Alvo), Ricochete, Condição (paralisia), Transformação, Fields |
+| Sagrado e Morte (200)    | Área (Alvo), Condição (medo/maldição), Defesa (cura), Transformação, Fields |
+| Espadas Leves (100)      | Condição (sangramento), Ricochete, Buff (velocidade), Finisher|
+| Espadas Pesadas (101)    | Knockback, Condição (sangramento), Área (Ground), Finisher    |
+| Wands (210)              | Área (Alvo), Ricochete, Buff, Sinergia Elemental               |
+| Rods (211)               | Área (Alvo), Buff (regeneração), Sinergia Elemental            |
+| Runas (212)              | Área (Alvo), Ricochete, Finisher                               |
+| Lutador (130)            | Buff (Chi), Defesa/Contra‑ataque, Transformação                |
+| Armas de Punho (132)     | Buff (Chi), Condição (atordoamento), Transformação             |
+| Bastões Arcanos (133)    | Corrente/Ligação, Área (Alvo), Buff (Chi), Transformação      |
+| Arremesso de Escudo (140)| Ricochete, Knockback, Condição (atordoamento), Defesa          |
+
+🎯 5. CONDIÇÕES DE ACTIVAÇÃO
+
+As condições determinam quando uma habilidade de gatilho pode ser usada.
+Devem ser atribuídas de forma coerente com o estilo de combate do domínio.
+
+| Condição            | Descrição                                                       | Uso adequado                                      |
+|---------------------|-----------------------------------------------------------------|---------------------------------------------------|
+| "cercado"           | 3+ inimigos num raio de 3 tiles do jogador                      | Habilidades defensivas, clavas, escudo            |
+| "cercadoAlvo"       | 2+ inimigos num raio de 2 tiles do alvo                         | Habilidades de área centradas no alvo (explosões) |
+| "vidaBaixa"         | Alvo com menos de 20% de vida                                   | Finishers, execuções                              |
+| "distancia4"        | Alvo a 4+ tiles de distância                                    | Habilidades de ranged (arco, precisão)            |
+| "distanciaMinima2"  | Alvo a pelo menos 2 tiles                                       | Habilidades de ranged que não funcionam corpo‑a‑corpo |
+| "distanciaMaxima3"  | Alvo a no máximo 3 tiles                                        | Habilidades corpo‑a‑corpo que exigem proximidade  |
+| "5Golpes"           | 5 ataques consecutivos com a mesma arma                         | Habilidades de assinatura, combos                 |
+| "inimigosProximos"  | Pelo menos 1 inimigo num raio de 2 tiles do jogador             | Habilidades de defesa ou contra‑ataque            |
+| "alvoIsolado"       | Alvo sem outros inimigos num raio de 2 tiles                    | Habilidades de single‑target puro, duelo          |
+| "aposEsquiva"       | Activada após o jogador esquivar                                | Habilidades de Precisão, Artes Marciais           |
+
+Regras de atribuição:
+- Habilidades ofensivas ranged NUNCA usam "cercado".
+- Habilidades ofensivas corpo‑a‑corpo podem usar "cercado" se forem de área.
+- Habilidades defensivas usam "cercado", "inimigosProximos", ou "vidaBaixa"
+  (do jogador, verificada no efeito).
+
+💬 6. REGRAS DE FEEDBACK LIMPO (v3.3)
+
+O feedback narrativo no chat segue o padrão oficial limpo: máximo 3‑4
+palavras coloridas por frase.
+
+Formatos por tipo de habilidade:
+- Ataque SEM efeito adicional:
+  "[Nome] Frase narrativa normal com o Alvo colorido."
+- Ataque COM efeito (sangramento, atordoamento, etc.):
+  "[Nome] Frase curta em Alvo - Efeito."
+- Defesa (onBlock / onReceiveDamage):
+  "[Nome] Frase narrativa sobre o bloqueio/defesa contra Alvo - Efeito."
+- Múltiplos efeitos:
+  "[Nome] Frase narrativa em Alvo - Efeito1, Efeito2 e Efeito3."
+
+Regras absolutas:
+- Começar SEMPRE com c("[Nome da Habilidade] ", corDoDominio).
+- Usar c(t:getName(), COR.INIMIGO_MONSTRO) para o nome do alvo.
+- Apenas o NOME DO ALVO e 1‑2 EFEITOS (condições, acções) são coloridos.
+- O texto narrativo é NEUTRO (cor normal do chat).
+- NUNCA usar travessões longos (—). Usar hífen (-).
+- NUNCA colorir palavras descritivas como "lâmina", "sangue", "impacto".
+  Apenas termos de efeitos mecânicos: "Sangramento", "Atordoado", etc.
+- Cores de efeitos: usar COR.COND_* para condições, COR.ACAO_* para acções
+  físicas, COR.SUCESSO_CURA para curas, COR.DANO_CRITICO para dano massivo.
+
+🔧 7. DIRECTRIZES DE IMPLEMENTAÇÃO
+
+7.1 Funções Auxiliares Obrigatórias
+Usar as funções globais de funcoes_habilidade.lua (v2.0):
+- golpeCorpoACorpo(player, target, dano, efeito) — para habilidades melee.
+- dispararProjetil(player, target, danoBase, extraPercent)
+- dispararRajada(player, target, danoBase, extraPercent, numProjeteis, intervaloMs)
+- explosaoElementalArea(player, target, danoBase, extraPercent, raio)
+- danoElemental(player, target, dano, efeitoOpcional)
+- empurrarAlvo(player, target)
+- criarField(player, posicao, elemento, danoPorTick, duracaoMs, intervaloMs, efeitoVisual)
+- afetarArea(player, posicao, raio, danoBase, extraPercentDano, curaBase, extraPercentCura, curarAliados)
+- ligarAlvos(player, alvo1, alvo2, danoBase, extraPercent, efeitoVisual)
+- aplicarCondicaoArea(player, posicao, raio, condType, duration, damagePerTick)
+- getElementalProjectile(player) — para projécteis dinâmicos.
+
+7.2 Projéteis e Efeitos Visuais
+- Sempre usar getElementalProjectile para habilidades de distância.
+- Efeitos visuais nativos (CONST_ME_*, CONST_ANI_*) — ver lista completa no
+  Guia de Interface [5] ou no Apêndice A.
+- Habilidades com duração (ex.: Tempestade Elemental) usam addEvent com
+  CONST_ME_* a cada tick.
+
+7.3 Passivas Auto‑Suficientes
+- O campo 'efeito' de uma passiva aplica directamente o bónus real:
+  - Usar Condition(CONDITION_ATTRIBUTES, ...) para atributos permanentes.
+  - Usar player:setCombatModifier("chave", valor) para modificadores.
+  - NUNCA apenas escrever storages que dependam de módulo externo.
+
+7.4 Transformações com Desfazer
+- O campo 'efeito' aplica o bónus.
+- O campo 'desfazer' (opcional) reverte-o. Se não definido, o sistema reverte
+  para valores base (ex.: setDamageTakenModifier(1.0)).
+
+7.5 Ensino entre Domínios Irmãos
+- Na passiva de Maestria (nível 20), ensinar a habilidade III ao domínio
+  irmão usando aprenderHabilidade(p, HAB_IRMA_III).
+
+7.6 Sinergias de Domínios
+- Verificar afinidades com getNivelPorAfinidade em múltiplos domínios.
+- Escalar efeitos com a profundidade desses domínios.
+- Cooldown mais longo (20‑30s).
+
+📝 8. PROCESSO DE GERAÇÃO (PASSO A PASSO)
+
+Para cada domínio:
+1. Definir identidade narrativa (3 adjectivos + frase de assinatura).
+2. Selecionar 3‑4 pacotes principais da tabela de atribuição.
+3. Construir árvore I‑IV:
+   - I (5): passiva de identidade.
+   - II (10): passiva de expansão.
+   - III (15): gatilho de assinatura (usa 1‑2 pacotes).
+   - IV (20): passiva de Maestria (Serenidade, ensino ao irmão).
+4. Distribuir as complementares:
+   - 10 gatilhos de combate (variedade de pacotes).
+   - 4 gatilhos de condição (2 condições × 2 variações).
+   - 3 gatilhos de defesa.
+   - 3 gatilhos de sinergia.
+   - 5 passivas de atributo.
+   - 3 passivas de sinergia.
+   - 4 transformações.
+5. Atribuir efeitos visuais e feedback limpo.
+6. Revisão cruzada:
+   - Verificar duplicidade com domínios irmãos.
+   - Verificar cooldowns e prioridades.
+   - Verificar se as condições de activação fazem sentido.
+
+📋 9. APÊNDICE A – EFEITOS VISUAIS NATIVOS DISPONÍVEIS
+
+Efeitos mágicos (CONST_ME_*):
+- CONST_ME_FIREAREA, CONST_ME_FIREATTACK, CONST_ME_ICEAREA
+- CONST_ME_ENERGYAREA, CONST_ME_ENERGYHIT
+- CONST_ME_GROUNDSHAKER, CONST_ME_MORTAREA, CONST_ME_HOLYAREA
+- CONST_ME_DRAWBLOOD, CONST_ME_HITAREA, CONST_ME_STUN
+- CONST_ME_MAGIC_BLUE, CONST_ME_MAGIC_GREEN, CONST_ME_MAGIC_RED
+- CONST_ME_BIGCLOUDS, CONST_ME_SOUND_RED, CONST_ME_SOUND_YELLOW
+- CONST_ME_TELEPORT, CONST_ME_POFF
+
+Projéteis (CONST_ANI_*):
+- CONST_ANI_FIRE, CONST_ANI_ICE, CONST_ANI_ENERGY, CONST_ANI_DEATH
+- CONST_ANI_HOLY, CONST_ANI_ARROW, CONST_ANI_BOLT
+- CONST_ANI_THROWINGSTAR, CONST_ANI_WHIRLWINDSWORD
+- CONST_ANI_WHIRLWINDAXE, CONST_ANI_WHIRLWINDCLUB
+
+📋 10. APÊNDICE B – COBERTURA DA EXPERIÊNCIA TIBIA
+
+| Área                    | Cobertura SPA                                      |
+|-------------------------|----------------------------------------------------|
+| Corpo a corpo           | Completa (Lâminas, Machados, Clavas, Artes Marciais)|
+| Distância               | Completa (Precisão, Arcos, Arremesso)               |
+| Magia ofensiva          | Completa (Runologia, Wands, Rods, Runas)            |
+| Magia elemental         | Completa (Fogo, Água/Gelo, Terra/Veneno, Energia)   |
+| Defesa / Tank           | Completa (Escudo, passivas, habilidades de defesa)  |
+| Suporte / Cura          | Coberta (life leech, defesa, Sagrado e Morte)       |
+| Invocação               | Planeada para Natureza (4)                          |
+| Fields / Campos         | Coberto (Fogo, Água/Gelo, Terra/Veneno, Energia,    |
+|                         | Sagrado e Morte, via transformações de Maestria)    |
+
+FIM DO GUIA DE CRIAÇÃO DE HABILIDADES — VERSÃO 1.1

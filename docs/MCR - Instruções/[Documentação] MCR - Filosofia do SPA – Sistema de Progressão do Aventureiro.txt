@@ -292,7 +292,7 @@ formas principais de sinergia:
 Sinergia entre Domínios: Dois domínios que atingem o nível 15 desbloqueiam
 habilidades que combinam os seus estilos. Exemplos:
 
-Bastão Arcano (133) + Fogo e Ar (23) → Ataques corpo‑a‑corpo com dano
+Bastão Arcano (133) + Fogo (23) → Ataques corpo‑a‑corpo com dano
 de fogo, chance de queimadura, e magias de fogo amplificadas. É a fusão
 entre o guerreiro e o mago.
 
@@ -306,7 +306,7 @@ além das habilidades da sua especialidade de arma. Isto é gerido pela
 função armaCompativeis no executor_habilidades.lua, que verifica o
 elemento da arma e o mapeia para o domínio através da tabela
 damageDomains. Um Aventureiro com uma Espada de Fogo terá acesso
-tanto às habilidades de Espadas Leves (100) como às de Fogo e Ar (23).
+tanto às habilidades de Espadas Leves (100) como às de Fogo (23).
 
 Nenhum estilo é uma ilha. O SPA foi desenhado para que a combinação de
 caminhos crie possibilidades únicas, e a Sinergia Elemental garante que

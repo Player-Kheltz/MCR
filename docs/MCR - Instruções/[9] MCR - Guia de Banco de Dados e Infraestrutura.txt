@@ -342,9 +342,10 @@ INSERT INTO dominios_def (id, nome, descricao, icone, parent_id) VALUES
 
 -- Especialidades Mágicas
 INSERT INTO dominios_def (id, nome, descricao, icone, parent_id) VALUES
-(23, 'Fogo e Ar', 'Magias de fogo e energia', 'fogo_ar.png', 20),
+(23, 'Fogo', 'Magias de fogo', 'fogo.png', 20),
 (24, 'Água e Gelo', 'Magias de água e gelo', 'agua_gelo.png', 20),
 (25, 'Terra e Veneno', 'Magias de terra e veneno', 'terra_veneno.png', 20),
+(26, 'Energia', 'Magias de raio e eletricidade', 'energia.png', 20);
 (200, 'Sagrado e Morte', 'Magias sagradas e de morte', 'sagrado_morte.png', 21),
 (210, 'Wands', 'Varinhas mágicas', 'wands.png', 22),
 (211, 'Rods', 'Báculos mágicos', 'rods.png', 22),
