@@ -308,6 +308,32 @@ O campo 'efeito' de uma passiva aplica directamente o bónus real:
 - NUNCA apenas escrever storages que dependam de módulo externo.
 - Habilidades de gatilho NÃO devem usar o campo 'efeito' manual; usam 'efeitoConfig'.
 
+7.4.1 Passivas de Vida, Mana e Velocidade
+
+As passivas que alteram vida máxima, mana máxima ou velocidade de movimento
+NÃO devem conter lógica direta no campo `efeito`. Em vez disso, o campo `efeito`
+deve permanecer vazio, e o bónus é gerido centralmente pelas funções:
+
+- `recalcularVidaMana(player)` – calcula vida e mana base usando
+  `player:getVocationBaseMaxHealth()` e `player:getVocationBaseMaxMana()`,
+  e aplica os bónus conforme as passivas conhecidas.
+- `recalcularVelocidade(player)` – calcula a velocidade natural com
+  `player:getNaturalSpeed()` e aplica bónus percentuais das passivas.
+
+Exemplo de passiva de vida:
+  HABILIDADES[15020] = {
+      nome = "Treino com Peso",
+      tipo = "passiva",
+      dominio = {15},
+      nivelMin = 3,
+      descricaoEfeito = "Aumenta a vida máxima conforme o nível de Escudo.",
+      cor = COR.DOM_ESCUDO,
+      efeito = function(player) end  -- gerido por recalcularVidaMana
+  }
+
+Os multiplicadores (ex.: 2% por nível) são definidos dentro da função central,
+não na habilidade. Isto garante que os valores nunca se acumulem.
+
 7.5 Transformações com Desfazer
 
 O campo 'efeito' aplica o bónus.

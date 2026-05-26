@@ -17,6 +17,9 @@ player:unlearnHabilidade(habilidadeId)	Remove uma habilidade específica da BD.
 player:unlearnAllHabilidades()	Remove TODAS as habilidades do jogador (uma única query).
 player:learnHabilidadeBatch(tabela)	Aprende várias habilidades em lote (array Lua {id1, id2, …}).
 player:getHabilidades()	Retorna lista de IDs das habilidades aprendidas.
+player:getNaturalSpeed() Retorna a velocidade natural do personagem (base da vocação + bónus por nível).
+player:setMovementSpeed(speed) Define a velocidade de movimento atual.
+
 1.2 Histórico de Ações e Estados de Alma
 Método Lua	Descrição
 player:registerDominioAction(dominioId)	Regista uma ação com timestamp. Usado para alimentar a barra de foco.
@@ -480,6 +483,14 @@ Domínios reorganizados: Fogo (23) e Energia (26) separados.
 Propagação de afinidade com rácio 4:2:1 implementada.
 
 Sistema de buffType removido do executor; apenas efeitoConfig é utilizado.
+
+Vida e mana base calculadas dinamicamente a partir da vocação (getVocationBaseMaxHealth/Mana).
+
+Velocidade de movimento dinâmica (getNaturalSpeed + setMovementSpeed) com suporte a passivas.
+
+Capacidade sem mínimo artificial; depende apenas do gaincap da vocação.
+
+Novos comandos: /setskill, /setstatus.
 
 Comandos de diagnóstico (!testesistema) e reset (!resetspa) leves e fiáveis.
 

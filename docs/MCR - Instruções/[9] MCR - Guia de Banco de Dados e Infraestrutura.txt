@@ -37,6 +37,12 @@ estão implementados e a funcionar.
 Todas as directrizes de charset, criação de tabelas e população inicial
 descritas neste guia reflectem o estado actual e funcional do banco de dados.
 
+90000–96999  SPA (Progressão)  Storages de velocidade, dano, regeneração, leech,
+buffer de afinidade, sintonia, Lampejos, locks de habilidades, buffs, SkillTrees.
+Storages de Chi (97880-97881) e velocidade natural (não persistida) são geridas
+manualmente e NÃO são limpas em massa pelo !resetspa.
+
+
 ⚠️ REGRAS DE REVISÃO PARA O ASSISTENTE (BANCO DE DADOS E INFRA)
 
 Ao sugerir QUALQUER alteração no banco de dados ou na infraestrutura, o

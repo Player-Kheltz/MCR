@@ -95,6 +95,13 @@ O feedback vem do mundo com mensagens coloridas...
 
 - **Posturas de Combate (Ímpeto, Equilíbrio, Guarda)** — Usando os modos de luta nativos, o jogador altera dinamicamente o comportamento. Ao mudar de postura, recebe: `c("Postura ajustada: ", COR.POSTURA_INFO) .. c("Ímpeto", COR.POSTURA_IMPETO) .. c(" adaptada à sua arma.", COR.POSTURA_INFO)`.
 
+- **Velocidade de Movimento — Certos domínios, como Espadas Leves e Precisão,
+oferecem passivas que aumentam a velocidade de corrida. O bónus é percentual
+e escala com o nível de afinidade no domínio, permitindo que um mestre da
+esgrima se mova visivelmente mais rápido que um iniciante. A velocidade base
+do personagem também aumenta naturalmente a cada nível, e o SPA aplica os
+seus multiplicadores sobre esse valor total.
+
 - **Habilidades de Gatilho e Sinergias** — As habilidades que disparam em combate (de gatilho) são o coração do SPA. Ao activar uma, o jogador vê: `c("[" .. hab.nome .. "] ", hab.cor) .. mensagem .. "! " .. c(hab.descricaoEfeito, COR.COMBO_AVISO)`. Sinergias desbloqueiam‑se automaticamente quando dois domínios atingem o nível 15. A **sinergia elemental** permite que uma arma de fogo (ex.: Espada de Fogo) active automaticamente habilidades do domínio Fogo e Ar (23), além das habilidades de Espadas.
 
 - **Chi, Virtudes e Serenidade** — Exclusivos do caminho Artes Marciais. O Aventureiro acumula Chi ao atacar, pode gastá‑lo em habilidades poderosas, e adoptar uma Virtude (Harmony, Justice, Sustain) que molda o seu estilo de luta. A Serenidade é alcançada com o Chi no máximo ou na Maestria.
