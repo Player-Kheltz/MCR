@@ -209,7 +209,7 @@ Emoções: c("preocupado", COR.NPC_EMOCAO)
 
 Missões: c("{missão}", COR.MISSAO_MATAR) ou conforme o tipo.
 
-Domínios: use as constantes COR.DOM_* (ex.: COR.DOM_COMBATE_LAMINAS, COR.DOM_COMBATE_DESARMADO) e também as cores elementais (COR.ELEM_FOGO, etc.) para coerência com o HUD.
+Domínios: use as constantes COR.DOM_* (ex.: COR.DOM_COMBATE_LAMINAS, COR.DOM_COMBATE_ARTES_MARCIAIS) e também as cores elementais (COR.ELEM_FOGO, etc.) para coerência com o HUD.
 
 Exemplo de fala completa:
 

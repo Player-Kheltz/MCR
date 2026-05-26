@@ -1,5 +1,5 @@
 PROJETO MCR – HABILIDADE GABARITO (Documento Canónico)
-Versão 4.2 – Sistema de Progressão do Aventureiro (SPA v4.3)
+Versão 4.5 – Sistema de Progressão do Aventureiro (SPA v4.3)
 Arquivo: [Gabarito] Habilidade Gabarito.txt
 
 🎯 OBJECTIVO DESTE DOCUMENTO
@@ -334,7 +334,7 @@ condicaoFocoMin
        Se omitido, a habilidade pode ser usada com qualquer nível de foco.
 
 chiCusto
-  [OP] Custo de Chi. Só para habilidades do caminho Desarmado.
+  [OP] Custo de Chi. Só para habilidades do caminho Artes Marciais.
 
 efeitoVisual
   [OP] Função para efeitos visuais (projécteis, magias no alvo).

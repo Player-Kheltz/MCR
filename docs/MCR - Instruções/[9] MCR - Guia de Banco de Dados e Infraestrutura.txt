@@ -367,7 +367,7 @@ INSERT INTO habilidades_def (id, nome, dominio_id, tipo, requisito_afinidade, de
 (6, 'Ricochete de Escudo', 140, 'gatilho', 5, 'Arremessa o escudo contra um inimigo distante, ricocheteando para outro próximo.'),
 (7, 'Defesa Ofensiva', 140, 'passiva', 10, 'Aumenta o dano e a defesa ao usar apenas escudo.'),
 (8, 'Raio Elétrico', 26, 'ativa', 0, 'Dispara um raio elétrico contra o alvo.'),
-(9, 'Campo Elétrico', 26, 'gatilho', 15, 'Cria um campo elétrico no chão que causa mini‑paralisia.');
+(9, 'Campo Elétrico', 26, 'gatilho', 15, 'Cria um campo elétrico no chão que causa mini‑paralisia.')
 -- Completar para os demais Domínios conforme o design.
 3.5 ESTRUTURA REVSCRIPT (INFORMAÇÃO RELACIONADA)
 

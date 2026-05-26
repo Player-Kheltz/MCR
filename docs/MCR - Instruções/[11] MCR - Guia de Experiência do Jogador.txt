@@ -15,7 +15,7 @@ Todos os elementos descritos neste guia são jogáveis:
 - SQH (missões) com HUD, toasts e cores temáticas (MISSAO_MATAR, MISSAO_COLETAR, etc.).
 - Progressão de intimidade e pronomes.
 - Arremesso de Escudo (domínio 140) como estilo de combate distinto (escudo sem arma).
-- Chi, Virtudes (Harmony, Justice, Sustain) e Serenidade para o caminho do Desarmado.
+- Chi, Virtudes (Harmony, Justice, Sustain) e Serenidade para o caminho de Artes Marciais.
 - Elementos visuais avançados (opcodes 182, 183, 184) já estão planeados e podem ser activados no cliente; enquanto isso, o feedback textual e colorido cumpre o seu papel.
 
 ⚠️ REGRAS DE REVISÃO PARA O ASSISTENTE (EXPERIÊNCIA DO JOGADOR)
@@ -97,7 +97,7 @@ O feedback vem do mundo com mensagens coloridas...
 
 - **Habilidades de Gatilho e Sinergias** — As habilidades que disparam em combate (de gatilho) são o coração do SPA. Ao activar uma, o jogador vê: `c("[" .. hab.nome .. "] ", hab.cor) .. mensagem .. "! " .. c(hab.descricaoEfeito, COR.COMBO_AVISO)`. Sinergias desbloqueiam‑se automaticamente quando dois domínios atingem o nível 15. A **sinergia elemental** permite que uma arma de fogo (ex.: Espada de Fogo) active automaticamente habilidades do domínio Fogo e Ar (23), além das habilidades de Espadas.
 
-- **Chi, Virtudes e Serenidade** — Exclusivos do caminho Desarmado. O Aventureiro acumula Chi ao atacar, pode gastá‑lo em habilidades poderosas, e adoptar uma Virtude (Harmony, Justice, Sustain) que molda o seu estilo de luta. A Serenidade é alcançada com o Chi no máximo ou na Maestria.
+- **Chi, Virtudes e Serenidade** — Exclusivos do caminho Artes Marciais. O Aventureiro acumula Chi ao atacar, pode gastá‑lo em habilidades poderosas, e adoptar uma Virtude (Harmony, Justice, Sustain) que molda o seu estilo de luta. A Serenidade é alcançada com o Chi no máximo ou na Maestria.
 
 - **Missões (SQH)** — Oferecidas no chat com palavras coloridas conforme o tipo: `c("Matar 5 Orcs", COR.MISSAO_MATAR)`, `c("Coletar 10 Ervas", COR.MISSAO_COLETAR)`, etc. HUD (opcode 180) e toasts (opcode 181) mantêm o progresso visível.
 
@@ -178,7 +178,7 @@ Regras técnicas:
 ☐ Texto visível em PT‑BR, ISO‑8859‑1 (Lua) ou escapes octais (C++)?
 ☐ Sistemas sociais acessíveis e funcionais?
 ☐ A Maestria garante Vínculo permanente, e isso está reflectido no feedback?
-☐ O sistema de Chi e Virtudes funciona para o caminho Desarmado?
+☐ O sistema de Chi e Virtudes funciona para o caminho Artes Marciais?
 
 📤 COMO ATUALIZAR O REPOSITÓRIO GIT
 

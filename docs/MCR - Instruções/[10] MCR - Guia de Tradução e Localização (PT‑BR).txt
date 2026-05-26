@@ -280,7 +280,7 @@ Informação do sistema	SISTEMA_INFO, SISTEMA_NEUTRO	"Sua afinidade com Lâminas
 Sucesso / cura	SUCESSO_CURA	"Você aprendeu Hemorragia!"
 Avisos de combo	COMBO_AVISO	"[Disparo Duplo] Duas flechas partem em uníssono!"
 Dano / inimigos	DANO_FISICO, INIMIGO_MONSTRO	"Centopeia"
-Domínios de combate	DOM_COMBATE_LAMINAS, DOM_COMBATE_IMPACTO, DOM_COMBATE_PRECISAO, DOM_COMBATE_DESARMADO, DOM_ESCUDO	Nome do domínio
+Domínios de combate	DOM_COMBATE_LAMINAS, DOM_COMBATE_IMPACTO, DOM_COMBATE_PRECISAO, DOM_COMBATE_ARTES_MARCIAIS, DOM_ESCUDO	Nome do domínio
 Domínios mágicos	DOM_MAGIA_FOGO, DOM_MAGIA_AGUA_GELO, DOM_MAGIA_TERRA, DOM_MAGIA_SAGRADO, DOM_MAGIA_RUNOLOGIA	Nome do domínio
 Posturas	POSTURA_IMPETO, POSTURA_EQUILIBRIO, POSTURA_GUARDA	"Ímpeto", "Equilíbrio", "Guarda"
 NPCs e interacções	NPC_OPCAO, NPC_COMANDO, NPC_ITEM, NPC_LOCAL, NPC_INTENCAO, NPC_RECUSA, NPC_ALERTA, NPC_NOME, NPC_EMOCAO, NPC_DIALOGO	Opções de diálogo
@@ -354,11 +354,11 @@ Lista de termos padronizados (actualizada para SPA v4.2):
 
 "Arremesso de Escudo" – domínio de combate com escudo sem arma (ID 140).
 
-"Chi" – energia acumulada no combate desarmado.
+"Chi" – energia acumulada no combate de Artes Marciais e suas especialidades.
 
-"Virtude" – filosofia de combate do Desarmado (Harmony, Justice, Sustain).
+"Virtude" – filosofia de combate do Artes Marciais (Harmony, Justice, Sustain).
 
-"Serenidade" – estado especial do Desarmado.
+"Serenidade" – estado especial do Artes Marciais.
 
 "Despertar" – acto de iniciar um novo Domínio.
 

@@ -1,7 +1,7 @@
 📘 Filosofia do SPA – Sistema de Progressão do Aventureiro
 ==========================================================
 Projeto MCR – Documento Canónico de Design
-Versão 4.2.0 – Maio de 2026
+Versão 4.5.0 – Maio de 2026
 
 🌌 1. O Fim das Vocações – O Nascimento do Aventureiro
 
@@ -91,7 +91,7 @@ despendido.
 
 Adicionalmente, cada ataque físico bem‑sucedido gera pontos de Chi
 (armazenados em STORAGE.CHI_ACCUMULATED), que alimentam o sistema de Chi do
-caminho Desarmado.
+caminho Artes Marciais.
 
 A curva de progressão é cuidadosamente calibrada. Um jogador médio, caçando
 de forma consistente, atingirá o nível 5 de um domínio em cerca de 1 hora,
@@ -209,7 +209,7 @@ complementares (10+ gatilhos de combate, 4 de condição, 3 de defesa,
 3 de sinergia, 5 passivas, 3 passivas de sinergia, 4 transformações) oferece
 diversidade e personalidade únicas.
 
-🖐️ 7. Chi, Virtudes e Serenidade – O Caminho do Desarmado
+🖐️ 7. Chi, Virtudes e Serenidade – O Caminho de Artes Marciais
 
 O domínio Artes Marciais (14) integra as mecânicas do Monk nativo do Tibia.
 O Aventureiro que luta sem armas – ou com as novas armas de Monge (Katar,
