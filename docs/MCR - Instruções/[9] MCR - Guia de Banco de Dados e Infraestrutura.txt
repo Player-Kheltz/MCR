@@ -353,8 +353,8 @@ INSERT INTO dominios_def (id, nome, descricao, icone, parent_id) VALUES
 (212, 'Runas', 'Runas mágicas', 'runas.png', 22);
 
 -- Outros
-INSERT INTO dominios_def (id, nome, descricao, icone) VALUES
-(400, 'Sobrevivência', 'Resistência a ambientes e privações', 'sobrevivencia.png');
+INSERT INTO dominios_def (id, nome, descricao, icone, parent_id) VALUES
+(400, 'Sobrevivência', 'Resistência a ambientes e privações', 'sobrevivencia.png', 4);
 Inserção de habilidades iniciais (exemplos):
 
 sql
