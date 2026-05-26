@@ -48,6 +48,17 @@ os níveis superiores da hierarquia, garantindo que o conhecimento nunca é
 estanque. Um mestre das Espadas Leves também será, inevitavelmente, um
 profundo conhecedor das Lâminas e do Combate como um todo.
 
+Propagação de Afinidade (Rácio 4:2:1)
+
+Quando um jogador ganha afinidade numa Especialidade, o sistema distribui
+automaticamente:
+- 100% dos pontos para a Especialidade.
+- 50% para o Domínio Secundário correspondente.
+- 25% para o Domínio Primário correspondente.
+
+Isto é processado pela função `adicionarAfinidade` em `progressao.lua`.
+Ao criar habilidades, não é necessário qualquer tratamento extra.
+
 O Arremesso de Escudo (140) é uma especialidade única: nasce do domínio
 Escudo (15) e permite que um Aventureiro sem arma, mas com escudo, lute à
 distância. O escudo deixa de ser apenas defesa e torna‑se um projétil

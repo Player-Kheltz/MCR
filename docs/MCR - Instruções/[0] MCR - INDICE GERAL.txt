@@ -1,5 +1,5 @@
 PROJETO MCR – ÍNDICE GERAL E PILARES PERMANENTES
-Versão: 5.3 – Sistema de Progressão do Aventureiro (SPA v4.4.0), cores, lampejos, vínculos, maestria, sinergia elemental, arremesso de escudo, campos elementais, estrutura de 35+ habilidades e nova estrutura de scripts
+Versão: 5.3 – Sistema de Progressão do Aventureiro (SPA v4.5.0), cores, lampejos, vínculos, maestria, sinergia elemental, arremesso de escudo, campos elementais, estrutura de 35+ habilidades e nova estrutura de scripts
 Arquivo: [0] MCR - INDICE GERAL.txt
 
 🎯 FUNÇÃO DESTE ARQUIVO
@@ -84,7 +84,7 @@ O SPA v4.4.0 está totalmente implementado no núcleo (APIs C++). As principais 
 [11] MCR - Guia de Experiência do Jogador.txt
 [12] MCR - Guia de Conteúdo Inicial e Tutorial.txt
 [13] MCR - Guia de Criação de Habilidades.txt (v1.1)
-[Documentação] MCR - Sistema de Progressão do Aventureiro (SPA v4.4.0).txt
+[Documentação] MCR - Sistema de Progressão do Aventureiro (SPA v4.5.0).txt
 [Filosofia] Filosofia do SPA – Sistema de Progressão do Aventureiro v4.1.1.txt
 
 

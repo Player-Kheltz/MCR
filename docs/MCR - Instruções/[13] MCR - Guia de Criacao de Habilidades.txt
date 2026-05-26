@@ -288,11 +288,11 @@ HABILIDADES[10010] = {
         magicEffect = CONST_ME_DRAWBLOOD
     }
 }
+
 7.2 Funções Auxiliares (funcoes_habilidade.lua v2.0.2)
-Para efeitos que ainda não estão cobertos pelo motor, ou para lógica muito
-específica, podem ser usadas as funções auxiliares directamente no campo
-efeito (modo legado). No entanto, a recomendação é migrar para o motor
-sempre que possível.
+As funções auxiliares são usadas exclusivamente pelo motor modular.
+Não é permitido criar habilidades de gatilho com lógica manual (modo legado);
+todas devem usar `efeitoConfig`.
 
 7.3 Narrativa Centralizada
 As frases de feedback são geridas pelo módulo narrativa_habilidades.lua.
@@ -303,12 +303,10 @@ a narrativa padrão do tipo de efeito.
 7.4 Passivas Auto‑Suficientes
 
 O campo 'efeito' de uma passiva aplica directamente o bónus real:
-
-Usar Condition(CONDITION_ATTRIBUTES, ...) para atributos permanentes.
-
-Usar player:setCombatModifier("chave", valor) para modificadores.
-
-NUNCA apenas escrever storages que dependam de módulo externo.
+- Usar Condition(CONDITION_ATTRIBUTES, ...) para atributos permanentes.
+- Usar player:setCombatModifier("chave", valor) para modificadores.
+- NUNCA apenas escrever storages que dependam de módulo externo.
+- Habilidades de gatilho NÃO devem usar o campo 'efeito' manual; usam 'efeitoConfig'.
 
 7.5 Transformações com Desfazer
 

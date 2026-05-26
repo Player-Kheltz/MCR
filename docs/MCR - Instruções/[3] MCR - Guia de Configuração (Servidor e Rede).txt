@@ -278,7 +278,10 @@ A fim de evitar conflitos, as seguintes faixas estão reservadas:
 Faixa / ID	Sistema	Descrição
 100010–109999	Intimidade com NPCs	Nível de intimidade: 0=desconhecido, 1=conhecido, 2=amigo, 3=confidente.
 50000–50999	Missões (progresso)	Storages de progresso de missões.
-90000–96999	SPA (Progressão)	Storages de velocidade, dano, regeneração, leech, buffer de afinidade, sintonia, Lampejos, locks de habilidades, buffs, SkillTrees, Chi, etc. (ver constantes.lua no SPA/core/ para a lista exacta).
+90000–96999	SPA (Progressão)	Storages de velocidade, dano, regeneração, leech,
+buffer de afinidade, sintonia, Lampejos, locks de habilidades, buffs, SkillTrees.
+Storages de Chi (97880-97881) e outras são geridas manualmente e NÃO são limpas
+em massa pelo !resetspa.
 90001	Temporário (accountId)	Usado pelo Oráculo durante gerenciamento de contas.
 Opcodes 180‑199	SQH e SPA	HUD de missões (180), toasts (181), ícone de Vínculo (182), partículas de Estados de Alma (183), janela de conhecimento (184).
 Opcode 200	Migração de conta	Usado pelo Oráculo para transferir o jogador da Alma para a conta permanente.

@@ -92,7 +92,9 @@ Arquivo: data-canary/scripts/MCR/Geral/npc_utils.lua
 Salvar como: ISO‑8859‑1
 
 Funções essenciais: NpcUtils.correspondeAcao, NpcUtils.getTratamento, NpcUtils.escolherFraseVariada.
-A função getTratamento deve ser adaptada para usar o módulo pronouns.lua internamente, em vez de depender de storage 100001.
+A função getTratamento já está refatorada para usar Pronouns.getSubject(player)
+e não contém mais referências a vocações ou storages manuais.
+O vocativo padrão é "aventureiro/a/e dos reinos distantes".
 
 🏗️ 4. ESQUELETO FUNCIONAL DE NPC COM SISTEMA DE CORES
 

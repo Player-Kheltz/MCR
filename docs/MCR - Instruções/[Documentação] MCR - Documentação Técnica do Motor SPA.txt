@@ -48,9 +48,15 @@ Especialidades de Arma: Espadas Leves (100), Espadas Pesadas (101), Machados Lev
 
 Especialidades Mágicas: Fogo (23), Água e Gelo (24), Terra e Veneno (25), Energia (26), Sagrado e Morte (200), Wands (210), Rods (211), Runas (212).
 
-Outros: Sobrevivência (400).
+Outros: Sobrevivência (400) – ramo de Natureza (4).
 
-A propagação de afinidade é automática: ao ganhar pontos numa Especialidade, os pontos sobem também para o Secundário e o Primário correspondentes. A hierarquia inversa (domainHierarchy e secondaryParent) é construída no arranque.
+A propagação de afinidade é automática e usa um rácio 4:2:1:
+- 100% dos pontos ganhos vão para a Especialidade.
+- 50% (metade) para o Domínio Secundário.
+- 25% (um quarto) para o Domínio Primário.
+A função `adicionarAfinidade` em `progressao.lua` aplica esta propagação
+imediatamente ao ganhar pontos.
+
 
 1.5 Compatibilidade Elemental
 Desde a v4.2, o SPA suporta sinergia elemental nativa: armas que possuem elementalBond definido no XML (ou elementType nas habilidades) desbloqueiam automaticamente as habilidades do domínio elemental correspondente.
@@ -470,6 +476,10 @@ Passivas auto‑suficientes, renovadas a cada 2 segundos.
 Think unificado v3.4.1.
 
 Domínios reorganizados: Fogo (23) e Energia (26) separados.
+
+Propagação de afinidade com rácio 4:2:1 implementada.
+
+Sistema de buffType removido do executor; apenas efeitoConfig é utilizado.
 
 Comandos de diagnóstico (!testesistema) e reset (!resetspa) leves e fiáveis.
 

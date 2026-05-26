@@ -84,7 +84,10 @@ Mecanismos envolvidos:
 
 O jogador avança através de:
 
-- **Domínios e Especializações** — Tudo o que o Aventureiro faz contribui para a sua mestria. O feedback vem do mundo com mensagens coloridas: `c("Sua afinidade com ", COR.SISTEMA_INFO) .. c("Lâminas", COR.DOM_COMBATE_LAMINAS) .. c(" se aprofunda.", COR.SISTEMA_INFO)`. O novo domínio **Arremesso de Escudo** (140) permite que um Aventureiro sem arma, mas com escudo, lute à distância, arremessando o escudo como um projétil contundente.
+Domínios e Especializações — Cada acção contribui para a mestria do
+Aventureiro. Ao usar uma espada, os pontos fluem para Espadas Leves (100),
+depois para Lâminas (10) e finalmente Combate (1), num rácio de 4:2:1.
+O feedback vem do mundo com mensagens coloridas...
 
 - **Estados de Alma (Lampejo e Vínculo)** — Manifestações automáticas da afinidade. Quando um Vínculo se forma, o jogador vê: `c("Você aprofunda um Vínculo com ", COR.SISTEMA_INFO) .. c("Lâminas", COR.DOM_COMBATE_LAMINAS) .. c(".", COR.SISTEMA_INFO)`. A palavra do domínio é colorida e clicável. Ao atingir o nível 20, esse Vínculo torna‑se **permanente** — o jogador não precisa mais manter o estilo para usufruir dos bónus.
 
