@@ -1,24 +1,25 @@
 PROJETO MCR – GUIA DE BANCO DE DADOS E INFRAESTRUTURA
-(Versão 4.1 – Integração total com o SPA v4.2, novo domínio Arremesso de Escudo, tabelas actualizadas e estrutura Revscript consolidada)
+(Versão 4.2 – Integração total com o SPA v4.3, novo domínio Energia (26), tabelas actualizadas e estrutura Revscript consolidada)
 Arquivo: [9] MCR - Guia de Banco de Dados e Infraestrutura.txt
 
 🎯 OBJETIVO DESTE GUIA
 Fornecer todas as informações, procedimentos e regras para configurar, manter e
 modificar o banco de dados do Projeto MCR. Esta versão consolida as tabelas do
-Sistema de Progressão do Aventureiro (SPA v4.2) com os IDs de Domínios
+Sistema de Progressão do Aventureiro (SPA v4.3) com os IDs de Domínios
 actualizados (incluindo Escudo = 15, Runologia = 22, Arremesso de Escudo = 140,
-e as Especialidades 100+), confirma a vocação padrão 0 para todos os personagens
-e reflecte a organização dos scripts do servidor na estrutura Revscript
-(pasta data-canary/scripts/MCR/SPA/core/ e subpastas).
+Energia = 26, e as Especialidades 100+), confirma a vocação padrão 0 para todos
+os personagens e reflecte a organização dos scripts do servidor na estrutura
+Revscript (pasta data-canary/scripts/MCR/SPA/core/ e subpastas).
 
 🚧 ESTADO ATUAL DA IMPLEMENTAÇÃO
 
-O SPA v4.2 está totalmente implementado, incluindo todas as APIs C++. O banco
+O SPA v4.3 está totalmente implementado, incluindo todas as APIs C++. O banco
 de dados reflecte este estado:
 
 As tabelas dominios_def, habilidades_def, player_dominios e
 player_habilidades estão criadas e populadas com a hierarquia completa
-de Domínios do SPA v4.2, incluindo o novo Arremesso de Escudo (140).
+de Domínios do SPA v4.3, incluindo o novo Arremesso de Escudo (140) e
+Energia (26).
 
 A coluna vocation na tabela players tem valor padrão 0 (Aventureiro),
 aplicado a todos os novos personagens.
@@ -80,21 +81,21 @@ lojas), o assistente DEVE utilizar a Lista de Itens Úteis como referência
 rápida de IDs já traduzidos. O ficheiro items.xml permanece a fonte
 canónica, mas a lista facilita a busca por itens comuns.
 
-⚠️ SPA v4.2: As tabelas do Sistema de Progressão (dominios_def,
+⚠️ SPA v4.3: As tabelas do Sistema de Progressão (dominios_def,
 habilidades_def, player_dominios, player_habilidades) são parte
 integrante do banco. Se ainda não existirem, devem ser criadas com os
 comandos fornecidos na secção 3.4. A população inicial deve incluir os
 Domínios Primários, Secundários e Especialidades conforme a hierarquia
-actual, incluindo o novo Arremesso de Escudo (140).
+actual, incluindo o novo Arremesso de Escudo (140) e Energia (26).
 
-⚠️ SPA v4.2: A coluna vocation em players DEVE ter valor padrão 0
+⚠️ SPA v4.3: A coluna vocation em players DEVE ter valor padrão 0
 (Aventureiro). O script de criação de personagens (Oráculo) já a define como
 0, mas o DBA deve garantir que a alteração na tabela foi aplicada:
 ALTER TABLE players MODIFY vocation INT NOT NULL DEFAULT 0;
 
-⚠️ SPA v4.2: As habilidades de Arremesso de Escudo (domínio 140) devem ser
-inseridas na tabela habilidades_def com os IDs apropriados. Exemplos de
-habilidades incluem "Ricochete de Escudo" e "Defesa Ofensiva".
+⚠️ SPA v4.3: As habilidades de Arremesso de Escudo (domínio 140) e Energia
+(domínio 26) devem ser inseridas na tabela habilidades_def com os IDs
+apropriados.
 
 🗄️ 1. AMBIENTE: XAMPP (MARIADB)
 
@@ -242,9 +243,9 @@ ALTER TABLE accounts ADD COLUMN player_pronoun TINYINT NOT NULL DEFAULT 0;
 A coluna pronoun já existe na tabela players (nativa do Canary). Não
 precisa ser criada.
 
-3.3 VOCAÇÃO PADRÃO (SPA v4.2)
+3.3 VOCAÇÃO PADRÃO (SPA v4.3)
 
-A partir do SPA v4.2, todo personagem é um Aventureiro (vocation = 0). As
+A partir do SPA v4.3, todo personagem é um Aventureiro (vocation = 0). As
 vocações antigas (1‑5) não são mais usadas. Para garantir que o banco reflicta
 essa mudança:
 
@@ -253,7 +254,7 @@ ALTER TABLE players MODIFY vocation INT NOT NULL DEFAULT 0;
 Se houver personagens antigos com vocation diferente de 0, o script de migração
 (parte do login.lua na pasta MCR/SPA) irá convertê‑los automaticamente.
 
-3.4 TABELAS DO SPA v4.2
+3.4 TABELAS DO SPA v4.3
 
 O SPA utiliza quatro tabelas, que devem ser criadas com charset utf8mb4.
 
@@ -300,7 +301,7 @@ CREATE TABLE player_habilidades (
     FOREIGN KEY (player_id) REFERENCES players(id) ON DELETE CASCADE,
     FOREIGN KEY (habilidade_id) REFERENCES habilidades_def(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-População inicial dos Domínios (SPA v4.2) – executar após criar dominios_def:
+População inicial dos Domínios (SPA v4.3) – executar após criar dominios_def:
 
 sql
 -- Primários
@@ -316,12 +317,12 @@ INSERT INTO dominios_def (id, nome, descricao, icone, parent_id) VALUES
 (11, 'Machados', 'Machados e armas de corte pesado', 'machados.png', 1),
 (12, 'Clavas', 'Clavas, martelos e maças', 'clavas.png', 1),
 (13, 'Precisão', 'Arcos, bestas e armas de arremesso', 'precisao.png', 1),
-(14, 'Desarmado', 'Luta sem armas', 'desarmado.png', 1),
+(14, 'Artes Marciais', 'Luta desarmada e Chi', 'artes_marciais.png', 1),
 (15, 'Escudo', 'Defesa com escudo e arremesso defensivo', 'escudo.png', 1);
 
 -- Secundários de Magia
 INSERT INTO dominios_def (id, nome, descricao, icone, parent_id) VALUES
-(20, 'Elementos', 'Magias elementais (fogo, água, terra, ar)', 'elementos.png', 2),
+(20, 'Elementos', 'Magias elementais (fogo, água, terra, energia)', 'elementos.png', 2),
 (21, 'Espectro', 'Dualidade entre luz e escuridão', 'espectro.png', 2),
 (22, 'Runologia', 'Runas, wands e rods', 'runologia.png', 2);
 
@@ -335,17 +336,17 @@ INSERT INTO dominios_def (id, nome, descricao, icone, parent_id) VALUES
 (113, 'Clavas Pesadas', 'Clavas de duas mãos', 'clavas_pesadas.png', 12),
 (120, 'Arcos', 'Arcos e bestas', 'arcos.png', 13),
 (121, 'Arremesso', 'Lanças, estrelas e dardos', 'arremesso.png', 13),
-(130, 'Desarmado Puro', 'Punhos e agilidade', 'desarmado_puro.png', 14),
+(130, 'Lutador', 'Punhos e agilidade', 'lutador.png', 14),
 (132, 'Armas de Punho', 'Garras, Katar, Sai (dual wielding)', 'armas_punho.png', 14),
 (133, 'Bastões Arcanos', 'Bastões de combate mágico', 'bastoes_arcanos.png', 14),
 (140, 'Arremesso de Escudo', 'Arremesso defensivo do escudo', 'arremesso_escudo.png', 15);
 
 -- Especialidades Mágicas
 INSERT INTO dominios_def (id, nome, descricao, icone, parent_id) VALUES
-(23, 'Fogo', 'Magias de fogo', 'fogo.png', 20),
+(23, 'Fogo', 'Magias de fogo e queimaduras', 'fogo.png', 20),
 (24, 'Água e Gelo', 'Magias de água e gelo', 'agua_gelo.png', 20),
 (25, 'Terra e Veneno', 'Magias de terra e veneno', 'terra_veneno.png', 20),
-(26, 'Energia', 'Magias de raio e eletricidade', 'energia.png', 20);
+(26, 'Energia', 'Magias de raio e eletricidade', 'energia.png', 20),
 (200, 'Sagrado e Morte', 'Magias sagradas e de morte', 'sagrado_morte.png', 21),
 (210, 'Wands', 'Varinhas mágicas', 'wands.png', 22),
 (211, 'Rods', 'Báculos mágicos', 'rods.png', 22),
@@ -364,7 +365,9 @@ INSERT INTO habilidades_def (id, nome, dominio_id, tipo, requisito_afinidade, de
 (4, 'Defesa com Escudo', 15, 'passiva', 10, 'Melhora o bloqueio com escudo.'),
 (5, 'Eco Arcano', 2, 'passiva', 15, 'Magias elementais têm chance de ecoar (50% do efeito).'),
 (6, 'Ricochete de Escudo', 140, 'gatilho', 5, 'Arremessa o escudo contra um inimigo distante, ricocheteando para outro próximo.'),
-(7, 'Defesa Ofensiva', 140, 'passiva', 10, 'Aumenta o dano e a defesa ao usar apenas escudo.');
+(7, 'Defesa Ofensiva', 140, 'passiva', 10, 'Aumenta o dano e a defesa ao usar apenas escudo.'),
+(8, 'Raio Elétrico', 26, 'ativa', 0, 'Dispara um raio elétrico contra o alvo.'),
+(9, 'Campo Elétrico', 26, 'gatilho', 15, 'Cria um campo elétrico no chão que causa mini‑paralisia.');
 -- Completar para os demais Domínios conforme o design.
 3.5 ESTRUTURA REVSCRIPT (INFORMAÇÃO RELACIONADA)
 
@@ -505,21 +508,21 @@ Conversão de loots e addItem: Scripts como 0-converter-loot.py e
 0-converter-additem.py foram criados para migrar referências de itens de
 nome para ID, garantindo consistência com o items.xml traduzido.
 
-⚠️ SPA v4.2 – Tabelas de progressão: Se as tabelas dominios_def,
+⚠️ SPA v4.3 – Tabelas de progressão: Se as tabelas dominios_def,
 habilidades_def, player_dominios e player_habilidades não existirem, os
 scripts do SPA não funcionarão. Crie‑as com os comandos fornecidos.
 
-⚠️ SPA v4.2 – IDs actualizados: A hierarquia de Domínios foi revista.
+⚠️ SPA v4.3 – IDs actualizados: A hierarquia de Domínios foi revista.
 Confirme que os IDs correspondem aos listados em constantes.lua (SPA):
-Escudo = 15, Arremesso de Escudo = 140, Runologia = 22, Fogo e Ar = 23,
-Água e Gelo = 24, Terra e Veneno = 25, Sagrado e Morte = 200, Wands = 210,
-Rods = 211, Runas = 212, Sobrevivência = 400.
+Escudo = 15, Arremesso de Escudo = 140, Runologia = 22, Fogo = 23,
+Água e Gelo = 24, Terra e Veneno = 25, Energia = 26, Sagrado e Morte = 200,
+Wands = 210, Rods = 211, Runas = 212, Sobrevivência = 400.
 
-⚠️ SPA v4.2 – Vocação 0: Qualquer personagem criado manualmente ou via
+⚠️ SPA v4.3 – Vocação 0: Qualquer personagem criado manualmente ou via
 ferramenta externa deve ter vocation = 0. A migração de personagens antigos
 é tratada pelo script login.lua na pasta MCR/SPA/core/.
 
-⚠️ SPA v4.2 – Sinergia elemental: Armas com elementalBond ou elementType
+⚠️ SPA v4.3 – Sinergia elemental: Armas com elementalBond ou elementType
 definidos no XML desbloqueiam automaticamente habilidades do domínio
 elemental correspondente. Consulte a Documentação Técnica do SPA para
 detalhes sobre a função armaCompativeis e a tabela damageDomains.
@@ -542,6 +545,7 @@ detalhes sobre a função armaCompativeis e a tabela damageDomains.
 ☐ Os IDs usados coincidem com o ficheiro items.xml actual?
 ☐ As tabelas do SPA (dominios_def, habilidades_def, player_dominios, player_habilidades) foram criadas e estão populadas com os IDs actualizados?
 ☐ O domínio Arremesso de Escudo (140) foi inserido em dominios_def?
+☐ O domínio Energia (26) foi inserido em dominios_def?
 ☐ A coluna vocation em players tem DEFAULT 0?
 ☐ Os dados de Runologia (ID 22), Escudo (15) e especialidades (100+) foram inseridos em dominios_def?
 
@@ -549,8 +553,8 @@ detalhes sobre a função armaCompativeis e a tabela damageDomains.
 
 text
 git add "<arquivos alterados>"
-git commit -m "docs: Atualiza guia de BD com SPA v4.2, Arremesso de Escudo e IDs actualizados"
+git commit -m "docs: Atualiza guia de BD com SPA v4.3, Energia e IDs actualizados"
 git push origin main
 ⚠️ Arquivos de configuração com senhas NÃO são versionados.
 
-FIM DO GUIA DE BANCO DE DADOS E INFRAESTRUTURA — VERSÃO 4.1
+FIM DO GUIA DE BANCO DE DADOS E INFRAESTRUTURA — VERSÃO 4.2

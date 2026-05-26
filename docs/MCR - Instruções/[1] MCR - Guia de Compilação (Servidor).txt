@@ -157,6 +157,13 @@ item:getElementalBond() – retorna o tipo de dano elemental do item (COMBAT_FIR
 
 item:getElementType() – retorna o elementType do item (wandType, combatType do Abilities).
 
+player:unlearnHabilidade(habilidadeId) – Remove uma habilidade específica da BD (DELETE individual).
+
+player:unlearnAllHabilidades() – Remove todas as habilidades do jogador da BD (uma única query).
+
+player:learnHabilidadeBatch(tabela) – Aprende várias habilidades em lote (INSERT em batch).
+
+
 ⚙️ Lógica interna já presente em player.cpp:
 
 std::deque<ActionRecord> para o histórico de acções.

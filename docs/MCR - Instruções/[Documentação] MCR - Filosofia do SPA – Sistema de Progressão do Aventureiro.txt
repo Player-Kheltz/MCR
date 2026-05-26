@@ -1,7 +1,7 @@
 📘 Filosofia do SPA – Sistema de Progressão do Aventureiro
 ==========================================================
 Projeto MCR – Documento Canónico de Design
-Versão 4.1 – Maio de 2026
+Versão 4.2.0 – Maio de 2026
 
 🌌 1. O Fim das Vocações – O Nascimento do Aventureiro
 
@@ -33,12 +33,13 @@ numa hierarquia de três camadas, como uma árvore genealógica do saber:
 Primários: as grandes famílias (Combate, Magia, Ofícios, Natureza).
 
 Secundários: os ramos principais (Lâminas, Machados, Clavas, Precisão,
-Desarmado, Escudo, Elementos, Espectro, Runologia).
+Artes Marciais, Escudo, Elementos, Espectro, Runologia).
 
 Especialidades: as técnicas específicas (Espadas Leves, Espadas Pesadas,
-Machados Leves, Machados Pesados, Clavas Leves, Clavas Pesadas, Arcos,
-Arremesso, Desarmado Puro, Armas de Punho, Bastões Arcanos, Arremesso
-de Escudo, Wands, Rods, Runas).
+Machados Leves, Machados Pesadas, Clavas Leves, Clavas Pesadas, Arcos,
+Arremesso, Lutador, Armas de Punho, Bastões Arcanos, Arremesso de Escudo,
+Fogo, Água e Gelo, Terra e Veneno, Energia, Sagrado e Morte, Wands, Rods,
+Runas).
 
 Quando um Aventureiro realiza uma acção – atacar com uma espada, lançar uma
 magia de fogo, pescar um peixe, arremessar o escudo – ele ganha Afinidade na
@@ -72,21 +73,19 @@ Ao usar ferramentas (mineração, pesca, craft).
 
 Ao receber dano (Sobrevivência).
 
-Os pontos são acumulados num buffer em memória (storages 95001+dominioId) e
-descarregados para a base de dados a cada 2 segundos, usando operações em
-lote para máxima performance. A quantidade de afinidade ganha é
-proporcional ao dano causado ou ao esforço despendido.
+Os pontos são acumulados num buffer em memória e descarregados para a base de
+dados a cada 2 segundos, usando operações em lote para máxima performance.
+A quantidade de afinidade ganha é proporcional ao dano causado ou ao esforço
+despendido.
 
-Adicionalmente, cada ataque físico bem‑sucedido gera 1 ponto de Chi
-(armazenado em STORAGE.CHI_ACCUMULATED), que alimenta o sistema de Chi do
-caminho Desarmado e pode ser convertido em Harmony para desencadear
-habilidades especiais.
+Adicionalmente, cada ataque físico bem‑sucedido gera pontos de Chi
+(armazenados em STORAGE.CHI_ACCUMULATED), que alimentam o sistema de Chi do
+caminho Desarmado.
 
-A curva de progressão é cuidadosamente calibrada para proporcionar uma
-jornada recompensadora. Um jogador médio, caçando de forma consistente,
-atingirá o nível 5 de um domínio em cerca de 1 hora, o nível 10 em 5 horas,
-o nível 15 em 30 horas e o nível 20 – a Maestria – em 100 horas de dedicação
-genuína.
+A curva de progressão é cuidadosamente calibrada. Um jogador médio, caçando
+de forma consistente, atingirá o nível 5 de um domínio em cerca de 1 hora,
+o nível 10 em 5 horas, o nível 15 em 30 horas e o nível 20 – a Maestria –
+em 100 horas de dedicação genuína.
 
 ✨ 4. Lampejos, Vínculos e Maestria – A Sintonia Natural
 
@@ -94,31 +93,34 @@ Quanto mais usas um domínio, mais "sintonizado" ficas com ele. O SPA
 monitoriza as tuas acções recentes e concede estados especiais que
 recompensam a consistência de estilo.
 
-Lampejo: Ocorre quando 3 das últimas 5 acções são do mesmo domínio.
-É um estado breve (8 segundos) que concede um bónus moderado de
-velocidade e dano. É o momento em que a espada parece mais leve, a
-flecha voa mais direita, ou o fogo crepita com mais intensidade.
+Lampejo: Um momento de brilhantismo. A probabilidade de ocorrer depende
+do teu nível no domínio e de quão preenchida está a barra de foco desse
+domínio. Nos níveis iniciais (5‑9), o Lampejo só acontece quando a barra
+está quase cheia. Em níveis mais altos (15‑19), os Lampejos tornam‑se
+frequentes, com até 35% de chance quando a barra está prestes a formar um
+Vínculo. O Lampejo é um estado breve (8 segundos) que concede um bónus
+moderado de velocidade e dano.
 
-Vínculo: Forma‑se quando mais de 50% das últimas 30 acções são do
-mesmo domínio. É um estado duradouro que concede bónus significativos
-e se mantém enquanto continuas a usar o domínio. Quando um Vínculo se
-forma, o mundo reage: faíscas saem da lâmina, o ar à volta do
-personagem distorce‑se com o calor do fogo, ou o escudo brilha com uma
-luz protetora.
+Vínculo: A verdadeira sintonia. Cada domínio tem uma barra de foco
+que se enche a cada acção e decai lentamente fora de combate. Enquanto a
+barra enche, o Aventureiro recebe bónus parciais subtis (+1% a +3% dano e
+velocidade). Quando a barra atinge o máximo, o Vínculo é formado,
+concedendo bónus significativos e mantendo‑se activo enquanto a barra não
+esvaziar. O Vínculo é um estado duradouro, e enquanto está activo, os
+Lampejos nesse domínio são suprimidos – o Vínculo já é o pico da sintonia.
 
-Maestria (nível 20): Quando atinges o máximo de um domínio, alcanças
-a Maestria. A partir desse momento, o Vínculo com esse domínio
-torna‑se permanente e irrevogável. Mesmo que deixes de usar a espada
-durante horas, dias, ou mudes completamente de estilo, o aço nunca te
-esquecerá. Os bónus de velocidade e dano acompanham‑te eternamente
-sempre que empunhas algo relacionado. O mundo também reconhece essa
+Maestria (nível 20): Quando atinges o máximo de um domínio, alcanças a
+Maestria. A partir desse momento, a barra de foco nunca decai abaixo de
+100%, e o Vínculo com esse domínio torna‑se permanente e irrevogável.
+Mesmo que deixes de usar a espada durante horas, o aço nunca te esquecerá.
+Os bónus acompanham‑te eternamente. O mundo também reconhece essa
 transformação: NPCs passam a tratar‑te como "Mestre", e essa identidade
 jamais se desvanece.
 
-Os Estados de Alma são calculados automaticamente a cada 2 segundos pelo
-Think Master unificado e nunca expõem números ao jogador. Apenas mensagens
-poéticas – "Sentes um Lampejo de poder em Lâminas", "Aprofundas um Vínculo
-com o Fogo", "És um Mestre das Chamas" – sinalizam as transições.
+Os Estados de Alma são calculados automaticamente a cada 2 segundos e nunca
+expõem números ao jogador. Apenas mensagens poéticas – "Sentes um Lampejo de
+poder em Lâminas", "Aprofundas um Vínculo com o Fogo", "És um Mestre das
+Chamas" – sinalizam as transições.
 
 ⚔️ 5. Posturas de Combate – A Dança do Aço
 
@@ -127,162 +129,89 @@ usando as hotkeys nativas do Tibia (Ctrl+A, Ctrl+B, Ctrl+D):
 
 Ímpeto (Full Attack): O caminho do agressor. Mais dano, mais velocidade,
 mas defesa reduzida. As habilidades de ataque tornam‑se mais agressivas.
-Algumas armas concedem furtividade nesta postura.
 
 Equilíbrio (Balanced): O caminho do versátil. Valores intermédios, sem
 extremos. Permite usar tanto habilidades de ataque como de defesa.
 
 Guarda (Full Defense): O caminho do protetor. Menos dano, mas defesa,
-regeneração e efeitos de controlo amplificados. As habilidades
-defensivas brilham aqui. A furtividade também pode estar presente.
+regeneração e efeitos de controlo amplificados.
 
 A postura interage profundamente com o equipamento e o domínio:
-
 Armas de duas mãos → estilo Pesado (mais dano, knockback).
-
 Armas de uma mão sem escudo → estilo Leve (mais velocidade, furtividade).
+Com escudo → benefícios defensivos adicionais, chance de empurrar, e acesso
+ao Arremesso de Escudo quando se luta apenas com escudo.
 
-Com escudo → benefícios defensivos adicionais, chance de empurrar, e
-acesso ao Arremesso de Escudo quando se luta apenas com escudo.
-
-As posturas são aplicadas dinamicamente pelo postura.lua (v6.2), que lê as
-storages do SPA, calcula os modificadores finais e ajusta a velocidade de
-ataque, regeneração, furtividade e leech do jogador em tempo real. O sistema
-de Speed Burst utiliza tokens para proteger aumentos temporários de
-velocidade contra a reaplicação da postura, garantindo que buffs não sejam
-acidentalmente anulados.
+As posturas são aplicadas dinamicamente, ajustando a velocidade de ataque,
+regeneração, furtividade e leech do jogador em tempo real.
 
 🛡️ 6. Habilidades – A Essência do Teu Estilo
 
 As habilidades são o coração do SPA. Elas representam técnicas, golpes
 especiais e talentos passivos que o Aventureiro desbloqueia ao progredir
-nos seus domínios.
+nos seus domínios. Cada domínio possui mais de 35 habilidades
+organizadas em pacotes temáticos que definem a sua personalidade (Área,
+Ricochete, Condição, Knockback, Sinergia, etc.).
 
 6.1 Tipos de Habilidade
 
 Passivas: Estão sempre activas. Melhoram atributos, adicionam efeitos
 subtis ou alteram permanentemente o comportamento do personagem.
-Exemplo: "Lâmina Ágil" (+% esquiva por nível de Espadas Leves).
 
 De Gatilho: Disparam em momentos específicos durante o combate. São
-seleccionadas por um motor inteligente (executor_habilidades.lua v6.6)
-que avalia prioridade contextual, postura, condições especiais e
-cooldowns individuais, em vez de depender de uma chanceBase fixa.
-Exemplo: "Corte Dilacerante" (ao atacar, causa sangramento).
+seleccionadas por um motor inteligente que avalia prioridade contextual,
+postura, condições especiais, cooldowns individuais, e a barra de foco do
+domínio. Cada habilidade tem uma prioridade base, e o sistema escolhe a
+melhor ou uma das melhores ponderadamente. Algumas habilidades são tão
+poderosas que só podem ser usadas quando a barra de foco está acima de
+um certo limiar (condicaoFocoMin).
 
 Transformações: Alteram temporariamente o comportamento do personagem
-com base nos Estados de Alma (Lampejo/Vínculo). Exemplo: "Lâmina
-Espiritual" (converte parte do dano físico em elemental durante o
-Vínculo).
+com base nos Estados de Alma (Lampejo/Vínculo/Maestria).
 
-6.2 O Executor Inteligente de Habilidades
+6.2 O Motor Inteligente
 
-O motor de selecção de habilidades (v6.6) introduz uma camada de
-inteligência táctica:
+O motor de habilidades (v7.2.0) introduz várias camadas de profundidade:
 
-Filtra habilidades elegíveis (fora de cooldown, arma compatível,
-condições cumpridas — incluindo a nova condição "cercadoAlvo", que
-exige 2+ inimigos perto do alvo).
+Selecção por prioridade contextual: avalia número de inimigos, vida do alvo,
+postura, e bónus de especialização.
 
-Classifica‑as por pontuação de prioridade (categoria, postura,
-contexto de combate).
+Cooldown global dinâmico: reduz com o nível do domínio (2% por nível)
+e com o preenchimento da barra de foco (até 30% de redução). Um Mestre
+com a barra cheia pode usar habilidades quase três vezes mais rápido que
+um iniciante.
 
-Escolhe a melhor ou uma das 3 melhores ponderadamente.
+Limite de habilidades por ciclo: dinâmico, aumenta com o nível do domínio
+(1 para níveis 0‑4, 2 para 5‑14, 3 para 15+), garantindo que o combate
+se torna mais fluído à medida que o Aventureiro evolui.
 
-Respeita cooldowns individuais por habilidade (padrão 4s).
+Isto garante que cada combate seja dinâmico, que as habilidades certas
+surjam nos momentos certos, e que a progressão seja sentida não apenas nos
+números, mas no ritmo e na fluidez do jogo.
 
-Suporta combos de até 3 habilidades consecutivas desbloqueados por
-nível de maestria (nível 10 → duplo, 15 → triplo), com cooldown global
-que diminui com o nível (6.0s → 3.0s).
+6.3 A Árvore I‑IV e Habilidades Complementares
 
-Isto garante que cada combate seja dinâmico e que as habilidades certas
-surjam nos momentos certos, sem depender de pura sorte.
-
-6.3 A Árvore I‑IV – Os Marcos da Maestria
-
-Cada especialidade (ex.: Espadas Leves) possui uma árvore de progressão
-interna, composta por quatro habilidades principais:
-
-I (nível 5): A primeira revelação. Uma passiva que define a identidade
-do estilo (ex.: +esquiva, +dano elemental).
-
-II (nível 10): O aprofundamento. Uma passiva que expande a primeira
-(ex.: ignora % de armadura, chance de reduzir defesa).
-
-III (nível 15): A assinatura. Uma habilidade de gatilho ou transformação
-que encapsula o estilo (ex.: "Dança das Lâminas" para Espadas Leves,
-"Pancada Devastadora" para Espadas Pesadas).
-
-IV (nível 20): A Maestria. Evolui a habilidade III para o seu estado
-máximo e, como recompensa suprema, ensina a versão básica do III à
-especialidade irmã (ex.: um mestre das Espadas Leves concede "Dança
-das Lâminas" às Espadas Pesadas, e vice‑versa).
-
-6.4 Habilidades Complementares
-
-Além da árvore I‑IV, cada especialidade possui um vasto leque de
-habilidades complementares – 7 de gatilho, 5 passivas e 3 transformações –
-que se desbloqueiam em níveis variados, criando uma curva de aprendizagem
-rica e imprevisível. Estas habilidades são exclusivas da especialidade e
-escalam com o nível do domínio.
-
-6.5 Funções Auxiliares e Gabarito
-
-Para simplificar a criação de novas habilidades, o SPA oferece:
-
-Um gabarito completo (habilidade_gabarito.lua v2.1) que documenta todos
-os campos possíveis de uma habilidade.
-
-Funções auxiliares reutilizáveis (funcoes_habilidade.lua v1.0):
-dispararProjetil, dispararRajada, explosaoElementalArea,
-danoElemental, golpeCorpoACorpo, empurrarAlvo. Estas funções
-encapsulam a lógica comum e garantem consistência visual e de dano.
-
-6.6 Escalonamento
-
-Todas as habilidades do SPA escalam com o nível do domínio. Uma habilidade
-aprendida no nível 5 será modesta, mas tornar‑se‑á devastadora quando o
-jogador atingir a Maestria. O dano extra, a duração dos efeitos, a chance
-de ativação – tudo é multiplicado pelo getNivelPorAfinidade dentro de
-cada função de efeito. Isto garante que o investimento num domínio é sempre
-recompensado, sem criar rupturas na progressão.
+Cada especialidade possui uma árvore de progressão interna (níveis 5, 10, 15,
+20) que define a sua identidade e ensina a habilidade de assinatura ao
+domínio irmão na Maestria. Além disso, um vasto leque de habilidades
+complementares (10+ gatilhos de combate, 4 de condição, 3 de defesa,
+3 de sinergia, 5 passivas, 3 passivas de sinergia, 4 transformações) oferece
+diversidade e personalidade únicas.
 
 🖐️ 7. Chi, Virtudes e Serenidade – O Caminho do Desarmado
 
-O domínio Desarmado (14) foi profundamente expandido com a integração das
-mecânicas do Monk nativo do Tibia. O Aventureiro que luta sem armas – ou
-com as novas armas de Monge (Katar, Nunchaku, Bastões) – tem acesso a um
-sistema de recursos único.
+O domínio Artes Marciais (14) integra as mecânicas do Monk nativo do Tibia.
+O Aventureiro que luta sem armas – ou com as novas armas de Monge (Katar,
+Nunchaku, Bastões) – tem acesso a um sistema de recursos único.
 
-Chi: Acumula pontos de Chi ao atacar (cada ataque físico gera 1 ponto
-no acumulador STORAGE.CHI_ACCUMULATED, 97881). O Chi pode ser gasto
-para desencadear habilidades poderosas, como a "Rajada de Golpes" ou a
-"Palma do Dragão". O Chi também pode encher a barra de Harmony
-(player:fillHarmony()), permitindo o uso de habilidades que consomem
-Harmony.
+Chi: Acumula pontos ao atacar e pode ser gasto para desencadear
+habilidades poderosas.
 
-Virtudes: Três filosofias que o Aventureiro pode adotar como passivas,
-definidas com player:setVirtue(Virtue_t.*):
-
-Harmonia (Virtue_t.Harmony = 1): parte do dano causado recupera a
-tua vida.
-
-Justiça (Virtue_t.Justice = 2): causa mais dano a inimigos feridos.
-
-Sustentação (Virtue_t.Sustain = 3): as tuas curas são mais fortes.
-
-Os efeitos das virtudes são aplicados pelo postura.lua e habilidades.
+Virtudes: Três filosofias (Harmony, Justice, Sustain) que o Aventureiro
+pode adoptar como passivas, alterando o seu estilo de luta.
 
 Serenidade: Um estado especial alcançado quando o Chi está no máximo
-ou ao atingir a Maestria. Concede benefícios adicionais de dano e
-cura, e é aplicado via player:setSerene(true). A Maestria no caminho
-Desarmado garante Serenidade permanente.
-
-As armas de Monk, que incluem tipos como dualwielding (Garras, Katar,
-Sai, Punhos) e two-handed (Nunchaku, Bastões, Jo), são totalmente
-suportadas através da tabela FIST_WEAPON_TYPE. O motor reconhece os
-seus atributos especiais – elementalbond, skillfist, magiclevelpoints –
-e o SPA utiliza‑os para criar sinergias.
+ou ao atingir a Maestria. Concede benefícios adicionais de dano e cura.
 
 🧩 8. Sinergias e Hibridismo – O Mago de Combate
 
@@ -290,86 +219,60 @@ O SPA recompensa a experimentação e a combinação de domínios. Existem duas
 formas principais de sinergia:
 
 Sinergia entre Domínios: Dois domínios que atingem o nível 15 desbloqueiam
-habilidades que combinam os seus estilos. Exemplos:
-
-Bastão Arcano (133) + Fogo (23) → Ataques corpo‑a‑corpo com dano
-de fogo, chance de queimadura, e magias de fogo amplificadas. É a fusão
-entre o guerreiro e o mago.
-
-Precisão (13) com Arremesso (121) e Arcos (120) → bónus de paciência
-do Atirador ao arremessar, e bónus de mobilidade do Atleta ao disparar.
+habilidades que combinam os seus estilos. Ex.: Bastão Arcano (133) + Fogo (23)
+cria ataques corpo‑a‑corpo com dano de fogo.
 
 Sinergia Elemental: Armas que possuem elementalBond ou elementType
-definidos (ex.: Espada de Fogo, Bastão de Gelo) desbloqueiam
-automaticamente as habilidades do domínio elemental correspondente,
-além das habilidades da sua especialidade de arma. Isto é gerido pela
-função armaCompativeis no executor_habilidades.lua, que verifica o
-elemento da arma e o mapeia para o domínio através da tabela
-damageDomains. Um Aventureiro com uma Espada de Fogo terá acesso
-tanto às habilidades de Espadas Leves (100) como às de Fogo (23).
+definidos (ex.: Espada de Fogo, Wand de Energia) desbloqueiam automaticamente
+as habilidades do domínio elemental correspondente, além das habilidades da
+sua especialidade de arma. Isto é gerido pela função armaCompativeis no
+motor.
 
 Nenhum estilo é uma ilha. O SPA foi desenhado para que a combinação de
-caminhos crie possibilidades únicas, e a Sinergia Elemental garante que
-armas mágicas não sejam apenas itens decorativos, mas pontes para novos
-horizontes de poder.
+caminhos crie possibilidades únicas.
 
 ⚙️ 9. O Motor do SPA – Modularidade e Performance
 
 Por baixo da camada narrativa, o SPA é um motor de progressão genérico,
 desenhado para ser infinitamente expansível.
 
-O SPAManager (C++) permite registar novos domínios em tempo real,
-via Lua, sem recompilar o servidor.
+O SPAManager (C++) permite registar novos domínios em tempo real, via
+Lua, sem recompilar o servidor.
 
-O Event Bus (SPA.onEvent / SPA.dispatchEvent) permite que qualquer
-script Lua reaja a qualquer acção do jogo – dano, morte, login, uso de
-item – sem modificar o código C++.
+O Event Bus (SPA.onEvent / SPA.dispatchEvent) permite que qualquer script
+Lua reaja a qualquer acção do jogo sem modificar o C++.
 
-Os Modificadores de Combate Dinâmicos (player:setCombatModifier /
-player:getCombatModifier) permitem que habilidades e domínios ajustem
-parâmetros de combate com chaves textuais, criando sinergias complexas
-sem depender de storages fixas.
+Os Modificadores de Combate Dinâmicos (player:setCombatModifier) permitem
+que habilidades e domínios ajustem parâmetros de combate com chaves textuais.
 
-O Think Master unificado (think_master.lua v2.0) consolida num único
-evento de 2 segundos o processamento de buffs, a verificação de troca
-de arma e furtividade, o descarregamento do buffer de afinidade, a
-expiração de Lampejos e Vínculos, e a verificação de SkillTrees. O
-ShieldThrowThink (dedicado ao Arremesso de Escudo) permanece em evento
-próprio.
+O Think Master unificado processa buffs, postura, sintonia, passivas e
+Arremesso de Escudo num único evento a cada 2 segundos.
 
-As consultas de afinidade são feitas em lote, minimizando a carga na
-base de dados.
+As consultas de afinidade e habilidades são feitas em lote, minimizando a
+carga na base de dados.
 
-O sistema de projéteis é 100% dinâmico: getProjectile() resolve o
-projétil correcto com base na arma e munição real (usando o novo método
-player:getAmmo()), e getElementalProjectile() devolve projétil, efeito
-mágico e tipo de dano com base no elemento da arma.
+O sistema de projéteis é 100% dinâmico, adaptando‑se ao elemento da arma
+e ao tipo de munição real.
 
-Os atributos de itens estão amplamente expostos ao Lua (20 métodos),
-incluindo getElementalBond, getElementType, getShootType, getAmmoType,
-getWeaponType, getMagicLevelPoints, getSkillFist, e muitos outros.
+Campos Elementais (Fields) podem ser criados por habilidades de Maestria,
+com imunidade para o conjurador e seu grupo.
 
-O sistema de SkillTrees (skilltree.lua v6.0) permite agrupar várias
-habilidades e desbloqueá‑las quando o jogador atinge um certo nível em
-determinados domínios, criando pacotes temáticos.
+Todo o sistema de habilidades, posturas, Lampejos e Vínculos é processado em
+Lua, com ganchos de performance no C++ onde necessário.
 
-Todo o sistema de habilidades, posturas, Lampejos e Vínculos é
-processado em Lua, com ganchos de performance no C++ onde necessário
-(ex.: knockback, setAttackSpeedModifier, setCombatModifier).
-
-O Aventureiro – A Tua Lenda
+🧭 O Aventureiro – A Tua Lenda
 
 No centro de tudo está o jogador. O SPA não é um sistema para ser
 "vencido" – é um sistema para ser vivido. Cada Aventureiro é único, não
-porque escolheu uma classe no ecrã de criação, mas porque passou 100
-horas a pescar nos lagos de Eridanus, ou porque desafiou os dragões do
-norte com uma espada longa até que o aço se tornou parte de si.
+porque escolheu uma classe no ecrã de criação, mas porque passou 100 horas
+a pescar nos lagos de Eridanus, ou porque desafiou os dragões do norte com
+uma espada longa até que o aço se tornou parte de si.
 
 O SPA respeita o teu tempo, a tua curiosidade e a tua identidade. As
 escolhas que fazes ecoam pelo mundo: os NPCs reconhecem o teu domínio, os
-teus golpes carregam a tua história, e as tuas habilidades são a
-assinatura do teu estilo. E quando a Maestria é alcançada, o mundo
-reconhece‑te como um verdadeiro Mestre — para sempre.
+teus golpes carregam a tua história, e as tuas habilidades são a assinatura
+do teu estilo. E quando a Maestria é alcançada, o mundo reconhece‑te como um
+verdadeiro Mestre — para sempre.
 
 Este documento é o testemunho de uma filosofia: a de que um jogo de RPG
 deve ser sobre quem tu és, não sobre o que o sistema diz que deves ser.
