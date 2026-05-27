@@ -1,5 +1,5 @@
 PROJETO MCR – GUIA DE CRIAÇÃO DE HABILIDADES
-(Versão 2.0 – Sistema de Progressão do Aventureiro v4.6 | Arquitetura Modular com Gestão Centralizada de Stats)
+(Versão 2.1 – Sistema de Progressão do Aventureiro v4.6 | Perfis de Progressão por Hierarquia)
 Arquivo: [13] MCR - Guia de Criacao de Habilidades.txt
 
 🎯 OBJECTIVO DESTE GUIA
@@ -71,23 +71,63 @@ passivas sejam reaplicadas múltiplas vezes.
 - **Personalidade:** o ficheiro de narrativa pode ser trabalhado por escritores, sem tocar em código.
 - **Estabilidade:** atributos como vida e mana nunca acumulam, pois são recalculados a partir de uma base fixa a cada ciclo.
 
-📊 2. ESTRUTURA DE 35+ HABILIDADES POR DOMÍNIO
+📊 2. ESTRUTURA DE HABILIDADES POR HIERARQUIA DE DOMÍNIO
 
-Cada domínio secundário ou especialidade possui 36 habilidades organizadas
-em camadas:
+A distribuição de habilidades no SPA não é uniforme — ela adapta-se à
+hierarquia do domínio (Primário, Secundário, Especialidade), reflectindo
+o papel de cada camada na jornada do Aventureiro. Cada domínio possui
+um total de 35 a 36 habilidades, mais um Traço Inerente que evolui
+automaticamente nos níveis 5, 10, 15 e 20.
 
-| Categoria               | Qt. | Objectivo |
-|-------------------------|-----|-----------|
-| Árvore I‑IV             | 4   | Identidade e assinatura do domínio |
-| Gatilhos de Combate     | 10  | Dano directo, AoE, projécteis, ricochete, etc. |
-| Gatilhos de Condição    | 4   | Sangramento, atordoamento, paralisia, veneno, medo |
-| Gatilhos de Defesa      | 3   | Bloqueio, contra‑ataque, cura, escudo |
-| Gatilhos de Sinergia    | 3   | Habilidades que combinam múltiplos domínios |
-| Passivas de Atributo    | 5   | Bónus permanentes a stats (dano, velocidade, crítico) |
-| Passivas de Sinergia    | 3   | Interacção com outros domínios (elemental, armas) |
-| Transformações          | 4   | Lampejo, Vínculo, Maestria, e uma especial |
-|-------------------------|-----|----------------------------------------------|
-| Total                   | 36  | (ajustável para 35 se necessário) |
+2.1 Perfis de Progressão por Hierarquia
+
+| Característica | Especialidade (Ex: Espadas Leves) | Secundário (Ex: Lâminas) | Primário (Ex: Combate) |
+| :--- | :--- | :--- | :--- |
+| **Foco** | Ação e perícia | Sinergia e integração | Plenitude e poder passivo |
+| **Passivas** | 6 (níveis 3-20) | 7 (níveis 2-20) | 8 (níveis 1-20) |
+| **Gatilhos de Combate** | 14 (níveis 6-18) | 8 (níveis 5-15) | 4 (níveis 10-20) |
+| **Gatilhos de Condição/Defesa** | 7 (níveis 5-15) | 5 (níveis 5-18) | 2 (níveis 15-20) |
+| **Gatilhos de Sinergia** | 4 (níveis 10-20) | 8 (níveis 5-20) | 10 (níveis 5-20) |
+| **Transformações** | 4 (níveis 10-20) | 5 (níveis 8-20) | 5 (níveis 5-20) |
+| **Traço Inerente** | 1 (evolui níveis 5,10,15,20) | 1 (evolui níveis 5,10,15,20) | 1 (evolui níveis 5,10,15,20) |
+| **Total** | **36 habilidades** | **34 + traço** | **35 + traço** |
+
+2.2 Filosofia dos Perfis
+
+- **Especialidades (o campo de batalha):** O jogador começa com um estilo
+  de luta específico. No início, as recompensas são passivas simples que
+  refinam o uso da arma. Conforme avança, o combate torna-se mais ativo
+  e complexo, com uma explosão de novos gatilhos (rajadas, condições,
+  áreas). As sinergias são poucas e focadas em combinações diretas.
+
+- **Secundários (a ponte):** Ao dominar várias especialidades, o jogador
+  começa a ver as ligações entre elas. As passivas chegam mais cedo,
+  reflectindo uma compreensão geral. As habilidades de sinergia são o
+  carro-chefe, pois a função do domínio secundário é unir as
+  especialidades sob uma mesma bandeira.
+
+- **Primários (o legado):** Alcançar a maestria num domínio primário
+  significa que o jogador já dominou todas as suas facetas. O foco são
+  as passivas poderosas que concedem bónus de atributo e as sinergias
+  de topo que celebram a conclusão da jornada. As habilidades ativas
+  são poucas e impactantes.
+
+2.3 Distribuição das Categorias (comum a todos)
+
+Cada domínio organiza as suas habilidades nas seguintes categorias:
+
+| Categoria | Descrição |
+|-----------|-----------|
+| **Árvore I-IV** | Passivas de identidade (I, II), gatilho de assinatura (III) e Maestria (IV). |
+| **Passivas de Atributo** | Bónus permanentes a stats (dano, velocidade, crítico, vida, mana). |
+| **Passivas de Sinergia** | Interacção com outros domínios (elemental, armas). |
+| **Gatilhos de Combate** | Dano direto, AoE, projécteis, ricochete, corrente, rajada, knockback. |
+| **Gatilhos de Condição** | Sangramento, atordoamento, paralisia, veneno, medo, queimadura. |
+| **Gatilhos de Defesa** | Bloqueio, contra‑ataque, cura, escudo, barreira. |
+| **Gatilhos de Sinergia** | Habilidades que escalam com afinidade em múltiplos domínios. |
+| **Transformações** | Efeitos para Lampejo, Vínculo, Maestria e um extra especial. |
+| **Traço Inerente** | Progressão temática automática nos níveis 5, 10, 15, 20. |
+
 
 📦 3. PACOTES TEMÁTICOS (CATÁLOGO)
 
@@ -402,51 +442,93 @@ não requer nenhuma lógica adicional nas habilidades.
 
 📝 8. PROCESSO DE GERAÇÃO (PASSO A PASSO)
 
-Para cada domínio:
+O processo de criação de um domínio começa com a sua identidade narrativa
+e termina com a revisão cruzada. O assistente DEVE seguir este fluxo.
 
-Definir identidade narrativa (3 adjectivos + frase de assinatura).
+8.1 Identidade e Contexto
 
-Selecionar 3‑4 pacotes principais da tabela de atribuição.
+1.  Consultar o **Documento de Personalidade e Identidade de Domínios**
+    para compreender a filosofia, os adjectivos‑chave e a frase de
+    assinatura do domínio.
+2.  Preencher o questionário de identidade (forças, fraquezas, ambiente,
+    percepção do mundo) para orientar a escolha dos pacotes temáticos.
+3.  Selecionar 3‑4 pacotes principais da tabela de atribuição (secção 4),
+    que definem a personalidade mecânica do domínio.
 
-Construir a árvore I‑IV:
+8.2 Seleção do Perfil de Progressão
 
-I (nível 5): passiva de identidade.
+Identificar a hierarquia do domínio e aplicar o perfil correspondente
+(ver secção 2.1):
 
-II (nível 10): passiva de expansão.
+| Hierarquia | Exemplo | Foco |
+| :--- | :--- | :--- |
+| Especialidade | Espadas Leves (100) | Ação e perícia |
+| Secundário | Lâminas (10) | Sinergia e integração |
+| Primário | Combate (1) | Plenitude e poder passivo |
 
-III (nível 15): gatilho de assinatura (usa 1‑2 pacotes).
+A distribuição de habilidades deve respeitar EXATAMENTE as quantidades
+definidas para cada perfil. Use a tabela da secção 2.1 como referência.
 
-IV (nível 20): passiva de Maestria (Serenidade, ensino ao irmão).
+8.3 Construção da Árvore I‑IV
 
-Distribuir as complementares:
+A árvore interna é obrigatória para todas as hierarquias, mas o conteúdo
+varia conforme o perfil:
 
-10 gatilhos de combate (variedade de pacotes).
+- **I (nível 5):** Passiva de identidade — define o traço mais básico do
+  domínio. Para Primários e Secundários, pode ser uma passiva de sinergia
+  que interage com os domínios filhos.
+- **II (nível 10):** Passiva de expansão — reforça a identidade ou adiciona
+  uma nova camada. Para Secundários, é uma passiva de sinergia adicional.
+- **III (nível 15):** Gatilho de assinatura — a habilidade ativa que todo
+  praticante reconhece. Usa 1‑2 pacotes temáticos.
+- **IV (nível 20):** Passiva de Maestria — concede o Vínculo permanente e
+  ensina a habilidade III ao domínio irmão (se aplicável). Para Primários
+  e Secundários, pode incluir a "Síntese Superior", um efeito que combina
+  a essência de todos os filhos.
 
-4 gatilhos de condição (2 condições × 2 variações).
+8.4 Distribuição das Habilidades Complementares
 
-3 gatilhos de defesa.
+Usar as quantidades do perfil selecionado para preencher as categorias:
 
-3 gatilhos de sinergia.
+- **Passivas de Atributo:** Bónus a stats (dano, velocidade, crítico, etc.).
+  As passivas de vida/mana/velocidade devem ter o campo `efeito` vazio e a
+  lógica centralizada nas funções `recalcularVidaMana` e `recalcularVelocidade`.
+- **Passivas de Sinergia:** Interacção com outros domínios (elemental, armas).
+  Para Primários e Secundários, estas são OBRIGATÓRIAS e devem verificar
+  os níveis de afinidade dos filhos.
+- **Gatilhos de Combate:** Dano extra, área, ricochete, rajada, knockback,
+  corrente, finisher. Distribuir pelos pacotes temáticos do domínio.
+- **Gatilhos de Condição:** Aplicar condições alinhadas ao tema (queimadura,
+  sangramento, paralisia, etc.).
+- **Gatilhos de Defesa:** Bloqueio, contra‑ataque, barreira, cura.
+- **Gatilhos de Sinergia:** Habilidades que escalam com afinidade em múltiplos
+  domínios. Para Primários e Secundários, esta é a categoria mais numerosa.
+- **Transformações:** Efeitos para Lampejo, Vínculo, Maestria e um extra.
+- **Traço Inerente:** Definir a progressão temática automática nos níveis
+  5, 10, 15 e 20. Este NÃO ocupa um slot de habilidade.
 
-5 passivas de atributo.
+8.5 Atribuição de Parâmetros
 
-3 passivas de sinergia.
+- **efeitoConfig:** Todas as habilidades de gatilho devem usar o motor
+  modular. Preencher o tipo de efeito e os parâmetros específicos.
+- **condicaoFocoMin:** Atribuir valores conforme a potência da habilidade
+  (básicas 0%, condições 25%, área 50%, knockback 75%, finisher 90%).
+- **condicao:** Atribuir condições de activação (cercado, vidaBaixa, etc.)
+  de forma coerente com o estilo de combate.
+- **cooldown e prioridade:** Ajustar para equilibrar a frequência de uso.
+- **posturaMod:** Opcional — modificar a chance da habilidade por postura.
 
-4 transformações.
+8.6 Revisão Cruzada
 
-Atribuir efeitos visuais e feedback limpo (via efeitoConfig).
-
-Atribuir condicaoFocoMin onde apropriado.
-
-Para passivas de vida/mana/velocidade: garantir que o campo efeito está vazio e que a lógica de bónus está registada na função central correspondente (recalcularVidaMana ou recalcularVelocidade).
-
-Revisão cruzada:
-
-Verificar duplicidade com domínios irmãos.
-
-Verificar cooldowns e prioridades.
-
-Verificar se as condições de activação fazem sentido.
+- Verificar duplicidade com domínios irmãos.
+- Verificar se os cooldowns e prioridades estão equilibrados.
+- Verificar se as condições de activação fazem sentido para o estilo de
+  combate do domínio.
+- Para Primários e Secundários: confirmar que as habilidades de sinergia
+  interagem corretamente com os domínios filhos (usando `getNivelEfetivo`
+  e `domainChildren`).
+- Confirmar que o Traço Inerente evolui de forma coerente com a progressão
+  geral do domínio.
 
 📋 9. APÊNDICE A – EFEITOS VISUAIS NATIVOS DISPONÍVEIS
 
