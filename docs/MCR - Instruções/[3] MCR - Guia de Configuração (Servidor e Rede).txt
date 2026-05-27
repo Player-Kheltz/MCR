@@ -1,5 +1,5 @@
 PROJETO MCR – GUIA DE CONFIGURAÇÃO (SERVIDOR E REDE)
-Versão 4.1 – Suporte ao Sistema de Progressão do Aventureiro (SPA v4.2), novas faixas de storages, opcodes e estrutura Revscript consolidada
+Versão 4.2 – Suporte ao Sistema de Progressão do Aventureiro (SPA v4.5), novos métodos de status, velocidade de movimento, faixas de storages consolidadas e estrutura Revscript expandida
 Arquivo: [3] MCR - Guia de Configuração (Servidor e Rede).txt
 
 🎯 OBJETIVO DESTE GUIA
@@ -17,7 +17,7 @@ Configuração do banco de dados (acesso e charset).
 
 Definição dos pronomes do personagem (coluna nativa players.pronoun) e do pronome da conta (accounts.player_pronoun).
 
-Faixas de storages reservados para o SPA v4.2 e sistemas globais.
+Faixas de storages reservados para o SPA v4.5 e sistemas globais.
 
 Estrutura de pastas Revscript para os scripts do SPA (data-canary/scripts/MCR/SPA/core/, habilidades/, comandos/ e Geral/).
 
@@ -25,13 +25,13 @@ Referência às ferramentas de automação (pipeline de tradução).
 
 Versionamento com Git (boas práticas).
 
-Toda vez que for necessário ajustar uma porta, adicionar uma flag ou depurar um erro de conexão, este guia é a referência primária. A versão 4.1 actualiza as faixas de opcodes e storages para acomodar o SPA v4.2, confirma a disponibilidade de todos os métodos C++ e incorpora a nova estrutura de scripts modulares (core/, habilidades/, comandos/).
+Toda vez que for necessário ajustar uma porta, adicionar uma flag ou depurar um erro de conexão, este guia é a referência primária. A versão 4.2 actualiza as faixas de opcodes e storages para acomodar o SPA v4.5, documenta os novos métodos C++ de vida/mana/velocidade, consolida a estrutura de scripts actual e reflecte as correcções de acumulação e propagação de afinidade.
 
 🚧 ESTADO ATUAL DA IMPLEMENTAÇÃO
 
-O SPA v4.2 está totalmente implementado no servidor:
+O SPA v4.5 está totalmente implementado no servidor:
 
-Todos os métodos C++ necessários (getDominioAfinidade, addDominioAfinidadeBatch, registerDominioAction, getDominioState, setAttackSpeedModifier, knockback, setStorages, getAmmo, setCombatModifier, etc.) estão disponíveis e a funcionar.
+Todos os métodos C++ necessários (getDominioAfinidade, addDominioAfinidadeBatch, registerDominioAction, getDominioState, setAttackSpeedModifier, knockback, setStorages, getAmmo, setCombatModifier, getVocationBaseMaxHealth, getVocationBaseMaxMana, getNaturalSpeed, setMovementSpeed, etc.) estão disponíveis e a funcionar.
 
 Os scripts em data-canary/scripts/MCR/SPA/core/ e subpastas estão completos e são carregados automaticamente pelo Revscript.
 
@@ -46,6 +46,12 @@ O Arremesso de Escudo (domínio 140) e a Sinergia Elemental são suportados nati
 A variável VOCATIONS no .env está definida como "0" (Aventureiro) e é plenamente suportada.
 
 A coluna lastlogin existe na tabela players e pode ser usada.
+
+A propagação de afinidade segue o rácio 4:2:1 (especialidade, secundário, primário) e está implementada em progressao.lua.
+
+A capacidade mínima de 500 caps foi removida; o ganho de capacidade é definido unicamente pelo vocations.xml.
+
+Os bónus de vida, mana e velocidade são calculados centralmente pelas funções recalcularVidaMana e recalcularVelocidade, sem risco de acumulação.
 
 Esta seção orienta o desenvolvedor sobre o que já pode ser usado em produção e o que ainda é planeamento no lado do cliente.
 
@@ -79,13 +85,13 @@ O pronome do personagem é armazenado na coluna nativa players.pronoun. O storag
 
 O pronome da conta (jogador/jogadora) é armazenado em accounts.player_pronoun.
 
-As faixas de storages reservados para sistemas globais (100010+ para intimidade, 50000+ para missões) continuam válidas. As storages do SPA v4.2 usam a faixa 90000–96999, conforme definido no módulo constantes.lua (SPA/core/).
+As faixas de storages reservados para sistemas globais (100010+ para intimidade, 50000+ para missões) continuam válidas. As storages do SPA v4.5 usam a faixa 90000–96999, conforme definido no módulo constantes.lua (SPA/core/).
 
 Os opcodes 182 (ícone de Vínculo), 183 (partículas de Estado de Alma) e 184 (janela de conhecimento) estão reservados para o SPA, dentro da faixa 180‑199. Não há conflito com o SQH.
 
 As Posturas de Combate (Ímpeto, Equilíbrio, Guarda) reutilizam os modos de luta nativos (fightMode). Nenhuma configuração extra é necessária.
 
-Os scripts do SPA v4.2 são carregados automaticamente pelo Revscript a partir das pastas data-canary/scripts/MCR/SPA/core/, habilidades/, comandos/ e data-canary/scripts/MCR/Geral/. O desenvolvedor deve garantir que essas pastas existem e contêm os scripts .lua necessários.
+Os scripts do SPA v4.5 são carregados automaticamente pelo Revscript a partir das pastas data-canary/scripts/MCR/SPA/core/, habilidades/, comandos/ e data-canary/scripts/MCR/Geral/. O desenvolvedor deve garantir que essas pastas existem e contêm os scripts .lua necessários.
 
 📄 1. CONFIGURAÇÃO DO CANARY (config.lua)
 
@@ -160,7 +166,7 @@ OTCFEATURES = {
     imbuementSystem = true,
     analytics = false             -- Sempre desabilitado
 }
-Os opcodes estendidos usados pelo SPA v4.2 (182, 183, 184) dependem de extendedOpcode = true. Esta flag já está activa e garante a comunicação bidirecional. O canal 24, usado para as mensagens coloridas do SPA, não requer nenhuma flag adicional.
+Os opcodes estendidos usados pelo SPA v4.5 (182, 183, 184) dependem de extendedOpcode = true. Esta flag já está activa e garante a comunicação bidirecional. O canal 24, usado para as mensagens coloridas do SPA, não requer nenhuma flag adicional.
 
 🌐 3. LOGIN SERVER – ARQUIVO .env
 
@@ -185,10 +191,10 @@ SERVER_IP=127.0.0.1
 SERVER_NAME=Projeto MCR
 SERVER_PORT=7173          # ⚠️ DEVE SER 7173 (gamePort), NUNCA 7172. Erro 10060 se errado.
 SERVER_LOCATION=Brasil
-VOCATIONS=0               # Apenas Aventureiro (vocation 0). O SPA v4.2 substitui as vocações tradicionais.
+VOCATIONS=0               # Apenas Aventureiro (vocation 0). O SPA v4.5 substitui as vocações tradicionais.
 ⚠️ LIÇÃO CRÍTICA: O campo SERVER_PORT é a porta do ProtocolGame (7173). Um valor errado (7172) causou timeout 10060. Verifique SEMPRE essa variável após alterações no config.lua.
 
-⚠️ ATUALIZAÇÃO SPA v4.2: A variável VOCATIONS é "0". O MCR não tem múltiplas vocações; todos os personagens são Aventureiros. Se o Login Server exigir uma lista, mantenha apenas {0}.
+⚠️ ATUALIZAÇÃO SPA v4.5: A variável VOCATIONS é "0". O MCR não tem múltiplas vocações; todos os personagens são Aventureiros. Se o Login Server exigir uma lista, mantenha apenas {0}.
 
 🔥 4. FIREWALL E CONECTIVIDADE
 
@@ -235,7 +241,7 @@ sql
 SET PASSWORD FOR 'root'@'localhost' = PASSWORD('<Senha>');
 phpMyAdmin: configurar config.inc.php com $cfg['Servers'][$i]['password'] = '<Senha>'; e $cfg['Servers'][$i]['auth_type'] = 'config'; (para evitar tela de login).
 
-As tabelas do SPA v4.2 (dominios_def, habilidades_def, player_dominios, player_habilidades) já fazem parte do schema MCR e estão populadas com a hierarquia de domínios actualizada (incluindo Escudo = 15, Runologia = 22, Arremesso de Escudo = 140 e as Especialidades 100+).
+As tabelas do SPA v4.5 (dominios_def, habilidades_def, player_dominios, player_habilidades) já fazem parte do schema MCR e estão populadas com a hierarquia de domínios actualizada (incluindo Escudo = 15, Runologia = 22, Arremesso de Escudo = 140, Sobrevivência = 400 como ramo de Natureza (4), e as Especialidades 100+).
 
 📚 6. VERSIONAMENTO COM GIT (BOAS PRÁTICAS)
 
@@ -271,7 +277,7 @@ lua
 local subject = Pronouns.getSubject(player)  -- "he", "she" ou "they"
 Este módulo consulta automaticamente player:getPronoun() e faz fallback para o sexo do personagem quando o valor é 0.
 
-🗂️ 8. STORAGES E OPCODES RESERVADOS PARA O SPA v4.2 E SISTEMAS GLOBAIS
+🗂️ 8. STORAGES E OPCODES RESERVADOS PARA O SPA v4.5 E SISTEMAS GLOBAIS
 
 A fim de evitar conflitos, as seguintes faixas estão reservadas:
 
@@ -280,7 +286,7 @@ Faixa / ID	Sistema	Descrição
 50000–50999	Missões (progresso)	Storages de progresso de missões.
 90000–96999	SPA (Progressão)	Storages de velocidade, dano, regeneração, leech,
 buffer de afinidade, sintonia, Lampejos, locks de habilidades, buffs, SkillTrees.
-Storages de Chi (97880-97881) e outras são geridas manualmente e NÃO são limpas
+Storages de Chi (97880-97881) e outras (ex.: Desarmado 97000) são geridas manualmente e NÃO são limpas
 em massa pelo !resetspa.
 90001	Temporário (accountId)	Usado pelo Oráculo durante gerenciamento de contas.
 Opcodes 180‑199	SQH e SPA	HUD de missões (180), toasts (181), ícone de Vínculo (182), partículas de Estados de Alma (183), janela de conhecimento (184).
@@ -289,17 +295,21 @@ Os opcodes 182, 183 e 184 são dedicados ao feedback visual do SPA. O desenvolve
 
 As Posturas de Combate NÃO usam opcodes; são baseadas no fightMode enviado pelo cliente (já nativo) e interpretado pelo script postura.lua (SPA/core/) do lado do servidor.
 
-O progresso de Afinidade, níveis e Estados de Alma são armazenados nas tabelas player_dominios e player_habilidades do banco de dados, com buffer temporário em storages (95001+). Storages adicionais podem ser usados para migração, mas devem ser documentados.
+O progresso de Afinidade, níveis e Estados de Alma são armazenados nas tabelas player_dominios e player_habilidades do banco de dados, com buffer temporário em storages (95001+). Storages adicionais podem ser usadas para migração, mas devem ser documentadas.
 
 O Arremesso de Escudo (140) e a Sinergia Elemental utilizam as mesmas faixas de storages do SPA (90000+).
 
-🗂️ 9. ESTRUTURA DE PASTAS REVSCRIPT PARA O SPA v4.2
+A função recalcularVidaMana usa os métodos nativos getVocationBaseMaxHealth e getVocationBaseMaxMana, não dependendo de storages para a base.
+
+A função recalcularVelocidade usa getNaturalSpeed e setMovementSpeed, também sem storages auxiliares.
+
+🗂️ 9. ESTRUTURA DE PASTAS REVSCRIPT PARA O SPA v4.5
 
 Os scripts do Sistema de Progressão do Aventureiro residem em:
 
 data-canary/scripts/MCR/SPA/
 
-Scripts genéricos e utilitários partilhados (como texto_colorido.lua v9.1, pronouns.lua, util_armas.lua, npc_utils.lua) ficam em:
+Scripts genéricos e utilitários partilhados (como texto_colorido.lua v10.0, pronouns.lua, util_armas.lua, npc_utils.lua) ficam em:
 
 data-canary/scripts/MCR/Geral/
 
@@ -309,33 +319,36 @@ text
 data-canary/scripts/MCR/
 ├── SPA/
 │   ├── core/
-│   │   ├── constantes.lua
-│   │   ├── progressao.lua
-│   │   ├── sintonia.lua
-│   │   ├── eventos.lua
-│   │   ├── postura.lua (v6.2)
+│   │   ├── constantes.lua (v5.3)
+│   │   ├── progressao.lua (v5.0)
+│   │   ├── sintonia.lua (v6.1)
+│   │   ├── eventos.lua (v6.2.1)
+│   │   ├── postura.lua (v6.2.1)
 │   │   ├── buff_system.lua (v6.1)
-│   │   ├── login.lua
-│   │   ├── think_master.lua (v2.0)
-│   │   ├── skilltree.lua
-│   │   ├── passivas.lua
-│   │   ├── passivas_ataque.lua
-│   │   ├── postura_config.lua
-│   │   └── funcoes_habilidade.lua (v1.0)
+│   │   ├── login.lua (v5.6.1)
+│   │   ├── think_master.lua (v3.4.1)
+│   │   ├── skilltree.lua (v6.0)
+│   │   ├── passivas.lua (contém recalcularVidaMana e recalcularVelocidade)
+│   │   ├── passivas_ataque.lua (v5.0)
+│   │   ├── postura_config.lua (v5.0)
+│   │   ├── motor_habilidades.lua (v1.0)
+│   │   ├── narrativa_habilidades.lua (v1.0)
+│   │   └── funcoes_habilidade.lua (v2.0.2)
 │   ├── habilidades/
-│   │   ├── (ficheiros modulares por domínio)
-│   │   ├── habilidade_gabarito.lua
 │   │   ├── _init_habilidades.lua
-│   │   └── inicializar_habilidades.lua
-│   └── comandos/
-│       └── comandos_spa.lua
+│   │   ├── habilidade_gabarito.lua (v4.2)
+│   │   └── (ficheiros modulares por domínio: espadas_leves, escudo, fogo, laminas, elementos, combate, magia, etc.)
+│   ├── comandos/
+│   │   └── comandos_spa.lua (v5.2)
+│   └── eventos/
+│       └── advance.lua (evento SPASpeedAdvance para atualizar velocidade ao subir de nível)
 ├── Geral/
-│   ├── texto_colorido.lua (v9.1)
-│   ├── util_armas.lua (v6.1)
-│   ├── util_criaturas.lua
-│   ├── util_efeitos.lua
+│   ├── texto_colorido.lua (v10.0)
+│   ├── util_armas.lua (v6.2.1)
+│   ├── util_criaturas.lua (v5.0)
+│   ├── util_efeitos.lua (v5.1)
 │   ├── pronouns.lua
-│   ├── npc_utils.lua
+│   ├── npc_utils.lua (refatorado, sem dependência de vocações)
 │   └── ...
 ├── Criacao/
 │   ├── oraculo.lua
@@ -344,7 +357,7 @@ data-canary/scripts/MCR/
 │   ├── eldrin.lua
 │   ├── thorne.lua
 │   └── ...
-Cada script pode conter múltiplos eventos (onLogin, onKill, onFightModeChange, etc.) e é completamente modular. Funções definidas nos módulos em Geral/ e SPA/core/ tornam‑se globais automaticamente e podem ser chamadas por qualquer outro script sem necessidade de dofile. Por exemplo, as funções c(), enviarMsgColorida(), adicionarAfinidade(), getWeaponEspecialidade(), getElementalProjectile() e a tabela COR (v9.1) estão disponíveis globalmente após o carregamento.
+Cada script pode conter múltiplos eventos (onLogin, onKill, onFightModeChange, onAdvance, etc.) e é completamente modular. Funções definidas nos módulos em Geral/ e SPA/core/ tornam‑se globais automaticamente e podem ser chamadas por qualquer outro script sem necessidade de dofile. Por exemplo, as funções c(), enviarMsgColorida(), adicionarAfinidade(), getWeaponEspecialidade(), getElementalProjectile(), recalcularVidaMana() e a tabela COR (v10.0) estão disponíveis globalmente após o carregamento.
 
 🗺️ 10. CONFIGURAÇÃO DO MAP EDITOR (RME)
 
@@ -382,13 +395,17 @@ Os scripts da pasta MCR/SPA/ são carregados automaticamente (Revscript). Se um 
 
 O módulo pronouns.lua está em data-canary/scripts/MCR/Geral/ e NÃO requer dofile para ser usado.
 
-A tabela COR (v9.1) e a função c() são definidas em texto_colorido.lua (Geral/) e estão disponíveis globalmente. Use c("texto", COR.CONSTANTE) para mensagens coloridas.
+A tabela COR (v10.0) e a função c() são definidas em texto_colorido.lua (Geral/) e estão disponíveis globalmente. Use c("texto", COR.CONSTANTE) para mensagens coloridas.
 
-As storages do SPA v4.2 (90004–96999) não devem ser usadas por outros sistemas para evitar conflitos. Consulte constantes.lua (SPA/core/) para a lista exacta.
+As storages do SPA v4.5 (90004–96999) não devem ser usadas por outros sistemas para evitar conflitos. Consulte constantes.lua (SPA/core/) para a lista exacta.
 
 O buffer de afinidade (storages 95001+) é temporário e gerido automaticamente; não o manipule manualmente fora do SPA.
 
-A nova estrutura de pastas (SPA/core/, habilidades/, comandos/) faz parte do SPA v4.2 e deve ser preservada.
+A nova estrutura de pastas (SPA/core/, habilidades/, comandos/) faz parte do SPA v4.5 e deve ser preservada.
+
+A capacidade do jogador não tem mais um mínimo fixo de 500; depende apenas do gaincap definido no vocations.xml.
+
+Os bónus de vida, mana e velocidade são calculados com base na vocação e nível, sem acumulação. As funções recalcularVidaMana e recalcularVelocidade são chamadas periodicamente pelo think_master e no login.
 
 🔍 CHECKLIST DE REVISÃO PARA O ASSISTENTE (CONFIGURAÇÃO / INFRAESTRUTURA)
 
@@ -402,19 +419,20 @@ Antes de finalizar qualquer alteração em arquivos de configuração ou sugest�
 ☐ Configuração de charset do banco como utf8mb4 foi mencionada?
 ☐ O pronome do personagem é obtido via players.pronoun e módulo pronouns.lua (sem storage 100001)?
 ☐ O pronome da conta está em accounts.player_pronoun?
-☐ Storages globais e do SPA v4.2 não estão a ser invadidos por novos sistemas?
+☐ Storages globais e do SPA v4.5 não estão a ser invadidos por novos sistemas?
 ☐ A pasta data-canary/scripts/MCR/SPA/core/, habilidades/, comandos/ e MCR/Geral/ existem e contêm os scripts necessários?
 ☐ As Posturas de Combate dependem apenas do fightMode nativo, sem necessidade de config extra?
 ☐ As ferramentas de automação (pipeline) foram consideradas se a alteração envolver tradução de strings?
 ☐ A variável VOCATIONS no .env está definida como "0" (Aventureiro) e documentada?
-☐ As funções globais (COR v9.1, c(), adicionarAfinidade, etc.) estão disponíveis e não há conflitos de nomes?
+☐ As funções globais (COR v10.0, c(), adicionarAfinidade, recalcularVidaMana, etc.) estão disponíveis e não há conflitos de nomes?
+☐ Os novos métodos C++ (getVocationBaseMaxHealth, getVocationBaseMaxMana, getNaturalSpeed, setMovementSpeed) estão disponíveis e a funcionar?
 
 📤 COMO ATUALIZAR O REPOSITÓRIO GIT
 
 text
 git add "<arquivos alterados>"
-git commit -m "feat(config): Atualiza guia de configuração com SPA v4.2 e estrutura de pastas consolidada (v4.1)"
+git commit -m "feat(config): Atualiza guia de configuração com SPA v4.5, novos métodos e ajustes de capacidade (v4.2)"
 git push origin main
 ⚠️ PowerShell: aspas duplas em caminhos com espaços.
 
-FIM DO GUIA DE CONFIGURAÇÃO (SERVIDOR E REDE) — VERSÃO 4.1
+FIM DO GUIA DE CONFIGURAÇÃO (SERVIDOR E REDE) — VERSÃO 4.2
