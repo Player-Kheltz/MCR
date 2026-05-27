@@ -1,5 +1,5 @@
 PROJETO MCR – GUIA DE CRIAÇÃO DE HABILIDADES
-(Versão 1.3 – Sistema de Progressão do Aventureiro v4.3 | Arquitetura Modular)
+(Versão 2.0 – Sistema de Progressão do Aventureiro v4.6 | Arquitetura Modular com Gestão Centralizada de Stats)
 Arquivo: [13] MCR - Guia de Criacao de Habilidades.txt
 
 🎯 OBJECTIVO DESTE GUIA
@@ -7,10 +7,11 @@ Este documento é a autoridade máxima sobre como criar, organizar e manter as
 habilidades do Sistema de Progressão do Aventureiro (SPA). Define a filosofia
 de design, a estrutura de 35+ habilidades por domínio, os pacotes temáticos, as
 regras de feedback narrativo limpo, as directrizes de implementação e o processo
-de geração. Com a versão 1.3, o guia adopta oficialmente a **arquitetura modular**,
-separando o motor de execução, as definições de habilidades (dados) e a narrativa
-(textos) em ficheiros independentes. Todo o criador de conteúdo ou assistente DEVE
-seguir este guia ao criar ou modificar qualquer habilidade.
+de geração. A versão 2.0 consolida a arquitectura modular com a gestão centralizada
+de atributos vitais (vida, mana, velocidade), elimina por completo o sistema legado
+de buffType e incorpora o rácio de propagação de afinidade 4:2:1. Todo o criador
+de conteúdo ou assistente DEVE seguir este guia ao criar ou modificar qualquer
+habilidade.
 
 📚 1. FILOSOFIA DE DESIGN
 
@@ -32,19 +33,35 @@ genéricas — são a expressão da sua personalidade. Para garantir isso:
 - As habilidades especiais (knockback, condições, execuções) só desbloqueiam
   quando a barra de foco atinge certos patamares (campo condicaoFocoMin).
 
-🧱 NOVO: ARQUITETURA MODULAR (v1.3)
+🧱 ARQUITETURA MODULAR (v2.0 – consolidada)
 
-A partir da versão 1.3, o SPA adopta uma separação clara em três camadas:
+O SPA mantém a separação em três camadas, agora com um reforço na gestão de
+atributos permanentes:
 
 1. **Motor de Habilidades** (`core/motor_habilidades.lua`) – contém toda a lógica
-   de execução (efeitos, cooldowns, feedback). É mantido uma única vez e raramente
-   precisa de ser alterado.
+   de execução para habilidades de gatilho (efeitos, cooldowns, feedback). É
+   mantido uma única vez e não deve ser alterado para adicionar novas habilidades.
 2. **Definições de Habilidades** (`dados/habilidades_*.lua`) – ficheiros que apenas
-   descrevem as habilidades usando parâmetros padronizados (campo `efeitoConfig`).
+   descrevem as habilidades usando parâmetros padronizados (campo `efeitoConfig`
+   para gatilhos; campo `efeito` vazio para passivas de vida/mana/velocidade).
    Zero lógica manual.
 3. **Narrativa** (`core/narrativa_habilidades.lua`) – ficheiro com todas as frases
    de feedback, organizadas por tipo de efeito, postura e domínio. O motor consulta
    este ficheiro para gerar as mensagens.
+
+Adicionalmente, existe uma **camada de gestão centralizada** para atributos
+que são afectados por várias passivas:
+
+- `recalcularVidaMana(player)` – invocada a cada ciclo do think e após o login,
+  calcula a vida e mana base a partir dos métodos nativos
+  `player:getVocationBaseMaxHealth()` e `player:getVocationBaseMaxMana()`,
+  aplicando os bónus percentuais de todas as passivas relevantes.
+- `recalcularVelocidade(player)` – calcula a velocidade natural com
+  `player:getNaturalSpeed()` e aplica os bónus percentuais das passivas de
+  movimento.
+
+Estas funções garantem que nunca haja acumulação de bónus, mesmo que as
+passivas sejam reaplicadas múltiplas vezes.
 
 **Vantagens:**
 - **Manutenção:** alterar um nome ou uma frase não mexe nos dados nem no motor.
@@ -52,6 +69,7 @@ A partir da versão 1.3, o SPA adopta uma separação clara em três camadas:
 - **Feedback consistente:** todas as habilidades do mesmo tipo usam o mesmo padrão de frases.
 - **Performance:** um motor centralizado é otimizado uma única vez.
 - **Personalidade:** o ficheiro de narrativa pode ser trabalhado por escritores, sem tocar em código.
+- **Estabilidade:** atributos como vida e mana nunca acumulam, pois são recalculados a partir de uma base fixa a cada ciclo.
 
 📊 2. ESTRUTURA DE 35+ HABILIDADES POR DOMÍNIO
 
@@ -223,7 +241,7 @@ Devem ser atribuídas de forma coerente com o estilo de combate do domínio.
 - Habilidades defensivas usam "cercado", "inimigosProximos", ou "vidaBaixa"
   (do jogador, verificada no efeito).
 
-🆕 NOVO: condicaoFocoMin
+🆕 condicaoFocoMin
 - Campo opcional (0‑100). A habilidade só pode ser usada se a barra de foco
   do domínio principal estiver igual ou acima deste valor.
 - Distribuição típica:
@@ -264,13 +282,14 @@ Regras absolutas:
 
 🔧 7. DIRECTRIZES DE IMPLEMENTAÇÃO
 
-7.1 Arquitetura Modular (NOVA)
-As habilidades são agora definidas através do campo `efeitoConfig`, que é
-interpretado pelo motor central (motor_habilidades.lua). Cada efeito tem um
-tipo padronizado e parâmetros específicos. Consulta a documentação do motor
-para a lista completa de tipos e parâmetros.
+7.1 Arquitetura Modular – Definição de Habilidades
 
-Exemplo de definição modular:
+As habilidades de gatilho são definidas exclusivamente através do campo
+`efeitoConfig`, interpretado pelo motor central (motor_habilidades.lua).
+Não é permitido usar lógica manual (campo `efeito`) para gatilhos. O sistema
+legado de `buffType` foi completamente removido.
+
+Exemplo de definição modular para um gatilho de dano extra:
 ```lua
 HABILIDADES[10010] = {
     nome = "Estocada",
@@ -279,7 +298,7 @@ HABILIDADES[10010] = {
     cooldown = 8,
     prioridade = 6,
     categoria = "single",
-    dominio = {DOM},
+    dominio = {100},
     nivelMin = 6,
     cor = COR.DOM_COMBATE_LAMINAS,
     efeitoConfig = {
@@ -288,57 +307,61 @@ HABILIDADES[10010] = {
         magicEffect = CONST_ME_DRAWBLOOD
     }
 }
-
 7.2 Funções Auxiliares (funcoes_habilidade.lua v2.0.2)
+
 As funções auxiliares são usadas exclusivamente pelo motor modular.
 Não é permitido criar habilidades de gatilho com lógica manual (modo legado);
-todas devem usar `efeitoConfig`.
+todas devem usar efeitoConfig.
 
 7.3 Narrativa Centralizada
+
 As frases de feedback são geridas pelo módulo narrativa_habilidades.lua.
 Para adicionar ou modificar frases, edita esse ficheiro. O campo mensagem
-nas definições de habilidade torna‑se opcional — se omitido, o motor usa
-a narrativa padrão do tipo de efeito.
+nas definições de habilidade é opcional — se omitido, o motor usa a
+narrativa padrão do tipo de efeito.
 
-7.4 Passivas Auto‑Suficientes
+7.4 Passivas – Gestão Centralizada de Atributos
 
-O campo 'efeito' de uma passiva aplica directamente o bónus real:
-- Usar Condition(CONDITION_ATTRIBUTES, ...) para atributos permanentes.
-- Usar player:setCombatModifier("chave", valor) para modificadores.
-- NUNCA apenas escrever storages que dependam de módulo externo.
-- Habilidades de gatilho NÃO devem usar o campo 'efeito' manual; usam 'efeitoConfig'.
+As passivas que alteram vida máxima, mana máxima, velocidade de movimento
+não devem conter lógica direta no campo efeito. Em vez disso, o campo
+efeito deve permanecer vazio. O bónus é calculado e aplicado pelas funções
+centrais recalcularVidaMana(player) e recalcularVelocidade(player), que
+são invocadas a cada ciclo do think_master e após o login.
 
-7.4.1 Passivas de Vida, Mana e Velocidade
+Exemplo de passiva de vida (Escudo):
 
-As passivas que alteram vida máxima, mana máxima ou velocidade de movimento
-NÃO devem conter lógica direta no campo `efeito`. Em vez disso, o campo `efeito`
-deve permanecer vazio, e o bónus é gerido centralmente pelas funções:
+lua
+HABILIDADES[15020] = {
+    nome = "Treino com Peso",
+    tipo = "passiva",
+    dominio = {15},
+    nivelMin = 3,
+    descricaoEfeito = "Aumenta a vida máxima em 2% por nível de Escudo.",
+    cor = COR.DOM_ESCUDO,
+    efeito = function(player) end  -- gerido por recalcularVidaMana
+}
+As funções centrais usam os seguintes métodos nativos para obter a base do
+personagem, garantindo que o ganho por nível seja sempre respeitado:
 
-- `recalcularVidaMana(player)` – calcula vida e mana base usando
-  `player:getVocationBaseMaxHealth()` e `player:getVocationBaseMaxMana()`,
-  e aplica os bónus conforme as passivas conhecidas.
-- `recalcularVelocidade(player)` – calcula a velocidade natural com
-  `player:getNaturalSpeed()` e aplica bónus percentuais das passivas.
+player:getVocationBaseMaxHealth() – vida base (offset + ganho * nível)
 
-Exemplo de passiva de vida:
-  HABILIDADES[15020] = {
-      nome = "Treino com Peso",
-      tipo = "passiva",
-      dominio = {15},
-      nivelMin = 3,
-      descricaoEfeito = "Aumenta a vida máxima conforme o nível de Escudo.",
-      cor = COR.DOM_ESCUDO,
-      efeito = function(player) end  -- gerido por recalcularVidaMana
-  }
+player:getVocationBaseMaxMana() – mana base
 
-Os multiplicadores (ex.: 2% por nível) são definidos dentro da função central,
-não na habilidade. Isto garante que os valores nunca se acumulem.
+player:getNaturalSpeed() – velocidade base (inclui bónus por nível)
+
+Dentro de recalcularVidaMana, os bónus são acumulados de acordo com as
+passivas conhecidas e aplicados como um valor total sobre a base. Isto
+elimina qualquer risco de acumulação.
+
+Outras passivas que concedem bónus não relacionados com vida/mana/velocidade
+(como dano elemental, chance de crítico, etc.) podem continuar a usar
+player:setCombatModifier("chave", valor) directamente no campo efeito.
 
 7.5 Transformações com Desfazer
 
-O campo 'efeito' aplica o bónus.
+O campo efeito aplica o bónus.
 
-O campo 'desfazer' (opcional) reverte-o. Se não definido, o sistema reverte
+O campo desfazer (opcional) reverte-o. Se não definido, o sistema reverte
 para valores base (ex.: setDamageTakenModifier(1.0)).
 
 7.6 Ensino entre Domínios Irmãos
@@ -349,9 +372,7 @@ irmão usando aprenderHabilidade(p, HAB_IRMA_III).
 7.7 Sinergias de Domínios
 
 Verificar afinidades com getNivelPorAfinidade em múltiplos domínios.
-
 Escalar efeitos com a profundidade desses domínios.
-
 Cooldown mais longo (20‑30s).
 
 7.8 Foco e Progressão Granular
@@ -365,6 +386,20 @@ O limite de habilidades por ciclo aumenta com o nível: 1 para níveis 0‑4,
 A prioridade das habilidades recebe um bónus baseado na especialização
 (+1 a cada 5 níveis de afinidade no domínio).
 
+7.9 Propagação de Afinidade (Rácio 4:2:1)
+
+Quando um jogador ganha afinidade numa Especialidade, o sistema distribui
+automaticamente:
+
+100% dos pontos para a Especialidade
+
+50% para o Domínio Secundário correspondente
+
+25% para o Domínio Primário correspondente
+
+Isto é processado pela função adicionarAfinidade em progressao.lua e
+não requer nenhuma lógica adicional nas habilidades.
+
 📝 8. PROCESSO DE GERAÇÃO (PASSO A PASSO)
 
 Para cada domínio:
@@ -373,15 +408,15 @@ Definir identidade narrativa (3 adjectivos + frase de assinatura).
 
 Selecionar 3‑4 pacotes principais da tabela de atribuição.
 
-Construir árvore I‑IV:
+Construir a árvore I‑IV:
 
-I (5): passiva de identidade.
+I (nível 5): passiva de identidade.
 
-II (10): passiva de expansão.
+II (nível 10): passiva de expansão.
 
-III (15): gatilho de assinatura (usa 1‑2 pacotes).
+III (nível 15): gatilho de assinatura (usa 1‑2 pacotes).
 
-IV (20): passiva de Maestria (Serenidade, ensino ao irmão).
+IV (nível 20): passiva de Maestria (Serenidade, ensino ao irmão).
 
 Distribuir as complementares:
 
@@ -402,6 +437,8 @@ Distribuir as complementares:
 Atribuir efeitos visuais e feedback limpo (via efeitoConfig).
 
 Atribuir condicaoFocoMin onde apropriado.
+
+Para passivas de vida/mana/velocidade: garantir que o campo efeito está vazio e que a lógica de bónus está registada na função central correspondente (recalcularVidaMana ou recalcularVelocidade).
 
 Revisão cruzada:
 
@@ -441,14 +478,15 @@ CONST_ANI_WHIRLWINDAXE, CONST_ANI_WHIRLWINDCLUB
 
 📋 10. APÊNDICE B – COBERTURA DA EXPERIÊNCIA TIBIA
 
-Área	Cobertura SPA
-Corpo a corpo	Completa (Lâminas, Machados, Clavas, Artes Marciais)
-Distância	Completa (Precisão, Arcos, Arremesso)
-Magia ofensiva	Completa (Runologia, Wands, Rods, Runas)
-Magia elemental	Completa (Fogo, Água/Gelo, Terra/Veneno, Energia)
-Defesa / Tank	Completa (Escudo, passivas, habilidades de defesa)
-Suporte / Cura	Coberta (life leech, defesa, Sagrado e Morte)
-Invocação	Planeada para Natureza (4)
-Fields / Campos	Coberto (Fogo, Água/Gelo, Terra/Veneno, Energia,
+Área Cobertura SPA
+Corpo a corpo Completa (Lâminas, Machados, Clavas, Artes Marciais)
+Distância Completa (Precisão, Arcos, Arremesso)
+Magia ofensiva Completa (Runologia, Wands, Rods, Runas)
+Magia elemental Completa (Fogo, Água/Gelo, Terra/Veneno, Energia)
+Defesa / Tank Completa (Escudo, passivas, habilidades de defesa)
+Suporte / Cura Coberta (life leech, defesa, Sagrado e Morte)
+Invocação Planeada para Natureza (4)
+Fields / Campos Coberto (Fogo, Água/Gelo, Terra/Veneno, Energia,
 Sagrado e Morte, via transformações de Maestria)
-FIM DO GUIA DE CRIAÇÃO DE HABILIDADES — VERSÃO 1.3
+
+FIM DO GUIA DE CRIAÇÃO DE HABILIDADES — VERSÃO 2.0

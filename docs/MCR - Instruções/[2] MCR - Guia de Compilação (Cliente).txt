@@ -1,15 +1,15 @@
 PROJETO MCR – GUIA DE COMPILAÇÃO (CLIENTE)
-Versão 3.1 – Integração total com o Sistema de Progressão do Aventureiro (SPA v4.2), opcodes de feedback visual, suporte a cores no chat e estrutura Revscript
+Versão 4.0 – Integração total com o Sistema de Progressão do Aventureiro (SPA v4.5), novas APIs de atributos, opcodes de feedback, suporte a cores e velocidade
 Arquivo: [2] MCR - Guia de Compilação (Cliente).txt
 
 🎯 OBJETIVO DESTE GUIA
 Fornecer todas as instruções, dependências, customizações e verificações necessárias para compilar o OTClient Redemption do Projeto MCR a partir do código‑fonte. Este guia também estabelece as regras que o assistente DEVE seguir ao auxiliar em tarefas relacionadas à compilação, modificação de arquivos C++ do cliente ou ajustes nos módulos Lua que dependem de alterações no motor.
 
-Esta versão actualiza o cliente para o SPA v4.2: os opcodes 182 (ícone de Vínculo), 183 (partículas de Estado de Alma) e 184 (janela de conhecimento) já estão planeados e devem ser implementados conforme descrito; as Posturas de Combate (Ímpeto, Equilíbrio, Guarda) reutilizam os modos de luta nativos sem necessidade de novas interfaces; e o cliente está preparado para exibir as mensagens coloridas geradas pelo servidor (canal 24) através da função c() e da tabela COR v9.1.
+Esta versão atualiza o cliente para o SPA v4.5: os opcodes 182 (ícone de Vínculo), 183 (partículas de Estado de Alma) e 184 (janela de conhecimento) já estão planeados e devem ser implementados conforme descrito; as Posturas de Combate (Ímpeto, Equilíbrio, Guarda) reutilizam os modos de luta nativos sem necessidade de novas interfaces; e o cliente está preparado para exibir as mensagens coloridas geradas pelo servidor (canal 24) através da função c() e da tabela COR v10.0. As novas APIs de atributos base e velocidade do SPA v4.5 são suportadas nativamente pelo protocolo.
 
 🚧 ESTADO ATUAL DA IMPLEMENTAÇÃO
 
-O SPA v4.2 está totalmente funcional no servidor. No cliente, a situação é a seguinte:
+O SPA v4.5 está totalmente funcional no servidor. No cliente, a situação é a seguinte:
 
 A comunicação por opcodes estendidos (extendedOpcode = true) já está habilitada.
 
@@ -17,7 +17,7 @@ O opcode 200 (migração de conta) está implementado e funcional.
 
 Os modos de luta nativos (Full Attack, Balanced, Full Defense) são usados para as Posturas; nenhuma modificação é necessária.
 
-O sistema de cores do SPA v4.2 funciona através do canal 24 (mensagens coloridas); o OTClient Redemption suporta este canal nativamente, sem modificações adicionais.
+O sistema de cores do SPA v4.5 funciona através do canal 24 (mensagens coloridas); o OTClient Redemption suporta este canal nativamente, sem modificações adicionais.
 
 Os listeners para os opcodes 182, 183 e 184 ainda precisam ser implementados nos módulos Lua do cliente (ex.: em modules/game_spa/). As especificações abaixo servem de guia para essa implementação.
 
@@ -107,9 +107,9 @@ Comando look com pronome do personagem (integrado com pronouns.lua).
 
 Conversão de nome do personagem no entergame.lua (UTF‑8 → Latin‑1).
 
-🎮 REUTILIZAÇÃO DOS MODOS DE LUTA NATIVOS PARA POSTURAS (SPA v4.2)
+🎮 REUTILIZAÇÃO DOS MODOS DE LUTA NATIVOS PARA POSTURAS (SPA v4.5)
 
-O cliente já possui nativamente os modos de luta Full Attack, Balanced e Full Defense, acessíveis por hotkeys (Ctrl+A, Ctrl+B, Ctrl+D) e ícones no painel de combate. Para o SPA v4.2, estes mesmos modos representam as Posturas de Combate:
+O cliente já possui nativamente os modos de luta Full Attack, Balanced e Full Defense, acessíveis por hotkeys (Ctrl+A, Ctrl+B, Ctrl+D) e ícones no painel de combate. Para o SPA v4.5, estes mesmos modos representam as Posturas de Combate:
 
 Full Attack → Ímpeto
 
@@ -123,7 +123,7 @@ Os ícones e as hotkeys permanecem exactamente os mesmos. O feedback narrativo (
 
 📡 NOVOS OPCODES PARA O SISTEMA DE PROGRESSÃO (A IMPLEMENTAR NO CLIENTE)
 
-O SPA v4.2 utiliza os seguintes opcodes estendidos para feedback visual. Actualmente, os listeners para estes opcodes ainda não foram implementados no cliente. A descrição abaixo serve de especificação para a implementação, que pode ser feita em módulos Lua (ex.: modules/game_spa/spa_opcodes.lua).
+O SPA v4.5 utiliza os seguintes opcodes estendidos para feedback visual. Actualmente, os listeners para estes opcodes ainda não foram implementados no cliente. A descrição abaixo serve de especificação para a implementação, que pode ser feita em módulos Lua (ex.: modules/game_spa/spa_opcodes.lua).
 
 Opcode 182 – Ícone do Vínculo (Estado de Alma): o servidor envia o ID do domínio dominante e uma tooltip poética para actualizar um ícone no HUD. O ícone pode indicar Lampejo, Vínculo ou Maestria (Vínculo permanente).
 Dados (JSON): { "dominioId": 100, "tooltip": "O aço canta nas suas mãos.", "maestria": true }
@@ -144,11 +144,11 @@ ProtocolGame.registerExtendedOpcode(184, function(protocol, opcode, buffer)
 end)
 Para os opcodes 182 e 183, o tratamento será semelhante, atualizando o HUD e disparando sistemas de partículas (se disponíveis).
 
-📟 SISTEMA DE CORES DO SPA v4.2 (CANAL 24)
+📟 SISTEMA DE CORES DO SPA v4.5 (CANAL 24)
 
-O SPA v4.2 envia mensagens coloridas através do canal 24 (sendTextMessage(24, texto)), utilizando a função c() para formatar blocos de texto com cores (ex.: "{" .. nome .. ", " .. cor .. "}"). A tabela COR está na versão 9.1, com novas constantes para missões (MISSAO_*) e NPCs (NPC_*). O OTClient Redemption suporta nativamente a exibição de texto colorido neste canal, herdando a sintaxe de realce com chaves do protocolo Tibia. Nenhuma modificação é necessária no motor do cliente para que as cores sejam exibidas correctamente.
+O SPA v4.5 envia mensagens coloridas através do canal 24 (sendTextMessage(24, texto)), utilizando a função c() para formatar blocos de texto com cores (ex.: "{" .. nome .. ", " .. cor .. "}"). A tabela COR está na versão 10.0, com constantes para missões (MISSAO_*) e NPCs (NPC_*). O OTClient Redemption suporta nativamente a exibição de texto colorido neste canal, herdando a sintaxe de realce com chaves do protocolo Tibia. Nenhuma modificação é necessária no motor do cliente para que as cores sejam exibidas correctamente.
 
-Os módulos Lua do servidor responsáveis por esta funcionalidade são texto_colorido.lua (v9.1) (tabela COR e função c()) e util_armas.lua (funções auxiliares). O cliente apenas precisa garantir que o canal 24 esteja habilitado e que o módulo de chat processe as mensagens recebidas — comportamento padrão do OTClient Redemption.
+Os módulos Lua do servidor responsáveis por esta funcionalidade são texto_colorido.lua (v10.0) (tabela COR e função c()) e util_armas.lua (funções auxiliares). O cliente apenas precisa garantir que o canal 24 esteja habilitado e que o módulo de chat processe as mensagens recebidas — comportamento padrão do OTClient Redemption.
 
 🖥️ MAP EDITOR (RME) – SUPORTE A LUA ISO‑8859‑1
 
@@ -200,9 +200,11 @@ Escapes octais: usar SEMPRE para acentos no C++ do cliente. NÃO usar UTF‑8 di
 
 A coluna lastlogin EXISTE na tabela players do schema actual do Canary (confirmado no banco de dados do projecto). O cliente não interage directamente com ela, mas scripts podem usar essa informação.
 
-As cores do SPA v4.2 são exibidas via canal 24; se não aparecerem, verificar se o módulo de chat do OTClient está a processar mensagens do canal 24 (por padrão, sim).
+As cores do SPA v4.5 são exibidas via canal 24; se não aparecerem, verificar se o módulo de chat do OTClient está a processar mensagens do canal 24 (por padrão, sim).
 
 Os opcodes 182, 183 e 184 precisam de listeners no cliente; se não forem implementados, o feedback visual do SPA ficará limitado ao chat.
+
+As novas APIs de atributos base e velocidade (getVocationBaseMaxHealth, getVocationBaseMaxMana, getNaturalSpeed, setMovementSpeed) são processadas no servidor e não requerem alterações no cliente, pois a comunicação de stats é feita pelo protocolo normal.
 
 🔍 CHECKLIST DE REVISÃO PARA O ASSISTENTE (C++ CLIENTE)
 
@@ -217,14 +219,15 @@ Antes de finalizar qualquer modificação em arquivos .cpp/.h do OTClient, o ass
 ☐ O método g_game.logout(false) não foi afectado?
 ☐ O nome do personagem recebido via HTTP é convertido de UTF‑8 para Latin‑1?
 ☐ O servidor de login está acessível (portas 8080, 7173)?
-☐ O canal 24 exibe as mensagens coloridas do SPA v4.2 correctamente?
+☐ O canal 24 exibe as mensagens coloridas do SPA v4.5 correctamente?
+☐ As novas funcionalidades de velocidade e atributos base do servidor não quebram nenhuma interface existente?
 
 📤 COMO ATUALIZAR O REPOSITÓRIO GIT
 
 git add "<arquivos alterados>"
-git commit -m "feat(client): Atualiza guia de compilação cliente com SPA v4.2 (v3.1)"
+git commit -m "feat(client): Atualiza guia de compilação cliente com SPA v4.5 (v4.0)"
 git push origin main
 
 ⚠️ PowerShell: aspas duplas em caminhos com espaços.
 
-FIM DO GUIA DE COMPILAÇÃO (CLIENTE) — VERSÃO 3.1
+FIM DO GUIA DE COMPILAÇÃO (CLIENTE) — VERSÃO 4.0

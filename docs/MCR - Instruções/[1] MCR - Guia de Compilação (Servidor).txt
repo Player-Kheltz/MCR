@@ -1,9 +1,9 @@
 PROJETO MCR – GUIA DE COMPILAÇÃO (SERVIDOR)
-Versão 4.2 – Sistema de Progressão do Aventureiro (SPA v4.5), novos métodos Lua (vida/mana base, velocidade), estrutura Revscript e integração de cores
+Versão 4.5 – Sistema de Progressão do Aventureiro (SPA v4.5.0), novas APIs de atributos base, velocidade, e ajustes estruturais
 Arquivo: [1] MCR - Guia de Compilação (Servidor).txt
 
 🎯 OBJETIVO DESTE GUIA
-Fornecer todas as instruções, dependências, customizações e verificações necessárias para compilar o servidor Canary do Projeto MCR a partir do código‑fonte. Esta versão incorpora todos os métodos Lua exigidos pelo Sistema de Progressão do Aventureiro (SPA v4.5), incluindo gerenciamento de afinidades em lote, histórico de ações (para Lampejos, Vínculos e Maestria), knockback, modificadores de velocidade e stealth, getAmmo (para projéteis dinâmicos), getVocationBaseMaxHealth, getVocationBaseMaxMana, getNaturalSpeed, setMovementSpeed e setCombatModifier (modificadores de combate dinâmicos), além da estrutura modular de scripts em data-canary/scripts/MCR/SPA/core/ e subpastas. O assistente DEVE seguir estas directrizes ao modificar o código C++.
+Fornecer todas as instruções, dependências, customizações e verificações necessárias para compilar o servidor Canary do Projeto MCR a partir do código‑fonte. Esta versão incorpora todos os métodos Lua exigidos pelo Sistema de Progressão do Aventureiro (SPA v4.5.0), incluindo gerenciamento de afinidades em lote, histórico de ações (para Lampejos, Vínculos e Maestria), knockback, modificadores de velocidade e stealth, getAmmo (para projéteis dinâmicos), getVocationBaseMaxHealth, getVocationBaseMaxMana, getNaturalSpeed, setMovementSpeed e setCombatModifier (modificadores de combate dinâmicos), além da estrutura modular de scripts em data-canary/scripts/MCR/SPA/core/ e subpastas. O assistente DEVE seguir estas directrizes ao modificar o código C++.
 
 🚧 ESTADO ATUAL DA IMPLEMENTAÇÃO
 
@@ -87,9 +87,9 @@ Bindings Lua Preservados: nenhuma remoção de métodos. Apenas adições docume
 
 Remoção de restrições de vocação: vocation 0 permitido em itens e magias (item.cpp, player.cpp, spells.cpp).
 
-🚀 Novos Métodos Lua para o SPA v4.5 (IMPLEMENTADOS)
+🚀 Novos Métodos Lua para o SPA v4.5.0 (IMPLEMENTADOS)
 
-Estes métodos estão implementados em player.h/cpp e expostos em luascript.cpp. São essenciais para o funcionamento do buffer de progressão, Lampejos, Vínculos, Maestria, Posturas, Sinergia Elemental, Arremesso de Escudo e habilidades. Todos estão activos e podem ser usados pelos scripts da pasta MCR/SPA/.
+Estes métodos estão implementados em player.h/cpp e expostos em luascript.cpp. São essenciais para o funcionamento do buffer de progressão, Lampejos, Vínculos, Maestria, Posturas, Sinergia Elemental, Arremesso de Escudo, habilidades, e para os novos sistemas de vida, mana e velocidade sem acumulação. Todos estão activos e podem ser usados pelos scripts da pasta MCR/SPA/.
 
 player:getDominioAfinidade(dominioId) – retorna a afinidade acumulada no Domínio.
 
@@ -163,11 +163,11 @@ player:unlearnAllHabilidades() – Remove todas as habilidades do jogador da BD 
 
 player:learnHabilidadeBatch(tabela) – Aprende várias habilidades em lote (INSERT em batch).
 
-player:getVocationBaseMaxHealth() – Retorna a vida base calculada a partir da vocação Aventureiro (gainhp * level + offset). Essencial para o sistema de passivas de vida sem acumulação.
+player:getVocationBaseMaxHealth() – Retorna a vida base calculada a partir da vocação Aventureiro (gainhp * level + offset). Essencial para o cálculo de passivas de vida sem acumulação.
 
-player:getVocationBaseMaxMana() – Retorna a mana base calculada a partir da vocação Aventureiro (gainmana * level + offset). Essencial para o sistema de passivas de mana sem acumulação.
+player:getVocationBaseMaxMana() – Retorna a mana base calculada a partir da vocação Aventureiro (gainmana * level + offset). Essencial para o cálculo de passivas de mana sem acumulação.
 
-player:getNaturalSpeed() – Retorna a velocidade natural do personagem (base da vocação + bónus por nível). Usado como referência limpa para aplicar multiplicadores de velocidade.
+player:getNaturalSpeed() – Retorna a velocidade natural do personagem (base da vocação + bónus por nível). Usada como referência para aplicar multiplicadores de velocidade de movimento.
 
 player:setMovementSpeed(speed) – Define a velocidade de movimento atual do personagem, atualizando o cliente imediatamente.
 
@@ -183,9 +183,9 @@ Buffer de afinidade gerido via storages temporárias (95001+dominioId); o descar
 
 Modificadores de combate dinâmicos armazenados em mapa string→double, manipulados via setCombatModifier/getCombatModifier.
 
-Cálculo de vida/mana base da vocação via getVocationBaseMaxHealth/Mana, com offsets para ajustar os valores iniciais (vida 150, mana 50 no nível 1).
+Vida e mana base calculadas com getVocationBaseMaxHealth e getVocationBaseMaxMana, utilizando offsets para garantir os valores iniciais corretos (150 de vida e 50 de mana no nível 1).
 
-Velocidade natural calculada via getNaturalSpeed (base + level - 1), usada como referência para multiplicadores.
+Velocidade natural calculada via getNaturalSpeed (base + level - 1), utilizada como referência limpa para multiplicadores das passivas de movimento.
 
 📅 EVENTO onHealthChange (JÁ IMPLEMENTADO)
 O evento onHealthChange está presente no Canary e é usado pelo script ProgDefesa (eventos.lua) para progressão de Sobrevivência e Escudo ao receber dano.
@@ -228,6 +228,7 @@ data-canary/scripts/MCR/SPA/
 │   ├── login.lua
 │   ├── think_master.lua
 │   ├── skilltree.lua
+│   ├── advance.lua
 │   └── funcoes_habilidade.lua
 ├── habilidades/
 │   ├── habilidade_gabarito.lua
@@ -272,7 +273,7 @@ O método player:getAmmo() é essencial para o sistema de projéteis dinâmicos 
 
 Os métodos player:setCombatModifier e getCombatModifier suportam a Sinergia Elemental e outras mecânicas dinâmicas do SPA v4.5.
 
-Os novos métodos getVocationBaseMaxHealth, getVocationBaseMaxMana, getNaturalSpeed e setMovementSpeed são usados pelas funções centrais de cálculo de atributos base (recalcularVidaMana e recalcularVelocidade) e NÃO devem ser alterados, pois garantem a estabilidade dos valores sem acumulação.
+Os novos métodos getVocationBaseMaxHealth, getVocationBaseMaxMana, getNaturalSpeed e setMovementSpeed são utilizados pelas funções centrais de atributos (recalcularVidaMana e recalcularVelocidade) e NÃO devem ser alterados, pois garantem a estabilidade dos valores sem acumulação.
 
 🔍 CHECKLIST DE REVISÃO PARA O ASSISTENTE (C++ SERVIDOR)
 
@@ -294,9 +295,9 @@ Antes de finalizar qualquer modificação em arquivos .cpp/.h do Canary, o assis
 📤 COMO ATUALIZAR O REPOSITÓRIO GIT
 
 git add "<arquivos alterados>"
-git commit -m "feat(server): Atualiza guia de compilação com SPA v4.5 e novas APIs"
+git commit -m "feat(server): Atualiza guia de compilação com SPA v4.5 e novas APIs de atributos base"
 git push origin main
 
 ⚠️ PowerShell: aspas duplas em caminhos com espaços.
 
-FIM DO GUIA DE COMPILAÇÃO (SERVIDOR) — VERSÃO 4.2
+FIM DO GUIA DE COMPILAÇÃO (SERVIDOR) — VERSÃO 4.5

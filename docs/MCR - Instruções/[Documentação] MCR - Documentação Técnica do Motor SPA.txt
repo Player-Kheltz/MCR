@@ -1,40 +1,42 @@
-📘 Documentação Técnica do Motor SPA – Projeto MCR (v4.5)
-Última atualização: 25 de Maio de 2026
+📘 Documentação Técnica do Motor SPA – Projeto MCR (v4.6)
+Última atualização: 26 de Maio de 2026
 
 Este documento descreve todas as APIs, métodos, constantes, estruturas de dados e sistemas que o servidor Canary expõe ao Sistema de Progressão do Aventureiro. Todas as funcionalidades aqui listadas estão implementadas, compiladas e verificadas através do comando !testespa.
 
 🧠 1. Núcleo do SPA (Progressão por Domínios)
 1.1 Métodos C++ expostos ao Lua (Player)
-Método Lua	Descrição
-player:getDominioAfinidade(dominioId)	Retorna a afinidade acumulada (inteiro).
-player:addDominioAfinidade(dominioId, pontos)	Adiciona pontos de afinidade (INSERT … ON DUPLICATE KEY UPDATE).
-player:addDominioAfinidadeBatch(tabela)	Adiciona afinidades em lote ({[domId]=pontos}). Otimizado.
-player:getDominioAfinidades(dom1, dom2, …)	Retorna tabela {[domId]=valor}.
-player:setDominioDespertado(dominioId, bool)	Marca o domínio como despertado (1/0).
-player:hasHabilidade(habilidadeId)	Verifica se a habilidade está aprendida (BD).
-player:learnHabilidade(habilidadeId)	Aprende uma habilidade permanentemente (insere na BD).
-player:unlearnHabilidade(habilidadeId)	Remove uma habilidade específica da BD.
-player:unlearnAllHabilidades()	Remove TODAS as habilidades do jogador (uma única query).
-player:learnHabilidadeBatch(tabela)	Aprende várias habilidades em lote (array Lua {id1, id2, …}).
-player:getHabilidades()	Retorna lista de IDs das habilidades aprendidas.
-player:getNaturalSpeed() Retorna a velocidade natural do personagem (base da vocação + bónus por nível).
-player:setMovementSpeed(speed) Define a velocidade de movimento atual.
+Método Lua Descrição
+player:getDominioAfinidade(dominioId) Retorna a afinidade acumulada (inteiro).
+player:addDominioAfinidade(dominioId, pontos) Adiciona pontos de afinidade (INSERT … ON DUPLICATE KEY UPDATE).
+player:addDominioAfinidadeBatch(tabela) Adiciona afinidades em lote ({[domId]=pontos}). Otimizado.
+player:getDominioAfinidades(dom1, dom2, …) Retorna tabela {[domId]=valor}.
+player:setDominioDespertado(dominioId, bool) Marca o domínio como despertado (1/0).
+player:hasHabilidade(habilidadeId) Verifica se a habilidade está aprendida (BD).
+player:learnHabilidade(habilidadeId) Aprende uma habilidade permanentemente (insere na BD).
+player:unlearnHabilidade(habilidadeId) Remove uma habilidade específica da BD.
+player:unlearnAllHabilidades() Remove TODAS as habilidades do jogador (uma única query).
+player:learnHabilidadeBatch(tabela) Aprende várias habilidades em lote (array Lua {id1, id2, …}).
+player:getHabilidades() Retorna lista de IDs das habilidades aprendidas.
+player:getVocationBaseMaxHealth() Retorna a vida base do Aventureiro (gainhp * level + offset). Nível 1 = 150.
+player:getVocationBaseMaxMana() Retorna a mana base do Aventureiro (gainmana * level + offset). Nível 1 = 50.
+player:getNaturalSpeed() Retorna a velocidade natural (base da vocação + (level - 1)).
+player:setMovementSpeed(speed) Define a velocidade de movimento atual e notifica o cliente.
 
 1.2 Histórico de Ações e Estados de Alma
-Método Lua	Descrição
-player:registerDominioAction(dominioId)	Regista uma ação com timestamp. Usado para alimentar a barra de foco.
-player:getActionHistory(maxCount)	Retorna as últimas ações como tabela {dominioId, timestamp}.
-player:clearActionHistory()	Limpa todo o histórico de ações.
-player:getDominioState(dominioId)	Retorna 0 (normal), 1 (Lampejo) ou 2 (Vínculo). A Maestria mantém o estado 2 permanentemente.
-player:setDominioState(dominioId, state)	Define o estado (0,1,2).
-player:getAllActiveStates()	Retorna {[dominioId] = state} para todos os domínios com estado > 0.
+Método Lua Descrição
+player:registerDominioAction(dominioId) Regista uma ação com timestamp. Usado para alimentar a barra de foco.
+player:getActionHistory(maxCount) Retorna as últimas ações como tabela {dominioId, timestamp}.
+player:clearActionHistory() Limpa todo o histórico de ações.
+player:getDominioState(dominioId) Retorna 0 (normal), 1 (Lampejo) ou 2 (Vínculo). A Maestria mantém o estado 2 permanentemente.
+player:setDominioState(dominioId, state) Define o estado (0,1,2).
+player:getAllActiveStates() Retorna {[dominioId] = state} para todos os domínios com estado > 0.
 1.3 Curva de Progressão
 Definida em constantes.lua na tabela NIVEL_PONTOS. Os valores atuais (para uma taxa de ~1800 pontos/hora) são:
 
 lua
 NIVEL_PONTOS = {
-    50, 120, 300, 740, 1800, 2500, 3450, 4750, 6550, 9000,
-    12900, 18400, 26300, 37600, 54000, 69000, 87000, 110000, 140000, 180000
+50, 120, 300, 740, 1800, 2500, 3450, 4750, 6550, 9000,
+12900, 18400, 26300, 37600, 54000, 69000, 87000, 110000, 140000, 180000
 }
 A função global getNivelPorAfinidade(acumulado) devolve o nível (1 a 20) correspondente ao total de pontos. Nível 0 significa nenhuma afinidade; nível 20 é a Maestria.
 
@@ -51,15 +53,17 @@ Especialidades de Arma: Espadas Leves (100), Espadas Pesadas (101), Machados Lev
 
 Especialidades Mágicas: Fogo (23), Água e Gelo (24), Terra e Veneno (25), Energia (26), Sagrado e Morte (200), Wands (210), Rods (211), Runas (212).
 
-Outros: Sobrevivência (400) – ramo de Natureza (4).
+Outros: Sobrevivência (400) – ramo de Natureza (4). O parent_id foi corrigido para 4 no banco de dados e no init_dominios.lua.
 
-A propagação de afinidade é automática e usa um rácio 4:2:1:
-- 100% dos pontos ganhos vão para a Especialidade.
-- 50% (metade) para o Domínio Secundário.
-- 25% (um quarto) para o Domínio Primário.
-A função `adicionarAfinidade` em `progressao.lua` aplica esta propagação
-imediatamente ao ganhar pontos.
+Propagação de afinidade (rácio 4:2:1):
+Quando um jogador ganha afinidade numa Especialidade, a função adicionarAfinidade em progressao.lua distribui automaticamente:
 
+100% dos pontos para a própria Especialidade.
+
+50% (metade) para o Domínio Secundário correspondente.
+
+25% (um quarto) para o Domínio Primário correspondente.
+Os valores são arredondados para baixo (math.floor). Golpes com 1 ponto resultam em 0 para os níveis superiores (a menos que se ajuste o mínimo).
 
 1.5 Compatibilidade Elemental
 Desde a v4.2, o SPA suporta sinergia elemental nativa: armas que possuem elementalBond definido no XML (ou elementType nas habilidades) desbloqueiam automaticamente as habilidades do domínio elemental correspondente.
@@ -70,12 +74,12 @@ Isto é gerido pela função armaCompativeis no executor_habilidades.lua, que ve
 
 lua
 damageDomains = {
-    [COMBAT_FIREDAMAGE]   = 23,   -- Fogo
-    [COMBAT_ICEDAMAGE]    = 24,   -- Água e Gelo
-    [COMBAT_EARTHDAMAGE]  = 25,   -- Terra e Veneno
-    [COMBAT_ENERGYDAMAGE] = 26,   -- Energia
-    [COMBAT_DEATHDAMAGE]  = 200,  -- Sagrado e Morte
-    [COMBAT_HOLYDAMAGE]   = 200,  -- Sagrado e Morte
+[COMBAT_FIREDAMAGE] = 23, -- Fogo
+[COMBAT_ICEDAMAGE] = 24, -- Água e Gelo
+[COMBAT_EARTHDAMAGE] = 25, -- Terra e Veneno
+[COMBAT_ENERGYDAMAGE] = 26, -- Energia
+[COMBAT_DEATHDAMAGE] = 200, -- Sagrado e Morte
+[COMBAT_HOLYDAMAGE] = 200, -- Sagrado e Morte
 }
 1.6 Campos Elementais (Fields)
 Desde a v4.3, habilidades de Maestria elemental podem criar campos elementais no chão. O conjurador é sempre imune aos seus próprios campos. Com a transformação de Maestria adequada (nível 20), o grupo também fica imune.
@@ -87,22 +91,22 @@ A função criarField() em funcoes_habilidade.lua (v2.0.2) gere a criação de c
 ⚔️ 2. Posturas de Combate
 As posturas são selecionadas pelos modos de luta nativos do Tibia (fightMode) e lidas pelo servidor via player:getFightMode().
 
-Modo	Postura SPA	Constante Lua
-Full Attack (1)	Ímpeto	FIGHTMODE_ATTACK
-Balanced (2)	Equilíbrio	FIGHTMODE_BALANCED
-Full Defense (3)	Guarda	FIGHTMODE_DEFENSE
+Modo Postura SPA Constante Lua
+Full Attack (1) Ímpeto FIGHTMODE_ATTACK
+Balanced (2) Equilíbrio FIGHTMODE_BALANCED
+Full Defense (3) Guarda FIGHTMODE_DEFENSE
 Métodos relacionados
-Método Lua	Descrição
-player:getFightMode()	Retorna o modo actual (1,2,3).
-player:setAttackSpeedModifier(mod)	Multiplicador da velocidade de ataque (0.1 a infinito).
-player:getAttackSpeedModifier()	Valor actual.
-player:setStealth(bool)	Activa/desactiva furtividade.
-player:isStealth()	Verifica se está furtivo.
-player:setCanPushCreatures(bool)	Permite empurrar criaturas ao andar.
-player:setLifeLeechModifier(percent)	Define % de life leech (0‑100).
-player:setManaLeechModifier(percent)	Define % de mana leech (0‑100).
-player:setDamageTakenModifier(mod)	Multiplicador do dano recebido.
-player:setRangeModifier(tiles)	Ajusta o alcance.
+Método Lua Descrição
+player:getFightMode() Retorna o modo actual (1,2,3).
+player:setAttackSpeedModifier(mod) Multiplicador da velocidade de ataque (0.1 a infinito).
+player:getAttackSpeedModifier() Valor actual.
+player:setStealth(bool) Activa/desactiva furtividade.
+player:isStealth() Verifica se está furtivo.
+player:setCanPushCreatures(bool) Permite empurrar criaturas ao andar.
+player:setLifeLeechModifier(percent) Define % de life leech (0‑100).
+player:setManaLeechModifier(percent) Define % de mana leech (0‑100).
+player:setDamageTakenModifier(mod) Multiplicador do dano recebido.
+player:setRangeModifier(tiles) Ajusta o alcance.
 Buffs temporários (geridos pelo buff_system.lua v6.2)
 Speed Burst (applySpeedBurst): acelera o ataque por X ms usando um token aleatório para evitar conflitos com a reaplicação da postura.
 
@@ -116,21 +120,21 @@ Next Attack Condition: aplica uma condição (sangramento, atordoamento, paralis
 Integrado com as mecânicas do Monk nativo do Canary, o sistema de Chi é usado pelo domínio Artes Marciais (14) e suas especialidades.
 
 Métodos Lua
-Método Lua	Descrição
-player:fillHarmony()	Enche a barra de Harmony (Chi).
-player:getHarmony()	Retorna o valor actual (0‑5).
-player:setHarmony(value)	Define o valor manualmente (usado para gastar Chi em habilidades).
-player:getHarmonyDamage(min, max)	Calcula dano com bónus de Harmony.
-player:setSerene(bool)	Activa/desactiva o estado Serenidade.
-player:setVirtue(virtue)	Define a Virtude actual.
-player:getVirtue()	Retorna a Virtude actual.
+Método Lua Descrição
+player:fillHarmony() Enche a barra de Harmony (Chi).
+player:getHarmony() Retorna o valor actual (0‑5).
+player:setHarmony(value) Define o valor manualmente (usado para gastar Chi em habilidades).
+player:getHarmonyDamage(min, max) Calcula dano com bónus de Harmony.
+player:setSerene(bool) Activa/desactiva o estado Serenidade.
+player:setVirtue(virtue) Define a Virtude actual.
+player:getVirtue() Retorna a Virtude actual.
 Constantes e storages
 lua
 Virtue_t = {
-    None    = 0,
-    Harmony = 1,   -- parte do dano recupera vida
-    Justice = 2,   -- mais dano a inimigos feridos
-    Sustain = 3,   -- curas mais fortes
+None = 0,
+Harmony = 1, -- parte do dano recupera vida
+Justice = 2, -- mais dano a inimigos feridos
+Sustain = 3, -- curas mais fortes
 }
 
 STORAGE.HARMONY = 97880
@@ -150,26 +154,26 @@ Narrativa (narrativa_habilidades.lua) — frases de feedback organizadas por tip
 O motor central processa qualquer habilidade definida por parâmetros. Cada efeito possível está mapeado na tabela MOTOR.efeitos. O executor chama MOTOR.executar(player, target, damage, habDef), que interpreta habDef.efeitoConfig.tipo e dispara a função correspondente.
 
 Tipos de efeitos suportados
-Tipo	Descrição	Parâmetros principais
-"dano_extra"	Dano adicional simples (corpo a corpo ou projétil).	percentual, tipo ("distancia" ou omitido para melee), magicEffect
-"area_ground"	Explosão no chão centrada no jogador ou no alvo.	centro ("jogador" ou "alvo"), raio, percentual, magicEffect, knockback, condicao
-"area_target"	Explosão centrada no alvo.	percentual, areaPercentual, raio, magicEffect, knockback
-"ricochete"	Projétil que salta entre inimigos próximos.	percentual, raio, saltos, magicEffect
-"corrente"	Liga dois alvos e aplica dano ao secundário.	percentual, raio, magicEffect
-"knockback"	Empurra o alvo.	comDano, percentual, magicEffect
-"condicao"	Aplica uma condição ao alvo (sangramento, atordoamento, etc.).	conditionType, duration, periodicDamage, comDano, percentual, magicEffect
-"buff_speed"	Aceleração de ataque.	multiplier, durationMs
-"buff_damage"	Aumento de dano por N ataques.	percentExtra, buffHits
-"life_leech"	Roubo de vida.	leechPercent, durationSec
-"mana_leech"	Roubo de mana.	leechPercent, durationSec
-"next_condition"	Próximo ataque aplica condição.	conditionType, duration, periodicDamage
-"finisher"	Dano massivo contra alvos com vida baixa.	percentual, magicEffect, knockback, medoArea, sangramentoArea
-"defesa_cura"	Recupera vida ao bloquear.	percentual, reflect, reflectPercentual
-"defesa_barreira"	Reduz dano recebido temporariamente.	factor, durationMs
-"defesa_contra_ataque"	Contra-ataque em área ao receber dano.	percentual, magicEffect
-"field"	Cria campo elemental no chão.	elemento, danoPorTick, duracaoMs, intervaloMs, magicEffect, centro
-"sinergia"	Combina múltiplos domínios com efeitos secundários.	efeitoBase, efeitosSecundarios, nivelMinSecundario
-"rajada"	Múltiplos projéteis em sequência.	percentual, numProjeteis, intervaloMs
+Tipo Descrição Parâmetros principais
+"dano_extra" Dano adicional simples (corpo a corpo ou projétil). percentual, tipo ("distancia" ou omitido para melee), magicEffect
+"area_ground" Explosão no chão centrada no jogador ou no alvo. centro ("jogador" ou "alvo"), raio, percentual, magicEffect, knockback, condicao
+"area_target" Explosão centrada no alvo. percentual, areaPercentual, raio, magicEffect, knockback
+"ricochete" Projétil que salta entre inimigos próximos. percentual, raio, saltos, magicEffect
+"corrente" Liga dois alvos e aplica dano ao secundário. percentual, raio, magicEffect
+"knockback" Empurra o alvo. comDano, percentual, magicEffect
+"condicao" Aplica uma condição ao alvo (sangramento, atordoamento, etc.). conditionType, duration, periodicDamage, comDano, percentual, magicEffect
+"buff_speed" Aceleração de ataque. multiplier, durationMs
+"buff_damage" Aumento de dano por N ataques. percentExtra, buffHits
+"life_leech" Roubo de vida. leechPercent, durationSec
+"mana_leech" Roubo de mana. leechPercent, durationSec
+"next_condition" Próximo ataque aplica condição. conditionType, duration, periodicDamage
+"finisher" Dano massivo contra alvos com vida baixa. percentual, magicEffect, knockback, medoArea, sangramentoArea
+"defesa_cura" Recupera vida ao bloquear. percentual, reflect, reflectPercentual
+"defesa_barreira" Reduz dano recebido temporariamente. factor, durationMs
+"defesa_contra_ataque" Contra-ataque em área ao receber dano. percentual, magicEffect
+"field" Cria campo elemental no chão. elemento, danoPorTick, duracaoMs, intervaloMs, magicEffect, centro
+"sinergia" Combina múltiplos domínios com efeitos secundários. efeitoBase, efeitosSecundarios, nivelMinSecundario
+"rajada" Múltiplos projéteis em sequência. percentual, numProjeteis, intervaloMs
 4.2 Narrativa Centralizada (narrativa_habilidades.lua v1.0)
 A tabela Narrativa.frases contém frases organizadas por tipo de efeito e postura. A função Narrativa.gerar(player, target, habDef) compõe a frase final com cores, substituindo placeholders:
 
@@ -182,59 +186,59 @@ A tabela Narrativa.frases contém frases organizadas por tipo de efeito e postur
 O motor chama Narrativa.gerar() automaticamente, garantindo feedback consistente em todas as habilidades.
 
 4.3 Tipos de habilidade
-Tipo	Descrição
-"passiva"	Efeito permanente, aplicado no login e ao subir de nível. Renovada a cada 2 segundos pelo think_master.
-"gatilho"	Disparada por eventos: onAttack, onDealtDamage, onKill, onBlock, onReceiveDamage.
-"transformacao"	Activada/desactivada com base nos Estados de Alma (Lampejo/Vínculo/Maestria). Suporta campo desfazer para reverter bónus.
+Tipo Descrição
+"passiva" Efeito permanente, aplicado no login e ao subir de nível. Renovada a cada 2 segundos pelo think_master. Passivas que afetam vida, mana ou velocidade têm o campo efeito vazio (são geridas centralizadamente).
+"gatilho" Disparada por eventos: onAttack, onDealtDamage, onKill, onBlock, onReceiveDamage. Devem usar obrigatoriamente o campo efeitoConfig (motor modular). O campo efeito manual está reservado apenas para passivas e transformações.
+"transformacao" Activada/desactivada com base nos Estados de Alma (Lampejo/Vínculo/Maestria). Suporta campo desfazer para reverter bónus.
 4.4 Categorias de gatilho
-Categoria	Descrição
-"single"	Dano directo elevado.
-"aoe"	Atinge múltiplos alvos.
-"debuff"	Aplica condição negativa.
-"buff"	Melhora o próprio jogador.
-"defense"	Cura, escudo, redução de dano.
-"chi_spender"	Consome Chi.
-"finisher"	Efeito extra quando o alvo está com vida baixa.
-"sinergia"	Habilidade que escala com múltiplos domínios.
-"condicao"	Especializada em aplicar uma condição prolongada.
+Categoria Descrição
+"single" Dano directo elevado.
+"aoe" Atinge múltiplos alvos.
+"debuff" Aplica condição negativa.
+"buff" Melhora o próprio jogador.
+"defense" Cura, escudo, redução de dano.
+"chi_spender" Consome Chi.
+"finisher" Efeito extra quando o alvo está com vida baixa.
+"sinergia" Habilidade que escala com múltiplos domínios.
+"condicao" Especializada em aplicar uma condição prolongada.
 4.5 Campos principais (lista completa no habilidade_gabarito.lua v4.1)
 Obrigatórios: nome, tipo, dominio (array de IDs), nivelMin, descricaoEfeito, cor, mensagem.
 
-Condicionais (gatilho): gatilho, cooldown, prioridade, categoria, efeitoConfig (tabela de parâmetros para o motor modular).
+Condicionais (gatilho): gatilho, cooldown, prioridade, categoria, efeitoConfig (tabela de parâmetros para o motor modular). O campo buffType não é mais utilizado para novas habilidades.
 
-Opcionais: buffType (para compatibilidade com sistema antigo), condicao (ver secção 4.6), condicaoFocoMin (ver secção 4.7), chiCusto, efeitoVisual, posturaMod, async, sinergiaDominios, efeitosSecundarios, desfazer.
+Opcionais: condicao (ver secção 4.6), condicaoFocoMin (ver secção 4.7), chiCusto, efeitoVisual, posturaMod, async, sinergiaDominios, efeitosSecundarios, desfazer.
 
 4.6 Condições de activação
-Condição	Descrição	Uso adequado
-"cercado"	3+ inimigos num raio de 3 tiles do jogador	Habilidades defensivas, clavas, escudo
-"cercadoAlvo"	2+ inimigos num raio de 2 tiles do alvo	Habilidades de área centradas no alvo
-"vidaBaixa"	Alvo com menos de 20% de vida	Finishers, execuções
-"distancia4"	Alvo a 4+ tiles de distância	Habilidades de ranged
-"distanciaMinima2"	Alvo a pelo menos 2 tiles	Habilidades de ranged que não funcionam corpo‑a‑corpo
-"distanciaMaxima3"	Alvo a no máximo 3 tiles	Habilidades corpo‑a‑corpo que exigem proximidade
-"5Golpes"	5 ataques consecutivos com a mesma arma	Habilidades de assinatura, combos
-"inimigosProximos"	Pelo menos 1 inimigo num raio de 2 tiles do jogador	Habilidades de defesa ou contra‑ataque
-"alvoIsolado"	Alvo sem outros inimigos num raio de 2 tiles	Habilidades de single‑target puro, duelo
-"aposEsquiva"	Activada após o jogador esquivar	Habilidades de Precisão, Artes Marciais
+Condição Descrição Uso adequado
+"cercado" 3+ inimigos num raio de 3 tiles do jogador Habilidades defensivas, clavas, escudo
+"cercadoAlvo" 2+ inimigos num raio de 2 tiles do alvo Habilidades de área centradas no alvo
+"vidaBaixa" Alvo com menos de 20% de vida Finishers, execuções
+"distancia4" Alvo a 4+ tiles de distância Habilidades de ranged
+"distanciaMinima2" Alvo a pelo menos 2 tiles Habilidades de ranged que não funcionam corpo‑a‑corpo
+"distanciaMaxima3" Alvo a no máximo 3 tiles Habilidades corpo‑a‑corpo que exigem proximidade
+"5Golpes" 5 ataques consecutivos com a mesma arma Habilidades de assinatura, combos
+"inimigosProximos" Pelo menos 1 inimigo num raio de 2 tiles do jogador Habilidades de defesa ou contra‑ataque
+"alvoIsolado" Alvo sem outros inimigos num raio de 2 tiles Habilidades de single‑target puro, duelo
+"aposEsquiva" Activada após o jogador esquivar Habilidades de Precisão, Artes Marciais
 4.7 Condição de Foco Mínimo (condicaoFocoMin)
 Novo campo opcional que restringe o uso de habilidades com base na barra de foco do domínio principal. A habilidade só é elegível se foco ≥ condicaoFocoMin.
 
-Valor típico	Significado
-0 (omitido)	Sem restrição. Disponível a qualquer momento.
-25	Disponível quando a barra começa a encher.
-50	Requer concentração moderada.
-75	Quase a formar Vínculo — habilidades de impacto.
-90	Reservado para habilidades de Maestria ou finishers.
-4.8 Passivas auto‑suficientes
-Todas as passivas aplicam bónus reais directamente no campo efeito, usando:
+Valor típico Significado
+0 (omitido) Sem restrição. Disponível a qualquer momento.
+25 Disponível quando a barra começa a encher.
+50 Requer concentração moderada.
+75 Quase a formar Vínculo — habilidades de impacto.
+90 Reservado para habilidades de Maestria ou finishers.
+4.8 Gestão de Atributos Base (Vida, Mana, Velocidade)
+Passivas que alteram vida, mana ou velocidade de movimento não devem modificar directamente esses valores nos seus campos efeito. Em vez disso, são geridas centralizadamente por funções dedicadas, evitando acumulações:
 
-Condition(CONDITION_ATTRIBUTES, ...) para atributos permanentes.
+recalcularVidaMana(player) (definida em passivas.lua): usa player:getVocationBaseMaxHealth() e getVocationBaseMaxMana() para obter a base da vocação (incluindo offsets) e adiciona bónus percentuais com base nos níveis dos domínios relevantes (ex.: Treino com Peso, Constituição de Aço, Mente Expandida). Aplica setMaxHealth/setMaxMana uma única vez.
 
-player:setCombatModifier("chave", valor) para modificadores percentuais.
+recalcularVelocidade(player) (definida em passivas.lua): usa player:getNaturalSpeed() (base + nível) e adiciona bónus percentuais de habilidades como Passos Ágeis. Aplica setMovementSpeed.
 
-player:setHealthRegenModifier(valor), player:setDamageTakenModifier(valor), etc.
+Estas funções são chamadas a cada 2 segundos pelo think_master, no login, e no evento de level up (SPASpeedAdvance). As passivas correspondentes têm o campo efeito vazio.
 
-As passivas são aplicadas no login e renovadas a cada 2 segundos pelo think_master.
+Outras passivas que afetam stats como dano, regeneração, etc., continuam a usar player:setCombatModifier("chave", valor) ou Condition(CONDITION_ATTRIBUTES, ...) conforme apropriado.
 
 4.9 Transformações com desfazer
 O campo efeito aplica o bónus. O campo desfazer (opcional) reverte-o quando o estado de alma termina. Se desfazer não for definido, o sistema reverte para valores base.
@@ -244,7 +248,7 @@ Na passiva de Maestria (nível 20), a habilidade III do domínio é ensinada ao 
 
 lua
 if not jogadorConheceHabilidade(p, HAB_IRMA_III) then
-    aprenderHabilidade(p, HAB_IRMA_III)
+aprenderHabilidade(p, HAB_IRMA_III)
 end
 4.11 Execução
 O executor_habilidades.lua (v8.0) utiliza um motor de seleção inteligente com prioridade contextual, cooldowns individuais, combos, e suporta:
@@ -257,7 +261,7 @@ Prioridade por especialização: bónus de +1 a cada 5 níveis de afinidade no d
 
 condicaoFocoMin: habilidades só desbloqueiam com foco suficiente.
 
-Delegação ao motor modular: o executor chama MOTOR.executar() para processar o efeito da habilidade, e a narrativa é gerada automaticamente pelo módulo Narrativa.
+Delegação ao motor modular: o executor chama MOTOR.executar() para processar o efeito da habilidade, e a narrativa é gerada automaticamente pelo módulo Narrativa. O sistema antigo de buffType foi totalmente removido do executor.
 
 Lock global antecipado: resolve spam inicial de habilidades.
 
@@ -283,12 +287,12 @@ Cada domínio possui uma barra de foco (0‑100) armazenada em STORAGE.FOCO + do
 5.2 Lampejos com Chance Variável
 A chance de Lampejo depende do nível de afinidade e do preenchimento da barra de foco:
 
-Nível de Afinidade	Chance com barra 0%	Chance com barra 99%
-0‑4 (Iniciante)	0%	0%
-5‑9 (Aprendiz)	0%	5%
-10‑14 (Veterano)	5%	15%
-15‑19 (Mestre)	10%	35%
-20 (Maestria)	Vínculo permanente	—
+Nível de Afinidade Chance com barra 0% Chance com barra 99%
+0‑4 (Iniciante) 0% 0%
+5‑9 (Aprendiz) 0% 5%
+10‑14 (Veterano) 5% 15%
+15‑19 (Mestre) 10% 35%
+20 (Maestria) Vínculo permanente —
 A fórmula é implementada em sintonia.lua:
 
 lua
@@ -299,12 +303,12 @@ Quando a barra atinge 100, o Vínculo é formado e a barra é consumida (reset a
 5.4 Bónus Parciais de Foco
 Enquanto a barra enche, o jogador recebe bónus progressivos, independentes dos Lampejos e Vínculos:
 
-Foco	Bónus de Velocidade	Bónus de Dano
-0‑24%	0%	0%
-25‑49%	+1%	+1%
-50‑74%	+2%	+2%
-75‑99%	+3%	+3%
-100% (Vínculo)	Bónus completos de Vínculo	Bónus completos de Vínculo
+Foco Bónus de Velocidade Bónus de Dano
+0‑24% 0% 0%
+25‑49% +1% +1%
+50‑74% +2% +2%
+75‑99% +3% +3%
+100% (Vínculo) Bónus completos de Vínculo Bónus completos de Vínculo
 5.5 Coexistência de Estados
 Lampejo e Vínculo são mutuamente exclusivos no mesmo domínio. Quando um Vínculo se forma, o Lampejo é cancelado.
 
@@ -313,35 +317,35 @@ Podem coexistir em domínios diferentes (ex.: Lampejo em Fogo + Vínculo em Lâm
 🔧 6. Atributos de Itens Expostos ao Lua
 Métodos disponíveis em qualquer item (userdata: Item):
 
-Método Lua	Descrição
-item:getShootType()	Retorna o tipo de projétil (constante CONST_ANI_*).
-item:getRange()	Retorna o alcance da arma.
-item:getAttack()	Retorna o ataque base.
-item:getDefense()	Retorna a defesa base.
-item:getArmor()	Retorna a armadura do item (NÃO funciona em criaturas!).
-item:getSpeed()	Retorna o bónus de velocidade.
-item:getHealthGain()	Retorna o bónus de vida máxima.
-item:getManaGain()	Retorna o bónus de mana máxima.
-item:getTransformEquipTo()	Retorna o ID do item ao equipar.
-item:getSlotPosition()	Retorna a posição de slot (flags SLOTP_*).
-item:isStackable()	Retorna true se o item é empilhável.
-item:isFluidContainer()	Retorna true se é recipiente de líquidos.
-item:getWeaponType()	Retorna o tipo de arma (constante WEAPON_*).
-item:getLightLevel()	Retorna o nível de luz emitida.
-item:getLightColor()	Retorna a cor da luz emitida.
-item:getDecayTo()	Retorna o ID do item após expirar.
-item:getDecayTime()	Retorna o tempo até expirar.
-item:isShowDuration()	Retorna true se a duração é mostrada.
-item:getAmmoType()	Retorna o tipo de munição (AMMO_ARROW, AMMO_BOLT, etc.).
-item:getElementalBond()	Retorna o tipo de dano elemental (ex.: COMBAT_ENERGYDAMAGE).
-item:getElementType()	Retorna o tipo de dano elemental do Abilities (wandType, combatType).
-item:getMagicLevelPoints()	Bónus de Magic Level do item.
-item:getSkillFist()	Bónus de Fist Fighting.
-item:getSkillSword()	Bónus de Sword.
-item:getSkillAxe()	Bónus de Axe.
-item:getSkillClub()	Bónus de Club.
-item:getSkillDistance()	Bónus de Distance.
-item:getSkillShield()	Bónus de Shielding.
+Método Lua Descrição
+item:getShootType() Retorna o tipo de projétil (constante CONST_ANI_).
+item:getRange() Retorna o alcance da arma.
+item:getAttack() Retorna o ataque base.
+item:getDefense() Retorna a defesa base.
+item:getArmor() Retorna a armadura do item (NÃO funciona em criaturas!).
+item:getSpeed() Retorna o bónus de velocidade.
+item:getHealthGain() Retorna o bónus de vida máxima.
+item:getManaGain() Retorna o bónus de mana máxima.
+item:getTransformEquipTo() Retorna o ID do item ao equipar.
+item:getSlotPosition() Retorna a posição de slot (flags SLOTP_).
+item:isStackable() Retorna true se o item é empilhável.
+item:isFluidContainer() Retorna true se é recipiente de líquidos.
+item:getWeaponType() Retorna o tipo de arma (constante WEAPON_*).
+item:getLightLevel() Retorna o nível de luz emitida.
+item:getLightColor() Retorna a cor da luz emitida.
+item:getDecayTo() Retorna o ID do item após expirar.
+item:getDecayTime() Retorna o tempo até expirar.
+item:isShowDuration() Retorna true se a duração é mostrada.
+item:getAmmoType() Retorna o tipo de munição (AMMO_ARROW, AMMO_BOLT, etc.).
+item:getElementalBond() Retorna o tipo de dano elemental (ex.: COMBAT_ENERGYDAMAGE).
+item:getElementType() Retorna o tipo de dano elemental do Abilities (wandType, combatType).
+item:getMagicLevelPoints() Bónus de Magic Level do item.
+item:getSkillFist() Bónus de Fist Fighting.
+item:getSkillSword() Bónus de Sword.
+item:getSkillAxe() Bónus de Axe.
+item:getSkillClub() Bónus de Club.
+item:getSkillDistance() Bónus de Distance.
+item:getSkillShield() Bónus de Shielding.
 ⚠️ Nota importante: getArmor() só funciona em ItemType, não em criaturas. Para simular ignorar armadura de monstros, usar dano percentual extra baseado no nível do domínio.
 
 6.1 Sistema de Projéteis Dinâmico
@@ -360,80 +364,81 @@ Ambas foram melhoradas para suportar aljavas (quivers) e flechas elementais comu
 🧩 7. Funções Auxiliares para Habilidades (v2.0.2)
 O ficheiro funcoes_habilidade.lua (v2.0.2) fornece funções reutilizáveis com proteção absoluta contra dano negativo:
 
-Função	Descrição
-dispararProjetil(player, target, danoBase, extraPercent)	Dispara um projétil elemental com dano proporcional.
-dispararRajada(player, target, danoBase, extraPercent, numProjeteis, intervaloMs)	Dispara N projéteis em sequência.
-explosaoElementalArea(player, target, danoBase, extraPercent, raio)	Explosão elemental ao redor do alvo.
-danoElemental(player, target, dano, efeitoOpcional)	Aplica dano com o elemento da arma.
-golpeCorpoACorpo(player, target, dano, efeito)	Aplica dano físico com efeito visual (melee).
-empurrarAlvo(player, target)	Empurra o alvo na direção oposta.
-criarField(player, posicao, elemento, danoPorTick, duracaoMs, intervaloMs, efeitoVisual)	Cria um campo elemental no chão.
-afetarArea(player, posicao, raio, danoBase, extraPercentDano, curaBase, extraPercentCura, curarAliados)	Dano a inimigos e cura a aliados numa área.
-ligarAlvos(player, alvo1, alvo2, danoBase, extraPercent, efeitoVisual)	Liga dois alvos com efeito visual e dano.
-aplicarCondicaoArea(player, posicao, raio, condType, duration, damagePerTick)	Aplica condição a todos os inimigos numa área.
+Função Descrição
+dispararProjetil(player, target, danoBase, extraPercent) Dispara um projétil elemental com dano proporcional.
+dispararRajada(player, target, danoBase, extraPercent, numProjeteis, intervaloMs) Dispara N projéteis em sequência.
+explosaoElementalArea(player, target, danoBase, extraPercent, raio) Explosão elemental ao redor do alvo.
+danoElemental(player, target, dano, efeitoOpcional) Aplica dano com o elemento da arma.
+golpeCorpoACorpo(player, target, dano, efeito) Aplica dano físico com efeito visual (melee).
+empurrarAlvo(player, target) Empurra o alvo na direção oposta.
+criarField(player, posicao, elemento, danoPorTick, duracaoMs, intervaloMs, efeitoVisual) Cria um campo elemental no chão.
+afetarArea(player, posicao, raio, danoBase, extraPercentDano, curaBase, extraPercentCura, curarAliados) Dano a inimigos e cura a aliados numa área.
+ligarAlvos(player, alvo1, alvo2, danoBase, extraPercent, efeitoVisual) Liga dois alvos com efeito visual e dano.
+aplicarCondicaoArea(player, posicao, raio, condType, duration, damagePerTick) Aplica condição a todos os inimigos numa área.
 🌐 8. Barramento de Eventos Universal (Event Bus)
 Implementado via SPAManager (C++) e exposto ao Lua.
 
-Método Lua	Descrição
-SPA.onEvent(eventName, callback)	Regista uma função Lua para um evento.
-SPA.dispatchEvent(eventName, ...)	Dispara um evento, invocando todos os callbacks.
+Método Lua Descrição
+SPA.onEvent(eventName, callback) Regista uma função Lua para um evento.
+SPA.dispatchEvent(eventName, ...) Dispara um evento, invocando todos os callbacks.
 Eventos disponíveis
-Evento	Argumentos	Local de disparo
-"onPlayerDealtDamage"	player, target, damage, primaryType, secondaryType	combat.cpp
-"onPlayerKill"	player, target	eventos.lua (via ProgKill)
-"onPlayerLogin"	player	player.cpp (onLogin)
+Evento Argumentos Local de disparo
+"onPlayerDealtDamage" player, target, damage, primaryType, secondaryType combat.cpp
+"onPlayerKill" player, target eventos.lua (via ProgKill)
+"onPlayerLogin" player player.cpp (onLogin)
 🧩 9. Modificadores de Combate Dinâmicos
-Método Lua	Descrição
-player:setCombatModifier("chave", valor)	Define um modificador (ex.: "fire_damage", 25.0).
-player:getCombatModifier("chave")	Retorna o valor actual.
+Método Lua Descrição
+player:setCombatModifier("chave", valor) Define um modificador (ex.: "fire_damage", 25.0).
+player:getCombatModifier("chave") Retorna o valor actual.
 🖥️ 10. Métodos Nativos Adicionais Expostos
-Método Lua	Descrição
-player:getAmmo()	Retorna o item da munição real (inclui aljavas/quivers).
-monster:getRaceId()	Retorna o ID da raça do monstro.
-player:getParty()	Retorna o grupo do jogador (ou nil).
-tile:hasFlag(flag)	Verifica propriedades do tile.
-Game.getWorldType()	Retorna o tipo de mundo.
-creature:knockback(direction)	Empurra a criatura na direção (0‑3).
-player:getStorages(k1, k2, …)	Lê múltiplas storages.
-player:setStorages({[k]=v, …})	Escreve múltiplas storages.
+Método Lua Descrição
+player:getAmmo() Retorna o item da munição real (inclui aljavas/quivers).
+monster:getRaceId() Retorna o ID da raça do monstro.
+player:getParty() Retorna o grupo do jogador (ou nil).
+tile:hasFlag(flag) Verifica propriedades do tile.
+Game.getWorldType() Retorna o tipo de mundo.
+creature:knockback(direction) Empurra a criatura na direção (0‑3).
+player:getStorages(k1, k2, …) Lê múltiplas storages.
+player:setStorages({[k]=v, …}) Escreve múltiplas storages.
 📦 11. SkillTrees (Pacotes de Habilidades)
 Implementado 100% em Lua (SPA/skilltree.lua v6.0).
 
-Função	Descrição
-SPA.registerSkillTree(nome, config)	Regista um pacote de habilidades.
-SPA.checkSkillTrees(player)	Verifica e desbloqueia pacotes elegíveis.
+Função Descrição
+SPA.registerSkillTree(nome, config) Regista um pacote de habilidades.
+SPA.checkSkillTrees(player) Verifica e desbloqueia pacotes elegíveis.
 A storage STORAGE.SKILLTREE_BASE = 94000 é usada para marcar pacotes já adquiridos.
 
 🗂️ 12. Módulos Lua de Apoio
-Módulo	Versão	Conteúdo
-constantes.lua	v5.3	IDs de domínios, weapon types, curva de progressão, limites globais, DOMAIN_TREE, STORAGE, damageDomains, Virtue_t.
-texto_colorido.lua	v10.0	Tabela COR agrupada (CONDIÇÕES, ACÇÕES, INIMIGOS, etc.). Funções c() e enviarMsgColorida().
-util_armas.lua	v6.2	getWeaponType, hasShield, getWeaponEspecialidade, getElementalProjectile (com suporte a aljavas).
-funcoes_habilidade.lua	v2.0.2	Funções auxiliares com proteção contra dano negativo.
-motor_habilidades.lua	v1.0	Motor central de execução de habilidades (18 tipos de efeitos).
-narrativa_habilidades.lua	v1.0	Sistema de frases de feedback por tipo de efeito, domínio e postura.
-util_criaturas.lua	v5.0	getCreaturesInArea, getCreatureDistance.
-util_efeitos.lua	v5.1	sendDistanceEffect.
-pronouns.lua	–	Pronouns.getSubject, etc.
-npc_utils.lua	–	NpcUtils.correspondeAcao, etc.
-postura_config.lua	v5.0	POSTURA_BASE, AGIL_AJUSTES, PESADA_AJUSTES, corDominio().
-progressao.lua	v5.0	adicionarAfinidade, descarregarBuffer, getNivelPorAfinidade.
-sintonia.lua	v6.1	Barra de foco, Lampejos com chance variável, bónus parciais de foco.
-postura.lua	v6.2.1	aplicarPostura, eventos de postura, salvaguarda contra dano/cura.
-buff_system.lua	v6.2	Buffs temporários (speed, dano, leech, condições).
-executor_habilidades.lua	v8.0	Motor de seleção inteligente, cooldown dinâmico, limite de ciclo, delegação ao motor modular.
-eventos.lua	v6.2.1	ProgDano, ProgKill, ProgDefesa.
-passivas_ataque.lua	v5.0	Efeitos passivos de auto‑ataque.
-login.lua	v5.6.1	Inicialização do jogador, passivas, postura, capacidade mínima.
-think_master.lua	v3.4.1	Think unificado (buffs, postura, sintonia, passivas, Arremesso de Escudo, reset de contador).
-skilltree.lua	v6.0	Sistema de SkillTrees.
-comandos_spa.lua	v5.2	Comandos: !platinar, !resetspa, !testesistema, etc.
+Módulo Versão Conteúdo
+constantes.lua v5.3 IDs de domínios, weapon types, curva de progressão, limites globais, DOMAIN_TREE, STORAGE, damageDomains, Virtue_t.
+texto_colorido.lua v10.0 Tabela COR agrupada (CONDIÇÕES, ACÇÕES, INIMIGOS, etc.). Funções c() e enviarMsgColorida().
+util_armas.lua v6.2 getWeaponType, hasShield, getWeaponEspecialidade, getElementalProjectile (com suporte a aljavas).
+funcoes_habilidade.lua v2.0.2 Funções auxiliares com proteção contra dano negativo.
+motor_habilidades.lua v1.0 Motor central de execução de habilidades (18 tipos de efeitos).
+narrativa_habilidades.lua v1.0 Sistema de frases de feedback por tipo de efeito, domínio e postura.
+util_criaturas.lua v5.0 getCreaturesInArea, getCreatureDistance.
+util_efeitos.lua v5.1 sendDistanceEffect.
+pronouns.lua v1.0 Pronouns.getSubject, getObject, getPossessive, getReflexive.
+npc_utils.lua v2.0 NpcUtils.correspondeAcao, getTratamento (usa Pronouns), escolherFraseVariada.
+postura_config.lua v5.0 POSTURA_BASE, AGIL_AJUSTES, PESADA_AJUSTES, SHIELD_POSTURA, corDominio().
+progressao.lua v5.1 adicionarAfinidade (com propagação 4:2:1), descarregarBuffer, getNivelPorAfinidade, verificarDesbloqueio.
+sintonia.lua v6.1 Barra de foco, Lampejos com chance variável, bónus parciais de foco.
+postura.lua v6.2.1 aplicarPostura, eventos de postura, salvaguarda contra dano/cura.
+buff_system.lua v6.2 Buffs temporários (speed, dano, leech, condições).
+executor_habilidades.lua v8.0 Motor de seleção inteligente, cooldown dinâmico, limite de ciclo, delegação ao motor modular (sem buffType legado).
+eventos.lua v6.2.1 ProgDano, ProgKill, ProgDefesa, SPASpeedAdvance (atualiza velocidade ao subir de nível).
+passivas_ataque.lua v5.0 Efeitos passivos de auto‑ataque.
+passivas.lua v5.2 aplicarPassivasBasicas, recalcularVidaMana, recalcularVelocidade.
+login.lua v5.6.2 Inicialização do jogador, passivas, postura (sem mínimo de capacidade).
+think_master.lua v3.5.1 Think unificado (buffs, postura, sintonia, passivas, Arremesso de Escudo, vida/mana, velocidade).
+skilltree.lua v6.0 Sistema de SkillTrees.
+comandos_spa.lua v5.3 Comandos: !platinar, !resetspa, !testesistema, /setskill, /setstatus, etc.
 ⚙️ 13. Performance e Modularidade
 Consultas em lote: addDominioAfinidadeBatch, learnHabilidadeBatch, unlearnAllHabilidades minimizam escritas na BD.
 
 Buffer de progressão: descarrega a cada 2 segundos.
 
-Think unificado: think_master.lua (v3.4.1) reduziu 4 eventos para 1.
+Think unificado: think_master.lua (v3.5.1) agrupa toda a manutenção periódica.
 
 Sistema de token para Speed Burst.
 
@@ -441,18 +446,18 @@ Funções auxiliares reduzem duplicação de código.
 
 Projéteis dinâmicos centralizam a adaptação elemental.
 
-Passivas auto‑suficientes: sem dependência de processador externo.
+Passivas de vida/mana/velocidade geridas centralizadamente, sem risco de acumulação.
 
 Cooldown global dinâmico e limite de ciclo previnem spam e lag.
 
 Motor modular (v1.0): separação total entre lógica de execução, definições de habilidades e narrativa.
 
-✅ Resumo do Estado Actual (25/05/2026)
+✅ Resumo do Estado Actual (26/05/2026)
 Motor de progressão genérico (SPAManager) funcional.
 
 Modificadores de combate dinâmicos implementados.
 
-Novos métodos nativos: unlearnHabilidade, unlearnAllHabilidades, learnHabilidadeBatch.
+Novos métodos nativos: unlearnHabilidade, unlearnAllHabilidades, learnHabilidadeBatch, getVocationBaseMaxHealth, getVocationBaseMaxMana, getNaturalSpeed, setMovementSpeed.
 
 Atributos de itens expandidos (20 métodos).
 
@@ -464,7 +469,7 @@ Motor modular de habilidades (v1.0) com 18 tipos de efeitos.
 
 Narrativa centralizada (v1.0) com frases por tipo de efeito e postura.
 
-Executor de habilidades v8.0: cooldown global dinâmico (nível + foco), limite de ciclo dinâmico, prioridade por especialização, delegação ao motor modular.
+Executor de habilidades v8.0: cooldown global dinâmico (nível + foco), limite de ciclo dinâmico, prioridade por especialização, delegação ao motor modular (sem código legado de buffType).
 
 Sintonia v6.1: Lampejos com chance variável, bónus parciais de foco, Vínculo permanente na Maestria.
 
@@ -474,23 +479,15 @@ Estrutura de 35+ habilidades por domínio, com pacotes temáticos e sinergias.
 
 Campos elementais (Fields) com função criarField().
 
-Passivas auto‑suficientes, renovadas a cada 2 segundos.
+Passivas de vida/mana/velocidade não acumulativas, baseadas em cálculos dinâmicos da vocação e nível.
 
-Think unificado v3.4.1.
+Velocidade de movimento atualizada com o nível e afetada por passivas (ex.: Passos Ágeis).
 
-Domínios reorganizados: Fogo (23) e Energia (26) separados.
+Propagação de afinidade com rácio 4:2:1 implementada em adicionarAfinidade.
 
-Propagação de afinidade com rácio 4:2:1 implementada.
+Capacidade sem limite mínimo artificial; segue o gaincap da vocação.
 
-Sistema de buffType removido do executor; apenas efeitoConfig é utilizado.
-
-Vida e mana base calculadas dinamicamente a partir da vocação (getVocationBaseMaxHealth/Mana).
-
-Velocidade de movimento dinâmica (getNaturalSpeed + setMovementSpeed) com suporte a passivas.
-
-Capacidade sem mínimo artificial; depende apenas do gaincap da vocação.
-
-Novos comandos: /setskill, /setstatus.
+Novos comandos de administrador: /setskill, /setstatus.
 
 Comandos de diagnóstico (!testesistema) e reset (!resetspa) leves e fiáveis.
 
@@ -500,7 +497,7 @@ Cores v10.0 actualizadas.
 
 Gabarito de habilidades v4.1 documentado.
 
-Guia de Criação de Habilidades [13] canónico (v1.1).
+Guia de Criação de Habilidades [13] canónico (v1.3).
 
 Todas as APIs verificadas com !testespa.
 
