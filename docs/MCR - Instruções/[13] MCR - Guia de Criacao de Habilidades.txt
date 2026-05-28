@@ -347,6 +347,72 @@ HABILIDADES[10010] = {
         magicEffect = CONST_ME_DRAWBLOOD
     }
 }
+
+7.1.1 Fallback Automático de Efeitos Visuais
+
+A partir do motor v1.2, o campo `magicEffect` torna-se **opcional** para
+habilidades de gatilho. Se omitido, o motor obtém automaticamente o efeito
+visual adequado a partir da tabela `EFEITOS_ELEMENTAIS`, com base no elemento
+da arma equipada (ou do dano causado).
+
+Isto significa que, ao criar uma habilidade para o domínio Fogo, não é
+necessário especificar `magicEffect = CONST_ME_FIREAREA` — o motor fará isso
+automaticamente. Basta omitir o campo ou definir como `nil`.
+
+Exemplo de habilidade sem `magicEffect`:
+```lua
+HABILIDADES[23099] = {
+    nome = "Nova Habilidade de Fogo",
+    tipo = "gatilho",
+    dominio = {23},
+    nivelMin = 10,
+    cor = COR.ELEM_FOGO,
+    efeitoConfig = {
+        tipo = "area_target",
+        percentual = 0.6,
+        raio = 2
+        -- magicEffect omitido → motor usará CONST_ME_FIREAREA automaticamente
+    },
+    ...
+}
+7.1.2 Efeito Visual para Condições (conditionMagicEffect)
+
+Habilidades que aplicam condições (tipo "condicao", ou "area_ground" /
+"area_target" com condicao) podem especificar um efeito visual separado
+para o momento em que a condição é aplicada ao alvo, através do campo opcional
+conditionMagicEffect.
+
+Se omitido, o motor usará o magicEffect da habilidade (ou o fallback
+elemental) como efeito da condição.
+
+Exemplo com efeito de condição personalizado:
+
+lua
+efeitoConfig = {
+    tipo = "condicao",
+    conditionType = CONDITION_POISON,
+    duration = 5000,
+    periodicDamage = 15,
+    magicEffect = CONST_ME_HITAREA,           -- efeito do dano
+    conditionMagicEffect = CONST_ME_GREEN_RINGS  -- efeito da condição
+}
+text
+
+---
+
+## 📋 3. Habilidade Gabarito (v4.5)
+
+### Adicionar campo opcional na secção "🔧 CAMPOS OPCIONAIS"
+
+```markdown
+conditionMagicEffect
+  [OP] Efeito visual a ser usado quando a condição é aplicada ao alvo.
+       Aplica‑se aos tipos "condicao", "area_ground" e "area_target" quando
+       o campo 'condicao' está presente.
+       Se omitido, o motor usa o valor de 'magicEffect' (ou o fallback elemental).
+       Usar constantes CONST_ME_*.
+  Exemplo: conditionMagicEffect = CONST_ME_GREEN_RINGS
+
 7.2 Funções Auxiliares (funcoes_habilidade.lua v2.0.2)
 
 As funções auxiliares são usadas exclusivamente pelo motor modular.

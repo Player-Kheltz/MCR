@@ -1,5 +1,5 @@
 PROJETO MCR – ÍNDICE GERAL E PILARES PERMANENTES
-Versão: 5.4 – Sistema de Progressão do Aventureiro (SPA v4.6.0), propagação de afinidade 4:2:1, novos métodos C++, limpeza de capacidade, velocidade dinâmica, comandos /setskill e /setstatus
+Versão: 5.5 – Sistema de Progressão do Aventureiro (SPA v4.6.0), propagação de afinidade 4:2:1, novos métodos C++, limpeza de capacidade, velocidade dinâmica, comandos /setskill e /setstatus
 Arquivo: [0] MCR - INDICE GERAL.txt
 
 🎯 FUNÇÃO DESTE ARQUIVO

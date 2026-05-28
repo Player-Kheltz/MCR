@@ -151,7 +151,25 @@ Definições de Habilidades (habilidades_*.lua) — ficheiros de dados que descr
 Narrativa (narrativa_habilidades.lua) — frases de feedback organizadas por tipo de efeito, domínio e postura.
 
 4.1 Motor Modular de Habilidades (motor_habilidades.lua v1.0)
-O motor central processa qualquer habilidade definida por parâmetros. Cada efeito possível está mapeado na tabela MOTOR.efeitos. O executor chama MOTOR.executar(player, target, damage, habDef), que interpreta habDef.efeitoConfig.tipo e dispara a função correspondente.
+O motor central (motor_habilidades.lua v1.2) processa qualquer habilidade
+definida por parâmetros. Além dos 18 tipos de efeitos, o motor agora inclui:
+
+- **Fallback automático de efeitos visuais**: se uma habilidade não especificar
+  `magicEffect`, o motor obtém o efeito adequado a partir do elemento da arma
+  equipada (tabela `EFEITOS_ELEMENTAIS`). Isso elimina a necessidade de definir
+  efeitos visuais em todas as habilidades, mantendo a imersão temática.
+
+- **Suporte a `conditionMagicEffect`**: as habilidades que aplicam condições
+  podem especificar um efeito visual separado para a condição, diferente do
+  efeito de dano principal.
+
+- **Função auxiliar `aplicarDanoCircular`**: unifica a lógica de dano em área
+  circular com onda expansiva, usada tanto para `area_ground` quanto para
+  `area_target`.
+
+- **Adaptação elemental para Wands e Rods**: as habilidades pertencentes a
+  Wands (210) e Rods (211) têm o seu efeito visual e condição automaticamente
+  adaptados ao elemento da varinha equipada.
 
 Tipos de efeitos suportados
 Tipo Descrição Parâmetros principais
@@ -174,6 +192,32 @@ Tipo Descrição Parâmetros principais
 "field" Cria campo elemental no chão. elemento, danoPorTick, duracaoMs, intervaloMs, magicEffect, centro
 "sinergia" Combina múltiplos domínios com efeitos secundários. efeitoBase, efeitosSecundarios, nivelMinSecundario
 "rajada" Múltiplos projéteis em sequência. percentual, numProjeteis, intervaloMs
+
+4.1.1 Mapeamento Central de Efeitos Visuais
+
+O motor possui uma tabela `EFEITOS_ELEMENTAIS` que mapeia cada tipo de dano
+elemental a três categorias de efeitos visuais:
+
+- `area`: para explosões em área (ground, target).
+- `single`: para dano extra simples.
+- `condition`: para aplicação de condições.
+
+| Elemento               | Área                   | Single                | Condição              |
+|------------------------|------------------------|-----------------------|-----------------------|
+| Fogo                   | CONST_ME_FIREAREA      | CONST_ME_FIREATTACK   | CONST_ME_FIREAREA     |
+| Gelo                   | CONST_ME_ICEAREA       | CONST_ME_ICEATTACK    | CONST_ME_ICEAREA      |
+| Terra                  | CONST_ME_GROUNDSHAKER  | CONST_ME_HITAREA      | CONST_ME_GROUNDSHAKER |
+| Energia                | CONST_ME_ENERGYAREA    | CONST_ME_ENERGYHIT    | CONST_ME_ENERGYHIT    |
+| Sagrado                | CONST_ME_HOLYAREA      | CONST_ME_HOLYATTACK   | CONST_ME_HOLYAREA     |
+| Morte                  | CONST_ME_MORTAREA      | CONST_ME_DEATHATTACK  | CONST_ME_MORTAREA     |
+| Físico                 | CONST_ME_HITAREA       | CONST_ME_DRAWBLOOD    | CONST_ME_DRAWBLOOD    |
+| Veneno                 | CONST_ME_GREEN_RINGS   | CONST_ME_MAGIC_GREEN  | CONST_ME_GREEN_RINGS  |
+
+Este mapeamento é usado como fallback automático, garantindo que todas as
+habilidades tenham um efeito visual coerente com o seu elemento, mesmo que
+o campo `magicEffect` não seja especificado no `efeitoConfig`.
+
+
 4.2 Narrativa Centralizada (narrativa_habilidades.lua v1.0)
 A tabela Narrativa.frases contém frases organizadas por tipo de efeito e postura. A função Narrativa.gerar(player, target, habDef) compõe a frase final com cores, substituindo placeholders:
 

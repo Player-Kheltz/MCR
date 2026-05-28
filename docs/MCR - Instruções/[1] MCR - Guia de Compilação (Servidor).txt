@@ -1,5 +1,5 @@
 PROJETO MCR – GUIA DE COMPILAÇÃO (SERVIDOR)
-Versão 4.5 – Sistema de Progressão do Aventureiro (SPA v4.5.0), novas APIs de atributos base, velocidade, e ajustes estruturais
+Versão 4.5 – Sistema de Progressão do Aventureiro (SPA v4.6.0), novas APIs de atributos base, velocidade, e ajustes estruturais
 Arquivo: [1] MCR - Guia de Compilação (Servidor).txt
 
 🎯 OBJETIVO DESTE GUIA
