@@ -1,30 +1,31 @@
 PROJETO MCR – DOCUMENTO DE PERSONALIDADE E IDENTIDADE DE DOMÍNIOS
-(Versão 1.1 – Sistema de Progressão do Aventureiro v4.6 | Guia Universal de Design Narrativo e Mecânico)
+(Versão 2.0 – Sistema de Progressão do Aventureiro v4.6 | Guia Universal de Design Narrativo, Mecânico e Visual)
 Arquivo: [Personalidade] MCR - Personalidade e Identidade de Dominios.txt
 
 🎯 OBJECTIVO DESTE DOCUMENTO
 Este documento é a fonte primária de inspiração narrativa, mecânica e visual para a criação de todos os domínios do Sistema de Progressão do Aventureiro.
-Ele define a alma de um domínio – a sua personalidade, a forma como o mundo o percebe e como ele se manifesta em habilidades, efeitos visuais e sinergias.
+Ele define a alma de um domínio – a sua personalidade, a forma como o mundo o percebe e como ele se manifesta em habilidades, efeitos visuais, sinergias e comportamentos dinâmicos.
 
-Não é um documento de implementação técnica (para isso, veja o Guia de Criação de Habilidades e o Habilidade Gabarito), mas sim a ponte obrigatória entre a Filosofia do SPA e o design concreto de cada ficheiro .lua.
+Não é um documento de implementação técnica (para isso, veja o Guia de Criação de Habilidades, o Habilidade Gabarito e a Documentação Técnica do Motor SPA), mas sim a ponte obrigatória entre a Filosofia do SPA e o design concreto de cada ficheiro .lua.
 
-📌 Regra absoluta: sempre que um novo domínio for concebido, o criador deve preencher o Questionário de Identidade (Secção 2) antes de escrever qualquer linha de código. As respostas orientam os pacotes temáticos, os efeitos visuais e as sinergias.
+📌 Regra absoluta: sempre que um novo domínio for concebido, o criador deve preencher o Questionário de Identidade (Secção 2) antes de escrever qualquer linha de código. As respostas orientam os pacotes temáticos, os efeitos visuais, as sinergias e a escolha dos novos tipos modulares do motor v2.0.
 
 📜 1. A FILOSOFIA DO DOMÍNIO
+
 1.1 O que é um Domínio?
 Um Domínio é uma área de conhecimento ou perícia que o Aventureiro desenvolve ao realizar acções no mundo.
 Cada domínio é uma identidade viva — não apenas um conjunto de números, mas uma personagem com forças, fraquezas, tom emocional e uma história para contar.
 
 1.2 A Diferença entre Hierarquias
-Hierarquia	Exemplo	Papel no SPA	Foco da Progressão
-Especialidade	Espadas Leves (100), Fogo (23)	Porta de entrada	Perícia directa, acção constante
-Secundário	Lâminas (10), Elementos (20)	Ponte integradora	Sinergia e compreensão global
-Primário	Combate (1), Magia (2)	Legado máximo	Poder passivo e celebração da jornada
-Especialidade: o jogador experiencia o domínio de forma directa e activa. As habilidades são autossuficientes e recompensam a repetição.
+| Hierarquia | Exemplo | Papel no SPA | Foco da Progressão |
+|------------|---------|---------------|-------------------|
+| Especialidade | Espadas Leves (100), Fogo (23) | Porta de entrada | Perícia directa, acção constante |
+| Secundário | Lâminas (10), Elementos (20) | Ponte integradora | Sinergia e compreensão global |
+| Primário | Combate (1), Magia (2) | Legado máximo | Poder passivo e celebração da jornada |
 
-Secundário: surge quando várias especialidades relacionadas são dominadas. As habilidades funcionam como "cascas" que se preenchem com a afinidade dos filhos.
-
-Primário: representa a conclusão de uma jornada completa. As habilidades são maioritariamente passivas e sinérgicas, reflectindo a mestria de todos os caminhos subordinados.
+- **Especialidade:** o jogador experiencia o domínio de forma directa e activa. As habilidades são autossuficientes e recompensam a repetição.
+- **Secundário:** surge quando várias especialidades relacionadas são dominadas. As habilidades funcionam como "cascas" que se preenchem com a afinidade dos filhos.
+- **Primário:** representa a conclusão de uma jornada completa. As habilidades são maioritariamente passivas e sinérgicas, reflectindo a mestria de todos os caminhos subordinados.
 
 1.3 O Papel dos Traços Inerentes
 Cada domínio possui um Traço Inerente — uma manifestação passiva e temática que evolui automaticamente nos marcos de nível 5, 10, 15 e 20.
@@ -35,218 +36,223 @@ Quando um domínio Primário ou Secundário atinge a Maestria (nível efetivo 20
 Nesse momento, o aventureiro manifesta uma Síntese Superior — um traço passivo que combina a essência de todos os filhos, provando que ele é um verdadeiro arquitecto daquele caminho.
 (Ex: Combate → "Mestre da Guerra"; Magia → "Avatar Arcano")
 
+A função `getNivelEfetivo` (definida em `progressao.lua`) bloqueia o nível 20 até que todos os filhos também atinjam 20, garantindo que a Síntese Superior seja uma verdadeira conquista.
+
+1.5 Propagação de Afinidade (Rácio 4:2:1)
+Quando o jogador ganha afinidade numa Especialidade, o sistema distribui automaticamente:
+- 100% dos pontos para a Especialidade
+- 50% para o Domínio Secundário
+- 25% para o Domínio Primário
+
+Este rácio é processado pela função `adicionarAfinidade` em `progressao.lua` e não requer lógica adicional nas habilidades.
+
 🧭 2. O QUESTIONÁRIO DE IDENTIDADE (GUIA PARA O DESIGNER)
 Preencha cada bloco com frases curtas, poéticas e sensoriais. Estas respostas guiarão a escolha dos pacotes temáticos (Secção 4 do Guia de Criação de Habilidades) e o feedback visual (Tabela de Efeitos Visuais no motor).
 
 2.1 Essência
-Qual é o "sentimento" central deste domínio?
-(Ex: Fogo: desejo de consumir, paixão; Gelo: paciência, imobilidade.)
-
-Quais são os três adjectivos-chave que o definem?
-(Ex: Fogo: explosivo, consumidor, imparável.)
-
-Qual é a sua frase de assinatura?
-(Ex: Fogo: "O mundo é combustível. Eu sou a faísca.")
+1. Qual é o "sentimento" central deste domínio?
+   *(Ex: Fogo: desejo de consumir, paixão; Gelo: paciência, imobilidade.)*
+2. Quais são os três adjectivos-chave que o definem?
+   *(Ex: Fogo: explosivo, consumidor, imparável.)*
+3. Qual é a sua frase de assinatura?
+   *(Ex: Fogo: "O mundo é combustível. Eu sou a faísca.")*
 
 2.2 Combate e Comportamento
-Como um Mestre deste domínio se comporta em combate?
-(Ex: Espadas Leves: dança entre os inimigos, nunca parado.)
-
-Qual é a sua maior força inerente? E a sua fraqueza?
-(Ex: Fogo: dano em área massivo / vulnerável a inimigos isolados.)
-
-Que tipo de ambiente ou situação favorece este domínio?
-(Ex: Energia: áreas abertas com múltiplos inimigos.)
+4. Como um Mestre deste domínio se comporta em combate?
+   *(Ex: Espadas Leves: dança entre os inimigos, nunca parado.)*
+5. Qual é a sua maior força inerente? E a sua fraqueza?
+   *(Ex: Fogo: dano em área massivo / vulnerável a inimigos isolados.)*
+6. Que tipo de ambiente ou situação favorece este domínio?
+   *(Ex: Energia: áreas abertas com múltiplos inimigos.)*
 
 2.3 Percepção do Mundo
-O que um NPC sente ao ver um Mestre deste domínio?
-(Ex: Energia: "Um arrepio na espinha, como se um trovão estivesse prestes a cair.")
-
-Que tipo de missões ou desafios são adequados para este domínio?
-
-Existe algum local ou facção no mundo de MCR associada a este domínio?
+7. O que um NPC sente ao ver um Mestre deste domínio?
+   *(Ex: Energia: "Um arrepio na espinha, como se um trovão estivesse prestes a cair.")*
+8. Que tipo de missões ou desafios são adequados para este domínio?
+9. Existe algum local ou facção no mundo de MCR associada a este domínio?
 
 2.4 O Arquétipo do Mestre
-Como o mundo vê um Mestre (nível 20) deste domínio?
-(Ex: "Um Mestre do Fogo é uma fornalha viva; o ar à sua volta distorce com o calor.")
+10. Como o mundo vê um Mestre (nível 20) deste domínio?
+    *(Ex: "Um Mestre do Fogo é uma fornalha viva; o ar à sua volta distorce com o calor.")*
+
+2.5 Identidade Visual (NOVO)
+11. Que efeito visual (CONST_ME_*) melhor representa este domínio em explosões de área?
+12. Que efeito visual para dano single-target?
+13. Que efeito visual para a aplicação de condições (queimadura, veneno, paralisia, etc.)?
+14. Este domínio tem um marcador visual específico para traps ou campos (ex.: brilho azul para magia, runas no chão)?
+
+*As respostas a estas perguntas alimentam diretamente a tabela `EFEITOS_ELEMENTAIS` no motor e o campo opcional `conditionMagicEffect` nas habilidades.*
 
 🌳 3. HIERARQUIA E SINERGIAS PAI-FILHO
+
 3.1 Domínios Filhos (Especialidades)
-São a porta de entrada. Devem ser autossuficientes e divertidos por si só.
-
-As suas habilidades não devem depender de outros domínios para funcionar.
-
-No entanto, devem "preparar o terreno" para o domínio pai, partilhando temáticas e condições.
-(Ex: Fogo aplica queimadura, que pode ser potenciada por Elementos.)
+- São a porta de entrada. Devem ser autossuficientes e divertidos por si só.
+- As suas habilidades não devem depender de outros domínios para funcionar.
+- No entanto, devem "preparar o terreno" para o domínio pai, partilhando temáticas e condições.
+  *(Ex: Fogo aplica queimadura, que pode ser potenciada por Elementos.)*
 
 3.2 Domínios Pais (Secundários e Primários)
-As suas habilidades devem ser "cascas" que se preenchem com a afinidade dos filhos.
-
-Regra de ouro: uma habilidade de um domínio pai deve verificar getNivelEfetivo nos filhos e adicionar efeitos bónus.
-(Ex: uma habilidade de Elementos (20) causa dano elemental base; se o jogador tiver Maestria em Fogo, adiciona queimadura; se tiver Maestria em Gelo, adiciona lentidão.)
-
-Use as tabelas domainChildren (definida em constantes.lua) e a função getNivelEfetivo para implementar estas verificações.
+- As suas habilidades devem ser "cascas" que se preenchem com a afinidade dos filhos.
+- **Regra de ouro:** uma habilidade de um domínio pai deve verificar `getNivelEfetivo` nos filhos e adicionar efeitos bónus.
+  *(Ex: uma habilidade de Elementos (20) causa dano elemental base; se o jogador tiver Maestria em Fogo, adiciona queimadura; se tiver Maestria em Gelo, adiciona lentidão.)*
+- Use as tabelas `domainChildren` (definida em `constantes.lua`) e a função `getNivelEfetivo` para implementar estas verificações.
+- **NOVO:** O tipo `"sinergia_escalonada"` do motor v2.0 foi projetado exatamente para este propósito. Cada filho pode contribuir com um efeito que escala com o seu nível, e a Maestria total desbloqueia um efeito épico.
 
 3.3 Domínios de Topo (Primários)
-A Maestria aqui representa a conclusão de uma jornada completa.
-
-A Síntese Superior (passiva de Maestria, nível 20) deve ser um efeito único e poderoso que celebre a diversidade de filhos dominados.
-(Ex: Combate (1) — "Mestre da Guerra": ao trocar de arma, ganha um buff de adaptabilidade.)
+- A Maestria aqui representa a conclusão de uma jornada completa.
+- A Síntese Superior (passiva de Maestria, nível 20) deve ser um efeito único e poderoso que celebre a diversidade de filhos dominados.
+  *(Ex: Combate (1) — "Mestre da Guerra": ao trocar de arma, ganha um buff de adaptabilidade.)*
 
 📊 4. CATEGORIAS DE HABILIDADES E DISTRIBUIÇÃO
+
 A quantidade de habilidades por categoria varia conforme a hierarquia do domínio.
 Consulte a tabela abaixo e o Guia de Criação de Habilidades para detalhes técnicos.
 
-Categoria	Especialidade	Secundário	Primário
-Passivas	6	7	8
-Gatilhos de Combate	14	8	4
-Gatilhos de Condição/Defesa	7	5	2
-Gatilhos de Sinergia	4	8	10
-Transformações	4	5	5
-Traço Inerente	1	1	1
-Total	36	34 + traço	35 + traço
+| Categoria | Especialidade | Secundário | Primário |
+|-----------|:---:|:---:|:---:|
+| Passivas | 6 | 7 | 8 |
+| Gatilhos de Combate | 14 | 8 | 4 |
+| Gatilhos de Condição/Defesa | 7 | 5 | 2 |
+| Gatilhos de Sinergia | 4 | 8 | 10 |
+| Transformações | 4 | 5 | 5 |
+| Traço Inerente | 1 | 1 | 1 |
+| **Total** | **36** | **34 + traço** | **35 + traço** |
+
 📌 O Traço Inerente não ocupa um slot de habilidade. É uma progressão temática automática.
 
+📌 **IMPORTANTE (v2.0):** Todas as habilidades de gatilho devem ter o campo `categoria` preenchido. As categorias reconhecidas são: `"aoe"`, `"single"`, `"debuff"`, `"buff"`, `"finisher"`, `"sinergia"`, `"defense"`. Este campo é usado pelo sistema de limites de categoria para evitar spam e pelo sistema de scoring para priorizar habilidades conforme o contexto. Se omitido, o executor assume `"single"` como fallback.
+
 🎨 5. COMO DESENHAR A MANIFESTAÇÃO (DO LORE À MECÂNICA)
+
 5.1 Traços Inerentes (Progressão Temática Automática)
-O que é: Um efeito passivo exclusivo que evolui com o nível de afinidade, contando a história do domínio.
-
-Marcos: Defina o que acontece nos níveis 5, 10, 15 e 20.
-
-Exemplo (Energia, ilustrativo):
-
-Nível 5: Ataques faíscam (chance de dano extra).
-
-Nível 10: Faísca salta para inimigos próximos (raio 3x3).
-
-Nível 15: Área expandida (5x5) e chance aumentada.
-
-Nível 20: Raio atinge qualquer alvo à vista, com chance de Raio Duplo.
+- **O que é:** Um efeito passivo exclusivo que evolui com o nível de afinidade, contando a história do domínio.
+- **Marcos:** Defina o que acontece nos níveis 5, 10, 15 e 20.
+- **Exemplo (Energia, ilustrativo):**
+  - Nível 5: Ataques faíscam (chance de dano extra).
+  - Nível 10: Faísca salta para inimigos próximos (raio 3x3).
+  - Nível 15: Área expandida (5x5) e chance aumentada.
+  - Nível 20: Raio atinge qualquer alvo à vista, com chance de Raio Duplo.
 
 5.2 Passivas
-Passiva de Identidade (Árvore I): O traço mais básico do domínio. Para primários/secundários, pode já ser uma passiva de sinergia.
-
-Passiva de Maestria (Árvore IV): Além dos bónus, que efeito especial e único mostra que o aventureiro "se tornou um só" com o domínio?
-
-Passivas de Atributo: Bónus a stats (dano, velocidade, crítico). As de vida/mana/velocidade devem ter o campo efeito vazio — a lógica está centralizada em passivas.lua.
-
-Passivas de Sinergia: Interacção com outros domínios (elemental, armas, etc.).
+- **Passiva de Identidade (Árvore I):** O traço mais básico do domínio. Para primários/secundários, pode já ser uma passiva de sinergia.
+- **Passiva de Maestria (Árvore IV):** Além dos bónus, que efeito especial e único mostra que o aventureiro "se tornou um só" com o domínio?
+- **Passivas de Atributo:** Bónus a stats (dano, velocidade, crítico). **As que afetam vida, mana ou velocidade de movimento devem ter o campo `efeito` vazio.** A lógica está centralizada nas funções `recalcularVidaMana` e `recalcularVelocidade` em `passivas.lua`. Estas funções usam os métodos nativos `getVocationBaseMaxHealth()`, `getVocationBaseMaxMana()` e `getNaturalSpeed()` para obter a base do personagem e aplicam bónus percentuais, evitando acumulação.
+- **Passivas de Sinergia:** Interacção com outros domínios (elemental, armas, etc.).
 
 5.3 Gatilhos
-Gatilho de Assinatura (Árvore III): O golpe especial que todo praticante reconhece. Usa 1‑2 pacotes temáticos.
-
-Gatilhos de Combate: Distribua pelos pacotes temáticos do domínio (dano extra, área, ricochete, rajada, knockback, corrente, finisher).
-
-Gatilhos de Condição: Aplique condições alinhadas ao tema (queimadura, sangramento, paralisia, etc.). Use conditionMagicEffect para um efeito visual distinto.
-
-Gatilhos de Defesa: Bloqueio, contra‑ataque, barreira, cura.
-
-Gatilhos de Sinergia: Habilidades que escalam com afinidade em múltiplos domínios. Obrigatório para Primários e Secundários.
+- **Gatilho de Assinatura (Árvore III):** O golpe especial que todo praticante reconhece. Usa 1‑2 pacotes temáticos.
+- **Gatilhos de Combate:** Distribua pelos pacotes temáticos do domínio. O motor v2.0 suporta os seguintes tipos modulares:
+  - `"dano_extra"` – dano adicional simples.
+  - `"area_ground"` – explosão no chão circular com onda expansiva.
+  - `"area_target"` – explosão centrada no alvo com onda expansiva.
+  - `"ricochete"` – projétil que salta entre inimigos.
+  - `"knockback"` – empurra o alvo.
+  - `"rajada"` – múltiplos projéteis em sequência.
+  - `"corrente"` – ligação entre dois alvos.
+  - `"finisher"` – dano massivo contra alvos com vida baixa.
+  - `"storm"` – **NOVO:** tempestade que atinge um inimigo aleatório na área a cada intervalo.
+  - `"orbit"` – **NOVO:** esferas que orbitam o jogador e causam dano a inimigos próximos.
+  - `"rain"` – **NOVO:** projéteis caem aleatoriamente na área em intervalos regulares.
+  - `"pulse"` – **NOVO:** ondas de energia que se expandem periodicamente, causando dano a cada pulso.
+  - `"trap"` – **NOVO:** armadilha tática que se arma após um curto período e detona quando um inimigo pisa. Suporta centros inteligentes (`"alvo"`, `"jogador"`, `"entre"`, `"fuga"`, `"aleatorio"`), marcador visual enquanto armada e aplicação de condições na explosão.
+- **Gatilhos de Condição:** Aplique condições alinhadas ao tema (queimadura, sangramento, paralisia, etc.). Use o campo opcional `conditionMagicEffect` para um efeito visual distinto no momento da aplicação da condição, diferente do efeito do dano principal.
+- **Gatilhos de Defesa:** Bloqueio, contra‑ataque, barreira, cura.
+- **Gatilhos de Sinergia:** Habilidades que escalam com afinidade em múltiplos domínios. **Obrigatório para Primários e Secundários.** O novo tipo `"sinergia_escalonada"` permite definir efeitos por domínio que escalam automaticamente com o nível, culminando num efeito épico quando todos os domínios envolvidos atingem a Maestria.
 
 5.4 Transformações
 Descreva como o personagem se sente e como o mundo o vê ao entrar em cada estado:
-
-Lampejo: Uma versão tímida e fraca do poder da Maestria. Efeito subtil, curta duração.
-
-Vínculo: O poder intensifica-se; o mundo começa a reconhecer o aventureiro. Efeito moderado, duração prolongada.
-
-Maestria: A transformação é permanente e visível. Efeito máximo, sempre activo.
+- **Lampejo:** Uma versão tímida e fraca do poder da Maestria. Efeito subtil, curta duração.
+- **Vínculo:** O poder intensifica-se; o mundo começa a reconhecer o aventureiro. Efeito moderado, duração prolongada.
+- **Maestria:** A transformação é permanente e visível. Efeito máximo, sempre activo.
 
 5.5 Influência da Postura
-Ímpeto (agressivo): O domínio liberta todo o seu potencial ofensivo. Habilidades ganham dano extra ou efeitos adicionais?
-
-Equilíbrio (versátil): Comportamento padrão, permitindo combinar ataque e defesa.
-
-Guarda (defensivo): O domínio foca-se em controlo de grupo e sustentabilidade. Habilidades ganham propriedades defensivas?
+- **Ímpeto (agressivo):** O domínio liberta todo o seu potencial ofensivo. Habilidades ganham dano extra ou efeitos adicionais?
+- **Equilíbrio (versátil):** Comportamento padrão, permitindo combinar ataque e defesa.
+- **Guarda (defensivo):** O domínio foca-se em controlo de grupo e sustentabilidade. Habilidades ganham propriedades defensivas?
 
 5.6 Escalabilidade com o Nível
-Gatilhos: o dano extra percentual aumenta? A chance de efeito secundário sobe?
+- **Gatilhos:** o dano extra percentual aumenta? A chance de efeito secundário sobe?
+- **Condições:** a duração ou o dano periódico escalam com o nível?
+- **Passivas:** o bónus percentual é multiplicado pelo nível (`getNivelEfetivo`)?
+- **Traço Inerente:** cada marco (5,10,15,20) expande o alcance, a intensidade ou adiciona um novo componente.
+- **NOVO:** Nos tipos `"sinergia_escalonada"`, `"storm"`, `"orbit"`, `"rain"`, `"pulse"` e `"trap"`, os parâmetros de dano, duração e intervalo podem ser definidos diretamente no `efeitoConfig`, permitindo escalabilidade sem lógica manual.
 
-Condições: a duração ou o dano periódico escalam com o nível?
+5.7 Feedback Visual Automático (NOVO)
+O motor v2.0 possui um mapeamento central de efeitos visuais por elemento (`EFEITOS_ELEMENTAIS`). Se uma habilidade não especificar `magicEffect`, o motor obtém automaticamente o efeito adequado com base no elemento da arma equipada.
+Isto significa que, ao criar uma habilidade para o domínio Fogo, **não é necessário** especificar `magicEffect = CONST_ME_FIREAREA` — o motor fá‑lo‑á automaticamente. Basta omitir o campo.
 
-Passivas: o bónus percentual é multiplicado pelo nível (getNivelEfetivo)?
-
-Traço Inerente: cada marco (5,10,15,20) expande o alcance, a intensidade ou adiciona um novo componente.
+Além disso, o motor adapta automaticamente os efeitos visuais de habilidades de Wands (210) e Rods (211) ao elemento da varinha equipada, garantindo que uma mesma habilidade tenha aparência de fogo, gelo, energia ou terra conforme o contexto.
 
 ✅ 6. CHECKLIST DE CRIAÇÃO PARA O ASSISTENTE
+
 Antes de finalizar um ficheiro de habilidades, verifique:
 
-☐ O questionário de identidade foi preenchido?
-
+☐ O questionário de identidade foi preenchido (Secção 2)?
 ☐ O perfil de progressão (Especialidade/Secundário/Primário) está correcto?
-
-☐ A distribuição de habilidades respeita as quantidades do perfil?
-
+☐ A distribuição de habilidades respeita as quantidades do perfil (Secção 4)?
 ☐ A Árvore I‑IV está completa e coerente com a identidade?
-
 ☐ O Traço Inerente evolui de forma narrativa nos níveis 5, 10, 15, 20?
-
 ☐ As habilidades de sinergia (se aplicável) verificam os níveis dos filhos?
-
-☐ As passivas de vida/mana/velocidade têm o campo efeito vazio?
-
-☐ Todas as habilidades de gatilho usam efeitoConfig (motor modular)?
-
+☐ As passivas de vida/mana/velocidade têm o campo `efeito` vazio?
+☐ Todas as habilidades de gatilho usam `efeitoConfig` (motor modular)?
+☐ Todas as habilidades de gatilho têm o campo `categoria` preenchido?
 ☐ As condições de activação fazem sentido para o estilo de combate?
-
 ☐ O feedback narrativo segue o padrão limpo v3.3?
-
-☐ Os efeitos visuais estão alinhados com a tabela EFEITOS_ELEMENTAIS ou foram especificados com conditionMagicEffect?
+☐ Os efeitos visuais estão alinhados com a tabela `EFEITOS_ELEMENTAIS` ou foram especificados com `conditionMagicEffect`?
+☐ Para habilidades temporais (`storm`, `orbit`, `rain`, `pulse`, `trap`), os parâmetros de duração e intervalo estão definidos?
+☐ Para traps, o centro (`"alvo"`, `"jogador"`, `"entre"`, `"fuga"`, `"aleatorio"`) e o `markEffect` estão definidos?
+☐ Para `sinergia_escalonada`, os `efeitosPorDominio` e o `efeitoEpico` estão configurados?
 
 📚 APÊNDICE A – EXEMPLO DE PREENCHIMENTO: FOGO (23)
+
 Este apêndice ilustra o preenchimento completo do questionário e o design de alto nível para o domínio de Fogo. Serve como molde para todos os outros domínios.
 
 A.1 Questionário de Identidade
-Sentimento central: Desejo de consumir, paixão, poder bruto.
+- **Sentimento central:** Desejo de consumir, paixão, poder bruto.
+- **Adjectivos-chave:** Explosivo, consumidor, imparável.
+- **Frase de assinatura:** "O mundo é combustível. Eu sou a faísca."
+- **Comportamento em combate:** Um Mestre do Fogo avança sem medo, cobrindo o campo de batalha com explosões. Não se esconde — incendeia.
+- **Força:** Dano em área massivo e queimaduras prolongadas.
+- **Fraqueza:** Vulnerável a alvos isolados e a ambientes húmidos.
+- **Ambiente favorecido:** Corredores estreitos e áreas fechadas onde as explosões são mais eficazes.
+- **Percepção de um NPC:** "O ar à sua volta estremece com o calor. Sinto o cheiro de cinzas antes mesmo de ver as chamas."
+- **Missões adequadas:** Destruir ninhos de criaturas, purificar áreas corrompidas pelo gelo, forjar armas lendárias.
+- **Local/Facção:** As Forjas de Pyra, um vulcão sagrado onde os Mestres do Fogo se reúnem.
+- **Arquétipo do Mestre:** Uma fornalha viva. O Mestre do Fogo não controla as chamas — ele é as chamas.
 
-Adjectivos-chave: Explosivo, consumidor, imparável.
+A.2 Identidade Visual
+- **Efeito de área:** `CONST_ME_FIREAREA` (explosão de fogo)
+- **Efeito single:** `CONST_ME_FIREATTACK` (ataque de fogo)
+- **Efeito de condição (queimadura):** `CONST_ME_FIREAREA`
+- **Marcador de campo/trap:** `CONST_ME_FIREAREA` pulsante
 
-Frase de assinatura: "O mundo é combustível. Eu sou a faísca."
+A.3 Traço Inerente: "Coração de Fogo"
+- **Nível 5:** Ataques de fogo têm 10% de chance de incendiar o alvo.
+- **Nível 10:** Inimigos em chamas explodem ao morrer, causando dano em área (raio 2).
+- **Nível 15:** O jogador emite uma aura de calor que causa dano contínuo a inimigos próximos (raio 1).
+- **Nível 20:** A aura expande (raio 2) e concede imunidade a campos de fogo.
 
-Comportamento em combate: Um Mestre do Fogo avança sem medo, cobrindo o campo de batalha com explosões. Não se esconde — incendeia.
+A.4 Ideias para Habilidades (Alto Nível)
+- **Passiva de Identidade (I):** "Chama Interior" — ataques de fogo têm chance de queimadura.
+- **Passiva de Maestria (IV):** "Inferno do Mestre" — dano de fogo ignora parte da armadura; campos de fogo são maiores e mais duradouros.
+- **Gatilho de Assinatura (III):** "Bola de Fogo" — explosão em área no alvo (`area_target`).
+- **Gatilhos de Combate:**
+  - Chuva de Fogo (`rajada`)
+  - Explosão Incendiária (`area_ground`)
+  - Onda de Calor (`buff_speed`)
+  - Incêndio (`field`)
+  - Meteoro (`area_target`)
+  - Tempestade Ígnea (`storm`)
+  - Chuva de Meteoros (`rain`)
+  - Órbita de Chamas (`orbit`)
+- **Sinergias:** Lâmina de Fogo (com Lâminas, `sinergia_escalonada`), Magma Vivo (com Terra), Tempestade de Fogo (com Ar), Escudo Térmico (com Escudo).
 
-Força: Dano em área massivo e queimaduras prolongadas.
+A.5 Transformações Narrativas
+- **Lampejo:** "Sentes um calor súbito nas palmas das mãos. As chamas estão inquietas, querendo libertar‑se."
+  *(Bónus: +15% dano de fogo, efeito visual de faíscas nas mãos.)*
+- **Vínculo:** "O fogo corre nas tuas veias. As chamas lambem‑te a pele, mas já não te queimam."
+  *(Bónus: +25% dano de fogo, aura visual de chamas ao redor do corpo.)*
+- **Maestria:** "Tu és a fornalha. O mundo à tua volta é apenas combustível."
+  *(Efeito permanente: Traço Inerente no nível máximo, Vínculo permanente, imunidade a campos de fogo.)*
 
-Fraqueza: Vulnerável a alvos isolados e a ambientes húmidos.
-
-Ambiente favorecido: Corredores estreitos e áreas fechadas onde as explosões são mais eficazes.
-
-Percepção de um NPC: "O ar à sua volta estremece com o calor. Sinto o cheiro de cinzas antes mesmo de ver as chamas."
-
-Missões adequadas: Destruir ninhos de criaturas, purificar áreas corrompidas pelo gelo, forjar armas lendárias.
-
-Local/Facção: As Forjas de Pyra, um vulcão sagrado onde os Mestres do Fogo se reúnem.
-
-Arquétipo do Mestre: Uma fornalha viva. O Mestre do Fogo não controla as chamas — ele é as chamas.
-
-A.2 Traço Inerente: "Coração de Fogo"
-Nível 5: Ataques de fogo têm 5% de chance de incendiar o alvo.
-
-Nível 10: Inimigos em chamas explodem ao morrer, causando dano em área (raio 2).
-
-Nível 15: O jogador emite uma aura de calor que causa dano contínuo a inimigos próximos (raio 1).
-
-Nível 20: A aura expande (raio 2) e concede imunidade a campos de fogo.
-
-A.3 Ideias para Habilidades (Alto Nível)
-Passiva de Identidade (I): "Chama Interior" — ataques de fogo têm chance de queimadura.
-
-Passiva de Maestria (IV): "Inferno do Mestre" — dano de fogo ignora parte da armadura; campos de fogo são maiores e mais duradouros.
-
-Gatilho de Assinatura (III): "Bola de Fogo" — explosão em área no alvo.
-
-Gatilhos de Combate: Chuva de Fogo (rajada), Explosão Incendiária (área ground), Onda de Calor (buff de velocidade), Incêndio (field), Meteoro (área target massiva).
-
-Sinergias: Combinações com Lâminas (Lâmina de Fogo), com Terra (Magma Vivo), com Ar (Tempestade de Fogo), com Escudo (Escudo Térmico).
-
-A.4 Transformações Narrativas
-Lampejo: "Sentes um calor súbito nas palmas das mãos. As chamas estão inquietas, querendo libertar‑se."
-*(Bónus: +15% dano de fogo, efeito visual de faíscas nas mãos.)*
-
-Vínculo: "O fogo corre nas tuas veias. As chamas lambem‑te a pele, mas já não te queimam."
-*(Bónus: +25% dano de fogo, aura visual de chamas ao redor do corpo.)*
-
-Maestria: "Tu és a fornalha. O mundo à tua volta é apenas combustível."
-(Efeito permanente: Traço Inerente no nível máximo, Vínculo permanente, imunidade a campos de fogo.)
-
-FIM DO DOCUMENTO DE PERSONALIDADE E IDENTIDADE DE DOMÍNIOS — VERSÃO 1.1
+FIM DO DOCUMENTO DE PERSONALIDADE E IDENTIDADE DE DOMÍNIOS — VERSÃO 2.0

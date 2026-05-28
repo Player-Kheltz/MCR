@@ -1,5 +1,5 @@
-📘 Documentação Técnica do Motor SPA – Projeto MCR (v4.6)
-Última atualização: 27 de Maio de 2026
+📘 Documentação Técnica do Motor SPA – Projeto MCR (v4.7)
+Última atualização: 28 de Maio de 2026
 
 Este documento descreve todas as APIs, métodos, constantes, estruturas de dados e sistemas que o servidor Canary expõe ao Sistema de Progressão do Aventureiro. Todas as funcionalidades aqui listadas estão implementadas, compiladas e verificadas através do comando !testesistema.
 
@@ -7,36 +7,40 @@ Este documento descreve todas as APIs, métodos, constantes, estruturas de dados
 
 1.1 Métodos C++ expostos ao Lua (Player)
 
-Método Lua	Descrição
-player:getDominioAfinidade(dominioId)	Retorna a afinidade acumulada (inteiro).
-player:addDominioAfinidade(dominioId, pontos)	Adiciona pontos de afinidade (INSERT … ON DUPLICATE KEY UPDATE).
-player:addDominioAfinidadeBatch(tabela)	Adiciona afinidades em lote ({[domId]=pontos}). Otimizado.
-player:getDominioAfinidades(dom1, dom2, …)	Retorna tabela {[domId]=valor}.
-player:setDominioDespertado(dominioId, bool)	Marca o domínio como despertado (1/0).
-player:hasHabilidade(habilidadeId)	Verifica se a habilidade está aprendida (BD).
-player:learnHabilidade(habilidadeId)	Aprende uma habilidade permanentemente (insere na BD).
-player:unlearnHabilidade(habilidadeId)	Remove uma habilidade específica da BD.
-player:unlearnAllHabilidades()	Remove TODAS as habilidades do jogador (uma única query).
-player:learnHabilidadeBatch(tabela)	Aprende várias habilidades em lote (array Lua {id1, id2, …}).
-player:getHabilidades()	Retorna lista de IDs das habilidades aprendidas.
-player:getVocationBaseMaxHealth()	Retorna a vida base do Aventureiro (gainhp * level + offset). Nível 1 = 150.
-player:getVocationBaseMaxMana()	Retorna a mana base do Aventureiro (gainmana * level + offset). Nível 1 = 50.
-player:getNaturalSpeed()	Retorna a velocidade natural (base da vocação + (level - 1)).
-player:setMovementSpeed(speed)	Define a velocidade de movimento atual e notifica o cliente.
+| Método Lua | Descrição |
+|------------|-----------|
+| player:getDominioAfinidade(dominioId) | Retorna a afinidade acumulada (inteiro). |
+| player:addDominioAfinidade(dominioId, pontos) | Adiciona pontos de afinidade (INSERT … ON DUPLICATE KEY UPDATE). |
+| player:addDominioAfinidadeBatch(tabela) | Adiciona afinidades em lote ({[domId]=pontos}). Otimizado. |
+| player:getDominioAfinidades(dom1, dom2, …) | Retorna tabela {[domId]=valor}. |
+| player:setDominioDespertado(dominioId, bool) | Marca o domínio como despertado (1/0). |
+| player:hasHabilidade(habilidadeId) | Verifica se a habilidade está aprendida (BD). |
+| player:learnHabilidade(habilidadeId) | Aprende uma habilidade permanentemente (insere na BD). |
+| player:unlearnHabilidade(habilidadeId) | Remove uma habilidade específica da BD. |
+| player:unlearnAllHabilidades() | Remove TODAS as habilidades do jogador (uma única query). |
+| player:learnHabilidadeBatch(tabela) | Aprende várias habilidades em lote (array Lua {id1, id2, …}). |
+| player:getHabilidades() | Retorna lista de IDs das habilidades aprendidas. |
+| player:getVocationBaseMaxHealth() | Retorna a vida base do Aventureiro (gainhp * level + offset). Nível 1 = 150. |
+| player:getVocationBaseMaxMana() | Retorna a mana base do Aventureiro (gainmana * level + offset). Nível 1 = 50. |
+| player:getNaturalSpeed() | Retorna a velocidade natural (base da vocação + (level - 1)). |
+| player:setMovementSpeed(speed) | Define a velocidade de movimento atual e notifica o cliente. |
+
 1.2 Histórico de Ações e Estados de Alma
 
-Método Lua	Descrição
-player:registerDominioAction(dominioId)	Regista uma ação com timestamp. Usado para alimentar a barra de foco.
-player:getActionHistory(maxCount)	Retorna as últimas ações como tabela {dominioId, timestamp}.
-player:clearActionHistory()	Limpa todo o histórico de ações.
-player:getDominioState(dominioId)	Retorna 0 (normal), 1 (Lampejo) ou 2 (Vínculo). A Maestria mantém o estado 2 permanentemente.
-player:setDominioState(dominioId, state)	Define o estado (0, 1, 2).
-player:getAllActiveStates()	Retorna {[dominioId] = state} para todos os domínios com estado > 0.
+| Método Lua | Descrição |
+|------------|-----------|
+| player:registerDominioAction(dominioId) | Regista uma ação com timestamp. Usado para alimentar a barra de foco. |
+| player:getActionHistory(maxCount) | Retorna as últimas ações como tabela {dominioId, timestamp}. |
+| player:clearActionHistory() | Limpa todo o histórico de ações. |
+| player:getDominioState(dominioId) | Retorna 0 (normal), 1 (Lampejo) ou 2 (Vínculo). A Maestria mantém o estado 2 permanentemente. |
+| player:setDominioState(dominioId, state) | Define o estado (0, 1, 2). |
+| player:getAllActiveStates() | Retorna {[dominioId] = state} para todos os domínios com estado > 0. |
+
 1.3 Curva de Progressão
 
 Definida em constantes.lua na tabela NIVEL_PONTOS. Os valores atuais (para uma taxa de ≈1800 pontos/hora) são:
 
-lua
+```lua
 NIVEL_PONTOS = {
     50, 120, 300, 740, 1800, 2500, 3450, 4750, 6550, 9000,
     12900, 18400, 26300, 37600, 54000, 69000, 87000, 110000, 140000, 180000
@@ -61,7 +65,7 @@ Especialidades Mágicas: Fogo (23), Água e Gelo (24), Terra e Veneno (25), Ener
 
 Outros: Sobrevivência (400) – ramo de Natureza (4).
 
-Propagação de afinidade (rácio 4:2:1): quando um jogador ganha afinidade numa Especialidade, a função adicionarAfinidade em progressao.lua distribui automaticamente:
+Propagação de afinidade (rácio 4:2:1): quando um jogador ganha afinidade numa Especialidade, a função adicionarAfinidade em progressao.lua acumula os pontos no buffer (STORAGE.AFINIDADE_BUFFER + dominioId). A propagação real ocorre no descarregamento do buffer (a cada 2 segundos), onde os totais acumulados são distribuídos:
 
 100% dos pontos para a própria Especialidade.
 
@@ -69,7 +73,7 @@ Propagação de afinidade (rácio 4:2:1): quando um jogador ganha afinidade numa
 
 25% (um quarto) para o Domínio Primário correspondente.
 
-Os valores são arredondados para baixo (math.floor). Golpes com 1 ponto resultam em 0 para os níveis superiores; a propagação real ocorre no descarregamento do buffer (a cada 2 segundos), onde os totais acumulados são usados.
+Os valores são arredondados para baixo (math.floor). Golpes com 1 ponto resultam em 0 para os níveis superiores; a propagação usa os totais do ciclo, garantindo que pontos baixos sejam acumulados antes da divisão.
 
 A tabela domainChildren (construída em constantes.lua) mapeia cada domínio para os seus filhos diretos, sendo usada por getNivelEfetivo para a regra de Maestria condicionada.
 
@@ -79,7 +83,7 @@ Desde a v4.2, o SPA suporta sinergia elemental nativa: armas que possuem element
 
 Exemplo: uma Espada de Fogo (dano de fogo) activa tanto as habilidades de Espadas Leves (100) como as de Fogo (23). Uma Wand de Energia desbloqueia Wands (210) e Energia (26).
 
-Isto é gerido pela função armaCompativeis no executor_habilidades.lua, que verifica o elemento da arma através de item:getElementalBond(), item:getElementType(), item:getCombatType() e do tipo de projétil (getShootType), mapeando para o domínio usando a tabela damageDomains. A função getElementoItem em util_armas.lua centraliza a detecção do elemento.
+Isto é gerido pela função armaCompativeis no executor_habilidades.lua, que verifica o elemento da arma através de item:getElementalBond(), item:getElementType(), item:getCombatType() e do tipo de projétil (getShootType), mapeando para o domínio usando a tabela damageDomains. A função getElementoItem em util_armas.lua centraliza a detecção do elemento, usando uma cadeia de tentativas com pcall e uma tabela de fallback manual.
 
 lua
 damageDomains = {
@@ -161,25 +165,27 @@ A Serenidade é um estado especial activado automaticamente ao atingir a Maestri
 
 O SPA utiliza uma arquitectura modular em três camadas:
 
-Motor de Habilidades (motor_habilidades.lua) — lógica central de execução. Nunca precisa de ser alterado para adicionar novas habilidades.
+Motor de Habilidades (motor_habilidades.lua v2.0) — lógica central de execução, com 27 tipos de efeitos padronizados. Nunca precisa de ser alterado para adicionar novas habilidades.
 
-Definições de Habilidades (habilidades_*.lua) — ficheiros de dados que descrevem as habilidades usando parâmetros padronizados.
+Definições de Habilidades (habilidades_*.lua) — ficheiros de dados que descrevem as habilidades usando parâmetros padronizados (campo efeitoConfig para gatilhos; campo efeito vazio para passivas de vida/mana/velocidade). Zero lógica manual.
 
-Narrativa (narrativa_habilidades.lua) — frases de feedback organizadas por tipo de efeito, domínio e postura.
+Narrativa (narrativa_habilidades.lua v1.0) — frases de feedback organizadas por tipo de efeito, postura e domínio. O motor gera o feedback automaticamente.
 
-4.1 Motor Modular de Habilidades (motor_habilidades.lua v1.2)
+4.1 Motor Modular de Habilidades (motor_habilidades.lua v2.0)
 
 O motor central processa qualquer habilidade definida por parâmetros. Cada efeito possível está mapeado na tabela MOTOR.efeitos. O executor chama MOTOR.executar(player, target, damage, habDef), que interpreta habDef.efeitoConfig.tipo e dispara a função correspondente.
 
-Novas funcionalidades da v1.2:
+Novas funcionalidades da v2.0:
 
 Fallback automático de efeitos visuais: se uma habilidade não especificar magicEffect, o motor obtém o efeito adequado a partir do elemento da arma equipada (tabela EFEITOS_ELEMENTAIS).
 
 Suporte a conditionMagicEffect: as habilidades que aplicam condições podem especificar um efeito visual separado para a condição.
 
-Função auxiliar aplicarDanoCircular: unifica a lógica de dano em área circular com onda expansiva.
+Função auxiliar aplicarDanoCircular: unifica a lógica de dano em área circular com onda expansiva (com throttle de 2.0s para performance).
 
 Adaptação elemental para Wands e Rods: as habilidades de Wands (210) e Rods (211) têm o seu efeito visual e condição automaticamente adaptados ao elemento da varinha equipada.
+
+Novos tipos de efeitos modulares (ver secção 4.1.2).
 
 Tipos de efeitos suportados
 
@@ -200,7 +206,7 @@ Tipo	Descrição	Parâmetros principais
 "defesa_cura"	Recupera vida ao bloquear.	percentual, reflect, reflectPercentual
 "defesa_barreira"	Reduz dano recebido temporariamente.	factor, durationMs
 "defesa_contra_ataque"	Contra-ataque em área ao receber dano.	percentual, magicEffect
-"field"	Cria campo elemental no chão.	elemento, danoPorTick, duracaoMs, intervaloMs, magicEffect, centro
+"field"	Cria campo elemental no chão.	elemento, danoPorTick, duracaoMs, intervaloMs, magicEffect, centro, raio
 "sinergia"	Combina múltiplos domínios com efeitos secundários.	efeitoBase, efeitosSecundarios, nivelMinSecundario
 "rajada"	Múltiplos projéteis em sequência.	percentual, numProjeteis, intervaloMs
 4.1.1 Mapeamento Central de Efeitos Visuais
@@ -217,6 +223,36 @@ Morte	CONST_ME_MORTAREA	CONST_ME_DEATHATTACK	CONST_ME_MORTAREA
 Físico	CONST_ME_HITAREA	CONST_ME_DRAWBLOOD	CONST_ME_DRAWBLOOD
 Veneno	CONST_ME_GREEN_RINGS	CONST_ME_MAGIC_GREEN	CONST_ME_GREEN_RINGS
 Este mapeamento é usado como fallback automático, garantindo que todas as habilidades tenham um efeito visual coerente com o seu elemento, mesmo que o campo magicEffect não seja especificado no efeitoConfig.
+
+4.1.2 Novos Tipos de Efeitos Modulares (v2.0)
+
+O motor v2.0 introduz nove novos tipos de efeitos, todos definidos exclusivamente por parâmetros, sem lógica manual:
+
+Tipo	Descrição	Personalidade
+"sinergia_escalonada"	Efeitos por domínio que escalam com nível; épico na maestria total. cfg.efeitosPorDominio define efeitos que escalam com cfg.escala; cfg.efeitoEpico executa-se se todos os domínios estiverem em nível 20.	Adaptável e épico
+"storm"	Atinge um inimigo aleatório na área a cada intervaloMs, durante duracaoMs.	Tempestades, raios
+"orbit"	Esferas que orbitam o jogador e causam dano a inimigos próximos periodicamente.	Auras, escudos ofensivos
+"rain"	Projéteis caem aleatoriamente na área em intervalos regulares.	Chuva de meteoros, flechas
+"pulse"	Ondas de energia que se expandem e contraem, causando dano a cada pulso.	Paladino, energia sagrada
+"trap"	Armadilha tática: posicionamento inteligente ("alvo", "jogador", "entre", "fuga", "aleatorio"), atraso de armação (primeDelayMs), marcador visual (markEffect) e condições na detonação.	Caçador, estratégia, controle de área
+"summon"	Invoca uma criatura mágica temporária, com duração baseada na barra de foco.	Invocador arcano
+Parâmetros comuns:
+
+"sinergia_escalonada": efeitoBase (opcional), efeitosPorDominio ({ [domId] = { nivelMin, efeitoConfig, escala (opcional), chance (opcional), escalaChance (opcional) } }), efeitoEpico (opcional).
+
+"storm", "rain": centro, raio, elemento, danoPorTick, intervaloMs, duracaoMs, magicEffect.
+
+"orbit": numEsferas, raio, elemento, danoPorTick, intervaloMs, duracaoMs, magicEffect.
+
+"pulse": raioMax, elemento, danoPorPulso, intervaloMs, numPulsos, magicEffect.
+
+"trap": centro ("alvo", "jogador", "entre", "fuga", "aleatorio"), duracaoMs, primeDelayMs, elemento, dano, raio, magicEffect (explosão), markEffect (marcador), condicao/condDuration/periodicDamage (opcional).
+
+"summon": monsterName, maxCount, dominio, afinidade, magicEffect.
+
+4.1.3 Controlo de Efeitos Temporais
+
+Os tipos storm, orbit, rain, pulse, trap e field são considerados efeitos temporais. Para evitar sobrecarga de addEvents, o motor limita a 2 efeitos temporais ativos por jogador. Se um novo efeito for solicitado e o limite estiver atingido, o efeito não é criado, a habilidade entra em cooldown normalmente, e o jogador é informado. O limite é gerido pelas funções canStartTempEffect, registerTempEffect e unregisterTempEffect no motor.
 
 4.2 Narrativa Centralizada (narrativa_habilidades.lua v1.0)
 
@@ -316,9 +352,15 @@ Prioridade por especialização: bónus de +1 a cada 5 níveis de afinidade no d
 
 Disponibilidade por hierarquia: habilidades de secundários e primários só são elegíveis quando a barra de foco está em 100% (Vínculo/Maestria). Especialidades estão sempre disponíveis.
 
+Limites de categoria: o executor impõe limites por categoria (ex.: "aoe" = 2, "single" = 3, "finisher" = 1) numa janela de 10 segundos. Habilidades que excedem o limite não são selecionadas, não gastam cooldown, e ficam disponíveis no próximo ciclo. A função registerCategoryExecution regista cada execução; isCategoryOverLimit verifica o limite.
+
+Throttle global: intervalo mínimo de 600ms entre qualquer execução de habilidade (MIN_GLOBAL_DELAY = 0.6).
+
+Seleção otimizada: a seleção de habilidades percorre apenas as primeiras 5 habilidades elegíveis (MAX_CANDIDATOS = 5), com fallback de categoria para "single" caso a habilidade não defina categoria. Isto reduz drasticamente o custo de CPU.
+
 Delegação ao motor modular: chama MOTOR.executar() e Narrativa.gerar(). O sistema legado de buffType foi totalmente removido.
 
-Delay entre execuções: 150ms entre habilidades de domínios diferentes, evitando spam visual.
+Sistema de combos: para o gatilho "onAttack", o executor tenta encadear até 3 habilidades (com chances configuráveis por nível), com 250ms e 500ms de intervalo entre elas.
 
 4.12 Feedback narrativo (padrão limpo v3.3)
 
@@ -338,7 +380,7 @@ Formatos: ataque simples (só alvo colorido), ataque com efeito ("Frase em Alvo 
 
 5.1 Barra de Foco
 
-Cada domínio possui uma barra de foco (0–100) armazenada em STORAGE.FOCO + dominioId. A barra enche com cada ação que gera afinidade (+1 ponto) e decai 1 ponto a cada 2 segundos fora de combate. Em Maestria (nível 20), a barra é mantida permanentemente em 100%.
+Cada domínio possui uma barra de foco (0–100) armazenada em STORAGE.FOCO + dominioId. A barra enche com cada ação que gera afinidade (+1 ponto) e decai 1 ponto a cada 2 segundos fora de combate. Em Maestria (nível 20), a barra é mantida permanentemente em 100% (mesmo durante o combate, gerido pelo think_master.lua v3.5.1).
 
 5.2 Lampejos com Chance Variável
 
@@ -437,7 +479,7 @@ constantes.lua	v5.5	IDs de domínios, weapon types, curva de progressão, DOMAIN
 texto_colorido.lua	v10.0	Tabela COR agrupada. Funções c() e enviarMsgColorida().
 util_armas.lua	v6.3	getWeaponType, hasShield, getWeaponEspecialidade, getElementalProjectile, getElementoItem (com fallback blindado).
 funcoes_habilidade.lua	v2.0.2	Funções auxiliares com proteção contra dano negativo.
-motor_habilidades.lua	v1.2	Motor central de execução de habilidades (18 tipos de efeitos, fallback automático de efeitos, conditionMagicEffect, aplicarDanoCircular).
+motor_habilidades.lua	v2.0	Motor central com 27 tipos de efeitos (clássicos + sinergia_escalonada, storm, orbit, rain, pulse, trap, summon). Fallback automático de efeitos, conditionMagicEffect, aplicarDanoCircular, controlo de efeitos temporais.
 narrativa_habilidades.lua	v1.0	Sistema de frases de feedback por tipo de efeito, domínio e postura.
 util_criaturas.lua	v5.0	getCreaturesInArea, getCreatureDistance.
 util_efeitos.lua	v5.1	sendDistanceEffect.
@@ -448,19 +490,19 @@ progressao.lua	v5.2	adicionarAfinidade (buffer), descarregarBuffer (com propaga�
 sintonia.lua	v6.2	Barra de foco, Lampejos com chance variável, bónus parciais de foco, Maestria mantém foco a 100% sempre.
 postura.lua	v6.2.1	aplicarPostura, eventos de postura, salvaguarda contra dano/cura.
 buff_system.lua	v6.2	Buffs temporários (speed, dano, leech, condições).
-executor_habilidades.lua	v9.0	Motor de seleção inteligente, cooldown por domínio, limite de ciclo, disponibilidade por hierarquia/barra de foco, delegação ao motor modular.
-eventos.lua	v6.2.1	ProgDano, ProgKill, ProgDefesa, SPASpeedAdvance (atualiza velocidade ao subir de nível).
+executor_habilidades.lua	v9.0	Motor de seleção inteligente, cooldown por domínio, limite de ciclo, disponibilidade por hierarquia/barra de foco, limites de categoria (com fallback "single"), throttle 600ms, MAX_CANDIDATOS=5, combos.
+eventos.lua	v6.2.1	ProgDano (gera afinidade física e elemental independentes), ProgKill, ProgDefesa, SPASpeedAdvance.
 passivas_ataque.lua	v5.0	Efeitos passivos de auto‑ataque.
 passivas.lua	v5.2	aplicarPassivasBasicas, recalcularVidaMana, recalcularVelocidade.
 login.lua	v5.6.2	Inicialização do jogador, passivas, postura (sem mínimo de capacidade).
-think_master.lua	v3.5.1	Think unificado (buffs, postura, sintonia, passivas, Arremesso de Escudo, vida/mana, velocidade).
+think_master.lua	v3.5.1	Think unificado (buffs, postura, sintonia, passivas, Arremesso de Escudo, vida/mana, velocidade, manutenção de foco para Maestria).
 skilltree.lua	v6.0	Sistema de SkillTrees.
 comandos_spa.lua	v5.4	Comandos: !platinar, !resetspa, !testesistema, /setskill, /setstatus, etc.
 ⚙️ 13. Performance e Modularidade
 
 Consultas em lote: addDominioAfinidadeBatch, learnHabilidadeBatch, unlearnAllHabilidades.
 
-Buffer de progressão: descarrega a cada 2 segundos.
+Buffer de progressão: descarrega a cada 2 segundos, com propagação no descarregamento.
 
 Think unificado: think_master.lua (v3.5.1) agrupa toda a manutenção periódica.
 
@@ -470,13 +512,17 @@ Projéteis dinâmicos centralizam a adaptação elemental.
 
 Passivas de vida/mana/velocidade geridas centralizadamente, sem risco de acumulação.
 
-Cooldown global dinâmico e limite de ciclo previnem spam e lag.
+Cooldown global por domínio, limite de ciclo, throttle global (600ms), limites de categoria (janela 10s) e MAX_CANDIDATOS=5 previnem spam e lag.
 
-Motor modular (v1.2): separação total entre lógica de execução, definições de habilidades e narrativa.
+Motor modular (v2.0): 27 tipos de efeitos, fallback automático de efeitos, novos tipos modulares, controlo de efeitos temporais.
 
-Executor (v9.0): cooldowns independentes por domínio, disponibilidade por hierarquia, delay entre execuções.
+Executor (v9.0): cooldowns independentes por domínio, disponibilidade por hierarquia, delay entre execuções, sistema de combos.
 
-✅ Resumo do Estado Actual (27/05/2026)
+Onda expansiva circular com throttle de 2.0s para efeitos de área.
+
+Efeitos temporais (storm, rain, orbit, pulse, trap) limitados a 2 ativos por jogador.
+
+✅ Resumo do Estado Actual (28/05/2026)
 
 Motor de progressão genérico (SPAManager) funcional.
 
@@ -490,11 +536,11 @@ Sistema de projéteis 100% dinâmico com suporte a aljavas.
 
 11 condições de activação + condicaoFocoMin.
 
-Motor modular de habilidades (v1.2) com 18 tipos de efeitos, fallback automático de efeitos visuais, conditionMagicEffect.
+Motor modular de habilidades v2.0 com 27 tipos de efeitos (clássicos + sinergia_escalonada, storm, orbit, rain, pulse, trap, summon), fallback automático de efeitos visuais, conditionMagicEffect, controlo de efeitos temporais.
 
 Narrativa centralizada (v1.0) com frases por tipo de efeito e postura.
 
-Executor de habilidades v9.0: cooldown por domínio, limite de ciclo dinâmico, prioridade por especialização, disponibilidade por hierarquia/barra de foco.
+Executor de habilidades v9.0: cooldown por domínio, limite de ciclo, prioridade por especialização, disponibilidade por hierarquia, limites de categoria (com fallback "single"), throttle 600ms, MAX_CANDIDATOS=5, combos.
 
 Sintonia v6.2: Lampejos com chance variável, bónus parciais de foco, Maestria mantém foco a 100%.
 
@@ -506,11 +552,15 @@ Campos elementais (Fields) com função criarField() e animação de ignição.
 
 Passivas de vida/mana/velocidade não acumulativas, baseadas em cálculos dinâmicos da vocação e nível.
 
-Propagação de afinidade com rácio 4:2:1.
+Propagação de afinidade com rácio 4:2:1 (no descarregamento do buffer).
 
 Domínios pais só atingem Maestria quando todos os filhos são Mestres (getNivelEfetivo, domainChildren).
 
 Capacidade sem limite mínimo artificial.
+
+Armadilhas táticas com posicionamento inteligente ("entre", "fuga", "aleatorio"), marcador visual e condições.
+
+Sinergia escalonada modular, com efeitos por domínio e épico na maestria total.
 
 Comandos de administrador: /setskill, /setstatus.
 

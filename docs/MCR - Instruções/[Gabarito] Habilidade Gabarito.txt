@@ -1,5 +1,5 @@
 PROJETO MCR – HABILIDADE GABARITO (Documento Canónico)
-Versão 4.6 – Sistema de Progressão do Aventureiro (SPA v4.6)
+Versão 4.7 – Sistema de Progressão do Aventureiro (SPA v4.6)
 Arquivo: [Gabarito] Habilidade Gabarito.txt
 
 🎯 OBJECTIVO DESTE DOCUMENTO
@@ -8,20 +8,18 @@ no Projeto MCR. Define todos os campos possíveis, as regras de feedback
 narrativo, os pacotes temáticos, as directrizes de implementação e as
 convenções que garantem a coerência e a qualidade do SPA.
 
-A partir da versão 4.2, o SPA adopta uma arquitectura modular em três camadas:
+O SPA adopta uma arquitectura modular em três camadas:
 
-Motor de Habilidades (motor_habilidades.lua v1.2) – lógica de execução
-e fallback automático de efeitos visuais.
+- Motor de Habilidades (motor_habilidades.lua v2.0) – 24 tipos de efeitos
+  padronizados, fallback automático de efeitos visuais, suporte a
+  sinergias escalonadas e efeitos temporais (storm, orbit, rain, pulse,
+  trap).
+- Definições de Habilidades (dados/*.lua) – apenas parâmetros, zero lógica.
+- Narrativa (narrativa_habilidades.lua) – textos de feedback automáticos.
 
-Definições de Habilidades (dados/*.lua) – apenas parâmetros, zero lógica.
-
-Narrativa (narrativa_habilidades.lua) – textos de feedback.
-
-A versão 4.6 consolida a remoção total do sistema legado buffType, exigindo
-que todas as habilidades de gatilho usem exclusivamente o campo efeitoConfig.
-Passivas que afectam vida, mana ou velocidade de movimento são geridas
-centralizadamente pelas funções recalcularVidaMana e recalcularVelocidade,
-ficando o seu campo 'efeito' vazio.
+A versão 4.7 consolida a remoção total do sistema legado buffType e
+documenta os novos tipos de efeito e o sistema de contenção por categoria
+(limites de execução por tipo de habilidade).
 
 Sempre que um criador de conteúdo ou assistente for gerar uma nova
 habilidade, DEVE seguir este gabarito.
@@ -38,21 +36,29 @@ Os campos estão organizados em:
 [OP] = Opcional
 
 ================================================================================
-🧩 ARQUITECTURA MODULAR
+🧩 ARQUITECTURA MODULAR (ACTUALIZADA v2.0)
 ================================================================================
 
 Todas as habilidades de gatilho são definidas através do campo 'efeitoConfig',
-uma tabela de parâmetros interpretada pelo motor central (motor_habilidades.lua).
-O motor também fornece fallback automático de efeitos visuais baseado no
-elemento da arma, e suporte a efeitos de condição separados.
+uma tabela de parâmetros interpretada pelo motor central (motor_habilidades.lua
+v2.0). O motor também fornece:
+
+- Fallback automático de efeitos visuais baseado no elemento da arma equipada
+  (tabela EFEITOS_ELEMENTAIS). O campo 'magicEffect' é OPCIONAL.
+- Adaptação elemental para Wands (210) e Rods (211) – o efeito visual e a
+  condição são automaticamente ajustados ao elemento da varinha.
+- Suporte a 'conditionMagicEffect' para separar o efeito visual da condição
+  do efeito de dano.
+- Novos tipos modulares: sinergia_escalonada, storm, orbit, rain, pulse, trap.
+- Sistema de contenção por categoria no executor: cada categoria (aoe, single,
+  debuff, etc.) tem um número máximo de execuções a cada 10 segundos.
 
 Vantagens:
-
 - Novas habilidades são criadas apenas com parâmetros, sem código repetitivo.
-- O feedback narrativo é gerado automaticamente pela Narrativa, sem
-  necessidade de escrever mensagens manuais (a menos que se queira).
+- O feedback narrativo é gerado automaticamente pela Narrativa.
 - Alterações no motor propagam-se para todas as habilidades existentes.
 - O sistema antigo buffType foi completamente removido; não é mais suportado.
+- Performance controlada: limites de categoria evitam spam da mesma habilidade.
 
 ================================================================================
 🏷️ CAMPOS OBRIGATÓRIOS
@@ -69,6 +75,7 @@ tipo
                          a cada 2 segundos pelo think_master.
       "gatilho"        – ativada por eventos: onAttack, onDealtDamage,
                          onKill, onBlock, onReceiveDamage.
+                         Usa OBRIGATORIAMENTE o campo 'efeitoConfig'.
       "transformacao"  – activa/desactiva com base nos Estados de Alma
                          (Lampejo/Vínculo/Maestria). Suporta o campo
                          'desfazer' para reverter os bónus.
@@ -137,38 +144,25 @@ FORMATOS POR TIPO DE HABILIDADE:
 
   • Ataque SEM efeito adicional:
     "[Nome] Frase narrativa normal com o Alvo colorido."
-    Exemplo: c("[Estocada] ", COR) .. "Uma estocada rápida atinge "
-             .. c(t:getName(), COR.INIMIGO_MONSTRO) .. "!"
 
   • Ataque COM efeito (sangramento, atordoamento, knockback, veneno, etc.):
     "[Nome] Frase curta em Alvo - Efeito."
-    Exemplo: c("[Estocada] ", COR) .. "Estocada precisa em "
-             .. c(t:getName(), COR.INIMIGO_MONSTRO) .. " - "
-             .. c("Sangramento", COR.COND_SANGRAMENTO) .. "."
 
   • Defesa (onBlock / onReceiveDamage):
     "[Nome] Frase narrativa sobre o bloqueio/defesa contra Alvo - Efeito."
-    Exemplo: c("[Contra-Ataque] ", COR) .. "O escudo bloqueia o golpe de "
-             .. c(t:getName(), COR.INIMIGO_MONSTRO) .. " - "
-             .. c("Contra-atacado", COR.ACAO_KNOCKBACK) .. "."
 
   • Múltiplos efeitos:
     "[Nome] Frase narrativa em Alvo - Efeito1, Efeito2 e Efeito3."
-    Exemplo: c("[Dilacerar] ", COR) .. "O machado dilacera "
-             .. c(t:getName(), COR.INIMIGO_MONSTRO) .. " - "
-             .. c("Sangramento", COR.COND_SANGRAMENTO) .. " e "
-             .. c("Armadura quebrada", COR.ACAO_KNOCKBACK) .. "."
 
 REGRAS ABSOLUTAS:
   - Começar SEMPRE com c("[Nome da Habilidade] ", corDoDominio).
   - Usar c(t:getName(), COR.INIMIGO_MONSTRO) para o nome do alvo.
   - Apenas o NOME DO ALVO e 1‑2 EFEITOS (condições, acções) são coloridos.
   - O texto narrativo é NEUTRO (cor normal do chat).
-  - NUNCA usar travessões longos (—) ou caracteres não‑ASCII de 1 byte.
-    Usar hífen (-) e aspas rectas.
+  - NUNCA usar travessões longos (—). Usar hífen (-).
   - NUNCA colorir palavras descritivas como "lâmina", "sangue", "impacto".
     Apenas termos de efeitos mecânicos: "Sangramento", "Atordoado", etc.
-  - Cores de efeitos: usar COR.COND_* para condições, COR.ACAO_* para acções
+  - Cores de efeitos: COR.COND_* para condições, COR.ACAO_* para acções
     físicas, COR.SUCESSO_CURA para curas, COR.DANO_CRITICO para dano massivo.
 
 ================================================================================
@@ -176,8 +170,7 @@ REGRAS ABSOLUTAS:
 ================================================================================
 
 Cada habilidade de gatilho que usa o motor modular deve definir um
-campo 'efeitoConfig' com um 'tipo' da lista abaixo. Os restantes campos
-dependem do tipo.
+campo 'efeitoConfig' com um 'tipo' da lista abaixo.
 
 NOTA: O campo 'magicEffect' é OPCIONAL em todos os tipos que o possuem.
 Se omitido, o motor obtém automaticamente o efeito visual a partir do
@@ -185,20 +178,26 @@ elemento da arma equipada (tabela EFEITOS_ELEMENTAIS). O campo
 'conditionMagicEffect' também é opcional e controla o efeito visual
 específico quando uma condição é aplicada.
 
+═══════════════════════════════════════════════════════════════
+TIPOS CLÁSSICOS (ATAQUES E EFEITOS DIRECTOS)
+═══════════════════════════════════════════════════════════════
+
 dano_extra
   - Dano adicional simples (corpo a corpo ou projétil).
-  - Campos: percentual (0.3), tipo ("distancia"|nil), magicEffect (opcional)
-  - Exemplo: { tipo = "dano_extra", percentual = 0.25, magicEffect = CONST_ME_DRAWBLOOD }
+  - Campos: percentual, tipo ("distancia"|nil), magicEffect (opcional)
+  - Exemplo: { tipo = "dano_extra", percentual = 0.25 }
 
 area_ground
-  - Explosão no chão, centrada no jogador ou no alvo.
+  - Explosão circular no chão com onda expansiva.
   - Campos: percentual, centro ("jogador"|"alvo"), raio, magicEffect (opcional),
     knockback (bool), condicao (CONDITION_*), condDuration, periodicDamage,
     conditionMagicEffect (opcional)
+  - A onda expansiva é controlada por throttle (máximo 1 animação completa
+    a cada 2 segundos; as restantes usam efeito simplificado).
   - Exemplo: { tipo = "area_ground", centro = "jogador", raio = 1, percentual = 0.4 }
 
 area_target
-  - Explosão centrada no alvo, com dano extra ao alvo principal.
+  - Explosão circular centrada no alvo, com onda expansiva.
   - Campos: percentual, areaPercentual, raio, magicEffect (opcional),
     knockback (bool)
   - Exemplo: { tipo = "area_target", percentual = 0.5, areaPercentual = 0.3, raio = 2 }
@@ -218,7 +217,27 @@ condicao
   - Campos: conditionType, duration, periodicDamage, comDano (bool),
     percentual, magicEffect (opcional), conditionMagicEffect (opcional)
   - Exemplo: { tipo = "condicao", conditionType = CONDITION_BLEEDING,
-    duration = 4000, periodicDamage = 15 }
+    duration = 4000, periodicDamage = 15, conditionMagicEffect = CONST_ME_DRAWBLOOD }
+
+rajada
+  - Dispara N projéteis em sequência contra o alvo.
+  - Campos: percentual, numProjeteis, intervaloMs
+  - Exemplo: { tipo = "rajada", percentual = 0.3, numProjeteis = 3, intervaloMs = 250 }
+
+corrente
+  - Liga dois alvos, causando dano ao secundário.
+  - Campos: percentual, raio, magicEffect (opcional)
+  - Exemplo: { tipo = "corrente", percentual = 0.4, raio = 2 }
+
+finisher
+  - Dano massivo contra alvos com vida baixa (<20%).
+  - Campos: percentual, magicEffect (opcional), knockback (bool),
+    medoArea (bool), sangramentoArea (bool)
+  - Exemplo: { tipo = "finisher", percentual = 1.5, medoArea = true }
+
+═══════════════════════════════════════════════════════════════
+TIPOS DE BUFF E LEECH
+═══════════════════════════════════════════════════════════════
 
 buff_speed
   - Aceleração de ataque (velocidade de ataque, não movimento).
@@ -231,12 +250,12 @@ buff_damage
   - Exemplo: { tipo = "buff_damage", percentExtra = 20, buffHits = 3 }
 
 life_leech
-  - Roubo de vida.
+  - Roubo de vida por duração.
   - Campos: leechPercent, durationSec
   - Exemplo: { tipo = "life_leech", leechPercent = 15, durationSec = 4 }
 
 mana_leech
-  - Roubo de mana.
+  - Roubo de mana por duração.
   - Campos: leechPercent, durationSec
   - Exemplo: { tipo = "mana_leech", leechPercent = 10, durationSec = 4 }
 
@@ -246,11 +265,9 @@ next_condition
   - Exemplo: { tipo = "next_condition", conditionType = CONDITION_BLEEDING,
     duration = 3500, periodicDamage = 12 }
 
-finisher
-  - Dano massivo contra alvos com vida baixa (<20%).
-  - Campos: percentual, magicEffect (opcional), knockback (bool),
-    medoArea (bool), sangramentoArea (bool)
-  - Exemplo: { tipo = "finisher", percentual = 1.5, medoArea = true }
+═══════════════════════════════════════════════════════════════
+TIPOS DE DEFESA
+═══════════════════════════════════════════════════════════════
 
 defesa_cura
   - Recupera vida ao bloquear.
@@ -268,28 +285,93 @@ defesa_contra_ataque
   - Campos: percentual, magicEffect (opcional)
   - Exemplo: { tipo = "defesa_contra_ataque", percentual = 0.3 }
 
+═══════════════════════════════════════════════════════════════
+TIPOS DE ÁREA PERSISTENTE
+═══════════════════════════════════════════════════════════════
+
 field
-  - Cria um campo elemental no chão.
+  - Cria um campo elemental no chão que aplica dano sequencial.
   - Campos: centro ("jogador"|"alvo"), elemento, danoPorTick, duracaoMs,
-    intervaloMs, magicEffect (opcional)
+    intervaloMs, magicEffect (opcional), raio (opcional, padrão 0)
+  - O dano é aplicado sequencialmente (300ms entre alvos) para evitar lag.
+  - O conjurador é SEMPRE imune aos seus próprios campos.
   - Exemplo: { tipo = "field", centro = "alvo", elemento = COMBAT_FIREDAMAGE,
-    danoPorTick = 10, duracaoMs = 5000 }
+    danoPorTick = 10, duracaoMs = 5000, raio = 1 }
+
+═══════════════════════════════════════════════════════════════
+TIPOS DE SINERGIA
+═══════════════════════════════════════════════════════════════
 
 sinergia
-  - Combina múltiplos domínios. Usa os campos 'sinergiaDominios' e
-    'efeitosSecundarios' da habilidade.
+  - Combina múltiplos domínios com efeitos manuais.
+  - Usa os campos 'sinergiaDominios' e 'efeitosSecundarios' da habilidade.
   - Campos: efeitoBase (tipo de efeito a aplicar primeiro), nivelMinSecundario
   - Exemplo: { tipo = "sinergia", efeitoBase = "area_target", nivelMinSecundario = 10 }
 
-rajada
-  - Dispara N projéteis em sequência contra o alvo.
-  - Campos: percentual, numProjeteis, intervaloMs
-  - Exemplo: { tipo = "rajada", percentual = 0.3, numProjeteis = 3, intervaloMs = 250 }
+sinergia_escalonada (NOVO)
+  - Executa efeitos que escalam automaticamente com o nível de afinidade.
+  - Campos:
+    efeitoBase – tipo do efeito base (opcional)
+    efeitoBaseConfig – parâmetros do efeito base
+    efeitosPorDominio – tabela { [domId] = { nivelMin, efeitoConfig, escala (opcional), chance (opcional), escalaChance (opcional) } }
+    efeitoEpico – { efeitoConfig } executado se TODOS os domínios em efeitosPorDominio estiverem em nível 20
+  - A tabela 'escala' mapeia parâmetros do efeitoConfig para multiplicadores de crescimento por nível.
+  - O campo 'chance' (0-100) define uma probabilidade base que aumenta com 'escalaChance' por nível.
+  - Exemplo: ver secção de exemplos no final do documento.
 
-corrente
-  - Liga dois alvos, causando dano ao secundário.
-  - Campos: percentual, raio, magicEffect (opcional)
-  - Exemplo: { tipo = "corrente", percentual = 0.4, raio = 2 }
+═══════════════════════════════════════════════════════════════
+TIPOS TEMPORAIS (EFEITOS PERSISTENTES NO TEMPO) – NOVOS
+═══════════════════════════════════════════════════════════════
+
+Estes efeitos criam eventos repetidos ao longo do tempo. O executor
+impõe um limite de 2 efeitos temporais activos por jogador para
+garantir performance (MAX_TEMP_EFFECTS = 2).
+
+storm
+  - Tempestade: atinge um inimigo aleatório na área a cada intervaloMs.
+  - Campos: centro ("jogador"|"alvo"), raio, elemento, danoPorTick,
+    intervaloMs, duracaoMs, magicEffect (opcional)
+  - Exemplo: { tipo = "storm", centro = "alvo", raio = 3,
+    elemento = COMBAT_ENERGYDAMAGE, danoPorTick = 25, intervaloMs = 450,
+    duracaoMs = 3600 }
+
+orbit
+  - Órbita: esferas que orbitam o jogador e causam dano a inimigos próximos.
+  - Campos: numEsferas, raio, elemento, danoPorTick, intervaloMs,
+    duracaoMs, magicEffect (opcional)
+  - Exemplo: { tipo = "orbit", numEsferas = 3, raio = 2,
+    elemento = COMBAT_FIREDAMAGE, danoPorTick = 15, intervaloMs = 600,
+    duracaoMs = 5000 }
+
+rain
+  - Chuva: projéteis caem aleatoriamente na área em intervalos regulares.
+  - Campos: centro ("jogador"|"alvo"), raio, elemento, danoPorTick,
+    intervaloMs, duracaoMs, magicEffect (opcional)
+  - Exemplo: { tipo = "rain", centro = "alvo", raio = 3,
+    elemento = COMBAT_FIREDAMAGE, danoPorTick = 20, intervaloMs = 300,
+    duracaoMs = 4000 }
+
+pulse
+  - Pulso: ondas de energia que se expandem periodicamente.
+  - Campos: raioMax, elemento, danoPorPulso, intervaloMs, numPulsos,
+    magicEffect (opcional)
+  - Exemplo: { tipo = "pulse", raioMax = 3, elemento = COMBAT_HOLYDAMAGE,
+    danoPorPulso = 30, intervaloMs = 800, numPulsos = 5 }
+
+trap
+  - Armadilha tática: marca no chão que detona quando um inimigo pisa.
+  - Campos: centro ("alvo"|"jogador"|"entre"|"fuga"|"aleatorio"),
+    duracaoMs, primeDelayMs (tempo até armar), elemento, dano, raio,
+    magicEffect (explosão), markEffect (marcador visual),
+    condicao (opcional), condDuration (opcional), periodicDamage (opcional)
+  - Centros especiais:
+    "entre" – a meio caminho entre jogador e alvo (defensivo)
+    "fuga" – atrás do alvo, na direcção oposta ao jogador (corta retirada)
+    "aleatorio" – posição aleatória ao redor do alvo
+  - Exemplo: { tipo = "trap", centro = "entre", duracaoMs = 8000,
+    primeDelayMs = 1000, elemento = COMBAT_ENERGYDAMAGE, dano = 60, raio = 2,
+    markEffect = CONST_ME_MAGIC_BLUE, condicao = CONDITION_PARALYZE,
+    condDuration = 2500 }
 
 ================================================================================
 🎯 CAMPOS CONDICIONAIS (gatilho)
@@ -311,27 +393,27 @@ prioridade
       escolhidas primeiro pelo motor inteligente.
 
 categoria
-  [C] Categoria da habilidade:
-      "single"       – dano directo elevado.
-      "aoe"          – atinge múltiplos alvos.
-      "debuff"       – aplica condição negativa.
-      "buff"         – melhora o próprio jogador.
-      "defense"      – cura, escudo, redução de dano.
+  [C] Categoria da habilidade. Usada pelo sistema de limites de execução
+      e pelos scores contextuais:
+      "single"       – dano directo elevado (limite: 3 a cada 10s).
+      "aoe"          – atinge múltiplos alvos (limite: 2 a cada 10s).
+      "debuff"       – aplica condição negativa (limite: 2 a cada 10s).
+      "buff"         – melhora o próprio jogador (limite: 2 a cada 10s).
+      "defense"      – cura, escudo, redução de dano (limite: 2 a cada 10s).
       "chi_spender"  – consome Chi (requer chiCusto definido).
-      "finisher"     – efeito extra quando alvo está com vida baixa.
-      "sinergia"     – habilidade que escala com múltiplos domínios.
+      "finisher"     – efeito extra quando alvo está com vida baixa (limite: 1 a cada 10s).
+      "sinergia"     – habilidade que escala com múltiplos domínios (limite: 2 a cada 10s).
       "condicao"     – especializada em aplicar uma condição prolongada.
+
+      Se a categoria não for definida, o sistema assume "single" como
+      fallback. Isto garante que mesmo habilidades antigas sejam limitadas.
 
 ================================================================================
 🔧 CAMPOS OPCIONAIS
 ================================================================================
 
-⚠️ buffType e todos os campos associados (buffMultiplier, buffDurationMs,
-conditionType, conditionDuration, conditionDamage, percentExtra, buffHits,
-leechPercent, durationSec) foram removidos do executor. Não devem ser
-usados em novas habilidades. Para efeitos equivalentes, utiliza os tipos
-de efeitoConfig correspondentes (buff_speed, buff_damage, life_leech,
-next_condition, etc.).
+⚠️ buffType e todos os campos associados foram removidos do executor.
+Não devem ser usados em novas habilidades.
 
 condicao
   [OP] Condição especial para activar:
@@ -345,28 +427,44 @@ condicao
        "inimigosProximos"– pelo menos 1 inimigo num raio de 2 tiles do jogador.
        "alvoIsolado"     – alvo sem outros inimigos num raio de 2 tiles.
        "aposEsquiva"     – activada após o jogador esquivar.
+       "alvoProximo"     – alvo a no máximo X tiles (usar com condicaoDist).
+
+condicaoDist
+  [OP] Distância máxima para a condição "alvoProximo" (padrão: 3).
 
 condicaoFocoMin
   [OP] Condição mínima de foco (0‑100). A habilidade só pode ser usada se a
        barra de foco do domínio principal estiver ≥ este valor.
-       Exemplo: 75 = só com a barra ≥ 75% (quase a formar Vínculo).
-       Se omitido, a habilidade pode ser usada com qualquer nível de foco.
+       Distribuição típica: básicas 0%, condições 25%, área 50%,
+       knockback 75%, finisher 90%.
 
 conditionMagicEffect
-  [OP] Efeito visual a ser usado quando uma condição é aplicada ao alvo.
-       Aplica‑se aos tipos "condicao", "area_ground" e "area_target" quando
-       o campo 'condicao' está presente.
+  [OP] Efeito visual quando uma condição é aplicada ao alvo.
+       Aplica‑se aos tipos "condicao", "area_ground", "area_target",
+       "storm" (se tiver condicao), "trap" (se tiver condicao).
        Se omitido, o motor usa o valor de 'magicEffect' (ou o fallback elemental).
-       Usar constantes CONST_ME_*.
   Exemplo: conditionMagicEffect = CONST_ME_GREEN_RINGS
+
+escala
+  [OP] Usado exclusivamente em sinergia_escalonada. Tabela que mapeia
+       parâmetros do efeitoConfig para multiplicadores de crescimento.
+       Exemplo: escala = { duration = 200, periodicDamage = 1 }
+       → a cada nível, duration aumenta 200ms e periodicDamage +1.
+
+chance
+  [OP] Usado em sinergia_escalonada. Probabilidade base (0‑100) de o
+       efeito do domínio ser executado. Exemplo: chance = 25.
+
+escalaChance
+  [OP] Usado em sinergia_escalonada. Aumento percentual por nível.
+       Exemplo: escalaChance = 1 → +1% de chance por nível.
 
 chiCusto
   [OP] Custo de Chi. Só para habilidades do caminho Artes Marciais.
 
 efeitoVisual
   [OP] Função para efeitos visuais (projécteis, magias no alvo).
-       Executada sempre que a habilidade é activada (excepto se
-       houver mais de 1 execução no mesmo ciclo – anti‑lag).
+       Suprimida se já houver mais de 1 execução no mesmo ciclo (anti‑lag).
 
 posturaMod
   [OP] Modificadores por postura.
@@ -375,104 +473,49 @@ posturaMod
                   [3] = { chanceMult = 0.6 } }
 
 async
-  [OP] Se true, o lock (STORAGE.HABILIDADE_LOCK) é gerido manualmente
-       na função efeito. Útil para addEvent assíncronos.
+  [OP] Se true, o lock é gerido manualmente na função efeito.
 
 sinergiaDominios
   [OP] Lista de domínios adicionais exigidos para sinergia.
-       Exemplo: {23, 24, 25, 200} para uma tempestade elemental que escala
-       com todas as especialidades de Elementos.
 
 efeitosSecundarios
-  [OP] Tabela de efeitos secundários indexados por domínio.
-       Cada entrada é uma função(player, target, damage) chamada se o
-       jogador tiver afinidade suficiente (ex.: nível ≥ 10) no domínio.
+  [OP] Tabela de efeitos secundários indexados por domínio (funções manuais).
+       Preterido em favor de sinergia_escalonada para novas habilidades.
 
 desfazer
   [OP] Função para desfazer o efeito de uma transformação.
-       Chamada por atualizarTransformacoes quando o estado de alma termina.
-       Parâmetros: (player)
+
+markEffect
+  [OP] Usado exclusivamente em "trap". Efeito visual do marcador enquanto
+       a armadilha está armada. Exemplo: markEffect = CONST_ME_MAGIC_BLUE
+
+primeDelayMs
+  [OP] Usado em "trap". Tempo em ms até a armadilha armar (padrão: 1000).
 
 ================================================================================
 📦 PACOTES TEMÁTICOS (CATÁLOGO)
 ================================================================================
 
-Cada habilidade pertence a um ou mais pacotes. Os pacotes definem a mecânica
-e o feedback visual da habilidade.
-
-1. Dano em Área (Ground)
-   - Explosão centrada num ponto fixo (chão sob o alvo ou o jogador).
-   - Efeitos visuais: CONST_ME_GROUNDSHAKER, CONST_ME_FIREAREA, etc.
-   - Por omissão, não cria fields.
-
-2. Dano em Área (Alvo)
-   - Explosão centrada numa criatura alvo. Acompanha o alvo.
-   - Efeitos visuais: CONST_ME_FIREAREA, CONST_ME_ENERGYAREA, etc.
-
-3. Ricochete
-   - Projétil que salta do alvo principal para secundários.
-   - Efeitos visuais: projétil (CONST_ANI_*) + sendDistanceEffect entre alvos.
-
-4. Corrente / Ligação
-   - Liga dois ou mais inimigos. Dano replicado ou puxão.
-   - Efeitos visuais: CONST_ME_ENERGYHIT entre os alvos ligados.
-
-5. Knockback / Deslocamento
-   - Empurra, puxa ou arremessa o alvo.
-   - Efeitos visuais: CONST_ME_HITAREA + empurrarAlvo().
-
-6. Condição (Debuff)
-   - Aplica condição negativa (sangramento, atordoamento, paralisia, veneno,
-     medo, queimadura).
-   - Efeitos visuais: CONST_ME_DRAWBLOOD, CONST_ME_STUN, etc.
-
-7. Buff Pessoal
-   - Aumenta velocidade de ataque, dano, regeneração, ou concede furtividade.
-   - Efeitos visuais: CONST_ME_MAGIC_RED, CONST_ME_MAGIC_BLUE, CONST_ME_POFF.
-
-8. Defesa / Contra‑ataque
-   - Bloqueia e retalia, reduz dano recebido, recupera vida/mana.
-   - Efeitos visuais: CONST_ME_HITAREA, CONST_ME_MAGIC_BLUE.
-
-9. Transformação
-   - Altera o estado do jogador durante Lampejo, Vínculo ou Maestria.
-   - Efeitos visuais: CONST_ME_MAGIC_RED, CONST_ME_MAGIC_BLUE.
-
-10. Execução (Finisher)
-    - Dano massivo contra alvos com vida baixa (<20%).
-    - Efeitos visuais: CONST_ME_DRAWBLOOD, CONST_ME_MORTAREA.
-
-11. Sinergia Elemental
-    - Habilidade que escala com o elemento da arma (elementalBond).
-    - Já implementado via armaCompativeis no executor.
-
-12. Sinergia de Domínios
-    - Habilidade que verifica afinidade em múltiplos domínios.
-    - Usar campo sinergiaDominios e efeitosSecundarios.
-
-13. Fields (Campos Elementais)
-    - Criam campos no chão que causam dano/efeitos a cada tick.
-    - Intensidade escala com o nível de afinidade do conjurador.
-    - O conjurador é sempre imune. Com Maestria elemental (nível 20),
-      o grupo também fica imune.
-    - Tipos de field:
-      | Elemento      | Domínio | Efeito do Field                |
-      |---------------|---------|--------------------------------|
-      | Fogo          | 23      | Queimadura                     |
-      | Energia       | 26      | Mini‑paralisia                 |
-      | Gelo          | 24      | Lentidão                       |
-      | Água          | 24      | Redução de velocidade de ataque|
-      | Terra         | 25      | Knockdown (empurrão)           |
-      | Veneno        | 25      | Veneno                         |
-      | Sagrado       | 200     | Cura aliados, dano a mortos‑vivos|
-      | Morte         | 200     | Dreno de vida                  |
-
-14. Movimento (Velocidade de deslocamento)
-    - Aumenta a velocidade de movimento do jogador.
-    - Implementado via passivas com efeito vazio, geridas pela função
-      central recalcularVelocidade().
-    - Exemplos: "Passos Ágeis" (Espadas Leves), "Investida" (Machados).
-    - Percentuais devem ser pequenos para não desbalancear.
+1. Dano em Área (Ground) – Explosão centrada no chão.
+2. Dano em Área (Alvo) – Explosão centrada numa criatura.
+3. Ricochete – Projétil que salta entre inimigos.
+4. Corrente / Ligação – Liga dois ou mais inimigos.
+5. Knockback / Deslocamento – Empurra, puxa ou arremessa.
+6. Condição (Debuff) – Aplica condição negativa.
+7. Buff Pessoal – Aumenta velocidade, dano, regeneração.
+8. Defesa / Contra‑ataque – Bloqueia e retalia.
+9. Transformação – Altera o estado do jogador.
+10. Execução (Finisher) – Dano massivo contra alvos com vida baixa.
+11. Sinergia Elemental – Escala com o elemento da arma.
+12. Sinergia de Domínios – Escala com afinidade em múltiplos domínios.
+13. Fields (Campos Elementais) – Dano contínuo no chão.
+14. Movimento – Velocidade de deslocamento (passivas centrais).
+15. Tempestade (storm) – Dano aleatório em área ao longo do tempo.
+16. Órbita (orbit) – Esferas que orbitam o jogador.
+17. Chuva (rain) – Projéteis caindo aleatoriamente em área.
+18. Pulso (pulse) – Ondas de dano expansivas periódicas.
+19. Armadilha (trap) – Marca no chão que detona reactivamente.
+20. Sinergia Escalonada – Efeitos que crescem com o nível do domínio.
 
 ================================================================================
 📋 CONDIÇÕES DE ACTIVAÇÃO DISPONÍVEIS
@@ -488,213 +531,29 @@ e o feedback visual da habilidade.
 "inimigosProximos"– pelo menos 1 inimigo num raio de 2 tiles do jogador.
 "alvoIsolado"     – alvo sem outros inimigos num raio de 2 tiles.
 "aposEsquiva"     – activada após o jogador esquivar.
-
-Regras de atribuição:
-- Habilidades ofensivas ranged NUNCA usam "cercado".
-- Habilidades ofensivas corpo‑a‑corpo podem usar "cercado" se forem de área.
-- Habilidades defensivas usam "cercado", "inimigosProximos", ou "vidaBaixa"
-  (do jogador, verificada no efeito).
+"alvoProximo"     – alvo a no máximo X tiles (define X com condicaoDist).
 
 ================================================================================
-🧩 FUNÇÕES AUXILIARES DISPONÍVEIS (funcoes_habilidade.lua v2.0.2)
+📊 EXEMPLOS DE HABILIDADES (formato modular v4.7)
 ================================================================================
 
-dispararProjetil(player, target, danoBase, extraPercent)
-  Dispara um projétil elemental com dano proporcional.
-
-dispararRajada(player, target, danoBase, extraPercent, numProjeteis, intervaloMs)
-  Dispara N projéteis em sequência (intervalo mínimo 250ms).
-
-explosaoElementalArea(player, target, danoBase, extraPercent, raio)
-  Explosão elemental ao redor do alvo.
-
-danoElemental(player, target, dano, efeitoOpcional)
-  Aplica dano com o elemento da arma.
-
-golpeCorpoACorpo(player, target, dano, efeito)
-  Aplica dano físico com efeito visual no alvo (melee).
-
-empurrarAlvo(player, target)
-  Empurra o alvo na direção oposta.
-
-criarField(player, posicao, elemento, danoPorTick, duracaoMs, intervaloMs, efeitoVisual)
-  Cria um campo elemental no chão.
-
-afetarArea(player, posicao, raio, danoBase, extraPercentDano, curaBase, extraPercentCura, curarAliados)
-  Dano a inimigos e cura a aliados numa área.
-
-ligarAlvos(player, alvo1, alvo2, danoBase, extraPercent, efeitoVisual)
-  Liga dois alvos com efeito visual e dano.
-
-aplicarCondicaoArea(player, posicao, raio, condType, duration, damagePerTick)
-  Aplica condição a todos os inimigos numa área.
-
-getElementalProjectile(player)
-  Retorna projétil visual, efeito mágico e tipo de dano com base na arma
-  e munição equipadas.
-
-================================================================================
-🌈 CORES DISPONÍVEIS PARA FEEDBACK (COR v10.0)
-================================================================================
-
-CONDIÇÕES E EFEITOS (COR.COND_*):
-  COR.COND_SANGRAMENTO   – sangramento, hemorragia
-  COR.COND_VENENO        – veneno, toxina
-  COR.COND_ATORDOADO     – atordoamento, confusão
-  COR.COND_MEDO          – medo, pânico
-  COR.COND_PARALISIA     – paralisia, imobilidade
-  COR.COND_QUEIMADURA    – fogo, queimadura
-
-ACÇÕES FÍSICAS (COR.ACAO_*):
-  COR.ACAO_KNOCKBACK     – empurrão, arremesso
-  COR.ACAO_BLOQUEIO      – bloqueio, defesa
-  COR.ACAO_CRITICO       – crítico, dano massivo
-
-SUCESSO / CURA:
-  COR.SUCESSO_CURA       – cura, vida restaurada
-
-INIMIGOS:
-  COR.INIMIGO_MONSTRO    – nome do alvo
-
-DANO:
-  COR.DANO_CRITICO       – dano massivo, golpe final
-
-================================================================================
-🎨 EFEITOS VISUAIS NATIVOS DISPONÍVEIS
-================================================================================
-
-Efeitos mágicos (CONST_ME_*):
-  CONST_ME_FIREAREA, CONST_ME_FIREATTACK, CONST_ME_ICEAREA
-  CONST_ME_ENERGYAREA, CONST_ME_ENERGYHIT
-  CONST_ME_GROUNDSHAKER, CONST_ME_MORTAREA, CONST_ME_HOLYAREA
-  CONST_ME_DRAWBLOOD, CONST_ME_HITAREA, CONST_ME_STUN
-  CONST_ME_MAGIC_BLUE, CONST_ME_MAGIC_GREEN, CONST_ME_MAGIC_RED
-  CONST_ME_BIGCLOUDS, CONST_ME_SOUND_RED, CONST_ME_SOUND_YELLOW
-  CONST_ME_TELEPORT, CONST_ME_POFF
-
-Projéteis (CONST_ANI_*):
-  CONST_ANI_FIRE, CONST_ANI_ICE, CONST_ANI_ENERGY, CONST_ANI_DEATH
-  CONST_ANI_HOLY, CONST_ANI_ARROW, CONST_ANI_BOLT
-  CONST_ANI_THROWINGSTAR, CONST_ANI_WHIRLWINDSWORD
-  CONST_ANI_WHIRLWINDAXE, CONST_ANI_WHIRLWINDCLUB
-
-================================================================================
-📐 REGRAS GERAIS PARA TODAS AS HABILIDADES
-================================================================================
-
-1. ESCALONAMENTO COM O DOMÍNIO:
-   Toda habilidade deve escalar com o nível do domínio. Usa
-   getNivelEfetivo() (recomendado) para obter o nível real considerando
-   a regra de maestria dos filhos, ou getNivelPorAfinidade() para o nível
-   bruto. Aplica o nível nas fórmulas de dano, duração, etc.
-
-2. INFLUÊNCIA DA POSTURA:
-   O comportamento pode mudar por postura. As mensagens já são separadas
-   por postura.
-
-3. HABILIDADES APRENDIDAS ANTES DO NÍVEL:
-   Se desbloqueada por quest/NPC antes do nível mínimo, o efeito usa
-   valores base (nível 1).
-
-4. ÁRVORE I‑IV OBRIGATÓRIA:
-   Aplica‑se a todas as hierarquias, com adaptações:
-   - Especialidades: I (nível 5, passiva de identidade), II (nível 10,
-     passiva de expansão), III (nível 15, gatilho de assinatura),
-     IV (nível 20, passiva de Maestria com ensino ao irmão).
-   - Secundários: As passivas I e II devem ter sinergia com os filhos.
-     A III é um gatilho de sinergia. A IV concede a Síntese Superior.
-   - Primários: I a IV focadas em passivas de atributo e sinergias de topo.
-   Consulte o Documento de Personalidade e Identidade de Domínios e o
-   Guia de Criação de Habilidades para os perfis completos.
-
-5. ENSINO ENTRE DOMÍNIOS IRMÃOS:
-   Na passiva IV, ensinar a habilidade III ao domínio irmão usando
-   aprenderHabilidade(p, HAB_IRMA_III).
-
-6. PROJÉTEIS (HABILIDADES DE DISTÂNCIA):
-   Usa getElementalProjectile(player) para obter projétil, efeito e elemento.
-   Para múltiplos projéteis, addEvent com intervalo >= 250ms.
-
-7. HABILIDADES CORPO‑A‑CORPO:
-   Usa golpeCorpoACorpo(player, target, dano, efeito). Para múltiplos golpes,
-   addEvent com intervalo. NUNCA usar sendDistanceEffect para corpo‑a‑corpo
-   a menos que seja um projétil real.
-
-8. FEEDBACK NARRATIVO (PADRÃO OFICIAL v3.3):
-   Ver secção própria acima.
-
-9. CHI:
-   Habilidades com chiCusto > 0 são automaticamente validadas pelo executor.
-
-10. NUNCA USAR getArmor() EM CRIATURAS:
-    Usar dano percentual extra baseado no nível do domínio.
-
-11. PASSIVAS AUTO‑SUFICIENTES:
-    - Passivas que afectam vida, mana ou velocidade de movimento devem ter
-      o campo 'efeito' vazio e serem geridas pelas funções centrais
-      recalcularVidaMana() e recalcularVelocidade().
-    - Outras passivas usam setCombatModifier ou Conditions
-      (CONDITION_ATTRIBUTES) para aplicar bónus reais directamente.
-
-12. TRANSFORMAÇÕES COM DESFAZER:
-    O campo 'efeito' aplica o bónus. O campo 'desfazer' (opcional) reverte‑o.
-
-13. FIELDS (CAMPOS ELEMENTAIS):
-    - Apenas habilidades específicas (geralmente ligadas a transformações
-      de Maestria) criam fields.
-    - O conjurador é SEMPRE imune aos seus próprios fields.
-    - Com a transformação de Maestria adequada, o grupo também fica imune.
-
-================================================================================
-📊 EXEMPLO DE UMA HABILIDADE COMPLETA (formato modular v4.6)
-================================================================================
-
+-- Exemplo 1: Gatilho simples com fallback automático de efeito visual
 HABILIDADES[10010] = {
-    -- Obrigatórios
     nome = "Estocada",
     tipo = "gatilho",
     dominio = {100},
     nivelMin = 6,
     descricaoEfeito = "dano extra perfurante",
     cor = COR.DOM_COMBATE_LAMINAS,
-    mensagem = {
-        [1] = {
-            function(p, t)
-                return c("[Estocada] ", COR.DOM_COMBATE_LAMINAS)
-                    .. "Uma estocada rápida atinge "
-                    .. c(t:getName(), COR.INIMIGO_MONSTRO) .. "!"
-            end
-        },
-        [2] = {
-            function(p, t)
-                return c("[Estocada] ", COR.DOM_COMBATE_LAMINAS)
-                    .. "Com técnica, perfuras "
-                    .. c(t:getName(), COR.INIMIGO_MONSTRO) .. "."
-            end
-        },
-        [3] = {
-            function(p, t)
-                return c("[Estocada] ", COR.DOM_COMBATE_LAMINAS)
-                    .. "Da guarda, lanças uma estocada contra "
-                    .. c(t:getName(), COR.INIMIGO_MONSTRO) .. "."
-            end
-        }
-    },
-
-    -- Configuração do efeito (obrigatório para gatilhos)
     efeitoConfig = {
         tipo = "dano_extra",
-        percentual = 0.25,
-        magicEffect = CONST_ME_DRAWBLOOD  -- opcional; motor faria fallback se omitido
+        percentual = 0.25
+        -- magicEffect omitido → motor usa CONST_ME_DRAWBLOOD (fallback físico)
     },
-
-    -- Condicionais
     gatilho = "onAttack",
     cooldown = 8,
     prioridade = 6,
     categoria = "single",
-
-    -- Opcionais
     posturaMod = {
         [1] = { chanceMult = 1.3 },
         [2] = { chanceMult = 1.0 },
@@ -702,7 +561,7 @@ HABILIDADES[10010] = {
     }
 }
 
--- Exemplo de habilidade de área com condição e efeito visual de condição separado
+-- Exemplo 2: Área com condição e efeito visual de condição separado
 HABILIDADES[10015] = {
     nome = "Golpe em Arco",
     tipo = "gatilho",
@@ -710,8 +569,6 @@ HABILIDADES[10015] = {
     nivelMin = 9,
     descricaoEfeito = "dano em área ao redor do jogador",
     cor = COR.DOM_COMBATE_LAMINAS,
-    -- Sem campo 'mensagem' – a Narrativa gera automaticamente
-
     efeitoConfig = {
         tipo = "area_ground",
         centro = "jogador",
@@ -721,31 +578,177 @@ HABILIDADES[10015] = {
         condicao = CONDITION_BLEEDING,
         condDuration = 3000,
         periodicDamage = 8,
-        conditionMagicEffect = CONST_ME_DRAWBLOOD  -- efeito visual da condição
+        conditionMagicEffect = CONST_ME_DRAWBLOOD
     },
-
     gatilho = "onAttack",
     cooldown = 14,
     prioridade = 7,
     categoria = "aoe",
-    condicao = "cercado",
-
-    posturaMod = {
-        [1] = { chanceMult = 1.3 },
-        [2] = { chanceMult = 1.0 },
-        [3] = { chanceMult = 0.8 }
-    }
+    condicao = "cercado"
 }
 
--- Exemplo de passiva de velocidade (efeito vazio)
+-- Exemplo 3: Passiva de velocidade (efeito vazio, gestão central)
 HABILIDADES[10005] = {
     nome = "Passos Ágeis",
     tipo = "passiva",
     dominio = {100},
     nivelMin = 8,
-    descricaoEfeito = "Aumenta a velocidade de movimento em 2% por nível de Espadas Leves.",
+    descricaoEfeito = "Aumenta a velocidade de movimento em 2% por nível.",
     cor = COR.DOM_COMBATE_LAMINAS,
     efeito = function(player) end  -- gerido por recalcularVelocidade
+}
+
+-- Exemplo 4: Sinergia escalonada (efeitos que crescem com níveis)
+HABILIDADES[125] = {
+    nome = "Fúria Elemental",
+    tipo = "gatilho",
+    dominio = {1},
+    nivelMin = 18,
+    descricaoEfeito = "Descarrega o poder dos elementos. Escala com cada um.",
+    cor = COR.DOM_MAGIA_RUNOLOGIA,
+    efeitoConfig = {
+        tipo = "sinergia_escalonada",
+        efeitoBase = "dano_extra",
+        efeitoBaseConfig = { percentual = 0.5 },
+        efeitosPorDominio = {
+            [23] = {  -- Fogo
+                nivelMin = 10,
+                efeitoConfig = { tipo = "condicao", conditionType = CONDITION_FIRE, duration = 2000, periodicDamage = 10 },
+                escala = { duration = 150, periodicDamage = 1 }
+            },
+            [24] = {  -- Gelo
+                nivelMin = 10,
+                efeitoConfig = { tipo = "condicao", conditionType = CONDITION_PARALYZE, duration = 1500 },
+                escala = { duration = 100 }
+            },
+            [26] = {  -- Energia (com chance)
+                nivelMin = 10,
+                efeitoConfig = { tipo = "dano_extra", percentual = 0.3 },
+                escala = { percentual = 0.02 },
+                chance = 25,
+                escalaChance = 1
+            }
+        },
+        efeitoEpico = {
+            efeitoConfig = {
+                tipo = "area_target",
+                percentual = 1.2,
+                areaPercentual = 0.7,
+                raio = 3,
+                magicEffect = CONST_ME_BIGCLOUDS,
+                knockback = true
+            }
+        }
+    },
+    gatilho = "onAttack",
+    cooldown = 30,
+    prioridade = 10,
+    categoria = "sinergia",
+    condicaoFocoMin = 80
+}
+
+-- Exemplo 5: Armadilha tática (defensiva, entre jogador e alvo)
+HABILIDADES[90080] = {
+    nome = "Armadilha de Retenção",
+    tipo = "gatilho",
+    dominio = {2},
+    nivelMin = 10,
+    descricaoEfeito = "Coloca uma armadilha entre ti e o alvo que paralisa quem pisar.",
+    cor = COR.DOM_MAGIA_RUNOLOGIA,
+    efeitoConfig = {
+        tipo = "trap",
+        centro = "entre",
+        duracaoMs = 8000,
+        primeDelayMs = 1000,
+        elemento = COMBAT_ICEDAMAGE,
+        dano = 40,
+        raio = 1,
+        magicEffect = CONST_ME_ICEAREA,
+        markEffect = CONST_ME_ICEATTACK,
+        condicao = CONDITION_PARALYZE,
+        condDuration = 2500
+    },
+    gatilho = "onAttack",
+    cooldown = 15,
+    prioridade = 6,
+    categoria = "aoe",
+    condicaoFocoMin = 25
+}
+
+-- Exemplo 6: Tempestade de raios (storm)
+HABILIDADES[90020] = {
+    nome = "Tempestade de Raios",
+    tipo = "gatilho",
+    dominio = {26},
+    nivelMin = 15,
+    descricaoEfeito = "Invoca uma tempestade elétrica por 3.6s.",
+    cor = COR.ELEM_RAIO,
+    efeitoConfig = {
+        tipo = "storm",
+        centro = "alvo",
+        raio = 3,
+        elemento = COMBAT_ENERGYDAMAGE,
+        danoPorTick = 25,
+        intervaloMs = 450,
+        duracaoMs = 3600
+        -- magicEffect omitido → motor usa CONST_ME_ENERGYHIT (fallback de energia)
+    },
+    gatilho = "onAttack",
+    cooldown = 22,
+    prioridade = 8,
+    categoria = "aoe",
+    condicaoFocoMin = 55
+}
+
+-- Exemplo 7: Órbita de lâminas
+HABILIDADES[90003] = {
+    nome = "Dança das Lâminas",
+    tipo = "gatilho",
+    dominio = {100},
+    nivelMin = 16,
+    descricaoEfeito = "Lâminas orbitam ao teu redor por 4s.",
+    cor = COR.DOM_COMBATE_LAMINAS,
+    efeitoConfig = {
+        tipo = "orbit",
+        numEsferas = 4,
+        raio = 2,
+        elemento = COMBAT_PHYSICALDAMAGE,
+        danoPorTick = 12,
+        intervaloMs = 500,
+        duracaoMs = 4000,
+        magicEffect = CONST_ME_WHIRLWINDSWORD
+    },
+    gatilho = "onAttack",
+    cooldown = 25,
+    prioridade = 7,
+    categoria = "aoe",
+    condicao = "cercado",
+    condicaoFocoMin = 60
+}
+
+-- Exemplo 8: Pulso sagrado
+HABILIDADES[90090] = {
+    nome = "Pulso Sagrado",
+    tipo = "gatilho",
+    dominio = {200},
+    nivelMin = 14,
+    descricaoEfeito = "Emite 5 pulsos de energia sagrada.",
+    cor = COR.ELEM_SAGRADO,
+    efeitoConfig = {
+        tipo = "pulse",
+        raioMax = 3,
+        elemento = COMBAT_HOLYDAMAGE,
+        danoPorPulso = 30,
+        intervaloMs = 800,
+        numPulsos = 5,
+        magicEffect = CONST_ME_HOLYAREA
+    },
+    gatilho = "onAttack",
+    cooldown = 22,
+    prioridade = 7,
+    categoria = "aoe",
+    condicao = "cercado",
+    condicaoFocoMin = 50
 }
 
 ================================================================================
@@ -763,11 +766,14 @@ HABILIDADES[10005] = {
 - Feedback segue o PADRÃO OFICIAL LIMPO v3.3.
 - Para habilidades de gatilho, usa SEMPRE 'efeitoConfig'. O campo 'efeito'
   manual está reservado exclusivamente para passivas e transformações.
-- Passivas de vida, mana e velocidade devem ter 'efeito' vazio e serem
-  processadas pelas funções centrais recalcularVidaMana e recalcularVelocidade.
-- O campo 'magicEffect' é opcional em todos os tipos de efeito; o motor
-  usa um fallback automático baseado no elemento da arma.
+- Passivas de vida, mana e velocidade devem ter 'efeito' vazio.
+- O campo 'magicEffect' é opcional em todos os tipos de efeito.
 - O campo 'conditionMagicEffect' permite personalizar o efeito visual
   da aplicação de condições.
+- Novas habilidades devem definir SEMPRE o campo 'categoria' para se
+  beneficiarem do sistema de limites de execução.
+- Habilidades temporais (storm, orbit, rain, pulse, trap) estão limitadas
+  a 2 activas por jogador; se o limite for excedido, a habilidade entra
+  em cooldown mas não cria o efeito.
 
-FIM DO HABILIDADE GABARITO — VERSÃO 4.6
+FIM DO HABILIDADE GABARITO — VERSÃO 4.7
