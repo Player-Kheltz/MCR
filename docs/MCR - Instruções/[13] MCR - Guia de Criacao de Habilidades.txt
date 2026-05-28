@@ -5,13 +5,14 @@ Arquivo: [13] MCR - Guia de Criacao de Habilidades.txt
 🎯 OBJECTIVO DESTE GUIA
 Este documento é a autoridade máxima sobre como criar, organizar e manter as
 habilidades do Sistema de Progressão do Aventureiro (SPA). Define a filosofia
-de design, a estrutura de 35+ habilidades por domínio, os pacotes temáticos, as
-regras de feedback narrativo limpo, as directrizes de implementação e o processo
-de geração. A versão 2.0 consolida a arquitectura modular com a gestão centralizada
-de atributos vitais (vida, mana, velocidade), elimina por completo o sistema legado
-de buffType e incorpora o rácio de propagação de afinidade 4:2:1. Todo o criador
-de conteúdo ou assistente DEVE seguir este guia ao criar ou modificar qualquer
-habilidade.
+de design, a estrutura de habilidades por hierarquia de domínio, os pacotes
+temáticos, as regras de feedback narrativo limpo, as directrizes de implementação
+e o processo de geração. A versão 2.1 consolida a arquitectura modular com a
+gestão centralizada de atributos vitais (vida, mana, velocidade), elimina por
+completo o sistema legado de buffType, incorpora o rácio de propagação de
+afinidade 4:2:1, e introduz o fallback automático de efeitos visuais e o campo
+conditionMagicEffect. Todo o criador de conteúdo ou assistente DEVE seguir este
+guia ao criar ou modificar qualquer habilidade.
 
 📚 1. FILOSOFIA DE DESIGN
 
@@ -21,7 +22,7 @@ genéricas — são a expressão da sua personalidade. Para garantir isso:
 - Cada domínio tem 3 adjectivos-chave e uma frase de assinatura que definem
   o seu tom narrativo (ex.: Fogo — explosivo, consumidor, imparável).
 - Nenhuma habilidade é placeholder. Toda a lógica é real e usa o motor modular
-  (motor_habilidades.lua) ou as funções auxiliares (funcoes_habilidade.lua v2.0.2).
+  (motor_habilidades.lua v1.2) ou as funções auxiliares (funcoes_habilidade.lua v2.0.2).
 - A progressão é visível e narrativa, não apenas numérica. O feedback no chat
   segue o padrão limpo v3.3, gerido pelo módulo de narrativa (narrativa_habilidades.lua).
 - A barra de foco determina a fluidez do combate: com baixa afinidade e barra
@@ -33,21 +34,21 @@ genéricas — são a expressão da sua personalidade. Para garantir isso:
 - As habilidades especiais (knockback, condições, execuções) só desbloqueiam
   quando a barra de foco atinge certos patamares (campo condicaoFocoMin).
 
-🧱 ARQUITETURA MODULAR (v2.0 – consolidada)
+🧱 ARQUITETURA MODULAR (v2.1)
 
 O SPA mantém a separação em três camadas, agora com um reforço na gestão de
 atributos permanentes:
 
-1. **Motor de Habilidades** (`core/motor_habilidades.lua`) – contém toda a lógica
-   de execução para habilidades de gatilho (efeitos, cooldowns, feedback). É
-   mantido uma única vez e não deve ser alterado para adicionar novas habilidades.
-2. **Definições de Habilidades** (`dados/habilidades_*.lua`) – ficheiros que apenas
-   descrevem as habilidades usando parâmetros padronizados (campo `efeitoConfig`
-   para gatilhos; campo `efeito` vazio para passivas de vida/mana/velocidade).
-   Zero lógica manual.
-3. **Narrativa** (`core/narrativa_habilidades.lua`) – ficheiro com todas as frases
-   de feedback, organizadas por tipo de efeito, postura e domínio. O motor consulta
-   este ficheiro para gerar as mensagens.
+1.  **Motor de Habilidades** (`core/motor_habilidades.lua v1.2`) — contém toda a
+    lógica de execução para habilidades de gatilho (efeitos, cooldowns, feedback).
+    É mantido uma única vez e não deve ser alterado para adicionar novas habilidades.
+2.  **Definições de Habilidades** (`dados/habilidades_*.lua`) — ficheiros que apenas
+    descrevem as habilidades usando parâmetros padronizados (campo `efeitoConfig`
+    para gatilhos; campo `efeito` vazio para passivas de vida/mana/velocidade).
+    Zero lógica manual.
+3.  **Narrativa** (`core/narrativa_habilidades.lua`) — ficheiro com todas as frases
+    de feedback, organizadas por tipo de efeito, postura e domínio. O motor consulta
+    este ficheiro para gerar as mensagens.
 
 Adicionalmente, existe uma **camada de gestão centralizada** para atributos
 que são afectados por várias passivas:
@@ -114,8 +115,6 @@ automaticamente nos níveis 5, 10, 15 e 20.
 
 2.3 Distribuição das Categorias (comum a todos)
 
-Cada domínio organiza as suas habilidades nas seguintes categorias:
-
 | Categoria | Descrição |
 |-----------|-----------|
 | **Árvore I-IV** | Passivas de identidade (I, II), gatilho de assinatura (III) e Maestria (IV). |
@@ -127,7 +126,6 @@ Cada domínio organiza as suas habilidades nas seguintes categorias:
 | **Gatilhos de Sinergia** | Habilidades que escalam com afinidade em múltiplos domínios. |
 | **Transformações** | Efeitos para Lampejo, Vínculo, Maestria e um extra especial. |
 | **Traço Inerente** | Progressão temática automática nos níveis 5, 10, 15, 20. |
-
 
 📦 3. PACOTES TEMÁTICOS (CATÁLOGO)
 
@@ -227,7 +225,7 @@ e o feedback visual da habilidade.
 
 ⚔️ 4. ATRIBUIÇÃO DE PACOTES POR DOMÍNIO
 
-Cada domínio recebe 3‑4 pacotes principais que definem a sua personalidade.
+Cada domínio recebe 4‑5 pacotes principais que definem a sua personalidade.
 
 | Domínio                  | Pacotes Principais                                            |
 |--------------------------|---------------------------------------------------------------|
@@ -273,6 +271,7 @@ Devem ser atribuídas de forma coerente com o estilo de combate do domínio.
 | "5Golpes"           | 5 ataques consecutivos com a mesma arma                         | Habilidades de assinatura, combos                 |
 | "inimigosProximos"  | Pelo menos 1 inimigo num raio de 2 tiles do jogador             | Habilidades de defesa ou contra‑ataque            |
 | "alvoIsolado"       | Alvo sem outros inimigos num raio de 2 tiles                    | Habilidades de single‑target puro, duelo          |
+| "alvoProximo"       | Alvo a uma distância máxima personalizada (condicaoDist)        | Habilidades que exigem proximidade configurável   |
 | "aposEsquiva"       | Activada após o jogador esquivar                                | Habilidades de Precisão, Artes Marciais           |
 
 ⚠️ Regras de atribuição:
@@ -280,6 +279,7 @@ Devem ser atribuídas de forma coerente com o estilo de combate do domínio.
 - Habilidades ofensivas corpo‑a‑corpo podem usar "cercado" se forem de área.
 - Habilidades defensivas usam "cercado", "inimigosProximos", ou "vidaBaixa"
   (do jogador, verificada no efeito).
+- A condição "alvoProximo" exige o campo extra `condicaoDist` (número, em tiles).
 
 🆕 condicaoFocoMin
 - Campo opcional (0‑100). A habilidade só pode ser usada se a barra de foco
@@ -347,20 +347,20 @@ HABILIDADES[10010] = {
         magicEffect = CONST_ME_DRAWBLOOD
     }
 }
-
 7.1.1 Fallback Automático de Efeitos Visuais
 
-A partir do motor v1.2, o campo `magicEffect` torna-se **opcional** para
+A partir do motor v1.2, o campo magicEffect torna-se opcional para
 habilidades de gatilho. Se omitido, o motor obtém automaticamente o efeito
-visual adequado a partir da tabela `EFEITOS_ELEMENTAIS`, com base no elemento
+visual adequado a partir da tabela EFEITOS_ELEMENTAIS, com base no elemento
 da arma equipada (ou do dano causado).
 
 Isto significa que, ao criar uma habilidade para o domínio Fogo, não é
-necessário especificar `magicEffect = CONST_ME_FIREAREA` — o motor fará isso
-automaticamente. Basta omitir o campo ou definir como `nil`.
+necessário especificar magicEffect = CONST_ME_FIREAREA — o motor fará isso
+automaticamente. Basta omitir o campo ou definir como nil.
 
-Exemplo de habilidade sem `magicEffect`:
-```lua
+Exemplo de habilidade sem magicEffect:
+
+lua
 HABILIDADES[23099] = {
     nome = "Nova Habilidade de Fogo",
     tipo = "gatilho",
@@ -396,23 +396,6 @@ efeitoConfig = {
     magicEffect = CONST_ME_HITAREA,           -- efeito do dano
     conditionMagicEffect = CONST_ME_GREEN_RINGS  -- efeito da condição
 }
-text
-
----
-
-## 📋 3. Habilidade Gabarito (v4.5)
-
-### Adicionar campo opcional na secção "🔧 CAMPOS OPCIONAIS"
-
-```markdown
-conditionMagicEffect
-  [OP] Efeito visual a ser usado quando a condição é aplicada ao alvo.
-       Aplica‑se aos tipos "condicao", "area_ground" e "area_target" quando
-       o campo 'condicao' está presente.
-       Se omitido, o motor usa o valor de 'magicEffect' (ou o fallback elemental).
-       Usar constantes CONST_ME_*.
-  Exemplo: conditionMagicEffect = CONST_ME_GREEN_RINGS
-
 7.2 Funções Auxiliares (funcoes_habilidade.lua v2.0.2)
 
 As funções auxiliares são usadas exclusivamente pelo motor modular.
@@ -465,10 +448,9 @@ player:setCombatModifier("chave", valor) directamente no campo efeito.
 
 7.5 Transformações com Desfazer
 
-O campo efeito aplica o bónus.
-
-O campo desfazer (opcional) reverte-o. Se não definido, o sistema reverte
-para valores base (ex.: setDamageTakenModifier(1.0)).
+O campo efeito aplica o bónus. O campo desfazer (opcional) reverte-o.
+Se desfazer não for definido, o sistema reverte para valores base
+(ex.: setDamageTakenModifier(1.0)).
 
 7.6 Ensino entre Domínios Irmãos
 
@@ -513,25 +495,25 @@ e termina com a revisão cruzada. O assistente DEVE seguir este fluxo.
 
 8.1 Identidade e Contexto
 
-1.  Consultar o **Documento de Personalidade e Identidade de Domínios**
-    para compreender a filosofia, os adjectivos‑chave e a frase de
-    assinatura do domínio.
-2.  Preencher o questionário de identidade (forças, fraquezas, ambiente,
-    percepção do mundo) para orientar a escolha dos pacotes temáticos.
-3.  Selecionar 3‑4 pacotes principais da tabela de atribuição (secção 4),
-    que definem a personalidade mecânica do domínio.
+Consultar o Documento de Personalidade e Identidade de Domínios
+para compreender a filosofia, os adjectivos‑chave e a frase de
+assinatura do domínio.
+
+Preencher o questionário de identidade (forças, fraquezas, ambiente,
+percepção do mundo) para orientar a escolha dos pacotes temáticos.
+
+Selecionar 4‑5 pacotes principais da tabela de atribuição (secção 4),
+que definem a personalidade mecânica do domínio.
 
 8.2 Seleção do Perfil de Progressão
 
 Identificar a hierarquia do domínio e aplicar o perfil correspondente
 (ver secção 2.1):
 
-| Hierarquia | Exemplo | Foco |
-| :--- | :--- | :--- |
-| Especialidade | Espadas Leves (100) | Ação e perícia |
-| Secundário | Lâminas (10) | Sinergia e integração |
-| Primário | Combate (1) | Plenitude e poder passivo |
-
+Hierarquia	Exemplo	Foco
+Especialidade	Espadas Leves (100)	Ação e perícia
+Secundário	Lâminas (10)	Sinergia e integração
+Primário	Combate (1)	Plenitude e poder passivo
 A distribuição de habilidades deve respeitar EXATAMENTE as quantidades
 definidas para cada perfil. Use a tabela da secção 2.1 como referência.
 
@@ -540,101 +522,123 @@ definidas para cada perfil. Use a tabela da secção 2.1 como referência.
 A árvore interna é obrigatória para todas as hierarquias, mas o conteúdo
 varia conforme o perfil:
 
-- **I (nível 5):** Passiva de identidade — define o traço mais básico do
-  domínio. Para Primários e Secundários, pode ser uma passiva de sinergia
-  que interage com os domínios filhos.
-- **II (nível 10):** Passiva de expansão — reforça a identidade ou adiciona
-  uma nova camada. Para Secundários, é uma passiva de sinergia adicional.
-- **III (nível 15):** Gatilho de assinatura — a habilidade ativa que todo
-  praticante reconhece. Usa 1‑2 pacotes temáticos.
-- **IV (nível 20):** Passiva de Maestria — concede o Vínculo permanente e
-  ensina a habilidade III ao domínio irmão (se aplicável). Para Primários
-  e Secundários, pode incluir a "Síntese Superior", um efeito que combina
-  a essência de todos os filhos.
+I (nível 5): Passiva de identidade — define o traço mais básico do
+domínio. Para Primários e Secundários, pode ser uma passiva de sinergia
+que interage com os domínios filhos.
+
+II (nível 10): Passiva de expansão — reforça a identidade ou adiciona
+uma nova camada. Para Secundários, é uma passiva de sinergia adicional.
+
+III (nível 15): Gatilho de assinatura — a habilidade ativa que todo
+praticante reconhece. Usa 1‑2 pacotes temáticos.
+
+IV (nível 20): Passiva de Maestria — concede o Vínculo permanente e
+ensina a habilidade III ao domínio irmão (se aplicável). Para Primários
+e Secundários, pode incluir a "Síntese Superior", um efeito que combina
+a essência de todos os filhos.
 
 8.4 Distribuição das Habilidades Complementares
 
 Usar as quantidades do perfil selecionado para preencher as categorias:
 
-- **Passivas de Atributo:** Bónus a stats (dano, velocidade, crítico, etc.).
-  As passivas de vida/mana/velocidade devem ter o campo `efeito` vazio e a
-  lógica centralizada nas funções `recalcularVidaMana` e `recalcularVelocidade`.
-- **Passivas de Sinergia:** Interacção com outros domínios (elemental, armas).
-  Para Primários e Secundários, estas são OBRIGATÓRIAS e devem verificar
-  os níveis de afinidade dos filhos.
-- **Gatilhos de Combate:** Dano extra, área, ricochete, rajada, knockback,
-  corrente, finisher. Distribuir pelos pacotes temáticos do domínio.
-- **Gatilhos de Condição:** Aplicar condições alinhadas ao tema (queimadura,
-  sangramento, paralisia, etc.).
-- **Gatilhos de Defesa:** Bloqueio, contra‑ataque, barreira, cura.
-- **Gatilhos de Sinergia:** Habilidades que escalam com afinidade em múltiplos
-  domínios. Para Primários e Secundários, esta é a categoria mais numerosa.
-- **Transformações:** Efeitos para Lampejo, Vínculo, Maestria e um extra.
-- **Traço Inerente:** Definir a progressão temática automática nos níveis
-  5, 10, 15 e 20. Este NÃO ocupa um slot de habilidade.
+Passivas de Atributo: Bónus a stats (dano, velocidade, crítico, etc.).
+As passivas de vida/mana/velocidade devem ter o campo efeito vazio e a
+lógica centralizada nas funções recalcularVidaMana e recalcularVelocidade.
+
+Passivas de Sinergia: Interacção com outros domínios (elemental, armas).
+Para Primários e Secundários, estas são OBRIGATÓRIAS e devem verificar
+os níveis de afinidade dos filhos.
+
+Gatilhos de Combate: Dano extra, área, ricochete, rajada, knockback,
+corrente, finisher. Distribuir pelos pacotes temáticos do domínio.
+
+Gatilhos de Condição: Aplicar condições alinhadas ao tema (queimadura,
+sangramento, paralisia, etc.).
+
+Gatilhos de Defesa: Bloqueio, contra‑ataque, barreira, cura.
+
+Gatilhos de Sinergia: Habilidades que escalam com afinidade em múltiplos
+domínios. Para Primários e Secundários, esta é a categoria mais numerosa.
+
+Transformações: Efeitos para Lampejo, Vínculo, Maestria e um extra.
+
+Traço Inerente: Definir a progressão temática automática nos níveis
+5, 10, 15 e 20. Este NÃO ocupa um slot de habilidade.
 
 8.5 Atribuição de Parâmetros
 
-- **efeitoConfig:** Todas as habilidades de gatilho devem usar o motor
-  modular. Preencher o tipo de efeito e os parâmetros específicos.
-- **condicaoFocoMin:** Atribuir valores conforme a potência da habilidade
-  (básicas 0%, condições 25%, área 50%, knockback 75%, finisher 90%).
-- **condicao:** Atribuir condições de activação (cercado, vidaBaixa, etc.)
-  de forma coerente com o estilo de combate.
-- **cooldown e prioridade:** Ajustar para equilibrar a frequência de uso.
-- **posturaMod:** Opcional — modificar a chance da habilidade por postura.
+efeitoConfig: Todas as habilidades de gatilho devem usar o motor
+modular. Preencher o tipo de efeito e os parâmetros específicos.
+
+condicaoFocoMin: Atribuir valores conforme a potência da habilidade
+(básicas 0%, condições 25%, área 50%, knockback 75%, finisher 90%).
+
+condicao: Atribuir condições de activação (cercado, vidaBaixa, etc.)
+de forma coerente com o estilo de combate.
+
+cooldown e prioridade: Ajustar para equilibrar a frequência de uso.
+
+posturaMod: Opcional — modificar a chance da habilidade por postura.
 
 8.6 Revisão Cruzada
 
-- Verificar duplicidade com domínios irmãos.
-- Verificar se os cooldowns e prioridades estão equilibrados.
-- Verificar se as condições de activação fazem sentido para o estilo de
-  combate do domínio.
-- Para Primários e Secundários: confirmar que as habilidades de sinergia
-  interagem corretamente com os domínios filhos (usando `getNivelEfetivo`
-  e `domainChildren`).
-- Confirmar que o Traço Inerente evolui de forma coerente com a progressão
-  geral do domínio.
+Verificar duplicidade com domínios irmãos.
+
+Verificar se os cooldowns e prioridades estão equilibrados.
+
+Verificar se as condições de activação fazem sentido para o estilo de
+combate do domínio.
+
+Para Primários e Secundários: confirmar que as habilidades de sinergia
+interagem corretamente com os domínios filhos (usando getNivelEfetivo
+e domainChildren).
+
+Confirmar que o Traço Inerente evolui de forma coerente com a progressão
+geral do domínio.
 
 📋 9. APÊNDICE A – EFEITOS VISUAIS NATIVOS DISPONÍVEIS
 
 Efeitos mágicos (CONST_ME_*):
 
 CONST_ME_FIREAREA, CONST_ME_FIREATTACK, CONST_ME_ICEAREA
-
 CONST_ME_ENERGYAREA, CONST_ME_ENERGYHIT
-
 CONST_ME_GROUNDSHAKER, CONST_ME_MORTAREA, CONST_ME_HOLYAREA
-
 CONST_ME_DRAWBLOOD, CONST_ME_HITAREA, CONST_ME_STUN
-
 CONST_ME_MAGIC_BLUE, CONST_ME_MAGIC_GREEN, CONST_ME_MAGIC_RED
-
 CONST_ME_BIGCLOUDS, CONST_ME_SOUND_RED, CONST_ME_SOUND_YELLOW
-
 CONST_ME_TELEPORT, CONST_ME_POFF
 
 Projéteis (CONST_ANI_*):
 
 CONST_ANI_FIRE, CONST_ANI_ICE, CONST_ANI_ENERGY, CONST_ANI_DEATH
-
 CONST_ANI_HOLY, CONST_ANI_ARROW, CONST_ANI_BOLT
-
 CONST_ANI_THROWINGSTAR, CONST_ANI_WHIRLWINDSWORD
-
 CONST_ANI_WHIRLWINDAXE, CONST_ANI_WHIRLWINDCLUB
 
 📋 10. APÊNDICE B – COBERTURA DA EXPERIÊNCIA TIBIA
 
-Área Cobertura SPA
-Corpo a corpo Completa (Lâminas, Machados, Clavas, Artes Marciais)
-Distância Completa (Precisão, Arcos, Arremesso)
-Magia ofensiva Completa (Runologia, Wands, Rods, Runas)
-Magia elemental Completa (Fogo, Água/Gelo, Terra/Veneno, Energia)
-Defesa / Tank Completa (Escudo, passivas, habilidades de defesa)
-Suporte / Cura Coberta (life leech, defesa, Sagrado e Morte)
-Invocação Planeada para Natureza (4)
-Fields / Campos Coberto (Fogo, Água/Gelo, Terra/Veneno, Energia,
-Sagrado e Morte, via transformações de Maestria)
+Área	Cobertura SPA
+Corpo a corpo	Completa (Lâminas, Machados, Clavas, Artes Marciais)
+Distância	Completa (Precisão, Arcos, Arremesso)
+Magia ofensiva	Completa (Runologia, Wands, Rods, Runas)
+Magia elemental	Completa (Fogo, Água/Gelo, Terra/Veneno, Energia)
+Defesa / Tank	Completa (Escudo, passivas, habilidades de defesa)
+Suporte / Cura	Coberta (life leech, defesa, Sagrado e Morte)
+Invocação	Planeada para Natureza (4)
+Fields / Campos	Coberto (Fogo, Água/Gelo, Terra/Veneno, Energia, Sagrado e Morte, via transformações de Maestria)
+📋 11. APÊNDICE C – MAPEAMENTO CENTRAL DE EFEITOS VISUAIS (EFEITOS_ELEMENTAIS)
 
-FIM DO GUIA DE CRIAÇÃO DE HABILIDADES — VERSÃO 2.0
+A tabela abaixo é usada pelo motor (v1.2) como fallback automático para
+habilidades que não especificam magicEffect. Os valores são organizados
+por tipo de dano elemental.
+
+Elemento	Área	Single	Condição
+Fogo	CONST_ME_FIREAREA	CONST_ME_FIREATTACK	CONST_ME_FIREAREA
+Gelo	CONST_ME_ICEAREA	CONST_ME_ICEATTACK	CONST_ME_ICEAREA
+Terra	CONST_ME_GROUNDSHAKER	CONST_ME_HITAREA	CONST_ME_GROUNDSHAKER
+Energia	CONST_ME_ENERGYAREA	CONST_ME_ENERGYHIT	CONST_ME_ENERGYHIT
+Sagrado	CONST_ME_HOLYAREA	CONST_ME_HOLYATTACK	CONST_ME_HOLYAREA
+Morte	CONST_ME_MORTAREA	CONST_ME_DEATHATTACK	CONST_ME_MORTAREA
+Físico	CONST_ME_HITAREA	CONST_ME_DRAWBLOOD	CONST_ME_DRAWBLOOD
+Veneno	CONST_ME_GREEN_RINGS	CONST_ME_MAGIC_GREEN	CONST_ME_GREEN_RINGS
+FIM DO GUIA DE CRIAÇÃO DE HABILIDADES — VERSÃO 2.1
