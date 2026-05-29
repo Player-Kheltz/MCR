@@ -1,5 +1,5 @@
 PROJETO MCR – GUIA DE BANCO DE DADOS E INFRAESTRUTURA
-(Versão 4.3 – Consolidação do SPA v4.6, novas funções C++ de vida/mana/velocidade, propagação 4:2:1, tabelas revistas e estrutura Revscript actualizada)
+(Versão 4.4 – Consolidação do SPA v4.6, domínio Summon (28), propagação 4:2:1 movida para descarregarBuffer, estrutura Revscript actualizada)
 Arquivo: [9] MCR - Guia de Banco de Dados e Infraestrutura.txt
 
 🎯 OBJETIVO DESTE GUIA
@@ -7,9 +7,9 @@ Fornecer todas as informações, procedimentos e regras para configurar, manter 
 modificar o banco de dados do Projeto MCR. Esta versão consolida as tabelas do
 Sistema de Progressão do Aventureiro (SPA v4.6) com os IDs de Domínios
 actualizados (incluindo Escudo = 15, Runologia = 22, Arremesso de Escudo = 140,
-Energia = 26, e as Especialidades 100+), confirma a vocação padrão 0 para todos
-os personagens e reflecte a organização dos scripts do servidor na estrutura
-Revscript (pasta data-canary/scripts/MCR/SPA/core/ e subpastas).
+Energia = 26, Summon = 28, e as Especialidades 100+), confirma a vocação padrão 0
+para todos os personagens e reflecte a organização dos scripts do servidor na
+estrutura Revscript (pasta data-canary/scripts/MCR/SPA/core/ e subpastas).
 
 🚧 ESTADO ATUAL DA IMPLEMENTAÇÃO
 
@@ -18,8 +18,8 @@ e novas funções de suporte à progressão. O banco de dados reflecte este esta
 
 As tabelas dominios_def, habilidades_def, player_dominios e
 player_habilidades estão criadas e populadas com a hierarquia completa
-de Domínios do SPA v4.6, incluindo Arremesso de Escudo (140) e
-Energia (26).
+de Domínios do SPA v4.6, incluindo Arremesso de Escudo (140), Energia (26)
+e Summon (28).
 
 A coluna vocation na tabela players tem valor padrão 0 (Aventureiro),
 aplicado a todos os novos personagens.
@@ -39,7 +39,7 @@ velocidade: getVocationBaseMaxHealth, getVocationBaseMaxMana,
 getNaturalSpeed, setMovementSpeed.
 
 A propagação de afinidade segue o rácio 4:2:1 (Especialidade : Secundário
-: Primário), implementada na função adicionarAfinidade do módulo
+: Primário), implementada na função descarregarBuffer do módulo
 progressao.lua.
 
 Os bónus de vida e mana são calculados percentualmente sobre os valores
@@ -104,7 +104,7 @@ habilidades_def, player_dominios, player_habilidades) são parte
 integrante do banco. Se ainda não existirem, devem ser criadas com os
 comandos fornecidos na secção 3.4. A população inicial deve incluir os
 Domínios Primários, Secundários e Especialidades conforme a hierarquia
-actual, incluindo Arremesso de Escudo (140) e Energia (26).
+actual, incluindo Arremesso de Escudo (140), Energia (26) e Summon (28).
 
 ⚠️ SPA v4.6: A coluna vocation em players DEVE ter valor padrão 0
 (Aventureiro). O script de criação de personagens (Oráculo) já a define como
@@ -118,7 +118,7 @@ canónica para habilidades está nos ficheiros de dados em
 data-canary/scripts/MCR/SPA/habilidades/.
 
 ⚠️ SPA v4.6: A propagação de afinidade (rácio 4:2:1) está embutida em
-adicionarAfinidade. O banco apenas armazena os valores acumulados; a
+descarregarBuffer. O banco apenas armazena os valores acumulados; a
 lógica de distribuição é executada no servidor.
 
 ⚠️ SPA v4.6: As novas funções nativas (getVocationBaseMaxHealth,
@@ -244,11 +244,11 @@ como os respectivos personagens (Guest_*).
 Comandos SQL executados periodicamente:
 
 sql
-DELETE FROM players WHERE name LIKE 'Guest_%' AND account_id IN (
-SELECT id FROM accounts WHERE name LIKE 'guest_%'
-AND created_at < UNIX_TIMESTAMP() - 1800
+DELETE FROM players WHERE name LIKE 'Guest\_%' AND account_id IN (
+    SELECT id FROM accounts WHERE name LIKE 'guest\_%'
+    AND created_at < UNIX_TIMESTAMP() - 1800
 );
-DELETE FROM accounts WHERE name LIKE 'guest_%'
+DELETE FROM accounts WHERE name LIKE 'guest\_%'
 AND created_at < UNIX_TIMESTAMP() - 1800;
 3.2 VERIFICAÇÃO DE COMPATIBILIDADE
 
@@ -290,45 +290,45 @@ O SPA utiliza quatro tabelas, que devem ser criadas com charset utf8mb4.
 sql
 -- Tabela de definição de Domínios (Primários, Secundários e Especialidades)
 CREATE TABLE dominios_def (
-id SMALLINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-nome VARCHAR(50) NOT NULL,
-descricao VARCHAR(255),
-icone VARCHAR(50),
-parent_id SMALLINT UNSIGNED DEFAULT NULL,
-FOREIGN KEY (parent_id) REFERENCES dominios_def(id)
+    id SMALLINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(50) NOT NULL,
+    descricao VARCHAR(255),
+    icone VARCHAR(50),
+    parent_id SMALLINT UNSIGNED DEFAULT NULL,
+    FOREIGN KEY (parent_id) REFERENCES dominios_def(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Tabela de definição de Habilidades
 CREATE TABLE habilidades_def (
-id INT AUTO_INCREMENT PRIMARY KEY,
-nome VARCHAR(50) NOT NULL,
-dominio_id SMALLINT UNSIGNED NOT NULL,
-tipo ENUM('passiva','gatilho','transformacao') NOT NULL,
-requisito_afinidade INT DEFAULT 0,
-descricao TEXT,
-sinergia_dominio_id SMALLINT UNSIGNED DEFAULT NULL,
-sinergia_afinidade INT DEFAULT NULL,
-FOREIGN KEY (dominio_id) REFERENCES dominios_def(id)
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(50) NOT NULL,
+    dominio_id SMALLINT UNSIGNED NOT NULL,
+    tipo ENUM('passiva','gatilho','transformacao') NOT NULL,
+    requisito_afinidade INT DEFAULT 0,
+    descricao TEXT,
+    sinergia_dominio_id SMALLINT UNSIGNED DEFAULT NULL,
+    sinergia_afinidade INT DEFAULT NULL,
+    FOREIGN KEY (dominio_id) REFERENCES dominios_def(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Tabela de progressão do jogador por Domínio
 CREATE TABLE player_dominios (
-player_id INT NOT NULL,
-dominio_id SMALLINT UNSIGNED NOT NULL,
-afinidade INT DEFAULT 0,
-despertado TINYINT DEFAULT 0,
-PRIMARY KEY (player_id, dominio_id),
-FOREIGN KEY (player_id) REFERENCES players(id) ON DELETE CASCADE,
-FOREIGN KEY (dominio_id) REFERENCES dominios_def(id)
+    player_id INT NOT NULL,
+    dominio_id SMALLINT UNSIGNED NOT NULL,
+    afinidade INT DEFAULT 0,
+    despertado TINYINT DEFAULT 0,
+    PRIMARY KEY (player_id, dominio_id),
+    FOREIGN KEY (player_id) REFERENCES players(id) ON DELETE CASCADE,
+    FOREIGN KEY (dominio_id) REFERENCES dominios_def(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Tabela de habilidades aprendidas pelo jogador
 CREATE TABLE player_habilidades (
-player_id INT NOT NULL,
-habilidade_id INT NOT NULL,
-PRIMARY KEY (player_id, habilidade_id),
-FOREIGN KEY (player_id) REFERENCES players(id) ON DELETE CASCADE,
-FOREIGN KEY (habilidade_id) REFERENCES habilidades_def(id)
+    player_id INT NOT NULL,
+    habilidade_id INT NOT NULL,
+    PRIMARY KEY (player_id, habilidade_id),
+    FOREIGN KEY (player_id) REFERENCES players(id) ON DELETE CASCADE,
+    FOREIGN KEY (habilidade_id) REFERENCES habilidades_def(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 População inicial dos Domínios (SPA v4.6) – executar após criar dominios_def:
 
@@ -383,6 +383,7 @@ INSERT INTO dominios_def (id, nome, descricao, icone, parent_id) VALUES
 
 -- Outros
 INSERT INTO dominios_def (id, nome, descricao, icone, parent_id) VALUES
+(28, 'Summon', 'Invocação de criaturas e aliados', 'summon.png', 4),
 (400, 'Sobrevivência', 'Resistência a ambientes e privações', 'sobrevivencia.png', 4);
 Nota sobre habilidades: A inserção manual de exemplos na tabela habilidades_def
 foi descontinuada. As habilidades são definidas nos ficheiros Lua em
@@ -394,10 +395,10 @@ pelo script _init_habilidades.lua na inicialização do servidor.
 Embora não afecte directamente o banco de dados, os scripts Lua que consomem
 essas tabelas residem em data-canary/scripts/MCR/SPA/, organizados em
 subpastas como core/ (scripts principais), habilidades/ (habilidades
-modulares), comandos/ (comandos de teste). O motor Revscript carrega
-automaticamente todos os ficheiros .lua nessas pastas, portanto, qualquer
-script que manipule os dados de progressão (ex.: login.lua, constantes.lua)
-deve ser colocado na subpasta correspondente.
+modulares), comandos/ (comandos de teste), pets/ (sistema de invocação
+e escudeiro). O motor Revscript carrega automaticamente todos os ficheiros .lua
+nessas pastas, portanto, qualquer script que manipule os dados de progressão
+(ex.: login.lua, constantes.lua) deve ser colocado na subpasta correspondente.
 
 Os módulos de apoio (texto_colorido.lua, pronouns.lua, util_armas.lua, etc.)
 ficam em data-canary/scripts/MCR/Geral/ e também são carregados automaticamente.
@@ -412,66 +413,9 @@ Local: D:\Programas\Xampp\phpMyAdmin\config.inc.php
 Adicionar/alterar as linhas:
 
 php
-c
-f
-g
-[
-′
-S
-e
-r
-v
-e
-r
-s
-′
-]
-[
-cfg[ 
-′
- Servers 
-′
- ][i]['auth_type'] = 'config';
-c
-f
-g
-[
-′
-S
-e
-r
-v
-e
-r
-s
-′
-]
-[
-cfg[ 
-′
- Servers 
-′
- ][i]['user'] = 'root';
-c
-f
-g
-[
-′
-S
-e
-r
-v
-e
-r
-s
-′
-]
-[
-cfg[ 
-′
- Servers 
-′
- ][i]['password'] = '<Senha>';
+$cfg['Servers'][$i]['auth_type'] = 'config';
+$cfg['Servers'][$i]['user'] = 'root';
+$cfg['Servers'][$i]['password'] = '<Senha>';
 ⚠️ Se auth_type = 'config' e a senha NÃO for configurada, o phpMyAdmin tentará
 conectar sem senha e falhará com "using password: NO".
 
@@ -592,8 +536,9 @@ scripts do SPA não funcionarão. Crie‑as com os comandos fornecidos.
 ⚠️ SPA v4.6 – IDs actualizados: A hierarquia de Domínios foi revista.
 Confirme que os IDs correspondem aos listados em constantes.lua (SPA):
 Escudo = 15, Arremesso de Escudo = 140, Runologia = 22, Fogo = 23,
-Água e Gelo = 24, Terra e Veneno = 25, Energia = 26, Sagrado e Morte = 200,
-Wands = 210, Rods = 211, Runas = 212, Sobrevivência = 400.
+Água e Gelo = 24, Terra e Veneno = 25, Energia = 26, Summon = 28,
+Sagrado e Morte = 200, Wands = 210, Rods = 211, Runas = 212,
+Sobrevivência = 400.
 
 ⚠️ SPA v4.6 – Vocação 0: Qualquer personagem criado manualmente ou via
 ferramenta externa deve ter vocation = 0. A migração de personagens antigos
@@ -611,7 +556,7 @@ Ajuste o vocations.xml (ID 0) com os parâmetros desejados: gainhp, gainmana
 e basespeed.
 
 ⚠️ SPA v4.6 – Propagação de afinidade: O rácio 4:2:1 está implementado na
-função adicionarAfinidade. Ao armazenar dados na player_dominios, lembre-se
+função descarregarBuffer. Ao armazenar dados na player_dominios, lembre-se
 de que os pontos da especialidade são completos, enquanto secundário e
 primário recebem fracções (piso da divisão). A base de dados não requer
 alterações para suportar essa lógica.
@@ -635,18 +580,19 @@ alterações para suportar essa lógica.
 ☐ As tabelas do SPA (dominios_def, habilidades_def, player_dominios, player_habilidades) foram criadas e estão populadas com os IDs actualizados?
 ☐ O domínio Arremesso de Escudo (140) foi inserido em dominios_def?
 ☐ O domínio Energia (26) foi inserido em dominios_def?
+☐ O domínio Summon (28) foi inserido em dominios_def?
 ☐ A coluna vocation em players tem DEFAULT 0?
 ☐ Os dados de Runologia (ID 22), Escudo (15) e especialidades (100+) foram inseridos em dominios_def?
 ☐ O vocations.xml está configurado com gainhp, gainmana e basespeed adequados para o Aventureiro (ID 0)?
 ☐ Os novos métodos nativos (getVocationBaseMaxHealth, getVocationBaseMaxMana, getNaturalSpeed) estão documentados e a funcionar?
-☐ A propagação de afinidade (rácio 4:2:1) está implementada em adicionarAfinidade e não requer alterações no schema?
+☐ A propagação de afinidade (rácio 4:2:1) está implementada em descarregarBuffer e não requer alterações no schema?
 
 📤 COMO ATUALIZAR O REPOSITÓRIO GIT
 
 text
 git add "<arquivos alterados>"
-git commit -m "docs: Atualiza guia de BD com SPA v4.6, novas funções e propagação 4:2:1"
+git commit -m "docs: Atualiza guia de BD com SPA v4.6, Summon (28) e propagação em descarregarBuffer"
 git push origin main
 ⚠️ Arquivos de configuração com senhas NÃO são versionados.
 
-FIM DO GUIA DE BANCO DE DADOS E INFRAESTRUTURA — VERSÃO 4.3
+FIM DO GUIA DE BANCO DE DADOS E INFRAESTRUTURA — VERSÃO 4.4

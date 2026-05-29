@@ -1,17 +1,19 @@
 PROJETO MCR – GUIA DE CRIAÇÃO DE HABILIDADES
-(Versão 2.2 – Sistema de Progressão do Aventureiro v4.6 | Motor Modular v2.0 e Sistema de Categorias)
+(Versão 2.3 – Sistema de Progressão do Aventureiro v4.6 | Motor Modular v2.0 e Limites de Categoria)
 Arquivo: [13] MCR - Guia de Criacao de Habilidades.txt
 
-🎯 OBJECTIVO DESTE GUIA
+🎯 OBJETIVO DESTE GUIA
 Este documento é a autoridade máxima sobre como criar, organizar e manter as
 habilidades do Sistema de Progressão do Aventureiro (SPA). Define a filosofia
 de design, a estrutura de habilidades por hierarquia de domínio, os pacotes
 temáticos, as regras de feedback narrativo limpo, as directrizes de implementação
-e o processo de geração. A versão 2.2 actualiza o motor modular para v2.0,
+e o processo de geração. A versão 2.3 actualiza o motor modular para v2.0,
 introduz os novos tipos de efeito (storm, orbit, rain, pulse, trap,
-sinergia_escalonada, corrente modular), o sistema de limites por categoria
-(anti‑spam) e o throttle global de 600 ms. Todo o criador de conteúdo ou
-assistente DEVE seguir este guia ao criar ou modificar qualquer habilidade.
+sinergia_escalonada), o sistema de limites por categoria (anti‑spam) e o
+throttle global de 600 ms. Inclui o novo domínio Summon (28) e alinha toda
+a documentação com a arquitectura que será usada na recriação total das
+habilidades. Todo o criador de conteúdo ou assistente DEVE seguir este guia
+ao criar ou modificar qualquer habilidade.
 
 📚 1. FILOSOFIA DE DESIGN
 
@@ -33,13 +35,13 @@ genéricas — são a expressão da sua personalidade. Para garantir isso:
 - As habilidades especiais (knockback, condições, execuções) só desbloqueiam
   quando a barra de foco atinge certos patamares (campo condicaoFocoMin).
 
-🧱 ARQUITETURA MODULAR (v2.2)
+🧱 ARQUITETURA MODULAR (v2.3)
 
 O SPA mantém a separação em três camadas, agora com um reforço na gestão de
 atributos permanentes e limites de execução:
 
 1.  **Motor de Habilidades** (`core/motor_habilidades.lua v2.0`) — contém toda a
-    lógica de execução para habilidades de gatilho (18 tipos de efeitos,
+    lógica de execução para habilidades de gatilho (mais de 20 tipos de efeitos,
     incluindo os novos storm, orbit, rain, pulse, trap, sinergia_escalonada).
     Também fornece fallback automático de efeitos visuais e adaptação elemental.
     É mantido uma única vez e não deve ser alterado para adicionar novas habilidades.
@@ -71,7 +73,8 @@ sem gastar cooldown. Os valores padrão (ajustáveis em `executor_habilidades.lu
 | `defense`   | 2      | Habilidades defensivas/reativas |
 
 Habilidades antigas que não possuem o campo `categoria` são tratadas como
-`"single"` automaticamente, herdando o limite de 3.
+`"single"` automaticamente, herdando o limite de 3. **Todas as novas habilidades
+devem obrigatoriamente definir `categoria`.**
 
 **Throttle global:** O executor só processa novas habilidades a cada
 600 ms (ajustável em `MIN_GLOBAL_DELAY`), garantindo fluidez e evitando
@@ -113,7 +116,7 @@ automaticamente nos níveis 5, 10, 15 e 20.
   de luta específico. No início, as recompensas são passivas simples que
   refinam o uso da arma. Conforme avança, o combate torna-se mais ativo
   e complexo, com uma explosão de novos gatilhos (rajadas, condições,
-  áreas, storms, orbits). As sinergias são poucas e focadas em combinações diretas.
+  áreas, storms, orbits). As sinergias são poucas e focadas em combinações directas.
 
 - **Secundários (a ponte):** Ao dominar várias especialidades, o jogador
   começa a ver as ligações entre elas. As passivas chegam mais cedo,
@@ -135,7 +138,7 @@ automaticamente nos níveis 5, 10, 15 e 20.
 | **Árvore I-IV** | Passivas de identidade (I, II), gatilho de assinatura (III) e Maestria (IV). |
 | **Passivas de Atributo** | Bónus permanentes a stats (dano, velocidade, crítico, vida, mana). |
 | **Passivas de Sinergia** | Interacção com outros domínios (elemental, armas). |
-| **Gatilhos de Combate** | Dano direto, AoE, projécteis, ricochete, corrente, rajada, knockback, storm, rain, orbit. |
+| **Gatilhos de Combate** | Dano directo, AoE, projécteis, ricochete, corrente, rajada, knockback, storm, rain, orbit. |
 | **Gatilhos de Condição** | Sangramento, atordoamento, paralisia, veneno, medo, queimadura. |
 | **Gatilhos de Defesa** | Bloqueio, contra‑ataque, cura, escudo, barreira, pulse, trap. |
 | **Gatilhos de Sinergia** | Habilidades que escalam com afinidade em múltiplos domínios (sinergia_escalonada). |
@@ -250,6 +253,7 @@ domínios ganham acesso a `storm`, `rain`, `orbit`, `pulse`, `trap` e
 | Água e Gelo (24)         | Área, Condição, Sinergia Escalonada, Storm, Fields            |
 | Terra e Veneno (25)      | Área, Knockback, Condição, Sinergia Escalonada, Trap, Fields  |
 | Energia (26)             | Área, Ricochete, Condição, Sinergia Escalonada, Storm, Pulse  |
+| Summon (28)              | Summon, Buff, Defesa, Sinergia Escalonada, Storm              |
 | Sagrado e Morte (200)    | Área, Condição, Defesa, Sinergia Escalonada, Pulse, Fields    |
 | Espadas Leves (100)      | Condição, Ricochete, Buff, Finisher, Orbit                    |
 | Espadas Pesadas (101)    | Knockback, Condição, Área (Ground), Finisher, Storm           |
@@ -376,19 +380,14 @@ Parâmetros: centro, raio, elemento, danoPorTick, intervaloMs, duracaoMs, magicE
 Parâmetros: raioMax, elemento, danoPorPulso, intervaloMs, numPulsos, magicEffect.
 
 "trap" – Armadilha tática com marcador visual e centros inteligentes.
-Parâmetros: centro (alvo, jogador, entre, fuga, aleatorio), primeDelayMs, duracaoMs,
-raio, dano, elemento, magicEffect, markEffect, condicao, condDuration, periodicDamage.
+Parâmetros: centro (alvo, jogador, entre, fuga, aleatorio), primeDelayMs, duracaoMs, raio, dano, elemento, magicEffect, markEffect, condicao, condDuration, periodicDamage.
 
-"sinergia_escalonada" – Efeitos que escalam com o nível de afinidade em múltiplos
-domínios, com um efeito épico opcional na Maestria total.
-Parâmetros: efeitoBase, efeitoBaseConfig, efeitosPorDominio (cada entrada tem
-nivelMin, efeitoConfig, escala, chance, escalaChance), efeitoEpico.
+"sinergia_escalonada" – Efeitos que escalam com o nível de afinidade em múltiplos domínios, com um efeito épico opcional na Maestria total.
+Parâmetros: efeitoBase, efeitoBaseConfig, efeitosPorDominio (cada entrada tem nivelMin, efeitoConfig, escala, chance, escalaChance), efeitoEpico.
 
-"field" actualizado – Campos elementais que aplicam dano sequencialmente
-(um alvo de cada vez) e respeitam a imunidade do conjurador.
+"field" actualizado – Campos elementais que aplicam dano sequencialmente (um alvo de cada vez) e respeitam a imunidade do conjurador.
 
-"corrente" actualizado – Suporta conditionMagicEffect para o efeito visual
-da condição no alvo secundário.
+"corrente" actualizado – Suporta conditionMagicEffect para o efeito visual da condição no alvo secundário.
 
 Exemplo de sinergia_escalonada (Lâmina de Fogo):
 
@@ -423,7 +422,7 @@ narrativa padrão do tipo de efeito.
 7.4 Passivas – Gestão Centralizada de Atributos
 
 As passivas que alteram vida máxima, mana máxima, velocidade de movimento
-não devem conter lógica direta no campo efeito. Em vez disso, o campo
+não devem conter lógica directa no campo efeito. Em vez disso, o campo
 efeito deve permanecer vazio. O bónus é calculado e aplicado pelas funções
 centrais recalcularVidaMana(player) e recalcularVelocidade(player), que
 são invocadas a cada ciclo do think_master e após o login.
@@ -460,7 +459,6 @@ player:setCombatModifier("chave", valor) directamente no campo efeito.
 7.5 Transformações com Desfazer
 
 O campo efeito aplica o bónus.
-
 O campo desfazer (opcional) reverte-o. Se não definido, o sistema reverte
 para valores base (ex.: setDamageTakenModifier(1.0)).
 
@@ -565,15 +563,17 @@ Para Primários e Secundários, estas são OBRIGATÓRIAS e devem verificar
 os níveis de afinidade dos filhos.
 
 Gatilhos de Combate: Dano extra, área, ricochete, rajada, knockback,
-corrente, finisher. Distribuir pelos pacotes temáticos do domínio.
+corrente, finisher, storm, rain, orbit, pulse. Distribuir pelos pacotes
+temáticos do domínio.
 
 Gatilhos de Condição: Aplicar condições alinhadas ao tema (queimadura,
 sangramento, paralisia, etc.).
 
-Gatilhos de Defesa: Bloqueio, contra‑ataque, barreira, cura.
+Gatilhos de Defesa: Bloqueio, contra‑ataque, barreira, cura, trap.
 
 Gatilhos de Sinergia: Habilidades que escalam com afinidade em múltiplos
-domínios. Para Primários e Secundários, esta é a categoria mais numerosa.
+domínios (sinergia_escalonada). Para Primários e Secundários, esta é a
+categoria mais numerosa.
 
 Transformações: Efeitos para Lampejo, Vínculo, Maestria e um extra.
 
@@ -587,8 +587,9 @@ modular. Preencher o tipo de efeito e os parâmetros específicos.
 
 categoria: Campo obrigatório para novas habilidades. Deve
 corresponder a uma das categorias listadas nos limites (aoe, single,
-debuff, buff, finisher, sinergia, defense). Habilidades sem categoria
-serão tratadas como "single" automaticamente.
+debuff, buff, finisher, sinergia, defense). Habilidades sem
+categoria serão tratadas como "single" automaticamente, mas recomenda‑se
+sempre definir explicitamente.
 
 condicaoFocoMin: Atribuir valores conforme a potência da habilidade
 (básicas 0%, condições 25%, área 50%, knockback 75%, finisher 90%).
@@ -610,7 +611,7 @@ Verificar se as condições de activação fazem sentido para o estilo de
 combate do domínio.
 
 Para Primários e Secundários: confirmar que as habilidades de sinergia
-interagem corretamente com os domínios filhos (usando getNivelEfetivo
+interagem correctamente com os domínios filhos (usando getNivelEfetivo
 e domainChildren).
 
 Confirmar que o Traço Inerente evolui de forma coerente com a progressão
@@ -618,9 +619,10 @@ geral do domínio.
 
 Confirmar que a categoria está definida e respeita os limites de execução.
 
-Para habilidades que usam os novos tipos (storm, orbit, rain, pulse, trap,
-sinergia_escalonada), verificar que todos os parâmetros obrigatórios estão
-presentes e que os valores de duração e intervalo são razoáveis.
+Para habilidades que usam os novos tipos (storm, orbit, rain, pulse,
+trap, sinergia_escalonada), verificar que todos os parâmetros
+obrigatórios estão presentes e que os valores de duração e intervalo são
+razoáveis.
 
 📋 9. APÊNDICE A – EFEITOS VISUAIS NATIVOS DISPONÍVEIS
 
@@ -650,7 +652,7 @@ Magia ofensiva	Completa (Runologia, Wands, Rods, Runas)
 Magia elemental	Completa (Fogo, Água/Gelo, Terra/Veneno, Energia)
 Defesa / Tank	Completa (Escudo, passivas, habilidades de defesa)
 Suporte / Cura	Coberta (life leech, defesa, Sagrado e Morte)
-Invocação	Planeada para Natureza (4)
+Invocação	Implementada (Summon 28)
 Fields / Campos	Coberto (Fogo, Água/Gelo, Terra/Veneno, Energia, Sagrado e Morte, via transformações de Maestria)
 📋 11. APÊNDICE C – MAPEAMENTO CENTRAL DE EFEITOS VISUAIS (EFEITOS_ELEMENTAIS)
 
@@ -676,5 +678,5 @@ rain	Chuva de projéteis	centro, raio, elemento, danoPorTick, intervaloMs, durac
 pulse	Ondas de dano	raioMax, elemento, danoPorPulso, intervaloMs, numPulsos, magicEffect
 trap	Armadilha tática	centro, primeDelayMs, duracaoMs, raio, dano, elemento, magicEffect, markEffect, condicao
 sinergia_escalonada	Sinergia modular escalável	efeitoBase, efeitoBaseConfig, efeitosPorDominio, efeitoEpico
-field	Campo elemental sequencial	centro, elemento, danoPorTick, duracaoMs, intervaloMs, magicEffect, raio
-FIM DO GUIA DE CRIAÇÃO DE HABILIDADES — VERSÃO 2.2
+field (actualizado)	Campo elemental sequencial	centro, elemento, danoPorTick, duracaoMs, intervaloMs, magicEffect, raio
+FIM DO GUIA DE CRIAÇÃO DE HABILIDADES — VERSÃO 2.3

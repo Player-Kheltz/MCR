@@ -1,11 +1,13 @@
 PROJETO MCR – GUIA DE EXPERIÊNCIA DO JOGADOR
-Versão 4.6.0 – A jornada completa, do Alma ao herói, com SPA v4.6, sistema de cores, sinergia elemental, propagação 4:2:1, bónus percentuais e progressão totalmente activa
+Versão 4.7.0 – A jornada completa, do Alma ao herói, com SPA v4.6, sistema de cores, sinergia elemental, propagação 4:2:1, bónus percentuais, invocação (Summon/Pets) e progressão totalmente activa
 Arquivo: [11] MCR - Guia de Experiência do Jogador.txt
 
 🎯 OBJETIVO DESTE GUIA
 Fornecer ao assistente/desenvolvedor uma visão completa e integrada daquilo que o jogador vê, sente e percorre no Projeto MCR — do primeiro clique no Salão dos Destinos até à consagração como herói de um mundo vivo. Este guia funciona como bússola de design: cada decisão técnica (interface, fluxo de criação, diálogos, progressão) deve ser validada contra a experiência descrita aqui. Se um sistema não contribui para esta jornada, ou a enfraquece, está a violar os pilares do projecto.
 
-A versão 4.6.0 celebra o Sistema de Progressão do Aventureiro (SPA v4.6) totalmente implementado e estabilizado. Todas as mecânicas descritas — Domínios, Lampejos, Vínculos, Maestria (Vínculo permanente), Posturas de Combate, sinergia elemental, Arremesso de Escudo, propagação de afinidade 4:2:1, bónus percentuais de vida, mana e velocidade, sistema de cores, interacção com palavras clicáveis — estão activas e funcionais no servidor. O tom mantém‑se imersivo e poético, mas o texto técnico foi actualizado para reflectir a natureza exacta da Maestria, a sinergia elemental, a arquitectura modular de habilidades (motor + narrativa), os novos comandos de diagnóstico e a ausência total de acumulação de stats.
+A versão 4.7.0 celebra o Sistema de Progressão do Aventureiro (SPA v4.6) totalmente implementado e estabilizado, e adiciona a Invocação (Summon) e os Pets como uma nova dimensão de progressão. Todas as mecânicas descritas — Domínios, Lampejos, Vínculos, Maestria (Vínculo permanente), Posturas de Combate, sinergia elemental, Arremesso de Escudo, propagação de afinidade 4:2:1, bónus percentuais de vida, mana e velocidade, sistema de cores, interacção com palavras clicáveis, escudeiro com inventário remoto e pets com IA modular — estão activas e funcionais no servidor. O tom mantém‑se imersivo e poético, mas o texto técnico foi actualizado para reflectir a natureza exacta da Maestria, a sinergia elemental, a arquitectura modular de habilidades (motor + narrativa), os novos comandos de diagnóstico e a ausência total de acumulação de stats.
+
+Nota sobre as habilidades: As habilidades actualmente presentes nos ficheiros Lua são placeholders que permitiram testar exaustivamente o motor, a progressão e as sinergias. A próxima grande etapa será a criação das habilidades definitivas, seguindo o Documento de Personalidade e Identidade de Domínios, o Gabarito de Habilidades e o Guia de Criação de Habilidades. A experiência descrita neste guia já antecipa o resultado final desse trabalho.
 
 🚧 ESTADO ATUAL DA IMPLEMENTAÇÃO
 Todos os elementos descritos neste guia são jogáveis:
@@ -18,22 +20,23 @@ Bónus de vida, mana e velocidade de movimento: geridos centralmente pelas funç
 
 Sistema de cores (tabela COR v10.0) e palavras clicáveis nos diálogos.
 
-SQH (missões) com HUD, toasts e cores temáticas (MISSAO_MATAR, MISSAO_COLETAR, etc.).
+SQH (missões) com HUD, toasts e cores temáticas.
 
 Progressão de intimidade e pronomes (módulo pronouns.lua; npc_utils.lua livre de vocações).
 
 Arremesso de Escudo (domínio 140) como estilo de combate distinto (escudo sem arma).
 
-Chi, Virtudes (Harmony, Justice, Sustain) e Serenidade para o caminho de Artes Marciais.
+Chi, Virtudes e Serenidade para o caminho de Artes Marciais.
 
-Novos comandos de diagnóstico: !setskill, !setstatus, !testesistema, !exibircores, !iteminfo, entre outros.
+Invocação e Pets (domínio Summon 28): o Aventureiro pode invocar criaturas que lutam ao seu lado, cada uma com habilidades próprias e IA modular. O Escudeiro (Criatura SPA) possui um inventário remoto que o jogador pode abrir, organizar e usar como extensão da sua mochila. Itens podem ser arrastados livremente entre o jogador e o escudeiro. Quando o escudeiro morre, os seus itens são derramados no corpo e a janela fecha automaticamente.
+
+Novos comandos de diagnóstico: !setskill, !setstatus, !testesistema, !exibircores, !iteminfo, !testecriatura, !escudeiro abrir/adicionar/pegar, !pet list/killall/info/test/behavior, entre outros.
 
 Capacidade do personagem definida exclusivamente pelo ganho por nível do Aventureiro (gaincap="30" no vocations.xml), sem mínimo artificial de 500.
 
 Elementos visuais avançados (opcodes 182, 183, 184) já estão planeados e podem ser activados no cliente; enquanto isso, o feedback textual e colorido cumpre o seu papel.
 
 ⚠️ REGRAS DE REVISÃO PARA O ASSISTENTE (EXPERIÊNCIA DO JOGADOR)
-
 Ao projectar ou modificar QUALQUER sistema, interface ou interacção, o assistente DEVE:
 
 Imersão contínua — O jogador nunca sai do OTClient. Não há sites, pop‑ups externos ou ferramentas fora do jogo para funções essenciais.
@@ -46,7 +49,7 @@ Feedback constante — Cada acção tem resposta visual ou textual: HUD, toasts,
 
 Curva de aprendizagem suave — Os primeiros passos ensinam sem parecer um tutorial. O Salão dos Destinos, o Oráculo e as primeiras missões são a escola natural do aventureiro.
 
-Progressão com significado — Realizar acções (combater, minerar, criar runas, arremessar o escudo) faz o Aventureiro evoluir em Domínios. A afinidade propaga‑se automaticamente com o rácio 4:2:1 (Especialidade → Secundário → Primário). Todos os níveis, despertar de Domínios e Maestria são imediatos e visíveis. A Maestria garante um Vínculo permanente com o domínio. A sinergia elemental permite que armas mágicas (Espada de Fogo, Bastão de Gelo) desbloqueiem habilidades elementais automaticamente. Os bónus de vida, mana e velocidade são percentuais e escalam com o domínio, mantendo‑se relevantes em todos os níveis.
+Progressão com significado — Realizar acções (combater, minerar, criar runas, arremessar o escudo, invocar criaturas) faz o Aventureiro evoluir em Domínios. A afinidade propaga‑se automaticamente com o rácio 4:2:1 (Especialidade → Secundário → Primário). Todos os níveis, despertar de Domínios e Maestria são imediatos e visíveis. A Maestria garante um Vínculo permanente com o domínio. A sinergia elemental permite que armas mágicas desbloqueiem habilidades elementais automaticamente. Os bónus de vida, mana e velocidade são percentuais e escalam com o domínio, mantendo‑se relevantes em todos os níveis.
 
 Estilo dual — Usar um tom inspirador e imersivo para descrever a experiência, e um tom técnico e directo para explicar o fluxo ao assistente.
 
@@ -55,7 +58,6 @@ Sistema de Cores — As palavras‑chave (acções, itens, locais, habilidades, 
 Modularidade Revscript — A experiência é suportada por scripts organizados em data-canary/scripts/MCR/SPA/ (subpastas core/, habilidades/, comandos/). Os módulos base (texto_colorido.lua v10.0, pronouns.lua, npc_utils.lua) em MCR/Geral/ são carregados automaticamente.
 
 🌌 1. A PORTA ENTRE MUNDOS — O SALÃO DOS DESTINOS
-
 "O Projeto MCR não é apenas um servidor de Tibia. É uma porta entre mundos. No instante em que o jogador clica no Salão dos Destinos, abandona o universo real e desperta como Alma — uma consciência sem forma, flutuando no plano etéreo. O Oráculo, guardião dos limiares, não processa formulários: ele lê o espírito de quem o visita. Cada escolha — pronome, nome, corpo — é um acto de criação, não uma configuração. E quando o novo aventureiro finalmente pisa na praia de Eridanus, o silêncio sagrado é quebrado apenas pelo sussurro do vento… e pela sensação de que esta jornada, desta vez, é verdadeiramente sua."
 
 Na prática, o fluxo é:
@@ -71,7 +73,6 @@ O Oráculo saúda Alma automaticamente e oferece as opções {Criar} ou {Gerenci
 A partir daqui, o jogador nunca vê uma interface de registo tradicional — tudo é conversa.
 
 🔮 2. A CRIAÇÃO DO EU — CONTA E PERSONAGEM
-
 "Diante do Oráculo, o silêncio tem peso. As perguntas não são feitas por curiosidade, mas por necessidade cósmica. 'És Jogador ou Jogadora?' — a primeira distinção, a que define como o guardião se dirige a ti para sempre. Depois, o nome da tua essência, a senha que sela o vínculo. E, por fim, a criação da tua forma: nome, pronome, corpo. O Oráculo não pergunta por vocações; em vez disso, recita a benção dos Aventureiros. Não há caminhos pré‑traçados. O mundo será o teu mestre."
 
 Fluxo técnico para o assistente:
@@ -93,7 +94,6 @@ Opcode 200: migração instantânea da conta guest para a permanente com logout 
 Após a criação (ou selecção de personagem existente), o jogador nunca precisa decorar comandos — as opções estão sempre destacadas com c() e clicáveis.
 
 🗺️ 3. O DESPERTAR — PRIMEIROS PASSOS NO MUNDO
-
 "O templo de principiantes recebe o aventureiro com a luz suave de velas e o murmúrio de fontes antigas. Não há pressa. Um NPC ancião aproxima‑se e oferece as boas‑vindas, tratando‑o pelo pronome que o Oráculo já registou. As primeiras tarefas — 'leva este recado ao ferreiro', 'apanha ervas para o boticário' — são simples, mas revelam que este mundo fala, reage e lembra."
 
 Estrutura para o assistente:
@@ -109,7 +109,6 @@ Durante o tutorial, o jogador desperta organicamente os primeiros Domínios: Lâ
 Se o jogador clicar numa palavra como c("Lâminas", COR.DOM_COMBATE_LAMINAS) durante a conversa, o NPC explica o significado do domínio e retorna ao assunto anterior, sem perder o progresso.
 
 📜 4. O MUNDO REAGE — PERSONALIZAÇÃO E IMERSÃO NARRATIVA
-
 "Ao contrário dos mundos estáticos, no Projeto MCR a identidade do jogador ecoa. À medida que o Aventureiro mergulha no fogo, na forja ou na floresta, os habitantes percebem. Um ferreiro que antes resmungava agora acena com respeito, porque sente a afinidade do Aventureiro com o Craft. Um mestre espadachim sussurra sobre técnicas secretas apenas para aqueles cujo Vínculo com as Lâminas já é profundo. E quando um Aventureiro atinge a Maestria, o mundo reconhece‑o como um verdadeiro Mestre — e esse título jamais se desvanece. Cada NPC tem personalidade própria: o sábio fala com poesia, o mercador com astúcia, o guarda com secura."
 
 Mecanismos envolvidos:
@@ -129,31 +128,50 @@ Reacção a Domínios e Estados de Alma: Os NPCs agora verificam getNivelPorAfin
 Reacção à sinergia elemental: Um NPC mago pode notar quando o Aventureiro empunha uma arma imbuída com um elemento: "Essa lâmina carrega o poder do fogo... Vejo que o elemento já te reconhece."
 
 ⚔️ 5. PROGRESSÃO E SISTEMAS DE JOGO
-
 O jogador avança através de:
 
-Domínios e Especializações — Cada acção contribui para a mestria do Aventureiro. Ao usar uma espada, os pontos fluem para Espadas Leves (100), depois para Lâminas (10) e finalmente Combate (1), num rácio de 4:2:1 (100% Especialidade, 50% Secundário, 25% Primário). O feedback vem do mundo com mensagens coloridas: c("Sua afinidade com ", COR.SISTEMA_INFO) .. c("Lâminas", COR.DOM_COMBATE_LAMINAS) .. c(" se aprofunda.", COR.SISTEMA_INFO). O novo domínio Arremesso de Escudo (140) permite que um Aventureiro sem arma, mas com escudo, lute à distância, arremessando o escudo como um projétil contundente.
+Domínios e Especializações
+Cada acção contribui para a mestria do Aventureiro. Ao usar uma espada, os pontos fluem para Espadas Leves (100), depois para Lâminas (10) e finalmente Combate (1), num rácio de 4:2:1 (100% Especialidade, 50% Secundário, 25% Primário). O feedback vem do mundo com mensagens coloridas: c("Sua afinidade com ", COR.SISTEMA_INFO) .. c("Lâminas", COR.DOM_COMBATE_LAMINAS) .. c(" se aprofunda.", COR.SISTEMA_INFO). O novo domínio Arremesso de Escudo (140) permite que um Aventureiro sem arma, mas com escudo, lute à distância, arremessando o escudo como um projétil contundente.
 
-Vida, Mana e Velocidade — As passivas que concedem bónus a estes atributos (ex.: Treino com Peso, Constituição de Aço, Mente Expandida, Passos Ágeis) são geridas centralmente por funções dedicadas (recalcularVidaMana e recalcularVelocidade). Estas funções usam os métodos nativos getVocationBaseMaxHealth, getVocationBaseMaxMana e getNaturalSpeed para obter o valor base do personagem (incluindo o nível) e aplicam um bónus percentual que escala com o nível de afinidade no domínio. Desta forma, os bónus mantêm‑se relevantes em qualquer nível, sem risco de acumulação ou desactualização. A capacidade do personagem é definida exclusivamente pelo gaincap da vocação, sem mínimo artificial de 500.
+Vida, Mana e Velocidade
+As passivas que concedem bónus a estes atributos (ex.: Treino com Peso, Constituição de Aço, Mente Expandida, Passos Ágeis) são geridas centralmente por funções dedicadas (recalcularVidaMana e recalcularVelocidade). Estas funções usam os métodos nativos getVocationBaseMaxHealth, getVocationBaseMaxMana e getNaturalSpeed para obter o valor base do personagem (incluindo o nível) e aplicam um bónus percentual que escala com o nível de afinidade no domínio. Desta forma, os bónus mantêm‑se relevantes em qualquer nível, sem risco de acumulação ou desactualização. A capacidade do personagem é definida exclusivamente pelo gaincap da vocação, sem mínimo artificial de 500.
 
-Estados de Alma (Lampejo e Vínculo) — Manifestações automáticas da afinidade. Quando um Vínculo se forma, o jogador vê: c("Você aprofunda um Vínculo com ", COR.SISTEMA_INFO) .. c("Lâminas", COR.DOM_COMBATE_LAMINAS) .. c(".", COR.SISTEMA_INFO). A palavra do domínio é colorida e clicável. Ao atingir o nível 20, esse Vínculo torna‑se permanente — o jogador não precisa mais manter o estilo para usufruir dos bónus.
+Estados de Alma (Lampejo e Vínculo)
+Manifestações automáticas da afinidade. Quando um Vínculo se forma, o jogador vê: c("Você aprofunda um Vínculo com ", COR.SISTEMA_INFO) .. c("Lâminas", COR.DOM_COMBATE_LAMINAS) .. c(".", COR.SISTEMA_INFO). A palavra do domínio é colorida e clicável. Ao atingir o nível 20, esse Vínculo torna‑se permanente — o jogador não precisa mais manter o estilo para usufruir dos bónus.
 
-Maestria (nível 20) — O culminar da dedicação a um domínio. Uma vez alcançada, o Vínculo é eterno. Os NPCs reconhecem o Mestre, e as passivas de auto‑ataque funcionam em todas as posturas.
+Maestria (nível 20)
+O culminar da dedicação a um domínio. Uma vez alcançada, o Vínculo é eterno. Os NPCs reconhecem o Mestre, e as passivas de auto‑ataque funcionam em todas as posturas.
 
-Posturas de Combate (Ímpeto, Equilíbrio, Guarda) — Usando os modos de luta nativos, o jogador altera dinamicamente o comportamento. Ao mudar de postura, recebe: c("Postura ajustada: ", COR.POSTURA_INFO) .. c("Ímpeto", COR.POSTURA_IMPETO) .. c(" adaptada à sua arma.", COR.POSTURA_INFO).
+Posturas de Combate (Ímpeto, Equilíbrio, Guarda)
+Usando os modos de luta nativos, o jogador altera dinamicamente o comportamento. Ao mudar de postura, recebe: c("Postura ajustada: ", COR.POSTURA_INFO) .. c("Ímpeto", COR.POSTURA_IMPETO) .. c(" adaptada à sua arma.", COR.POSTURA_INFO).
 
-Habilidades de Gatilho e Sinergias — As habilidades que disparam em combate (de gatilho) são o coração do SPA. Agora utilizam exclusivamente o campo efeitoConfig e são processadas pelo motor modular (motor_habilidades.lua), que por sua vez gera feedback automático através do módulo de narrativa centralizada (narrativa_habilidades.lua). Ao activar uma, o jogador vê: c("[" .. hab.nome .. "] ", hab.cor) .. mensagem .. "! " .. c(hab.descricaoEfeito, COR.COMBO_AVISO). Sinergias desbloqueiam‑se automaticamente quando dois domínios atingem o nível 15. A sinergia elemental permite que uma arma de fogo (ex.: Espada de Fogo) active automaticamente habilidades do domínio Fogo e Ar (23), além das habilidades de Espadas.
+Habilidades de Gatilho e Sinergias
+As habilidades que disparam em combate (de gatilho) são o coração do SPA. Agora utilizam exclusivamente o campo efeitoConfig e são processadas pelo motor modular (motor_habilidades.lua), que por sua vez gera feedback automático através do módulo de narrativa centralizada (narrativa_habilidades.lua). Ao activar uma, o jogador vê: c("[" .. hab.nome .. "] ", hab.cor) .. mensagem .. "! " .. c(hab.descricaoEfeito, COR.COMBO_AVISO). Sinergias desbloqueiam‑se automaticamente quando dois domínios atingem o nível 15. A sinergia elemental permite que uma arma de fogo (ex.: Espada de Fogo) active automaticamente habilidades do domínio Fogo e Ar (23), além das habilidades de Espadas.
 
-Chi, Virtudes e Serenidade — Exclusivos do caminho Artes Marciais. O Aventureiro acumula Chi ao atacar, pode gastá‑lo em habilidades poderosas, e adoptar uma Virtude (Harmony, Justice, Sustain) que molda o seu estilo de luta. A Serenidade é alcançada com o Chi no máximo ou na Maestria.
+Chi, Virtudes e Serenidade
+Exclusivos do caminho Artes Marciais. O Aventureiro acumula Chi ao atacar, pode gastá‑lo em habilidades poderosas, e adoptar uma Virtude (Harmony, Justice, Sustain) que molda o seu estilo de luta. A Serenidade é alcançada com o Chi no máximo ou na Maestria.
 
-Missões (SQH) — Oferecidas no chat com palavras coloridas conforme o tipo: c("Matar 5 Orcs", COR.MISSAO_MATAR), c("Coletar 10 Ervas", COR.MISSAO_COLETAR), etc. HUD (opcode 180) e toasts (opcode 181) mantêm o progresso visível.
+Invocação e Pets (Domínio Summon)
+"O vínculo com o mundo não se limita ao aço e ao fogo. Alguns aventureiros descobrem que a sua alma pode estender‑se para além do corpo, tocando outras criaturas e chamando‑as para o seu lado."
 
-Combate — Dano exibido com cores: c("42", COR.DANO_FISICO), c("Crítico!", COR.DANO_CRITICO), e monstros em c("Centopeia", COR.INIMIGO_MONSTRO).
+O domínio Summon (28) permite ao Aventureiro invocar criaturas que lutam ao seu lado. Cada criatura tem habilidades próprias, definidas pela sua configuração (summon_configs.lua) e controladas por uma IA modular (summon_ai.lua). O sistema de pets (pet_system.lua) gere as criaturas activas.
 
-Economia — Ouro, platina, cristal. Itens raros coloridos conforme a raridade.
+Escudeiro (Criatura SPA): Uma criatura especial que carrega um inventário remoto. O jogador pode abrir a mochila do escudeiro com !escudeiro abrir e arrastar itens livremente entre o seu inventário e o do escudeiro. É como ter uma segunda mochila sempre por perto. Quando o escudeiro morre, os seus itens são derramados no corpo e a janela fecha automaticamente.
+
+Pets de combate: Criaturas como Fagulha, Guardião Gélido e Sombra podem ser invocadas com habilidades específicas. O jogador pode geri‑las com comandos como !pet list, !pet info, !pet killall e !pet behavior.
+
+Progressão: As habilidades de Summon escalam com o nível de afinidade do domínio, permitindo invocar criaturas mais poderosas ou em maior número.
+
+Missões (SQH)
+Oferecidas no chat com palavras coloridas conforme o tipo: c("Matar 5 Orcs", COR.MISSAO_MATAR), c("Coletar 10 Ervas", COR.MISSAO_COLETAR), etc. HUD (opcode 180) e toasts (opcode 181) mantêm o progresso visível.
+
+Combate
+Dano exibido com cores: c("42", COR.DANO_FISICO), c("Crítico!", COR.DANO_CRITICO), e monstros em c("Centopeia", COR.INIMIGO_MONSTRO).
+
+Economia
+Ouro, platina, cristal. Itens raros coloridos conforme a raridade.
 
 💬 6. INTERFACE E FEEDBACK — CHAT, HUD, TOASTS E MODAIS
-
 "Cada acção tem uma resposta. O chat não é apenas um canal de conversa: é o palco onde as histórias acontecem. As palavras importantes brilham em cores específicas, indicando o caminho sem o impor."
 
 Regras técnicas:
@@ -169,7 +187,6 @@ HUD de Estado de Alma (futuro): opcode 182 para Vínculo activo (incluindo perma
 Janelas modais: RESTRITAS a Banco, Loja e conhecimento (opcode 184).
 
 🤝 7. COMUNIDADE E INTERACÇÃO SOCIAL
-
 Grupos (Party): partilha de experiência e loot.
 
 Guildas: criação, gestão e guerras.
@@ -179,7 +196,6 @@ PvP: configurável, com suporte a frag handler.
 Comunicação entre jogadores: canais de chat, mensagens privadas.
 
 🏆 8. DIFERENCIAIS E VALORES DO PROJECTO
-
 100% no cliente
 
 Imersão narrativa com palavras clicáveis e coloridas
@@ -194,6 +210,8 @@ Bónus percentuais de vida, mana e velocidade, que escalam com o domínio e se m
 
 Sinergia elemental que recompensa a combinação de estilos
 
+Invocação e Pets com inventário remoto e IA modular
+
 Arquitectura modular de habilidades, separando motor, definições e narrativa
 
 Tradução total para PT‑BR
@@ -205,11 +223,9 @@ Código aberto e customizável
 Ambientação original
 
 🚀 9. O FUTURO DA EXPERIÊNCIA
-
 "O horizonte está sempre a expandir‑se. Novos sistemas surgirão: eventos dinâmicos, expansões do mapa, e funcionalidades que aprofundam a ligação entre o mundo e quem o habita."
 
 🔗 10. INTEGRAÇÃO COM OS OUTROS GUIAS
-
 Aspecto da Experiência	Guias de Referência
 Criação de conta e personagem	[8] Criação de Conta e Personagem
 Diálogos, pronomes e intimidade	[6] Narrativa e Diálogos
@@ -224,41 +240,73 @@ Dados e schema	[9] Banco de Dados e Infraestrutura
 Compilação e customizações	[1] Compilação (Servidor) / [2] Compilação (Cliente)
 Pilares e regras gerais	[0] Índice Geral
 🔍 CHECKLIST DE REVISÃO PARA O ASSISTENTE (EXPERIÊNCIA DO JOGADOR)
-
 ☐ O jogador consegue completar o fluxo de criação sem sair do OTClient?
+
 ☐ O Oráculo saúda automaticamente e não pergunta vocação?
+
 ☐ Ordem de criação: Nome → Pronome → Sexo (sem vocação)?
+
 ☐ Validações de nome aplicadas?
+
 ☐ Máscara de Alma funciona em todos os contextos?
+
 ☐ Pronomes respeitados por todos os NPCs?
+
 ☐ Palavras‑chave coloridas com c() e cores apropriadas?
+
 ☐ Apenas palavras‑chave coloridas, nunca frases inteiras?
+
 ☐ Palavras clicáveis tratadas com explicação e retorno ao contexto?
+
 ☐ Missões usam exclusivamente c() no chat e NUNCA janelas modais?
+
 ☐ HUD (180) e toasts (181) com cores temáticas?
+
 ☐ Mensagens de progressão usam c() para colorir domínios e habilidades?
+
 ☐ Posturas alteradas pelos modos nativos com feedback colorido?
+
 ☐ Arremesso de Escudo (140) acessível ao usar escudo sem arma?
+
 ☐ Sinergia elemental activa habilidades mágicas com armas elementais?
+
 ☐ Progressão de intimidade afecta a linguagem?
+
 ☐ Janelas modais apenas para Banco, Loja, conhecimento e acções irreversíveis?
+
 ☐ Texto visível em PT‑BR, ISO‑8859‑1 (Lua) ou escapes octais (C++)?
+
 ☐ Sistemas sociais acessíveis e funcionais?
+
 ☐ A Maestria garante Vínculo permanente, e isso está reflectido no feedback?
+
 ☐ O sistema de Chi e Virtudes funciona para o caminho Artes Marciais?
+
 ☐ A propagação de afinidade está implementada com o rácio 4:2:1 e funciona correctamente?
+
 ☐ Os bónus de vida, mana e velocidade são percentuais e não acumulam?
+
 ☐ A capacidade do personagem é determinada exclusivamente pelo gaincap da vocação, sem mínimo artificial?
+
 ☐ As habilidades de gatilho usam apenas efeitoConfig e o motor modular?
+
 ☐ O módulo npc_utils.lua utiliza pronouns.lua e não contém referências a vocações?
+
 ☐ Os comandos de diagnóstico (!setskill, !setstatus, !testesistema, !resetspa) estão funcionais e documentados?
 
-📤 COMO ATUALIZAR O REPOSITÓRIO GIT
+☐ O sistema de invocação (Summon) está operacional, com pets, escudeiro e inventário remoto?
 
+☐ O arrasto de itens entre jogador e escudeiro funciona livremente?
+
+☐ Ao morrer, o escudeiro derrama os itens no corpo e a janela fecha automaticamente?
+
+☐ Os comandos !escudeiro e !pet estão funcionais e documentados?
+
+📤 COMO ATUALIZAR O REPOSITÓRIO GIT
 bash
 git add "docs/MCR - Guia de Experiencia do Jogador.txt"
-git commit -m "docs: atualiza Guia de Experiência do Jogador v4.6.0 (SPA v4.6, propagação 4:2:1, bónus percentuais, velocidade)"
+git commit -m "docs: atualiza Guia de Experiência do Jogador v4.7.0 (SPA v4.6, Summon/Pets, escudeiro, propagação 4:2:1)"
 git push origin main
 ⚠️ PowerShell: aspas duplas em caminhos com espaços.
 
-FIM DO GUIA DE EXPERIÊNCIA DO JOGADOR — VERSÃO 4.6.0
+FIM DO GUIA DE EXPERIÊNCIA DO JOGADOR — VERSÃO 4.7.0

@@ -1,17 +1,19 @@
 PROJETO MCR – ÍNDICE GERAL E PILARES PERMANENTES
-Versão: 5.5 – Sistema de Progressão do Aventureiro (SPA v4.6.0), propagação de afinidade 4:2:1, novos métodos C++, limpeza de capacidade, velocidade dinâmica, comandos /setskill e /setstatus
+Versão 5.6 – Sistema de Progressão do Aventureiro (SPA v4.6.0), domínios Summon e Sobrevivência, sistema de escudeiro/pets, novos comandos e motor de habilidades modular
 Arquivo: [0] MCR - INDICE GERAL.txt
 
 🎯 FUNÇÃO DESTE ARQUIVO
 Este documento é a raiz de toda a documentação do Projeto MCR. Serve a três propósitos fundamentais:
 
-- LEMBRETE PERMANENTE: contém os pilares filosóficos e técnicos que NUNCA podem ser violados em nenhuma camada do projeto.
-- ÍNDICE DE GUIAS: lista todos os documentos temáticos que compõem a base de conhecimento do Projeto MCR, com uma breve descrição do conteúdo de cada um.
-- ARQUIVOS COMPLEMENTARES: relação de listas e recursos auxiliares, como a Lista de Itens Úteis.
-- FERRAMENTAS DE AUTOMAÇÃO: scripts Python que compõem a pipeline de tradução.
+LEMBRETE PERMANENTE: contém os pilares filosóficos e técnicos que NUNCA podem ser violados em nenhuma camada do projeto.
+
+ÍNDICE DE GUIAS: lista todos os documentos temáticos que compõem a base de conhecimento do Projeto MCR, com uma breve descrição do conteúdo de cada um.
+
+ARQUIVOS COMPLEMENTARES: relação de listas e recursos auxiliares, como a Lista de Itens Úteis.
+
+FERRAMENTAS DE AUTOMAÇÃO: scripts Python que compõem a pipeline de tradução.
 
 ⚠️ PILARES PERMANENTES (APLICÁVEIS A TODAS AS CAMADAS)
-
 ▶ PILAR 1 – JORNADA 100% NO CLIENTE
 Nenhuma experiência essencial do jogador pode ocorrer fora do OTClient. Criação de conta, login, selecção de personagem, quests, loja, gerenciamento de conta – TUDO deve ser resolvido dentro do cliente. O site/AAC (MyAAC) é opcional e complementar, jamais um requisito para jogar.
 
@@ -22,7 +24,7 @@ Qualquer componente do ecossistema pode ser modificado em nível de código‑fo
 Todas as strings visíveis ao jogador, todos os comentários de código (C++, Lua, Go), todas as mensagens de sistema e logs, e toda a documentação devem ser escritos em português do Brasil com acentuação impecável. Excepções: nomes de variáveis, funções, classes, enums, palavras‑chave das linguagens e chaves de configuração (ex.: "modalWindows").
 
 ▶ PILAR 4 – IMERSÃO NARRATIVA (AVENTURA FANTASIOSA)
-O mundo MCR é um universo de fantasia original. NPCs possuem personalidade, variação de discurso e reagem ao contexto do jogador (sexo, vocação, progresso em missões, níveis de Domínio, Estados de Alma, Maestria). A ambientação é rica, coerente e totalmente desvinculada do Tibia oficial. O jogador é sempre um Aventureiro; não existem vocações tradicionais.
+O mundo MCR é um universo de fantasia original. NPCs possuem personalidade, variação de discurso e reagem ao contexto do jogador (sexo, progresso em missões, níveis de Domínio, Estados de Alma, Maestria). A ambientação é rica, coerente e totalmente desvinculada do Tibia oficial. O jogador é sempre um Aventureiro; não existem vocações tradicionais.
 
 ▶ PILAR 5 – EXPERIÊNCIA DE JOGO MODERNA (CHAT COM {CHAVES} + HUD + TOAST + CORES)
 Interacções narrativas usam o chat com palavras destacadas entre {chaves} (destaque nativo do cliente), coloridas através da função c() e da tabela COR v10.0. O progresso de missões é exibido em HUD persistente. Feedback imediato é dado por notificações toast. Janelas modais são RESTRITAS a confirmações críticas irreversíveis, Loja e Banco. Jamais para progresso de missão.
@@ -31,74 +33,106 @@ Interacções narrativas usam o chat com palavras destacadas entre {chaves} (des
 Todo script que contenha lógica condicional (tópicos, estados, validações) DEVE incluir mensagens de debug no console do servidor, utilizando o prefixo "DEBUG:".
 
 ▶ PILAR 7 – PROGRESSÃO ORGÂNICA E MODULAR (ACTUALIZADO)
-O Sistema de Progressão do Aventureiro (SPA v4.6.0) substitui completamente as vocações. O jogador evolui ao realizar acções no mundo, ganhando Afinidade em Domínios (Primários, Secundários e Especialidades). A afinidade propaga‑se automaticamente com rácio 4:2:1 (Especialidade → Secundário → Primário). Os Estados de Alma (Lampejo, Vínculo e Maestria) e as Posturas de Combate (Ímpeto, Equilíbrio, Guarda) são automatizados e não requerem intervenção directa do jogador além do estilo de jogo. A Maestria (nível 20) concede um Vínculo permanente com o Domínio. A sinergia elemental permite que armas com dano elemental desbloqueiem automaticamente habilidades do domínio mágico correspondente. As sinergias entre domínios recompensam a experimentação. Campos elementais (Fields) podem ser criados por habilidades de Maestria, com imunidade para o conjurador e seu grupo. Os bónus de vida, mana e velocidade são calculados dinamicamente sobre valores base da vocação, garantindo que escalem com o nível do personagem e nunca acumulem indevidamente. Toda a progressão é comunicada por feedback narrativo, efeitos visuais e o Jornal do Aventureiro (futuro). O sistema é modular: novos Domínios, habilidades e comportamentos são adicionados via banco de dados e scripts Lua na pasta `data-canary/scripts/MCR/SPA` (Revscript), sem alterar o núcleo C++ desnecessariamente.
+O Sistema de Progressão do Aventureiro (SPA v4.6.0) substitui completamente as vocações. O jogador evolui ao realizar acções no mundo, ganhando Afinidade em Domínios (Primários, Secundários e Especialidades). A afinidade propaga‑se automaticamente com rácio 4:2:1 (Especialidade → Secundário → Primário). Os Estados de Alma (Lampejo, Vínculo e Maestria) e as Posturas de Combate (Ímpeto, Equilíbrio, Guarda) são automatizados e não requerem intervenção directa do jogador além do estilo de jogo. A Maestria (nível 20) concede um Vínculo permanente com o Domínio. A sinergia elemental permite que armas com dano elemental desbloqueiem automaticamente habilidades do domínio mágico correspondente. As sinergias entre domínios recompensam a experimentação. Campos elementais (Fields) podem ser criados por habilidades de Maestria, com imunidade para o conjurador e seu grupo. Os bónus de vida, mana e velocidade são calculados dinamicamente sobre valores base da vocação, garantindo que escalem com o nível do personagem e nunca acumulem indevidamente. O sistema inclui invocação (Summon) e pets com IA modular. Toda a progressão é comunicada por feedback narrativo, efeitos visuais e o Jornal do Aventureiro (futuro). O sistema é modular: novos Domínios, habilidades e comportamentos são adicionados via banco de dados e scripts Lua na pasta data-canary/scripts/MCR/SPA (Revscript), sem alterar o núcleo C++ desnecessariamente.
 
 🚧 ESTADO ATUAL DA IMPLEMENTAÇÃO (SPA v4.6.0)
-
 O SPA v4.6.0 está totalmente implementado no núcleo (APIs C++). As principais funcionalidades estão operacionais e verificadas.
 
-**O que está IMPLEMENTADO e pode ser usado:**
-- Base do servidor Canary, OTClient e Login Server compilando e funcionando.
-- Sistema de criação de conta e personagem (Oráculo) com vocation = 0 (Aventureiro) e sem escolha de vocação.
-- Máscara de Alma e transição de conta guest para permanente via opcode 200.
-- Estrutura de Domínios no banco de dados completa, incluindo Energia (26), com parent_id de Sobrevivência corrigido para Natureza (4).
-- Todos os métodos C++ listados na Documentação Técnica do SPA, incluindo os novos unlearnHabilidade, unlearnAllHabilidades, learnHabilidadeBatch, getVocationBaseMaxHealth, getVocationBaseMaxMana, getNaturalSpeed e setMovementSpeed.
-- Propagação de afinidade com rácio 4:2:1 implementada na função adicionarAfinidade.
-- Buffer de progressão, descarregamento periódico, Lampejos com chance variável, Vínculos com bónus parciais e Maestria (Vínculo permanente no nível 20) funcionais.
-- Sinergia elemental nativa.
-- Posturas de combate (Ímpeto, Equilíbrio, Guarda) aplicadas dinamicamente.
-- Sistema de Chi, Virtudes e Serenidade integrados.
-- Sistema de cores integrado (texto_colorido.lua v10.0).
-- Executor de Habilidades v8.0 totalmente migrado para o motor modular (efeitoConfig). Sistema legado de buffType removido.
-- Funções auxiliares de habilidades (funcoes_habilidade.lua v2.0.2) com proteção absoluta contra dano negativo.
-- Projéteis 100% dinâmicos via getProjectile() e getElementalProjectile() (util_armas.lua v6.2.1 com suporte a aljavas).
-- Think unificado (think_master.lua v3.4.1) incluindo recálculo de vida, mana e velocidade.
-- Passivas auto‑suficientes, sem acumulação de vida/mana (geridas por recalcularVidaMana e recalcularVelocidade).
-- Event Bus operacional.
-- SkillTrees prontos para uso.
-- Comandos de teste e diagnóstico: !resetspa (limpeza restrita às faixas 90000‑96999, com tratamento manual de Chi e Virtudes), !maximizar, !platinar, !testesistema, !aprendertudo, !habilidades, !especialidade, !exibircores, !iteminfo, !debugproj, além dos novos /setskill, /setstatus e /addskill.
-- Scripts do núcleo completos em `data-canary/scripts/MCR/SPA/core/`, incluindo motor_habilidades.lua v1.0 e narrativa_habilidades.lua v1.0.
-- NPC Utils refatorado para usar exclusivamente Pronouns.getSubject, abolindo referências a vocações.
-- Todos os itens acima verificados com sucesso através dos comandos de diagnóstico.
+✅ O que está IMPLEMENTADO e pode ser usado:
+Base do servidor Canary, OTClient e Login Server compilando e funcionando.
 
-**O que está em DESENVOLVIMENTO ACTIVO:**
-- Geração das habilidades completas (35+ por domínio) seguindo o Guia [13] e o Gabarito de Habilidades v4.5.
-- Actualização do feedback narrativo para o padrão limpo v3.3 em todas as habilidades existentes.
-- Expansão dos pacotes de habilidades para os domínios Espadas Leves (100), Escudo (15), Fogo (23) e Lâminas (10), incluindo passivas de velocidade de movimento.
+Sistema de criação de conta e personagem (Oráculo) com vocation = 0 (Aventureiro) e sem escolha de vocação.
 
-**O que AINDA NÃO está implementado (roadmap futuro):**
-- Domínios de Ofícios (3) e Natureza (4).
-- Tutorial da Ilha do Despertar (Eridanus).
-- Listeners para os opcodes 182, 183 e 184 no cliente.
-- Script Python para adicionar elementalBond no items.xml.
+Máscara de Alma e transição de conta guest para permanente via opcode 200.
+
+Estrutura de Domínios no banco de dados completa, incluindo Summon (28), Sobrevivência (400) e os demais domínios elementais, de combate e mágicos, com parent_id de Sobrevivência corrigido para Natureza (4).
+
+Todos os métodos C++ listados na Documentação Técnica do SPA, incluindo unlearnHabilidade, unlearnAllHabilidades, learnHabilidadeBatch, getVocationBaseMaxHealth, getVocationBaseMaxMana, getNaturalSpeed, setMovementSpeed e os novos métodos para inventário remoto (openRemoteContainer, closeRemoteContainer, createInventoryContainer, getInventoryContainer, setCustomName, getCustomName).
+
+Propagação de afinidade com rácio 4:2:1 implementada na função adicionarAfinidade.
+
+Buffer de progressão, descarregamento periódico, Lampejos com chance variável, Vínculos com bónus parciais e Maestria (Vínculo permanente no nível 20) funcionais.
+
+Sinergia elemental nativa.
+
+Posturas de combate (Ímpeto, Equilíbrio, Guarda) aplicadas dinamicamente.
+
+Sistema de Chi, Virtudes e Serenidade integrados.
+
+Sistema de cores integrado (texto_colorido.lua v10.0).
+
+Executor de Habilidades v8.0 totalmente migrado para o motor modular (efeitoConfig). Sistema legado de buffType removido.
+
+Motor de Habilidades (motor_habilidades.lua v2.0) com 18 tipos de efeito (incluindo summon, storm, orbit, pulse, rain, trap), fallback automático de efeitos visuais por elemento, suporte a conditionMagicEffect e adaptação elemental para Wands/Rods.
+
+Funções auxiliares de habilidades (funcoes_habilidade.lua v2.0.2) com proteção absoluta contra dano negativo.
+
+Projéteis 100% dinâmicos via getProjectile() e getElementalProjectile() (util_armas.lua v6.2.1 com suporte a aljavas).
+
+Think unificado (think_master.lua v3.4.1) incluindo recálculo de vida, mana e velocidade.
+
+Passivas auto‑suficientes, sem acumulação de vida/mana (geridas por recalcularVidaMana e recalcularVelocidade).
+
+Event Bus operacional.
+
+SkillTrees prontos para uso.
+
+Sistema de invocação e pets (pet_system.lua, summon_configs.lua, summon_ai.lua) com IA modular e comandos de gestão.
+
+Criatura SPA com inventário remoto (!escudeiro abrir/adicionar/pegar) e arrasto livre de itens entre jogador e escudeiro.
+
+Template Revscript para CriaturaSPA (criatura_spa_template.lua) e evento de morte (spa_death.lua).
+
+Comandos de teste e diagnóstico: !resetspa (limpeza restrita às faixas 90000‑96999, com tratamento manual de Chi e Virtudes), !maximizar, !platinar, !testesistema (com layout completo e filtro por domínio), !aprendertudo, !habilidades, !especialidade, !exibircores, !iteminfo, !debugproj, além dos novos /setskill, /setstatus, /addskill, !testecriatura, !escudeiro, !pet list/killall/info/test/behavior.
+
+Scripts do núcleo completos em data-canary/scripts/MCR/SPA/core/, incluindo motor_habilidades.lua v2.0, narrativa_habilidades.lua v1.0, pet_system.lua, summon_configs.lua.
+
+Habilidades placeholder geradas para Espadas Leves (100), Escudo (15), Fogo (23), Wands (210), Lâminas (10), Combate (1), Elementos (20), Magia (2), Runologia (22), Terra e Veneno (25), Sobrevivência (400), Summon (28), permitindo testes completos do sistema.
+
+NPC Utils refatorado para usar exclusivamente Pronouns.getSubject, abolindo referências a vocações.
+
+Todos os itens acima verificados com sucesso através dos comandos de diagnóstico.
+
+🚧 O que está em DESENVOLVIMENTO ACTIVO:
+Geração das habilidades finais (35+ por domínio) seguindo o Guia [13], o Gabarito de Habilidades v4.5 e o Documento de Personalidade e Identidade de Domínios.
+
+Refatoração do feedback visual para todos os domínios, garantindo efeitos temáticos consistentes (aproveitando o mapeamento central de efeitos visuais do motor v2.0).
+
+Ajuste fino de prioridades, cooldowns e condições de activação com base nos testes práticos.
+
+📅 O que AINDA NÃO está implementado (roadmap futuro):
+Domínios de Ofícios (3) e Natureza (4).
+
+Tutorial da Ilha do Despertar (Eridanus).
+
+Listeners para os opcodes 182, 183 e 184 no cliente.
+
+Script Python para adicionar elementalBond no items.xml.
 
 🗂️ ÍNDICE DE DOCUMENTOS (GUIAS TEMÁTICOS)
-
-[0] MCR - Índice Geral.txt (este documento)
-[1] MCR - Guia de Compilação (Servidor).txt
-[2] MCR - Guia de Compilação (Cliente).txt
-[3] MCR - Guia de Configuração (Servidor e Rede).txt
-[4] MCR - Guia do Login Server.txt
-[5] MCR - Guia de Interface (OTUI e Lua Cliente).txt
-[6] MCR - Guia de Narrativa e Diálogos.txt
-[7] MCR - Guia de Quests (Sistema Híbrido SQH).txt
-[8] MCR - Guia de Criação de Conta e Personagem.txt
-[9] MCR - Guia de Banco de Dados e Infraestrutura.txt (v4.2)
-[10] MCR - Guia de Tradução e Localização (PT‑BR).txt
-[11] MCR - Guia de Experiência do Jogador.txt
-[12] MCR - Guia de Conteúdo Inicial e Tutorial.txt
-[13] MCR - Guia de Criação de Habilidades.txt (v1.3)
-[Documentação] MCR - Sistema de Progressão do Aventureiro (SPA v4.6.0).txt
-[Filosofia] Filosofia do SPA – Sistema de Progressão do Aventureiro v4.6.0.txt
-[Gabarito] Habilidade Gabarito v4.5.txt
-
+#	Documento	Descrição
+[0]	MCR - Índice Geral.txt	Este documento.
+[1]	MCR - Guia de Compilação (Servidor).txt	Compilação do Canary com todos os métodos Lua do SPA.
+[2]	MCR - Guia de Compilação (Cliente).txt	Compilação do OTClient com opcodes e máscara de Alma.
+[3]	MCR - Guia de Configuração (Servidor e Rede).txt	Configuração de portas, storages, opcodes e OTCFeatures.
+[4]	MCR - Guia do Login Server.txt	API REST, endpoints, error codes e guest accounts.
+[5]	MCR - Guia de Interface (OTUI e Lua Cliente).txt	Sintaxe OTUI, fontes, codificação ISO‑8859‑1, opcodes visuais.
+[6]	MCR - Guia de Narrativa e Diálogos.txt	Imersão narrativa, personalidade de NPCs, sistema de cores.
+[7]	MCR - Guia de Quests (Sistema Híbrido SQH).txt	Criação de missões com HUD, toasts e integração SPA.
+[8]	MCR - Guia de Criação de Conta e Personagem.txt	Fluxo do Salão dos Destinos, Oráculo, Alma, pronomes.
+[9]	MCR - Guia de Banco de Dados e Infraestrutura.txt (v4.2)	Schema, tabelas do SPA, população inicial de domínios.
+[10]	MCR - Guia de Tradução e Localização (PT‑BR).txt	Codificação por tipo de arquivo, error codes, pipeline.
+[11]	MCR - Guia de Experiência do Jogador.txt	A jornada completa do jogador, do Alma ao herói.
+[12]	MCR - Guia de Conteúdo Inicial e Tutorial.txt	Tutorial de Eridanus, NPCs, missões iniciais.
+[13]	MCR - Guia de Criação de Habilidades.txt (v2.1)	Filosofia de design, estrutura por hierarquia, pacotes temáticos, processo de geração.
+—	[Documentação] MCR - Sistema de Progressão do Aventureiro (SPA v4.6.0).txt	Documentação técnica completa de todas as APIs, métodos e sistemas.
+—	[Filosofia] Filosofia do SPA – Sistema de Progressão do Aventureiro v4.6.0.txt	Visão filosófica e canónica do SPA.
+—	[Personalidade] MCR - Personalidade e Identidade de Dominios.txt	Guia universal de design narrativo e mecânico para criação de domínios.
+—	[Gabarito] Habilidade Gabarito v4.5.txt	Referência máxima de todos os campos e regras para criação de habilidades.
 📁 ARQUIVOS COMPLEMENTARES
-
-[Aquivo Complementar] Lista de Items Uteis.txt
-Lista com mais de 3000 itens traduzidos, seus IDs e atributos. Recurso de consulta rápida para criadores de conteúdo, missões e tutorial.
+[Arquivo Complementar] Lista de Items Uteis.txt — Lista com mais de 3000 itens traduzidos, seus IDs e atributos. Recurso de consulta rápida para criadores de conteúdo, missões e tutorial.
 
 🛠️ FERRAMENTAS DE AUTOMAÇÃO (PIPELINE DE TRADUÇÃO)
-
 O projecto dispõe de um conjunto de scripts Python que automatizam a extracção, tradução e aplicação de textos traduzidos nos ficheiros fonte. Estas ferramentas estão documentadas nos seus próprios cabeçalhos e são utilizadas conforme a necessidade:
 
 1-extrator.py: extrai strings de código C++ e OTUI.
@@ -130,21 +164,28 @@ mcr_dict.py / mcr_dict_monsters.py: dicionários manuais de traduções oficiais
 Todos os scripts estão prontos para uso e devem ser executados na ordem adequada, conforme documentado nos cabeçalhos de cada um.
 
 🗺️ MAP EDITOR (RME) – MODIFICAÇÕES MCR
-O projeto inclui alterações no código‑fonte do Remere's Map Editor para
-garantir a compatibilidade total com os scripts Lua do MCR:
-- Função de conversão ISO‑8859‑1 → UTF‑8 (encoding_utils.h)
-- Parser Lua estendido (resolveLocalVar, parseNpcConfig)
-- Modificações em monsters.cpp e npcs.cpp para usar as funções acima
+O projeto inclui alterações no código‑fonte do Remere's Map Editor para garantir a compatibilidade total com os scripts Lua do MCR:
+
+Função de conversão ISO‑8859‑1 → UTF‑8 (encoding_utils.h)
+
+Parser Lua estendido (resolveLocalVar, parseNpcConfig)
+
+Modificações em monsters.cpp e npcs.cpp para usar as funções acima
 Consulte o Guia [2] para instruções de compilação.
 
 🧠 REGRA DE OURO PARA O ASSISTENTE (INTEGRAÇÃO DE GUIAS)
 SEMPRE que você, assistente, for modificar ou criar QUALQUER arquivo do projecto, você DEVE:
-- Identificar TODOS os guias temáticos que se aplicam ao contexto da tarefa.
-- Carregar mentalmente as "Regras de Revisão para o Assistente" de cada um desses guias.
-- Executar uma revisão tripla que combine as listas de verificação de TODOS os guias pertinentes.
-- Incluir na resposta a secção "✅ Autorevisão do Assistente", listando quais guias foram consultados e marcando os checklists específicos e universais.
+
+Identificar TODOS os guias temáticos que se aplicam ao contexto da tarefa.
+
+Carregar mentalmente as "Regras de Revisão para o Assistente" de cada um desses guias.
+
+Executar uma revisão tripla que combine as listas de verificação de TODOS os guias pertinentes.
+
+Incluir na resposta a secção "✅ Autorevisão do Assistente", listando quais guias foram consultados e marcando os checklists específicos e universais.
 
 📤 COMO ATUALIZAR O REPOSITÓRIO GIT
+bash
 git add "<arquivos alterados>"
 git commit -m "feat(auth): <Comentário>"
 git push origin main
@@ -154,4 +195,5 @@ git push origin main
 GitHub: https://github.com/Player-Kheltz/ProjetoMCR
 Estrutura: Canary/ | OTClient/ | LoginServer/ | docs/ | MyAAC/
 
-FIM DO ÍNDICE GERAL (VERSÃO 5.4)
+FIM DO ÍNDICE GERAL (VERSÃO 5.6)
+
