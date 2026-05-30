@@ -1,7 +1,7 @@
 📘 Filosofia do SPA – Sistema de Progressão do Aventureiro
 ==========================================================
 Projeto MCR – Documento Canónico de Design
-Versão 4.7.0 – Junho de 2026
+Versão 4.7.1 – Junho de 2026
 
 🌌 1. O Fim das Vocações – O Nascimento do Aventureiro
 
@@ -198,6 +198,11 @@ especiais e talentos passivos que o Aventureiro desbloqueia ao progredir
 nos seus domínios. Cada domínio possui 35 a 36 habilidades organizadas
 em pacotes temáticos que definem a sua personalidade.
 
+Nota atual: As habilidades actualmente presentes são placeholders criadas
+para teste do sistema. Todas serão refeitas com base no Documento de
+Personalidade e Identidade de Domínios e no Gabarito de Habilidades,
+seguindo a arquitetura modular e os novos tipos de efeito do motor.
+
 6.1 Arquitetura Modular
 O SPA adopta uma separação em três camadas:
 
@@ -319,8 +324,14 @@ adaptados ao elemento da arma equipada.
 Invocação e Companheirismo: o domínio Summon (28) permite ao Aventureiro
 conjurar criaturas mágicas que lutam a seu lado. A duração das invocações
 escala com a barra de foco, e a IA modular (summon_ai.lua) garante que
-cada criatura se comporte de forma única. Um Mestre da Invocação mantém
-os seus servos por longos períodos e estabelece um vínculo inquebrável.
+cada criatura se comporte de forma única. O vínculo transcende barreiras
+físicas: quando o mestre muda de piso (escadas, buracos, teleports), a
+criatura captura a posição exacta de origem e destino através de uma fila
+nativa gerida pelo motor C++. A criatura caminha incrementalmente até
+ao ponto onde o mestre usou a transição e, ao chegar, aparece imediatamente
+no novo piso, seguindo‑o fielmente. Este comportamento é automático,
+sem dependência de scripts Lua externos, e garante que a jornada do
+Aventureiro nunca seja interrompida — os seus aliados estão sempre por perto.
 
 ⚙️ 9. O Motor do SPA – Modularidade e Performance
 
@@ -348,6 +359,16 @@ Projéteis 100% dinâmicos: adaptação elemental com suporte a aljavas.
 
 Campos Elementais: criarField() com imunidade para o conjurador
 e seu grupo (se Maestria). Dano sequencial para performance.
+
+Perseguição Multi‑Piso Nativa: o motor captura automaticamente as
+transições de piso do jogador em Game::internalTeleport e
+Map::moveCreature, armazenando‑as numa fila (Player::storeFloorChange,
+Player::hasPendingFloorChange, etc.). As criaturas invocadas consomem
+essa fila e caminham até ao ponto exacto antes de aparecer no destino,
+limpando automaticamente a fila ao alcançar o mestre. Este sistema
+substitui completamente as abordagens anteriores baseadas em estimativas
+e buscas de escadas, oferecendo precisão absoluta e um feedback visual
+discreto.
 
 Comandos de diagnóstico: !platinar, !resetspa, !testesistema,
 !escudeiro, !pet e muitos outros, permitem testar e validar cada

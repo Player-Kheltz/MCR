@@ -1,9 +1,9 @@
 PROJETO MCR – GUIA DE COMPILAÇÃO (SERVIDOR)
-Versão 5.0 – Sistema de Progressão do Aventureiro (SPA v4.6.0), novos métodos de invocação e inventário remoto, ajustes estruturais e novos scripts
+Versão 5.1 – Sistema de Progressão do Aventureiro (SPA v4.7.0), perseguição multi‑piso nativa, fila de transições do jogador e novos métodos de movimentação
 Arquivo: [1] MCR - Guia de Compilação (Servidor).txt
 
 🎯 OBJETIVO DESTE GUIA
-Fornecer todas as instruções, dependências, customizações e verificações necessárias para compilar o servidor Canary do Projeto MCR a partir do código‑fonte. Esta versão incorpora todos os métodos Lua exigidos pelo Sistema de Progressão do Aventureiro (SPA v4.6.0), incluindo:
+Fornecer todas as instruções, dependências, customizações e verificações necessárias para compilar o servidor Canary do Projeto MCR a partir do código‑fonte. Esta versão incorpora todos os métodos Lua exigidos pelo Sistema de Progressão do Aventureiro (SPA v4.7.0), incluindo:
 
 Gerenciamento de afinidades em lote, histórico de ações, knockback, modificadores de velocidade e stealth.
 
@@ -13,7 +13,9 @@ getVocationBaseMaxHealth, getVocationBaseMaxMana, getNaturalSpeed e setMovementS
 
 setCombatModifier para modificadores de combate dinâmicos.
 
-Novos métodos para o sistema de invocação e inventário remoto (openRemoteContainer, closeRemoteContainer, Monster.createInventory, Monster.addItemToInventory, Monster.getInventoryContainer, Monster.setCustomName, Monster.getCustomName).
+Métodos para o sistema de invocação e inventário remoto (openRemoteContainer, closeRemoteContainer, Monster.createInventory, Monster.addItemToInventory, Monster.getInventoryContainer, Monster.setCustomName, Monster.getCustomName).
+
+Novos métodos e estruturas para perseguição multi‑piso nativa: Creature::onFloorChange, Player::storeFloorChange, Player::hasPendingFloorChange, Player::getNextFloorChange, Player::clearNextFloorChange, Monster::followTargetAcrossFloor, Monster::findFreeTileNear, e a captura automática de transições de piso em Game::internalTeleport e Map::moveCreature.
 
 Estrutura modular de scripts em data-canary/scripts/MCR/SPA/core/ e subpastas, incluindo os novos módulos de pets e summons.
 
@@ -43,6 +45,7 @@ O sistema de progressão usa Revscript: os scripts Lua ficam na pasta data-canar
 
 📦 DEPENDÊNCIAS (AMBIENTE WINDOWS)
 Ferramentas Obrigatórias:
+
 Visual Studio 2022 (Community ou superior) com carga de trabalho "Desenvolvimento para desktop com C++".
 
 CMake 3.20 ou superior (adicionar ao PATH).
@@ -52,12 +55,14 @@ Git for Windows.
 vcpkg (gerenciador de bibliotecas). Instale em C:\vcpkg (ou caminho sem espaços).
 
 Comandos de instalação do vcpkg:
+
 bash
 git clone https://github.com/Microsoft/vcpkg.git C:\vcpkg
 cd C:\vcpkg
 .\bootstrap-vcpkg.bat
 .\vcpkg integrate install
 Bibliotecas Requeridas (instalar via vcpkg, para x64-windows):
+
 bash
 .\vcpkg install boost-beast:x64-windows boost-asio:x64-windows
 .\vcpkg install boost-filesystem:x64-windows boost-system:x64-windows
@@ -106,11 +111,23 @@ Arrasto de Itens (game.cpp): função playerMoveItem ajustada para permitir arra
 
 Monstros Customizados (monster.cpp): implementação de createInventoryContainer, dropInventoryOnDeath, setCustomName e getCustomName, permitindo que o escudeiro possua inventário e derrame itens ao morrer.
 
-Novos Registos Lua (spa_functions.cpp, monster_functions.cpp): registados os métodos Player.openRemoteContainer, Player.closeRemoteContainer, Monster.createInventory, Monster.addItemToInventory, Monster.getInventoryContainer, Monster.setCustomName, Monster.getCustomName.
+Perseguição Multi‑Piso Nativa (monster.cpp, player.cpp, creature.cpp, game.cpp, map.cpp):
+
+Creature::onFloorChange (virtual): chamado automaticamente quando qualquer criatura muda de piso.
+
+Player::storeFloorChange, hasPendingFloorChange, getNextFloorChange, clearNextFloorChange: fila de transições de piso do jogador, usada pelos summons para seguir o mestre.
+
+Monster::followTargetAcrossFloor: lógica de perseguição multi‑piso que processa a fila do jogador, movendo incrementalmente a criatura até ao ponto de origem e teleportando‑a para o destino.
+
+Monster::findFreeTileNear: utilitário para encontrar um tile livre próximo a uma posição.
+
+Captura automática em Game::internalTeleport e Map::moveCreature via onFloorChange.
+
+Novos Registos Lua (spa_functions.cpp, monster_functions.cpp): registados os métodos Player.openRemoteContainer, Player.closeRemoteContainer, Monster.createInventory, Monster.addItemToInventory, Monster.getInventoryContainer, Monster.setCustomName, Monster.getCustomName, Monster.followTargetAcrossFloor.
 
 SPA Manager (spa_manager.cpp / spa_manager.hpp): motor de eventos genérico (SPA.onEvent, SPA.dispatchEvent) e registo de domínios em tempo real via Lua.
 
-🚀 Novos Métodos Lua para o SPA v4.6.0 (IMPLEMENTADOS)
+🚀 Novos Métodos Lua para o SPA v4.7.0 (IMPLEMENTADOS)
 Estes métodos estão implementados em player.h/cpp, monster.h/cpp e expostos em luascript.cpp (ou nos ficheiros de funções dedicados). São essenciais para o funcionamento de todos os subsistemas do SPA. Todos estão activos e podem ser usados pelos scripts da pasta MCR/SPA/.
 
 Gestão de Afinidade e Domínios
@@ -214,22 +231,23 @@ monster:setCustomName(name) – Define o nome customizado da criatura.
 
 monster:getCustomName() – Retorna o nome customizado da criatura.
 
-⚙️ Lógica interna já presente em player.cpp:
-std::deque<ActionRecord> para o histórico de acções.
+Perseguição Multi‑Piso (NOVO v4.7.0)
+monster:followTargetAcrossFloor() – Força a criatura a processar a fila de transições de piso do seu mestre. Usado internamente pelo onThink_async, mas também pode ser invocado via Lua para testes.
 
-Estados de alma (Lampejo/Vínculo) controlados via setDominioState e getAllActiveStates.
+player:hasPendingFloorChange() – (Nota: este e os seguintes são métodos C++ usados internamente; podem ser expostos ao Lua se necessário, mas atualmente são chamados diretamente pelo motor do monstro.)
 
-Maestria (nível 20) gerida via getNivelPorAfinidade e setDominioState: quando o nível atinge 20, o Vínculo torna‑se permanente.
+player:getNextFloorChange()
 
-Buffer de afinidade gerido via storages temporárias (95001+dominioId); descarregamento em lote com addDominioAfinidadeBatch.
+player:clearNextFloorChange()
 
-Modificadores de combate dinâmicos armazenados em mapa string→double.
+⚙️ Lógica interna já presente nos ficheiros C++:
+player.cpp: std::deque<ActionRecord> para o histórico de acções; estados de alma controlados via setDominioState/getAllActiveStates; Maestria com Vínculo permanente; buffer de afinidade com descarregamento em lote; modificadores de combate dinâmicos; vida/mana base com offsets; gestão de containers remotos; fila de transições de piso (m_floorChangeQueue).
 
-Vida e mana base calculadas com getVocationBaseMaxHealth e getVocationBaseMaxMana, utilizando offsets (130 e 25, respectivamente) para garantir 150 de vida e 50 de mana no nível 1.
+monster.cpp: followTargetAcrossFloor com máquina de estados (idle, moving) e movimento incremental; findFreeTileNear para fallback seguro; limpeza automática da fila quando o mestre é alcançado.
 
-Velocidade natural calculada via getNaturalSpeed (base + level - 1).
+game.cpp / map.cpp: captura de mudanças de piso via onFloorChange em internalTeleport e moveCreature.
 
-Gestão de containers remotos (m_remoteContainerCID, m_remoteContainers, m_forceCloseRemote).
+creature.h/cpp: método virtual onFloorChange.
 
 📅 EVENTO onHealthChange (JÁ IMPLEMENTADO)
 O evento onHealthChange está presente no Canary e é usado pelo script ProgDefesa (eventos.lua) para progressão de Sobrevivência e Escudo ao receber dano.
@@ -237,7 +255,7 @@ O evento onHealthChange está presente no Canary e é usado pelo script ProgDefe
 🛠️ PIPELINE DE TRADUÇÃO AUTOMÁTICA
 A partir da versão actual, TODO o código C++ do servidor foi traduzido para PT‑BR através de uma pipeline automática supervisionada. As directrizes abaixo DEVEM ser mantidas em qualquer modificação futura:
 
-Strings de interface e logs: PT‑BR com escapes octais Latin‑1 (OBRIGATÓRIO). NUNCA colocar texto acentuado em UTF‑8 directamente nas strings C++. Exemplo correcto: "N\355vel de magia \351 alto." Exemplo INCORRECTO: "Nível de magia é alto."
+Strings de interface e logs: PT‑BR com escapes octais Latin‑1 (OBRIGATÓRIO). NUNCA colocar texto acentuado em UTF‑8 directamente nas strings C++. Exemplo correcto: "N\355vel de magia \351 alto.". Exemplo INCORRECTO: "Nível de magia é alto.".
 
 Bindings Lua intactos: nomes de funções registadas NUNCA são alterados.
 
@@ -245,7 +263,7 @@ Cabeçalhos (.h/.hpp): comentários traduzidos, definições de classes/macros i
 
 Consulte a lista completa de scripts da pipeline no Índice Geral (Ferramentas de Automação).
 
-🗂️ ESTRUTURA DE PASTAS REVSCRIPT PARA O SPA v4.6.0
+🗂️ ESTRUTURA DE PASTAS REVSCRIPT PARA O SPA v4.7.0
 Os scripts do Sistema de Progressão do Aventureiro residem em data-canary/scripts/MCR/SPA/. Módulos de apoio e constantes globais estão em data-canary/scripts/MCR/Geral/. O Canary, com suporte a Revscript, carrega automaticamente todos os ficheiros .lua nessas pastas e subpastas.
 
 text
@@ -267,11 +285,11 @@ data-canary/scripts/MCR/SPA/
 │   ├── advance.lua
 │   ├── motor_habilidades.lua
 │   ├── narrativa_habilidades.lua
-│   ├── pet_system.lua         (novo – gestão de pets activos)
-│   ├── summon_configs.lua      (novo – definições de criaturas invocáveis)
-│   ├── summon_ai.lua           (novo – IA modular para summons)
-│   ├── spa_death.lua           (novo – evento de morte da CriaturaSPA)
-│   ├── criatura_spa_template.lua (novo – template Revscript do monstro base)
+│   ├── pet_system.lua         (gestão de pets activos)
+│   ├── summon_configs.lua      (definições de criaturas invocáveis)
+│   ├── summon_ai.lua           (IA modular para summons)
+│   ├── spa_death.lua           (evento de morte da CriaturaSPA)
+│   ├── criatura_spa_template.lua (template Revscript do monstro base)
 │   └── funcoes_habilidade.lua
 ├── habilidades/
 │   ├── habilidades_espadas_leves.lua
@@ -285,7 +303,7 @@ data-canary/scripts/MCR/SPA/
 │   ├── habilidades_runologia.lua
 │   ├── habilidades_terra_veneno.lua
 │   ├── habilidades_sobrevivencia.lua
-│   ├── habilidades_summon.lua  (novo)
+│   ├── habilidades_summon.lua
 │   └── (futuros ficheiros modulares)
 ├── comandos/
 │   └── comandos_spa.lua
@@ -330,40 +348,32 @@ Inventário remoto: os métodos openRemoteContainer, closeRemoteContainer, creat
 
 Nome customizado: setCustomName/getCustomName substituem setName/getName para criaturas SPA, garantindo que o nome exibido no cliente seja o nome do escudeiro e não o nome do arquivo do monstro.
 
+Perseguição multi‑piso: a fila de transições é capturada automaticamente em Game::internalTeleport e Map::moveCreature. O método followTargetAcrossFloor deve ser chamado apenas no onThink_async do monstro. A fila é automaticamente limpa quando o monstro alcança o mestre no mesmo piso.
+
 🔍 CHECKLIST DE REVISÃO PARA O ASSISTENTE (C++ SERVIDOR)
 Antes de finalizar qualquer modificação em arquivos .cpp/.h do Canary, o assistente DEVE verificar:
 
 ☐ Strings visíveis ao jogador estão em PT‑BR com escapes octais Latin‑1 (OBRIGATÓRIO)?
-
 ☐ Comentários em PT‑BR; nomes de funções/variáveis em inglês?
-
 ☐ A modificação mantém compatibilidade com o protocolo 15.00?
-
 ☐ Novos métodos Lua seguem a convenção minúsculas_com_underscore?
-
 ☐ Novos métodos Lua têm validação de parâmetros?
-
-☐ Os métodos listados na secção "Novos Métodos Lua" permanecem funcionais e sem regressões (incluindo getAmmo, setCombatModifier, getVocationBaseMaxHealth, getVocationBaseMaxMana, getNaturalSpeed, setMovementSpeed, e os novos métodos de invocação/inventário remoto)?
-
+☐ Os métodos listados na secção "Novos Métodos Lua" permanecem funcionais e sem regressões (incluindo getAmmo, setCombatModifier, getVocationBaseMaxHealth, getVocationBaseMaxMana, getNaturalSpeed, setMovementSpeed, os métodos de invocação/inventário remoto, e os novos métodos de perseguição multi‑piso)?
 ☐ Nomes de bindings Lua NÃO foram alterados?
-
 ☐ Ficheiros de cabeçalho mantidos intactos?
-
 ☐ Novas consultas SQL usam placeholders parametrizados?
-
 ☐ O servidor compila sem warnings novos?
-
 ☐ Os scripts da pasta MCR/SPA/ são carregados correctamente pelo Revscript e as funções globais (COR v10.0, c(), recalcularVidaMana, recalcularVelocidade, PetSystem, etc.) estão acessíveis?
-
 ☐ O método player:getAmmo() está funcional para suportar projéteis dinâmicos?
-
 ☐ Os novos métodos de inventário remoto não interferem com o funcionamento normal dos containers do jogador?
+☐ A captura de transições de piso em internalTeleport e moveCreature não causa efeitos colaterais em outras criaturas?
+☐ A fila de transições do jogador é limpa correctamente quando um summon o alcança?
 
 📤 COMO ATUALIZAR O REPOSITÓRIO GIT
 bash
 git add "<arquivos alterados>"
-git commit -m "feat(server): Atualiza guia de compilação com SPA v5.0 e novos métodos de invocação"
+git commit -m "feat(server): Atualiza guia de compilação com SPA v5.1 e perseguição multi‑piso"
 git push origin main
 ⚠️ PowerShell: aspas duplas em caminhos com espaços.
 
-FIM DO GUIA DE COMPILAÇÃO (SERVIDOR) — VERSÃO 5.0
+FIM DO GUIA DE COMPILAÇÃO (SERVIDOR) — VERSÃO 5.1

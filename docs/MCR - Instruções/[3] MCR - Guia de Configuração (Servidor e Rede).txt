@@ -1,5 +1,5 @@
 PROJETO MCR – GUIA DE CONFIGURAÇÃO (SERVIDOR E REDE)
-Versão 4.3 – Suporte ao SPA v4.6.0, sistema de escudeiro/pets, novos comandos, estrutura de ficheiros expandida
+Versão 4.4 – Suporte ao SPA v4.6.0, perseguição multi‑piso, novos comandos, métodos C++ expandidos
 Arquivo: [3] MCR - Guia de Configuração (Servidor e Rede).txt
 
 🎯 OBJETIVO DESTE GUIA
@@ -15,22 +15,29 @@ Portas, firewall e conectividade.
 
 Configuração do banco de dados (acesso e charset).
 
-Definição dos pronomes do personagem (coluna nativa players.pronoun) e do pronome da conta (accounts.player_pronoun).
+Definição dos pronomes do personagem e da conta.
 
 Faixas de storages reservados para o SPA v4.6.0 e sistemas globais.
 
-Estrutura de pastas Revscript para os scripts do SPA (data-canary/scripts/MCR/SPA/core/, habilidades/, comandos/, eventos/, Geral/).
+Estrutura de pastas Revscript para os scripts do SPA.
 
 Referência às ferramentas de automação (pipeline de tradução).
 
 Versionamento com Git (boas práticas).
 
-Toda vez que for necessário ajustar uma porta, adicionar uma flag ou depurar um erro de conexão, este guia é a referência primária. A versão 4.3 actualiza as faixas de opcodes e storages para acomodar o SPA v4.6.0, documenta os novos métodos C++ (incluindo openRemoteContainer, closeRemoteContainer, createInventoryContainer, getInventoryContainer, setCustomName, getCustomName), incorpora os domínios Summon (28) e Sobrevivência (400) , e reflecte a estrutura de ficheiros actualizada (incluindo pet_system.lua, summon_configs.lua, criatura_spa_template.lua, spa_death.lua, summon_ai.lua).
+Toda vez que for necessário ajustar uma porta, adicionar uma flag ou depurar um erro de conexão, este guia é a referência primária. A versão 4.4 atualiza as faixas de opcodes e storages para acomodar o SPA v4.6.0, documenta os novos métodos C++ (incluindo a perseguição multi‑piso com fila de transições, storeFloorChange, followTargetAcrossFloor, findFreeTileNear), e reflecte a estrutura de ficheiros actualizada.
 
 🚧 ESTADO ATUAL DA IMPLEMENTAÇÃO
-O SPA v4.6.0 está totalmente implementado no servidor:
+O SPA v4.6.0 está totalmente implementado no servidor. As funcionalidades abaixo estão operacionais e verificadas.
 
-Todos os métodos C++ necessários estão disponíveis e a funcionar, incluindo os novos métodos para gestão de inventário remoto do escudeiro (openRemoteContainer, closeRemoteContainer, createInventoryContainer, getInventoryContainer, setCustomName, getCustomName).
+✅ O que está IMPLEMENTADO e pode ser usado:
+Todos os métodos C++ necessários estão disponíveis e a funcionar, incluindo:
+
+Gestão de inventário remoto do escudeiro: openRemoteContainer, closeRemoteContainer, createInventoryContainer, getInventoryContainer, setCustomName, getCustomName.
+
+Perseguição multi‑piso: Player::storeFloorChange, Player::hasPendingFloorChange, Player::getNextFloorChange, Player::clearNextFloorChange, Creature::onFloorChange, Monster::followTargetAcrossFloor, Monster::findFreeTileNear.
+
+Métodos base da vocação: getVocationBaseMaxHealth, getVocationBaseMaxMana, getNaturalSpeed, setMovementSpeed.
 
 Os scripts em data-canary/scripts/MCR/SPA/core/ e subpastas estão completos e são carregados automaticamente pelo Revscript.
 
@@ -40,13 +47,7 @@ Os opcodes 182, 183 e 184 estão reservados para feedback visual do SPA; os list
 
 As Posturas de Combate reutilizam o fightMode nativo; nenhuma configuração extra é necessária.
 
-O Arremesso de Escudo (domínio 140) e a Sinergia Elemental são suportados nativamente.
-
-A variável VOCATIONS no .env está definida como "0" (Aventureiro) e é plenamente suportada.
-
-A coluna lastlogin existe na tabela players e pode ser usada.
-
-A propagação de afinidade segue o rácio 4:2:1 (especialidade, secundário, primário) e está implementada em progressao.lua.
+A propagação de afinidade segue o rácio 4:2:1 e está implementada em progressao.lua.
 
 A capacidade mínima de 500 caps foi removida; o ganho de capacidade é definido unicamente pelo vocations.xml.
 
@@ -54,46 +55,54 @@ Os bónus de vida, mana e velocidade são calculados centralmente pelas funçõe
 
 O sistema de Summon/Pets está implementado com pet_system.lua, summon_configs.lua, summon_ai.lua e o template criatura_spa_template.lua.
 
+Sistema de perseguição multi‑piso: as criaturas invocadas seguem o jogador através de escadas, buracos e teleports, usando uma fila de transições capturada automaticamente em Game::internalTeleport e Map::moveCreature. A fila é limpa automaticamente quando a criatura alcança o mestre no mesmo piso.
+
 O inventário remoto do escudeiro está funcional, permitindo arrasto livre de itens entre o jogador e o escudeiro, com abertura via !escudeiro abrir.
 
-Novos comandos de diagnóstico e gestão estão disponíveis: !testecriatura, !escudeiro abrir/adicionar/pegar, !pet list/killall/info/test/behavior, /setskill, /setstatus, /addskill.
+Comandos de diagnóstico e gestão disponíveis: !testecriatura, !escudeiro abrir/adicionar/pegar, !pet list/killall/info/test/behavior, /setskill, /setstatus, /addskill, !testesistema (com layout completo e suporte a múltiplos domínios).
+
+Habilidades placeholder geradas para vários domínios (Espadas Leves, Escudo, Fogo, Wands, Lâminas, Combate, Elementos, Magia, Runologia, Terra e Veneno, Sobrevivência, Summon), permitindo testes completos do sistema.
+
+🚧 O que está em DESENVOLVIMENTO ACTIVO:
+Geração das habilidades finais (35+ por domínio) seguindo o Guia [13], o Gabarito de Habilidades v4.5 e o Documento de Personalidade e Identidade de Domínios.
+
+Refatoração do feedback visual para todos os domínios, garantindo efeitos temáticos consistentes.
+
+📅 O que AINDA NÃO está implementado (roadmap futuro):
+Domínios de Ofícios (3) e Natureza (4).
+
+Tutorial da Ilha do Despertar (Eridanus).
+
+Listeners para os opcodes 182, 183 e 184 no cliente.
+
+Script Python para adicionar elementalBond no items.xml.
 
 ⚠️ REGRAS DE REVISÃO PARA O ASSISTENTE (CONFIGURAÇÃO / INFRAESTRUTURA)
 Ao sugerir qualquer alteração em arquivos de configuração, .env, regras de firewall ou ajustes no Git, o assistente DEVE:
 
 Jamais incluir senhas reais em texto. Utilize SEMPRE o placeholder <Senha>.
 
-Garantir que as portas mencionadas são EXACTAMENTE:
+Garantir que as portas mencionadas são EXACTAMENTE: 7171, 7172, 7173, 8080, 3306.
 
-7171 (status)
+Verificar se as flags em OTCFEATURES no config.lua estão sincronizadas com o que o OTClient realmente espera.
 
-7172 (login – ProtocolLogin)
+Sempre que adicionar uma nova variável ao .env, incluir a documentação correspondente e atualizar o arquivo .env.example.
 
-7173 (game – ProtocolGame)
-
-8080 (HTTP – Login Server)
-
-3306 (MySQL/MariaDB – somente interno)
-
-Verificar se as flags em OTCFEATURES no config.lua estão sincronizadas com o que o OTClient realmente espera (conforme lista abaixo).
-
-Sempre que adicionar uma nova variável ao .env, incluir a documentação correspondente e atualizar o arquivo .env.example (para manter o template sem segredos).
-
-Nas instruções de versionamento, lembrar que o PowerShell requer aspas duplas em caminhos com espaços. Exemplo: git add "docs/Projeto MCR.txt".
+Nas instruções de versionamento, lembrar que o PowerShell requer aspas duplas em caminhos com espaços.
 
 Ao configurar charset do banco, sempre forçar utf8mb4 (COLLATE utf8mb4_unicode_ci).
 
-O pronome do personagem é armazenado na coluna nativa players.pronoun. O storage 100001 NÃO é mais utilizado para essa finalidade.
+O pronome do personagem é armazenado na coluna nativa players.pronoun. O storage 100001 NÃO é mais utilizado.
 
 O pronome da conta (jogador/jogadora) é armazenado em accounts.player_pronoun.
 
-As faixas de storages reservados para sistemas globais (100010+ para intimidade, 50000+ para missões) continuam válidas. As storages do SPA v4.6.0 usam a faixa 90000–96999, conforme definido no módulo constantes.lua (SPA/core/).
+As faixas de storages reservados (100010+ para intimidade, 50000+ para missões, 90000–96999 para SPA) continuam válidas.
 
-Os opcodes 182 (ícone de Vínculo), 183 (partículas de Estado de Alma) e 184 (janela de conhecimento) estão reservados para o SPA, dentro da faixa 180‑199. Não há conflito com o SQH.
+Os opcodes 182, 183 e 184 estão reservados para o SPA, dentro da faixa 180‑199.
 
-As Posturas de Combate (Ímpeto, Equilíbrio, Guarda) reutilizam os modos de luta nativos (fightMode). Nenhuma configuração extra é necessária.
+As Posturas de Combate reutilizam os modos de luta nativos (fightMode).
 
-Os scripts do SPA v4.6.0 são carregados automaticamente pelo Revscript a partir das pastas data-canary/scripts/MCR/SPA/core/, habilidades/, comandos/, eventos/ e data-canary/scripts/MCR/Geral/. O desenvolvedor deve garantir que essas pastas existem e contêm os scripts .lua necessários.
+Os scripts do SPA v4.6.0 são carregados automaticamente pelo Revscript a partir das pastas data-canary/scripts/MCR/SPA/core/, habilidades/, comandos/, eventos/, criaturas/ e data-canary/scripts/MCR/Geral/.
 
 📄 1. CONFIGURAÇÃO DO CANARY (config.lua)
 Este arquivo está localizado na raiz do servidor Canary (ProjetoMCR/Canary/config.lua). Abaixo, cada parâmetro obrigatório e seu respectivo valor no Projeto MCR.

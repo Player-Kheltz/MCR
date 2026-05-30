@@ -1,5 +1,5 @@
 PROJETO MCR – ÍNDICE GERAL E PILARES PERMANENTES
-Versão 5.6 – Sistema de Progressão do Aventureiro (SPA v4.6.0), domínios Summon e Sobrevivência, sistema de escudeiro/pets, novos comandos e motor de habilidades modular
+Versão 5.7 – Sistema de Progressão do Aventureiro (SPA v4.6.1), perseguição multi‑piso para summons/pets, captura nativa de transições de piso e motor de habilidades otimizado
 Arquivo: [0] MCR - INDICE GERAL.txt
 
 🎯 FUNÇÃO DESTE ARQUIVO
@@ -33,10 +33,10 @@ Interacções narrativas usam o chat com palavras destacadas entre {chaves} (des
 Todo script que contenha lógica condicional (tópicos, estados, validações) DEVE incluir mensagens de debug no console do servidor, utilizando o prefixo "DEBUG:".
 
 ▶ PILAR 7 – PROGRESSÃO ORGÂNICA E MODULAR (ACTUALIZADO)
-O Sistema de Progressão do Aventureiro (SPA v4.6.0) substitui completamente as vocações. O jogador evolui ao realizar acções no mundo, ganhando Afinidade em Domínios (Primários, Secundários e Especialidades). A afinidade propaga‑se automaticamente com rácio 4:2:1 (Especialidade → Secundário → Primário). Os Estados de Alma (Lampejo, Vínculo e Maestria) e as Posturas de Combate (Ímpeto, Equilíbrio, Guarda) são automatizados e não requerem intervenção directa do jogador além do estilo de jogo. A Maestria (nível 20) concede um Vínculo permanente com o Domínio. A sinergia elemental permite que armas com dano elemental desbloqueiem automaticamente habilidades do domínio mágico correspondente. As sinergias entre domínios recompensam a experimentação. Campos elementais (Fields) podem ser criados por habilidades de Maestria, com imunidade para o conjurador e seu grupo. Os bónus de vida, mana e velocidade são calculados dinamicamente sobre valores base da vocação, garantindo que escalem com o nível do personagem e nunca acumulem indevidamente. O sistema inclui invocação (Summon) e pets com IA modular. Toda a progressão é comunicada por feedback narrativo, efeitos visuais e o Jornal do Aventureiro (futuro). O sistema é modular: novos Domínios, habilidades e comportamentos são adicionados via banco de dados e scripts Lua na pasta data-canary/scripts/MCR/SPA (Revscript), sem alterar o núcleo C++ desnecessariamente.
+O Sistema de Progressão do Aventureiro (SPA v4.6.1) substitui completamente as vocações. O jogador evolui ao realizar acções no mundo, ganhando Afinidade em Domínios (Primários, Secundários e Especialidades). A afinidade propaga‑se automaticamente com rácio 4:2:1 (Especialidade → Secundário → Primário). Os Estados de Alma (Lampejo, Vínculo e Maestria) e as Posturas de Combate (Ímpeto, Equilíbrio, Guarda) são automatizados e não requerem intervenção directa do jogador além do estilo de jogo. A Maestria (nível 20) concede um Vínculo permanente com o Domínio. A sinergia elemental permite que armas com dano elemental desbloqueiem automaticamente habilidades do domínio mágico correspondente. As sinergias entre domínios recompensam a experimentação. Campos elementais (Fields) podem ser criados por habilidades de Maestria, com imunidade para o conjurador e seu grupo. Os bónus de vida, mana e velocidade são calculados dinamicamente sobre valores base da vocação, garantindo que escalem com o nível do personagem e nunca acumulem indevidamente. O sistema inclui invocação (Summon) e pets com IA modular e perseguição multi‑piso nativa, que utiliza uma fila de transições capturadas diretamente no motor C++ para seguir o jogador através de escadas, buracos e teleports. Toda a progressão é comunicada por feedback narrativo, efeitos visuais e o Jornal do Aventureiro (futuro). O sistema é modular: novos Domínios, habilidades e comportamentos são adicionados via banco de dados e scripts Lua na pasta data-canary/scripts/MCR/SPA (Revscript), sem alterar o núcleo C++ desnecessariamente.
 
-🚧 ESTADO ATUAL DA IMPLEMENTAÇÃO (SPA v4.6.0)
-O SPA v4.6.0 está totalmente implementado no núcleo (APIs C++). As principais funcionalidades estão operacionais e verificadas.
+🚧 ESTADO ATUAL DA IMPLEMENTAÇÃO (SPA v4.6.1)
+O SPA v4.6.1 está totalmente implementado no núcleo (APIs C++). As principais funcionalidades estão operacionais e verificadas.
 
 ✅ O que está IMPLEMENTADO e pode ser usado:
 Base do servidor Canary, OTClient e Login Server compilando e funcionando.
@@ -47,7 +47,7 @@ Máscara de Alma e transição de conta guest para permanente via opcode 200.
 
 Estrutura de Domínios no banco de dados completa, incluindo Summon (28), Sobrevivência (400) e os demais domínios elementais, de combate e mágicos, com parent_id de Sobrevivência corrigido para Natureza (4).
 
-Todos os métodos C++ listados na Documentação Técnica do SPA, incluindo unlearnHabilidade, unlearnAllHabilidades, learnHabilidadeBatch, getVocationBaseMaxHealth, getVocationBaseMaxMana, getNaturalSpeed, setMovementSpeed e os novos métodos para inventário remoto (openRemoteContainer, closeRemoteContainer, createInventoryContainer, getInventoryContainer, setCustomName, getCustomName).
+Todos os métodos C++ listados na Documentação Técnica do SPA, incluindo unlearnHabilidade, unlearnAllHabilidades, learnHabilidadeBatch, getVocationBaseMaxHealth, getVocationBaseMaxMana, getNaturalSpeed, setMovementSpeed e os novos métodos para inventário remoto (openRemoteContainer, closeRemoteContainer, createInventoryContainer, getInventoryContainer, setCustomName, getCustomName), bem como a fila de transições de piso (Player::storeFloorChange, Player::hasPendingFloorChange, Player::getNextFloorChange, Player::clearNextFloorChange) e a perseguição multi‑piso (Monster::followTargetAcrossFloor, Monster::findFreeTileNear).
 
 Propagação de afinidade com rácio 4:2:1 implementada na função adicionarAfinidade.
 
@@ -77,7 +77,7 @@ Event Bus operacional.
 
 SkillTrees prontos para uso.
 
-Sistema de invocação e pets (pet_system.lua, summon_configs.lua, summon_ai.lua) com IA modular e comandos de gestão.
+Sistema de invocação e pets (pet_system.lua, summon_configs.lua, summon_ai.lua) com IA modular, comandos de gestão e perseguição multi‑piso nativa que segue o jogador através de qualquer transição de piso (escadas, buracos, ladders, teleports) utilizando uma fila de rastreamento capturada diretamente no motor C++.
 
 Criatura SPA com inventário remoto (!escudeiro abrir/adicionar/pegar) e arrasto livre de itens entre jogador e escudeiro.
 
@@ -91,10 +91,12 @@ Habilidades placeholder geradas para Espadas Leves (100), Escudo (15), Fogo (23)
 
 NPC Utils refatorado para usar exclusivamente Pronouns.getSubject, abolindo referências a vocações.
 
+Perseguição multi‑piso de summons/pets completamente funcional: ao mudar de piso, o jogador deixa um rastro capturado pelo motor C++ (Game::internalTeleport e Map::moveCreature), e a criatura caminha incrementalmente até ao ponto de origem antes de aparecer no destino. A fila é automaticamente limpa quando a criatura alcança o mestre no mesmo piso. Testado e aprovado com logs de diagnóstico.
+
 Todos os itens acima verificados com sucesso através dos comandos de diagnóstico.
 
 🚧 O que está em DESENVOLVIMENTO ACTIVO:
-Geração das habilidades finais (35+ por domínio) seguindo o Guia [13], o Gabarito de Habilidades v4.5 e o Documento de Personalidade e Identidade de Domínios.
+Geração das habilidades finais (35+ por domínio) seguindo o Guia [13], o Gabarito de Habilidades v4.5 e o Documento de Personalidade e Identidade de Domínios. As habilidades atuais são placeholders para teste; serão totalmente refatoradas.
 
 Refatoração do feedback visual para todos os domínios, garantindo efeitos temáticos consistentes (aproveitando o mapeamento central de efeitos visuais do motor v2.0).
 
@@ -125,8 +127,8 @@ Script Python para adicionar elementalBond no items.xml.
 [11]	MCR - Guia de Experiência do Jogador.txt	A jornada completa do jogador, do Alma ao herói.
 [12]	MCR - Guia de Conteúdo Inicial e Tutorial.txt	Tutorial de Eridanus, NPCs, missões iniciais.
 [13]	MCR - Guia de Criação de Habilidades.txt (v2.1)	Filosofia de design, estrutura por hierarquia, pacotes temáticos, processo de geração.
-—	[Documentação] MCR - Sistema de Progressão do Aventureiro (SPA v4.6.0).txt	Documentação técnica completa de todas as APIs, métodos e sistemas.
-—	[Filosofia] Filosofia do SPA – Sistema de Progressão do Aventureiro v4.6.0.txt	Visão filosófica e canónica do SPA.
+—	[Documentação] MCR - Sistema de Progressão do Aventureiro (SPA v4.6.1).txt	Documentação técnica completa de todas as APIs, métodos e sistemas.
+—	[Filosofia] Filosofia do SPA – Sistema de Progressão do Aventureiro v4.6.1.txt	Visão filosófica e canónica do SPA.
 —	[Personalidade] MCR - Personalidade e Identidade de Dominios.txt	Guia universal de design narrativo e mecânico para criação de domínios.
 —	[Gabarito] Habilidade Gabarito v4.5.txt	Referência máxima de todos os campos e regras para criação de habilidades.
 📁 ARQUIVOS COMPLEMENTARES
@@ -195,5 +197,4 @@ git push origin main
 GitHub: https://github.com/Player-Kheltz/ProjetoMCR
 Estrutura: Canary/ | OTClient/ | LoginServer/ | docs/ | MyAAC/
 
-FIM DO ÍNDICE GERAL (VERSÃO 5.6)
-
+FIM DO ÍNDICE GERAL (VERSÃO 5.7)
