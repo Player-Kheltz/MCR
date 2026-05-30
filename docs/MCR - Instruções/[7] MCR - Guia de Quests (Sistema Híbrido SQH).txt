@@ -1,5 +1,5 @@
 PROJETO MCR – GUIA DE QUESTS (SISTEMA HÍBRIDO SQH)
-(Versão 7.1 – Integração total com o SPA v4.2, despertares de Domínio, Maestria, Sinergia Elemental, feedback narrativo colorido e estrutura Revscript)
+(Versão 7.2 – Integração total com o SPA v4.6.0, novos domínios Summon e Sobrevivência, propagação 4:2:1, níveis efetivos e feedback visual temático)
 Arquivo: [7] MCR - Guia de Quests (Sistema Híbrido SQH).txt
 
 🎯 OBJETIVO DESTE GUIA
@@ -8,17 +8,17 @@ O Sistema de Quests Híbrido (SQH) combina a profundidade narrativa do chat com
 a conveniência de feedback visual moderno (HUD, notificações toast), sem jamais
 recorrer a janelas modais para progresso de missão.
 
-A versão 7.1 integra totalmente o Sistema de Progressão do Aventureiro (SPA v4.2):
-as quests são agora o principal veículo para o despertar de Domínios, o ganho
-inicial de Afinidade, o aprendizado de habilidades, a introdução à Maestria
-(Vínculo permanente no nível 20), à Sinergia Elemental e ao Arremesso de Escudo.
-Os NPCs reagem ao progresso do jogador nos Domínios, e as recompensas podem
-incluir habilidades, sinergias, itens de conhecimento consumíveis e armas
-elementais que desbloqueiam sinergias mágicas. Todo o feedback é colorido,
-utilizando a tabela COR v9.1 e a função c() do SPA.
-
-Todos os métodos C++ necessários já estão implementados; os scripts de quest
-podem utilizar imediatamente as funções de progressão.
+A versão 7.2 actualiza o guia para o Sistema de Progressão do Aventureiro
+(SPA v4.6.0). As quests continuam a ser o principal veículo para o despertar
+de Domínios, o ganho inicial de Afinidade, o aprendizado de habilidades, a
+introdução à Maestria e à Sinergia Elemental, e agora também ao Domínio Summon
+e à Sobrevivência. O guia reflecte a propagação de afinidade 4:2:1, o conceito
+de níveis efetivos (que bloqueiam a Maestria até que os domínios filhos estejam
+completos) e o feedback visual temático suportado pelo motor de habilidades
+v2.0 (mapeamento central de efeitos por elemento). Todos os métodos C++
+necessários estão implementados; os scripts de quest podem utilizar
+imediatamente as funções de progressão, incluindo as novas APIs de invocação
+e recálculo dinâmico de vida/mana/velocidade.
 
 Todos os scripts de quests e NPCs associados residem nas subpastas apropriadas
 dentro de data-canary/scripts/MCR/ (ex.: MCR/Tutorial/ para as missões de
@@ -27,22 +27,24 @@ cada ficheiro, permitindo que as quests sejam auto‑suficientes e modulares.
 
 🚧 ESTADO ATUAL DA IMPLEMENTAÇÃO
 
-O SPA v4.2 está totalmente implementado, incluindo todas as APIs C++ descritas
+O SPA v4.6.0 está totalmente implementado, incluindo todas as APIs C++ descritas
 na documentação do sistema. Consequentemente:
 
 Os métodos player:getDominioAfinidade(dominioId), adicionarAfinidade(),
-despertarDominio(), player:learnHabilidade(), getNivelPorAfinidade(), etc.,
-estão disponíveis e podem ser usados imediatamente.
+despertarDominio(), player:learnHabilidade(), getNivelPorAfinidade(),
+getNivelEfetivo(), etc., estão disponíveis e podem ser usados imediatamente.
+O domínio Summon (28) e o sistema de pets estão operacionais, permitindo
+recompensas que envolvam criaturas mágicas.
 
 Não existem mais "fases pendentes". Todo o comportamento descrito neste guia
 pode ser implementado em produção.
 
-O sistema de cores (tabela COR v9.1, função c()) é global e deve ser utilizado para
-todas as comunicações visuais relacionadas com a quest.
+O sistema de cores (tabela COR v10.0, função c()) é global e deve ser utilizado
+para todas as comunicações visuais relacionadas com a quest.
 
 A estrutura de pastas é Revscript: scripts em MCR/Tutorial/, MCR/Geral/, etc.
-Os módulos texto_colorido.lua (v9.1), pronouns.lua e npc_utils.lua são carregados
-automaticamente e estão disponíveis como globais.
+Os módulos texto_colorido.lua (v10.0), pronouns.lua e npc_utils.lua são
+carregados automaticamente e estão disponíveis como globais.
 
 Este guia contém:
 
@@ -50,7 +52,7 @@ A filosofia do SQH (actualizada com imersão e pronomes).
 
 O fluxograma de interação obrigatório.
 
-Destaque de palavras no chat com {chaves} e cores (v9.1).
+Destaque de palavras no chat com {chaves} e cores (v10.0).
 
 HUD de Missões (Quest Tracker).
 
@@ -62,11 +64,14 @@ Progressão de intimidade (storages 100010+) a influenciar a narrativa da quest.
 
 Personalidade do NPC como molde para o tom da missão.
 
-Integração com o SPA v4.2: despertares, afinidade, habilidades, sinergias, Maestria, Sinergia Elemental e itens de conhecimento.
+Integração com o SPA v4.6.0: despertares, afinidade com propagação 4:2:1,
+níveis efetivos, habilidades, sinergias, Maestria condicionada aos filhos,
+Sinergia Elemental, Summon, Sobrevivência e itens de conhecimento consumíveis.
 
 Directrizes de qualidade.
 
-Exemplo completo de implementação actualizado (Sereia Lunar) com cores e progressão.
+Exemplo completo de implementação actualizado (Sereia Lunar) com cores e
+progressão.
 
 ⚠️ REGRAS DE REVISÃO PARA O ASSISTENTE (QUESTS – SQH)
 
@@ -80,9 +85,9 @@ recusar ou progredir missões. Apenas Loja, Banco e confirmações críticas
 irreversíveis podem usar modais, e SEMPRE com fala introdutória no chat.
 
 Destacar palavras‑chave no chat utilizando SOMENTE {chaves} (ex.: {aceitar},
-{5 Lágrimas de Sereia}). Adicionalmente, usar as cores do SPA v4.2 através da
-função c() para dar ênfase a elementos narrativos, itens, locais, recompensas
-e tipos de missão (MISSAO_MATAR, MISSAO_COLETAR, etc.).
+{5 Lágrimas de Sereia}). Adicionalmente, usar as cores do SPA v4.6.0 através
+da função c() para dar ênfase a elementos narrativos, itens, locais,
+recompensas e tipos de missão (MISSAO_MATAR, MISSAO_COLETAR, etc.).
 
 Notificar o cliente via sendExtendedOpcode (faixa 180‑199) sempre que o estado
 da missão mudar, actualizando o HUD e exibindo toasts.
@@ -115,33 +120,36 @@ Antes de iniciar a quest, se o jogador ainda não tiver o pronome definido
 (players.pronoun = 0), o NPC deve perguntar e armazenar o valor, de forma
 adequada à sua personalidade.
 
-⚠️ SPA v4.2: As quests devem utilizar as funções do SPA para despertar
+⚠️ SPA v4.6.0: As quests devem utilizar as funções do SPA para despertar
 Domínios (despertarDominio), conceder afinidade (adicionarAfinidade),
 ensinar habilidades (player:learnHabilidade) e verificar níveis
-(getNivelPorAfinidade). Estes métodos estão totalmente operacionais.
+(getNivelEfetivo). A propagação 4:2:1 é automática.
 
-⚠️ SPA v4.2: Quests podem recompensar com armas elementais (ex.: Espada de Fogo)
-que ativarão automaticamente a Sinergia Elemental com o domínio correspondente
-(Fogo e Ar, 23). O feedback narrativo deve celebrar essa ligação.
+⚠️ SPA v4.6.0: Quests podem recompensar com armas elementais que ativarão
+automaticamente a Sinergia Elemental, cujo efeito visual agora é gerido
+pelo mapeamento central do motor (EFEITOS_ELEMENTAIS).
 
-⚠️ SPA v4.2: Itens de conhecimento (ex.: Livro de Feitiços) devem usar a
+⚠️ SPA v4.6.0: Itens de conhecimento (ex.: Livro de Feitiços) devem usar a
 janela modal via opcode 184, permitindo que o jogador decida se aprende
 ou guarda/vende. (Opcode 184 ainda não implementado no cliente – especificação
 presente no Guia de Interface)
 
-⚠️ SPA v4.2: As recompensas podem incluir o desbloqueio de sinergias
-(habilidades que exigem dois Domínios), devidamente notificadas com
-mensagem narrativa colorida.
+⚠️ SPA v4.6.0: As recompensas podem incluir a concessão de afinidade inicial
+num domínio (ex.: 50 pontos), que se propagará automaticamente (4:2:1).
 
-⚠️ SPA v4.2: Quests de Maestria (nível 20) podem conceder o título narrativo
-de "Mestre" e habilidades especiais.
+⚠️ SPA v4.6.0: Quests de Maestria (nível efetivo 20) podem conceder o título
+narrativo de "Mestre" e habilidades especiais, além de reconhecer que os
+domínios filhos estão completos.
+
+⚠️ SPA v4.6.0: É possível introduzir o domínio Summon através de uma quest
+que ensine a invocar a primeira criatura mágica.
 
 ⚠️ REVSCRIPT: Os scripts das quests e dos NPCs devem ser colocados nas
 subpastas adequadas (ex.: MCR/Tutorial/ para as missões de Eridanus,
 MCR/Geral/ para utilitários como npc_utils.lua). O Revscript carrega
 automaticamente todos os ficheiros .lua.
 
-🧠 1. FILOSOFIA DO SQH (ACTUALIZADA SPA v4.2)
+🧠 1. FILOSOFIA DO SQH (ACTUALIZADA SPA v4.6.0)
 
 O SQH resolve a tensão entre imersão narrativa e usabilidade moderna.
 Antigamente, quests em OTs exigiam que o jogador adivinhasse palavras mágicas
@@ -151,7 +159,7 @@ No MCR:
 
 O CHAT é o palco da história. O jogador LÊ o que o NPC diz e se conecta com a
 narrativa. Palavras‑chave são DESTACADAS COM {CHAVES} para indicar o que é
-importante, eliminando a adivinhação. Agora, com o sistema de cores v9.1,
+importante, eliminando a adivinhação. Agora, com o sistema de cores v10.0,
 podemos envolver itens, locais, recompensas e tipos de missão nas suas cores
 temáticas, reforçando a comunicação visual sem poluir.
 
@@ -168,8 +176,9 @@ players.pronoun) e à relação que o jogador construiu com o NPC.
 A quest é o PRINCIPAL MEIO de despertar Domínios. Cada missão significativa
 pode iniciar o jogador numa nova Especialização, conceder afinidade extra,
 ensinar uma habilidade única, oferecer uma arma elemental que desbloqueia
-Sinergia Elemental, ou até consagrar a Maestria do Aventureiro. O feedback é
-sempre narrativo e colorido, nunca técnico.
+Sinergia Elemental, ou até consagrar a Maestria do Aventureiro. A progressão
+é sempre visível através de feedback colorido e efeitos visuais temáticos,
+nunca com números técnicos.
 
 Itens de conhecimento (pergaminhos, receitas, grimórios) são CONSUMÍVEIS e
 opcionais: o jogador pode aprendê‑los, vendê‑los ou guardá‑los para
@@ -188,7 +197,7 @@ Verifica o nível de intimidade (storage 100010 + npcId).
 Adapta a saudação ao pronome e à personalidade.
 
 Opcionalmente, verifica o nível do Domínio relevante para a quest e
-comenta narrativamente (usando getNivelPorAfinidade e a cor do domínio).
+comenta narrativamente (usando getNivelEfetivo e a cor do domínio).
 
 SAUDAÇÃO CONTEXTUAL
 O NPC identifica o jogador e o estado da missão (storages).
@@ -232,8 +241,8 @@ e) Atualiza o nível de intimidade com o NPC (ex.: storage 100010 + npcId de 0
 para 1 ou 2).
 f) Se a quest envolve um despertar de Domínio, chama despertarDominio(player, domId) e envia feedback narrativo com cor.
 g) Se a quest recompensa com uma habilidade, chama player:learnHabilidade(habilidadeId) e notifica com cor.
-h) Se a quest entrega uma arma elemental (ex.: Espada de Fogo), o NPC comenta a Sinergia Elemental que o jogador poderá explorar.
-i) Se a quest celebra a Maestria (nível 20), o NPC confere o título de "Mestre" e reconhece o Vínculo permanente.
+h) Se a quest entrega uma arma elemental (ex.: Espada de Fogo), o NPC comenta a Sinergia Elemental que o jogador poderá explorar, e o motor adapta automaticamente os efeitos visuais.
+i) Se a quest celebra a Maestria (nível efetivo 20), o NPC confere o título de "Mestre" e reconhece o Vínculo permanente.
 j) Envia Opcodes para LIMPAR o HUD e exibir TOAST de conclusão.
 k) NPC dá uma fala narrativa de sucesso, destacando a recompensa com cores,
 e usando um tom mais caloroso se a intimidade subiu. Se um Domínio foi
@@ -241,7 +250,7 @@ despertado, o NPC faz uma observação poética sobre a mudança no Aventureiro.
 
 🔑 3. DESTAQUE DE PALAVRAS COM {CHAVES} E CORES
 
-Convenção MCR actualizada (v9.1):
+Convenção MCR actualizada (v10.0):
 
 Toda ação que o jogador deve digitar: c("{aceitar}", COR.NPC_INTENCAO), c("{entregar}", COR.NPC_COMANDO), c("{missão}", COR.MISSAO_MATAR) ou conforme o tipo.
 
@@ -268,10 +277,10 @@ Estrutura de dados enviada pelo servidor:
 
 lua
 local hudData = {
-    titulo = "O Lamento da Sereia",
-    descricao = "Coletar Lágrimas de Sereia",
-    atual = 2,
-    total = 5
+titulo = "O Lamento da Sereia",
+descricao = "Coletar Lágrimas de Sereia",
+atual = 2,
+total = 5
 }
 player:sendExtendedOpcode(180, json.encode(hudData))
 Comportamento do cliente: decodifica JSON, atualiza labels, exibe barra de progresso. Ao enviar dados vazios ({}), o painel é ocultado.
@@ -282,9 +291,9 @@ Toasts são mensagens temporárias. OPCODE_TOAST: 181.
 
 lua
 local toastData = {
-    mensagem = "Você coletou uma Lágrima de Sereia! (2/5)",
-    cor = "#00BFFF", -- opcional
-    duracao = 3
+mensagem = "Você coletou uma Lágrima de Sereia! (2/5)",
+cor = "#00BFFF", -- opcional
+duracao = 3
 }
 player:sendExtendedOpcode(181, json.encode(toastData))
 Use toasts para:
@@ -317,17 +326,17 @@ Função para contar itens do jogador:
 
 lua
 local function getItemCount(player, itemId)
-    return player:getItemCount(itemId) or 0
+return player:getItemCount(itemId) or 0
 end
 Ao entregar:
 
 lua
 local quantidade = getItemCount(player, ITEM_LAGRIMA_SEREIA)
 if quantidade >= QUANTIDADE_NECESSARIA then
-    player:removeItem(ITEM_LAGRIMA_SEREIA, QUANTIDADE_NECESSARIA)
-    -- concede recompensa
+player:removeItem(ITEM_LAGRIMA_SEREIA, QUANTIDADE_NECESSARIA)
+-- concede recompensa
 else
-    npcHandler:say("Você ainda não tem todas as lágrimas. Continue procurando no " .. c("{Lago dos Reflexos}", COR.NPC_LOCAL) .. "!", npc, player)
+npcHandler:say("Você ainda não tem todas as lágrimas. Continue procurando no " .. c("{Lago dos Reflexos}", COR.NPC_LOCAL) .. "!", npc, player)
 end
 Recompensas:
 
@@ -359,9 +368,9 @@ Exemplo para um NPC sábio e caloroso:
 lua
 local subject = Pronouns.getSubject(player)
 if subject == "they" then
-    npcHandler:say("Antes de falarmos de missões, devo saber: como devo lhe chamar? " .. c("{Ele}", COR.NPC_OPCAO) .. " ou " .. c("{Ela}", COR.NPC_OPCAO) .. "?", npc, player)
-    npcHandler:setTopic(playerId, 200)
-    return true
+npcHandler:say("Antes de falarmos de missões, devo saber: como devo lhe chamar? " .. c("{Ele}", COR.NPC_OPCAO) .. " ou " .. c("{Ela}", COR.NPC_OPCAO) .. "?", npc, player)
+npcHandler:setTopic(playerId, 200)
+return true
 end
 No tópico 200, a resposta é processada com sinónimos abundantes e a coluna
 players.pronoun é actualizada.
@@ -370,11 +379,11 @@ players.pronoun é actualizada.
 A forma como o NPC oferece a quest, reage ao progresso e agradece deve ser
 filtrada pela sua personalidade. Exemplos:
 
-Personalidade	Oferecimento da quest	Ao concluir
-Caloroso	"Ah, querido(a) viajante! Tenho um pedido..."	"Maravilhoso! Você é realmente incrível!"
-Rude	"Você parece forte. Tem coragem p/ trabalho?"	"Até que você presta. Toma, seu pagamento."
-Místico	"As estrelas dizem que você pode restaurar..."	"O cosmos agradece, guardião dos ventos."
-Comerciante	"Tenho uma proposta comercial para você..."	"Negócio fechado! Volte sempre."
+Personalidade Oferecimento da quest Ao concluir
+Caloroso "Ah, querido(a) viajante! Tenho um pedido..." "Maravilhoso! Você é realmente incrível!"
+Rude "Você parece forte. Tem coragem p/ trabalho?" "Até que você presta. Toma, seu pagamento."
+Místico "As estrelas dizem que você pode restaurar..." "O cosmos agradece, guardião dos ventos."
+Comerciante "Tenho uma proposta comercial para você..." "Negócio fechado! Volte sempre."
 7.3 Progressão de Intimidade
 Armazenar o nível de intimidade com cada NPC em storages 100010 + npcId.
 Inicialmente 0 (desconhecido). Após completar a primeira quest, sobe para 1.
@@ -386,11 +395,11 @@ Intimidade 1: "Ah, o nobre senhor voltou! Já sabia que podia confiar em si."
 
 Intimidade 3: "Meu caríssimo amigo! Sempre há lugar para si na minha mesa."
 
-🌠 8. INTEGRAÇÃO COM O SPA v4.2
+🌠 8. INTEGRAÇÃO COM O SPA v4.6.0
 
 As quests são o veículo principal para o despertar de Domínios, o aprendizado
-de habilidades e a descoberta da Sinergia Elemental e da Maestria. Todos os
-métodos do SPA estão implementados e disponíveis.
+de habilidades e a descoberta da Sinergia Elemental, da Maestria e do Summon.
+Todos os métodos do SPA estão implementados e disponíveis.
 
 8.1 DESPERTAR DE DOMÍNIOS EM QUESTS
 
@@ -408,10 +417,13 @@ Exemplo (Thorne, após o jogador derrotar os bonecos de treino):
 lua
 local afinidade = player:getDominioAfinidade(DOMINIO_ESPADAS_LEVES) or 0
 if afinidade == 0 then
-    despertarDominio(player, DOMINIO_ESPADAS_LEVES)
-    adicionarAfinidade(player, DOMINIO_ESPADAS_LEVES, 50)
-    npcHandler:say("O aço já não é um estranho em suas mãos. Você e a lâmina começam a entender‑se.", npc, player)
+despertarDominio(player, DOMINIO_ESPADAS_LEVES)
+adicionarAfinidade(player, DOMINIO_ESPADAS_LEVES, 50)
+npcHandler:say("O aço já não é um estranho em suas mãos. Você e a lâmina começam a entender‑se.", npc, player)
 end
+A afinidade concedida propaga‑se automaticamente 4:2:1 (Espadas Leves →
+Lâminas → Combate), não sendo necessário qualquer tratamento adicional.
+
 8.2 HABILIDADES COMO RECOMPENSA
 
 Quests podem ensinar habilidades específicas. Se a habilidade já for conhecida,
@@ -421,8 +433,8 @@ Exemplo (Lyra, após completar "A Essência do Aventureiro"):
 
 lua
 if not player:hasHabilidade(HABILIDADE_CURA_INTENSA) then
-    player:learnHabilidade(HABILIDADE_CURA_INTENSA)
-    enviarMsgColorida(player, c("Você aprendeu ", COR.SUCESSO_CURA) .. c("Cura Intensa", COR.DOM_MAGIA_SAGRADO) .. c("!", COR.SUCESSO_CURA))
+player:learnHabilidade(HABILIDADE_CURA_INTENSA)
+enviarMsgColorida(player, c("Você aprendeu ", COR.SUCESSO_CURA) .. c("Cura Intensa", COR.DOM_MAGIA_SAGRADO) .. c("!", COR.SUCESSO_CURA))
 end
 8.3 ITENS DE CONHECIMENTO CONSUMÍVEIS
 
@@ -442,22 +454,22 @@ adicionarAfinidade(player, DOMINIO_OFICIO_MINERACAO, 50)
 enviarMsgColorida(player, c("Sua afinidade com ", COR.SISTEMA_INFO) .. c(getNomeDominio(DOMINIO_OFICIO_MINERACAO), corDominio(DOMINIO_OFICIO_MINERACAO)) .. c(" se aprofunda.", COR.SISTEMA_INFO))
 8.5 SINERGIAS COMO RECOMPENSA FINAL
 
-Quests de alto nível (ex.: nível 15+ em dois Domínios) podem desbloquear
+Quests de alto nível (ex.: nível efetivo 15+ em dois Domínios) podem desbloquear
 sinergias. O NPC deve ser um mestre que reconhece a combinação de talentos.
 
 Exemplo (Mestre Arcano, ao ver Fogo 15 + Lâminas Pesadas 15):
 
 lua
-local nivelFogo = getNivelPorAfinidade(player:getDominioAfinidade(DOMINIO_FOGO_AR) or 0)
-local nivelLaminas = getNivelPorAfinidade(player:getDominioAfinidade(DOMINIO_LAMINAS) or 0)
+local nivelFogo = getNivelEfetivo(player, DOMINIO_FOGO)
+local nivelLaminas = getNivelEfetivo(player, DOMINIO_LAMINAS)
 if nivelFogo >= 15 and nivelLaminas >= 15 then
-    npcHandler:say("Você uniu o calor da forja à força do aço. Está pronto para a " .. c("{Lâmina Vulcânica}", COR.ITEM_EPICO) .. ".", npc, player)
-    player:learnHabilidade(HAB_LAMINA_VULCANICA)
+npcHandler:say("Você uniu o calor da forja à força do aço. Está pronto para a " .. c("{Lâmina Vulcânica}", COR.ITEM_EPICO) .. ".", npc, player)
+player:learnHabilidade(HAB_LAMINA_VULCANICA)
 end
 8.6 ARMAS ELEMENTAIS E SINERGIA ELEMENTAL
 
 Quests podem recompensar o jogador com armas que possuem elementalBond ou
-elementType definidos. Ao equipá‑las, a Sinergia Elemental do SPA v4.2 activa
+elementType definidos. Ao equipá‑las, a Sinergia Elemental do SPA v4.6.0 activa
 automaticamente as habilidades do domínio elemental correspondente. O NPC deve
 comentar essa ligação especial.
 
@@ -467,20 +479,33 @@ lua
 player:addItem(3280, 1) -- ID da Espada de Fogo
 enviarMsgColorida(player, c("Você recebeu uma ", COR.RARIDADE_OURO) .. c("Espada de Fogo", COR.ELEM_FOGO) .. c("!", COR.RARIDADE_OURO))
 npcHandler:say("Essa lâmina não é forjada apenas com aço. O " .. c("fogo", COR.ELEM_FOGO) .. " vive nela. Empunhe‑a e descobrirá que o elemento a reconhece.", npc, player)
--- A partir deste momento, o SPA v4.2 activa automaticamente habilidades de Fogo e Ar (23)
-8.7 QUESTS DE MAESTRIA (NÍVEL 20)
+-- A partir deste momento, o SPA v4.6.0 activa automaticamente habilidades de Fogo (23) e adapta os efeitos visuais
+8.7 QUESTS DE MAESTRIA (NÍVEL EFETIVO 20)
 
 Quests especiais podem ser desbloqueadas quando o jogador atinge a Maestria
-(nível 20) num Domínio. Estas quests consagram o Aventureiro como Mestre e
-podem conceder habilidades únicas, títulos narrativos e o reconhecimento eterno
-do mundo.
+(nível efetivo 20) num Domínio. Estas quests consagram o Aventureiro como
+Mestre e podem conceder habilidades únicas, títulos narrativos e o
+reconhecimento eterno do mundo.
 
 Exemplo (A Prova do Mestre das Chamas):
 
 lua
-local nivelFogo = getNivelPorAfinidade(player:getDominioAfinidade(DOMINIO_FOGO_AR) or 0)
+local nivelFogo = getNivelEfetivo(player, DOMINIO_FOGO)
 if nivelFogo >= 20 then
-    npcHandler:say("Você é um " .. c("Mestre das Chamas", COR.RARIDADE_LENDARIO) .. ". O fogo nunca o abandonará. Está pronto para a sua prova final?", npc, player)
+npcHandler:say("Você é um " .. c("Mestre das Chamas", COR.RARIDADE_LENDARIO) .. ". O fogo nunca o abandonará. Está pronto para a sua prova final?", npc, player)
+end
+8.8 INTRODUÇÃO AO SUMMON
+
+Uma quest especial pode ensinar o Aventureiro a invocar a sua primeira
+criatura mágica. Ao completar a missão, o jogador recebe afinidade no domínio
+Summon (28) e aprende a habilidade de invocação correspondente.
+
+lua
+if not player:hasHabilidade(HAB_INVOCAR_FAGULHA) then
+despertarDominio(player, DOMINIO_SUMMON)
+adicionarAfinidade(player, DOMINIO_SUMMON, 50)
+player:learnHabilidade(HAB_INVOCAR_FAGULHA)
+enviarMsgColorida(player, c("Uma fagulha mágica desperta em você. Você aprendeu a invocar uma Fagulha!", COR.RARIDADE_OURO))
 end
 📟 9. USO DOS OPCODES DO SPA NAS QUESTS
 
@@ -499,7 +524,7 @@ Todos estes opcodes estão na faixa reservada 180‑199 e os listeners devem ser
 Checklist obrigatório antes de marcar uma quest como "Concluída":
 
 ☐ Os diálogos do NPC usam {chaves} para destacar ações, itens e locais.
-☐ As cores do SPA v4.2 são usadas para reforçar elementos narrativos (itens, locais, recompensas, tipos de missão).
+☐ As cores do SPA v4.6.0 são usadas para reforçar elementos narrativos (itens, locais, recompensas, tipos de missão).
 ☐ NÃO há chamadas para player:showModalWindow() no fluxo da missão.
 ☐ Ao aceitar a missão, Opcode 180 é enviado para exibir/actualizar o HUD de Missões.
 ☐ Ao coletar itens, o progresso no HUD é actualizado em tempo real.
@@ -512,12 +537,13 @@ Checklist obrigatório antes de marcar uma quest como "Concluída":
 ☐ O NPC tem uma personalidade definida e a linguagem da quest reflecte‑a.
 ☐ A progressão de intimidade é actualizada após a conclusão da quest.
 ☐ O script do NPC e da quest estão salvos como ISO‑8859‑1 e colocados nas subpastas Revscript adequadas.
-☐ Se a quest desperta um Domínio, despertarDominio é chamado e o NPC reage narrativamente.
+☐ Se a quest desperta um Domínio, despertarDominio é chamado e o NPC reage narrativamente; a afinidade propaga‑se 4:2:1 automaticamente.
 ☐ Se a quest ensina uma habilidade, player:learnHabilidade é usado e o jogador é notificado com cor.
 ☐ Se a quest envolve um item de conhecimento, o opcode 184 é usado correctamente (envio pelo servidor; cliente pendente).
 ☐ Se a quest recompensa com afinidade, adicionarAfinidade é chamado com pontos apropriados.
 ☐ Se a quest entrega uma arma elemental, o NPC comenta a Sinergia Elemental.
-☐ Se a quest celebra a Maestria (nível 20), o NPC confere título e reconhece o Vínculo permanente.
+☐ Se a quest celebra a Maestria, o NPC verifica getNivelEfetivo e confere título.
+☐ Se a quest introduz Summon, o domínio 28 é despertado e a habilidade de invocação é ensinada.
 ☐ O feedback NUNCA contém números de Afinidade, níveis de Domínio ou termos técnicos.
 
 📝 11. EXEMPLO COMPLETO ACTUALIZADO: QUEST "O LAMENTO DA SEREIA"
@@ -529,7 +555,7 @@ lua
 --[[
 Projeto MCR – NPC Sereia Lunar
 Quest: O Lamento da Sereia
-Versão: 7.1 (com integração ao SPA v4.2 e cores v9.1)
+Versão: 7.2 (com integração ao SPA v4.6.0 e cores v10.0)
 Salvar como: ISO-8859-1
 --]]
 
@@ -560,7 +586,7 @@ local keywordHandler = KeywordHandler:new()
 local npcHandler = NpcHandler:new(keywordHandler)
 
 local function getItemCount(player, itemId)
-    return player:getItemCount(itemId) or 0
+return player:getItemCount(itemId) or 0
 end
 
 -- Callbacks de engine
@@ -572,146 +598,146 @@ npcType.onSay = function(npc, creature, type, msg) npcHandler:onSay(npc, creatur
 npcType.onCloseChannel = function(npc, player) npcHandler:onCloseChannel(npc, player) end
 
 local function greetCallback(npc, player)
-    local playerId = player:getId()
-    local subject = Pronouns.getSubject(player)
-    print("DEBUG: greetCallback - player=" .. player:getName() .. " subject=" .. subject)
+local playerId = player:getId()
+local subject = Pronouns.getSubject(player)
+print("DEBUG: greetCallback - player=" .. player:getName() .. " subject=" .. subject)
 
-    -- Se não tiver pronome definido, perguntar antes de qualquer coisa
-    if subject == "they" then
-        npcHandler:setMessage(MESSAGE_GREET,
-            "Sinto uma alma sem definição... Você é " .. c("{Ele}", COR.NPC_OPCAO) .. " ou " .. c("{Ela}", COR.NPC_OPCAO) .. "?")
-        npcHandler:setTopic(playerId, 200)
-        return true
-    end
+-- Se não tiver pronome definido, perguntar antes de qualquer coisa
+if subject == "they" then
+npcHandler:setMessage(MESSAGE_GREET,
+"Sinto uma alma sem definição... Você é " .. c("{Ele}", COR.NPC_OPCAO) .. " ou " .. c("{Ela}", COR.NPC_OPCAO) .. "?")
+npcHandler:setTopic(playerId, 200)
+return true
+end
 
-    local intimacy = player:getStorageValue(STORAGE_INTIMIDADE) or 0
-    print("DEBUG: greetCallback - intimacy=" .. intimacy)
+local intimacy = player:getStorageValue(STORAGE_INTIMIDADE) or 0
+print("DEBUG: greetCallback - intimacy=" .. intimacy)
 
-    local saudacoes = {}
-    if intimacy == 0 then
-        saudacoes = {
-            "Ah, um novo rosto... As águas trouxeram você até mim.",
-            "Sinto uma aura curiosa... Bem‑vindo(a), viajante das marés."
-        }
-    elseif intimacy >= 1 then
-        saudacoes = {
-            "Que alegria ver seu rosto novamente.",
-            "As ondas sussurraram seu nome. Como tem passado?"
-        }
-    end
+local saudacoes = {}
+if intimacy == 0 then
+saudacoes = {
+"Ah, um novo rosto... As águas trouxeram você até mim.",
+"Sinto uma aura curiosa... Bem‑vindo(a), viajante das marés."
+}
+elseif intimacy >= 1 then
+saudacoes = {
+"Que alegria ver seu rosto novamente.",
+"As ondas sussurraram seu nome. Como tem passado?"
+}
+end
 
-    npcHandler:setMessage(MESSAGE_GREET,
-        NpcUtils.escolherFraseVariada(saudacoes, player))
-    return true
+npcHandler:setMessage(MESSAGE_GREET,
+NpcUtils.escolherFraseVariada(saudacoes, player))
+return true
 end
 npcHandler:setCallback(CALLBACK_GREET, greetCallback)
 
 local function creatureSayCallback(npc, player, type, msg)
-    if not npcHandler:checkInteraction(npc, player) then return false end
+if not npcHandler:checkInteraction(npc, player) then return false end
 
-    local playerId = player:getId()
-    local subject = Pronouns.getSubject(player)
-    local intimacy = player:getStorageValue(STORAGE_INTIMIDADE) or 0
-    local topic = npcHandler:getTopic(playerId)
+local playerId = player:getId()
+local subject = Pronouns.getSubject(player)
+local intimacy = player:getStorageValue(STORAGE_INTIMIDADE) or 0
+local topic = npcHandler:getTopic(playerId)
 
-    print("DEBUG: creatureSayCallback - msg=" .. msg .. " topic=" .. (topic or "nil"))
+print("DEBUG: creatureSayCallback - msg=" .. msg .. " topic=" .. (topic or "nil"))
 
-    -- Tópico 200: definição do pronome
-    if topic == 200 then
-        if NpcUtils.correspondeAcao(msg, {"ele", "masculino", "homem",
-                "macho", "menino", "rapaz", "garoto", "m"}) then
-            player:setPronoun(PLAYERPRONOUN_HE)
-            print("DEBUG: creatureSayCallback - pronome definido para HE")
-            npcHandler:say("As águas reflectem um espírito masculino. Agora, o que o traz ao meu lago?", npc, player)
-            npcHandler:setTopic(playerId, 0)
-            return true
-        elseif NpcUtils.correspondeAcao(msg, {"ela", "feminino", "mulher",
-                "fêmea", "menina", "moça", "garota", "dama", "f"}) then
-            player:setPronoun(PLAYERPRONOUN_SHE)
-            print("DEBUG: creatureSayCallback - pronome definido para SHE")
-            npcHandler:say("Uma alma feminina... As marés dançam à sua volta. Como posso ajudá‑la?", npc, player)
-            npcHandler:setTopic(playerId, 0)
-            return true
-        else
-            npcHandler:say("Preciso compreender: você é " .. c("{Ele}", COR.NPC_OPCAO) .. " ou " .. c("{Ela}", COR.NPC_OPCAO) .. "?", npc, player)
-            return true
-        end
-    end
+-- Tópico 200: definição do pronome
+if topic == 200 then
+if NpcUtils.correspondeAcao(msg, {"ele", "masculino", "homem",
+"macho", "menino", "rapaz", "garoto", "m"}) then
+player:setPronoun(PLAYERPRONOUN_HE)
+print("DEBUG: creatureSayCallback - pronome definido para HE")
+npcHandler:say("As águas reflectem um espírito masculino. Agora, o que o traz ao meu lago?", npc, player)
+npcHandler:setTopic(playerId, 0)
+return true
+elseif NpcUtils.correspondeAcao(msg, {"ela", "feminino", "mulher",
+"fêmea", "menina", "moça", "garota", "dama", "f"}) then
+player:setPronoun(PLAYERPRONOUN_SHE)
+print("DEBUG: creatureSayCallback - pronome definido para SHE")
+npcHandler:say("Uma alma feminina... As marés dançam à sua volta. Como posso ajudá‑la?", npc, player)
+npcHandler:setTopic(playerId, 0)
+return true
+else
+npcHandler:say("Preciso compreender: você é " .. c("{Ele}", COR.NPC_OPCAO) .. " ou " .. c("{Ela}", COR.NPC_OPCAO) .. "?", npc, player)
+return true
+end
+end
 
-    -- Diálogos da quest baseados no estado e intimidade
-    if player:getStorageValue(STORAGE_QUEST_SEREIA) < 1 then
-        if NpcUtils.correspondeAcao(msg, {"missao", "quest", "tarefa",
-                "ajuda", "trabalho", "aventura", "desafio"}) then
-            npcHandler:say("Preciso que colete para mim " .. c("{5 Lágrimas de Sereia}", COR.NPC_ITEM) .. " no " .. c("{Lago dos Reflexos}", COR.NPC_LOCAL) .. ". Você " .. c("{aceita}", COR.NPC_INTENCAO) .. " este desafio?", npc, player)
-            npcHandler:setTopic(playerId, 1)
-        elseif npcHandler:getTopic(playerId) == 1
-               and NpcUtils.correspondeAcao(msg, {"aceitar", "sim", "aceito",
-                    "claro", "positivo", "yes", "pode ser"}) then
-            player:setStorageValue(STORAGE_QUEST_SEREIA, 1)
-            player:setStorageValue(STORAGE_LAGRIMAS_COLETADAS, 0)
-            local hudData = {
-                titulo = "O Lamento da Sereia",
-                descricao = "Coletar Lágrimas de Sereia",
-                atual = 0,
-                total = QUANTIDADE_NECESSARIA
-            }
-            player:sendExtendedOpcode(OPCODE_QUEST_UPDATE, json.encode(hudData))
-            local toastData = {
-                mensagem = "Missão iniciada: O Lamento da Sereia",
-                cor = "#00BFFF",
-                duracao = 3
-            }
-            player:sendExtendedOpcode(OPCODE_TOAST, json.encode(toastData))
-            npcHandler:say("Que as marés lhe guiem. Retorne quando tiver as lágrimas.", npc, player)
-            npcHandler:setTopic(playerId, 0)
-            print("DEBUG: creatureSayCallback - quest iniciada")
-        end
-    elseif player:getStorageValue(STORAGE_QUEST_SEREIA) == 1 then
-        if NpcUtils.correspondeAcao(msg, {"entregar", "consegui", "trouxe",
-                "terminei", "completei", "pronto"}) then
-            local quantidade = getItemCount(player, ITEM_LAGRIMA_SEREIA)
-            print("DEBUG: creatureSayCallback - quantidade=" .. quantidade)
-            if quantidade >= QUANTIDADE_NECESSARIA then
-                player:removeItem(ITEM_LAGRIMA_SEREIA, QUANTIDADE_NECESSARIA)
-                player:setStorageValue(STORAGE_QUEST_SEREIA, 2)
-                player:setStorageValue(STORAGE_LAGRIMAS_COLETADAS, 0)
-                player:sendExtendedOpcode(OPCODE_QUEST_UPDATE, json.encode({}))
-                local toastData = {
-                    mensagem = "Missão concluída: O Lamento da Sereia!",
-                    cor = "#FFD700",
-                    duracao = 4
-                }
-                player:sendExtendedOpcode(OPCODE_TOAST, json.encode(toastData))
-                player:addItem(22222, 100) -- VERIFICAR ID
-                player:addExperience(500)
+-- Diálogos da quest baseados no estado e intimidade
+if player:getStorageValue(STORAGE_QUEST_SEREIA) < 1 then
+if NpcUtils.correspondeAcao(msg, {"missao", "quest", "tarefa",
+"ajuda", "trabalho", "aventura", "desafio"}) then
+npcHandler:say("Preciso que colete para mim " .. c("{5 Lágrimas de Sereia}", COR.NPC_ITEM) .. " no " .. c("{Lago dos Reflexos}", COR.NPC_LOCAL) .. ". Você " .. c("{aceita}", COR.NPC_INTENCAO) .. " este desafio?", npc, player)
+npcHandler:setTopic(playerId, 1)
+elseif npcHandler:getTopic(playerId) == 1
+and NpcUtils.correspondeAcao(msg, {"aceitar", "sim", "aceito",
+"claro", "positivo", "yes", "pode ser"}) then
+player:setStorageValue(STORAGE_QUEST_SEREIA, 1)
+player:setStorageValue(STORAGE_LAGRIMAS_COLETADAS, 0)
+local hudData = {
+titulo = "O Lamento da Sereia",
+descricao = "Coletar Lágrimas de Sereia",
+atual = 0,
+total = QUANTIDADE_NECESSARIA
+}
+player:sendExtendedOpcode(OPCODE_QUEST_UPDATE, json.encode(hudData))
+local toastData = {
+mensagem = "Missão iniciada: O Lamento da Sereia",
+cor = "#00BFFF",
+duracao = 3
+}
+player:sendExtendedOpcode(OPCODE_TOAST, json.encode(toastData))
+npcHandler:say("Que as marés lhe guiem. Retorne quando tiver as lágrimas.", npc, player)
+npcHandler:setTopic(playerId, 0)
+print("DEBUG: creatureSayCallback - quest iniciada")
+end
+elseif player:getStorageValue(STORAGE_QUEST_SEREIA) == 1 then
+if NpcUtils.correspondeAcao(msg, {"entregar", "consegui", "trouxe",
+"terminei", "completei", "pronto"}) then
+local quantidade = getItemCount(player, ITEM_LAGRIMA_SEREIA)
+print("DEBUG: creatureSayCallback - quantidade=" .. quantidade)
+if quantidade >= QUANTIDADE_NECESSARIA then
+player:removeItem(ITEM_LAGRIMA_SEREIA, QUANTIDADE_NECESSARIA)
+player:setStorageValue(STORAGE_QUEST_SEREIA, 2)
+player:setStorageValue(STORAGE_LAGRIMAS_COLETADAS, 0)
+player:sendExtendedOpcode(OPCODE_QUEST_UPDATE, json.encode({}))
+local toastData = {
+mensagem = "Missão concluída: O Lamento da Sereia!",
+cor = "#FFD700",
+duracao = 4
+}
+player:sendExtendedOpcode(OPCODE_TOAST, json.encode(toastData))
+player:addItem(22222, 100) -- VERIFICAR ID
+player:addExperience(500)
 
-                -- Despertar Domínio Água e Gelo se for a primeira vez
-                local afinidadeAgua = player:getDominioAfinidade(DOMINIO_AGUA_GELO) or 0
-                if afinidadeAgua == 0 then
-                    despertarDominio(player, DOMINIO_AGUA_GELO)
-                    adicionarAfinidade(player, DOMINIO_AGUA_GELO, 30)
-                    enviarMsgColorida(player, c("Um novo poder desperta em você...", COR.SISTEMA_INFO) .. " " .. c("Água e Gelo", corDominio(DOMINIO_AGUA_GELO)))
-                end
+-- Despertar Domínio Água e Gelo se for a primeira vez
+local afinidadeAgua = player:getDominioAfinidade(DOMINIO_AGUA_GELO) or 0
+if afinidadeAgua == 0 then
+despertarDominio(player, DOMINIO_AGUA_GELO)
+adicionarAfinidade(player, DOMINIO_AGUA_GELO, 30)
+enviarMsgColorida(player, c("Um novo poder desperta em você...", COR.SISTEMA_INFO) .. " " .. c("Água e Gelo", corDominio(DOMINIO_AGUA_GELO)))
+end
 
-                -- Atualizar intimidade
-                local novaIntimidade = math.min(intimacy + 1, 3)
-                player:setStorageValue(STORAGE_INTIMIDADE, novaIntimidade)
+-- Atualizar intimidade
+local novaIntimidade = math.min(intimacy + 1, 3)
+player:setStorageValue(STORAGE_INTIMIDADE, novaIntimidade)
 
-                npcHandler:say("Minha eterna gratidão! As lágrimas voltaram ao lar. Sinto que as águas a reconhecem agora... Tome os seus " .. c("{100 Fragmentos de Prata Lunar}", COR.ITEM_RARO) .. " e " .. c("{500 pontos de experiência}", COR.RARIDADE_OURO) .. " como recompensa.", npc, player)
-                npcHandler:setTopic(playerId, 0)
-            else
-                npcHandler:say("Ainda faltam lágrimas. Você tem " .. quantidade .. " de " .. QUANTIDADE_NECESSARIA .. ". Continue procurando.", npc, player)
-            end
-        elseif NpcUtils.correspondeAcao(msg, {"missao", "progresso",
-                "status", "faltam"}) then
-            local quantidade = getItemCount(player, ITEM_LAGRIMA_SEREIA)
-            npcHandler:say("Tem " .. quantidade .. " de " .. QUANTIDADE_NECESSARIA .. " " .. c("{Lágrimas de Sereia}", COR.NPC_ITEM) .. ". Continue!", npc, player)
-        end
-    elseif player:getStorageValue(STORAGE_QUEST_SEREIA) == 2 then
-        npcHandler:say("O lago já está em paz, graças a você. Fique por aqui e ouça as ondas.", npc, player)
-    end
+npcHandler:say("Minha eterna gratidão! As lágrimas voltaram ao lar. Sinto que as águas a reconhecem agora... Tome os seus " .. c("{100 Fragmentos de Prata Lunar}", COR.ITEM_RARO) .. " e " .. c("{500 pontos de experiência}", COR.RARIDADE_OURO) .. " como recompensa.", npc, player)
+npcHandler:setTopic(playerId, 0)
+else
+npcHandler:say("Ainda faltam lágrimas. Você tem " .. quantidade .. " de " .. QUANTIDADE_NECESSARIA .. ". Continue procurando.", npc, player)
+end
+elseif NpcUtils.correspondeAcao(msg, {"missao", "progresso",
+"status", "faltam"}) then
+local quantidade = getItemCount(player, ITEM_LAGRIMA_SEREIA)
+npcHandler:say("Tem " .. quantidade .. " de " .. QUANTIDADE_NECESSARIA .. " " .. c("{Lágrimas de Sereia}", COR.NPC_ITEM) .. ". Continue!", npc, player)
+end
+elseif player:getStorageValue(STORAGE_QUEST_SEREIA) == 2 then
+npcHandler:say("O lago já está em paz, graças a você. Fique por aqui e ouça as ondas.", npc, player)
+end
 
-    return true
+return true
 end
 npcHandler:setCallback(CALLBACK_MESSAGE_DEFAULT, creatureSayCallback)
 
@@ -736,20 +762,22 @@ Utilize SEMPRE o módulo pronouns.lua; não use storage 100001.
 
 A progressão de intimidade deve ser visível na linguagem.
 
-⚠️ SPA v4.2 – Todos os métodos de progressão estão disponíveis; não é necessário verificar existência.
+⚠️ SPA v4.6.0 – Todos os métodos de progressão estão disponíveis; não é necessário verificar existência.
 
-⚠️ SPA v4.2 – Ao conceder afinidade, use adicionarAfinidade() (que acumula no buffer) e deixe o descarregamento para o think do SPA.
+⚠️ SPA v4.6.0 – Ao conceder afinidade, use adicionarAfinidade() (que acumula no buffer) e deixe o descarregamento para o think do SPA. A propagação 4:2:1 ocorre automaticamente.
 
-⚠️ SPA v4.2 – Armas elementais entregues como recompensa ativarão automaticamente a Sinergia Elemental. O NPC deve comentar isso.
+⚠️ SPA v4.6.0 – Armas elementais entregues como recompensa ativarão automaticamente a Sinergia Elemental e o motor adapta os efeitos visuais.
 
-⚠️ SPA v4.2 – Cuidado com spam de notificações; assegure cooldown entre toasts.
+⚠️ SPA v4.6.0 – Para quests de Maestria, verifique o nível efetivo com getNivelEfetivo.
+
+⚠️ SPA v4.6.0 – Cuidado com spam de notificações; assegure cooldown entre toasts.
 
 ⚠️ REVSCRIPT – Scripts devem estar nas pastas certas. O exemplo acima deve ser colocado em MCR/Tutorial/.
 
 🔍 CHECKLIST DE REVISÃO PARA O ASSISTENTE (QUESTS)
 
 ☐ Diálogos usam {chaves} para destacar ações, itens e locais?
-☐ Cores do SPA v4.2 aplicadas (COR.NPC_, COR.ITEM_, COR.DOM_*, COR.MISSAO_*)?
+☐ Cores do SPA v4.6.0 aplicadas (COR.NPC_, COR.ITEM_, COR.DOM_, COR.MISSAO_)?
 ☐ NENHUMA chamada a player:showModalWindow() no fluxo de progresso da missão?
 ☐ Ao aceitar, Opcode 180 enviado para HUD?
 ☐ Ao concluir, HUD limpo e Opcode 181 enviado para Toast?
@@ -766,7 +794,8 @@ A progressão de intimidade deve ser visível na linguagem.
 ☐ Se a quest desperta um Domínio, despertarDominio é chamado e o NPC reage narrativamente?
 ☐ Se a quest ensina uma habilidade, player:learnHabilidade é usado e notificado com cor?
 ☐ Se a quest entrega uma arma elemental, o NPC comenta a Sinergia Elemental?
-☐ Se a quest celebra a Maestria, o NPC confere título e reconhece o Vínculo permanente?
+☐ Se a quest celebra a Maestria, o NPC verifica getNivelEfetivo e confere título?
+☐ Se a quest introduz Summon, o domínio 28 é despertado e a habilidade de invocação é ensinada?
 ☐ O feedback de despertar/habilidade usa narrativa poética, sem números?
 ☐ Itens de conhecimento usam opcode 184 (envio pelo servidor; cliente pendente)?
 ☐ O sistema de progressão (Domínios, Lampejos, Vínculos, Maestria, Sinergia Elemental) é respeitado e não exposto tecnicamente?
@@ -775,8 +804,8 @@ A progressão de intimidade deve ser visível na linguagem.
 
 text
 git add "<arquivos alterados>"
-git commit -m "feat(quest): Atualiza guia SQH com SPA v4.2, Sinergia Elemental, Maestria e cores v9.1 (v7.1)"
+git commit -m "feat(quest): Atualiza guia SQH com SPA v4.6.0, Summon, níveis efetivos e feedback visual temático (v7.2)"
 git push origin main
 ⚠️ PowerShell: aspas duplas em caminhos com espaços.
 
-FIM DO GUIA DE QUESTS (SISTEMA HÍBRIDO SQH) — VERSÃO 7.1
+FIM DO GUIA DE QUESTS (SISTEMA HÍBRIDO SQH) — VERSÃO 7.2

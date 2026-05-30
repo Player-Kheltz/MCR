@@ -1,16 +1,28 @@
 PROJETO MCR – GUIA DE COMPILAÇÃO (SERVIDOR)
-Versão 4.5 – Sistema de Progressão do Aventureiro (SPA v4.6.0), novas APIs de atributos base, velocidade, e ajustes estruturais
+Versão 5.0 – Sistema de Progressão do Aventureiro (SPA v4.6.0), novos métodos de invocação e inventário remoto, ajustes estruturais e novos scripts
 Arquivo: [1] MCR - Guia de Compilação (Servidor).txt
 
 🎯 OBJETIVO DESTE GUIA
-Fornecer todas as instruções, dependências, customizações e verificações necessárias para compilar o servidor Canary do Projeto MCR a partir do código‑fonte. Esta versão incorpora todos os métodos Lua exigidos pelo Sistema de Progressão do Aventureiro (SPA v4.5.0), incluindo gerenciamento de afinidades em lote, histórico de ações (para Lampejos, Vínculos e Maestria), knockback, modificadores de velocidade e stealth, getAmmo (para projéteis dinâmicos), getVocationBaseMaxHealth, getVocationBaseMaxMana, getNaturalSpeed, setMovementSpeed e setCombatModifier (modificadores de combate dinâmicos), além da estrutura modular de scripts em data-canary/scripts/MCR/SPA/core/ e subpastas. O assistente DEVE seguir estas directrizes ao modificar o código C++.
+Fornecer todas as instruções, dependências, customizações e verificações necessárias para compilar o servidor Canary do Projeto MCR a partir do código‑fonte. Esta versão incorpora todos os métodos Lua exigidos pelo Sistema de Progressão do Aventureiro (SPA v4.6.0), incluindo:
+
+Gerenciamento de afinidades em lote, histórico de ações, knockback, modificadores de velocidade e stealth.
+
+getAmmo para projéteis dinâmicos.
+
+getVocationBaseMaxHealth, getVocationBaseMaxMana, getNaturalSpeed e setMovementSpeed para atributos base sem acumulação.
+
+setCombatModifier para modificadores de combate dinâmicos.
+
+Novos métodos para o sistema de invocação e inventário remoto (openRemoteContainer, closeRemoteContainer, Monster.createInventory, Monster.addItemToInventory, Monster.getInventoryContainer, Monster.setCustomName, Monster.getCustomName).
+
+Estrutura modular de scripts em data-canary/scripts/MCR/SPA/core/ e subpastas, incluindo os novos módulos de pets e summons.
+
+O assistente DEVE seguir estas directrizes ao modificar o código C++.
 
 🚧 ESTADO ATUAL DA IMPLEMENTAÇÃO
-
-Todos os métodos C++ descritos neste guia já estão implementados e funcionais no código‑fonte do servidor. Não há mais dependências em fases futuras. Os scripts da pasta MCR/SPA/ utilizam‑nos plenamente.
+Todos os métodos C++ descritos neste guia já estão implementados e funcionais no código‑fonte do servidor. Não há dependências de fases futuras. Os scripts da pasta MCR/SPA/ utilizam‑nos plenamente.
 
 ⚠️ REGRAS DE REVISÃO PARA O ASSISTENTE (C++ – SERVIDOR CANARY)
-
 Ao modificar QUALQUER arquivo .cpp/.h no diretório Canary/src/, o assistente DEVE:
 
 Garantir que TODAS as strings visíveis ao jogador (sendTextMessage, sendCancelMessage, logs de sistema) estejam em PT‑BR, com acentuação correcta. Os caracteres acentuados DEVEM ser escritos OBRIGATORIAMENTE como escapes octais Latin‑1 (ex.: "N\355vel", "Voca\347\343o"). NÃO é permitido usar UTF‑8 directamente nas strings; usar escapes octais garante portabilidade e evita problemas de compilador.
@@ -30,9 +42,7 @@ Após a edição, listar explicitamente os arquivos modificados para compilaçã
 O sistema de progressão usa Revscript: os scripts Lua ficam na pasta data-canary/scripts/MCR/SPA/. O motor carrega‑os automaticamente; não é necessário alterar o C++ para registar scripts.
 
 📦 DEPENDÊNCIAS (AMBIENTE WINDOWS)
-
 Ferramentas Obrigatórias:
-
 Visual Studio 2022 (Community ou superior) com carga de trabalho "Desenvolvimento para desktop com C++".
 
 CMake 3.20 ou superior (adicionar ao PATH).
@@ -42,41 +52,42 @@ Git for Windows.
 vcpkg (gerenciador de bibliotecas). Instale em C:\vcpkg (ou caminho sem espaços).
 
 Comandos de instalação do vcpkg:
+bash
 git clone https://github.com/Microsoft/vcpkg.git C:\vcpkg
 cd C:\vcpkg
 .\bootstrap-vcpkg.bat
 .\vcpkg integrate install
-
 Bibliotecas Requeridas (instalar via vcpkg, para x64-windows):
+bash
 .\vcpkg install boost-beast:x64-windows boost-asio:x64-windows
 .\vcpkg install boost-filesystem:x64-windows boost-system:x64-windows
 .\vcpkg install boost-variant:x64-windows libmariadb:x64-windows
 .\vcpkg install lua:x64-windows pugixml:x64-windows cryptopp:x64-windows
 .\vcpkg install fmt:x64-windows spdlog:x64-windows nlohmann-json:x64-windows
-.\vcpkg install gtest:x64-windows (opcional, para testes)
-
-Observação: os pacotes podem mudar de nome; consulte o README.md do repositório canary para obter a lista exacta para a versão actual.
+.\vcpkg install gtest:x64-windows  # opcional, para testes
+Nota: Os pacotes podem mudar de nome; consulte o README.md do repositório Canary para obter a lista exacta para a versão actual.
 
 🔨 PROCEDIMENTO DE COMPILAÇÃO (PADRÃO)
-
 Clone o repositório MCR (já contém os fontes customizados):
+
+bash
 git clone https://github.com/Player-Kheltz/ProjetoMCR.git
 cd ProjetoMCR\Canary
-
 Configure o CMake (substitua o caminho do vcpkg pelo seu):
+
+bash
 mkdir build
 cd build
 cmake .. -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows
-
 Compile:
-cmake --build . --config Release
 
+bash
+cmake --build . --config Release
 O executável será gerado em build\Release\canary.exe.
 
 Copie o executável para a raiz do servidor (onde estão data/, config.lua) ou configure o output directamente com cmake --install . (se configurado).
 
 🧬 CUSTOMIZAÇÕES MCR JÁ APLICADAS AO CÓDIGO‑FONTE
-
 As seguintes modificações já estão presentes nos fontes do repositório ProjetoMCR/Canary. O assistente NÃO precisa reaplicá‑las, mas deve conhecê‑las para manutenção e depuração.
 
 Console UTF‑8 (main.cpp): SetConsoleOutputCP(CP_UTF8) e SetConsoleCP(CP_UTF8).
@@ -87,111 +98,143 @@ Bindings Lua Preservados: nenhuma remoção de métodos. Apenas adições docume
 
 Remoção de restrições de vocação: vocation 0 permitido em itens e magias (item.cpp, player.cpp, spells.cpp).
 
-🚀 Novos Métodos Lua para o SPA v4.5.0 (IMPLEMENTADOS)
+Protocolo de Jogo (protocolgame.cpp): substituições de creature->getName() por creature->getCustomName() nas funções sendCreatureSay, sendToChannel e AddCreature, garantindo que o nome customizado do escudeiro seja exibido no cliente.
 
-Estes métodos estão implementados em player.h/cpp e expostos em luascript.cpp. São essenciais para o funcionamento do buffer de progressão, Lampejos, Vínculos, Maestria, Posturas, Sinergia Elemental, Arremesso de Escudo, habilidades, e para os novos sistemas de vida, mana e velocidade sem acumulação. Todos estão activos e podem ser usados pelos scripts da pasta MCR/SPA/.
+Gestão de Containers Remotos (player.cpp): implementação de openRemoteContainer, closeRemoteContainer e closeContainersByCreature, permitindo que a janela do escudeiro feche automaticamente quando este morre.
 
-player:getDominioAfinidade(dominioId) – retorna a afinidade acumulada no Domínio.
+Arrasto de Itens (game.cpp): função playerMoveItem ajustada para permitir arrasto livre entre jogador e escudeiro (containers remotos), mantendo verificações de proximidade para itens no chão.
 
-player:addDominioAfinidade(dominioId, valor) – adiciona afinidade (INSERT ... ON DUPLICATE KEY UPDATE).
+Monstros Customizados (monster.cpp): implementação de createInventoryContainer, dropInventoryOnDeath, setCustomName e getCustomName, permitindo que o escudeiro possua inventário e derrame itens ao morrer.
 
-player:addDominioAfinidadeBatch(tabela) – adiciona afinidades em lote, recebendo uma tabela {[dominioId] = pontos}. Optimizado para múltiplas actualizações.
+Novos Registos Lua (spa_functions.cpp, monster_functions.cpp): registados os métodos Player.openRemoteContainer, Player.closeRemoteContainer, Monster.createInventory, Monster.addItemToInventory, Monster.getInventoryContainer, Monster.setCustomName, Monster.getCustomName.
 
-player:getDominioAfinidades(dominio1, dominio2, ...) – consulta várias afinidades de uma vez, retornando uma tabela {[dominioId] = valor}.
+SPA Manager (spa_manager.cpp / spa_manager.hpp): motor de eventos genérico (SPA.onEvent, SPA.dispatchEvent) e registo de domínios em tempo real via Lua.
 
-player:setDominioDespertado(dominioId, bool) – marca o Domínio como despertado (1/0).
+🚀 Novos Métodos Lua para o SPA v4.6.0 (IMPLEMENTADOS)
+Estes métodos estão implementados em player.h/cpp, monster.h/cpp e expostos em luascript.cpp (ou nos ficheiros de funções dedicados). São essenciais para o funcionamento de todos os subsistemas do SPA. Todos estão activos e podem ser usados pelos scripts da pasta MCR/SPA/.
 
-player:hasHabilidade(habilidadeId) – verifica se o jogador conhece a habilidade (consulta a BD).
+Gestão de Afinidade e Domínios
+player:getDominioAfinidade(dominioId)
 
-player:learnHabilidade(habilidadeId) – concede uma habilidade permanentemente (insere na BD).
+player:addDominioAfinidade(dominioId, valor)
 
-player:getHabilidades() – retorna uma tabela com os IDs de todas as habilidades aprendidas.
+player:addDominioAfinidadeBatch(tabela)
 
-player:registerDominioAction(dominioId) – regista uma acção no histórico do jogador (usado para Lampejos/Vínculos/Maestria).
+player:getDominioAfinidades(dom1, dom2, ...)
 
-player:getActionHistory(maxCount) – retorna as últimas acções como tabela de {dominioId, timestamp}.
+player:setDominioDespertado(dominioId, bool)
 
-player:clearActionHistory() – limpa todo o histórico de acções.
+Habilidades
+player:hasHabilidade(habilidadeId)
 
-player:getDominioState(dominioId) – retorna o estado de alma: 0 = normal, 1 = Lampejo, 2 = Vínculo (Maestria garante Vínculo permanente).
+player:learnHabilidade(habilidadeId)
 
-player:setDominioState(dominioId, state) – define o estado (0,1,2).
+player:getHabilidades()
 
-player:getAllActiveStates() – retorna uma tabela {[dominioId] = state} para domínios com estado > 0.
+player:unlearnHabilidade(habilidadeId)
 
-player:setAttackSpeedModifier(mod) – multiplicador da velocidade de ataque (0.1 a infinito).
+player:unlearnAllHabilidades()
 
-player:getAttackSpeedModifier() – retorna o valor actual.
+player:learnHabilidadeBatch(tabela)
 
-player:setStealth(bool) – activa/desactiva furtividade (invisibilidade condicional).
+Estados de Alma e Histórico
+player:registerDominioAction(dominioId)
 
-player:isStealth() – verifica se está furtivo.
+player:getActionHistory(maxCount)
 
-player:setCanPushCreatures(bool) – permite empurrar criaturas ao andar.
+player:clearActionHistory()
 
-player:setLifeLeechModifier(percent) – define % de life leech.
+player:getDominioState(dominioId)
 
-player:setManaLeechModifier(percent) – define % de mana leech.
+player:setDominioState(dominioId, state)
 
-player:setDamageTakenModifier(mod) – multiplicador do dano recebido.
+player:getAllActiveStates()
 
-player:setRangeModifier(tiles) – ajusta o alcance do jogador.
+Atributos de Combate
+player:setAttackSpeedModifier(mod)
 
-creature:knockback(direction) – empurra a criatura na direcção (0‑3, mesma orientação do jogo).
+player:getAttackSpeedModifier()
 
-player:setStorages({[key] = value, ...}) – escreve múltiplas storages de uma vez.
+player:setStealth(bool)
 
-player:getStorages(key1, key2, ...) – lê múltiplas storages, retorna tabela {[key] = value}.
+player:isStealth()
 
-player:getAmmo() – retorna o item da munição real que o jogador está a usar (procura no slot de munição e dentro de aljavas/quivers). Essencial para o sistema de projéteis dinâmicos.
+player:setCanPushCreatures(bool)
 
-player:getParty() – retorna o grupo do jogador (ou nil).
+player:setLifeLeechModifier(percent)
 
-monster:getRaceId() – retorna o ID da raça do monstro.
+player:setManaLeechModifier(percent)
 
-player:setCombatModifier("chave", valor) – define um modificador de combate dinâmico (ex.: "fire_damage", 25.0).
+player:setDamageTakenModifier(mod)
 
-player:getCombatModifier("chave") – retorna o valor actual do modificador.
+player:setRangeModifier(tiles)
 
-item:getElementalBond() – retorna o tipo de dano elemental do item (COMBAT_FIREDAMAGE, etc.).
+creature:knockback(direction)
 
-item:getElementType() – retorna o elementType do item (wandType, combatType do Abilities).
+player:setCombatModifier("chave", valor)
 
-player:unlearnHabilidade(habilidadeId) – Remove uma habilidade específica da BD (DELETE individual).
+player:getCombatModifier("chave")
 
-player:unlearnAllHabilidades() – Remove todas as habilidades do jogador da BD (uma única query).
+Storages e Inventário
+player:setStorages({[key] = value, ...})
 
-player:learnHabilidadeBatch(tabela) – Aprende várias habilidades em lote (INSERT em batch).
+player:getStorages(key1, key2, ...)
 
-player:getVocationBaseMaxHealth() – Retorna a vida base calculada a partir da vocação Aventureiro (gainhp * level + offset). Essencial para o cálculo de passivas de vida sem acumulação.
+player:getAmmo()
 
-player:getVocationBaseMaxMana() – Retorna a mana base calculada a partir da vocação Aventureiro (gainmana * level + offset). Essencial para o cálculo de passivas de mana sem acumulação.
+player:getParty()
 
-player:getNaturalSpeed() – Retorna a velocidade natural do personagem (base da vocação + bónus por nível). Usada como referência para aplicar multiplicadores de velocidade de movimento.
+monster:getRaceId()
 
-player:setMovementSpeed(speed) – Define a velocidade de movimento atual do personagem, atualizando o cliente imediatamente.
+item:getElementalBond()
+
+item:getElementType()
+
+Atributos Base (Vida, Mana, Velocidade)
+player:getVocationBaseMaxHealth() – Vida base da vocação Aventureiro (gainhp * level + offset).
+
+player:getVocationBaseMaxMana() – Mana base da vocação Aventureiro (gainmana * level + offset).
+
+player:getNaturalSpeed() – Velocidade natural (base da vocação + bónus por nível).
+
+player:setMovementSpeed(speed) – Define a velocidade de movimento actual.
+
+Invocação e Inventário Remoto (Escudeiro)
+player:openRemoteContainer(container) – Abre um container remoto (ex.: inventário do escudeiro).
+
+player:closeRemoteContainer() – Fecha o container remoto actual.
+
+monster:createInventory(size) – Cria uma mochila de inventário para a criatura SPA.
+
+monster:addItemToInventory(item) – Adiciona um item ao inventário da criatura.
+
+monster:getInventoryContainer() – Retorna o container do inventário da criatura.
+
+monster:setCustomName(name) – Define o nome customizado da criatura.
+
+monster:getCustomName() – Retorna o nome customizado da criatura.
 
 ⚙️ Lógica interna já presente em player.cpp:
-
 std::deque<ActionRecord> para o histórico de acções.
 
-Estados de alma (Lampejo/Vínculo) controlados via setDominioState e getAllActiveStates, consumidos pelos scripts de sintonia.
+Estados de alma (Lampejo/Vínculo) controlados via setDominioState e getAllActiveStates.
 
-Maestria (nível 20) gerida via getNivelPorAfinidade e setDominioState: quando o nível atinge 20, o Vínculo torna‑se permanente e não é removido pela sintonia.
+Maestria (nível 20) gerida via getNivelPorAfinidade e setDominioState: quando o nível atinge 20, o Vínculo torna‑se permanente.
 
-Buffer de afinidade gerido via storages temporárias (95001+dominioId); o descarregamento em lote usa addDominioAfinidadeBatch para minimizar queries.
+Buffer de afinidade gerido via storages temporárias (95001+dominioId); descarregamento em lote com addDominioAfinidadeBatch.
 
-Modificadores de combate dinâmicos armazenados em mapa string→double, manipulados via setCombatModifier/getCombatModifier.
+Modificadores de combate dinâmicos armazenados em mapa string→double.
 
-Vida e mana base calculadas com getVocationBaseMaxHealth e getVocationBaseMaxMana, utilizando offsets para garantir os valores iniciais corretos (150 de vida e 50 de mana no nível 1).
+Vida e mana base calculadas com getVocationBaseMaxHealth e getVocationBaseMaxMana, utilizando offsets (130 e 25, respectivamente) para garantir 150 de vida e 50 de mana no nível 1.
 
-Velocidade natural calculada via getNaturalSpeed (base + level - 1), utilizada como referência limpa para multiplicadores das passivas de movimento.
+Velocidade natural calculada via getNaturalSpeed (base + level - 1).
+
+Gestão de containers remotos (m_remoteContainerCID, m_remoteContainers, m_forceCloseRemote).
 
 📅 EVENTO onHealthChange (JÁ IMPLEMENTADO)
 O evento onHealthChange está presente no Canary e é usado pelo script ProgDefesa (eventos.lua) para progressão de Sobrevivência e Escudo ao receber dano.
 
 🛠️ PIPELINE DE TRADUÇÃO AUTOMÁTICA
-
 A partir da versão actual, TODO o código C++ do servidor foi traduzido para PT‑BR através de uma pipeline automática supervisionada. As directrizes abaixo DEVEM ser mantidas em qualquer modificação futura:
 
 Strings de interface e logs: PT‑BR com escapes octais Latin‑1 (OBRIGATÓRIO). NUNCA colocar texto acentuado em UTF‑8 directamente nas strings C++. Exemplo correcto: "N\355vel de magia \351 alto." Exemplo INCORRECTO: "Nível de magia é alto."
@@ -202,17 +245,10 @@ Cabeçalhos (.h/.hpp): comentários traduzidos, definições de classes/macros i
 
 Consulte a lista completa de scripts da pipeline no Índice Geral (Ferramentas de Automação).
 
-🗂️ ESTRUTURA DE PASTAS REVSCRIPT PARA O SPA v4.5
+🗂️ ESTRUTURA DE PASTAS REVSCRIPT PARA O SPA v4.6.0
+Os scripts do Sistema de Progressão do Aventureiro residem em data-canary/scripts/MCR/SPA/. Módulos de apoio e constantes globais estão em data-canary/scripts/MCR/Geral/. O Canary, com suporte a Revscript, carrega automaticamente todos os ficheiros .lua nessas pastas e subpastas.
 
-Os scripts do Sistema de Progressão do Aventureiro residem em:
-
-data-canary/scripts/MCR/SPA/
-
-Módulos de apoio e constantes globais estão em:
-
-data-canary/scripts/MCR/Geral/
-
-O Canary, com suporte a Revscript, carrega automaticamente todos os ficheiros .lua nessas pastas e subpastas. A estrutura actual é:
+text
 data-canary/scripts/MCR/SPA/
 ├── core/
 │   ├── constantes.lua
@@ -229,11 +265,28 @@ data-canary/scripts/MCR/SPA/
 │   ├── think_master.lua
 │   ├── skilltree.lua
 │   ├── advance.lua
+│   ├── motor_habilidades.lua
+│   ├── narrativa_habilidades.lua
+│   ├── pet_system.lua         (novo – gestão de pets activos)
+│   ├── summon_configs.lua      (novo – definições de criaturas invocáveis)
+│   ├── summon_ai.lua           (novo – IA modular para summons)
+│   ├── spa_death.lua           (novo – evento de morte da CriaturaSPA)
+│   ├── criatura_spa_template.lua (novo – template Revscript do monstro base)
 │   └── funcoes_habilidade.lua
 ├── habilidades/
-│   ├── habilidade_gabarito.lua
-│   ├── inicializar_habilidades.lua
-│   └── (ficheiros modulares por domínio)
+│   ├── habilidades_espadas_leves.lua
+│   ├── habilidades_escudo.lua
+│   ├── habilidades_fogo.lua
+│   ├── habilidades_wands.lua
+│   ├── habilidades_laminas.lua
+│   ├── habilidades_combate.lua
+│   ├── habilidades_elementos.lua
+│   ├── habilidades_magia.lua
+│   ├── habilidades_runologia.lua
+│   ├── habilidades_terra_veneno.lua
+│   ├── habilidades_sobrevivencia.lua
+│   ├── habilidades_summon.lua  (novo)
+│   └── (futuros ficheiros modulares)
 ├── comandos/
 │   └── comandos_spa.lua
 └── (futuros ficheiros modulares de habilidades)
@@ -246,11 +299,9 @@ data-canary/scripts/MCR/Geral/
 ├── pronouns.lua
 ├── npc_utils.lua
 └── ...
-
-Todos os módulos em Geral/ e SPA/ são carregados automaticamente. As funções e tabelas definidas neles (ex.: COR v10.0, c(), adicionarAfinidade, getWeaponEspecialidade, getElementalProjectile, recalcularVidaMana, recalcularVelocidade, etc.) tornam‑se globais e podem ser usadas por qualquer script, inclusive fora da árvore SPA.
+Todas as funções e tabelas definidas nestes módulos tornam‑se globais e podem ser usadas por qualquer script, inclusive fora da árvore SPA.
 
 ⚠️ ARMADILHAS E LIÇÕES APRENDIDAS
-
 Codificação de console: SetConsoleOutputCP(CP_UTF8) é imprescindível para logs em PT‑BR.
 
 Tradução de logs: use SEMPRE escapes octais para todos os acentos nas strings C++. Não confie em UTF‑8 directo.
@@ -261,43 +312,58 @@ Compilação com vcpkg: mantenha o vcpkg atualizado.
 
 Escapes octais vs UTF‑8: use sempre escapes octais para portabilidade. Esta é uma regra absoluta no MCR.
 
-A coluna lastlogin EXISTE na tabela players do schema actual do Canary (verificado no banco de dados do projecto). Pode ser usada para lógica de inicialização/migração de personagens no evento_login.lua.
+Coluna lastlogin: EXISTE na tabela players do schema actual do Canary (confirmado no banco de dados do projecto). Pode ser usada para lógica de inicialização/migração.
 
-O SPA v4.5 exige que o buffer de afinidade seja descarregado periodicamente; o método addDominioAfinidadeBatch deve ser eficiente para evitar lag.
+Buffer de afinidade: o método addDominioAfinidadeBatch deve ser eficiente para evitar lag.
 
-A função player:getAllActiveStates() deve ser usada para obter os estados de alma; não itere manualmente sobre todos os domínios.
+Estados de alma: use player:getAllActiveStates(); não itere manualmente sobre todos os domínios.
 
-As cores definidas em texto_colorido.lua (v10.0) devem ser mantidas consistentes com as constantes usadas nos scripts do servidor.
+Cores: as definidas em texto_colorido.lua (v10.0) devem ser mantidas consistentes.
 
-O método player:getAmmo() é essencial para o sistema de projéteis dinâmicos e deve ser preservado.
+Projéteis dinâmicos: player:getAmmo() é essencial e deve ser preservado.
 
-Os métodos player:setCombatModifier e getCombatModifier suportam a Sinergia Elemental e outras mecânicas dinâmicas do SPA v4.5.
+Modificadores de combate: setCombatModifier e getCombatModifier suportam a Sinergia Elemental.
 
-Os novos métodos getVocationBaseMaxHealth, getVocationBaseMaxMana, getNaturalSpeed e setMovementSpeed são utilizados pelas funções centrais de atributos (recalcularVidaMana e recalcularVelocidade) e NÃO devem ser alterados, pois garantem a estabilidade dos valores sem acumulação.
+Atributos base: os novos métodos getVocationBaseMaxHealth, getVocationBaseMaxMana, getNaturalSpeed e setMovementSpeed são utilizados pelas funções centrais recalcularVidaMana e recalcularVelocidade e NÃO devem ser alterados, pois garantem a estabilidade dos valores sem acumulação.
+
+Inventário remoto: os métodos openRemoteContainer, closeRemoteContainer, createInventory, etc., devem ser usados apenas no contexto do escudeiro/pets. O closeRemoteContainer deve ser chamado quando a criatura morre para evitar janelas órfãs.
+
+Nome customizado: setCustomName/getCustomName substituem setName/getName para criaturas SPA, garantindo que o nome exibido no cliente seja o nome do escudeiro e não o nome do arquivo do monstro.
 
 🔍 CHECKLIST DE REVISÃO PARA O ASSISTENTE (C++ SERVIDOR)
-
 Antes de finalizar qualquer modificação em arquivos .cpp/.h do Canary, o assistente DEVE verificar:
 
 ☐ Strings visíveis ao jogador estão em PT‑BR com escapes octais Latin‑1 (OBRIGATÓRIO)?
+
 ☐ Comentários em PT‑BR; nomes de funções/variáveis em inglês?
+
 ☐ A modificação mantém compatibilidade com o protocolo 15.00?
+
 ☐ Novos métodos Lua seguem a convenção minúsculas_com_underscore?
+
 ☐ Novos métodos Lua têm validação de parâmetros?
-☐ Os métodos listados na secção "Novos Métodos Lua" permanecem funcionais e sem regressões (incluindo getAmmo, setCombatModifier, getVocationBaseMaxHealth, getVocationBaseMaxMana, getNaturalSpeed e setMovementSpeed)?
+
+☐ Os métodos listados na secção "Novos Métodos Lua" permanecem funcionais e sem regressões (incluindo getAmmo, setCombatModifier, getVocationBaseMaxHealth, getVocationBaseMaxMana, getNaturalSpeed, setMovementSpeed, e os novos métodos de invocação/inventário remoto)?
+
 ☐ Nomes de bindings Lua NÃO foram alterados?
+
 ☐ Ficheiros de cabeçalho mantidos intactos?
+
 ☐ Novas consultas SQL usam placeholders parametrizados?
+
 ☐ O servidor compila sem warnings novos?
-☐ Os scripts da pasta MCR/SPA/ são carregados correctamente pelo Revscript e as funções globais (COR v10.0, c(), recalcularVidaMana, recalcularVelocidade, etc.) estão acessíveis?
+
+☐ Os scripts da pasta MCR/SPA/ são carregados correctamente pelo Revscript e as funções globais (COR v10.0, c(), recalcularVidaMana, recalcularVelocidade, PetSystem, etc.) estão acessíveis?
+
 ☐ O método player:getAmmo() está funcional para suportar projéteis dinâmicos?
 
+☐ Os novos métodos de inventário remoto não interferem com o funcionamento normal dos containers do jogador?
+
 📤 COMO ATUALIZAR O REPOSITÓRIO GIT
-
+bash
 git add "<arquivos alterados>"
-git commit -m "feat(server): Atualiza guia de compilação com SPA v4.5 e novas APIs de atributos base"
+git commit -m "feat(server): Atualiza guia de compilação com SPA v5.0 e novos métodos de invocação"
 git push origin main
-
 ⚠️ PowerShell: aspas duplas em caminhos com espaços.
 
-FIM DO GUIA DE COMPILAÇÃO (SERVIDOR) — VERSÃO 4.5
+FIM DO GUIA DE COMPILAÇÃO (SERVIDOR) — VERSÃO 5.0

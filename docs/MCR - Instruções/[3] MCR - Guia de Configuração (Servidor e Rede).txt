@@ -1,5 +1,5 @@
 PROJETO MCR – GUIA DE CONFIGURAÇÃO (SERVIDOR E REDE)
-Versão 4.3 – Suporte ao SPA v4.6.0, sistema de escudeiro/pets, novos domínios, comandos expandidos e estrutura Revscript actualizada
+Versão 4.3 – Suporte ao SPA v4.6.0, sistema de escudeiro/pets, novos comandos, estrutura de ficheiros expandida
 Arquivo: [3] MCR - Guia de Configuração (Servidor e Rede).txt
 
 🎯 OBJETIVO DESTE GUIA
@@ -19,24 +19,20 @@ Definição dos pronomes do personagem (coluna nativa players.pronoun) e do pron
 
 Faixas de storages reservados para o SPA v4.6.0 e sistemas globais.
 
-Estrutura de pastas Revscript para os scripts do SPA (data-canary/scripts/MCR/SPA/core/, habilidades/, comandos/, eventos/ e Geral/), incluindo os novos módulos de invocação e pets.
+Estrutura de pastas Revscript para os scripts do SPA (data-canary/scripts/MCR/SPA/core/, habilidades/, comandos/, eventos/, Geral/).
 
 Referência às ferramentas de automação (pipeline de tradução).
 
 Versionamento com Git (boas práticas).
 
-Toda vez que for necessário ajustar uma porta, adicionar uma flag ou depurar um erro de conexão, este guia é a referência primária. A versão 4.3 actualiza as faixas de opcodes e storages para acomodar o SPA v4.6.0, documenta os novos métodos C++ de vida/mana/velocidade e inventário remoto, integra os novos domínios Summon (28) e Sobrevivência (400), e reflecte a estrutura de scripts expandida com pet_system.lua, summon_configs.lua e summon_ai.lua.
+Toda vez que for necessário ajustar uma porta, adicionar uma flag ou depurar um erro de conexão, este guia é a referência primária. A versão 4.3 actualiza as faixas de opcodes e storages para acomodar o SPA v4.6.0, documenta os novos métodos C++ (incluindo openRemoteContainer, closeRemoteContainer, createInventoryContainer, getInventoryContainer, setCustomName, getCustomName), incorpora os domínios Summon (28) e Sobrevivência (400) , e reflecte a estrutura de ficheiros actualizada (incluindo pet_system.lua, summon_configs.lua, criatura_spa_template.lua, spa_death.lua, summon_ai.lua).
 
 🚧 ESTADO ATUAL DA IMPLEMENTAÇÃO
 O SPA v4.6.0 está totalmente implementado no servidor:
 
-Todos os métodos C++ necessários (getDominioAfinidade, addDominioAfinidadeBatch, registerDominioAction, getDominioState, setAttackSpeedModifier, knockback, setStorages, getAmmo, setCombatModifier, getVocationBaseMaxHealth, getVocationBaseMaxMana, getNaturalSpeed, setMovementSpeed, openRemoteContainer, closeRemoteContainer, createInventoryContainer, getInventoryContainer, setCustomName, getCustomName, etc.) estão disponíveis e a funcionar.
+Todos os métodos C++ necessários estão disponíveis e a funcionar, incluindo os novos métodos para gestão de inventário remoto do escudeiro (openRemoteContainer, closeRemoteContainer, createInventoryContainer, getInventoryContainer, setCustomName, getCustomName).
 
 Os scripts em data-canary/scripts/MCR/SPA/core/ e subpastas estão completos e são carregados automaticamente pelo Revscript.
-
-O sistema de invocação e pets (pet_system.lua, summon_configs.lua, summon_ai.lua) está operacional, com comandos de gestão (!testecriatura, !escudeiro, !pet).
-
-A Criatura SPA possui inventário remoto acessível via !escudeiro abrir/adicionar/pegar, com arrasto livre de itens entre jogador e escudeiro.
 
 As faixas de storages e opcodes aqui definidas são aplicáveis de imediato.
 
@@ -48,13 +44,19 @@ O Arremesso de Escudo (domínio 140) e a Sinergia Elemental são suportados nati
 
 A variável VOCATIONS no .env está definida como "0" (Aventureiro) e é plenamente suportada.
 
+A coluna lastlogin existe na tabela players e pode ser usada.
+
 A propagação de afinidade segue o rácio 4:2:1 (especialidade, secundário, primário) e está implementada em progressao.lua.
 
 A capacidade mínima de 500 caps foi removida; o ganho de capacidade é definido unicamente pelo vocations.xml.
 
 Os bónus de vida, mana e velocidade são calculados centralmente pelas funções recalcularVidaMana e recalcularVelocidade, sem risco de acumulação.
 
-Habilidades placeholder foram geradas para todos os domínios actualmente activos (incluindo Summon e Sobrevivência) para permitir testes completos do sistema.
+O sistema de Summon/Pets está implementado com pet_system.lua, summon_configs.lua, summon_ai.lua e o template criatura_spa_template.lua.
+
+O inventário remoto do escudeiro está funcional, permitindo arrasto livre de itens entre o jogador e o escudeiro, com abertura via !escudeiro abrir.
+
+Novos comandos de diagnóstico e gestão estão disponíveis: !testecriatura, !escudeiro abrir/adicionar/pegar, !pet list/killall/info/test/behavior, /setskill, /setstatus, /addskill.
 
 ⚠️ REGRAS DE REVISÃO PARA O ASSISTENTE (CONFIGURAÇÃO / INFRAESTRUTURA)
 Ao sugerir qualquer alteração em arquivos de configuração, .env, regras de firewall ou ajustes no Git, o assistente DEVE:
@@ -91,7 +93,7 @@ Os opcodes 182 (ícone de Vínculo), 183 (partículas de Estado de Alma) e 184 (
 
 As Posturas de Combate (Ímpeto, Equilíbrio, Guarda) reutilizam os modos de luta nativos (fightMode). Nenhuma configuração extra é necessária.
 
-Os scripts do SPA v4.6.0 são carregados automaticamente pelo Revscript a partir das pastas data-canary/scripts/MCR/SPA/core/, habilidades/, comandos/, eventos/ e data-canary/scripts/MCR/Geral/. O desenvolvedor deve garantir que essas pastas existem e contêm os scripts .lua necessários, incluindo os novos módulos de pets (pet_system.lua, summon_configs.lua, summon_ai.lua).
+Os scripts do SPA v4.6.0 são carregados automaticamente pelo Revscript a partir das pastas data-canary/scripts/MCR/SPA/core/, habilidades/, comandos/, eventos/ e data-canary/scripts/MCR/Geral/. O desenvolvedor deve garantir que essas pastas existem e contêm os scripts .lua necessários.
 
 📄 1. CONFIGURAÇÃO DO CANARY (config.lua)
 Este arquivo está localizado na raiz do servidor Canary (ProjetoMCR/Canary/config.lua). Abaixo, cada parâmetro obrigatório e seu respectivo valor no Projeto MCR.
@@ -236,7 +238,7 @@ sql
 SET PASSWORD FOR 'root'@'localhost' = PASSWORD('<Senha>');
 phpMyAdmin: configurar config.inc.php com $cfg['Servers'][$i]['password'] = '<Senha>'; e $cfg['Servers'][$i]['auth_type'] = 'config'; (para evitar tela de login).
 
-As tabelas do SPA v4.6.0 (dominios_def, habilidades_def, player_dominios, player_habilidades) já fazem parte do schema MCR e estão populadas com a hierarquia de domínios actualizada, incluindo Summon (28), Sobrevivência (400) como ramo de Natureza (4), Escudo (15), Runologia (22), Arremesso de Escudo (140) e as Especialidades 100+.
+As tabelas do SPA v4.6.0 (dominios_def, habilidades_def, player_dominios, player_habilidades) já fazem parte do schema MCR e estão populadas com a hierarquia de domínios actualizada, incluindo Summon (28), Sobrevivência (400) como ramo de Natureza (4), e todas as especialidades de combate, magia e suporte.
 
 📚 6. VERSIONAMENTO COM GIT (BOAS PRÁTICAS)
 O repositório já está estruturado. Os arquivos sensíveis NÃO são commitados:
@@ -278,7 +280,6 @@ Faixa / ID	Sistema	Descrição
 50000–50999	Missões (progresso)	Storages de progresso de missões.
 90000–96999	SPA (Progressão)	Storages de velocidade, dano, regeneração, leech, buffer de afinidade, sintonia, Lampejos, locks de habilidades, buffs, SkillTrees. Storages de Chi (97880-97881) e outras (ex.: Desarmado 97000) são geridas manualmente e NÃO são limpas em massa pelo !resetspa.
 90001	Temporário (accountId)	Usado pelo Oráculo durante gerenciamento de contas.
-98300	Lock de reentrada	Usado pelos eventos ProgDano e PosturaDmg para evitar loops de dano.
 Opcodes 180‑199	SQH e SPA	HUD de missões (180), toasts (181), ícone de Vínculo (182), partículas de Estados de Alma (183), janela de conhecimento (184).
 Opcode 200	Migração de conta	Usado pelo Oráculo para transferir o jogador da Alma para a conta permanente.
 Os opcodes 182, 183 e 184 são dedicados ao feedback visual do SPA. O desenvolvedor deve garantir que os listeners no cliente estejam sincronizados com esses números.
@@ -287,11 +288,13 @@ As Posturas de Combate NÃO usam opcodes; são baseadas no fightMode enviado pel
 
 O progresso de Afinidade, níveis e Estados de Alma são armazenados nas tabelas player_dominios e player_habilidades do banco de dados, com buffer temporário em storages (95001+). Storages adicionais podem ser usadas para migração, mas devem ser documentadas.
 
-O Arremesso de Escudo (140), a Sinergia Elemental e o sistema de invocação (Summon 28) utilizam as mesmas faixas de storages do SPA (90000+).
+O Arremesso de Escudo (140) e a Sinergia Elemental utilizam as mesmas faixas de storages do SPA (90000+).
 
 A função recalcularVidaMana usa os métodos nativos getVocationBaseMaxHealth e getVocationBaseMaxMana, não dependendo de storages para a base.
 
 A função recalcularVelocidade usa getNaturalSpeed e setMovementSpeed, também sem storages auxiliares.
+
+O sistema de Summon/Pets não introduz novas faixas de storages reservadas; utiliza storages locais geridas por pet_system.lua e ActivePets.
 
 🗂️ 9. ESTRUTURA DE PASTAS REVSCRIPT PARA O SPA v4.6.0
 Os scripts do Sistema de Progressão do Aventureiro residem em:
@@ -310,33 +313,33 @@ data-canary/scripts/MCR/
 │   ├── core/
 │   │   ├── constantes.lua (v5.5)
 │   │   ├── progressao.lua (v5.1)
-│   │   ├── sintonia.lua (v6.1)
+│   │   ├── sintonia.lua (v6.2)
 │   │   ├── eventos.lua (v6.2.1)
 │   │   ├── postura.lua (v6.2.1)
 │   │   ├── buff_system.lua (v6.1)
 │   │   ├── login.lua (v5.6.1)
 │   │   ├── think_master.lua (v3.4.1)
 │   │   ├── skilltree.lua (v6.0)
-│   │   ├── passivas.lua (v5.2 – contém recalcularVidaMana e recalcularVelocidade)
+│   │   ├── passivas.lua (contém recalcularVidaMana e recalcularVelocidade)
 │   │   ├── passivas_ataque.lua (v5.0)
 │   │   ├── postura_config.lua (v5.0)
 │   │   ├── motor_habilidades.lua (v2.0)
 │   │   ├── narrativa_habilidades.lua (v1.0)
 │   │   ├── funcoes_habilidade.lua (v2.0.2)
-│   │   ├── pet_system.lua (novo – sistema de pets)
-│   │   ├── summon_configs.lua (novo – definições de criaturas)
-│   │   └── summon_ai.lua (novo – IA modular de invocações)
+│   │   ├── pet_system.lua (novo)
+│   │   ├── summon_configs.lua (novo)
+│   │   └── summon_ai.lua (novo)
 │   ├── habilidades/
 │   │   ├── _init_habilidades.lua
 │   │   ├── habilidade_gabarito.lua (v4.5)
-│   │   └── (ficheiros modulares por domínio: espadas_leves, escudo, fogo, wands, laminas, elementos, combate, magia, runologia, terra_veneno, sobrevivencia, summon, etc.)
+│   │   └── (ficheiros modulares por domínio: espadas_leves, escudo, fogo, laminas, elementos, combate, magia, runologia, wands, terra_veneno, sobrevivencia, summon, etc.)
 │   ├── comandos/
-│   │   └── comandos_spa.lua (v5.2)
+│   │   └── comandos_spa.lua (v5.2, inclui !testesistema, !escudeiro, !pet, etc.)
 │   ├── eventos/
-│   │   ├── advance.lua (evento SPASpeedAdvance para atualizar velocidade ao subir de nível)
-│   │   ├── spa_death.lua (novo – derrama itens do escudeiro na morte)
-│   │   └── criatura_spa_template.lua (novo – template Revscript para CriaturaSPA)
-│   └── (futuros módulos)
+│   │   ├── advance.lua (evento SPASpeedAdvance)
+│   │   └── spa_death.lua (novo, evento de morte da CriaturaSPA)
+│   └── criaturas/
+│       └── criatura_spa_template.lua (novo, template Revscript para CriaturaSPA)
 ├── Geral/
 │   ├── texto_colorido.lua (v10.0)
 │   ├── util_armas.lua (v6.2.1)
@@ -352,7 +355,7 @@ data-canary/scripts/MCR/
 │   ├── eldrin.lua
 │   ├── thorne.lua
 │   └── ...
-Cada script pode conter múltiplos eventos (onLogin, onKill, onFightModeChange, onAdvance, onDeath, etc.) e é completamente modular. Funções definidas nos módulos em Geral/ e SPA/core/ tornam‑se globais automaticamente e podem ser chamadas por qualquer outro script sem necessidade de dofile. Por exemplo, as funções c(), enviarMsgColorida(), adicionarAfinidade(), getWeaponEspecialidade(), getElementalProjectile(), recalcularVidaMana(), PetSystem.registerPet() e a tabela COR (v10.0) estão disponíveis globalmente após o carregamento.
+Cada script pode conter múltiplos eventos (onLogin, onKill, onFightModeChange, onAdvance, onDeath, etc.) e é completamente modular. Funções definidas nos módulos em Geral/ e SPA/core/ tornam‑se globais automaticamente e podem ser chamadas por qualquer outro script sem necessidade de dofile. Por exemplo, as funções c(), enviarMsgColorida(), adicionarAfinidade(), getWeaponEspecialidade(), getElementalProjectile(), recalcularVidaMana(), recalcularVelocidade(), PetSystem.registerPet() e a tabela COR (v10.0) estão disponíveis globalmente após o carregamento.
 
 🗺️ 10. CONFIGURAÇÃO DO MAP EDITOR (RME)
 O RME modificado importa monstros e NPCs diretamente dos diretórios Lua do Canary. As configurações relevantes estão em:
@@ -382,6 +385,8 @@ Botão "Criar Conta" removido: agora é "Salão dos Destinos".
 
 storage 100001 abolido para pronome; usar players.pronoun.
 
+A coluna lastlogin EXISTE na tabela players (confirmado no schema do projecto). Pode ser usada em scripts de inicialização.
+
 Os scripts da pasta MCR/SPA/ são carregados automaticamente (Revscript). Se um evento não dispara, verifique se o ficheiro está na pasta correcta e se não há erros de sintaxe.
 
 O módulo pronouns.lua está em data-canary/scripts/MCR/Geral/ e NÃO requer dofile para ser usado.
@@ -392,40 +397,53 @@ As storages do SPA v4.6.0 (90004–96999) não devem ser usadas por outros siste
 
 O buffer de afinidade (storages 95001+) é temporário e gerido automaticamente; não o manipule manualmente fora do SPA.
 
-A nova estrutura de pastas (SPA/core/, habilidades/, comandos/, eventos/) faz parte do SPA v4.6.0 e deve ser preservada.
+A nova estrutura de pastas (SPA/core/, habilidades/, comandos/, eventos/, criaturas/) faz parte do SPA v4.6.0 e deve ser preservada.
 
 A capacidade do jogador não tem mais um mínimo fixo de 500; depende apenas do gaincap definido no vocations.xml.
 
 Os bónus de vida, mana e velocidade são calculados com base na vocação e nível, sem acumulação. As funções recalcularVidaMana e recalcularVelocidade são chamadas periodicamente pelo think_master e no login.
 
-O inventário remoto do escudeiro usa os novos métodos C++ (openRemoteContainer, closeRemoteContainer, etc.). Certifique‑se de que estão compilados e registados no motor Lua.
-
-O comando !testesistema agora suporta filtro por domínio e exibe o layout completo de diagnóstico, incluindo disponibilidade de habilidades por foco.
+Para testar o sistema de Summon, use !testecriatura para invocar um escudeiro, !escudeiro abrir para ver o inventário, e !escudeiro adicionar/!escudeiro pegar para transferir itens.
 
 🔍 CHECKLIST DE REVISÃO PARA O ASSISTENTE (CONFIGURAÇÃO / INFRAESTRUTURA)
 Antes de finalizar qualquer alteração em arquivos de configuração ou sugestão de rede, o assistente DEVE verificar:
 
 ☐ Senhas reais NUNCA aparecem no texto; placeholder <Senha> foi utilizado?
+
 ☐ Portas mencionadas são exactamente: 7171, 7172, 7173, 8080, 3306?
+
 ☐ OTCFEATURES no config.lua estão sincronizadas com o cliente (extendedOpcode=true, etc.)?
+
 ☐ Se uma nova variável de ambiente foi adicionada ao .env, o .env.example foi atualizado?
+
 ☐ Comandos Git sugeridos estão com aspas duplas para caminhos com espaços (PowerShell)?
+
 ☐ Configuração de charset do banco como utf8mb4 foi mencionada?
+
 ☐ O pronome do personagem é obtido via players.pronoun e módulo pronouns.lua (sem storage 100001)?
+
 ☐ O pronome da conta está em accounts.player_pronoun?
+
 ☐ Storages globais e do SPA v4.6.0 não estão a ser invadidos por novos sistemas?
-☐ As pastas data-canary/scripts/MCR/SPA/core/, habilidades/, comandos/, eventos/ e MCR/Geral/ existem e contêm os scripts necessários, incluindo pet_system.lua, summon_configs.lua e summon_ai.lua?
+
+☐ A pasta data-canary/scripts/MCR/SPA/core/, habilidades/, comandos/, eventos/, criaturas/ e MCR/Geral/ existem e contêm os scripts necessários?
+
 ☐ As Posturas de Combate dependem apenas do fightMode nativo, sem necessidade de config extra?
+
 ☐ As ferramentas de automação (pipeline) foram consideradas se a alteração envolver tradução de strings?
+
 ☐ A variável VOCATIONS no .env está definida como "0" (Aventureiro) e documentada?
+
 ☐ As funções globais (COR v10.0, c(), adicionarAfinidade, recalcularVidaMana, PetSystem.registerPet, etc.) estão disponíveis e não há conflitos de nomes?
+
 ☐ Os novos métodos C++ (getVocationBaseMaxHealth, getVocationBaseMaxMana, getNaturalSpeed, setMovementSpeed, openRemoteContainer, closeRemoteContainer, createInventoryContainer, getInventoryContainer, setCustomName, getCustomName) estão disponíveis e a funcionar?
-☐ Os novos comandos de diagnóstico (!testecriatura, !escudeiro, !pet list/killall/info/test/behavior) estão documentados e acessíveis?
+
+☐ O sistema de Summon/Pets está operacional (testar com !testecriatura e !escudeiro abrir)?
 
 📤 COMO ATUALIZAR O REPOSITÓRIO GIT
 text
 git add "<arquivos alterados>"
-git commit -m "feat(config): Atualiza guia de configuração com SPA v4.6.0, pets e novos comandos (v4.3)"
+git commit -m "feat(config): Atualiza guia de configuração com SPA v4.6.0, Summon/Pets e nova estrutura de ficheiros (v4.3)"
 git push origin main
 ⚠️ PowerShell: aspas duplas em caminhos com espaços.
 

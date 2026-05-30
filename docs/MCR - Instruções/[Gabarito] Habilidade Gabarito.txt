@@ -2,7 +2,7 @@ PROJETO MCR – HABILIDADE GABARITO (Documento Canónico)
 Versão 4.7 – Sistema de Progressão do Aventureiro (SPA v4.6)
 Arquivo: [Gabarito] Habilidade Gabarito.txt
 
-🎯 OBJECTIVO DESTE DOCUMENTO
+🎯 OBJETIVO DESTE DOCUMENTO
 Este documento é a referência máxima para a criação de qualquer habilidade
 no Projeto MCR. Define todos os campos possíveis, as regras de feedback
 narrativo, os pacotes temáticos, as directrizes de implementação e as
@@ -13,7 +13,7 @@ O SPA adopta uma arquitectura modular em três camadas:
 - Motor de Habilidades (motor_habilidades.lua v2.0) – 24 tipos de efeitos
   padronizados, fallback automático de efeitos visuais, suporte a
   sinergias escalonadas e efeitos temporais (storm, orbit, rain, pulse,
-  trap).
+  trap, summon).
 - Definições de Habilidades (dados/*.lua) – apenas parâmetros, zero lógica.
 - Narrativa (narrativa_habilidades.lua) – textos de feedback automáticos.
 
@@ -49,9 +49,13 @@ v2.0). O motor também fornece:
   condição são automaticamente ajustados ao elemento da varinha.
 - Suporte a 'conditionMagicEffect' para separar o efeito visual da condição
   do efeito de dano.
-- Novos tipos modulares: sinergia_escalonada, storm, orbit, rain, pulse, trap.
+- Novos tipos modulares: sinergia_escalonada, storm, orbit, rain, pulse, trap,
+  summon.
 - Sistema de contenção por categoria no executor: cada categoria (aoe, single,
   debuff, etc.) tem um número máximo de execuções a cada 10 segundos.
+- Controlo de efeitos temporais: máximo de 2 efeitos (storm, orbit, rain, pulse,
+  trap) activos por jogador.
+- Throttle global de 600ms entre execuções de habilidades.
 
 Vantagens:
 - Novas habilidades são criadas apenas com parâmetros, sem código repetitivo.
@@ -177,6 +181,11 @@ Se omitido, o motor obtém automaticamente o efeito visual a partir do
 elemento da arma equipada (tabela EFEITOS_ELEMENTAIS). O campo
 'conditionMagicEffect' também é opcional e controla o efeito visual
 específico quando uma condição é aplicada.
+
+O campo 'categoria' é OBRIGATÓRIO para todas as novas habilidades de
+gatilho, pois é usado pelo sistema de contenção do executor (limites
+de execução por categoria). Habilidades sem categoria definida são
+tratadas como 'single' (fallback).
 
 ═══════════════════════════════════════════════════════════════
 TIPOS CLÁSSICOS (ATAQUES E EFEITOS DIRECTOS)
@@ -373,6 +382,19 @@ trap
     markEffect = CONST_ME_MAGIC_BLUE, condicao = CONDITION_PARALYZE,
     condDuration = 2500 }
 
+═══════════════════════════════════════════════════════════════
+TIPO DE INVOCAÇÃO
+═══════════════════════════════════════════════════════════════
+
+summon
+  - Invoca uma criatura mágica que luta ao lado do jogador.
+  - Campos: creatureName (nome da config em SUMMON_CONFIGS), duracaoBaseMs,
+    duracaoPorFocoMs, maxSummons (opcional, padrão 1)
+  - A duração total é duracaoBaseMs + (foco * duracaoPorFocoMs / 100).
+  - Com Maestria (foco = 100), a duração é máxima.
+  - Exemplo: { tipo = "summon", creatureName = "Fagulha", duracaoBaseMs = 8000,
+    duracaoPorFocoMs = 40000, maxSummons = 2 }
+
 ================================================================================
 🎯 CAMPOS CONDICIONAIS (gatilho)
 ================================================================================
@@ -492,6 +514,16 @@ markEffect
 primeDelayMs
   [OP] Usado em "trap". Tempo em ms até a armadilha armar (padrão: 1000).
 
+maxSummons
+  [OP] Usado exclusivamente em "summon". Número máximo de criaturas
+       simultâneas deste tipo. Padrão: 1.
+
+duracaoBaseMs
+  [OP] Usado em "summon". Duração base da invocação em ms.
+
+duracaoPorFocoMs
+  [OP] Usado em "summon". Duração adicional por ponto de foco (0‑100).
+
 ================================================================================
 📦 PACOTES TEMÁTICOS (CATÁLOGO)
 ================================================================================
@@ -516,6 +548,7 @@ primeDelayMs
 18. Pulso (pulse) – Ondas de dano expansivas periódicas.
 19. Armadilha (trap) – Marca no chão que detona reactivamente.
 20. Sinergia Escalonada – Efeitos que crescem com o nível do domínio.
+21. Invocação (summon) – Criatura mágica aliada temporária.
 
 ================================================================================
 📋 CONDIÇÕES DE ACTIVAÇÃO DISPONÍVEIS
@@ -751,6 +784,28 @@ HABILIDADES[90090] = {
     condicaoFocoMin = 50
 }
 
+-- Exemplo 9: Invocação de aliado (summon)
+HABILIDADES[28003] = {
+    nome = "Conjurar Fagulha",
+    tipo = "gatilho",
+    dominio = {28},
+    nivelMin = 8,
+    descricaoEfeito = "Invoca uma Fagulha elemental que luta ao teu lado.",
+    cor = COR.ELEM_FOGO,
+    efeitoConfig = {
+        tipo = "summon",
+        creatureName = "Fagulha",
+        duracaoBaseMs = 8000,
+        duracaoPorFocoMs = 40000,
+        maxSummons = 2
+    },
+    gatilho = "onAttack",
+    cooldown = 18,
+    prioridade = 7,
+    categoria = "buff",
+    condicaoFocoMin = 30
+}
+
 ================================================================================
 📝 NOTAS FINAIS
 ================================================================================
@@ -775,5 +830,7 @@ HABILIDADES[90090] = {
 - Habilidades temporais (storm, orbit, rain, pulse, trap) estão limitadas
   a 2 activas por jogador; se o limite for excedido, a habilidade entra
   em cooldown mas não cria o efeito.
+- Invocações (summon) são geridas pelo sistema de pets (pet_system.lua)
+  e as definições das criaturas estão em summon_configs.lua.
 
 FIM DO HABILIDADE GABARITO — VERSÃO 4.7
