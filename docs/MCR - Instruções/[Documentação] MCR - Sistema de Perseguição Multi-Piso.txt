@@ -1,22 +1,34 @@
-📚 Documentação Completa do Sistema de Perseguição Multi‑Piso
+📚 Sistema de Perseguição Multi‑Piso – Documentação Técnica
+==========================================================
+Projeto MCR – Versão 1.0
+Junho de 2026
+
 🎯 Visão Geral
-O sistema permite que qualquer criatura (summons, pets, monstros agressivos) siga o seu mestre/alvo através de diferentes pisos (eixo Z), utilizando escadas, buracos, teleports e ladders do mapa. A abordagem adotada baseia‑se numa fila de transições de piso do jogador, capturada diretamente no motor C++ e processada pelo Monster através de uma máquina de estados.
+O sistema permite que qualquer criatura (summons, pets, monstros agressivos) siga o seu mestre ou alvo através de diferentes pisos (eixo Z), utilizando escadas, buracos, teleports, ladders e itens interativos do mapa. A perseguição é 100% nativa, reutilizando o sistema de walk e pathfinding do Canary.
 
-Princípios fundamentais:
+Princípios fundamentais
+Fila de rastros no jogador: cada mudança de piso do jogador é registada numa std::deque<Pair<Position, Position>> (origem, destino).
 
-O jogador é a fonte da verdade — as suas transições de piso são capturadas e armazenadas.
+Máquina de estados no Monster: idle (0) → rota (1) → retorno ao spawn (2).
 
-Fila FIFO (std::deque) de transições no Player, com métodos públicos de acesso e remoção.
+Movimento 100% nativo: startAutoWalk + FLAG_NOLIMIT para o último passo.
 
-Máquina de estados no Monster (idle → rota → retorno ao spawn).
+Fallback para itens interativos: se o tile de origem não transportar automaticamente (bueiros, escadas de corda), teleporta diretamente para o destino após 2 ciclos.
 
-Pathfinding nativo reutilizado para movimento horizontal.
+Fidelidade do summon: a fila só é limpa se o jogador estiver acessível (pathfinding). Se estiver visível mas inacessível, o summon continua a seguir a fila.
 
-Limpeza automática da fila quando o monstro reencontra o mestre.
-
-Diferenciação entre summons (teleporte de fallback) e hostis (estado de retorno ao spawn).
-
-📁 1. player.h – Novos membros e métodos
+📁 Estrutura de Ficheiros Modificados
+Ficheiro	Alterações
+player.h	Adicionada m_floorChangeQueue e métodos de gestão
+player.cpp	Implementação dos métodos da fila
+creature.h	Adicionado onFloorChange virtual, goToPosition e m_walkingToPosition
+creature.cpp	Implementação de goToPosition; modificação de onCreatureDisappear
+monster.h	Máquina de estados, m_savedFollowCreature, followTargetAcrossFloor, onWalkComplete
+monster.cpp	Implementação completa da perseguição multi‑piso
+tile.cpp	Exceção no queryAdd para permitir entrada em tiles de escada
+game.cpp / map.cpp	Captura de transições via onFloorChange
+🧩 1. Player – Fila de Transições
+1.1 player.h
 cpp
 private:
     std::deque<std::pair<Position, Position>> m_floorChangeQueue;
@@ -27,202 +39,209 @@ public:
     std::pair<Position, Position> getNextFloorChange();
     void clearNextFloorChange();
     void onFloorChange(const Position& fromPos, const Position& toPos) override;
-    std::pair<Position, Position> peekFirstFloorChangeForZ(uint8_t z) const;
     const std::deque<std::pair<Position, Position>>& getFloorChangeQueue() const;
     void popFloorChangeQueueElements(size_t amount);
-1.1 m_floorChangeQueue
-Tipo: std::deque<std::pair<Position, Position>>
-Propósito: Armazena o histórico completo de mudanças de piso do jogador. Cada entrada é um par (posição de origem, posição de destino).
-Porquê deque: Precisamos de iterar os elementos sem os remover (para o Monster avaliar qual a melhor transição) e de remover múltiplos elementos do início de uma só vez (popFloorChangeQueueElements).
+1.2 player.cpp
+storeFloorChange: adiciona uma transição, evitando duplicados consecutivos.
 
-1.2 storeFloorChange(const Position& from, const Position& to)
-Propósito: Adiciona uma nova transição à fila.
-Lógica:
+hasPendingFloorChange: verifica se a fila não está vazia.
 
-Se a fila não estiver vazia, verifica se a última transição é idêntica à nova.
+getNextFloorChange: retorna e remove a primeira transição.
 
-Se for idêntica, ignora (evita duplicados consecutivos causados por Map::moveCreature e Game::internalTeleport dispararem o mesmo evento).
+clearNextFloorChange: remove a primeira transição.
 
-Caso contrário, adiciona ao final da fila.
+onFloorChange: chamado automaticamente quando o jogador muda de piso; alimenta a fila.
 
-1.3 hasPendingFloorChange() const
-Propósito: Verifica se a fila não está vazia.
-Retorno: true se existir pelo menos uma transição pendente.
+getFloorChangeQueue: acesso de leitura à fila (usado pelo Monster).
 
-1.4 getNextFloorChange()
-Propósito: Retorna e remove a primeira transição da fila.
-Lógica: Se a fila estiver vazia, retorna um par vazio {}. Caso contrário, captura o primeiro elemento, remove‑o com pop_front() e retorna‑o.
+popFloorChangeQueueElements: remove N elementos do início da fila.
 
-1.5 clearNextFloorChange()
-Propósito: Remove a primeira transição da fila sem a retornar.
-Uso: Quando o Monster já processou uma transição e precisa apenas de a consumir.
-
-1.6 onFloorChange(const Position& fromPos, const Position& toPos) override
-Propósito: Método virtual chamado automaticamente pelo motor quando uma criatura muda de piso.
-Lógica: Se o eixo Z for diferente, chama storeFloorChange. A verificação de duplicados é feita dentro de storeFloorChange.
-
-1.7 peekFirstFloorChangeForZ(uint8_t z) const
-Propósito: Percorre a fila e retorna a primeira transição cuja origem tenha o Z especificado, sem a remover.
-Uso: Não utilizado atualmente, mas disponível para funcionalidades futuras.
-
-1.8 getFloorChangeQueue() const
-Propósito: Retorna uma referência constante à fila.
-Uso: Permite ao Monster iterar sobre as transições sem as remover (estado 0).
-
-1.9 popFloorChangeQueueElements(size_t amount)
-Propósito: Remove os primeiros amount elementos da fila.
-Uso: Quando o Monster encontra uma transição válida no meio da fila, remove essa transição e todas as anteriores (que já não são úteis).
-
-📁 2. player.cpp – Implementações
-2.1 Player::storeFloorChange
+🧩 2. Creature – Walk para Posição Fixa
+2.1 creature.h
 cpp
-void Player::storeFloorChange(const Position& from, const Position& to) {
-    if (!m_floorChangeQueue.empty()) {
-        auto& last = m_floorChangeQueue.back();
-        if (last.first == from && last.second == to) {
-            return;
-        }
-    }
-    m_floorChangeQueue.push_back({from, to});
+public:
+    bool goToPosition(const Position& target);
+    bool isWalkingToPosition() const { return m_walkingToPosition; }
+    void setWalkingToPosition(bool walking) { m_walkingToPosition = walking; }
+
+private:
+    bool m_walkingToPosition = false;
+2.2 creature.cpp
+Creature::goToPosition
+cpp
+bool Creature::goToPosition(const Position& target) {
+    if (isRemoved() || isDead()) return false;
+
+    std::vector<Direction> listDir;
+    FindPathParams fpp;
+    getPathSearchParams(getCreature(), fpp);
+    fpp.minTargetDist = 0;
+    fpp.maxTargetDist = 1;
+    fpp.fullPathSearch = true;
+    fpp.clearSight = false;
+    fpp.maxSearchDist = 0;
+
+    if (!getPathTo(target, listDir, fpp) || listDir.empty()) return false;
+
+    startAutoWalk(listDir);
+    setWalkingToPosition(true);
+    return true;
 }
-Explicação: Verifica a última transição. Se for igual à nova, retorna sem fazer nada. Caso contrário, adiciona ao final.
+Função: Calcula um caminho até uma posição fixa e inicia o walk nativo. O flag m_walkingToPosition impede que o goToFollowCreature interfira.
 
-2.2 Player::hasPendingFloorChange
-cpp
-bool Player::hasPendingFloorChange() const {
-    return !m_floorChangeQueue.empty();
-}
-2.3 Player::getNextFloorChange
-cpp
-std::pair<Position, Position> Player::getNextFloorChange() {
-    if (m_floorChangeQueue.empty()) return {};
-    auto trans = m_floorChangeQueue.front();
-    m_floorChangeQueue.pop_front();
-    return trans;
-}
-Explicação: Retorna a primeira transição e remove‑a.
+Creature::onCreatureDisappear
+Modificado para não remover o alvo se a criatura apenas mudou de piso (z diferente e criatura ainda existe).
 
-2.4 Player::clearNextFloorChange
-cpp
-void Player::clearNextFloorChange() {
-    if (!m_floorChangeQueue.empty()) m_floorChangeQueue.pop_front();
-}
-2.5 Player::onFloorChange
-cpp
-void Player::onFloorChange(const Position& fromPos, const Position& toPos) {
-    if (fromPos.z != toPos.z) {
-        storeFloorChange(fromPos, toPos);
-    }
-}
-Explicação: Verifica apenas a diferença de Z. A lógica de duplicados está em storeFloorChange.
-
-📁 3. creature.h e creature.cpp – onFloorChange e onCreatureDisappear
-3.1 Creature::onFloorChange
-cpp
-virtual void onFloorChange(const Position& fromPos, const Position& toPos) {}
-Explicação: Método virtual vazio na classe base. É sobrescrito em Player para alimentar a fila.
-
-3.2 Creature::onCreatureDisappear
-cpp
-void Creature::onCreatureDisappear(const std::shared_ptr<Creature> &creature, bool isLogout) {
-    // Se a criatura ainda existe e a diferença é apenas no eixo Z, NÃO remove o target
-    if (getAttackedCreature() == creature && !creature->isRemoved() && creature->getPosition().z != getPosition().z) {
-        return;
-    }
-    if (getFollowCreature() == creature && !creature->isRemoved() && creature->getPosition().z != getPosition().z) {
-        return;
-    }
-
-    if (getAttackedCreature() == creature) {
-        setAttackedCreature(nullptr);
-        onAttackedCreatureDisappear(isLogout);
-    }
-    if (getFollowCreature() == creature) {
-        setFollowCreature(nullptr);
-        onFollowCreatureDisappear(isLogout);
-    }
-}
-Explicação detalhada:
-
-Primeira verificação (attackedCreature): Se a criatura que desapareceu é o nosso alvo de ataque, mas ela ainda existe (!creature->isRemoved()) e a diferença de Z é diferente da nossa, significa que ela apenas mudou de piso. Neste caso, não removemos o alvo — retornamos imediatamente.
-
-Segunda verificação (followCreature): Mesma lógica para a criatura que estamos a seguir.
-
-Comportamento original: Se a criatura realmente morreu ou saiu do jogo, removemos o alvo normalmente.
-
-Impacto: Esta modificação é crucial para que monstros hostis mantenham o rasto do jogador quando este muda de piso.
-
-📁 4. monster.h – Novos membros
+🧩 3. Monster – Máquina de Estados da Perseguição
+3.1 monster.h – Novos Membros
 cpp
 private:
-    Position m_origin;               // origem da transição atual (no nosso piso)
-    Position m_dest;                 // destino da transição atual (no novo piso)
-    Position m_pursuitStartPos;      // ponto onde a perseguição começou (para hostis)
-    bool m_hasTransition = false;    // true quando uma transição está ativa
+    Position m_origin;               // waypoint atual (origem da transição)
+    Position m_dest;                 // destino da transição (novo piso)
+    Position m_pursuitStartPos;      // ponto onde a perseguição começou (hostis)
+    bool m_hasTransition = false;
     int m_state = 0;                 // 0=idle, 1=rota, 2=returning
-    int m_stuckCount = 0;            // contador de falhas consecutivas
-    int m_cycleCount = 0;            // ciclos gastos na mesma transição
-    std::vector<Direction> m_pathList;   // caminho atual (pathfinding)
-    int m_lastDistance = 999;        // última distância até à origem
-    int m_noProgressCount = 0;       // contador de ciclos sem progresso
-    int m_sameFloorStuckCount = 0;   // timeout de inacessibilidade no mesmo piso
+    int m_stuckCount = 0;
+    int m_cycleCount = 0;
+    int m_lastDistance = 999;
+    int m_noProgressCount = 0;
+    int m_sameFloorStuckCount = 0;
+    std::weak_ptr<Creature> m_savedFollowCreature;
 
 public:
     void followTargetAcrossFloor();
     Position findFreeTileNear(const Position& center);
-4.1 m_state
-0 (idle): Estado normal. A perseguição multi‑piso não está ativa. O onThink_async executa a perseguição normal (goToFollowCreature).
+    void onWalkComplete() override;
+3.2 monster.cpp – Monster::followTargetAcrossFloor (versão final)
+Estado 0 – Avaliação da fila
+Itera a m_floorChangeQueue do jogador (até 3 transições para hostis, todas para summons).
 
-1 (rota): O monstro está a processar uma transição de piso. A função followTargetAcrossFloor é chamada a cada ciclo e gere o movimento até à origem e o teleporte para o destino.
+Para cada transição com org.z == myPos.z, verifica se o pathfinding consegue chegar a org.
 
-2 (returning): Apenas para hostis. O monstro desistiu da perseguição e está a regressar ao ponto de spawn (masterPos).
+Se encontrada, define m_origin, m_dest, muda para estado 1 e remove a transição da fila.
 
-4.2 m_pathList
-Vetor de direções (std::vector<Direction>) calculado pela função nativa getPathTo. O monstro executa um passo por ciclo, removendo a direção do final do vetor. Quando o vetor fica vazio, um novo caminho é calculado.
+Se nenhuma for válida, summons teleportam para perto do mestre; hostis desistem após 3 falhas (estado 2).
 
-4.3 m_cycleCount
-Incrementado a cada ciclo no estado 1. Se ultrapassar 15 (≈15 segundos), a transição atual é descartada e o monstro passa à próxima. Isto evita que ele fique eternamente preso numa transição inacessível.
+Estado 1 – A caminho da origem
+Se distance > 1: recalcula o caminho com getPathTo(m_origin, ..., maxTargetDist=1) e chama startAutoWalk.
 
-4.4 m_noProgressCount e m_lastDistance
-Detetam falta de progresso: se a distância até m_origin não diminui durante 3 ciclos consecutivos, o caminho atual é invalidado e o monstro tenta movimento incremental simples.
+Se distance == 1: força o último passo com g_game().internalMoveCreature(dir, FLAG_NOLIMIT). Esta flag ignora restrições de queryAdd, permitindo pisar o tile da escada. O motor então chama queryDestination e transporta a criatura.
 
-4.5 m_sameFloorStuckCount
-Timeout de inacessibilidade no mesmo piso. Se o jogador está no mesmo piso mas a >10 tiles de distância por mais de 10 segundos, o monstro desiste (hostil volta ao spawn, summon teleporta).
+Se distance == 0: o monstro está no waypoint.
 
-📁 5. monster.cpp – findFreeTileNear
+Se o tile for uma escada normal, o motor transporta automaticamente.
+
+Se após 2 ciclos (m_stuckCount >= 2) o monstro ainda estiver no mesmo piso, assume que é um item interativo (bueiro, escada de corda) e teleporta diretamente para m_dest.
+
+Timeout: 15 segundos para hostis, 120 segundos para summons.
+
+Estado 2 – Regresso ao spawn (apenas hostis)
+Usa goToPosition(masterPos) para caminhar de volta ao spawn com movimento nativo.
+
+Se o pathfinding falhar, teleporta diretamente.
+
+Timeout de 30 segundos.
+
+Abandono da rota
+Se o jogador estiver no mesmo piso, a fila estiver vazia, a distância ≤ 20 tiles e o pathfinding confirmar acessibilidade, a rota é abandonada e o followCreature original é restaurado.
+
+Se o jogador estiver visível mas inacessível (ex.: atrás de uma parede), o summon mantém a rota, seguindo a fila de rastros.
+
+3.3 monster.cpp – Monster::onWalkComplete
 cpp
-Position Monster::findFreeTileNear(const Position& center) {
-    for (int radius = 0; radius <= 3; ++radius) {
-        for (int dx = -radius; dx <= radius; ++dx) {
-            for (int dy = -radius; dy <= radius; ++dy) {
-                Position tryPos(center.x + dx, center.y + dy, center.z);
-                auto tile = g_game().map.getTile(tryPos);
-                if (tile && !tile->hasFlag(TILESTATE_BLOCKSOLID) && !tile->getTopCreature()) {
-                    return tryPos;
-                }
-            }
+void Monster::onWalkComplete() {
+    if (m_state == 1) return; // não limpa durante perseguição
+    if (isWalkingToPosition()) {
+        setWalkingToPosition(false);
+        setFollowCreature(m_savedFollowCreature.lock());
+        return;
+    }
+    if (isSummon() && getMaster()) {
+        setFollowCreature(getMaster());
+    }
+}
+Função: Durante o estado 1, o onWalkComplete é ignorado para não interferir com a sequência de passos. O transporte de piso é detetado pelo onCreatureMove ou pelo fallback de itens interativos.
+
+3.4 monster.cpp – Monster::getNextStep
+cpp
+bool Monster::getNextStep(Direction &nextDirection, uint32_t &flags) {
+    if (isIdle || getHealth() <= 0) { ... }
+
+    if (isWalkingToPosition()) {
+        return Creature::getNextStep(nextDirection, flags);
+    }
+    // ... resto do código original ...
+}
+Função: Quando o monstro está a caminhar para uma posição fixa (waypoint), usa o getNextStep da classe base (Creature), que simplesmente consome a listWalkDir.
+
+3.5 monster.cpp – Bloco no onThink_async
+O bloco multi‑piso (if (floorChanged || isRouteActive)) chama followTargetAcrossFloor().
+
+Durante o estado 1, o código não retorna, permitindo que o addEventWalk() continue a agendar os passos da caminhada.
+
+O goToFollowCreature normal é bloqueado quando isWalkingToPosition() é true.
+
+🧩 4. Tile – Exceção para Escadas
+4.1 tile.cpp – Tile::queryAdd
+Duas exceções foram adicionadas:
+
+Bloqueio principal de monstros em escadas:
+
+cpp
+if (const auto &monster = creature->getMonster()) {
+    if (hasFlag(TILESTATE_FLOORCHANGE | TILESTATE_TELEPORT)) {
+        if (monster->getMultiFloorState() == 1 && monster->getWaypointTarget() == getPosition()) {
+            // permite a entrada
+        } else if (... bloqueio normal ...) {
+            return RETURNVALUE_NOTPOSSIBLE;
         }
     }
-    return center;
 }
-Propósito: Encontrar um tile livre num raio de 3 tiles a partir de uma posição central.
-Lógica:
+Bloqueio de pathfinding em escadas:
 
-Começa no raio 0 (o próprio centro) e expande até ao raio 3.
-
-Para cada tile, verifica se não é sólido (!hasFlag(TILESTATE_BLOCKSOLID)) e se não tem criaturas.
-
-Retorna o primeiro tile válido encontrado.
-
-Se nada for encontrado, retorna o próprio centro (fallback).
-
-Uso: Garante que a criatura nunca é teleportada para dentro de paredes ou sobre outras criaturas.
-
-📁 6. monster.cpp – followTargetAcrossFloor (A FUNÇÃO PRINCIPAL)
-Esta é a função central de todo o sistema. Vou detalhar cada bloco exaustivamente.
-
-6.1 Estrutura geral e obtenção do alvo
 cpp
+if (hasBitSet(FLAG_PATHFINDING, tileFlags) && hasFlag(TILESTATE_FLOORCHANGE | TILESTATE_TELEPORT)) {
+    if (const auto &monster = creature->getMonster()) {
+        if (monster->getMultiFloorState() == 1 && monster->getWaypointTarget() == getPosition()) {
+            // permite
+        } else {
+            return RETURNVALUE_NOTPOSSIBLE;
+        }
+    }
+}
+🧩 5. Game e Map – Captura de Transições
+5.1 game.cpp – Game::internalTeleport
+cpp
+if (std::shared_ptr<Creature> creature = thing->getCreature()) {
+    if (thing->getPosition().z != newPos.z) {
+        creature->onFloorChange(thing->getPosition(), newPos);
+    }
+}
+5.2 map.cpp – Map::moveCreature
+cpp
+if (fromPos.z != toPos.z) {
+    creature->onFloorChange(fromPos, toPos);
+}
+Função: Ambos os locais alimentam a m_floorChangeQueue do jogador sempre que há mudança de piso, seja por teleporte ou por movimento sobre escadas.
+
+🧪 Comportamento Final
+Situação	Summon/Pet	Monstro Agressivo
+Jogador muda de piso (escada normal)	Caminha nativamente até à escada, pisa com FLAG_NOLIMIT, é transportado.	Igual, mas vê apenas as 3 últimas transições.
+Jogador muda de piso (item interativo)	Pisa o tile, após 2 ciclos teleporta para o destino.	Igual.
+Jogador no mesmo piso e acessível	Abandona a rota, restaura follow normal.	Igual.
+Jogador visível mas inacessível	Mantém a rota, segue a fila de rastros.	Igual.
+Timeout (15s hostil / 120s summon)	Teleporta para perto do mestre.	Entra em estado 2 (regresso ao spawn).
+Regresso ao spawn	N/A (não entra em estado 2).	Caminha nativamente até ao spawn; teleporta se o pathfinding falhar.
+⚠️ Limitações Conhecidas
+O movimento para o spawn (estado 2) pode falhar em mapas complexos, ativando o teleporte de fallback.
+
+Monstros hostis só veem 3 transições; se o jogador usar mais de 3 escadas rapidamente, o monstro perde o rasto.
+
+Itens interativos requerem 2 ciclos (≈2 segundos) para o fallback de teleporte, o que pode parecer uma pequena pausa.
+
+Com esta documentação, qualquer desenvolvedor pode compreender, manter e expandir o sistema de perseguição multi‑piso. A arquitetura de fila e estados está preparada para ser reutilizada noutros contextos (NPCs, patrulhas, etc.).
+
+
 void Monster::followTargetAcrossFloor() {
     std::shared_ptr<Creature> target;
     if (!m_attackedCreature.expired()) target = m_attackedCreature.lock();
@@ -231,61 +250,76 @@ void Monster::followTargetAcrossFloor() {
 
     bool isHostile = !isSummon();
     Position myPos = getPosition();
-Lógica:
 
-Tenta obter o alvo a partir de m_attackedCreature (criatura que está a atacar). Como é um weak_ptr, usamos expired() e lock().
+    auto targetPlayer = target ? target->getPlayer() : nullptr;
+    if (!targetPlayer && isSummon()) {
+        auto master = getMaster();
+        if (master) targetPlayer = master->getPlayer();
+    }
 
-Se não existir, tenta getFollowCreature() (criatura que está a seguir).
+    g_logger().info("[MCR-FLOOR] {}::followTargetAcrossFloor() estado={} pos={}", getName(), m_state, myPos.toString());
 
-Se for um summon e ainda não tiver alvo, usa o mestre (getMaster()).
-
-isHostile é true para monstros normais (não‑summons). Isto determina o comportamento de fallback e o estado 2.
-
-6.2 ESTADO 2 – Retorno ao spawn (apenas hostis)
-cpp
+    // -----------------------------------------------------------
+    // ESTADO 2: Regresso ao spawn (movimento nativo)
+    // -----------------------------------------------------------
     if (m_state == 2 && isHostile) {
-        if (m_pathList.empty()) {
+        g_logger().info("[MCR-FLOOR] {} estado=2 a regressar ao spawn. pos={} spawn={}", 
+            getName(), myPos.toString(), masterPos.toString());
+
+        if (myPos == masterPos) {
+            g_logger().info("[MCR-FLOOR] {} chegou ao spawn. estado=0", getName());
+            if (auto saved = m_savedFollowCreature.lock()) setFollowCreature(saved);
+            m_state = 0; m_stuckCount = 0; m_cycleCount = 0;
+            setWalkingToPosition(false);
+            return;
+        }
+
+        if (!isWalkingToPosition()) {
+            m_savedFollowCreature = getFollowCreature();
+            setFollowCreature(nullptr);
+
+            std::vector<Direction> listDir;
             FindPathParams fpp;
             getPathSearchParams(getMonster(), fpp);
-            getPathTo(masterPos, m_pathList, fpp);
-        }
-        if (!m_pathList.empty()) {
-            Direction dir = m_pathList.back();
-            m_pathList.pop_back();
-            Position nextPos = getNextPosition(dir, myPos);
-            auto tile = g_game().map.getTile(nextPos);
-            if (tile && !tile->hasFlag(TILESTATE_BLOCKSOLID) && !tile->getTopCreature()) {
-                g_game().internalTeleport(static_self_cast<Monster>(), nextPos);
-                m_stuckCount = 0;
+            fpp.minTargetDist = 0;
+            fpp.maxTargetDist = 0;
+            fpp.fullPathSearch = true;
+            fpp.clearSight = false;
+            fpp.maxSearchDist = 0;
+
+            if (getPathTo(masterPos, listDir, fpp) && !listDir.empty()) {
+                startAutoWalk(listDir);
+                setWalkingToPosition(true);
+                g_logger().info("[MCR-FLOOR] {} estado=2 caminhada iniciada: {} passos", getName(), listDir.size());
             } else {
-                m_pathList.clear();
-                m_stuckCount++;
+                g_logger().info("[MCR-FLOOR] {} estado=2 FALHA – teleportando", getName());
+                setFollowCreature(m_savedFollowCreature.lock());
+                g_game().internalTeleport(static_self_cast<Monster>(), masterPos);
+                m_state = 0; m_stuckCount = 0; m_cycleCount = 0;
+                setWalkingToPosition(false);
             }
-        } else {
-            m_stuckCount++;
+            return;
         }
-        if (m_stuckCount > 5) {
+
+        m_cycleCount++;
+        if (m_cycleCount > 30) {
+            g_logger().info("[MCR-FLOOR] {} estado=2 TIMEOUT – teleportando", getName());
+            setWalkingToPosition(false);
+            setFollowCreature(m_savedFollowCreature.lock());
             g_game().internalTeleport(static_self_cast<Monster>(), masterPos);
-            m_state = 0;
-            m_stuckCount = 0;
-            m_pathList.clear();
+            m_state = 0; m_stuckCount = 0; m_cycleCount = 0;
         }
         return;
     }
-Lógica passo a passo:
 
-Cálculo do caminho: Se m_pathList está vazio, calcula um caminho de volta para masterPos (a posição de spawn do monstro) usando o pathfinding nativo getPathTo.
+    if (!target) {
+        g_logger().info("[MCR-FLOOR] {} sem alvo, a abortar.", getName());
+        return;
+    }
 
-Execução de um passo: Remove a última direção do vetor e move a criatura para o tile correspondente usando internalTeleport.
-
-Validação do movimento: Se o tile de destino for inválido (sólido ou com criatura), limpa o caminho e incrementa m_stuckCount.
-
-Failsafe: Se m_stuckCount > 5 (5 falhas consecutivas), teleporta diretamente para masterPos e reseta o estado para 0.
-
-Terminação: Quando a distância até masterPos é 0, o estado volta a 0.
-
-6.3 Abandono da rota (jogador no mesmo piso e acessível)
-cpp
+    // -----------------------------------------------------------
+    // Se o jogador está no mesmo piso e ACESSÍVEL, ABANDONA a rota
+    // -----------------------------------------------------------
     if (target->getPosition().z == myPos.z && targetPlayer && !targetPlayer->hasPendingFloorChange()) {
         int dist = std::max(std::abs(target->getPosition().x - myPos.x), std::abs(target->getPosition().y - myPos.y));
         if (dist <= 20) {
@@ -297,222 +331,117 @@ cpp
                 reachable = getPathTo(target->getPosition(), dummy, fpp);
             }
             if (reachable) {
+                g_logger().info("[MCR-FLOOR] {} jogador acessivel no mesmo piso, a abandonar rota.", getName());
+                if (auto saved = m_savedFollowCreature.lock()) setFollowCreature(saved);
                 m_hasTransition = false;
-                m_state = 0;
-                m_stuckCount = 0;
-                m_cycleCount = 0;
-                m_pathList.clear();
-                m_noProgressCount = 0;
+                m_state = 0; m_stuckCount = 0; m_cycleCount = 0;
+                m_pathList.clear(); m_noProgressCount = 0;
+                m_walkingToWaypoint = false;
+                setWalkingToPosition(false);
                 return;
             }
         }
     }
-Condições para abandonar a rota:
 
-O jogador está no mesmo piso que o monstro.
-
-A fila de transições do jogador está vazia (já não há mais escadas para processar).
-
-A distância até ao jogador é ≤ 20 tiles.
-
-O pathfinding confirma que o jogador está acessível (existe um caminho).
-
-Ação: Reseta todos os membros de estado e retorna. No próximo ciclo, o onThink_async deixará a perseguição normal (goToFollowCreature) assumir o controlo.
-
-6.4 ESTADO 1 – A caminho da origem
-cpp
+    // -----------------------------------------------------------
+    // ESTADO 1: A caminho da origem (movimento nativo)
+    // -----------------------------------------------------------
     if (m_state == 1) {
         int dx = m_origin.x - myPos.x;
         int dy = m_origin.y - myPos.y;
         int distance = std::max(std::abs(dx), std::abs(dy));
-Cálculo da distância: Usa a distância de Chebyshev (a maior entre |dx| e |dy|) para determinar quantos tiles faltam até m_origin.
 
-6.4.1 Chegada à origem (distance == 0)
-cpp
+        g_logger().info("[MCR-FLOOR] {} estado=1 origem={} destino={} dist={} walking={} listWalkDir={}", 
+            getName(), m_origin.toString(), m_dest.toString(), distance, isWalkingToPosition() ? "sim" : "nao", listWalkDir.size());
+
+        // Se está a caminhar e a listWalkDir ainda tem passos, aguarda.
+        if (isWalkingToPosition() && !listWalkDir.empty()) {
+            m_cycleCount++;
+            int timeout = isHostile ? 15 : 120;
+            if (m_cycleCount > timeout) {
+                g_logger().info("[MCR-FLOOR] {} estado=1 TIMEOUT, a abortar.", getName());
+                setWalkingToPosition(false);
+                setFollowCreature(m_savedFollowCreature.lock());
+                if (targetPlayer) targetPlayer->clearNextFloorChange();
+                m_hasTransition = false; m_state = 0; m_cycleCount = 0;
+                if (isHostile) { m_stuckCount++; if (m_stuckCount > 3) { setAttackedCreature(nullptr); setFollowCreature(nullptr); m_state = 2; } }
+            }
+            return;
+        }
+
+        // Se a caminhada terminou (listWalkDir vazia) ou ainda não iniciou
+        setWalkingToPosition(false);
+
+        // Se já está no tile de origem (distância 0)
         if (distance == 0) {
+            // Verifica se o tile tem transição (escada normal). Se sim, o motor trata.
+            // Se não, após 2 ciclos no mesmo tile, forçamos o teleporte para o destino.
+            if (m_origin == myPos && m_origin.z != m_dest.z) {
+                m_stuckCount++;
+                if (m_stuckCount >= 2) {
+                    // O tile não transportou automaticamente (item interativo). Força o teleporte.
+                    g_logger().info("[MCR-FLOOR] {} tile interativo – forçando teleporte para destino.", getName());
+                    g_game().internalTeleport(static_self_cast<Monster>(), m_dest);
+                    if (targetPlayer) targetPlayer->clearNextFloorChange();
+                    m_hasTransition = false; m_state = 0; m_stuckCount = 0; m_cycleCount = 0;
+                }
+            } else {
+                m_stuckCount = 0;
+            }
+            return;
+        }
+
+        // Se está a 1 tile de distância, força o último passo com FLAG_NOLIMIT.
+        if (distance == 1) {
+            Direction dir = getDirectionTo(myPos, m_origin);
+            if (dir != DIRECTION_NONE) {
+                g_logger().info("[MCR-FLOOR] {} estado=1 forçando último passo com FLAG_NOLIMIT.", getName());
+                ReturnValue ret = g_game().internalMoveCreature(static_self_cast<Monster>(), dir, FLAG_NOLIMIT);
+                if (ret == RETURNVALUE_NOERROR) {
+                    // Movido para o tile de origem. Aguarda o transporte (ou o fallback acima).
+                    return;
+                }
+            }
+            // Fallback: teleporta para o destino se o movimento falhar.
+            g_logger().info("[MCR-FLOOR] {} estado=1 FALHA no último passo, teleportando para o destino.", getName());
+            setFollowCreature(m_savedFollowCreature.lock());
             Position safeDest = findFreeTileNear(m_dest);
-            auto tile = g_game().map.getTile(safeDest);
-            if (tile && !tile->hasFlag(TILESTATE_BLOCKSOLID) && !tile->getTopCreature()) {
-                g_game().internalTeleport(static_self_cast<Monster>(), safeDest);
-                if (isHostile && targetPlayer) targetPlayer->clearNextFloorChange();
-                m_hasTransition = false;
-                m_state = 0;
-                m_stuckCount = 0;
-                m_pathList.clear();
-                m_cycleCount = 0;
-            } else {
-                if (isHostile) {
-                    m_stuckCount++;
-                    if (m_stuckCount > 3) {
-                        m_hasTransition = false;
-                        setAttackedCreature(nullptr);
-                        setFollowCreature(nullptr);
-                        m_state = 2;
-                        m_pathList.clear();
-                        m_cycleCount = 0;
-                    }
-                }
-            }
+            g_game().internalTeleport(static_self_cast<Monster>(), safeDest);
+            if (isHostile && targetPlayer) targetPlayer->clearNextFloorChange();
+            m_hasTransition = false; m_state = 0; m_cycleCount = 0;
             return;
         }
-Lógica:
 
-Usa findFreeTileNear(m_dest) para encontrar um tile seguro no piso de destino.
+        // Distância >1: recalcula o caminho com maxTargetDist=1.
+        std::vector<Direction> listDir;
+        FindPathParams fpp;
+        getPathSearchParams(getMonster(), fpp);
+        fpp.minTargetDist = 0;
+        fpp.maxTargetDist = 1;
+        fpp.fullPathSearch = true;
+        fpp.clearSight = false;
+        fpp.maxSearchDist = 0;
 
-Se o tile for válido (não sólido, sem criatura):
-
-Teleporta a criatura para o destino.
-
-Se for hostil, consome a transição da fila (clearNextFloorChange).
-
-Reseta todos os membros de estado e volta ao estado 0.
-
-Se o tile estiver bloqueado:
-
-Hostis: incrementam m_stuckCount e, após 3 falhas, desistem (entram no estado 2).
-
-Summons: ficam parados no mesmo sítio (não entram no estado 2).
-
-6.4.2 Deteção de falta de progresso
-cpp
-        if (distance >= m_lastDistance) {
-            m_noProgressCount++;
+        if (getPathTo(m_origin, listDir, fpp) && !listDir.empty()) {
+            startAutoWalk(listDir);
+            setWalkingToPosition(true);
+            g_logger().info("[MCR-FLOOR] {} estado=1 caminho calculado: {} passos (maxTargetDist=1)", getName(), listDir.size());
         } else {
-            m_noProgressCount = 0;
+            g_logger().info("[MCR-FLOOR] {} estado=1 FALHA ao calcular caminho, teleportando para o destino.", getName());
+            setFollowCreature(m_savedFollowCreature.lock());
+            Position safeDest = findFreeTileNear(m_dest);
+            g_game().internalTeleport(static_self_cast<Monster>(), safeDest);
+            if (isHostile && targetPlayer) targetPlayer->clearNextFloorChange();
+            m_hasTransition = false; m_state = 0; m_cycleCount = 0;
         }
-        m_lastDistance = distance;
-
-        if (m_noProgressCount >= 3) {
-            m_pathList.clear();
-            m_noProgressCount = 0;
-            int stepX = (dx > 0) ? 1 : (dx < 0) ? -1 : 0;
-            int stepY = (dy > 0) ? 1 : (dy < 0) ? -1 : 0;
-            Position nextPos(myPos.x + stepX, myPos.y + stepY, myPos.z);
-            auto tile = g_game().map.getTile(nextPos);
-            if (tile && !tile->hasFlag(TILESTATE_BLOCKSOLID) && !tile->getTopCreature()) {
-                g_game().internalTeleport(static_self_cast<Monster>(), nextPos);
-                m_stuckCount = 0;
-            } else {
-                m_stuckCount++;
-            }
-            return;
-        }
-Lógica:
-
-Compara a distância atual com a do ciclo anterior (m_lastDistance).
-
-Se a distância não diminuiu (está igual ou maior), incrementa m_noProgressCount.
-
-Se a distância diminuiu, reseta o contador.
-
-Após 3 ciclos sem progresso:
-
-Invalida o caminho atual (m_pathList.clear()).
-
-Força um movimento incremental simples: move 1 tile na direção de m_origin.
-
-Se o movimento falhar, incrementa m_stuckCount.
-
-Objetivo: Evitar que o monstro fique preso num caminho bloqueado por uma parede ou criatura.
-
-6.4.3 Limite de ciclos (timeout da transição)
-cpp
-        m_cycleCount++;
-        if (m_cycleCount > 15) {
-            if (targetPlayer) targetPlayer->clearNextFloorChange();
-            m_hasTransition = false;
-            m_state = 0;
-            m_pathList.clear();
-            m_cycleCount = 0;
-            if (isHostile) {
-                m_stuckCount++;
-                if (m_stuckCount > 3) {
-                    setAttackedCreature(nullptr);
-                    setFollowCreature(nullptr);
-                    m_state = 2;
-                }
-            }
-            return;
-        }
-Lógica:
-
-Incrementa m_cycleCount a cada ciclo.
-
-Se ultrapassar 15 (≈15 segundos):
-
-Descarta a transição atual (remove‑a da fila do jogador).
-
-Reseta o estado para 0.
-
-Se for hostil, incrementa m_stuckCount. Após 3 falhas, entra no estado 2.
-
-Objetivo: Evitar que o monstro fique eternamente preso numa transição impossível.
-
-6.4.4 Cálculo do caminho com pathfinding nativo
-cpp
-        if (m_pathList.empty()) {
-            FindPathParams fpp;
-            getPathSearchParams(getMonster(), fpp);
-            if (!getPathTo(m_origin, m_pathList, fpp) || m_pathList.empty()) {
-                int stepX = (dx > 0) ? 1 : (dx < 0) ? -1 : 0;
-                int stepY = (dy > 0) ? 1 : (dy < 0) ? -1 : 0;
-                Position nextPos(myPos.x + stepX, myPos.y + stepY, myPos.z);
-                auto tile = g_game().map.getTile(nextPos);
-                if (tile && !tile->hasFlag(TILESTATE_BLOCKSOLID) && !tile->getTopCreature()) {
-                    g_game().internalTeleport(static_self_cast<Monster>(), nextPos);
-                    m_stuckCount = 0;
-                } else {
-                    m_stuckCount++;
-                }
-                return;
-            }
-        }
-Lógica:
-
-Se m_pathList está vazio, calcula um novo caminho com getPathTo(m_origin, ...).
-
-Se o pathfinding falhar (retornar false ou o caminho estiver vazio):
-
-Usa movimento incremental simples (1 tile na direção de m_origin) como fallback.
-
-Se o pathfinding for bem‑sucedido, o caminho é guardado em m_pathList e será executado nos próximos ciclos.
-
-6.4.5 Execução de um passo do caminho
-cpp
-        if (!m_pathList.empty()) {
-            Direction dir = m_pathList.back();
-            m_pathList.pop_back();
-            Position nextPos = getNextPosition(dir, myPos);
-            auto tile = g_game().map.getTile(nextPos);
-            if (tile && !tile->hasFlag(TILESTATE_BLOCKSOLID) && !tile->getTopCreature()) {
-                g_game().internalTeleport(static_self_cast<Monster>(), nextPos);
-                m_stuckCount = 0;
-            } else {
-                m_pathList.clear();
-                m_stuckCount++;
-            }
-        }
-
-        if (m_stuckCount > 10 && isHostile) {
-            m_hasTransition = false;
-            setAttackedCreature(nullptr);
-            setFollowCreature(nullptr);
-            m_state = 2;
-            m_pathList.clear();
-            m_cycleCount = 0;
-        }
+        return;
     }
-Lógica:
 
-Remove a última direção do vetor (m_pathList.back()) e move a criatura para o tile correspondente.
-
-Se o tile for inválido, limpa o caminho (m_pathList.clear()) para forçar um recálculo no próximo ciclo.
-
-Se m_stuckCount > 10 e for hostil, desiste completamente e entra no estado 2.
-
-6.5 ESTADO 0 – Avaliação da fila de transições
-cpp
+    // -----------------------------------------------------------
+    // ESTADO 0: Avaliação – obter a próxima transição da fila
+    // -----------------------------------------------------------
     if (m_state == 0) {
+        g_logger().info("[MCR-FLOOR] {} estado=0 a avaliar fila do jogador...", getName());
         if (targetPlayer && targetPlayer->hasPendingFloorChange()) {
             int maxTrans = isHostile ? 3 : 999;
             int count = 0;
@@ -520,45 +449,56 @@ cpp
 
             const auto& queue = targetPlayer->getFloorChangeQueue();
             size_t queueSize = queue.size();
+            g_logger().info("[MCR-FLOOR] {} fila do jogador tem {} transicoes.", getName(), queueSize);
 
             for (auto it = queue.begin(); it != queue.end() && count < maxTrans && count < queueSize; ++it, ++count) {
                 Position org = it->first;
                 Position dst = it->second;
 
-                if (org.z == myPos.z) {
-                    if (target->getPosition().z == dst.z) {
-                        int distToTarget = std::max(std::abs(target->getPosition().x - dst.x), std::abs(target->getPosition().y - dst.y));
-                        if (distToTarget > 15) {
-                            targetPlayer->popFloorChangeQueueElements(1);
-                            continue;
-                        }
-                    }
+                g_logger().info("[MCR-FLOOR] {} a testar transicao {}: org={} dst={} (meu z={})", 
+                    getName(), count, org.toString(), dst.toString(), myPos.z);
 
-                    FindPathParams fpp;
-                    getPathSearchParams(getMonster(), fpp);
-                    std::vector<Direction> path;
-                    
-                    if (getPathTo(org, path, fpp)) {
-                        m_origin = org;
-                        m_dest = dst;
-                        m_hasTransition = true;
-                        m_state = 1;
-                        m_pathList.clear();
-                        m_cycleCount = 0;
-                        m_lastDistance = 999;
-                        m_noProgressCount = 0;
-                        if (isHostile) {
-                            m_pursuitStartPos = myPos;
-                            m_stuckCount = 0;
-                        }
-                        found = true;
-                        targetPlayer->popFloorChangeQueueElements(count + 1);
-                        break;
+                if (org.z != myPos.z) continue;
+
+                FindPathParams fpp;
+                getPathSearchParams(getMonster(), fpp);
+                fpp.fullPathSearch = true;
+                fpp.clearSight = false;
+                fpp.maxSearchDist = 0;
+                fpp.minTargetDist = 0;
+                fpp.maxTargetDist = 1;
+                std::vector<Direction> path;
+                
+                bool pathFound = getPathTo(org, path, fpp);
+                g_logger().info("[MCR-FLOOR] {} pathfinding para org: {} (fullSearch=true, clearSight=false)", 
+                    getName(), pathFound ? "SUCESSO" : "FALHA");
+
+                if (pathFound && !path.empty()) {
+                    m_origin = org;
+                    m_dest = dst;
+                    m_hasTransition = true;
+                    m_state = 1;
+                    m_pathList.clear();
+                    m_cycleCount = 0;
+                    m_lastDistance = 999;
+                    m_noProgressCount = 0;
+                    m_walkingToWaypoint = false;
+                    setWalkingToPosition(false);
+                    m_stuckCount = 0;
+                    if (isHostile) {
+                        m_pursuitStartPos = myPos;
+                        m_stuckCount = 0;
                     }
+                    found = true;
+                    targetPlayer->popFloorChangeQueueElements(count + 1);
+                    g_logger().info("[MCR-FLOOR] {} TRANSICAO VALIDA! org={} dest={} estado=1", 
+                        getName(), org.toString(), dst.toString());
+                    break;
                 }
             }
 
             if (!found) {
+                g_logger().info("[MCR-FLOOR] {} nenhuma transicao acessivel encontrada.", getName());
                 if (!isHostile) {
                     Position safeDest = findFreeTileNear(target->getPosition());
                     g_game().internalTeleport(static_self_cast<Monster>(), safeDest);
@@ -575,6 +515,7 @@ cpp
                 }
             }
         } else {
+            g_logger().info("[MCR-FLOOR] {} fila do jogador VAZIA.", getName());
             if (!isHostile) {
                 Position safeDest = findFreeTileNear(target->getPosition());
                 g_game().internalTeleport(static_self_cast<Monster>(), safeDest);
@@ -592,153 +533,4 @@ cpp
         }
         return;
     }
-Lógica detalhada:
-
-Limite de transições (maxTrans):
-
-Hostis: 3 (monstros só "veem" as 3 últimas transições do jogador).
-
-Summons: 999 (têm acesso a todo o histórico).
-
-Iteração segura da fila:
-
-Guardamos queueSize antes de iterar para evitar crashes.
-
-Usamos um iterador it para percorrer a fila sem a modificar durante a iteração.
-
-Para cada transição na fila (até maxTrans):
-
-Verificação de piso: Só considera transições cuja origem (org.z) está no nosso piso atual.
-
-Validação de relevância: Se o destino (dst.z) está no mesmo piso que o jogador atual, mas a distância é >15 tiles, a transição é considerada irrelevante e removida da fila. Isto evita que o monstro tente ir para um local onde o jogador já não está.
-
-Verificação de acessibilidade: Usa getPathTo(org, ...) para verificar se a origem é acessível a partir da posição atual.
-
-Se a transição for válida:
-
-Define m_origin, m_dest, muda para o estado 1.
-
-Inicializa todos os contadores.
-
-Se for hostil, guarda a posição atual como m_pursuitStartPos.
-
-Remove esta transição e todas as anteriores da fila (popFloorChangeQueueElements(count + 1)).
-
-Sai do loop (break).
-
-Se nenhuma transição for encontrada (!found):
-
-Summons: Teleportam diretamente para perto do mestre (findFreeTileNear).
-
-Hostis: Incrementam m_stuckCount. Após 3 falhas, entram no estado 2 (retorno ao spawn).
-
-Se a fila estiver vazia: Mesmo comportamento de fallback (summons teleportam, hostis desistem após 3 falhas).
-
-📁 7. monster.cpp – Bloco multi‑piso no onThink_async
-cpp
-    {
-        std::shared_ptr<Creature> target;
-        if (!m_attackedCreature.expired()) target = m_attackedCreature.lock();
-        if (!target) target = getFollowCreature();
-        if (!target && isSummon()) target = getMaster();
-
-        bool floorChanged = (target && target->getPosition().z != getPosition().z);
-        bool isRouteActive = (m_state == 1 || m_state == 2);
-
-        if (!floorChanged && !isRouteActive) {
-            if (target) {
-                int dist = std::max(std::abs(target->getPosition().x - getPosition().x),
-                                    std::abs(target->getPosition().y - getPosition().y));
-                if (dist > 10) {
-                    m_sameFloorStuckCount++;
-                    if (m_sameFloorStuckCount > 10) {
-                        if (!isSummon()) {
-                            m_pursuitStartPos = masterPos;
-                            m_state = 2;
-                            m_pathList.clear();
-                            m_stuckCount = 0;
-                        } else {
-                            Position safeDest = findFreeTileNear(target->getPosition());
-                            g_game().internalTeleport(static_self_cast<Monster>(), safeDest);
-                        }
-                        m_sameFloorStuckCount = 0;
-                        return;
-                    }
-                } else {
-                    m_sameFloorStuckCount = 0;
-                }
-
-                auto targetPlayer = target->getPlayer();
-                if (!targetPlayer && isSummon()) {
-                    auto master = getMaster();
-                    if (master) targetPlayer = master->getPlayer();
-                }
-                if (targetPlayer) {
-                    while (targetPlayer->hasPendingFloorChange()) {
-                        targetPlayer->clearNextFloorChange();
-                    }
-                }
-            }
-        }
-
-        if (floorChanged || isRouteActive) {
-            followTargetAcrossFloor();
-            return;
-        }
-    }
-Lógica detalhada:
-
-7.1 Timeout de inacessibilidade no mesmo piso
-Condição: O estado é 0 (idle) e o jogador está no mesmo piso mas a >10 tiles de distância.
-
-Contador: m_sameFloorStuckCount é incrementado a cada ciclo.
-
-Após 10 ciclos (≈10 segundos):
-
-Hostis: Entram no estado 2 (retorno ao spawn).
-
-Summons: Teleportam para perto do mestre.
-
-Reset: Se a distância diminuir para ≤10, o contador é zerado.
-
-7.2 Limpeza da fila
-Quando o estado é 0 e o jogador está no mesmo piso, todas as transições pendentes são removidas da fila do jogador. Isto evita que o monstro processe transições antigas quando já está no mesmo piso que o mestre.
-
-7.3 Ativação da rota
-Se houve mudança de piso (floorChanged) ou se a rota está ativa (isRouteActive), chama followTargetAcrossFloor() e retorna imediatamente, impedindo que o resto do onThink_async execute a perseguição normal. Isto garante que o nosso sistema tem prioridade total sobre o comportamento padrão.
-
-📁 8. game.cpp e map.cpp – Captura de transições
-8.1 Game::internalTeleport
-cpp
-if (std::shared_ptr<Creature> creature = thing->getCreature()) {
-    if (thing->getPosition().z != newPos.z) {
-        creature->onFloorChange(thing->getPosition(), newPos);
-    }
 }
-Explicação: Sempre que uma criatura é teleportada (escadas, buracos, teleports mágicos), o motor chama internalTeleport. Aqui capturamos a mudança de piso e invocamos onFloorChange, que no Player alimenta a fila.
-
-8.2 Map::moveCreature
-cpp
-Position fromPos = creature->getPosition();
-Position toPos = newTile->getPosition();
-if (fromPos.z != toPos.z) {
-    creature->onFloorChange(fromPos, toPos);
-}
-Explicação: Map::moveCreature é o principal caminho de movimento de criaturas. Capturar aqui garante que transições sem teleport (como andar sobre uma escada) também sejam registadas.
-
-🧪 Comportamento Final Esperado
-Situação	Summon/Pet	Monstro Agressivo
-Jogador muda de piso	Segue a fila, processa cada transição.	Segue a fila (vê apenas as 3 últimas transições).
-Jogador no mesmo piso e acessível	Abandona a rota, usa perseguição normal.	Abandona a rota, usa perseguição normal.
-Transição irrelevante (destino longe)	Descartada automaticamente.	Descartada automaticamente.
-Destino bloqueado ou inacessível	Fica parado (summons não desistem).	Desiste após 3 falhas e volta ao spawn (estado 2).
-Timeout de inacessibilidade (>10 tiles por >10s)	Teleporta para perto do mestre.	Entra no estado 2 (retorno ao spawn).
-Transição impossível (>15 ciclos)	Descarta a transição.	Descarta a transição; após 3 falhas, estado 2.
-⚠️ Limitações Conhecidas
-O movimento usa internalTeleport para cada passo (1 tile por ciclo), o que pode parecer "teletransporte" em vez de caminhada suave. Isto é uma limitação da API disponível.
-
-Monstros hostis só veem 3 transições; se o jogador usar mais de 3 escadas rapidamente, o monstro perde o rasto.
-
-O sistema não lida com portas fechadas ou itens bloqueadores que exigem interação (ex.: alavancas, chaves).
-
-O pathfinding pode falhar em mapas muito complexos, ativando o fallback de movimento incremental.
