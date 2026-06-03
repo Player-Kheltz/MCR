@@ -1,9 +1,11 @@
 PROJETO MCR – GUIA DE COMPILAÇÃO (SERVIDOR)
-Versão 5.2 – Sistema de Progressão do Aventureiro (SPA v4.7.0), perseguição multi‑piso por waypoint direto, teleporte para escadas ativas e novos métodos de movimentação
+Versão 6.0 – Sistema de Progressão do Aventureiro (SPA v4.7.0), perseguição multi‑piso com fila de transições, waypoints de superfície, retorno tático de hostis e comandos de diagnóstico
 Arquivo: [1] MCR - Guia de Compilação (Servidor).txt
 
-🎯 OBJETIVO DESTE GUIA
-Fornecer todas as instruções, dependências, customizações e verificações necessárias para compilar o servidor Canary do Projeto MCR a partir do código‑fonte. Esta versão incorpora todos os métodos Lua exigidos pelo Sistema de Progressão do Aventureiro (SPA v4.7.0), incluindo:
+🎯 FUNÇÃO DESTE ARQUIVO
+Fornecer todas as instruções, dependências, customizações e verificações necessárias para compilar o servidor Canary do Projeto MCR a partir do código‑fonte. Esta versão incorpora todos os métodos Lua exigidos pelo Sistema de Progressão do Aventureiro (SPA v4.7.0), o sistema de perseguição multi‑piso revisto (fila de transições, waypoints de superfície, timeout real de 45 segundos, desistência por falta de progresso, retorno ao spawn e retorno a casa), e os comandos de diagnóstico !scan e !scanfull.
+
+Inclui ainda:
 
 Gerenciamento de afinidades em lote, histórico de ações, knockback, modificadores de velocidade e stealth.
 
@@ -15,7 +17,7 @@ setCombatModifier para modificadores de combate dinâmicos.
 
 Métodos para o sistema de invocação e inventário remoto (openRemoteContainer, closeRemoteContainer, Monster.createInventory, Monster.addItemToInventory, Monster.getInventoryContainer, Monster.setCustomName, Monster.getCustomName).
 
-Novo sistema de perseguição multi‑piso por waypoint direto: Player::onFloorChange com StairTransition, Monster::checkStairPursuit, Monster::walkToWaypoint, Monster::clearStairPursuit, exceções no Tile::queryAdd para tiles de escada, e captura automática de transições de piso em Game::internalTeleport e Map::moveCreature.
+Novo sistema de perseguição multi‑piso com fila de transições (std::deque<StairTransition>), índices individuais por perseguidor, waypoints de superfície (SurfaceWaypoint) e retorno tático de hostis (caminhando ou teleportando apenas em último caso).
 
 Estrutura modular de scripts em data-canary/scripts/MCR/SPA/core/ e subpastas.
 
@@ -92,51 +94,85 @@ Copie o executável para a raiz do servidor (onde estão data/, config.lua) ou c
 🧬 CUSTOMIZAÇÕES MCR JÁ APLICADAS AO CÓDIGO‑FONTE
 As seguintes modificações já estão presentes nos fontes do repositório ProjetoMCR/Canary. O assistente NÃO precisa reaplicá‑las, mas deve conhecê‑las para manutenção e depuração.
 
+🔹 Console e Identidade do Servidor
 Console UTF‑8 (main.cpp): SetConsoleOutputCP(CP_UTF8) e SetConsoleCP(CP_UTF8).
 
 Identidade do Servidor (canary_server.cpp / canary_server.hpp): strings de log em PT‑BR, título "Projeto MCR".
 
+🔹 Bindings e Protocolo
 Bindings Lua Preservados: nenhuma remoção de métodos. Apenas adições documentadas.
 
 Remoção de restrições de vocação: vocation = 0 permitido em itens e magias (item.cpp, player.cpp, spells.cpp).
 
 Protocolo de Jogo (protocolgame.cpp): substituições de creature->getName() por creature->getCustomName() nas funções sendCreatureSay, sendToChannel e AddCreature, garantindo que o nome customizado do escudeiro seja exibido no cliente.
 
+🔹 Inventário e Escudeiro
 Gestão de Containers Remotos (player.cpp): implementação de openRemoteContainer, closeRemoteContainer e closeContainersByCreature, permitindo que a janela do escudeiro feche automaticamente quando este morre.
 
 Arrasto de Itens (game.cpp): função playerMoveItem ajustada para permitir arrasto livre entre jogador e escudeiro (containers remotos), mantendo verificações de proximidade para itens no chão.
 
 Monstros Customizados (monster.cpp): implementação de createInventoryContainer, dropInventoryOnDeath, setCustomName e getCustomName, permitindo que o escudeiro possua inventário e derrame itens ao morrer.
 
-Perseguição Multi‑Piso Nativa (Sistema de Waypoint Direto v4.0):
-
-Player::onFloorChange: chamado automaticamente quando o jogador muda de piso. Cria uma StairTransition com origem, destino, timestamp, e flag isActive (escadas que exigem clique).
-
-Player::isActiveStair: determina se um tile de escada é "ativo" (possui itens interativos como bueiros) e requer teleporte.
-
-Monster::checkStairPursuit: avalia se o monstro deve perseguir o líder através de pisos. Para summons, se a transição está noutro piso, teleporta imediatamente para o destino. Para hostis, só persegue se o líder mudou de piso.
-
-Monster::walkToWaypoint: movimento nativo até um waypoint fixo usando startAutoWalk. Para hostis sem caminho, desiste e volta ao comportamento normal (não teleporta).
-
-Monster::clearStairPursuit: limpa o estado de perseguição e restaura o followCreature original (usando m_savedFollowId para summons, garantindo que nunca perdem o mestre).
-
-Tile::queryAdd: duas exceções que permitem que um monstro em perseguição (isPursuingStairs e getStairOrigin) pise tiles de escada (TILESTATE_FLOORCHANGE | TILESTATE_TELEPORT), tanto para pathfinding quanto para entrada.
-
-Captura automática em Game::internalTeleport e Map::moveCreature via onFloorChange, alimentando a m_currentStairTransition do jogador.
-
+🔹 SPA Manager
 SPA Manager (spa_manager.cpp / spa_manager.hpp): motor de eventos genérico (SPA.onEvent, SPA.dispatchEvent) e registo de domínios em tempo real via Lua.
 
-🚀 Novos Métodos Lua para o SPA v4.7.0 (IMPLEMENTADOS)
+🔹 Sistema de Perseguição Multi‑Piso (v6.0)
+📌 Estruturas de Dados (Player)
+std::deque<StairTransition> m_stairTransitions – fila de transições de piso do jogador.
+
+std::deque<SurfaceWaypoint> m_surfaceWaypoints – waypoints de superfície ("migalhas") largadas pelo jogador ao caminhar.
+
+addSurfaceWaypoint(const Position& pos) – adiciona um waypoint de superfície (distância mínima de 5 tiles entre waypoints; expiração após 2 minutos sem uso).
+
+touchSurfaceWaypoint(size_t index) – atualiza o timestamp de um waypoint de superfície (prolonga a sua vida).
+
+getSurfaceWaypoints() / getStairTransitions() – acesso às listas.
+
+📌 Estruturas de Dados (Monster)
+Índices individuais:
+
+size_t m_nextStairIndex – próximo índice na fila de transições.
+
+size_t m_currentTransitionIndex – índice da transição actual.
+
+size_t m_currentSurfaceWaypointIndex – índice actual nos waypoints de superfície.
+
+Controle de perseguição:
+
+uint64_t m_pursuitStartTime – timestamp de início da perseguição (timeout real de 45s).
+
+int m_minDistToStair / uint64_t m_lastDistImprovementTime – detecção de falta de progresso (8s sem melhoria).
+
+int m_forcedMoveFailCount – contador de falhas de movimento forçado.
+
+Retorno ao spawn / casa:
+
+std::vector<StairTransition> m_returnPath – caminho percorrido (para retorno inverso).
+
+Position m_homePosition – posição inicial antes da perseguição.
+
+bool m_returningToSpawn / bool m_returningHome – flags de estado.
+
+📌 Comportamento
+Summons seguem o mestre através de múltiplos pisos, consumindo transições da fila do jogador de forma independente (índice próprio). Se o mestre estiver acessível e próximo, cancelam a perseguição e avançam o índice.
+
+Hostis perseguem o jogador usando a fila de transições. Têm um timeout real de 45 segundos para alcançar o alvo. Se ficarem bloqueados (sem progresso por 8s), desistem da escada actual e tentam a próxima. Se esgotarem as transições, iniciam o retorno ao spawn (caminhando pelo caminho inverso) ou retorno a casa (m_homePosition), utilizando waypoints de superfície e tiles adjacentes como guias.
+
+Waypoints de superfície são largados pelo jogador a cada 5 tiles percorridos e expiram após 2 minutos sem uso. Tanto summons como hostis podem utilizá‑los para navegar em terrenos complexos.
+
+Movimento forçado (apenas summons) é usado como último recurso; hostis nunca teleportam durante a perseguição.
+
+🚀 NOVOS MÉTODOS LUA (SPA v6.0)
 Estes métodos estão implementados em player.h/cpp, monster.h/cpp e expostos em luascript.cpp (ou nos ficheiros de funções dedicados). São essenciais para o funcionamento de todos os subsistemas do SPA. Todos estão activos e podem ser usados pelos scripts da pasta MCR/SPA/.
 
-Gestão de Afinidade e Domínios
+🧬 Gestão de Afinidade e Domínios
 Método	Descrição
 player:getDominioAfinidade(dominioId)	Retorna a afinidade acumulada.
 player:addDominioAfinidade(dominioId, valor)	Adiciona pontos de afinidade.
 player:addDominioAfinidadeBatch(tabela)	Adiciona afinidades em lote.
 player:getDominioAfinidades(dom1, dom2, ...)	Retorna tabela com várias afinidades.
 player:setDominioDespertado(dominioId, bool)	Marca o domínio como despertado.
-Habilidades
+⚔️ Habilidades
 Método	Descrição
 player:hasHabilidade(habilidadeId)	Verifica se conhece a habilidade.
 player:learnHabilidade(habilidadeId)	Aprende uma habilidade.
@@ -144,7 +180,7 @@ player:getHabilidades()	Retorna IDs das habilidades conhecidas.
 player:unlearnHabilidade(habilidadeId)	Remove uma habilidade.
 player:unlearnAllHabilidades()	Remove todas as habilidades.
 player:learnHabilidadeBatch(tabela)	Aprende várias habilidades em lote.
-Estados de Alma e Histórico
+✨ Estados de Alma e Histórico
 Método	Descrição
 player:registerDominioAction(dominioId)	Regista uma ação no histórico.
 player:getActionHistory(maxCount)	Retorna últimas ações.
@@ -152,7 +188,7 @@ player:clearActionHistory()	Limpa o histórico.
 player:getDominioState(dominioId)	Retorna 0 (normal), 1 (Lampejo) ou 2 (Vínculo).
 player:setDominioState(dominioId, state)	Define o estado.
 player:getAllActiveStates()	Retorna tabela de estados ativos.
-Atributos de Combate
+🛡️ Atributos de Combate
 Método	Descrição
 player:setAttackSpeedModifier(mod)	Multiplicador de velocidade de ataque.
 player:getAttackSpeedModifier()	Retorna o valor actual.
@@ -166,7 +202,7 @@ player:setRangeModifier(tiles)	Ajusta o alcance.
 creature:knockback(direction)	Empurra a criatura.
 player:setCombatModifier("chave", valor)	Define modificador dinâmico.
 player:getCombatModifier("chave")	Retorna o valor actual.
-Storages e Inventário
+🎒 Storages e Inventário
 Método	Descrição
 player:setStorages({[key] = value, ...})	Escreve múltiplas storages.
 player:getStorages(key1, key2, ...)	Lê múltiplas storages.
@@ -175,13 +211,13 @@ player:getParty()	Retorna o grupo do jogador.
 monster:getRaceId()	Retorna o ID da raça do monstro.
 item:getElementalBond()	Retorna o tipo de dano elemental do item.
 item:getElementType()	Retorna o elementType do item.
-Atributos Base (Vida, Mana, Velocidade)
+❤️ Atributos Base (Vida, Mana, Velocidade)
 Método	Descrição
 player:getVocationBaseMaxHealth()	Vida base (gainhp × level + offset).
 player:getVocationBaseMaxMana()	Mana base (gainmana × level + offset).
 player:getNaturalSpeed()	Velocidade natural (base + bónus por nível).
 player:setMovementSpeed(speed)	Define a velocidade de movimento actual.
-Invocação e Inventário Remoto (Escudeiro)
+🐾 Invocação, Inventário Remoto e Perseguição
 Método	Descrição
 player:openRemoteContainer(container)	Abre um container remoto.
 player:closeRemoteContainer()	Fecha o container remoto actual.
@@ -190,19 +226,15 @@ monster:addItemToInventory(item)	Adiciona item ao inventário.
 monster:getInventoryContainer()	Retorna o container do inventário.
 monster:setCustomName(name)	Define nome customizado.
 monster:getCustomName()	Retorna nome customizado.
-Perseguição Multi‑Piso (Waypoint Direto v4.0)
-Método	Descrição
-player:getCurrentStairTransition()	Retorna a transição actual do jogador.
-player:clearCurrentStairTransition()	Limpa a transição do jogador.
-monster:isPursuingStairs()	Retorna true se está a perseguir uma escada.
-monster:getStairOrigin()	Retorna o tile de origem da escada.
-monster:getStairDestination()	Retorna o tile de destino da escada.
-⚙️ Lógica interna já presente nos ficheiros C++
-player.cpp: std::deque<ActionRecord> para histórico de acções; estados de alma via setDominioState/getAllActiveStates; Maestria com Vínculo permanente; buffer de afinidade com descarregamento em lote; modificadores de combate dinâmicos; vida/mana base com offsets; gestão de containers remotos; m_currentStairTransition (substitui a antiga m_floorChangeQueue).
+player:getSurfaceWaypoints()	Retorna a lista de waypoints de superfície do jogador.
+player:touchSurfaceWaypoint(index)	Atualiza o timestamp de um waypoint de superfície.
+player:getStairTransitions()	Retorna a fila de transições de piso do jogador.
+⚙️ LÓGICA INTERNA (C++)
+player.cpp: std::deque<ActionRecord> para histórico de acções; estados de alma via setDominioState/getAllActiveStates; Maestria com Vínculo permanente; buffer de afinidade com descarregamento em lote; modificadores de combate dinâmicos; vida/mana base com offsets; gestão de containers remotos; m_stairTransitions (fila de transições); m_surfaceWaypoints (fila de waypoints de superfície).
 
-monster.cpp: checkStairPursuit com decisão imediata (summons teleportam se transição noutro piso; hostis só perseguem se o líder mudou de piso); walkToWaypoint com movimento nativo e fallback para hostis; clearStairPursuit com restauro do follow via m_savedFollowId; isPursuingStairs e getStairOrigin para as exceções no Tile.
+monster.cpp: checkStairPursuit com índices individuais, suporte a waypoints de superfície e verificação de acessibilidade real (fullPathSearch = false). walkToWaypoint com movimento nativo e fallback para hostis. clearStairPursuit com restauro do follow via m_savedFollowId e limpeza de flags. iniciarRetornoSpawn / processarRetornoSpawn / processarRetornoSimples para retorno tático.
 
-game.cpp / map.cpp: captura de mudanças de piso via onFloorChange em internalTeleport e moveCreature, alimentando m_currentStairTransition do jogador.
+game.cpp / map.cpp: captura de mudanças de piso via onFloorChange em internalTeleport e moveCreature, alimentando a m_stairTransitions do jogador.
 
 creature.h/cpp: método virtual onFloorChange.
 
@@ -222,7 +254,7 @@ Cabeçalhos (.h/.hpp): comentários traduzidos, definições de classes/macros i
 
 Consulte a lista completa de scripts da pipeline no Índice Geral (Ferramentas de Automação).
 
-🗂️ ESTRUTURA DE PASTAS REVSCRIPT PARA O SPA v4.7.0
+🗂️ ESTRUTURA DE PASTAS REVSCRIPT (SPA v4.7.0)
 Os scripts do Sistema de Progressão do Aventureiro residem em data-canary/scripts/MCR/SPA/. Módulos de apoio e constantes globais estão em data-canary/scripts/MCR/Geral/. O Canary, com suporte a Revscript, carrega automaticamente todos os ficheiros .lua nessas pastas e subpastas.
 
 text
@@ -278,6 +310,21 @@ data-canary/scripts/MCR/Geral/
 └── ...
 Todas as funções e tabelas definidas nestes módulos tornam‑se globais e podem ser usadas por qualquer script, inclusive fora da árvore SPA.
 
+🛡️ COMANDOS DE DIAGNÓSTICO
+O servidor inclui dois comandos de administrador para depuração de terreno e perseguição:
+
+!scan [raio] – Exibe um mapa de caracteres coloridos no chat, mostrando tiles caminháveis (.), bloqueados (#), escadas (S), criaturas (C), zonas de proteção (P) e teleportes (T). Cobre 2 andares acima e abaixo do jogador (raio padrão: 5, máximo: 8).
+
+!scanfull [raio] [zRange] – Gera um arquivo de log ultra detalhado em data/logs/scan/scan_YYYYMMDD_HHMMSS_Nome.log, contendo:
+
+Lista de waypoints de superfície e transições de escada do jogador.
+
+Para cada tile: posição, ID do chão, flags, lista de itens (ID, nome, tipo), criatura no topo, indicação de waypoints/transições.
+
+Raio padrão: 5 (máx. 10); zRange padrão: 2 (máx. 3).
+
+Estes comandos são registados em comandos_spa.lua e requerem grupo DEUS.
+
 ⚠️ ARMADILHAS E LIÇÕES APRENDIDAS
 Codificação de console: SetConsoleOutputCP(CP_UTF8) é imprescindível para logs em PT‑BR.
 
@@ -311,60 +358,27 @@ Perseguição multi‑piso:
 
 A transição do jogador é capturada automaticamente em Game::internalTeleport e Map::moveCreature via onFloorChange.
 
-O sistema usa um único waypoint por transição (StairTransition), substituindo a antiga fila de transições.
+O sistema usa uma fila de transições (std::deque<StairTransition>) consumida de forma independente por cada perseguidor.
 
-Summons teleportam imediatamente para o destino se a transição estiver noutro piso; hostis só perseguem se o líder mudou de piso e NUNCA teleportam sozinhos.
-
-A função isActiveStair determina se um tile de escada requer teleporte (itens interativos como bueiros) ou se o movimento nativo é suficiente.
+Summons teleportam para o mestre se a fila estiver vazia e estiverem noutro piso; hostis nunca teleportam durante a perseguição (excepto para usar escadas activas).
 
 O Tile::queryAdd tem exceções para isPursuingStairs e getStairOrigin, permitindo que o monstro pise o tile de escada.
 
-O clearStairPursuit restaura o followCreature usando m_savedFollowId (para summons, é sempre o ID do mestre; para hostis, é o follow original).
+O clearStairPursuit restaura o follow original usando m_savedFollowId.
 
-Transições com mais de 30 segundos são ignoradas e limpas automaticamente.
+Transições expiradas (>30s) são removidas da fila.
 
-🔍 CHECKLIST DE REVISÃO PARA O ASSISTENTE (C++ SERVIDOR)
-Antes de finalizar qualquer modificação em arquivos .cpp/.h do Canary, o assistente DEVE verificar:
+Waypoints de superfície: o jogador DEVE chamar addSurfaceWaypoint(getPosition()) durante o movimento (ex.: no onWalkComplete) para que as "migalhas" sejam geradas. Sem isso, os monstros não terão referências para navegação em terrenos complexos.
 
-☐ Strings visíveis ao jogador estão em PT‑BR com escapes octais Latin‑1 (OBRIGATÓRIO)?
+Timeout de progresso: hostis abandonam uma escada se ficarem 4 segundos sem reduzir a distância ao waypoint e sem estar a caminhar ativamente.
 
-☐ Comentários em PT‑BR; nomes de funções/variáveis em inglês?
-
-☐ A modificação mantém compatibilidade com o protocolo 15.00?
-
-☐ Novos métodos Lua seguem a convenção minúsculas_com_underscore?
-
-☐ Novos métodos Lua têm validação de parâmetros?
-
-☐ Os métodos listados na secção "Novos Métodos Lua" permanecem funcionais e sem regressões (incluindo getAmmo, setCombatModifier, getVocationBaseMaxHealth, getVocationBaseMaxMana, getNaturalSpeed, setMovementSpeed, os métodos de invocação/inventário remoto, e os novos métodos de perseguição multi‑piso)?
-
-☐ Nomes de bindings Lua NÃO foram alterados?
-
-☐ Ficheiros de cabeçalho mantidos intactos?
-
-☐ Novas consultas SQL usam placeholders parametrizados?
-
-☐ O servidor compila sem warnings novos?
-
-☐ Os scripts da pasta MCR/SPA/ são carregados correctamente pelo Revscript e as funções globais (COR v10.0, c(), recalcularVidaMana, recalcularVelocidade, PetSystem, etc.) estão acessíveis?
-
-☐ O método player:getAmmo() está funcional para suportar projéteis dinâmicos?
-
-☐ Os novos métodos de inventário remoto não interferem com o funcionamento normal dos containers do jogador?
-
-☐ A captura de transições de piso em internalTeleport e moveCreature não causa efeitos colaterais em outras criaturas?
-
-☐ A transição do jogador é limpa correctamente quando um summon a consome ou quando expira (>30s)?
-
-☐ O Tile::queryAdd permite correctamente que monstros em perseguição pisem tiles de escada?
-
-☐ O clearStairPursuit restaura o follow original usando m_savedFollowId (mestre para summons, follow original para hostis)?
+Movimento forçado: apenas para summons; hostis utilizam waypoints de superfície e tiles adjacentes como alternativas.
 
 📤 COMO ATUALIZAR O REPOSITÓRIO GIT
 bash
 git add "<arquivos alterados>"
-git commit -m "feat(server): Atualiza guia de compilação com SPA v5.2 e perseguição multi‑piso por waypoint direto"
+git commit -m "feat(server): Atualiza guia de compilação com SPA v6.0, perseguição multi‑piso, waypoints de superfície e comandos de diagnóstico"
 git push origin main
-⚠️ PowerShell: aspas duplas em caminhos com espaços.
+⚠️ PowerShell: use aspas duplas em caminhos com espaços.
 
-FIM DO GUIA DE COMPILAÇÃO (SERVIDOR) — VERSÃO 5.2
+FIM DO GUIA DE COMPILAÇÃO (SERVIDOR) — VERSÃO 6.0
