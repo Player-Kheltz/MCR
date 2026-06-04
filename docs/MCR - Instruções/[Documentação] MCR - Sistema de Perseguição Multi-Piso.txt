@@ -1,11 +1,6 @@
-PROJETO MCR – Sistema de Perseguição Multi‑Piso
-Versão 5.7 – Waypoints de Superfície, Retorno ao Spawn e Diagnóstico de Terreno
-
-Arquivo: [DOC] MCR - Sistema de Perseguição Multi‑Piso v5.7.txt
-
 🎯 OBJETIVO DESTE DOCUMENTO
-Este documento descreve de forma exaustiva o sistema de perseguição multi‑piso do Projeto MCR, que permite que criaturas (summons e monstros hostis) sigam um jogador através de escadas, buracos, teleportes e outros elementos de mudança de piso.
-Inclui a arquitetura completa, as estruturas de dados, os mecanismos de timeout, o sistema de “migalhas” (waypoints de superfície), o retorno ao spawn, os comandos de diagnóstico e exemplos práticos de funcionamento e depuração.
+Este documento descreve de forma exaustiva o sistema de perseguição multi‑piso do Projeto MCR, agora expandido com um Mapa Cognitivo Global (GlobalMonsterMap) partilhado entre todas as criaturas.
+Inclui a arquitetura completa, as estruturas de dados, os mecanismos de timeout, o sistema de “migalhas” (waypoints de superfície), o mapa cognitivo com BFS multi‑piso, o retorno ao spawn, os comandos de diagnóstico e exemplos práticos de funcionamento e depuração.
 
 📚 ÍNDICE
 Visão Geral
@@ -17,6 +12,12 @@ Fluxo Principal de Perseguição
 Mecanismos de Timeout e Desistência
 
 Waypoints de Superfície (Migalhas)
+
+Mapa Cognitivo Global (GlobalMonsterMap)
+6.1 Classe e Estruturas
+6.2 Alimentação do Grafo
+6.3 BFS Multi‑Piso
+6.4 Integração no Monster
 
 Retorno ao Spawn / Posição Inicial
 
@@ -30,16 +31,20 @@ Exemplos de Comportamento
 
 Manutenção e Expansão Futura
 
+CÓDIGOS
+
 1. VISÃO GERAL
 O sistema de perseguição multi‑piso permite que criaturas (summons do jogador e monstros hostis) persigam um alvo através de múltiplos andares.
-A base do sistema é uma fila de transições de escada (StairTransition) que o jogador vai deixando ao mudar de piso. As criaturas consultam essa fila, encontram a transição adequada ao seu piso atual e caminham até ao ponto de origem da escada. Ao chegar, utilizam a escada (por movimento natural ou teleporte forçado para escadas ativas) e continuam a perseguição no piso seguinte.
+A base do sistema é uma fila de transições de escada (StairTransition) que o jogador vai deixando ao mudar de piso. As criaturas consultam essa fila e caminham até ao ponto de origem da escada.
 
-Além das transições de piso, o jogador também pode largar waypoints de superfície (“migalhas”) no mesmo andar, permitindo que criaturas bloqueadas contornem obstáculos seguindo o rasto exato do jogador.
+Novidade na v6.0:
+Foi introduzido um Mapa Cognitivo Global (GlobalMonsterMap), um grafo partilhado que armazena tiles caminháveis e as transições de piso conhecidas. Quando o rasto direto do jogador (waypoints e fila) não é suficiente, o monstro recorre a um BFS multi‑piso sobre esse mapa para encontrar rotas alternativas ou atalhos.
+O mapa é construído incrementalmente por todos os monstros, que adicionam tiles ao escanear a sua vizinhança.
 
 1.1 Tipos de Criaturas e Comportamentos
-Tipo	Perseguição	Timeout	Retorno	Uso de Migalhas
-Summon	Segue o mestre através de escadas	120 ciclos (~120s)	Teleporta para o mestre após timeout	Sim, se o mestre estiver inacessível
-Hostil	Persegue o jogador que está a atacar	45 segundos reais	Regressa a pé ao spawn (ou à posição inicial)	Sim, quando bloqueado a caminho da escada
+Tipo	Perseguição	Timeout	Retorno	Uso de Migalhas/Mapa Cognitivo
+Summon	Segue o mestre através de escadas	120 ciclos (~120s)	Teleporta para o mestre após timeout	Waypoints se inacessível; mapa cognitivo (se ativado)
+Hostil	Persegue o jogador que está a atacar	45 segundos reais	Regressa a pé ao spawn ou à posição inicial	Waypoints quando bloqueado; mapa cognitivo como prioridade
 2. ESTRUTURAS DE DADOS
 2.1 StairTransition (player.h)
 cpp
@@ -55,35 +60,31 @@ struct SurfaceWaypoint {
     Position pos;
     uint64_t timestamp;   // última vez que foi utilizado (para expiração)
 };
-2.3 Membros do Player
+2.3 TileInfo (global_monster_map.hpp)
+cpp
+struct TileInfo {
+    bool walkable = true;
+    bool dynamic = false;
+    uint64_t lastUpdated = 0;
+};
+2.4 Membros do Player
 Membro	Tipo	Descrição
 m_stairTransitions	std::deque<StairTransition>	Fila de transições de piso do jogador
 m_surfaceWaypoints	std::deque<SurfaceWaypoint>	Fila de waypoints de superfície (“migalhas”)
-2.4 Membros do Monster (perseguição)
+2.5 Membros do Monster (perseguição + mapa cognitivo)
+Além dos membros já documentados, foram adicionados:
+
 Membro	Tipo	Descrição
-m_pursuingStairs	bool	Indica se está ativamente a perseguir uma escada
-m_stairOrigin	Position	Origem da transição atual (a escada a alcançar)
-m_stairDestination	Position	Destino da transição atual
-m_stairIsActive	bool	Se a escada atual é ativa ou passiva
-m_stairStuckCount	int	Contador de ciclos preso durante a caminhada
-m_stairTotalCycles	int	Total de ciclos desde o início da perseguição
-m_stairPathfindFailCount	int	Falhas consecutivas de pathfinding
-m_nextStairIndex	size_t	Índice da próxima transição a processar na fila do jogador
-m_currentTransitionIndex	size_t	Índice da transição atualmente em perseguição
-m_pursuitStartTime	uint64_t	Timestamp de quando a perseguição começou (para timeout de hostis)
-m_homePosition	Position	Posição onde a perseguição começou (para retorno simples)
-m_returnPath	std::vector<StairTransition>	Caminho percorrido (para retorno de hostis)
-m_returningToSpawn	bool	Indica se está a regressar ao spawn
-m_returningHome	bool	Indica se está a regressar à posição inicial (sem escadas)
-m_persistentTargetPlayer	std::shared_ptr<Player>	Jogador memorizado para perseguição contínua
-m_followingSurfaceWaypoint	bool	Indica se está a seguir um waypoint de superfície
-m_currentSurfaceWaypointIndex	size_t	Índice do waypoint de superfície atual
-m_forcedMoveFailCount	int	Contador de falhas consecutivas de movimento forçado
-m_lastDistImprovementTime	uint64_t	Timestamp da última melhoria de distância ao waypoint
-m_minDistToStair	int	Menor distância registada ao waypoint atual
+m_usingGlobalPath	bool	Indica se está a seguir um caminho do mapa cognitivo
+m_globalPath	std::vector<Position>	Caminho devolvido pelo BFS
+m_globalPathIndex	size_t	Índice do próximo passo na rota global
+m_lastGlobalScanAttempt	uint64_t	Timestamp da última tentativa de scan/rota
+m_globalScanExpanded	bool	Se o scan já foi expandido para raio 25
+m_clearingStairs	bool	Proteção contra reentrância em clearStairPursuit
+(Os restantes membros permanecem como na v5.7.)
+
 3. FLUXO PRINCIPAL DE PERSEGUIÇÃO
-3.1 onThink_async (monster.cpp)
-A cada ciclo de pensamento, o monstro verifica se deve iniciar ou continuar uma perseguição.
+A cada ciclo de pensamento (onThink_async), o monstro verifica se deve iniciar ou continuar uma perseguição.
 
 cpp
 // Verificar se deve começar a perseguir
@@ -91,586 +92,408 @@ if (isSummon() || (!isSummon() && (!m_attackedCreature.expired() ||
     (m_persistentTargetPlayer && !m_persistentTargetPlayer->getStairTransitions().empty())))) {
     checkStairPursuit();
 }
-Condições para iniciar:
-
-Summons: sempre verificam.
-
-Hostis: verificam se têm um alvo de ataque ativo ou se existe um jogador memorizado com transições pendentes.
-
-3.2 checkStairPursuit (monster.cpp)
-Função que determina qual a próxima transição a perseguir e inicia a caminhada.
-
-Passos:
-
-Obtém o líder (mestre para summons, alvo de ataque ou jogador memorizado para hostis).
-
-Guarda o Player do líder (para hostis, atualiza m_persistentTargetPlayer).
-
-Se a fila de transições do jogador estiver vazia:
-
-Summon: se estiver num piso diferente do mestre, teleporta.
-
-Summon (mesmo piso, inacessível): tenta seguir waypoints de superfície.
-
-Hostil: simplesmente aguarda.
-
-Inicializa m_nextStairIndex (0 para hostis, fila.size() para novos summons).
-
-Percorre a fila a partir do índice guardado, procurando uma transição cuja origem esteja no seu piso atual.
-
-Ao encontrar, inicia a perseguição (m_pursuingStairs = true), guarda os dados da transição e chama walkToWaypoint.
-
-3.3 Bloco de Perseguição no onThink_async
-Quando m_pursuingStairs == true, o monstro:
-
-Atualiza contadores e verifica timeouts.
-
-Verifica se o líder ficou acessível (apenas para summons; para hostis, mantém-se focado na escada).
-
-Verifica se chegou ao waypoint (escada ou waypoint de superfície).
-
-Monitoriza caminhadas bloqueadas e aplica desencravamento.
-
-Tenta novos caminhos se necessário.
+Novo: Antes de entrar no bloco de perseguição, se m_usingGlobalPath == true, o monstro executa followGlobalPathStep() e cancela a rota global se o líder ficar acessível (ver secção 6).
+Dentro do bloco if (m_pursuingStairs), há uma tentativa proactiva de usar o mapa cognitivo quando a posição atual já está mapeada e a distância à escada é > 2 tiles. Quando o monstro fica preso (stuckCount >= 8), a primeira ação é tentar o mapa cognitivo.
 
 4. MECANISMOS DE TIMEOUT E DESISTÊNCIA
+(Mantidos da v5.7)
+
 4.1 Timeout Total (Hostis)
-Os hostis têm 45 segundos reais (getCurrentTimeMs() - m_pursuitStartTime > 45000) para completar a perseguição.
-Se o tempo expirar sem alcançar o alvo:
+45 segundos reais (getCurrentTimeMs() - m_pursuitStartTime > 45000).
+Se expirar:
 
-Se tiverem usado escadas (!m_returnPath.empty()), iniciam o retorno ao spawn.
+Se usou escadas, inicia iniciarRetornoSpawn.
 
-Caso contrário, regressam a pé à posição onde a perseguição começou (m_homePosition).
+Caso contrário, regressa a pé à m_homePosition.
 
 4.2 Timeout de Progresso (Hostis)
-Se um hostil ficar 4 segundos sem reduzir a distância ao waypoint atual (e não estiver a caminhar), abandona essa escada e avança para a próxima transição (m_nextStairIndex++).
+4 segundos sem reduzir a distância ao waypoint → abandona a escada atual e avança m_nextStairIndex.
 
-Log de exemplo:
-
-text
-[MCR-STAIR] Rato bloqueado há 4s sem progresso, abandonando esta escada.
 4.3 Falhas de Movimento Forçado (Hostis)
-Se um hostil tenta forçar um passo (em linha reta) e a posição não muda 3 vezes consecutivas, abandona a escada.
+3 falhas consecutivas → abandona a escada.
 
-Log de exemplo:
-
-text
-[MCR-STAIR] Rato movimento forçado falhou (falha 1).
-[MCR-STAIR] Rato movimento forçado falhou (falha 2).
-[MCR-STAIR] Rato movimento forçado falhou (falha 3).
-[MCR-STAIR] Rato 3 falhas de movimento forçado, abandonando esta escada.
 4.4 Timeout de Summons
-Summons têm 120 ciclos de onThink para alcançar a escada; se excederem, teleportam diretamente para o destino.
+120 ciclos de onThink → teleporta para o destino.
 
 5. WAYPOINTS DE SUPERFÍCIE (MIGALHAS)
-Para ajudar criaturas bloqueadas no mesmo piso, o jogador vai largando pontos de passagem (SurfaceWaypoint) ao caminhar.
+(Funcionamento mantido da v5.7)
+Geração, utilização por summons e hostis bloqueados, atualização de timestamps.
 
-5.1 Geração de Waypoints
-Método: Player::addSurfaceWaypoint(getPosition())
-Chamado em: Player::onWalkComplete (ou equivalente)
+6. MAPA COGNITIVO GLOBAL (GlobalMonsterMap) <a name="mapa-cognitivo"></a>
+6.1 Classe e Estruturas
+GlobalMonsterMap é um singleton que mantém:
 
-Regras:
+Um mapa m_tiles (unordered_map<Position, TileInfo>) – tiles caminháveis conhecidos.
 
-Só adiciona se a distância Manhattan para o último waypoint for ≥ 5 tiles.
+Um mapa m_transitions (unordered_map<Position, vector<Position>>) – arestas de transição de piso (origem → destinos).
 
-Remove waypoints expirados (mais de 2 minutos sem uso).
+cpp
+class GlobalMonsterMap {
+public:
+    static GlobalMonsterMap& getInstance();
+    void addTile(const Position& pos, bool walkable, bool dynamic = false);
+    bool isWalkable(const Position& pos) const;
+    size_t scanArea(const Position& origin, int radius, int maxZUp = 1, int maxZDown = 1, size_t maxTiles = 2000);
+    std::vector<Position> findPath(const Position& start, const Position& goal) const;
+    void addStairTransition(const Position& from, const Position& to);
+    std::vector<Position> getDestinations(const Position& pos);
+private:
+    std::unordered_map<Position, TileInfo> m_tiles;
+    std::unordered_map<Position, std::vector<Position>> m_transitions;
+};
+6.2 Alimentação do Grafo
+Transições do jogador: Em tryUseGlobalMap, todas as StairTransition da fila do líder são injetadas no grafo via addStairTransition, que marca ambos os extremos como caminháveis.
 
-A lista de waypoints é partilhada e cada criatura tem o seu índice pessoal.
+Scan da vizinhança: Quando um monstro precisa e a sua posição não está mapeada, chama scanArea. Este método faz uma BFS limitada, adicionando tiles adjacentes não bloqueados e seguindo as transições já conhecidas para explorar pisos diferentes. O scan pára quando atinge maxTiles (2000 por omissão) ou os limites de raio/Z.
 
-Log de exemplo:
+6.3 BFS Multi‑Piso (findPath)
+O BFS expande apenas tiles marcados como walkable, mas permite que o objetivo seja uma escada mesmo que esta esteja bloqueada no grafo (verifica TILESTATE_FLOORCHANGE no tile real).
+As transições de piso são consideradas como arestas: se o nó atual tem uma transição, os destinos são adicionados à fila desde que estejam no grafo como caminháveis.
+Limite de 500 nós expandidos para garantir performance.
 
-text
-[MCR-PLAYER] Kheltz novo waypoint de superfície adicionado. Total: 3.
-5.2 Uso por Summons
-Quando um summon está no mesmo piso que o mestre, mas inacessível (pathfinding falha), ele tenta seguir os waypoints de superfície do mestre.
+6.4 Integração no Monster
+6.4.1 Tentativa proactiva
+Logo após o log de perseguição ativa:
 
-Log de exemplo:
+cpp
+if (!m_usingGlobalPath && g_globalMonsterMap().isWalkable(myPos)) {
+    tryUseGlobalMap();
+    if (m_usingGlobalPath) return;
+}
+6.4.2 Desencravamento (stuckCount >= 8)
+No bloco de perseguição, antes de tentar waypoints de superfície, o monstro tenta o mapa cognitivo:
 
-text
-[MCR-STAIR] CriaturaSPA a seguir waypoint de superfície #2 em (1019,1008,6).
-5.3 Uso por Hostis
-Quando um hostil fica bloqueado a caminho de uma escada (stuckCount >= 8), ele procura o waypoint de superfície do jogador mais próximo da escada e caminha até lá.
+cpp
+} else if (m_stairStuckCount >= 8) {
+    tryUseGlobalMap();
+    if (m_usingGlobalPath) return;
+    // fallback para waypoints de superfície e tiles adjacentes...
+}
+6.4.3 Função tryUseGlobalMap
+Verifica condições (distância à escada > 2, throttle de 2s).
 
-Log de exemplo:
+Obtém as transições do jogador e injeta‑as no GlobalMonsterMap.
 
-text
-[MCR-STAIR] Rato preso, a seguir waypoint de superfície para a escada (1019,1008,6).
-5.4 Atualização de Timestamp
-Quando uma criatura alcança um waypoint, o timestamp é atualizado (touchSurfaceWaypoint), prolongando a sua vida por mais 2 minutos. Isto garante que múltiplos summons em fila não percam as referências.
+Se a posição atual não está mapeada, faz scanArea com raio 15 (e raio 25 se o primeiro falhar).
 
-6. RETORNO AO SPAWN / POSIÇÃO INICIAL
-6.1 Retorno com Escadas (iniciarRetornoSpawn)
-Quando um hostil usou escadas durante a perseguição e atinge o timeout de 45s, ele inicia o retorno ao spawn percorrendo o m_returnPath ao contrário.
+Chama findPath entre a posição atual e m_stairOrigin.
 
-Processo:
+Se encontra caminho, guarda‑o em m_globalPath e ativa m_usingGlobalPath.
 
-Inverte m_returnPath.
+6.4.4 Seguimento da rota global (followGlobalPathStep)
+A cada ciclo enquanto m_usingGlobalPath:
 
-Para cada transição, caminha até ao destino original e teleporta de volta pela escada.
+Se já chegou à escada (dist ≤ 1) ou o índice ultrapassou o tamanho, limpa a rota.
 
-Só usa teleporte de emergência se estiver completamente bloqueado e não houver jogadores num raio de 8 tiles.
+Caso contrário, move‑se um tile na direção do próximo ponto da rota.
 
-Log de exemplo:
+Se o movimento falhar (posição não muda), tenta movimento sem flag FLAG_NOLIMIT; se continuar a falhar, cancela a rota global.
 
-text
-[MCR-STAIR] Rato iniciou retorno ao spawn com 3 transições.
-[MCR-STAIR] Rato a caminhar de volta para (1019,1014,6).
-[MCR-STAIR] Rato usando escada de retorno para (1018,1015,7).
-[MCR-STAIR] Rato retorno ao spawn concluído.
-6.2 Retorno Simples (processarRetornoSimples)
-Quando o hostil não usou escadas, ele regressa a pé até m_homePosition (posição onde a perseguição começou).
+6.4.5 Cancelamento da rota global
+A rota global é cancelada automaticamente quando:
 
-Log de exemplo:
+O líder fica acessível (verificação no início do onThink_async).
 
-text
-[MCR-STAIR] Rato sem escadas percorridas, voltando a pé para casa (1015,1015,7).
-[MCR-STAIR] Rato chegou a casa.
-7. COMANDOS DE DIAGNÓSTICO
-7.1 !scan – Mapa de Terreno
-Exibe um mapa ASCII do terreno ao redor do jogador (2 andares acima/abaixo, raio padrão 5).
+O monstro se aproxima da escada (dist <= 1).
 
-Uso: !scan [raio]
-Exemplo: !scan 3
+O movimento falha duas vezes consecutivas.
 
-Legenda:
+clearGlobalPath() limpa o vetor e repõe os índices.
 
-Char	Significado
-.	Caminhável
-#	Bloqueado
-S	Escada
-C	Criatura
-P	Zona de proteção
-T	Teleporte
-?	Tile inválido
-7.2 !scanfull – Relatório Ultra Detalhado
-Gera um ficheiro de log externo (data/logs/scan/scan_YYYYMMDD_HHMMSS.log) com informações completas sobre cada tile na área escaneada.
+7. RETORNO AO SPAWN / POSIÇÃO INICIAL
+(Comportamento mantido da v5.7, com pequenas adaptações para não interferir com o mapa cognitivo – o retorno não usa o mapa global.)
 
-Conteúdo do relatório:
+8. COMANDOS DE DIAGNÓSTICO
+8.1 !scan – Mapa de Terreno
+(Igual à v5.7)
 
-Lista de waypoints de superfície do jogador.
+8.2 !scanfull – Relatório Ultra Detalhado
+(Igual à v5.7)
 
-Lista de transições de escada do jogador.
+8.3 !pathtest – Teste de Rota Global (novo)
+Força o monstro alvo a fazer scan e encontrar uma rota global até ao jogador.
 
-Para cada tile em cada andar: posição, ID do chão, flags, itens (ID e nome), criatura presente, se é waypoint de superfície, se é origem/destino de escada.
+Uso: !pathtest
+Exibe o número de tiles adicionados pelo scan e, se encontrada, lista os passos da rota.
 
-Uso: !scanfull [raio] [zRange]
-Exemplo: !scanfull 5 2
+8.4 !mapinfo – Estado do Mapa Cognitivo (novo)
+Uso: !mapinfo
+Mostra quantos tiles o GlobalMonsterMap contém e se a posição do monstro alvo está mapeada como caminhável.
 
-Trecho de exemplo do ficheiro gerado:
+8.5 !resetspa – Reset de Afinidades (para testes)
+(Existente, mantido)
 
-text
-=== SCAN ULTRA DETALHADO ===
-Jogador: Kheltz (ID:268435553)
-Posição: 1014,1012,6
-Raio: 5 | Z-Range: 2
-Timestamp: 2026-06-03 16:02:07
+Os comandos !scan e !scanfull continuam úteis para visualizar o terreno e depurar por que um caminho não é encontrado.
 
-=== WAYPOINTS DE SUPERFÍCIE DO JOGADOR ===
-Total: 4
-  #0: 1019,1014,6 (timestamp:123456789)
-  #1: 1020,1013,6 (timestamp:123456800)
-  #2: 1020,1011,6 (timestamp:123456820)
-  #3: 1020,1009,6 (timestamp:123456840)
-
-=== TRANSIÇÕES DE ESCADA DO JOGADOR ===
-Total: 4
-  #0: Origem:1013,1014,6 -> Destino:1014,1014,7 | Active:SIM
-  #1: Origem:1018,1015,7 -> Destino:1018,1014,6 | Active:SIM
-  #2: Origem:1018,1009,6 -> Destino:1018,1010,7 | Active:SIM
-  #3: Origem:1015,1011,7 -> Destino:1015,1012,6 | Active:SIM
-
-=== ANDAR Z=6 ===
-
->>> TILE (1020,1009,6) GroundID:7761
-    Flags: 
-    Itens no tile: 2
-      ID:4446 Nome:'Grama' Tipo:0
-      ID:4448 Nome:'Grama' Tipo:0
-    Criatura: NENHUMA
-    *** WAYPOINT DE SUPERFÍCIE DO JOGADOR ***
-8. INTEGRAÇÃO COM SUMMONS VS HOSTIS
+9. INTEGRAÇÃO COM SUMMONS VS HOSTIS
 Funcionalidade	Summons	Hostis
 Iniciar perseguição	Sempre que o mestre muda de piso	Quando têm target e o alvo muda de piso
 Cancelar perseguição	Se o mestre fica acessível	Apenas se o líder estiver acessível e a ≤ 3 tiles
 Timeout	120 ciclos (~120s)	45 segundos reais
-Desistência por bloqueio	Teleporta após 5 falhas de pathfinding	Abandona a escada após 4s sem progresso ou 3 movimentos forçados falhados
+Desistência por bloqueio	Teleporta após 5 falhas de pathfinding	Abandona a escada após 4s sem progresso ou 3 mov. forçados
 Retorno	Teleporta para o mestre	Caminha de volta ao spawn ou à posição inicial
-Waypoints de superfície	Usa se o mestre estiver inacessível	Usa quando bloqueado a caminho da escada
+Waypoints de superfície	Usa se o mestre estiver inacessível	Usa quando bloqueado a caminho da escada (fallback)
+Mapa cognitivo	(Desativado por omissão; pode ser ativado removendo !isSummon())	Sim, prioritário em caso de bloqueio
 Aguardar aliados	Sim (fila indiana)	Não
-9. REGRAS DE LOG E DEBUG
-Todos os logs do sistema usam o prefixo [MCR-STAIR], [MCR-WALK], [MCR-PLAYER] ou [MCR-TILE].
+10. REGRAS DE LOG E DEBUG
+Todos os logs do sistema usam os prefixos:
 
-9.1 Prefixos
 Prefixo	Significado
 [MCR-STAIR]	Decisões de máquina de estados (iniciar, cancelar, timeout, retorno)
 [MCR-WALK]	Operações de caminhada (walkToWaypoint, onWalkComplete)
 [MCR-PLAYER]	Registo de transições e waypoints do jogador
 [MCR-TILE]	Exceções de pathfinding em tiles de escada
 [MCR-moveCreature]	Captura de mudanças de piso
-9.2 Exemplo de Log Completo (Hostil)
+[MCR-COGNI]	Novo: Mapa cognitivo – scans, BFS, tentativas de rota
+Exemplo de log com mapa cognitivo:
+
 text
-[MCR-moveCreature] Capturada mudança de piso: Kheltz de (1013,1014,6) para (1014,1014,7)
-[MCR-PLAYER] Kheltz nova transição adicionada. Fila tem 1 elemento(s).
-[MCR-STAIR] Rato::checkStairPursuit() chamado. pursuingStairs=false
-[MCR-STAIR] Rato hostil sem transições compatíveis, a aguardar.
-[MCR-moveCreature] Capturada mudança de piso: Kheltz de (1018,1015,7) para (1018,1014,6)
-[MCR-PLAYER] Kheltz nova transição adicionada. Fila tem 2 elemento(s).
-[MCR-STAIR] Rato transição encontrada no índice 1: origin=(1018,1015,7) dest=(1018,1014,6) isActive=true
-[MCR-STAIR] Rato perseguição INICIADA. stairOrigin=(1018,1015,7) stairDest=(1018,1014,6) isActive=true
-[MCR-WALK] Rato::walkToWaypoint de (1016,1015,7) para (1018,1015,7)
-[MCR-WALK] Rato caminho encontrado: 2 passos. Primeiro passo: 1
-[MCR-STAIR] Rato em perseguição ativa. myPos=(1016,1015,7) stairOrigin=(1018,1015,7) dist=2 walking=true
-[MCR-STAIR] Rato preso perto do waypoint (ativo=true). Forçando passo final.
-[MCR-moveCreature] Capturada mudança de piso: Rato de (1018,1015,7) para (1018,1014,6)
-[MCR-STAIR] Rato transição atingida, índice avançado para 2.
-[MCR-STAIR] Rato FOI TRANSPORTADO PELO MOTOR! A concluir perseguição.
-10. EXEMPLOS DE COMPORTAMENTO
-10.1 Hostil Segue o Jogador por Várias Escadas
-Jogador sobe uma escada → transição adicionada.
+[MCR-PLAYER] Kheltz nova transição adicionada. Fila tem 3 elemento(s).
+[MCR-STAIR] Rato perseguição INICIADA. stairOrigin=(1011,1013,7) ...
+[MCR-COGNI] Rato tentando usar mapa global. myPos=(1016,1015,7) target=(1011,1013,7)
+[MCR-COGNI] BFS iniciado... Tiles no mapa: 1089 goalIsStair=true
+[MCR-COGNI] BFS sucesso: caminho com 5 passos.
+[MCR-COGNI] Rato rota global encontrada com 5 passos.
+...
+[MCR-STAIR] Rato CHEGOU ao waypoint! Utilizando escada.
+11. EXEMPLOS DE COMPORTAMENTO
+11.1 Hostil usa mapa cognitivo para contornar obstáculo
+Jogador percorre um corredor em “L”, largando waypoints.
+Rato tenta seguir a escada mas fica preso porque o corredor é bloqueado para um caminho direto.
+Após 8 ciclos preso, tryUseGlobalMap() é chamado: o BFS encontra um caminho alternativo através dos tiles já mapeados, que pode incluir uma rota mais longa mas transitável. O rato segue a rota global, contorna o obstáculo e chega à escada.
 
-Rato inicia perseguição, caminha até à escada, muda de piso.
+11.2 Cancelamento da rota global quando líder fica acessível
+Durante a perseguição, o rato está a meio de uma rota global.
+O líder desce de volta ao mesmo piso e fica a 3 tiles de distância.
+O onThink_async deteta que o líder está acessível, cancela a rota global e restaura o follow normal.
 
-Jogador usa outra escada → nova transição adicionada.
+12. MANUTENÇÃO E EXPANSÃO FUTURA
+12.1 Ajuste de parâmetros do mapa cognitivo
+Limite de nós do BFS: alterar maxNodes em findPath.
 
-Rato processa a próxima transição, sobe a segunda escada.
+Tamanho máximo do scan: maxTiles em scanArea.
 
-Continua até alcançar o jogador ou atingir o timeout.
+Throttle entre tentativas: 2000 ms (alterável no código).
 
-10.2 Hostil Bloqueado Usa Migalhas
-Jogador caminha por um corredor com curva, largando waypoints a cada 5 tiles.
+Distância mínima para usar mapa global: 2 tiles (condição em tryUseGlobalMap).
 
-Jogador usa uma escada no final do corredor.
+12.2 Ativar para summons
+Remover as verificações !isSummon() em tryUseGlobalMap e na chamada proactiva.
+Nota: summons já possuem teleporte após timeout; o mapa cognitivo pode dar‑lhes uma perseguição mais natural.
 
-Rato tenta seguir diretamente para a escada, mas o pathfinding falha (parede no caminho).
+12.3 Limpeza do grafo
+Atualmente o grafo nunca remove tiles. Uma política de expiração pode ser adicionada com base no lastUpdated.
 
-Após 8 ciclos preso, o Rato procura o waypoint mais próximo da escada.
+13. CÓDIGOS
+(Apenas as partes novas ou alteradas em relação à v5.7 são apresentadas; as restantes permanecem como na versão anterior.)
 
-Rato caminha até ao waypoint (seguindo as migalhas), contornando a parede.
-
-Chega à escada e muda de piso.
-
-10.3 Hostil Regressa ao Spawn Após Timeout
-Rato persegue o jogador durante 45 segundos, usando 2 escadas.
-
-Timeout de 45s expira.
-
-Rato inicia iniciarRetornoSpawn com 2 transições no m_returnPath.
-
-Rato volta pela segunda escada, depois pela primeira, chegando ao piso inicial.
-
-Retorno concluído; Rato retoma comportamento normal.
-
-11. MANUTENÇÃO E EXPANSÃO FUTURA
-11.1 Adicionar Novos Mecanismos de Desistência
-Para ajustar os tempos de timeout ou o número de falhas permitidas, modifique as constantes no monster.cpp:
-
-m_pursuitTimeout (padrão: 45 segundos)
-
-m_forcedMoveFailCount limite (padrão: 3)
-
-Tempo de progresso (padrão: 4000 ms)
-
-11.2 Expor Mais Dados ao Lua
-Os métodos getSurfaceWaypoints, touchSurfaceWaypoint e getStairTransitions devem ser registados em SPAFunctions::init para uso em scripts Lua (comandos de diagnóstico, etc.).
-
-11.3 Limpeza de Dados
-A fila de transições do jogador (m_stairTransitions) pode crescer indefinidamente se não for limpa. Atualmente, transições expiradas (>30s) são removidas no início de checkStairPursuit.
-Os waypoints de superfície expiram 2 minutos após o último uso.
-
-12. CÓDIGOS
-
-📄 1. player.h – Estruturas e membros
+📄 1. global_monster_map.hpp (novo ficheiro)
 cpp
-// Estruturas de dados
-struct StairTransition {
-    Position origin;
-    Position destination;
-    uint64_t timestamp;   // milissegundos desde epoch
-    bool isActive;         // true = escada ativa, false = escada passiva
+#pragma once
+#include <unordered_map>
+#include <vector>
+#include "position.h"
+
+struct TileInfo {
+    bool walkable = true;
+    bool dynamic = false;
+    uint64_t lastUpdated = 0;
 };
 
-struct SurfaceWaypoint {
-    Position pos;
-    uint64_t timestamp;    // última vez que foi utilizado (tocado)
+class GlobalMonsterMap {
+public:
+    static GlobalMonsterMap& getInstance();
+
+    void addTile(const Position& pos, bool walkable, bool dynamic = false);
+    bool isWalkable(const Position& pos) const;
+    size_t scanArea(const Position& origin, int radius, int maxZUp = 1, int maxZDown = 1, size_t maxTiles = 2000);
+    std::vector<Position> findPath(const Position& start, const Position& goal) const;
+
+    void addStairTransition(const Position& from, const Position& to);
+    std::vector<Position> getDestinations(const Position& pos);
+
+    const std::unordered_map<Position, TileInfo>& getTiles() const { return m_tiles; }
+
+private:
+    std::unordered_map<Position, TileInfo> m_tiles;
+    std::unordered_map<Position, std::vector<Position>> m_transitions;
 };
 
-// Dentro da classe Player (privado)
-std::deque<StairTransition> m_stairTransitions;
-std::deque<SurfaceWaypoint> m_surfaceWaypoints;
-
-static constexpr uint64_t SURFACE_WAYPOINT_EXPIRY_MS = 120000;   // 2 minutos
-
-// Métodos públicos
-const std::deque<StairTransition>& getStairTransitions() const { return m_stairTransitions; }
-void addStairTransition(const StairTransition& trans) { m_stairTransitions.push_back(trans); }
-void popFrontStairTransition() { if (!m_stairTransitions.empty()) m_stairTransitions.pop_front(); }
-void clearStairTransitions() { m_stairTransitions.clear(); }
-
-const std::deque<SurfaceWaypoint>& getSurfaceWaypoints() const { return m_surfaceWaypoints; }
-void addSurfaceWaypoint(const Position& pos);
-void touchSurfaceWaypoint(size_t index);
-📄 2. player.cpp – Implementações
+// Singleton accessor
+inline GlobalMonsterMap& g_globalMonsterMap() { return GlobalMonsterMap::getInstance(); }
+📄 2. global_monster_map.cpp (novo ficheiro)
 cpp
-void Player::onFloorChange(const Position& fromPos, const Position& toPos) {
-    StairTransition trans;
-    trans.origin = fromPos;
-    trans.destination = toPos;
-    trans.timestamp = getCurrentTimeMs();
-    trans.isActive = isActiveStair(fromPos);
-    m_stairTransitions.push_back(trans);
+#include "global_monster_map.hpp"
+#include "game.h"
+#include "tile.h"
 
-    // Log
-    g_logger().info("[MCR-PLAYER] {} nova transição adicionada. Fila tem {} elemento(s). origin={} dest={} isActive={}",
-        getName(), m_stairTransitions.size(), trans.origin.toString(), trans.destination.toString(), trans.isActive);
+GlobalMonsterMap& GlobalMonsterMap::getInstance() {
+    static GlobalMonsterMap instance;
+    return instance;
 }
 
-void Player::addSurfaceWaypoint(const Position& pos) {
-    uint64_t now = getCurrentTimeMs();
-    // Remove waypoints expirados (último acesso > 2 minutos)
-    while (!m_surfaceWaypoints.empty() && now - m_surfaceWaypoints.front().timestamp > SURFACE_WAYPOINT_EXPIRY_MS) {
-        m_surfaceWaypoints.pop_front();
-    }
-
-    // Só adiciona se a distância para o último waypoint for >= 5
-    if (!m_surfaceWaypoints.empty()) {
-        const Position& last = m_surfaceWaypoints.back().pos;
-        if (std::abs(pos.x - last.x) + std::abs(pos.y - last.y) < 5) {
-            return;
-        }
-    }
-
-    m_surfaceWaypoints.push_back({pos, now});
+void GlobalMonsterMap::addTile(const Position& pos, bool walkable, bool dynamic) {
+    m_tiles[pos] = {walkable, dynamic, getCurrentTimeMs()};
 }
 
-void Player::touchSurfaceWaypoint(size_t index) {
-    if (index < m_surfaceWaypoints.size()) {
-        m_surfaceWaypoints[index].timestamp = getCurrentTimeMs();
-    }
-    // Remove imediatamente waypoints expirados da frente
-    uint64_t now = getCurrentTimeMs();
-    while (!m_surfaceWaypoints.empty() && now - m_surfaceWaypoints.front().timestamp > SURFACE_WAYPOINT_EXPIRY_MS) {
-        m_surfaceWaypoints.pop_front();
-    }
+bool GlobalMonsterMap::isWalkable(const Position& pos) const {
+    auto it = m_tiles.find(pos);
+    return it != m_tiles.end() && it->second.walkable;
 }
-📄 3. monster.h – Novos membros (privados)
-cpp
-// Perseguição multi‑piso
-bool m_pursuingStairs = false;
-Position m_stairOrigin;
-Position m_stairDestination;
-bool m_stairIsActive = false;
-int m_stairStuckCount = 0;
-int m_stairTotalCycles = 0;
-int m_stairPathfindFailCount = 0;
-uint32_t m_savedFollowId = 0;
 
-size_t m_nextStairIndex = std::numeric_limits<size_t>::max();
-size_t m_currentTransitionIndex = 0;
-uint64_t m_pursuitStartTime = 0;
-uint64_t m_stairAttemptStartTime = 0;
-int m_minDistToStair = std::numeric_limits<int>::max();
-uint64_t m_lastDistImprovementTime = 0;
-Position m_homePosition;
+void GlobalMonsterMap::addStairTransition(const Position& from, const Position& to) {
+    m_transitions[from].push_back(to);
+    if (m_tiles.find(from) == m_tiles.end()) m_tiles[from] = {true, false, getCurrentTimeMs()};
+    if (m_tiles.find(to) == m_tiles.end())   m_tiles[to]   = {true, false, getCurrentTimeMs()};
+}
 
-bool m_returningToSpawn = false;
-std::vector<StairTransition> m_returnPath;
-bool m_returningHome = false;
-bool m_walkingForReturn = false;
+std::vector<Position> GlobalMonsterMap::getDestinations(const Position& pos) {
+    auto it = m_transitions.find(pos);
+    if (it != m_transitions.end()) return it->second;
+    return {};
+}
 
-std::shared_ptr<Player> m_persistentTargetPlayer;
+size_t GlobalMonsterMap::scanArea(const Position& origin, int radius, int maxZUp, int maxZDown, size_t maxTiles) {
+    std::queue<Position> queue;
+    size_t added = 0;
 
-// Waypoints de superfície
-bool m_followingSurfaceWaypoint = false;
-size_t m_currentSurfaceWaypointIndex = 0;
+    auto addPos = [&](const Position& pos) {
+        if (m_tiles.find(pos) != m_tiles.end()) return;
+        auto tile = g_game().map.getTile(pos);
+        if (!tile) return;
+        bool blocked = tile->hasFlag(TILESTATE_BLOCKPATH) || tile->hasFlag(TILESTATE_BLOCKSOLID);
+        addTile(pos, !blocked, false);
+        added++;
+        queue.push(pos);
+    };
 
-// Falhas de movimento forçado
-int m_forcedMoveFailCount = 0;
+    if (m_tiles.find(origin) == m_tiles.end()) addPos(origin);
+    else queue.push(origin);
 
-// Métodos privados
-void checkStairPursuit();
-void walkToWaypoint(const Position& target);
-void clearStairPursuit();
-void iniciarRetornoSpawn();
-void processarRetornoSpawn();
-void processarRetornoSimples();
-bool isPlayerNearby(int radius = 8);
-📄 4. monster.cpp – Funções principais
-4.1 checkStairPursuit
-cpp
-void Monster::checkStairPursuit() {
-    g_logger().info("[MCR-STAIR] {}::checkStairPursuit() chamado. pursuingStairs={}", getName(), m_pursuingStairs);
+    while (!queue.empty() && added < maxTiles) {
+        Position current = queue.front(); queue.pop();
+        if (std::abs(current.x - origin.x) > radius || std::abs(current.y - origin.y) > radius) continue;
+        if (current.z < origin.z - maxZDown || current.z > origin.z + maxZUp) continue;
 
-    if (m_pursuingStairs || m_returningToSpawn) {
-        g_logger().info("[MCR-STAIR] {} já está em perseguição ou retorno, a ignorar.", getName());
-        return;
-    }
+        static const int dx[] = {-1, 1, 0, 0};
+        static const int dy[] = {0, 0, -1, 1};
+        for (int i = 0; i < 4; ++i) {
+            Position next(current.x + dx[i], current.y + dy[i], current.z);
+            if (m_tiles.find(next) == m_tiles.end()) addPos(next);
+        }
 
-    std::shared_ptr<Creature> leader;
-    if (isSummon()) {
-        leader = getMaster();
-    } else {
-        if (!m_attackedCreature.expired()) {
-            leader = m_attackedCreature.lock();
-        } else if (m_persistentTargetPlayer) {
-            leader = m_persistentTargetPlayer;
+        for (const auto& dest : getDestinations(current)) {
+            if (m_tiles.find(dest) == m_tiles.end()) addPos(dest);
         }
     }
+    return added;
+}
 
-    if (!leader) {
-        g_logger().info("[MCR-STAIR] {} sem líder, a abortar.", getName());
-        return;
+std::vector<Position> GlobalMonsterMap::findPath(const Position& start, const Position& goal) const {
+    if (start == goal) return {start};
+
+    bool goalIsStair = false;
+    if (auto goalTile = g_game().map.getTile(goal)) {
+        goalIsStair = goalTile->hasFlag(TILESTATE_FLOORCHANGE);
     }
 
-    auto leaderPlayer = leader->getPlayer();
-    if (!leaderPlayer) {
-        g_logger().info("[MCR-STAIR] {} líder não é jogador, a abortar.", getName());
-        return;
-    }
+    std::unordered_map<Position, Position> cameFrom;
+    std::queue<Position> queue;
+    queue.push(start);
+    cameFrom[start] = start;
 
-    if (!isSummon()) {
-        if (m_persistentTargetPlayer != leaderPlayer) {
-            m_nextStairIndex = 0;
+    size_t nodes = 0;
+    const size_t maxNodes = 500;
+
+    while (!queue.empty() && nodes < maxNodes) {
+        Position current = queue.front(); queue.pop();
+        if (current == goal) {
+            std::vector<Position> path;
+            while (current != start) { path.push_back(current); current = cameFrom[current]; }
+            std::reverse(path.begin(), path.end());
+            return path;
         }
-        m_persistentTargetPlayer = leaderPlayer;
-    }
 
-    auto& fila = leaderPlayer->getStairTransitions();
+        static const int dx[] = {-1, 1, 0, 0};
+        static const int dy[] = {0, 0, -1, 1};
+        for (int i = 0; i < 4; ++i) {
+            Position next(current.x + dx[i], current.y + dy[i], current.z);
+            if (cameFrom.find(next) != cameFrom.end()) continue;
+            bool reachable = isWalkable(next);
+            if (!reachable && next == goal && goalIsStair) reachable = true;
+            if (reachable) { cameFrom[next] = current; queue.push(next); nodes++; }
+        }
 
-    if (fila.empty()) {
-        if (isSummon()) {
-            if (leader->getPosition().z != getPosition().z) {
-                g_logger().info("[MCR-STAIR] {} fila vazia e piso diferente do mestre. Teleportando para mestre.", getName());
-                g_game().internalTeleport(static_self_cast<Monster>(), leader->getPosition());
-            } else {
-                FindPathParams fpp;
-                getPathSearchParams(getMonster(), fpp);
-                std::vector<Direction> dummy;
-                if (!getPathTo(leader->getPosition(), dummy, fpp)) {
-                    auto& waypoints = leaderPlayer->getSurfaceWaypoints();
-                    if (m_currentSurfaceWaypointIndex >= waypoints.size()) {
-                        m_currentSurfaceWaypointIndex = 0;
-                    }
-                    while (m_currentSurfaceWaypointIndex < waypoints.size()) {
-                        const SurfaceWaypoint& wp = waypoints[m_currentSurfaceWaypointIndex];
-                        if (wp.pos.z == getPosition().z) {
-                            m_pursuingStairs = true;
-                            m_stairOrigin = wp.pos;
-                            m_stairDestination = wp.pos;
-                            m_stairIsActive = false;
-                            m_stairStuckCount = 0;
-                            m_stairTotalCycles = 0;
-                            m_stairPathfindFailCount = 0;
-                            m_followingSurfaceWaypoint = true;
-                            m_forcedMoveFailCount = 0;
-                            m_savedFollowId = leader->getID();
-                            setFollowCreature(nullptr);
-                            g_logger().info("[MCR-STAIR] {} a seguir waypoint de superfície #{} em {}.",
-                                getName(), m_currentSurfaceWaypointIndex, wp.pos.toString());
-                            walkToWaypoint(m_stairOrigin);
-                            return;
-                        }
-                        ++m_currentSurfaceWaypointIndex;
-                    }
+        auto transIt = m_transitions.find(current);
+        if (transIt != m_transitions.end()) {
+            for (const auto& dest : transIt->second) {
+                if (cameFrom.find(dest) == cameFrom.end() && isWalkable(dest)) {
+                    cameFrom[dest] = current;
+                    queue.push(dest);
+                    nodes++;
                 }
-                g_logger().info("[MCR-STAIR] {} fila de transições vazia, nada a fazer.", getName());
             }
-        } else {
-            g_logger().info("[MCR-STAIR] {} fila de transições vazia, nada a fazer.", getName());
-        }
-        return;
-    }
-
-    if (m_nextStairIndex == std::numeric_limits<size_t>::max()) {
-        m_nextStairIndex = isSummon() ? fila.size() : 0;
-        g_logger().info("[MCR-STAIR] {} índice inicial definido para {}.", getName(), m_nextStairIndex);
-    }
-
-    size_t idx = m_nextStairIndex;
-    while (idx < fila.size()) {
-        const StairTransition& trans = fila[idx];
-        if (trans.origin.z == getPosition().z) {
-            g_logger().info("[MCR-STAIR] {} transição encontrada no índice {}: origin={} dest={} isActive={}",
-                getName(), idx, trans.origin.toString(), trans.destination.toString(), trans.isActive);
-
-            if (leader->getPosition().z == getPosition().z) {
-                FindPathParams fpp;
-                getPathSearchParams(getMonster(), fpp);
-                std::vector<Direction> dummy;
-                if (getPathTo(leader->getPosition(), dummy, fpp)) {
-                    g_logger().info("[MCR-STAIR] {} líder acessível, a cancelar perseguição.", getName());
-                    if (!isSummon()) {
-                        m_returnPath.clear();
-                    }
-                    return;
-                }
-                g_logger().info("[MCR-STAIR] {} líder INACESSÍVEL, a prosseguir perseguição.", getName());
-            }
-
-            m_pursuingStairs = true;
-            m_stairOrigin = trans.origin;
-            m_stairDestination = trans.destination;
-            m_stairIsActive = trans.isActive;
-            m_stairStuckCount = 0;
-            m_stairTotalCycles = 0;
-            m_stairPathfindFailCount = 0;
-            m_currentTransitionIndex = idx;
-            m_pursuitStartTime = getCurrentTimeMs();
-            m_stairAttemptStartTime = getCurrentTimeMs();
-            m_minDistToStair = std::numeric_limits<int>::max();
-            m_lastDistImprovementTime = getCurrentTimeMs();
-            m_homePosition = getPosition();
-            m_forcedMoveFailCount = 0;
-
-            m_savedFollowId = leader->getID();
-            setFollowCreature(nullptr);
-
-            g_logger().info("[MCR-STAIR] {} perseguição INICIADA. stairOrigin={} stairDest={} isActive={} savedFollowId={}",
-                getName(), m_stairOrigin.toString(), m_stairDestination.toString(), m_stairIsActive, m_savedFollowId);
-
-            walkToWaypoint(m_stairOrigin);
-            return;
-        }
-        ++idx;
-    }
-
-    if (isSummon()) {
-        if (leader->getPosition().z != getPosition().z) {
-            g_logger().info("[MCR-STAIR] {} sem transições compatíveis, a teleportar para o mestre.", getName());
-            g_game().internalTeleport(static_self_cast<Monster>(), leader->getPosition());
-            m_nextStairIndex = fila.size();
-        }
-    } else {
-        g_logger().info("[MCR-STAIR] {} hostil sem transições compatíveis, a aguardar.", getName());
-        if (m_attackedCreature.expired() && m_persistentTargetPlayer &&
-            m_persistentTargetPlayer->getStairTransitions().empty()) {
-            m_persistentTargetPlayer.reset();
         }
     }
+    return {};
 }
-4.2 Bloco MCR no onThink_async (completo)
+📄 3. monster.h – Novos membros (adicionar à secção privada)
+cpp
+    // Mapa cognitivo global
+    bool m_usingGlobalPath = false;
+    std::vector<Position> m_globalPath;
+    size_t m_globalPathIndex = 0;
+    uint64_t m_lastGlobalScanAttempt = 0;
+    bool m_globalScanExpanded = false;
+    bool m_clearingStairs = false;
+
+    // Declarações dos novos métodos
+    void tryUseGlobalMap();
+    void followGlobalPathStep();
+    void clearGlobalPath();
+📄 4. monster.cpp – Bloco principal atualizado (onThink_async)
+(Substitui o bloco MCR do onThink_async da v5.7. As funções checkStairPursuit, walkToWaypoint, retorno, etc. mantêm‑se; apenas o bloco central e as novas funções são mostrados.)
+
 cpp
 void Monster::onThink_async() {
-    // ========================================================================
-    // MCR – Perseguição multi‑piso (fila de waypoints) + retorno de hostis
-    // ========================================================================
-    if (m_returningHome) {
-        processarRetornoSimples();
-        return;
-    }
+    // ... código inicial ...
+    if (m_returningHome) { processarRetornoSimples(); return; }
+
     if (isSummon() || (!isSummon() && (!m_attackedCreature.expired() ||
         (m_persistentTargetPlayer && !m_persistentTargetPlayer->getStairTransitions().empty())))) {
         checkStairPursuit();
     }
 
-    if (m_returningToSpawn) {
-        processarRetornoSpawn();
-        return;
+    if (m_returningToSpawn) { processarRetornoSpawn(); return; }
+
+    // Monitorização da rota global antes do bloco de perseguição
+    if (m_usingGlobalPath) {
+        auto leader = isSummon() ? getMaster() : (!m_attackedCreature.expired() ? m_attackedCreature.lock() : nullptr);
+        if (leader) {
+            // Cancelar se líder acessível
+            if (leader->getPosition().z == getPosition().z &&
+                std::abs(getPosition().x - leader->getPosition().x) + std::abs(getPosition().y - leader->getPosition().y) <= 3) {
+                clearGlobalPath();
+                setFollowCreature(leader);
+            } else {
+                FindPathParams fpp;
+                getPathSearchParams(getMonster(), fpp);
+                std::vector<Direction> dummy;
+                if (getPathTo(leader->getPosition(), dummy, fpp)) {
+                    clearGlobalPath();
+                    setFollowCreature(leader);
+                }
+            }
+        }
+        if (m_usingGlobalPath) {
+            followGlobalPathStep();
+            return;
+        }
     }
 
     if (m_pursuingStairs) {
         Position myPos = getPosition();
         int dist = std::abs(myPos.x - m_stairOrigin.x) + std::abs(myPos.y - m_stairOrigin.y);
-
         m_stairTotalCycles++;
         int timeout = isSummon() ? 120 : m_pursuitTimeout;
 
@@ -678,187 +501,72 @@ void Monster::onThink_async() {
             getName(), myPos.toString(), m_stairOrigin.toString(), dist, isWalkingToPosition(), m_stairStuckCount, m_stairTotalCycles, timeout);
 
         // Timeout geral
-        bool timeoutExpired = false;
-        if (isSummon()) {
-            timeoutExpired = (m_stairTotalCycles > 120);
-        } else {
-            timeoutExpired = (getCurrentTimeMs() - m_pursuitStartTime > 45000);
-        }
-
+        bool timeoutExpired = isSummon() ? (m_stairTotalCycles > 120) : (getCurrentTimeMs() - m_pursuitStartTime > 45000);
         if (timeoutExpired) {
-            if (isSummon()) {
-                g_logger().info("[MCR-STAIR] {} TIMEOUT GERAL! Teleportando para destino={}", getName(), m_stairDestination.toString());
-                g_game().internalTeleport(static_self_cast<Monster>(), m_stairDestination);
-                m_nextStairIndex = m_currentTransitionIndex + 1;
-                clearStairPursuit();
-            } else {
-                g_logger().info("[MCR-STAIR] {} hostil perdeu o rastro (45s). A iniciar retorno.", getName());
-                clearStairPursuit();
-                if (!m_returnPath.empty()) {
-                    iniciarRetornoSpawn();
-                } else {
-                    m_returningHome = true;
-                    m_walkingForReturn = false;
-                    g_logger().info("[MCR-STAIR] {} sem escadas percorridas, voltando a pé para casa {}.", getName(), m_homePosition.toString());
-                }
-            }
+            // ... (mesmo que v5.7)
             return;
         }
 
-        // Verificar se o líder está acessível
+        // Tentativa proactiva de mapa cognitivo (quando já mapeado)
+        if (!m_usingGlobalPath && g_globalMonsterMap().isWalkable(myPos)) {
+            tryUseGlobalMap();
+            if (m_usingGlobalPath) return;
+        }
+
+        // Verificar se o líder está acessível (mantido)
         auto leader = isSummon() ? getMaster() : (!m_attackedCreature.expired() ? m_attackedCreature.lock() : nullptr);
         if (leader && leader->getPosition().z == myPos.z) {
             int distToLeader = std::abs(myPos.x - leader->getPosition().x) + std::abs(myPos.y - leader->getPosition().y);
             bool shouldCancel = false;
-
             if (isSummon()) {
                 FindPathParams fpp;
-                fpp.minTargetDist = 0;
-                fpp.maxTargetDist = 0;
-                fpp.fullPathSearch = false;
-                fpp.clearSight = false;
-                fpp.maxSearchDist = 0;
+                fpp.minTargetDist = 0; fpp.maxTargetDist = 0; fpp.fullPathSearch = false; fpp.clearSight = false; fpp.maxSearchDist = 0;
                 std::vector<Direction> dummy;
-                if (getPathTo(leader->getPosition(), dummy, fpp)) {
-                    shouldCancel = true;
-                }
+                if (getPathTo(leader->getPosition(), dummy, fpp)) shouldCancel = true;
             } else {
                 if (distToLeader <= 3) {
                     FindPathParams fpp;
-                    fpp.minTargetDist = 0;
-                    fpp.maxTargetDist = 0;
-                    fpp.fullPathSearch = false;
-                    fpp.clearSight = false;
-                    fpp.maxSearchDist = 0;
+                    fpp.minTargetDist = 0; fpp.maxTargetDist = 0; fpp.fullPathSearch = false; fpp.clearSight = false; fpp.maxSearchDist = 0;
                     std::vector<Direction> dummy;
-                    if (getPathTo(leader->getPosition(), dummy, fpp)) {
-                        shouldCancel = true;
-                    }
+                    if (getPathTo(leader->getPosition(), dummy, fpp)) shouldCancel = true;
                 }
             }
-
             if (shouldCancel) {
                 g_logger().info("[MCR-STAIR] {} líder acessível (dist={}), cancelando perseguição.", getName(), distToLeader);
-                if (!isSummon()) {
-                    m_returnPath.clear();
-                }
+                if (!isSummon()) m_returnPath.clear();
                 m_nextStairIndex = m_currentTransitionIndex + 1;
                 clearStairPursuit();
                 return;
             }
         }
 
-        // Waypoint de superfície: chegou ao ponto
+        // Waypoint de superfície (se aplicável)
         if (m_followingSurfaceWaypoint && (myPos == m_stairOrigin || dist <= 1)) {
-            g_logger().info("[MCR-STAIR] {} alcançou waypoint de superfície #{}.", getName(), m_currentSurfaceWaypointIndex);
-            if (auto leader2 = isSummon() ? getMaster() : nullptr) {
-                if (auto player = leader2->getPlayer()) {
-                    player->touchSurfaceWaypoint(m_currentSurfaceWaypointIndex);
-                }
-            }
-            m_currentSurfaceWaypointIndex++;
-            clearStairPursuit();
-            return;
+            // ... (mesmo que v5.7)
         }
 
-        // Se chegou ao waypoint, força uso da escada
+        // Chegou ao waypoint/escada?
         if (myPos == m_stairOrigin || dist <= 1) {
-            g_logger().info("[MCR-STAIR] {} CHEGOU ao waypoint! Utilizando escada.", getName());
-            if (m_stairIsActive) {
-                g_logger().info("[MCR-STAIR] {} escada activa, teleportando para destino {}.", getName(), m_stairDestination.toString());
-                g_game().internalTeleport(static_self_cast<Monster>(), m_stairDestination);
-            } else {
-                g_logger().info("[MCR-STAIR] {} escada passiva, forçando passo final.", getName());
-                Direction dir = getDirectionTo(myPos, m_stairOrigin);
-                if (dir != DIRECTION_NONE) {
-                    g_game().internalMoveCreature(static_self_cast<Monster>(), dir, FLAG_NOLIMIT);
-                }
-            }
-            if (m_stairIsActive) {
-                if (!isSummon()) {
-                    m_returnPath.push_back({m_stairOrigin, m_stairDestination, static_cast<uint64_t>(getCurrentTimeMs()), m_stairIsActive});
-                }
-                m_nextStairIndex = m_currentTransitionIndex + 1;
-                clearStairPursuit();
-            }
+            // ... (mesmo que v5.7, transposição e clearStairPursuit)
             return;
         }
 
-        // Se está a caminhar, monitoriza e desencrava
         if (isWalkingToPosition()) {
             m_stairStuckCount++;
-
             bool shouldForce = false;
             if (dist <= 2 && (m_stairIsActive ? m_stairStuckCount > 0 : m_stairStuckCount > 3)) {
-                g_logger().info("[MCR-STAIR] {} preso perto do waypoint (ativo={}). Forçando passo final.", getName(), m_stairIsActive);
                 shouldForce = true;
             } else if (m_stairStuckCount >= 8) {
-                if (!isSummon()) {
-                    // Hostil: tentar waypoints de superfície
-                    auto hostilLeader = (!m_attackedCreature.expired() ? m_attackedCreature.lock() : nullptr);
-                    if (!hostilLeader) hostilLeader = m_persistentTargetPlayer;
-                    if (hostilLeader) {
-                        auto player = hostilLeader->getPlayer();
-                        if (player) {
-                            auto& waypoints = player->getSurfaceWaypoints();
-                            if (!waypoints.empty()) {
-                                const SurfaceWaypoint* bestWp = nullptr;
-                                int bestDist = std::numeric_limits<int>::max();
-                                for (const auto& wp : waypoints) {
-                                    if (wp.pos.z == m_stairOrigin.z) {
-                                        int d = std::abs(wp.pos.x - m_stairOrigin.x) + std::abs(wp.pos.y - m_stairOrigin.y);
-                                        if (d < bestDist) { bestDist = d; bestWp = &wp; }
-                                    }
-                                }
-                                if (bestWp) {
-                                    g_logger().info("[MCR-STAIR] {} preso, a seguir waypoint de superfície para a escada {}.", getName(), bestWp->pos.toString());
-                                    walkToWaypoint(bestWp->pos);
-                                    m_stairStuckCount = 0;
-                                    return;
-                                }
-                            }
-                        }
-                    }
+                // Prioridade ao mapa cognitivo
+                tryUseGlobalMap();
+                if (m_usingGlobalPath) return;
 
-                    // Fallback: tiles adjacentes
-                    std::vector<Position> adjacentTiles;
-                    for (int dx = -1; dx <= 1; ++dx) {
-                        for (int dy = -1; dy <= 1; ++dy) {
-                            if (dx == 0 && dy == 0) continue;
-                            Position adjPos(m_stairOrigin.x + dx, m_stairOrigin.y + dy, m_stairOrigin.z);
-                            auto tile = g_game().map.getTile(adjPos);
-                            if (tile && !tile->hasFlag(TILESTATE_BLOCKPATH)) adjacentTiles.push_back(adjPos);
-                        }
-                    }
-                    if (adjacentTiles.empty()) {
-                        for (int dx = -1; dx <= 1; ++dx) {
-                            for (int dy = -1; dy <= 1; ++dy) {
-                                if (dx == 0 && dy == 0) continue;
-                                Position adjPos(myPos.x + dx, myPos.y + dy, myPos.z);
-                                auto tile = g_game().map.getTile(adjPos);
-                                if (tile && !tile->hasFlag(TILESTATE_BLOCKPATH)) adjacentTiles.push_back(adjPos);
-                            }
-                        }
-                    }
-                    if (!adjacentTiles.empty()) {
-                        Position bestTile = adjacentTiles.front();
-                        int bestDist = std::abs(myPos.x - bestTile.x) + std::abs(myPos.y - bestTile.y);
-                        for (const auto& tile : adjacentTiles) {
-                            int d = std::abs(myPos.x - tile.x) + std::abs(myPos.y - tile.y);
-                            if (d < bestDist) { bestDist = d; bestTile = tile; }
-                        }
-                        g_logger().info("[MCR-STAIR] {} preso longe, a recalcular caminho para tile adjacente {}.", getName(), bestTile.toString());
-                        walkToWaypoint(bestTile);
-                        m_stairStuckCount = 0;
-                        return;
-                    }
-                    g_logger().info("[MCR-STAIR] {} preso longe sem opções, aguardando.", getName());
-                    m_stairStuckCount = 0;
-                    return;
-                } else {
-                    g_logger().info("[MCR-STAIR] {} preso longe do waypoint, forçando passo na direcção do alvo.", getName());
-                    shouldForce = true;
+                // Fallback: waypoints de superfície
+                if (!isSummon()) {
+                    // ... (código dos waypoints como na v5.7)
                 }
+                // Fallback: tiles adjacentes
+                // ... (código existente)
             }
 
             if (shouldForce) {
@@ -870,420 +578,240 @@ void Monster::onThink_async() {
                 }
                 if (getPosition() == oldPos) {
                     m_forcedMoveFailCount++;
-                    g_logger().info("[MCR-STAIR] {} movimento forçado falhou (falha {}).", getName(), m_forcedMoveFailCount);
-                } else {
-                    m_forcedMoveFailCount = 0;
-                    if (!isSummon()) {
-                        m_lastDistImprovementTime = getCurrentTimeMs();
-                        m_minDistToStair = std::abs(getPosition().x - m_stairOrigin.x) + std::abs(getPosition().y - m_stairOrigin.y);
+                    if (m_forcedMoveFailCount >= 3) {
+                        m_nextStairIndex = m_currentTransitionIndex + 1;
+                        clearStairPursuit();
+                        return;
                     }
-                }
+                } else m_forcedMoveFailCount = 0;
                 m_stairStuckCount = 0;
-                if (m_forcedMoveFailCount >= 3) {
-                    g_logger().info("[MCR-STAIR] {} 3 falhas de movimento forçado, abandonando esta escada.", getName());
-                    m_nextStairIndex = m_currentTransitionIndex + 1;
-                    clearStairPursuit();
-                    return;
-                }
                 return;
             }
             return;
         }
 
-        // Aguardar aliados (summons)
-        if (isSummon() && dist > 0 && m_stairStuckCount < 3) {
-            Direction dirToWaypoint = getDirectionTo(myPos, m_stairOrigin);
-            if (dirToWaypoint != DIRECTION_NONE) {
-                Position frontPos = getNextPosition(dirToWaypoint, myPos);
-                auto frontTile = g_game().map.getTile(frontPos);
-                if (frontTile) {
-                    auto frontCreature = frontTile->getTopCreature();
-                    if (frontCreature) {
-                        auto frontMonster = frontCreature->getMonster();
-                        if (frontMonster && frontMonster->isSummon() && frontMonster->getMaster() == getMaster()) {
-                            g_logger().info("[MCR-STAIR] {} aguardando summon aliado à frente.", getName());
-                            m_stairTotalCycles--;
-                            return;
-                        }
-                    }
-                }
-            }
-        }
+        // Aguardar aliados (summons) – mantido
+        // ...
 
-        // Atualização de progresso (hostis)
-        if (!isSummon()) {
-            if (!isWalkingToPosition()) {
-                int currentDist = std::abs(getPosition().x - m_stairOrigin.x) + std::abs(getPosition().y - m_stairOrigin.y);
-                if (currentDist < m_minDistToStair) {
-                    m_minDistToStair = currentDist;
-                    m_lastDistImprovementTime = getCurrentTimeMs();
-                }
-            }
-        }
-
-        // Verificação de bloqueio (hostis)
-        if (!isSummon() && !isWalkingToPosition() &&
-            getCurrentTimeMs() - m_lastDistImprovementTime > 4000) {
-            g_logger().info("[MCR-STAIR] {} bloqueado há 4s sem progresso, abandonando esta escada.", getName());
+        // Timeout de progresso (hostis) – mantido
+        if (!isSummon() && !isWalkingToPosition() && getCurrentTimeMs() - m_lastDistImprovementTime > 4000) {
             m_nextStairIndex = m_currentTransitionIndex + 1;
             clearStairPursuit();
             return;
         }
 
-        // Tentar novo caminho
-        g_logger().info("[MCR-STAIR] {} tentando novo caminho para stairOrigin.", getName());
+        // Tentar novo caminho normal
         walkToWaypoint(m_stairOrigin);
-
         if (!isWalkingToPosition()) {
             if (isSummon()) {
                 m_stairPathfindFailCount++;
                 if (m_stairPathfindFailCount >= 5) {
-                    g_logger().info("[MCR-STAIR] {} 5 falhas, teleportando para destino.", getName());
                     g_game().internalTeleport(static_self_cast<Monster>(), m_stairDestination);
                     m_nextStairIndex = m_currentTransitionIndex + 1;
                     clearStairPursuit();
                 }
             }
-        } else {
-            m_stairPathfindFailCount = 0;
-        }
+        } else m_stairPathfindFailCount = 0;
         return;
     }
-    // ============================================================
-
-    // Código original do servidor (inalterado a partir daqui)
-    if (isIdle) return;
-    addEventWalk();
-    // ...
+    // ... resto do código original ...
 }
-4.3 walkToWaypoint
+📄 5. Novos métodos no monster.cpp
 cpp
-void Monster::walkToWaypoint(const Position& target) {
-    g_logger().info("[MCR-WALK] {}::walkToWaypoint de {} para {}", getName(), getPosition().toString(), target.toString());
+void Monster::tryUseGlobalMap() {
+    if (m_usingGlobalPath || !m_pursuingStairs) return;
+    Position myPos = getPosition();
+    int dist = std::abs(myPos.x - m_stairOrigin.x) + std::abs(myPos.y - m_stairOrigin.y);
+    if (dist <= 2) return;
 
-    std::vector<Direction> listDir;
-    FindPathParams fpp;
-    getPathSearchParams(getMonster(), fpp);
-    fpp.minTargetDist = 0;
-    fpp.maxTargetDist = 1;
-    fpp.fullPathSearch = true;
-    fpp.clearSight = false;
-    fpp.maxSearchDist = 0;
+    uint64_t now = getCurrentTimeMs();
+    if (now - m_lastGlobalScanAttempt < 2000) return;
+    m_lastGlobalScanAttempt = now;
 
-    if (getPathTo(target, listDir, fpp) && !listDir.empty()) {
-        g_logger().info("[MCR-WALK] {} caminho encontrado: {} passos. Primeiro passo: {}", getName(), listDir.size(), static_cast<int>(listDir.front()));
-        startAutoWalk(listDir);
-        setWalkingToPosition(true);
-        if (!isSummon()) {
-            m_lastDistImprovementTime = getCurrentTimeMs();
-            m_minDistToStair = std::abs(getPosition().x - target.x) + std::abs(getPosition().y - target.y);
-        }
-    } else {
-        g_logger().info("[MCR-WALK] {} FALHA no pathfinding, movimento simples na direcção do alvo.", getName());
-        Direction dir = getDirectionTo(getPosition(), target);
-        if (dir != DIRECTION_NONE) {
-            g_logger().info("[MCR-WALK] {} direcção forçada: {}", getName(), static_cast<int>(dir));
-            g_game().internalMoveCreature(static_self_cast<Monster>(), dir, 0);
-        } else {
-            g_logger().info("[MCR-WALK] {} sem direcção válida!", getName());
-        }
+    auto leader = isSummon() ? getMaster() : (!m_attackedCreature.expired() ? m_attackedCreature.lock() : nullptr);
+    if (!leader) return;
+    auto player = leader->getPlayer();
+    if (!player) return;
+
+    // Injetar transições do jogador
+    for (const auto& trans : player->getStairTransitions()) {
+        g_globalMonsterMap().addStairTransition(trans.origin, trans.destination);
+    }
+
+    if (!g_globalMonsterMap().isWalkable(myPos)) {
+        g_globalMonsterMap().scanArea(myPos, 15, 1, 1);
+    }
+
+    auto path = g_globalMonsterMap().findPath(myPos, m_stairOrigin);
+    if (!path.empty()) {
+        g_logger().info("[MCR-COGNI] {} rota global encontrada com {} passos.", getName(), path.size());
+        m_globalPath = path;
+        m_globalPathIndex = 0;
+        m_usingGlobalPath = true;
+        return;
+    }
+
+    // Expansão do scan
+    g_globalMonsterMap().scanArea(myPos, 25, 1, 1);
+    path = g_globalMonsterMap().findPath(myPos, m_stairOrigin);
+    if (!path.empty()) {
+        g_logger().info("[MCR-COGNI] {} rota global encontrada (scan expandido) com {} passos.", getName(), path.size());
+        m_globalPath = path;
+        m_globalPathIndex = 0;
+        m_usingGlobalPath = true;
     }
 }
-4.4 Retorno ao Spawn e Simples
+
+void Monster::followGlobalPathStep() {
+    if (!m_pursuingStairs || !m_usingGlobalPath || m_globalPathIndex >= m_globalPath.size()) {
+        clearGlobalPath();
+        return;
+    }
+    Position myPos = getPosition();
+    if (myPos == m_stairOrigin || std::abs(myPos.x - m_stairOrigin.x) + std::abs(myPos.y - m_stairOrigin.y) <= 1) {
+        clearGlobalPath();
+        return;
+    }
+    Position nextPos = m_globalPath[m_globalPathIndex];
+    if (myPos == nextPos) {
+        m_globalPathIndex++;
+        if (m_globalPathIndex >= m_globalPath.size()) { clearGlobalPath(); return; }
+        nextPos = m_globalPath[m_globalPathIndex];
+    }
+    Direction dir = getDirectionTo(myPos, nextPos);
+    if (dir == DIRECTION_NONE) { clearGlobalPath(); return; }
+
+    Position oldPos = myPos;
+    g_game().internalMoveCreature(static_self_cast<Monster>(), dir, FLAG_NOLIMIT);
+    if (getPosition() == oldPos) {
+        g_game().internalMoveCreature(static_self_cast<Monster>(), dir, 0);
+        if (getPosition() == oldPos) clearGlobalPath();
+    }
+}
+
+void Monster::clearGlobalPath() {
+    m_globalPath.clear();
+    m_globalPathIndex = 0;
+    m_usingGlobalPath = false;
+    m_globalScanExpanded = false;
+}
+
+void Monster::clearStairPursuit() {
+    if (m_clearingStairs) return;
+    m_clearingStairs = true;
+    m_pursuingStairs = false;
+    m_followingSurfaceWaypoint = false;
+    clearGlobalPath();
+    if (m_savedFollowId != 0) {
+        auto saved = g_game().getCreatureByID(m_savedFollowId);
+        if (saved) setFollowCreature(saved);
+        m_savedFollowId = 0;
+    }
+    // ... restante lógica de restauro de follow ...
+    m_clearingStairs = false;
+}
+📄 6. player.cpp – isActiveStair (auxiliar)
 cpp
-void Monster::iniciarRetornoSpawn() {
-    clearStairPursuit();
-    m_persistentTargetPlayer.reset();
-
-    if (m_returnPath.empty()) {
-        g_logger().info("[MCR-STAIR] {} sem caminho de retorno, a voltar ao comportamento normal.", getName());
-        return;
-    }
-
-    std::reverse(m_returnPath.begin(), m_returnPath.end());
-    m_returningToSpawn = true;
-    g_logger().info("[MCR-STAIR] {} iniciou retorno ao spawn com {} transições.", getName(), m_returnPath.size());
-    processarRetornoSpawn();
+bool Player::isActiveStair(const Position& pos) {
+    auto tile = g_game().map.getTile(pos);
+    if (!tile) return false;
+    return tile->hasFlag(TILESTATE_FLOORCHANGE) && tile->getItemCount() > 1;
 }
-
-void Monster::processarRetornoSpawn() {
-    if (!m_returningToSpawn || m_returnPath.empty()) {
-        m_returningToSpawn = false;
-        m_walkingForReturn = false;
-        m_nextStairIndex = 0;
-        clearStairPursuit();
-        g_logger().info("[MCR-STAIR] {} retorno ao spawn concluído.", getName());
-        return;
-    }
-
-    if (isWalkingToPosition()) return;
-
-    StairTransition& trans = m_returnPath.back();
-    Position myPos = getPosition();
-
-    if (myPos == trans.destination) {
-        g_logger().info("[MCR-STAIR] {} usando escada de retorno para {}.", getName(), trans.origin.toString());
-        g_game().internalTeleport(static_self_cast<Monster>(), trans.origin);
-        m_returnPath.pop_back();
-        if (m_returnPath.empty()) {
-            m_returningToSpawn = false;
-            m_walkingForReturn = false;
-            m_nextStairIndex = 0;
-            clearStairPursuit();
-            g_logger().info("[MCR-STAIR] {} retorno ao spawn concluído.", getName());
-        } else {
-            processarRetornoSpawn();
-        }
-        return;
-    }
-
-    g_logger().info("[MCR-STAIR] {} a caminhar de volta para {}.", getName(), trans.destination.toString());
-    walkToWaypoint(trans.destination);
-    m_walkingForReturn = true;
-
-    if (!isWalkingToPosition()) {
-        Direction dir = getDirectionTo(myPos, trans.destination);
-        if (dir != DIRECTION_NONE) {
-            g_logger().info("[MCR-STAIR] {} sem caminho, movimento simples na direção do retorno.", getName());
-            g_game().internalMoveCreature(static_self_cast<Monster>(), dir, 0);
-            m_walkingForReturn = true;
-        } else {
-            if (!isPlayerNearby(8)) {
-                g_logger().info("[MCR-STAIR] {} sem caminho e sem jogadores, teleportando para origem {}.", getName(), trans.origin.toString());
-                g_game().internalTeleport(static_self_cast<Monster>(), trans.origin);
-                m_returnPath.pop_back();
-                processarRetornoSpawn();
-            } else {
-                g_logger().info("[MCR-STAIR] {} não pode teleportar (jogadores próximos), aguardando.", getName());
-                m_walkingForReturn = false;
-            }
-        }
-    }
-}
-
-void Monster::processarRetornoSimples() {
-    if (!m_returningHome) return;
-    if (isWalkingToPosition()) return;
-
-    Position myPos = getPosition();
-    if (myPos == m_homePosition || (std::abs(myPos.x - m_homePosition.x) + std::abs(myPos.y - m_homePosition.y) <= 1)) {
-        g_logger().info("[MCR-STAIR] {} chegou a casa.", getName());
-        m_returningHome = false;
-        m_walkingForReturn = false;
-        return;
-    }
-
-    g_logger().info("[MCR-STAIR] {} a caminhar para casa {}.", getName(), m_homePosition.toString());
-    walkToWaypoint(m_homePosition);
-    m_walkingForReturn = true;
-
-    if (!isWalkingToPosition()) {
-        Direction dir = getDirectionTo(myPos, m_homePosition);
-        if (dir != DIRECTION_NONE) {
-            g_logger().info("[MCR-STAIR] {} sem caminho, movimento simples na direção de casa.", getName());
-            g_game().internalMoveCreature(static_self_cast<Monster>(), dir, 0);
-            m_walkingForReturn = true;
-        } else {
-            g_logger().info("[MCR-STAIR] {} completamente bloqueado, a desistir do retorno.", getName());
-            m_returningHome = false;
-            m_walkingForReturn = false;
-        }
-    }
-}
-📄 5. Comandos de Diagnóstico (Lua)
-5.1 !scan (mapa de terreno)
+📄 7. Comandos Lua adicionais (comandos_spa.lua)
 lua
-local talkScan = TalkAction("!scan")
-function talkScan.onSay(player, words, param)
-    local raio = tonumber(param:split(" ")[1]) or 5
-    if raio > 8 then
-        enviarMsgColorida(player, c("Raio máximo permitido é 8.", COR.SISTEMA_ERRO))
+-- !pathtest
+local talkPathTest = TalkAction("!pathtest")
+function talkPathTest.onSay(player, words, param)
+    local target = player:getTarget()
+    if not target or not target:isMonster() then
+        enviarMsgColorida(player, c("Seleciona um monstro como alvo.", COR.SISTEMA_ERRO))
         return false
     end
-    local pos = player:getPosition()
-    local minZ, maxZ = pos.z - 2, pos.z + 2
-    enviarMsgColorida(player, c("=== SCAN do Terreno (Raio: " .. raio .. ") ===", COR.RARIDADE_OURO))
-    for z = maxZ, minZ, -1 do
-        local linhas = {}
-        for y = pos.y - raio, pos.y + raio do
-            local linha = ""
-            for x = pos.x - raio, pos.x + raio do
-                local tile = Tile(Position(x, y, z))
-                local ch = "?"
-                if tile then
-                    if tile:getTopCreature() then ch = "C"
-                    elseif tile:hasFlag(TILESTATE_FLOORCHANGE) then ch = "S"
-                    elseif tile:hasFlag(TILESTATE_PROTECTIONZONE) then ch = "P"
-                    elseif tile:hasFlag(TILESTATE_BLOCKPATH) then ch = "#"
-                    else ch = "." end
-                end
-                linha = linha .. ch
-            end
-            table.insert(linhas, linha)
-        end
-        enviarMsgColorida(player, c("--- Andar Z=" .. z .. " ---", z == pos.z and COR.POSTURA_EQUILIBRIO or COR.SISTEMA_INFO))
-        for _, l in ipairs(linhas) do
-            local lc = ""
-            for ch in l:gmatch(".") do
-                if ch == "#" then lc = lc .. c("#", COR.SISTEMA_ERRO)
-                elseif ch == "C" then lc = lc .. c("C", COR.ITEM_RARO)
-                elseif ch == "S" then lc = lc .. c("S", COR.ELEM_RAIO)
-                else lc = lc .. c(".", COR.SISTEMA_NEUTRO) end
-            end
-            enviarMsgColorida(player, lc)
+    local monster = target:getMonster()
+    local added = monster:scanGlobalArea(15, 2)
+    enviarMsgColorida(player, c("Scan adicionou " .. added .. " tiles.", COR.SUCESSO_CURA))
+    local path = monster:findGlobalPath(player:getPosition())
+    if #path == 0 then
+        enviarMsgColorida(player, c("Nenhum caminho encontrado.", COR.SISTEMA_AVISO))
+    else
+        enviarMsgColorida(player, c("Rota global com " .. #path .. " passos:", COR.RARIDADE_OURO))
+        for i, pos in ipairs(path) do
+            enviarMsgColorida(player, c(i .. ": " .. pos.x .. "," .. pos.y .. "," .. pos.z, COR.SISTEMA_INFO))
         end
     end
     return false
 end
-talkScan:separator(" "); talkScan:groupType(1); talkScan:register()
-5.2 !scanfull (relatório ultra detalhado)
-lua
-local talkScanFull = TalkAction("!scanfull")
-function talkScanFull.onSay(player, words, param)
-    local params = param:split(" ")
-    local raio = tonumber(params[1]) or 5
-    local zRange = tonumber(params[2]) or 2
-    if raio > 10 then enviarMsgColorida(player, c("Raio máximo 10.", COR.SISTEMA_ERRO)) return false end
-    if zRange > 3 then enviarMsgColorida(player, c("Z-Range máximo 3.", COR.SISTEMA_ERRO)) return false end
+talkPathTest:separator(" "); talkPathTest:groupType(1); talkPathTest:register()
 
-    local pos = player:getPosition()
-    local filename = string.format("data/logs/scan/scan_%s_%s.log", os.date("%Y%m%d_%H%M%S"), player:getName():gsub("[^%w]", "_"))
-    os.execute("mkdir \"data/logs/scan\" 2> NUL")
-    local file = io.open(filename, "w")
-    if not file then
-        enviarMsgColorida(player, c("Erro ao criar arquivo.", COR.SISTEMA_ERRO))
+-- !mapinfo
+local talkMapInfo = TalkAction("!mapinfo")
+function talkMapInfo.onSay(player, words, param)
+    local target = player:getTarget()
+    if not target or not target:isMonster() then
+        enviarMsgColorida(player, c("Seleciona um monstro como alvo.", COR.SISTEMA_ERRO))
         return false
     end
-
-    file:write("=== SCAN ULTRA DETALHADO ===\n")
-    file:write(string.format("Jogador: %s (ID:%d) Pos: %d,%d,%d Raio: %d Z-Range: %d\n\n", player:getName(), player:getId(), pos.x, pos.y, pos.z, raio, zRange))
-
-    -- Waypoints de superfície
-    local ok, wps = pcall(player.getSurfaceWaypoints, player)
-    file:write("=== WAYPOINTS DE SUPERFÍCIE ===\n")
-    if ok and wps then
-        file:write(string.format("Total: %d\n", #wps))
-        for i, wp in ipairs(wps) do
-            file:write(string.format("  #%d: %d,%d,%d (timestamp:%d)\n", i-1, wp.x or 0, wp.y or 0, wp.z or 0, wp.timestamp or 0))
-        end
-    else file:write("Não disponível.\n") end
-    file:write("\n")
-
-    -- Transições de escada
-    local ok2, trans = pcall(player.getStairTransitions, player)
-    file:write("=== TRANSIÇÕES DE ESCADA ===\n")
-    if ok2 and trans then
-        file:write(string.format("Total: %d\n", #trans))
-        for i, t in ipairs(trans) do
-            file:write(string.format("  #%d: Origem:%d,%d,%d -> Destino:%d,%d,%d | Active:%s\n",
-                i-1, t.originX or 0, t.originY or 0, t.originZ or 0, t.destX or 0, t.destY or 0, t.destZ or 0, t.isActive and "SIM" or "NÃO"))
-        end
-    else file:write("Não disponível.\n") end
-    file:write("\n")
-
-    for z = pos.z + zRange, pos.z - zRange, -1 do
-        file:write(string.format("=== ANDAR Z=%d ===\n", z))
-        for y = pos.y - raio, pos.y + raio do
-            for x = pos.x - raio, pos.x + raio do
-                local tile = Tile(Position(x, y, z))
-                if tile then
-                    file:write(string.format("\n>>> TILE (%d,%d,%d) GroundID:%d\n", x, y, z, tile:getGround() and tile:getGround():getId() or 0))
-                    local flags = {}
-                    if tile:hasFlag(TILESTATE_BLOCKPATH) then table.insert(flags, "BLOCKPATH") end
-                    if tile:hasFlag(TILESTATE_FLOORCHANGE) then table.insert(flags, "FLOORCHANGE") end
-                    file:write(string.format("    Flags: %s\n", table.concat(flags, " | ")))
-                    local items = tile:getItems()
-                    file:write(string.format("    Itens: %d\n", #items))
-                    for _, item in ipairs(items) do
-                        file:write(string.format("      ID:%d Nome:'%s'\n", item:getId(), item:getName() or "?"))
-                    end
-                    local creature = tile:getTopCreature()
-                    if creature then
-                        file:write(string.format("    Criatura: %s (ID:%d)\n", creature:getName() or "?", creature:getId()))
-                    end
-                else
-                    file:write(string.format("\n>>> TILE (%d,%d,%d) NULO\n", x, y, z))
-                end
-            end
-        end
-    end
-
-    file:write("\n=== FIM DO SCAN ===\n")
-    file:close()
-    enviarMsgColorida(player, c("Scan ultra detalhado salvo em: " .. filename, COR.SUCESSO_CURA))
+    local monster = target:getMonster()
+    local info = monster:getGlobalMapInfo()
+    enviarMsgColorida(player, c("Tiles no mapa: " .. info.tileCount .. " | Posição atual é caminhável: " .. tostring(info.currentWalkable), COR.RARIDADE_OURO))
     return false
 end
-talkScanFull:separator(" "); talkScanFull:groupType(1); talkScanFull:register()
-📄 6. Exposição ao Lua (SPAFunctions)
-cpp
-// Em spa_functions.cpp
-#include "creatures/players/player.hpp"
+talkMapInfo:separator(" "); talkMapInfo:groupType(1); talkMapInfo:register()
+(Os binds Lua para scanGlobalArea, findGlobalPath e getGlobalMapInfo devem ser registados em spa_functions.cpp.)
 
-int SPAFunctions::luaPlayerGetSurfaceWaypoints(lua_State* L) {
-    auto player = Lua::getUserdataShared<Player>(L, 1, "Player");
-    if (!player) { lua_newtable(L); return 1; }
-    const auto& waypoints = player->getSurfaceWaypoints();
+📄 8. spa_functions.cpp – Exposição ao Lua (novos métodos)
+cpp
+int SPAFunctions::luaMonsterScanGlobalArea(lua_State* L) {
+    auto monster = Lua::getUserdataShared<Monster>(L, 1, "Monster");
+    if (!monster) { lua_pushnumber(L, 0); return 1; }
+    int radius = Lua::getNumber<int>(L, 2, 15);
+    int zRange = Lua::getNumber<int>(L, 3, 2);
+    size_t added = g_globalMonsterMap().scanArea(monster->getPosition(), radius, zRange, zRange);
+    lua_pushnumber(L, static_cast<lua_Number>(added));
+    return 1;
+}
+
+int SPAFunctions::luaMonsterFindGlobalPath(lua_State* L) {
+    auto monster = Lua::getUserdataShared<Monster>(L, 1, "Monster");
+    if (!monster) { lua_newtable(L); return 1; }
+    Position target = Lua::getPosition(L, 2);
+    auto path = g_globalMonsterMap().findPath(monster->getPosition(), target);
     lua_newtable(L);
-    int index = 1;
-    for (const auto& wp : waypoints) {
+    int idx = 1;
+    for (const auto& pos : path) {
         lua_newtable(L);
-        Lua::setField(L, "x", wp.pos.x);
-        Lua::setField(L, "y", wp.pos.y);
-        Lua::setField(L, "z", wp.pos.z);
-        Lua::setField(L, "timestamp", static_cast<lua_Number>(wp.timestamp));
-        lua_rawseti(L, -2, index++);
+        Lua::setField(L, "x", pos.x);
+        Lua::setField(L, "y", pos.y);
+        Lua::setField(L, "z", pos.z);
+        lua_rawseti(L, -2, idx++);
     }
     return 1;
 }
 
-int SPAFunctions::luaPlayerTouchSurfaceWaypoint(lua_State* L) {
-    auto player = Lua::getUserdataShared<Player>(L, 1, "Player");
-    if (!player) { lua_pushnil(L); return 1; }
-    uint32_t index = Lua::getNumber<uint32_t>(L, 2);
-    player->touchSurfaceWaypoint(index);
-    lua_pushboolean(L, true);
-    return 1;
-}
-
-int SPAFunctions::luaPlayerGetStairTransitions(lua_State* L) {
-    auto player = Lua::getUserdataShared<Player>(L, 1, "Player");
-    if (!player) { lua_newtable(L); return 1; }
-    const auto& transitions = player->getStairTransitions();
+int SPAFunctions::luaMonsterGetGlobalMapInfo(lua_State* L) {
+    auto monster = Lua::getUserdataShared<Monster>(L, 1, "Monster");
     lua_newtable(L);
-    int index = 1;
-    for (const auto& trans : transitions) {
-        lua_newtable(L);
-        Lua::setField(L, "originX", trans.origin.x);
-        Lua::setField(L, "originY", trans.origin.y);
-        Lua::setField(L, "originZ", trans.origin.z);
-        Lua::setField(L, "destX", trans.destination.x);
-        Lua::setField(L, "destY", trans.destination.y);
-        Lua::setField(L, "destZ", trans.destination.z);
-        Lua::setField(L, "isActive", trans.isActive);
-        Lua::setField(L, "timestamp", static_cast<lua_Number>(trans.timestamp));
-        lua_rawseti(L, -2, index++);
+    if (monster) {
+        Lua::setField(L, "tileCount", static_cast<lua_Number>(g_globalMonsterMap().getTiles().size()));
+        Lua::setField(L, "currentWalkable", g_globalMonsterMap().isWalkable(monster->getPosition()));
     }
     return 1;
 }
 
-// Em SPAFunctions::init
-Lua::registerMethod(L, "Player", "getSurfaceWaypoints",  SPAFunctions::luaPlayerGetSurfaceWaypoints);
-Lua::registerMethod(L, "Player", "touchSurfaceWaypoint", SPAFunctions::luaPlayerTouchSurfaceWaypoint);
-Lua::registerMethod(L, "Player", "getStairTransitions",  SPAFunctions::luaPlayerGetStairTransitions);
-📌 Notas de integração
-A função getCurrentTimeMs() deve ser implementada em player.cpp (ou num utilitário) como:
+// Registrar em SPAFunctions::init
+Lua::registerMethod(L, "Monster", "scanGlobalArea", SPAFunctions::luaMonsterScanGlobalArea);
+Lua::registerMethod(L, "Monster", "findGlobalPath", SPAFunctions::luaMonsterFindGlobalPath);
+Lua::registerMethod(L, "Monster", "getGlobalMapInfo", SPAFunctions::luaMonsterGetGlobalMapInfo);
+📄 9. game.cpp – Disparo de onFloorChange
+(Já incluído na v5.7, mas reforça‑se a necessidade de isActiveStair.)
 
 cpp
-uint64_t getCurrentTimeMs() {
-    return std::chrono::duration_cast<std::chrono::milliseconds>(
-        std::chrono::steady_clock::now().time_since_epoch()).count();
+// Em internalTeleport e moveCreature, após detetar mudança de piso:
+if (creature->getPlayer() && newPos.z != oldPos.z) {
+    creature->getPlayer()->onFloorChange(oldPos, newPos);
 }
-A chamada addSurfaceWaypoint(getPosition()) deve ser adicionada ao Player::onWalkComplete (ou equivalente) para gerar as migalhas.
-
-Com estas implementações, o sistema estará completo e pronto para ser testado e expandido conforme necessário.
-
 📌 NOTAS FINAIS
-Este documento cobre toda a arquitetura e funcionamento do sistema de perseguição multi‑piso do Projeto MCR, incluindo as melhorias mais recentes (waypoints de superfície, comandos de diagnóstico, retorno ao spawn).
+Este documento reflete a versão 6.0 do sistema, integrando o Mapa Cognitivo Global.
 Para qualquer modificação futura, consulte os guias temáticos do projeto e mantenha a consistência dos logs e das regras de imersão definidas nos pilares do MCR.
 
 Fim do Documento.
