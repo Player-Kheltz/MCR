@@ -753,7 +753,7 @@ function talkMapInfo.onSay(player, words, param)
     end
     local monster = target:getMonster()
     local info = monster:getGlobalMapInfo()
-    enviarMsgColorida(player, c("Tiles no mapa: " .. info.tileCount .. " | Posição atual é caminhável: " .. tostring(info.currentWalkable), COR.RARIDADE_OURO))
+    enviarMsgColorida(player, c("Tiles no mapa: " .. info.totalTiles .. " | Posição atual é caminhável: " .. tostring(info.myPosWalkable), COR.RARIDADE_OURO))
     return false
 end
 talkMapInfo:separator(" "); talkMapInfo:groupType(1); talkMapInfo:register()
