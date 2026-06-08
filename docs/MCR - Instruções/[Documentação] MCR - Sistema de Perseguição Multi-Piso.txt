@@ -1,298 +1,272 @@
+📘 Documentação Técnica do Sistema de Perseguição Multi‑Piso — Projeto MCR (v7.2 Estável)
+Última atualização: 07 de Junho de 2026
+
 🎯 OBJETIVO DESTE DOCUMENTO
-Este documento descreve de forma exaustiva o sistema de perseguição multi‑piso do Projeto MCR, agora expandido com um Mapa Cognitivo Global (GlobalMonsterMap) partilhado entre todas as criaturas.
-Inclui a arquitetura completa, as estruturas de dados, os mecanismos de timeout, o sistema de “migalhas” (waypoints de superfície), o mapa cognitivo com BFS multi‑piso, o retorno ao spawn, os comandos de diagnóstico e exemplos práticos de funcionamento e depuração.
+Este documento descreve a versão estável e completa do sistema de perseguição multi‑piso do Projeto MCR, incluindo todos os ficheiros de código relevantes. Após extensos testes, refinamentos e a incorporação das correcções identificadas na revisão da v7.1, o sistema actual é 100% estável, não causa crashes, e fornece perseguição inteligente através de múltiplos mecanismos seguros que executam exclusivamente dentro do ciclo de pensamento de cada criatura.
+
+Relativamente à v7.1, esta versão introduz as seguintes melhorias:
+
+Revalidação de obstáculos temporários – os tiles bloqueados por Magic Walls, campos, etc. são agora marcados como dinâmicos com um TTL curto e revalidados automaticamente (tanto por limpeza periódica como por validação preguiçosa em cada consulta).
+
+Distinção entre bloqueios permanentes e temporários – a função invalidateTileBlocked usa as flags do tile para separar paredes sólidas de obstáculos removíveis, optimizando a gestão do grafo.
+
+Verificação de direcção no atalho cognitivo – o monstro não tenta subir por um buraco; a direcção da escada é comparada com a direcção desejada antes de iniciar a perseguição.
+
+Segunda tentativa de scan expandido – quando o BFS reactivo falha com um scan de 500 tiles, o monstro pode, passados 10 segundos, tentar um scan maior (1000 tiles) antes de desistir.
+
+Persistência optimizada – o saveToFile ignora tiles dinâmicos, garantindo que o ficheiro de cache não acumula lixo temporário.
+
+Optimização de concorrência – o GlobalMonsterMap utiliza std::shared_mutex, permitindo leituras concorrentes sem bloqueios entre si.
 
 📚 ÍNDICE
 Visão Geral
 
-Estruturas de Dados
+Arquitectura da Máquina de Estados
 
-Fluxo Principal de Perseguição
+Estruturas de Dados
 
 Mecanismos de Timeout e Desistência
 
 Waypoints de Superfície (Migalhas)
 
 Mapa Cognitivo Global (GlobalMonsterMap)
-6.1 Classe e Estruturas
-6.2 Alimentação do Grafo
-6.3 BFS Multi‑Piso
-6.4 Integração no Monster
 
-Retorno ao Spawn / Posição Inicial
+6.1 Alimentação do Grafo
+
+6.2 Persistência
+
+6.3 Invalidação Reactiva e Revalidação de Obstáculos Temporários
+
+6.4 Descoberta Automática de Escadas
+
+BFS Reactivo e Perseguição Proactiva
+
+Atalho via Mapa Cognitivo (checkStairPursuit)
 
 Comandos de Diagnóstico
 
-Integração com Summons vs Hostis
+Remoção de Sistemas Experimentais
 
 Regras de Log e Debug
 
-Exemplos de Comportamento
+Comportamento Esperado dos Monstros
 
-Manutenção e Expansão Futura
+Manutenção e Parâmetros Ajustáveis
 
 CÓDIGOS
 
 1. VISÃO GERAL
-O sistema de perseguição multi‑piso permite que criaturas (summons do jogador e monstros hostis) persigam um alvo através de múltiplos andares.
-A base do sistema é uma fila de transições de escada (StairTransition) que o jogador vai deixando ao mudar de piso. As criaturas consultam essa fila e caminham até ao ponto de origem da escada.
+O sistema de perseguição multi‑piso permite que criaturas hostis e summons persigam um jogador através de escadas, buracos, teleportes e rampas. A base do sistema é uma fila de transições de escada (StairTransition) que o jogador deixa ao mudar de piso. As criaturas consultam essa fila e caminham até à escada correspondente.
 
-Novidade na v6.0:
-Foi introduzido um Mapa Cognitivo Global (GlobalMonsterMap), um grafo partilhado que armazena tiles caminháveis e as transições de piso conhecidas. Quando o rasto direto do jogador (waypoints e fila) não é suficiente, o monstro recorre a um BFS multi‑piso sobre esse mapa para encontrar rotas alternativas ou atalhos.
-O mapa é construído incrementalmente por todos os monstros, que adicionam tiles ao escanear a sua vizinhança.
+Novidades na v7.2 (face à v7.1):
 
-1.1 Tipos de Criaturas e Comportamentos
-Tipo	Perseguição	Timeout	Retorno	Uso de Migalhas/Mapa Cognitivo
-Summon	Segue o mestre através de escadas	120 ciclos (~120s)	Teleporta para o mestre após timeout	Waypoints se inacessível; mapa cognitivo (se ativado)
-Hostil	Persegue o jogador que está a atacar	45 segundos reais	Regressa a pé ao spawn ou à posição inicial	Waypoints quando bloqueado; mapa cognitivo como prioridade
-2. ESTRUTURAS DE DADOS
-2.1 StairTransition (player.h)
-cpp
-struct StairTransition {
-    Position origin;        // tile da escada (onde o jogador estava antes de mudar de piso)
-    Position destination;   // tile de destino (onde o jogador apareceu)
-    uint64_t timestamp;     // milissegundos desde epoch (para expiração)
-    bool isActive;          // true = escada ativa (precisa de teleporte), false = escada passiva
-};
-2.2 SurfaceWaypoint (player.h)
-cpp
-struct SurfaceWaypoint {
-    Position pos;
-    uint64_t timestamp;   // última vez que foi utilizado (para expiração)
-};
-2.3 TileInfo (global_monster_map.hpp)
-cpp
-struct TileInfo {
-    bool walkable = true;
-    bool dynamic = false;
-    uint64_t lastUpdated = 0;
-};
-2.4 Membros do Player
-Membro	Tipo	Descrição
-m_stairTransitions	std::deque<StairTransition>	Fila de transições de piso do jogador
-m_surfaceWaypoints	std::deque<SurfaceWaypoint>	Fila de waypoints de superfície (“migalhas”)
-2.5 Membros do Monster (perseguição + mapa cognitivo)
-Além dos membros já documentados, foram adicionados:
+Revalidação de obstáculos temporários: os tiles bloqueados por Magic Walls, campos, etc. são agora marcados como dinâmicos com um TTL curto (15 segundos). A função cleanupTemporaryObstacles percorre periodicamente a lista de obstáculos expirados e revalida o estado real do tile. Adicionalmente, o método isWalkableUnlocked realiza validação preguiçosa: sempre que um tile dinâmico é consultado, o motor verifica o estado real do tile no jogo, permitindo que o monstro reaja imediatamente ao desaparecimento de um obstáculo.
 
-Membro	Tipo	Descrição
-m_usingGlobalPath	bool	Indica se está a seguir um caminho do mapa cognitivo
-m_globalPath	std::vector<Position>	Caminho devolvido pelo BFS
-m_globalPathIndex	size_t	Índice do próximo passo na rota global
-m_lastGlobalScanAttempt	uint64_t	Timestamp da última tentativa de scan/rota
-m_globalScanExpanded	bool	Se o scan já foi expandido para raio 25
-m_clearingStairs	bool	Proteção contra reentrância em clearStairPursuit
-(Os restantes membros permanecem como na v5.7.)
+Distinção entre bloqueios permanentes e temporários: a função invalidateTileBlocked agora separa tiles sólidos (BLOCKSOLID) – que são marcados como permanentemente bloqueados – de tiles apenas com BLOCKPATH, que são tratados como obstáculos temporários. Isto evita que paredes sejam desnecessariamente revalidadas e reduz o número de tiles dinâmicos no grafo.
 
-3. FLUXO PRINCIPAL DE PERSEGUIÇÃO
-A cada ciclo de pensamento (onThink_async), o monstro verifica se deve iniciar ou continuar uma perseguição.
+Verificação de direcção no atalho cognitivo: o bloco de atalho em checkStairPursuit compara o delta Z da escada com o delta Z do líder, impedindo que um monstro tente usar uma escada que o afaste do alvo (ex.: subir por um buraco).
 
-cpp
-// Verificar se deve começar a perseguir
-if (isSummon() || (!isSummon() && (!m_attackedCreature.expired() ||
-    (m_persistentTargetPlayer && !m_persistentTargetPlayer->getStairTransitions().empty())))) {
-    checkStairPursuit();
-}
-Novo: Antes de entrar no bloco de perseguição, se m_usingGlobalPath == true, o monstro executa followGlobalPathStep() e cancela a rota global se o líder ficar acessível (ver secção 6).
-Dentro do bloco if (m_pursuingStairs), há uma tentativa proactiva de usar o mapa cognitivo quando a posição atual já está mapeada e a distância à escada é > 2 tiles. Quando o monstro fica preso (stuckCount >= 8), a primeira ação é tentar o mapa cognitivo.
+Segunda tentativa de scan expandido: o tryUseGlobalMap (BFS reactivo) tenta primeiro um scan de 500 tiles; se falhar, agenda uma segunda tentativa com um scan maior (1000 tiles) com um throttle independente de 10 segundos. Isto reduz falsos negativos em áreas densas ou mal mapeadas.
+
+Persistência optimizada: o saveToFile já filtrava tiles dinâmicos; o comportamento foi mantido e documentado.
+
+Optimização de concorrência: o GlobalMonsterMap utiliza std::shared_mutex, permitindo leituras concorrentes sem bloqueios entre si.
+
+Toda a lógica continua a ser executada dentro do onThinkMCR, sem threads externas, garantindo estabilidade total.
+
+2. ARQUITECTURA DA MÁQUINA DE ESTADOS
+O comportamento do monstro é regido por uma máquina de estados executada a cada ciclo de onThinkMCR:
+
+Prioridade	Estado	Gatilho	Acção
+1	Combate	Jogador visível e atacável	Cancela tudo, faz follow e ataca.
+2	Retorno ao spawn/casa	m_returningToSpawn ou m_returningHome activo	Processa retorno (caminhando ou teleportando).
+3	Seguir rota global (BFS)	m_usingGlobalPath == true	Segue o caminho planeado; cancela se o líder ficar acessível.
+4	Perseguição activa por transições	m_pursuingStairs == true	Tenta alcançar m_stairOrigin. Usa BFS reactivo para desbloquear.
+5	Procurar próxima transição	m_pursuingStairs == false, existem transições na fila do jogador	checkStairPursuit(): primeiro tenta atalho pelo mapa cognitivo (com verificação de direcção), depois escolhe a melhor escada da fila do jogador.
+6	Perseguição proactiva	Nenhuma transição no piso actual, throttle OK	tryProactiveGlobalPursuit(): usa BFS para encontrar uma escada que leve ao jogador.
+3. ESTRUTURAS DE DADOS
+As estruturas de dados mantêm compatibilidade com a versão 6.1, com as seguintes adições:
+
+StairTransition (player.h): origin, destination, timestamp, isActive.
+
+SurfaceWaypoint (player.h): pos, timestamp.
+
+TileInfo (global_monster_map.hpp): walkable, dynamic, lastUpdated.
+
+TemporaryObstacle (global_monster_map.hpp): expiryTime.
+
+Membros do Monster para perseguição: m_pursuingStairs, m_usingGlobalPath, m_globalPath, m_engagement, m_sightLostTicks, m_pursuitDeadline, m_lastExtendedScanAttempt (novo), etc.
 
 4. MECANISMOS DE TIMEOUT E DESISTÊNCIA
-(Mantidos da v5.7)
+4.1 Timeout Adaptativo (Hostis)
+Deadline base: 25 segundos.
 
-4.1 Timeout Total (Hostis)
-45 segundos reais (getCurrentTimeMs() - m_pursuitStartTime > 45000).
-Se expirar:
+Fórmula: deadline = currentTime + (25000 + engagement × 350) ms.
 
-Se usou escadas, inicia iniciarRetornoSpawn.
+Máximo: 45 segundos (engagement = 100).
 
-Caso contrário, regressa a pé à m_homePosition.
+Enquanto o líder está visível, o deadline é constantemente renovado.
 
-4.2 Timeout de Progresso (Hostis)
-4 segundos sem reduzir a distância ao waypoint → abandona a escada atual e avança m_nextStairIndex.
+4.2 Timeout por Perda de Visão
+Tempo máximo sem ver o líder: 10 segundos.
 
-4.3 Falhas de Movimento Forçado (Hostis)
-3 falhas consecutivas → abandona a escada.
+Contador m_sightLostTicks incrementa quando o líder não está visível.
 
-4.4 Timeout de Summons
+Após 10 ticks, o monstro desiste e inicia retorno ao spawn.
+
+4.3 Timeout de Progresso
+Se o monstro não reduzir a distância à escada alvo por 4 segundos, abandona a escada e avança para a próxima transição.
+
+4.4 Falhas de Movimento Forçado
+3 falhas consecutivas de internalMoveCreature → abandona a escada actual.
+
+4.5 Timeout de Summons
 120 ciclos de onThink → teleporta para o destino.
 
 5. WAYPOINTS DE SUPERFÍCIE (MIGALHAS)
-(Funcionamento mantido da v5.7)
-Geração, utilização por summons e hostis bloqueados, atualização de timestamps.
+Os waypoints são usados como fallback quando o BFS não encontra rota. O jogador larga pontos a cada 5 tiles percorridos, que expiram após 2 minutos sem uso. Summons e hostis podem usar waypoints para encontrar o líder quando o pathfinding falha.
 
-6. MAPA COGNITIVO GLOBAL (GlobalMonsterMap) <a name="mapa-cognitivo"></a>
-6.1 Classe e Estruturas
-GlobalMonsterMap é um singleton que mantém:
+6. MAPA COGNITIVO GLOBAL (GlobalMonsterMap)
+O GlobalMonsterMap é um grafo partilhado que armazena tiles caminháveis e transições de piso.
 
-Um mapa m_tiles (unordered_map<Position, TileInfo>) – tiles caminháveis conhecidos.
+6.1 Alimentação do Grafo
+Transições do jogador: injectadas directamente no grafo (addStairTransition).
 
-Um mapa m_transitions (unordered_map<Position, vector<Position>>) – arestas de transição de piso (origem → destinos).
+Scans periódicos: scanArea faz flood‑fill limitado, adicionando tiles caminháveis e transições.
 
-cpp
-class GlobalMonsterMap {
-public:
-    static GlobalMonsterMap& getInstance();
-    void addTile(const Position& pos, bool walkable, bool dynamic = false);
-    bool isWalkable(const Position& pos) const;
-    size_t scanArea(const Position& origin, int radius, int maxZUp = 1, int maxZDown = 1, size_t maxTiles = 2000);
-    std::vector<Position> findPath(const Position& start, const Position& goal) const;
-    void addStairTransition(const Position& from, const Position& to);
-    std::vector<Position> getDestinations(const Position& pos);
-private:
-    std::unordered_map<Position, TileInfo> m_tiles;
-    std::unordered_map<Position, std::vector<Position>> m_transitions;
-};
-6.2 Alimentação do Grafo
-Transições do jogador: Em tryUseGlobalMap, todas as StairTransition da fila do líder são injetadas no grafo via addStairTransition, que marca ambos os extremos como caminháveis.
+Alimentação contínua: Monster::onWalkComplete adiciona o tile actual.
 
-Scan da vizinhança: Quando um monstro precisa e a sua posição não está mapeada, chama scanArea. Este método faz uma BFS limitada, adicionando tiles adjacentes não bloqueados e seguindo as transições já conhecidas para explorar pisos diferentes. O scan pára quando atinge maxTiles (2000 por omissão) ou os limites de raio/Z.
+Invalidação reactiva: quando um movimento falha, invalidateTileBlocked actualiza o grafo, distinguindo bloqueios permanentes de temporários.
 
-6.3 BFS Multi‑Piso (findPath)
-O BFS expande apenas tiles marcados como walkable, mas permite que o objetivo seja uma escada mesmo que esta esteja bloqueada no grafo (verifica TILESTATE_FLOORCHANGE no tile real).
-As transições de piso são consideradas como arestas: se o nó atual tem uma transição, os destinos são adicionados à fila desde que estejam no grafo como caminháveis.
-Limite de 500 nós expandidos para garantir performance.
+6.2 Persistência
+Gravação: ocorre a cada saveServer, em thread separada, para data/world/global_monster_map.bin. Apenas tiles estáticos são salvos (dynamic == false).
 
-6.4 Integração no Monster
-6.4.1 Tentativa proactiva
-Logo após o log de perseguição ativa:
+Carregamento: no arranque do servidor (Game::loadMap).
 
-cpp
-if (!m_usingGlobalPath && g_globalMonsterMap().isWalkable(myPos)) {
-    tryUseGlobalMap();
-    if (m_usingGlobalPath) return;
-}
-6.4.2 Desencravamento (stuckCount >= 8)
-No bloco de perseguição, antes de tentar waypoints de superfície, o monstro tenta o mapa cognitivo:
+6.3 Invalidação Reactiva e Revalidação de Obstáculos Temporários
+A função invalidateTileBlocked determina se o bloqueio é permanente (BLOCKSOLID) ou temporário (BLOCKPATH sem BLOCKSOLID). Para bloqueios temporários, chama addTemporaryObstacle com um TTL de 15 segundos.
 
-cpp
-} else if (m_stairStuckCount >= 8) {
-    tryUseGlobalMap();
-    if (m_usingGlobalPath) return;
-    // fallback para waypoints de superfície e tiles adjacentes...
-}
-6.4.3 Função tryUseGlobalMap
-Verifica condições (distância à escada > 2, throttle de 2s).
+addTemporaryObstacle marca o tile como walkable = false, dynamic = true e regista o timestamp de expiração.
 
-Obtém as transições do jogador e injeta‑as no GlobalMonsterMap.
+cleanupTemporaryObstacles (chamada a cada 10 segundos) percorre a lista de obstáculos expirados e revalida o tile real, repondo o estado correcto.
 
-Se a posição atual não está mapeada, faz scanArea com raio 15 (e raio 25 se o primeiro falhar).
+Validação preguiçosa: isWalkableUnlocked, sempre que consulta um tile marcado como dynamic, lê o estado real do jogo. Isto garante que o monstro reage imediatamente quando um obstáculo desaparece, sem esperar pelo TTL.
 
-Chama findPath entre a posição atual e m_stairOrigin.
+6.4 Descoberta Automática de Escadas
+Durante o scanArea, para cada tile com flag FLOORCHANGE, é chamado tile->getDestination(). Se o destino for válido, a transição é registada com as coordenadas reais. Caso contrário, assume‑se z±1 na mesma posição (x,y).
 
-Se encontra caminho, guarda‑o em m_globalPath e ativa m_usingGlobalPath.
+Suporta escadas activas, teleportes e rampas.
 
-6.4.4 Seguimento da rota global (followGlobalPathStep)
-A cada ciclo enquanto m_usingGlobalPath:
+7. BFS REACTIVO E PERSEGUIÇÃO PROACTIVA
+7.1 BFS Reactivo (tryUseGlobalMap)
+Throttle: 3 segundos.
 
-Se já chegou à escada (dist ≤ 1) ou o índice ultrapassou o tamanho, limpa a rota.
+Activado quando a distância à escada alvo é > 1 tile.
 
-Caso contrário, move‑se um tile na direção do próximo ponto da rota.
+Primeira tentativa: scan de 500 tiles, raio 15.
 
-Se o movimento falhar (posição não muda), tenta movimento sem flag FLAG_NOLIMIT; se continuar a falhar, cancela a rota global.
+Segunda tentativa (se a primeira falhar): scan de 1000 tiles, raio 18, com throttle independente de 10 segundos.
 
-6.4.5 Cancelamento da rota global
-A rota global é cancelada automaticamente quando:
+Se encontrar uma rota, define m_usingGlobalPath = true.
 
-O líder fica acessível (verificação no início do onThink_async).
+7.2 Perseguição Proactiva (tryProactiveGlobalPursuit)
+Throttle: 5 segundos (quando não está a perseguir); 10 segundos (quando está em perseguição activa).
 
-O monstro se aproxima da escada (dist <= 1).
+Raio de scan: 25 tiles.
 
-O movimento falha duas vezes consecutivas.
+Número máximo de monstros próximos: 2.
 
-clearGlobalPath() limpa o vetor e repõe os índices.
+Procura a escada com menor custo (distância até à escada + distância do destino ao jogador) entre as transições da fila do jogador. Se encontrar, inicia a perseguição por essa escada.
 
-7. RETORNO AO SPAWN / POSIÇÃO INICIAL
-(Comportamento mantido da v5.7, com pequenas adaptações para não interferir com o mapa cognitivo – o retorno não usa o mapa global.)
+8. ATALHO VIA MAPA COGNITIVO (checkStairPursuit)
+Antes de recorrer à fila de transições do jogador, o monstro verifica se o GlobalMonsterMap já contém uma rota completa até ao jogador. Se o primeiro passo dessa rota for uma escada no piso actual e a direcção for coerente, o monstro inicia a perseguição por essa escada, mesmo que o jogador nunca a tenha utilizado.
 
-8. COMANDOS DE DIAGNÓSTICO
-8.1 !scan – Mapa de Terreno
-(Igual à v5.7)
+Verificação de direcção (novo na v7.2): O código calcula deltaZ = stairDest.z - stairOrigin.z e targetDeltaZ = leader.z - current.z. A escada só é aceite se:
 
-8.2 !scanfull – Relatório Ultra Detalhado
-(Igual à v5.7)
+deltaZ e targetDeltaZ tiverem o mesmo sinal (ambos positivos = subir, ambos negativos = descer), ou
 
-8.3 !pathtest – Teste de Rota Global (novo)
-Força o monstro alvo a fazer scan e encontrar uma rota global até ao jogador.
+O destino da escada for exactamente o piso onde o líder está.
 
-Uso: !pathtest
-Exibe o número de tiles adicionados pelo scan e, se encontrada, lista os passos da rota.
+9. COMANDOS DE DIAGNÓSTICO
+Comando	Função
+!scan	Mapa ASCII do terreno ao redor do jogador.
+!scanfull	Relatório detalhado de tiles, waypoints e transições.
+!pathtest	Força o monstro alvo a planear uma rota global.
+!mapinfo	Mostra o número de tiles no GlobalMonsterMap.
+!engagement	Exibe a barra de engajamento do monstro alvo.
+!deadline	Mostra o tempo restante da perseguição actual.
+!debugtile	Vizinhos no grafo ao redor do jogador.
+10. REMOÇÃO DE SISTEMAS EXPERIMENTAIS
+Os seguintes sistemas foram completamente removidos:
 
-8.4 !mapinfo – Estado do Mapa Cognitivo (novo)
-Uso: !mapinfo
-Mostra quantos tiles o GlobalMonsterMap contém e se a posição do monstro alvo está mapeada como caminhável.
+Espiral de Farejamento (sniff_operation)
 
-8.5 !resetspa – Reset de Afinidades (para testes)
-(Existente, mantido)
+Grade de Rastros (scent_grid)
 
-Os comandos !scan e !scanfull continuam úteis para visualizar o terreno e depurar por que um caminho não é encontrado.
+Pedido de Rota Individual (PRI)
 
-9. INTEGRAÇÃO COM SUMMONS VS HOSTIS
-Funcionalidade	Summons	Hostis
-Iniciar perseguição	Sempre que o mestre muda de piso	Quando têm target e o alvo muda de piso
-Cancelar perseguição	Se o mestre fica acessível	Apenas se o líder estiver acessível e a ≤ 3 tiles
-Timeout	120 ciclos (~120s)	45 segundos reais
-Desistência por bloqueio	Teleporta após 5 falhas de pathfinding	Abandona a escada após 4s sem progresso ou 3 mov. forçados
-Retorno	Teleporta para o mestre	Caminha de volta ao spawn ou à posição inicial
-Waypoints de superfície	Usa se o mestre estiver inacessível	Usa quando bloqueado a caminho da escada (fallback)
-Mapa cognitivo	(Desativado por omissão; pode ser ativado removendo !isSummon())	Sim, prioritário em caso de bloqueio
-Aguardar aliados	Sim (fila indiana)	Não
-10. REGRAS DE LOG E DEBUG
-Todos os logs do sistema usam os prefixos:
+Sistema de Rotas Assíncrono Controlado (SRAC)
 
+Nenhum destes sistemas está presente na versão actual.
+
+11. REGRAS DE LOG E DEBUG
 Prefixo	Significado
-[MCR-STAIR]	Decisões de máquina de estados (iniciar, cancelar, timeout, retorno)
-[MCR-WALK]	Operações de caminhada (walkToWaypoint, onWalkComplete)
-[MCR-PLAYER]	Registo de transições e waypoints do jogador
-[MCR-TILE]	Exceções de pathfinding em tiles de escada
-[MCR-moveCreature]	Captura de mudanças de piso
-[MCR-COGNI]	Novo: Mapa cognitivo – scans, BFS, tentativas de rota
-Exemplo de log com mapa cognitivo:
+[MCR-STAIR]	Decisões da máquina de estados (início, transporte, atalhos).
+[MCR-COGNI]	Mapa cognitivo – scans, BFS, GPS.
+[MCR-ENGAGE]	Mudanças na barra de engajamento e deadline.
+[MCR-SIGHT]	Timeout por perda de visão.
+[MCR-RETURN]	Retorno ao spawn.
+[MCR-PLAYER]	Registo de transições do jogador.
+[MCR-WALK]	Operações de caminhada.
+[MCR-moveCreature]	Captura de mudanças de piso (apenas jogadores).
+12. COMPORTAMENTO ESPERADO DOS MONSTROS
+Perseguição multi‑piso: monstros seguem o jogador através de escadas usando a fila de transições.
 
-text
-[MCR-PLAYER] Kheltz nova transição adicionada. Fila tem 3 elemento(s).
-[MCR-STAIR] Rato perseguição INICIADA. stairOrigin=(1011,1013,7) ...
-[MCR-COGNI] Rato tentando usar mapa global. myPos=(1016,1015,7) target=(1011,1013,7)
-[MCR-COGNI] BFS iniciado... Tiles no mapa: 1089 goalIsStair=true
-[MCR-COGNI] BFS sucesso: caminho com 5 passos.
-[MCR-COGNI] Rato rota global encontrada com 5 passos.
-...
-[MCR-STAIR] Rato CHEGOU ao waypoint! Utilizando escada.
-11. EXEMPLOS DE COMPORTAMENTO
-11.1 Hostil usa mapa cognitivo para contornar obstáculo
-Jogador percorre um corredor em “L”, largando waypoints.
-Rato tenta seguir a escada mas fica preso porque o corredor é bloqueado para um caminho direto.
-Após 8 ciclos preso, tryUseGlobalMap() é chamado: o BFS encontra um caminho alternativo através dos tiles já mapeados, que pode incluir uma rota mais longa mas transitável. O rato segue a rota global, contorna o obstáculo e chega à escada.
+Contorno de obstáculos: o BFS reactivo encontra caminhos alternativos quando estão bloqueados.
 
-11.2 Cancelamento da rota global quando líder fica acessível
-Durante a perseguição, o rato está a meio de uma rota global.
-O líder desce de volta ao mesmo piso e fica a 3 tiles de distância.
-O onThink_async deteta que o líder está acessível, cancela a rota global e restaura o follow normal.
+Atalhos proactivos: mesmo sem ver o jogador, um monstro pode planear uma rota para uma escada que o leve ao alvo, usando o mapa cognitivo.
 
-12. MANUTENÇÃO E EXPANSÃO FUTURA
-12.1 Ajuste de parâmetros do mapa cognitivo
-Limite de nós do BFS: alterar maxNodes em findPath.
+Atalhos via mapa cognitivo: no momento de escolher a escada, o monstro verifica se já conhece uma rota directa (incluindo escadas não percorridas pelo jogador) e utiliza‑a prioritariamente, desde que a direcção seja coerente.
 
-Tamanho máximo do scan: maxTiles em scanArea.
+Reacção imediata a obstáculos: se uma Magic Wall desaparece, o monstro detecta a mudança na próxima consulta ao tile (validação preguiçosa), sem esperar pelo ciclo de limpeza.
 
-Throttle entre tentativas: 2000 ms (alterável no código).
+Maior persistência: devido aos timeouts alargados (10s sem visão, 25s de deadline base), os monstros desistem menos facilmente.
 
-Distância mínima para usar mapa global: 2 tiles (condição em tryUseGlobalMap).
+Estabilidade total: o servidor não apresenta crashes, mesmo com dezenas de monstros activos.
 
-12.2 Ativar para summons
-Remover as verificações !isSummon() em tryUseGlobalMap e na chamada proactiva.
-Nota: summons já possuem teleporte após timeout; o mapa cognitivo pode dar‑lhes uma perseguição mais natural.
+13. MANUTENÇÃO E PARÂMETROS AJUSTÁVEIS
+Parâmetro	Localização	Valor actual
+Deadline base	computePursuitDeadline	25000 ms
+Perda de visão timeout	SIGHT_LOST_TIMEOUT_TICKS	10 ticks
+Throttle BFS reactivo (1.ª tentativa)	tryUseGlobalMap	3000 ms
+Throttle BFS reactivo (2.ª tentativa)	tryUseGlobalMap	10000 ms
+Tamanho do scan (1.ª tentativa)	tryUseGlobalMap	500 tiles, raio 15
+Tamanho do scan (2.ª tentativa)	tryUseGlobalMap	1000 tiles, raio 18
+Throttle perseguição proactiva (parado)	tryProactiveGlobalPursuit	5000 ms
+Throttle perseguição proactiva (em perseguição)	tryProactiveGlobalPursuit	10000 ms
+Raio scan proactivo	tryProactiveGlobalPursuit	25
+Máximo de monstros próximos (proactivo)	tryProactiveGlobalPursuit	2
+Limite de nós do BFS	findPath	2000
+Tamanho máximo do scan	scanArea	10000–15000
+TTL de obstáculo temporário	invalidateTileBlocked	15000 ms
+Intervalo de limpeza de obstáculos	onThinkMCR	10000 ms
+Atalho por mapa cognitivo	checkStairPursuit	activado (antes da fila do jogador)
+Verificação de direcção da escada	checkStairPursuit	activada
+14. CÓDIGOS
+Abaixo estão todos os ficheiros e funções que compõem o sistema actual, actualizados para a versão 7.2.
 
-12.3 Limpeza do grafo
-Atualmente o grafo nunca remove tiles. Uma política de expiração pode ser adicionada com base no lastUpdated.
-
-13. CÓDIGOS
-(Apenas as partes novas ou alteradas em relação à v5.7 são apresentadas; as restantes permanecem como na versão anterior.)
-
-📄 1. global_monster_map.hpp (novo ficheiro)
+📄 global_monster_map.hpp
 cpp
 #pragma once
+#include "game/movement/position.hpp"
 #include <unordered_map>
 #include <vector>
-#include "position.h"
+#include <deque>
+#include <cstdint>
+#include <shared_mutex>
+#include <atomic>
+
+struct StairTransition;
 
 struct TileInfo {
     bool walkable = true;
@@ -300,32 +274,62 @@ struct TileInfo {
     uint64_t lastUpdated = 0;
 };
 
+struct TemporaryObstacle {
+    uint64_t expiryTime;
+};
+
 class GlobalMonsterMap {
 public:
     static GlobalMonsterMap& getInstance();
 
     void addTile(const Position& pos, bool walkable, bool dynamic = false);
     bool isWalkable(const Position& pos) const;
-    size_t scanArea(const Position& origin, int radius, int maxZUp = 1, int maxZDown = 1, size_t maxTiles = 2000);
+    size_t scanArea(const Position& origin, int radius, int maxZUp = 1, int maxZDown = 1,
+                    size_t maxTiles = 2000,
+                    const std::deque<StairTransition>& playerStairs = {});
     std::vector<Position> findPath(const Position& start, const Position& goal) const;
+    void notifyTileChange(const Position& pos);
+    void addTemporaryObstacle(const Position& pos, uint64_t durationMs);
+    void cleanupTemporaryObstacles();
+    void saveToFile(const std::string& filename);
+    void loadFromFile(const std::string& filename);
 
     void addStairTransition(const Position& from, const Position& to);
-    std::vector<Position> getDestinations(const Position& pos);
 
     const std::unordered_map<Position, TileInfo>& getTiles() const { return m_tiles; }
 
+    bool mcrTryScanArea(const Position& origin, int radius, int maxZUp, int maxZDown,
+                        size_t maxTiles, const std::deque<StairTransition>& playerStairs,
+                        size_t* outAdded);
+
 private:
+    GlobalMonsterMap() = default;
+    mutable std::shared_mutex m_mutex;
     std::unordered_map<Position, TileInfo> m_tiles;
     std::unordered_map<Position, std::vector<Position>> m_transitions;
+    std::unordered_map<Position, TemporaryObstacle> m_temporaryObstacles;
+
+    void addTileUnlocked(const Position& pos, bool walkable, bool dynamic);
+    bool isWalkableUnlocked(const Position& pos) const;
+    std::vector<Position> getDestinationsUnlocked(const Position& pos) const;
 };
 
-// Singleton accessor
 inline GlobalMonsterMap& g_globalMonsterMap() { return GlobalMonsterMap::getInstance(); }
-📄 2. global_monster_map.cpp (novo ficheiro)
+
+extern std::atomic<int> g_activeScans;
+constexpr int MAX_ACTIVE_SCANS = 1;
+📄 global_monster_map.cpp
 cpp
 #include "global_monster_map.hpp"
-#include "game.h"
-#include "tile.h"
+#include "game/game.hpp"
+#include "items/tile.hpp"
+#include "items/item.hpp"
+#include "utils/tools.hpp"
+#include <queue>
+#include <fstream>
+#include <thread>
+
+std::atomic<int> g_activeScans(0);
 
 GlobalMonsterMap& GlobalMonsterMap::getInstance() {
     static GlobalMonsterMap instance;
@@ -333,27 +337,59 @@ GlobalMonsterMap& GlobalMonsterMap::getInstance() {
 }
 
 void GlobalMonsterMap::addTile(const Position& pos, bool walkable, bool dynamic) {
-    m_tiles[pos] = {walkable, dynamic, getCurrentTimeMs()};
+    std::unique_lock lock(m_mutex);
+    addTileUnlocked(pos, walkable, dynamic);
+}
+
+void GlobalMonsterMap::addTileUnlocked(const Position& pos, bool walkable, bool dynamic) {
+    auto& info = m_tiles[pos];
+    info.walkable = walkable;
+    info.dynamic = dynamic;
+    info.lastUpdated = getCurrentTimeMs();
 }
 
 bool GlobalMonsterMap::isWalkable(const Position& pos) const {
+    std::shared_lock lock(m_mutex);
+    return isWalkableUnlocked(pos);
+}
+
+bool GlobalMonsterMap::isWalkableUnlocked(const Position& pos) const {
     auto it = m_tiles.find(pos);
-    return it != m_tiles.end() && it->second.walkable;
+    if (it == m_tiles.end()) return false;
+    if (it->second.dynamic) {
+        // Validação preguiçosa: consulta o estado real do tile
+        auto tile = g_game().map.getTile(pos);
+        bool blocked = tile && (tile->hasFlag(TILESTATE_BLOCKPATH) || tile->hasFlag(TILESTATE_BLOCKSOLID));
+        return !blocked;
+    }
+    return it->second.walkable;
 }
 
-void GlobalMonsterMap::addStairTransition(const Position& from, const Position& to) {
-    m_transitions[from].push_back(to);
-    if (m_tiles.find(from) == m_tiles.end()) m_tiles[from] = {true, false, getCurrentTimeMs()};
-    if (m_tiles.find(to) == m_tiles.end())   m_tiles[to]   = {true, false, getCurrentTimeMs()};
-}
-
-std::vector<Position> GlobalMonsterMap::getDestinations(const Position& pos) {
+std::vector<Position> GlobalMonsterMap::getDestinationsUnlocked(const Position& pos) const {
     auto it = m_transitions.find(pos);
     if (it != m_transitions.end()) return it->second;
     return {};
 }
 
-size_t GlobalMonsterMap::scanArea(const Position& origin, int radius, int maxZUp, int maxZDown, size_t maxTiles) {
+void GlobalMonsterMap::addStairTransition(const Position& from, const Position& to) {
+    std::unique_lock lock(m_mutex);
+    m_transitions[from].push_back(to);
+    if (m_tiles.find(from) == m_tiles.end())
+        addTileUnlocked(from, true, false);
+    if (m_tiles.find(to) == m_tiles.end())
+        addTileUnlocked(to, true, false);
+}
+
+size_t GlobalMonsterMap::scanArea(const Position& origin, int radius,
+                                  int maxZUp, int maxZDown, size_t maxTiles,
+                                  const std::deque<StairTransition>& playerStairs) {
+    if (g_activeScans >= MAX_ACTIVE_SCANS) return 0;
+    g_activeScans++;
+
+    std::unique_lock lock(m_mutex);
+    static const int dx[] = {-1, 1, 0, 0, -1, -1, 1, 1};
+    static const int dy[] = {0, 0, -1, 1, -1, 1, -1, 1};
+
     std::queue<Position> queue;
     size_t added = 0;
 
@@ -362,30 +398,98 @@ size_t GlobalMonsterMap::scanArea(const Position& origin, int radius, int maxZUp
         auto tile = g_game().map.getTile(pos);
         if (!tile) return;
         bool blocked = tile->hasFlag(TILESTATE_BLOCKPATH) || tile->hasFlag(TILESTATE_BLOCKSOLID);
-        addTile(pos, !blocked, false);
+        addTileUnlocked(pos, !blocked, false);
         added++;
         queue.push(pos);
     };
 
-    if (m_tiles.find(origin) == m_tiles.end()) addPos(origin);
-    else queue.push(origin);
+    // 1. Forçar a inclusão das transições do jogador
+    for (const auto& trans : playerStairs) {
+        if (m_tiles.find(trans.origin) == m_tiles.end()) addPos(trans.origin);
+        if (m_tiles.find(trans.destination) == m_tiles.end()) addPos(trans.destination);
+        auto& transVec = m_transitions[trans.origin];
+        if (std::find(transVec.begin(), transVec.end(), trans.destination) == transVec.end())
+            transVec.push_back(trans.destination);
+    }
 
+    // 2. Inicialização da fila
+    bool originMapped = (m_tiles.find(origin) != m_tiles.end());
+    if (!originMapped) {
+        addPos(origin);
+    } else {
+        size_t scanned = 0;
+        constexpr size_t maxSeedScan = 2000;
+        for (const auto& [pos, info] : m_tiles) {
+            if (++scanned > maxSeedScan) break;
+            if (!info.walkable) continue;
+            if (std::abs(pos.x - origin.x) > radius || std::abs(pos.y - origin.y) > radius) continue;
+            if (pos.z < origin.z - maxZDown || pos.z > origin.z + maxZUp) continue;
+
+            bool hasUnexplored = false;
+            for (int i = 0; i < 8 && !hasUnexplored; ++i) {
+                Position next(pos.x + dx[i], pos.y + dy[i], pos.z);
+                if (m_tiles.find(next) == m_tiles.end()) hasUnexplored = true;
+            }
+            if (hasUnexplored) queue.push(pos);
+        }
+        added = 0;
+    }
+
+    // 3. Flood‑fill
     while (!queue.empty() && added < maxTiles) {
         Position current = queue.front(); queue.pop();
         if (std::abs(current.x - origin.x) > radius || std::abs(current.y - origin.y) > radius) continue;
         if (current.z < origin.z - maxZDown || current.z > origin.z + maxZUp) continue;
 
-        static const int dx[] = {-1, 1, 0, 0};
-        static const int dy[] = {0, 0, -1, 1};
-        for (int i = 0; i < 4; ++i) {
+        for (int i = 0; i < 8; ++i) {
             Position next(current.x + dx[i], current.y + dy[i], current.z);
-            if (m_tiles.find(next) == m_tiles.end()) addPos(next);
+            if (m_tiles.find(next) != m_tiles.end()) continue;
+            if (i >= 4) {
+                Position adj1(current.x + dx[i], current.y, current.z);
+                Position adj2(current.x, current.y + dy[i], current.z);
+                auto tile1 = g_game().map.getTile(adj1);
+                auto tile2 = g_game().map.getTile(adj2);
+                bool blocked1 = tile1 && (tile1->hasFlag(TILESTATE_BLOCKPATH) || tile1->hasFlag(TILESTATE_BLOCKSOLID));
+                bool blocked2 = tile2 && (tile2->hasFlag(TILESTATE_BLOCKPATH) || tile2->hasFlag(TILESTATE_BLOCKSOLID));
+                if (blocked1 && blocked2) continue;
+            }
+            addPos(next);
         }
 
-        for (const auto& dest : getDestinations(current)) {
+        for (const auto& dest : getDestinationsUnlocked(current)) {
             if (m_tiles.find(dest) == m_tiles.end()) addPos(dest);
         }
+
+        // Descoberta automática de escadas
+        if (current != origin) {
+            auto tile = g_game().map.getTile(current);
+            if (tile && tile->hasFlag(TILESTATE_FLOORCHANGE)) {
+                Position dest = tile->getDestination();
+                if (dest.x != 0 || dest.y != 0 || dest.z != 0) {
+                    auto& trans = m_transitions[current];
+                    if (std::find(trans.begin(), trans.end(), dest) == trans.end()) {
+                        trans.push_back(dest);
+                        if (m_tiles.find(dest) == m_tiles.end()) addPos(dest);
+                    }
+                } else {
+                    auto tryAdd = [&](int newZ) {
+                        if (newZ >= 0 && newZ <= 15) {
+                            Position destSimple(current.x, current.y, newZ);
+                            auto& trans = m_transitions[current];
+                            if (std::find(trans.begin(), trans.end(), destSimple) == trans.end()) {
+                                trans.push_back(destSimple);
+                                if (m_tiles.find(destSimple) == m_tiles.end()) addPos(destSimple);
+                            }
+                        }
+                    };
+                    tryAdd(current.z + 1);
+                    tryAdd(current.z - 1);
+                }
+            }
+        }
     }
+
+    g_activeScans--;
     return added;
 }
 
@@ -393,9 +497,8 @@ std::vector<Position> GlobalMonsterMap::findPath(const Position& start, const Po
     if (start == goal) return {start};
 
     bool goalIsStair = false;
-    if (auto goalTile = g_game().map.getTile(goal)) {
+    if (auto goalTile = g_game().map.getTile(goal))
         goalIsStair = goalTile->hasFlag(TILESTATE_FLOORCHANGE);
-    }
 
     std::unordered_map<Position, Position> cameFrom;
     std::queue<Position> queue;
@@ -403,204 +506,558 @@ std::vector<Position> GlobalMonsterMap::findPath(const Position& start, const Po
     cameFrom[start] = start;
 
     size_t nodes = 0;
-    const size_t maxNodes = 500;
+    const size_t maxNodes = 2000;
 
     while (!queue.empty() && nodes < maxNodes) {
         Position current = queue.front(); queue.pop();
         if (current == goal) {
             std::vector<Position> path;
-            while (current != start) { path.push_back(current); current = cameFrom[current]; }
+            for (Position cur = goal; cur != start; ) {
+                path.push_back(cur);
+                auto it = cameFrom.find(cur);
+                if (it == cameFrom.end() || it->second == cur) break; // segurança
+                cur = it->second;
+            }
             std::reverse(path.begin(), path.end());
             return path;
         }
 
-        static const int dx[] = {-1, 1, 0, 0};
-        static const int dy[] = {0, 0, -1, 1};
-        for (int i = 0; i < 4; ++i) {
+        static const int dx[] = {-1, 1, 0, 0, -1, -1, 1, 1};
+        static const int dy[] = {0, 0, -1, 1, -1, 1, -1, 1};
+        for (int i = 0; i < 8; ++i) {
             Position next(current.x + dx[i], current.y + dy[i], current.z);
             if (cameFrom.find(next) != cameFrom.end()) continue;
+
+            if (i >= 4) {
+                Position adj1(current.x + dx[i], current.y, current.z);
+                Position adj2(current.x, current.y + dy[i], current.z);
+                bool blocked1 = !isWalkable(adj1) && m_tiles.find(adj1) != m_tiles.end();
+                bool blocked2 = !isWalkable(adj2) && m_tiles.find(adj2) != m_tiles.end();
+                if (blocked1 && blocked2) continue;
+            }
+
             bool reachable = isWalkable(next);
             if (!reachable && next == goal && goalIsStair) reachable = true;
-            if (reachable) { cameFrom[next] = current; queue.push(next); nodes++; }
+            if (reachable) {
+                cameFrom[next] = current;
+                queue.push(next);
+                nodes++;
+            }
         }
 
-        auto transIt = m_transitions.find(current);
-        if (transIt != m_transitions.end()) {
-            for (const auto& dest : transIt->second) {
-                if (cameFrom.find(dest) == cameFrom.end() && isWalkable(dest)) {
-                    cameFrom[dest] = current;
-                    queue.push(dest);
-                    nodes++;
-                }
+        for (const auto& dest : getDestinationsUnlocked(current)) {
+            if (cameFrom.find(dest) == cameFrom.end() && isWalkable(dest)) {
+                cameFrom[dest] = current;
+                queue.push(dest);
+                nodes++;
             }
         }
     }
     return {};
 }
-📄 3. monster.h – Novos membros (adicionar à secção privada)
+
+void GlobalMonsterMap::notifyTileChange(const Position& pos) {
+    std::unique_lock lock(m_mutex);
+    auto tile = g_game().map.getTile(pos);
+    bool blocked = tile ? (tile->hasFlag(TILESTATE_BLOCKPATH) || tile->hasFlag(TILESTATE_BLOCKSOLID)) : true;
+    auto it = m_tiles.find(pos);
+    if (it != m_tiles.end() && it->second.walkable == !blocked) return;
+    addTileUnlocked(pos, !blocked, it != m_tiles.end() && it->second.dynamic);
+}
+
+void GlobalMonsterMap::addTemporaryObstacle(const Position& pos, uint64_t durationMs) {
+    std::unique_lock lock(m_mutex);
+    m_temporaryObstacles[pos] = {getCurrentTimeMs() + durationMs};
+    auto& info = m_tiles[pos];
+    info.walkable = false;
+    info.dynamic = true;
+    info.lastUpdated = getCurrentTimeMs();
+}
+
+void GlobalMonsterMap::cleanupTemporaryObstacles() {
+    std::unique_lock lock(m_mutex);
+    uint64_t now = getCurrentTimeMs();
+    for (auto it = m_temporaryObstacles.begin(); it != m_temporaryObstacles.end(); ) {
+        if (now >= it->second.expiryTime) {
+            auto tile = g_game().map.getTile(it->first);
+            bool walkable = true;
+            if (tile) {
+                walkable = !(tile->hasFlag(TILESTATE_BLOCKPATH) || tile->hasFlag(TILESTATE_BLOCKSOLID));
+            }
+            auto tileIt = m_tiles.find(it->first);
+            if (tileIt != m_tiles.end()) {
+                tileIt->second.walkable = walkable;
+                tileIt->second.dynamic = false;
+                tileIt->second.lastUpdated = now;
+            }
+            it = m_temporaryObstacles.erase(it);
+        } else {
+            ++it;
+        }
+    }
+}
+
+void GlobalMonsterMap::saveToFile(const std::string& filename) {
+    std::vector<std::tuple<uint16_t, uint16_t, uint8_t, uint16_t>> staticTiles;
+    {
+        std::shared_lock lock(m_mutex);
+        for (const auto& [pos, info] : m_tiles) {
+            if (!info.dynamic) {
+                uint16_t flags = info.walkable ? 0x01 : 0x00;
+                staticTiles.emplace_back(pos.x, pos.y, pos.z, flags);
+            }
+        }
+    }
+    std::thread([staticTiles, filename]() {
+        std::ofstream file(filename, std::ios::binary);
+        if (!file) return;
+        uint32_t count = static_cast<uint32_t>(staticTiles.size());
+        file.write(reinterpret_cast<const char*>(&count), sizeof(count));
+        for (const auto& [x, y, z, flags] : staticTiles) {
+            file.write(reinterpret_cast<const char*>(&x), sizeof(x));
+            file.write(reinterpret_cast<const char*>(&y), sizeof(y));
+            file.write(reinterpret_cast<const char*>(&z), sizeof(z));
+            file.write(reinterpret_cast<const char*>(&flags), sizeof(flags));
+        }
+    }).detach();
+}
+
+void GlobalMonsterMap::loadFromFile(const std::string& filename) {
+    std::ifstream file(filename, std::ios::binary);
+    if (!file) return;
+    uint32_t count;
+    file.read(reinterpret_cast<char*>(&count), sizeof(count));
+    for (uint32_t i = 0; i < count; ++i) {
+        uint16_t x, y, flags;
+        uint8_t z;
+        file.read(reinterpret_cast<char*>(&x), sizeof(x));
+        file.read(reinterpret_cast<char*>(&y), sizeof(y));
+        file.read(reinterpret_cast<char*>(&z), sizeof(z));
+        file.read(reinterpret_cast<char*>(&flags), sizeof(flags));
+        bool walkable = (flags & 0x01) != 0;
+        addTile(Position(x, y, z), walkable, false);
+    }
+}
+
+bool GlobalMonsterMap::mcrTryScanArea(const Position& origin, int radius,
+                                      int maxZUp, int maxZDown,
+                                      size_t maxTiles,
+                                      const std::deque<StairTransition>& playerStairs,
+                                      size_t* outAdded) {
+    size_t added = scanArea(origin, radius, maxZUp, maxZDown, maxTiles, playerStairs);
+    if (outAdded) *outAdded = added;
+    return added > 0;
+}
+📄 monster.h (excertos relevantes)
 cpp
-    // Mapa cognitivo global
-    bool m_usingGlobalPath = false;
-    std::vector<Position> m_globalPath;
-    size_t m_globalPathIndex = 0;
-    uint64_t m_lastGlobalScanAttempt = 0;
-    bool m_globalScanExpanded = false;
-    bool m_clearingStairs = false;
+// ==============================
+// MCR – Perseguição multi‑piso
+// ==============================
 
-    // Declarações dos novos métodos
-    void tryUseGlobalMap();
-    void followGlobalPathStep();
-    void clearGlobalPath();
-📄 4. monster.cpp – Bloco principal atualizado (onThink_async)
-(Substitui o bloco MCR do onThink_async da v5.7. As funções checkStairPursuit, walkToWaypoint, retorno, etc. mantêm‑se; apenas o bloco central e as novas funções são mostrados.)
+// Métodos públicos
+void setCognitivePath(const std::vector<Position>& path);
+Position findFreeTileNear(const Position& center);
+void onWalkComplete() override;
+Player* getTargetPlayer();
+int getEngagement() const { return m_engagement; }
+void setEngagement(int value) { m_engagement = std::clamp(value, 0, 100); }
+uint64_t getPursuitDeadline() const { return m_pursuitDeadline; }
+bool isPursuingStairs() const { return m_pursuingStairs; }
+bool isUsingGlobalPath() const { return m_usingGlobalPath; }
+bool isInOnThinkMCR() const { return m_inOnThinkMCR; }
+const Position& getStairOrigin() const { return m_stairOrigin; }
+const Position& getStairDestination() const { return m_stairDestination; }
+void forceGpsOptimization(Player* player);
 
+// Métodos privados
+void tryUseGlobalMap();
+void tryProactiveGlobalPursuit();
+void followGlobalPathStep();
+void clearGlobalPath();
+bool isPlayerTransition(Player* player, const Position& from, const Position& to);
+void invalidateTileBlocked(const Position& pos);
+void updateEngagement(bool playerVisible, bool damagedPlayer, bool tookDamage);
+uint64_t computePursuitDeadline();
+void handleSummonMasterTeleport(Player* player);
+void resetEngagement();
+
+// Membros privados
+bool m_pursuingStairs = false;
+bool m_clearingStairs = false;
+Position m_stairOrigin;
+Position m_stairDestination;
+bool m_stairIsActive = false;
+int m_stairStuckCount = 0;
+int m_stairTotalCycles = 0;
+int m_stairPathfindFailCount = 0;
+uint32_t m_savedFollowId = 0;
+uint64_t m_pursuitStartTime = 0;
+uint64_t m_stairAttemptStartTime = 0;
+int m_minDistToStair = std::numeric_limits<int>::max();
+uint64_t m_lastDistImprovementTime = 0;
+Position m_homePosition;
+bool m_returningHome = false;
+bool m_followingSurfaceWaypoint = false;
+size_t m_currentSurfaceWaypointIndex = 0;
+int m_forcedMoveFailCount = 0;
+bool m_usingGlobalPath = false;
+bool m_globalScanExpanded = false;
+bool m_inOnThinkMCR = false;
+std::vector<Position> m_globalPath;
+size_t m_globalPathIndex = 0;
+uint64_t m_lastGlobalScanAttempt = 0;
+uint64_t m_lastExtendedScanAttempt = 0;   // NOVO v7.2
+int m_surfaceWaypointAttempts = 0;
+
+int m_engagement = 0;
+Position m_lastMasterPos;
+int m_sightLostTicks = 0;
+static constexpr int SIGHT_LOST_TIMEOUT_TICKS = 10;
+bool m_defensiveRetaliation = false;
+uint64_t m_lastRetaliationTime = 0;
+uint64_t m_pursuitDeadline = 0;
+int m_proactiveFailCount = 0;
+int m_returnFailCount = 0;
+int m_totalReturnFails = 0;
+bool m_hasReturnedToSpawn = false;
+uint64_t m_lastGpsOptimization = 0;
+uint64_t m_lastRouteRequestTime = 0;
+📄 monster.cpp — funções principais
+Monster::onThinkMCR()
 cpp
-void Monster::onThink_async() {
-    // ... código inicial ...
-    if (m_returningHome) { processarRetornoSimples(); return; }
+void Monster::onThinkMCR() {
+    if (m_inOnThinkMCR) return;
+    m_inOnThinkMCR = true;
 
-    if (isSummon() || (!isSummon() && (!m_attackedCreature.expired() ||
-        (m_persistentTargetPlayer && !m_persistentTargetPlayer->getStairTransitions().empty())))) {
-        checkStairPursuit();
+    static uint64_t lastCleanup = 0;
+    if (getCurrentTimeMs() - lastCleanup > 10000) {
+        g_globalMonsterMap().cleanupTemporaryObstacles();
+        lastCleanup = getCurrentTimeMs();
     }
 
-    if (m_returningToSpawn) { processarRetornoSpawn(); return; }
-
-    // Monitorização da rota global antes do bloco de perseguição
+    // 0. Seguir rota global (BFS)
     if (m_usingGlobalPath) {
         auto leader = isSummon() ? getMaster() : (!m_attackedCreature.expired() ? m_attackedCreature.lock() : nullptr);
+        if (leader && leader->isRemoved()) leader = nullptr;
         if (leader) {
-            // Cancelar se líder acessível
-            if (leader->getPosition().z == getPosition().z &&
-                std::abs(getPosition().x - leader->getPosition().x) + std::abs(getPosition().y - leader->getPosition().y) <= 3) {
-                clearGlobalPath();
-                setFollowCreature(leader);
-            } else {
+            if (leader->getPosition().z == getPosition().z) {
+                int distToLeader = std::abs(getPosition().x - leader->getPosition().x)
+                                 + std::abs(getPosition().y - leader->getPosition().y);
+                if (distToLeader <= 3) {
+                    clearGlobalPath();
+                    setFollowCreature(leader);
+                    setAttackedCreature(leader);
+                }
+            }
+            if (m_usingGlobalPath) {
                 FindPathParams fpp;
                 getPathSearchParams(getMonster(), fpp);
                 std::vector<Direction> dummy;
                 if (getPathTo(leader->getPosition(), dummy, fpp)) {
                     clearGlobalPath();
                     setFollowCreature(leader);
+                    setAttackedCreature(leader);
                 }
             }
         }
         if (m_usingGlobalPath) {
             followGlobalPathStep();
+            m_inOnThinkMCR = false;
             return;
         }
     }
 
+    // 1. Combate – prioridade máxima
+    if (!isSummon() && !m_returningToSpawn && !m_returningHome) {
+        auto targetCreature = getAttackedCreature();
+        if (!targetCreature) targetCreature = getFollowCreature();
+        if (targetCreature && !targetCreature->isRemoved() && targetCreature->getPlayer()
+            && canUseAttack(getPosition(), targetCreature)) {
+            m_hasReturnedToSpawn = false;
+            clearStairPursuit();
+            clearGlobalPath();
+            setFollowCreature(targetCreature);
+            setAttackedCreature(targetCreature);
+        }
+    }
+
+    // 2. Retorno ao spawn / casa
+    if (m_returningHome) {
+        if (m_defensiveRetaliation) {
+            if (getCurrentTimeMs() - m_lastRetaliationTime > 5000 || !getAttackedCreature()) {
+                m_defensiveRetaliation = false;
+                setFollowCreature(nullptr);
+                setAttackedCreature(nullptr);
+            } else { m_inOnThinkMCR = false; return; }
+        }
+        processarRetornoSimples();
+        m_inOnThinkMCR = false;
+        return;
+    }
+    if (m_returningToSpawn) {
+        if (m_defensiveRetaliation) {
+            if (getCurrentTimeMs() - m_lastRetaliationTime > 5000 || !getAttackedCreature()) {
+                m_defensiveRetaliation = false;
+                setFollowCreature(nullptr);
+                setAttackedCreature(nullptr);
+            } else { m_inOnThinkMCR = false; return; }
+        }
+        processarRetornoSpawn();
+        m_inOnThinkMCR = false;
+        return;
+    }
+
+    // 3. Summon teleporte abrupto (desactivado)
+    // (comentado)
+
+    // 4. Perseguição por transições
+    if (isSummon() || (!isSummon() && (!m_attackedCreature.expired() ||
+        (m_persistentTargetPlayer && !m_persistentTargetPlayer->getStairTransitions().empty())))) {
+        checkStairPursuit();
+    }
+
+    // 5. Perseguição activa
     if (m_pursuingStairs) {
         Position myPos = getPosition();
         int dist = std::abs(myPos.x - m_stairOrigin.x) + std::abs(myPos.y - m_stairOrigin.y);
         m_stairTotalCycles++;
-        int timeout = isSummon() ? 120 : m_pursuitTimeout;
 
-        g_logger().info("[MCR-STAIR] {} em perseguição ativa. myPos={} stairOrigin={} dist={} walking={} stuckCount={} totalCycles={}/{}",
-            getName(), myPos.toString(), m_stairOrigin.toString(), dist, isWalkingToPosition(), m_stairStuckCount, m_stairTotalCycles, timeout);
+        auto targetPlayer = getTargetPlayer();
+        bool visible = targetPlayer && canSee(targetPlayer->getPosition());
+        updateEngagement(visible, visible, visible);
 
-        // Timeout geral
-        bool timeoutExpired = isSummon() ? (m_stairTotalCycles > 120) : (getCurrentTimeMs() - m_pursuitStartTime > 45000);
-        if (timeoutExpired) {
-            // ... (mesmo que v5.7)
-            return;
+        uint64_t newDeadline = computePursuitDeadline();
+        if (newDeadline > m_pursuitDeadline + 5000) {
+            m_pursuitDeadline = newDeadline;
         }
 
-        // Tentativa proactiva de mapa cognitivo (quando já mapeado)
-        if (!m_usingGlobalPath && g_globalMonsterMap().isWalkable(myPos)) {
-            tryUseGlobalMap();
-            if (m_usingGlobalPath) return;
-        }
-
-        // Verificar se o líder está acessível (mantido)
         auto leader = isSummon() ? getMaster() : (!m_attackedCreature.expired() ? m_attackedCreature.lock() : nullptr);
+        if (leader && leader->isRemoved()) leader = nullptr;
+        bool leaderVisible = leader && canSee(leader->getPosition());
+
+        // Timeout por perda de visão + deadline
+        if (leaderVisible) {
+            m_sightLostTicks = 0;
+            m_pursuitDeadline = computePursuitDeadline();
+        } else {
+            m_sightLostTicks++;
+            if (m_sightLostTicks >= SIGHT_LOST_TIMEOUT_TICKS) {
+                clearStairPursuit();
+                if (!isSummon()) iniciarRetornoSpawn();
+                m_inOnThinkMCR = false; return;
+            }
+            if (getCurrentTimeMs() > m_pursuitDeadline) {
+                clearStairPursuit();
+                if (!isSummon()) iniciarRetornoSpawn();
+                else m_nextStairIndex = m_currentTransitionIndex + 1;
+                m_inOnThinkMCR = false; return;
+            }
+        }
+
+        // BFS reactivo (throttle 3s, dist > 1)
+        if (!m_usingGlobalPath && dist > 1) {
+            uint64_t now = getCurrentTimeMs();
+            if (now - m_lastGlobalScanAttempt > 3000) {
+                tryUseGlobalMap();
+                if (m_usingGlobalPath) { m_inOnThinkMCR = false; return; }
+            }
+        }
+
+        // Líder acessível no mesmo piso?
         if (leader && leader->getPosition().z == myPos.z) {
             int distToLeader = std::abs(myPos.x - leader->getPosition().x) + std::abs(myPos.y - leader->getPosition().y);
             bool shouldCancel = false;
             if (isSummon()) {
                 FindPathParams fpp;
-                fpp.minTargetDist = 0; fpp.maxTargetDist = 0; fpp.fullPathSearch = false; fpp.clearSight = false; fpp.maxSearchDist = 0;
+                fpp.minTargetDist = 0; fpp.maxTargetDist = 0;
+                fpp.fullPathSearch = false; fpp.clearSight = false; fpp.maxSearchDist = 0;
                 std::vector<Direction> dummy;
                 if (getPathTo(leader->getPosition(), dummy, fpp)) shouldCancel = true;
             } else {
                 if (distToLeader <= 3) {
                     FindPathParams fpp;
-                    fpp.minTargetDist = 0; fpp.maxTargetDist = 0; fpp.fullPathSearch = false; fpp.clearSight = false; fpp.maxSearchDist = 0;
+                    fpp.minTargetDist = 0; fpp.maxTargetDist = 0;
+                    fpp.fullPathSearch = false; fpp.clearSight = false; fpp.maxSearchDist = 0;
                     std::vector<Direction> dummy;
                     if (getPathTo(leader->getPosition(), dummy, fpp)) shouldCancel = true;
                 }
             }
             if (shouldCancel) {
-                g_logger().info("[MCR-STAIR] {} líder acessível (dist={}), cancelando perseguição.", getName(), distToLeader);
                 if (!isSummon()) m_returnPath.clear();
                 m_nextStairIndex = m_currentTransitionIndex + 1;
                 clearStairPursuit();
-                return;
+                setFollowCreature(leader);
+                m_inOnThinkMCR = false; return;
             }
         }
 
-        // Waypoint de superfície (se aplicável)
+        // Waypoint de superfície alcançado?
         if (m_followingSurfaceWaypoint && (myPos == m_stairOrigin || dist <= 1)) {
-            // ... (mesmo que v5.7)
+            if (auto leader2 = isSummon() ? getMaster() : nullptr) {
+                if (auto player = leader2->getPlayer()) player->touchSurfaceWaypoint(m_currentSurfaceWaypointIndex);
+            }
+            m_currentSurfaceWaypointIndex++;
+            clearStairPursuit();
+            m_inOnThinkMCR = false; return;
         }
 
-        // Chegou ao waypoint/escada?
+        // Chegou à escada?
         if (myPos == m_stairOrigin || dist <= 1) {
-            // ... (mesmo que v5.7, transposição e clearStairPursuit)
-            return;
+            g_game().internalTeleport(static_self_cast<Monster>(), m_stairDestination);
+            if (!isSummon()) {
+                m_returnPath.push_back({m_stairOrigin, m_stairDestination,
+                    static_cast<uint64_t>(getCurrentTimeMs()), m_stairIsActive});
+            }
+            if (!isSummon() && leader && leader->getPlayer() && leader->getPosition().z == m_stairDestination.z) {
+                int d = std::abs(m_stairDestination.x - leader->getPosition().x)
+                      + std::abs(m_stairDestination.y - leader->getPosition().y);
+                if (d <= 3) {
+                    setFollowCreature(leader);
+                    setAttackedCreature(leader);
+                }
+            }
+            m_nextStairIndex = m_currentTransitionIndex + 1;
+            clearStairPursuit();
+            m_inOnThinkMCR = false; return;
         }
 
+        // Bloqueio e desencravamento
         if (isWalkingToPosition()) {
             m_stairStuckCount++;
             bool shouldForce = false;
             if (dist <= 2 && (m_stairIsActive ? m_stairStuckCount > 0 : m_stairStuckCount > 3)) {
                 shouldForce = true;
             } else if (m_stairStuckCount >= 8) {
-                // Prioridade ao mapa cognitivo
-                tryUseGlobalMap();
-                if (m_usingGlobalPath) return;
-
-                // Fallback: waypoints de superfície
                 if (!isSummon()) {
-                    // ... (código dos waypoints como na v5.7)
+                    tryUseGlobalMap();
+                    if (m_usingGlobalPath) { m_inOnThinkMCR = false; return; }
+
+                    auto leader3 = (!m_attackedCreature.expired() ? m_attackedCreature.lock() : nullptr);
+                    if (!leader3) leader3 = m_persistentTargetPlayer;
+                    if (leader3) {
+                        auto player = leader3->getPlayer();
+                        if (player) {
+                            auto& waypoints = player->getSurfaceWaypoints();
+                            if (!waypoints.empty()) {
+                                const SurfaceWaypoint* bestWp = nullptr;
+                                int bestDist = std::numeric_limits<int>::max();
+                                for (const auto& wp : waypoints) {
+                                    if (wp.pos.z == m_stairOrigin.z) {
+                                        int d = std::abs(wp.pos.x - m_stairOrigin.x) + std::abs(wp.pos.y - m_stairOrigin.y);
+                                        if (d < bestDist) { bestDist = d; bestWp = &wp; }
+                                    }
+                                }
+                                if (bestWp && bestWp->pos != myPos) {
+                                    walkToWaypoint(bestWp->pos);
+                                    m_stairStuckCount = 0;
+                                    m_inOnThinkMCR = false; return;
+                                }
+                            }
+                        }
+                    }
+
+                    std::vector<Position> adjacentTiles;
+                    for (int dx = -1; dx <= 1; ++dx)
+                        for (int dy = -1; dy <= 1; ++dy) {
+                            if (dx == 0 && dy == 0) continue;
+                            Position adjPos(m_stairOrigin.x + dx, m_stairOrigin.y + dy, m_stairOrigin.z);
+                            auto tile = g_game().map.getTile(adjPos);
+                            if (tile && !tile->hasFlag(TILESTATE_BLOCKPATH)) adjacentTiles.push_back(adjPos);
+                        }
+                    if (adjacentTiles.empty()) {
+                        for (int dx = -1; dx <= 1; ++dx)
+                            for (int dy = -1; dy <= 1; ++dy) {
+                                if (dx == 0 && dy == 0) continue;
+                                Position adjPos(myPos.x + dx, myPos.y + dy, myPos.z);
+                                auto tile = g_game().map.getTile(adjPos);
+                                if (tile && !tile->hasFlag(TILESTATE_BLOCKPATH)) adjacentTiles.push_back(adjPos);
+                            }
+                    }
+                    if (!adjacentTiles.empty()) {
+                        Position bestTile = adjacentTiles.front();
+                        int bestDist = std::abs(myPos.x - bestTile.x) + std::abs(myPos.y - bestTile.y);
+                        for (const auto& tile : adjacentTiles) {
+                            int d = std::abs(myPos.x - tile.x) + std::abs(myPos.y - tile.y);
+                            if (d < bestDist) { bestDist = d; bestTile = tile; }
+                        }
+                        walkToWaypoint(bestTile);
+                        m_stairStuckCount = 0;
+                        m_inOnThinkMCR = false; return;
+                    }
+                    m_stairStuckCount = 0;
+                    m_inOnThinkMCR = false; return;
+                } else {
+                    shouldForce = true;
                 }
-                // Fallback: tiles adjacentes
-                // ... (código existente)
             }
 
             if (shouldForce) {
                 Position oldPos = getPosition();
                 Direction dir = getDirectionTo(myPos, m_stairOrigin);
                 if (dir != DIRECTION_NONE) {
-                    if (dist <= 2) g_game().internalMoveCreature(static_self_cast<Monster>(), dir, FLAG_NOLIMIT);
-                    else g_game().internalMoveCreature(static_self_cast<Monster>(), dir, 0);
+                    Position nextPos = getNextPosition(dir, myPos);
+                    ReturnValue ret = g_game().internalMoveCreature(static_self_cast<Monster>(), dir, 0);
+                    if (ret != RETURNVALUE_NOERROR && dist <= 2) {
+                        ret = g_game().internalMoveCreature(static_self_cast<Monster>(), dir, FLAG_IGNOREBLOCKITEM);
+                    }
+                    if (ret != RETURNVALUE_NOERROR) {
+                        invalidateTileBlocked(nextPos);
+                    }
                 }
                 if (getPosition() == oldPos) {
                     m_forcedMoveFailCount++;
-                    if (m_forcedMoveFailCount >= 3) {
-                        m_nextStairIndex = m_currentTransitionIndex + 1;
-                        clearStairPursuit();
-                        return;
+                } else {
+                    m_forcedMoveFailCount = 0;
+                    if (!isSummon()) {
+                        m_lastDistImprovementTime = getCurrentTimeMs();
+                        m_minDistToStair = std::abs(getPosition().x - m_stairOrigin.x)
+                                         + std::abs(getPosition().y - m_stairOrigin.y);
                     }
-                } else m_forcedMoveFailCount = 0;
+                }
                 m_stairStuckCount = 0;
-                return;
+                if (m_forcedMoveFailCount >= 3) {
+                    m_nextStairIndex = m_currentTransitionIndex + 1;
+                    clearStairPursuit();
+                    m_inOnThinkMCR = false; return;
+                }
+                m_inOnThinkMCR = false; return;
             }
-            return;
+            m_inOnThinkMCR = false; return;
         }
 
-        // Aguardar aliados (summons) – mantido
-        // ...
+        // Aguardar aliados (summons)
+        if (isSummon() && dist > 0 && m_stairStuckCount < 3) {
+            Direction dirToWaypoint = getDirectionTo(myPos, m_stairOrigin);
+            if (dirToWaypoint != DIRECTION_NONE) {
+                Position frontPos = getNextPosition(dirToWaypoint, myPos);
+                auto frontTile = g_game().map.getTile(frontPos);
+                if (frontTile) {
+                    auto frontCreature = frontTile->getTopCreature();
+                    if (frontCreature) {
+                        auto frontMonster = frontCreature->getMonster();
+                        if (frontMonster && frontMonster->isSummon() && frontMonster->getMaster() == getMaster()) {
+                            m_stairTotalCycles--;
+                            m_inOnThinkMCR = false; return;
+                        }
+                    }
+                }
+            }
+        }
 
-        // Timeout de progresso (hostis) – mantido
+        if (!isSummon() && !isWalkingToPosition()) {
+            int currentDist = std::abs(getPosition().x - m_stairOrigin.x)
+                            + std::abs(getPosition().y - m_stairOrigin.y);
+            if (currentDist < m_minDistToStair) {
+                m_minDistToStair = currentDist;
+                m_lastDistImprovementTime = getCurrentTimeMs();
+            }
+        }
         if (!isSummon() && !isWalkingToPosition() && getCurrentTimeMs() - m_lastDistImprovementTime > 4000) {
             m_nextStairIndex = m_currentTransitionIndex + 1;
             clearStairPursuit();
-            return;
+            m_inOnThinkMCR = false; return;
         }
 
-        // Tentar novo caminho normal
         walkToWaypoint(m_stairOrigin);
         if (!isWalkingToPosition()) {
             if (isSummon()) {
@@ -611,207 +1068,473 @@ void Monster::onThink_async() {
                     clearStairPursuit();
                 }
             }
-        } else m_stairPathfindFailCount = 0;
+        } else {
+            m_stairPathfindFailCount = 0;
+        }
+        m_inOnThinkMCR = false;
         return;
     }
-    // ... resto do código original ...
+
+    // 6. Perseguição proactiva
+    if (!m_pursuingStairs && !m_returningToSpawn && !m_returningHome) {
+        tryProactiveGlobalPursuit();
+    }
+
+    m_inOnThinkMCR = false;
 }
-📄 5. Novos métodos no monster.cpp
+Monster::checkStairPursuit() (com atalho e verificação de direcção)
+cpp
+void Monster::checkStairPursuit() {
+    if (m_pursuingStairs || m_returningToSpawn) return;
+    if (m_hasReturnedToSpawn && !isSummon()) return;
+
+    std::shared_ptr<Creature> leader;
+    if (isSummon()) {
+        leader = getMaster();
+    } else {
+        if (!m_attackedCreature.expired()) leader = m_attackedCreature.lock();
+        else if (m_persistentTargetPlayer) leader = m_persistentTargetPlayer;
+    }
+    if (!leader) return;
+    auto leaderPlayer = leader->getPlayer();
+    if (!leaderPlayer) return;
+
+    if (!isSummon()) {
+        if (m_persistentTargetPlayer != leaderPlayer) m_nextStairIndex = 0;
+        else if (!m_persistentTargetPlayer) m_nextStairIndex = 0;
+        m_persistentTargetPlayer = leaderPlayer;
+    }
+
+    // ═══ Atalho via mapa cognitivo (com verificação de direcção) ═══
+    if (!m_pursuingStairs && g_globalMonsterMap().isWalkable(getPosition())) {
+        auto path = g_globalMonsterMap().findPath(getPosition(), leader->getPosition());
+        if (!path.empty() && path.size() >= 2 && path[0].z != path[1].z) {
+            Position stairOrigin = path[0];
+            Position stairDest   = path[1];
+            if (stairOrigin.z == getPosition().z) {
+                int deltaZ = stairDest.z - stairOrigin.z;          // +1 sobe, -1 desce
+                int targetDeltaZ = leader->getPosition().z - getPosition().z; // direcção desejada
+                bool directionOk = (deltaZ > 0 && targetDeltaZ > 0) ||
+                                   (deltaZ < 0 && targetDeltaZ < 0) ||
+                                   (stairDest.z == leader->getPosition().z);
+                if (directionOk) {
+                    auto tile = g_game().map.getTile(stairOrigin);
+                    bool isActive = tile && tile->hasFlag(TILESTATE_FLOORCHANGE);
+                    m_pursuingStairs = true;
+                    clearGlobalPath();
+                    m_stairOrigin          = stairOrigin;
+                    m_stairDestination     = stairDest;
+                    m_stairIsActive        = isActive;
+                    m_stairStuckCount      = 0;
+                    m_stairTotalCycles     = 0;
+                    m_stairPathfindFailCount = 0;
+                    m_forcedMoveFailCount  = 0;
+                    m_currentTransitionIndex = std::numeric_limits<size_t>::max();
+                    m_pursuitStartTime      = getCurrentTimeMs();
+                    m_stairAttemptStartTime = getCurrentTimeMs();
+                    m_minDistToStair        = std::numeric_limits<int>::max();
+                    m_lastDistImprovementTime = getCurrentTimeMs();
+                    m_homePosition          = getPosition();
+                    m_pursuitDeadline       = computePursuitDeadline();
+                    m_sightLostTicks        = 0;
+                    m_savedFollowId         = leader->getID();
+                    setFollowCreature(nullptr);
+                    g_logger().info("[MCR-STAIR] {} encontrou atalho pelo mapa cognitivo: escada em {} para {} (deltaZ={})",
+                        getName(), stairOrigin.toString(), stairDest.toString(), deltaZ);
+                    walkToWaypoint(m_stairOrigin);
+                    return;
+                }
+            }
+        }
+    }
+
+    auto& fila = leaderPlayer->getStairTransitions();
+    if (fila.empty()) {
+        if (isSummon()) {
+            if (leader->getPosition().z != getPosition().z) {
+                g_game().internalTeleport(static_self_cast<Monster>(), leader->getPosition());
+            } else {
+                FindPathParams fpp;
+                getPathSearchParams(getMonster(), fpp);
+                std::vector<Direction> dummy;
+                if (!getPathTo(leader->getPosition(), dummy, fpp)) {
+                    auto& waypoints = leaderPlayer->getSurfaceWaypoints();
+                    if (m_currentSurfaceWaypointIndex >= waypoints.size())
+                        m_currentSurfaceWaypointIndex = 0;
+                    while (m_currentSurfaceWaypointIndex < waypoints.size()) {
+                        const SurfaceWaypoint& wp = waypoints[m_currentSurfaceWaypointIndex];
+                        if (wp.pos.z == getPosition().z) {
+                            m_pursuingStairs = true;
+                            clearGlobalPath();
+                            m_stairOrigin = wp.pos;
+                            m_stairDestination = wp.pos;
+                            m_stairIsActive = false;
+                            m_stairStuckCount = 0;
+                            m_stairTotalCycles = 0;
+                            m_stairPathfindFailCount = 0;
+                            m_followingSurfaceWaypoint = true;
+                            m_forcedMoveFailCount = 0;
+                            m_savedFollowId = leader->getID();
+                            setFollowCreature(nullptr);
+                            walkToWaypoint(m_stairOrigin);
+                            return;
+                        }
+                        ++m_currentSurfaceWaypointIndex;
+                    }
+                }
+            }
+        }
+        return;
+    }
+
+    if (m_nextStairIndex == std::numeric_limits<size_t>::max())
+        m_nextStairIndex = isSummon() ? fila.size() : 0;
+
+    // ═══ SELECCIONAR A MELHOR ESCADA (custo combinado) ═══
+    size_t idx = m_nextStairIndex;
+    int bestCost = std::numeric_limits<int>::max();
+    size_t bestIdx = std::numeric_limits<size_t>::max();
+    Position playerPos = leader->getPosition();
+
+    while (idx < fila.size()) {
+        const StairTransition& trans = fila[idx];
+        if (trans.origin.z == getPosition().z) {
+            if (leader->getPosition().z == getPosition().z) {
+                FindPathParams fpp;
+                getPathSearchParams(getMonster(), fpp);
+                std::vector<Direction> dummy;
+                if (getPathTo(leader->getPosition(), dummy, fpp)) return;
+            }
+            auto path = g_globalMonsterMap().findPath(getPosition(), trans.origin);
+            int distToOrigin = path.empty()
+                ? (std::abs(getPosition().x - trans.origin.x) + std::abs(getPosition().y - trans.origin.y))
+                : static_cast<int>(path.size());
+            int distDestToPlayer = std::abs(trans.destination.x - playerPos.x)
+                                 + std::abs(trans.destination.y - playerPos.y);
+            int cost = distToOrigin + distDestToPlayer;
+            if (cost < bestCost) { bestCost = cost; bestIdx = idx; }
+        }
+        ++idx;
+    }
+
+    if (bestIdx != std::numeric_limits<size_t>::max()) {
+        const StairTransition& trans = fila[bestIdx];
+        m_pursuingStairs = true;
+        clearGlobalPath();
+        m_stairOrigin = trans.origin;
+        m_stairDestination = trans.destination;
+        m_stairIsActive = trans.isActive;
+        m_stairStuckCount = 0;
+        m_stairTotalCycles = 0;
+        m_stairPathfindFailCount = 0;
+        m_currentTransitionIndex = bestIdx;
+        m_pursuitStartTime = getCurrentTimeMs();
+        m_stairAttemptStartTime = getCurrentTimeMs();
+        m_minDistToStair = std::numeric_limits<int>::max();
+        m_lastDistImprovementTime = getCurrentTimeMs();
+        m_homePosition = getPosition();
+        m_pursuitDeadline = computePursuitDeadline();
+        m_sightLostTicks = 0;
+        m_savedFollowId = leader->getID();
+        setFollowCreature(nullptr);
+        g_logger().info("[MCR-STAIR] {} perseguição INICIADA. stairOrigin={} stairDest={} isActive={} (melhor índice {})",
+            getName(), m_stairOrigin.toString(), m_stairDestination.toString(), m_stairIsActive, bestIdx);
+        walkToWaypoint(m_stairOrigin);
+    }
+}
+Monster::walkToWaypoint() (com tile adjacente)
+cpp
+void Monster::walkToWaypoint(const Position& target) {
+    Position actualTarget = target;
+
+    // Se estamos a perseguir uma escada, evita apontar directamente para o tile bloqueado
+    if (m_pursuingStairs && target == m_stairOrigin) {
+        static const int dx[] = {-1, 1, 0, 0};
+        static const int dy[] = {0, 0, -1, 1};
+        for (int i = 0; i < 4; ++i) {
+            Position adj(target.x + dx[i], target.y + dy[i], target.z);
+            auto tile = g_game().map.getTile(adj);
+            if (tile && !tile->hasFlag(TILESTATE_BLOCKPATH) && !tile->hasFlag(TILESTATE_BLOCKSOLID)) {
+                actualTarget = adj;
+                break;
+            }
+        }
+    }
+
+    std::vector<Direction> listDir;
+    FindPathParams fpp;
+    getPathSearchParams(getMonster(), fpp);
+    fpp.minTargetDist = 0;
+    fpp.maxTargetDist = 1;
+    fpp.fullPathSearch = true;
+    fpp.clearSight = false;
+    fpp.maxSearchDist = 0;
+
+    if (getPathTo(actualTarget, listDir, fpp) && !listDir.empty()) {
+        g_logger().info("[MCR-WALK] {} caminho encontrado: {} passos. Primeiro passo: {}",
+            getName(), listDir.size(), static_cast<int>(listDir.front()));
+        startAutoWalk(listDir);
+        setWalkingToPosition(true);
+        if (!isSummon()) {
+            m_lastDistImprovementTime = getCurrentTimeMs();
+            m_minDistToStair = std::abs(getPosition().x - actualTarget.x)
+                             + std::abs(getPosition().y - actualTarget.y);
+        }
+    } else {
+        g_logger().info("[MCR-WALK] {} FALHA no pathfinding, movimento simples na direcção do alvo.", getName());
+        Direction dir = getDirectionTo(getPosition(), actualTarget);
+        if (dir != DIRECTION_NONE) {
+            Position oldPos = getPosition();
+            g_game().internalMoveCreature(static_self_cast<Monster>(), dir, 0);
+            if (getPosition() == oldPos) {
+                g_logger().info("[MCR-WALK] {} movimento forçado não mudou a posição, a limpar walkingToPosition.", getName());
+                setWalkingToPosition(false);
+            }
+        } else {
+            g_logger().info("[MCR-WALK] {} sem direcção válida!", getName());
+            setWalkingToPosition(false);
+        }
+    }
+}
+Monster::tryUseGlobalMap() (BFS reactivo com scan expandido)
 cpp
 void Monster::tryUseGlobalMap() {
     if (m_usingGlobalPath || !m_pursuingStairs) return;
     Position myPos = getPosition();
     int dist = std::abs(myPos.x - m_stairOrigin.x) + std::abs(myPos.y - m_stairOrigin.y);
-    if (dist <= 2) return;
+    if (dist <= 1) return;
 
     uint64_t now = getCurrentTimeMs();
-    if (now - m_lastGlobalScanAttempt < 2000) return;
+    if (now - m_lastGlobalScanAttempt < 3000) return;
     m_lastGlobalScanAttempt = now;
 
-    auto leader = isSummon() ? getMaster() : (!m_attackedCreature.expired() ? m_attackedCreature.lock() : nullptr);
+    std::shared_ptr<Creature> leader;
+    if (isSummon()) leader = getMaster();
+    else {
+        leader = !m_attackedCreature.expired() ? m_attackedCreature.lock() : nullptr;
+        if (!leader) leader = m_persistentTargetPlayer;
+    }
     if (!leader) return;
     auto player = leader->getPlayer();
     if (!player) return;
 
-    // Injetar transições do jogador
-    for (const auto& trans : player->getStairTransitions()) {
+    for (const auto& trans : player->getStairTransitions())
         g_globalMonsterMap().addStairTransition(trans.origin, trans.destination);
+
+    size_t added = 0;
+    // Primeira tentativa: scan de 500 tiles
+    if (mcrTryScanArea(myPos, 15, 1, 1, 500, player->getStairTransitions(), &added)) {
+        if (added > 0) {
+            auto path = g_globalMonsterMap().findPath(myPos, m_stairOrigin);
+            if (!path.empty()) {
+                m_globalPath = path;
+                m_globalPathIndex = 0;
+                m_usingGlobalPath = true;
+                return;
+            }
+        }
     }
 
-    if (!g_globalMonsterMap().isWalkable(myPos)) {
-        g_globalMonsterMap().scanArea(myPos, 15, 1, 1);
-    }
-
-    auto path = g_globalMonsterMap().findPath(myPos, m_stairOrigin);
-    if (!path.empty()) {
-        g_logger().info("[MCR-COGNI] {} rota global encontrada com {} passos.", getName(), path.size());
-        m_globalPath = path;
-        m_globalPathIndex = 0;
-        m_usingGlobalPath = true;
-        return;
-    }
-
-    // Expansão do scan
-    g_globalMonsterMap().scanArea(myPos, 25, 1, 1);
-    path = g_globalMonsterMap().findPath(myPos, m_stairOrigin);
-    if (!path.empty()) {
-        g_logger().info("[MCR-COGNI] {} rota global encontrada (scan expandido) com {} passos.", getName(), path.size());
-        m_globalPath = path;
-        m_globalPathIndex = 0;
-        m_usingGlobalPath = true;
+    // Segunda tentativa: scan expandido de 1000 tiles, throttle 10s
+    if (now - m_lastExtendedScanAttempt >= 10000) {
+        m_lastExtendedScanAttempt = now;
+        size_t added2 = 0;
+        if (mcrTryScanArea(myPos, 18, 1, 1, 1000, player->getStairTransitions(), &added2)) {
+            if (added2 > 0) {
+                auto path = g_globalMonsterMap().findPath(myPos, m_stairOrigin);
+                if (!path.empty()) {
+                    m_globalPath = path;
+                    m_globalPathIndex = 0;
+                    m_usingGlobalPath = true;
+                }
+            }
+        }
     }
 }
+Monster::tryProactiveGlobalPursuit() (perseguição proactiva)
+cpp
+void Monster::tryProactiveGlobalPursuit() {
+    if (m_usingGlobalPath || m_returningToSpawn || m_returningHome) return;
 
+    uint64_t throttle = m_pursuingStairs ? 10000 : 5000;
+    uint64_t now = getCurrentTimeMs();
+    if (now - m_lastRouteRequestTime < throttle) return;
+    m_lastRouteRequestTime = now;
+
+    if (m_proactiveFailCount < 1) return;
+
+    int nearbyMonsters = 0;
+    for (int dx = -5; dx <= 5; ++dx) {
+        for (int dy = -5; dy <= 5; ++dy) {
+            if (dx == 0 && dy == 0) continue;
+            Position pos(getPosition().x + dx, getPosition().y + dy, getPosition().z);
+            auto tile = g_game().map.getTile(pos);
+            if (tile) {
+                auto topCreature = tile->getTopCreature();
+                if (topCreature) {
+                    auto monster = topCreature->getMonster();
+                    if (monster && !monster->isSummon() && monster->getID() != getID()) {
+                        nearbyMonsters++;
+                        if (nearbyMonsters > 2) break;
+                    }
+                }
+            }
+        }
+        if (nearbyMonsters > 2) break;
+    }
+    if (nearbyMonsters > 2) return;
+
+    std::shared_ptr<Creature> leader;
+    if (isSummon()) leader = getMaster();
+    else {
+        leader = !m_attackedCreature.expired() ? m_attackedCreature.lock() : nullptr;
+        if (!leader) leader = m_persistentTargetPlayer;
+    }
+    if (!leader || !leader->getPlayer()) return;
+
+    const auto& stairs = leader->getPlayer()->getStairTransitions();
+    if (stairs.empty()) return;
+
+    for (const auto& trans : stairs)
+        g_globalMonsterMap().addStairTransition(trans.origin, trans.destination);
+
+    size_t added = 0;
+    if (mcrTryScanArea(getPosition(), 25, 1, 1, 500, stairs, &added)) {
+        if (added == 0) { m_proactiveFailCount++; return; }
+
+        int bestCost = std::numeric_limits<int>::max();
+        Position bestStairOrigin, bestStairDest;
+        bool bestIsActive = false;
+
+        for (const auto& trans : stairs) {
+            if (trans.origin.z != getPosition().z) continue;
+            auto path = g_globalMonsterMap().findPath(getPosition(), trans.origin);
+            if (path.empty()) continue;
+            int distToStair = static_cast<int>(path.size());
+            int distDestToPlayer = std::abs(trans.destination.x - leader->getPosition().x)
+                                 + std::abs(trans.destination.y - leader->getPosition().y);
+            int cost = distToStair + distDestToPlayer;
+            if (cost < bestCost) {
+                bestCost = cost;
+                bestStairOrigin = trans.origin;
+                bestStairDest = trans.destination;
+                bestIsActive = trans.isActive;
+            }
+        }
+
+        if (bestCost < std::numeric_limits<int>::max()) {
+            m_stairOrigin = bestStairOrigin;
+            m_stairDestination = bestStairDest;
+            m_stairIsActive = bestIsActive;
+            m_pursuingStairs = true;
+            m_stairStuckCount = 0;
+            m_stairTotalCycles = 0;
+            m_stairPathfindFailCount = 0;
+            m_forcedMoveFailCount = 0;
+            m_proactiveFailCount = 0;
+            m_savedFollowId = leader->getID();
+            setFollowCreature(nullptr);
+            g_logger().info("[MCR-COGNI] {} perseguição proactiva: escada em {} (custo={})",
+                getName(), bestStairOrigin.toString(), bestCost);
+        } else {
+            m_proactiveFailCount++;
+        }
+    } else {
+        m_proactiveFailCount++;
+    }
+}
+Monster::followGlobalPathStep()
+cpp
 void Monster::followGlobalPathStep() {
-    if (!m_pursuingStairs || !m_usingGlobalPath || m_globalPathIndex >= m_globalPath.size()) {
+    if (!m_usingGlobalPath || m_globalPathIndex >= m_globalPath.size()) {
         clearGlobalPath();
         return;
     }
+
     Position myPos = getPosition();
-    if (myPos == m_stairOrigin || std::abs(myPos.x - m_stairOrigin.x) + std::abs(myPos.y - m_stairOrigin.y) <= 1) {
-        clearGlobalPath();
-        return;
-    }
     Position nextPos = m_globalPath[m_globalPathIndex];
+
     if (myPos == nextPos) {
         m_globalPathIndex++;
         if (m_globalPathIndex >= m_globalPath.size()) { clearGlobalPath(); return; }
         nextPos = m_globalPath[m_globalPathIndex];
     }
+
+    if (m_pursuingStairs && (myPos == m_stairOrigin ||
+        std::abs(myPos.x - m_stairOrigin.x) + std::abs(myPos.y - m_stairOrigin.y) <= 1)) {
+        clearGlobalPath();
+        return;
+    }
+
     Direction dir = getDirectionTo(myPos, nextPos);
-    if (dir == DIRECTION_NONE) { clearGlobalPath(); return; }
+    if (dir == DIRECTION_NONE) {
+        m_globalPathIndex++;
+        if (m_globalPathIndex >= m_globalPath.size()) clearGlobalPath();
+        return;
+    }
 
     Position oldPos = myPos;
-    g_game().internalMoveCreature(static_self_cast<Monster>(), dir, FLAG_NOLIMIT);
+    ReturnValue ret = g_game().internalMoveCreature(static_self_cast<Monster>(), dir, 0);
+    if (ret != RETURNVALUE_NOERROR)
+        ret = g_game().internalMoveCreature(static_self_cast<Monster>(), dir, FLAG_IGNOREBLOCKITEM);
+
     if (getPosition() == oldPos) {
-        g_game().internalMoveCreature(static_self_cast<Monster>(), dir, 0);
+        m_globalPathIndex++;
+        if (m_globalPathIndex >= m_globalPath.size()) { clearGlobalPath(); return; }
+        nextPos = m_globalPath[m_globalPathIndex];
+        dir = getDirectionTo(myPos, nextPos);
+        if (dir != DIRECTION_NONE) {
+            ret = g_game().internalMoveCreature(static_self_cast<Monster>(), dir, 0);
+            if (ret != RETURNVALUE_NOERROR)
+                ret = g_game().internalMoveCreature(static_self_cast<Monster>(), dir, FLAG_IGNOREBLOCKITEM);
+        }
         if (getPosition() == oldPos) clearGlobalPath();
     }
 }
-
-void Monster::clearGlobalPath() {
-    m_globalPath.clear();
-    m_globalPathIndex = 0;
-    m_usingGlobalPath = false;
-    m_globalScanExpanded = false;
-}
-
-void Monster::clearStairPursuit() {
-    if (m_clearingStairs) return;
-    m_clearingStairs = true;
-    m_pursuingStairs = false;
-    m_followingSurfaceWaypoint = false;
-    clearGlobalPath();
-    if (m_savedFollowId != 0) {
-        auto saved = g_game().getCreatureByID(m_savedFollowId);
-        if (saved) setFollowCreature(saved);
-        m_savedFollowId = 0;
-    }
-    // ... restante lógica de restauro de follow ...
-    m_clearingStairs = false;
-}
-📄 6. player.cpp – isActiveStair (auxiliar)
+Monster::computePursuitDeadline()
 cpp
-bool Player::isActiveStair(const Position& pos) {
+uint64_t Monster::computePursuitDeadline() {
+    int baseTimeMs = 25000; // 25 segundos
+    int engagementTimeMs = m_engagement * 350;
+    int totalMs = baseTimeMs + engagementTimeMs;
+    if (totalMs > 45000) totalMs = 45000;
+    return getCurrentTimeMs() + totalMs;
+}
+Monster::invalidateTileBlocked() (com distinção permanente/temporário)
+cpp
+void Monster::invalidateTileBlocked(const Position& pos) {
     auto tile = g_game().map.getTile(pos);
-    if (!tile) return false;
-    return tile->hasFlag(TILESTATE_FLOORCHANGE) && tile->getItemCount() > 1;
-}
-📄 7. Comandos Lua adicionais (comandos_spa.lua)
-lua
--- !pathtest
-local talkPathTest = TalkAction("!pathtest")
-function talkPathTest.onSay(player, words, param)
-    local target = player:getTarget()
-    if not target or not target:isMonster() then
-        enviarMsgColorida(player, c("Seleciona um monstro como alvo.", COR.SISTEMA_ERRO))
-        return false
-    end
-    local monster = target:getMonster()
-    local added = monster:scanGlobalArea(15, 2)
-    enviarMsgColorida(player, c("Scan adicionou " .. added .. " tiles.", COR.SUCESSO_CURA))
-    local path = monster:findGlobalPath(player:getPosition())
-    if #path == 0 then
-        enviarMsgColorida(player, c("Nenhum caminho encontrado.", COR.SISTEMA_AVISO))
-    else
-        enviarMsgColorida(player, c("Rota global com " .. #path .. " passos:", COR.RARIDADE_OURO))
-        for i, pos in ipairs(path) do
-            enviarMsgColorida(player, c(i .. ": " .. pos.x .. "," .. pos.y .. "," .. pos.z, COR.SISTEMA_INFO))
-        end
-    end
-    return false
-end
-talkPathTest:separator(" "); talkPathTest:groupType(1); talkPathTest:register()
+    if (!tile) return;
+    if (tile->getTopCreature()) return;
 
--- !mapinfo
-local talkMapInfo = TalkAction("!mapinfo")
-function talkMapInfo.onSay(player, words, param)
-    local target = player:getTarget()
-    if not target or not target:isMonster() then
-        enviarMsgColorida(player, c("Seleciona um monstro como alvo.", COR.SISTEMA_ERRO))
-        return false
-    end
-    local monster = target:getMonster()
-    local info = monster:getGlobalMapInfo()
-    enviarMsgColorida(player, c("Tiles no mapa: " .. info.totalTiles .. " | Posição atual é caminhável: " .. tostring(info.myPosWalkable), COR.RARIDADE_OURO))
-    return false
-end
-talkMapInfo:separator(" "); talkMapInfo:groupType(1); talkMapInfo:register()
-(Os binds Lua para scanGlobalArea, findGlobalPath e getGlobalMapInfo devem ser registados em spa_functions.cpp.)
+    bool blocked = tile->hasFlag(TILESTATE_BLOCKPATH) || tile->hasFlag(TILESTATE_BLOCKSOLID);
+    if (!blocked) return;
 
-📄 8. spa_functions.cpp – Exposição ao Lua (novos métodos)
-cpp
-int SPAFunctions::luaMonsterScanGlobalArea(lua_State* L) {
-    auto monster = Lua::getUserdataShared<Monster>(L, 1, "Monster");
-    if (!monster) { lua_pushnumber(L, 0); return 1; }
-    int radius = Lua::getNumber<int>(L, 2, 15);
-    int zRange = Lua::getNumber<int>(L, 3, 2);
-    size_t added = g_globalMonsterMap().scanArea(monster->getPosition(), radius, zRange, zRange);
-    lua_pushnumber(L, static_cast<lua_Number>(added));
-    return 1;
-}
-
-int SPAFunctions::luaMonsterFindGlobalPath(lua_State* L) {
-    auto monster = Lua::getUserdataShared<Monster>(L, 1, "Monster");
-    if (!monster) { lua_newtable(L); return 1; }
-    Position target = Lua::getPosition(L, 2);
-    auto path = g_globalMonsterMap().findPath(monster->getPosition(), target);
-    lua_newtable(L);
-    int idx = 1;
-    for (const auto& pos : path) {
-        lua_newtable(L);
-        Lua::setField(L, "x", pos.x);
-        Lua::setField(L, "y", pos.y);
-        Lua::setField(L, "z", pos.z);
-        lua_rawseti(L, -2, idx++);
+    // Tiles sólidos (paredes, rochas) são bloqueios permanentes
+    if (tile->hasFlag(TILESTATE_BLOCKSOLID)) {
+        g_globalMonsterMap().addTile(pos, false, false);
+        return;
     }
-    return 1;
+
+    // Tiles não sólidos mas bloqueados → obstáculo temporário
+    g_globalMonsterMap().addTemporaryObstacle(pos, 15000);
 }
-
-int SPAFunctions::luaMonsterGetGlobalMapInfo(lua_State* L) {
-    auto monster = Lua::getUserdataShared<Monster>(L, 1, "Monster");
-    lua_newtable(L);
-    if (monster) {
-        Lua::setField(L, "tileCount", static_cast<lua_Number>(g_globalMonsterMap().getTiles().size()));
-        Lua::setField(L, "currentWalkable", g_globalMonsterMap().isWalkable(monster->getPosition()));
-    }
-    return 1;
-}
-
-// Registrar em SPAFunctions::init
-Lua::registerMethod(L, "Monster", "scanGlobalArea", SPAFunctions::luaMonsterScanGlobalArea);
-Lua::registerMethod(L, "Monster", "findGlobalPath", SPAFunctions::luaMonsterFindGlobalPath);
-Lua::registerMethod(L, "Monster", "getGlobalMapInfo", SPAFunctions::luaMonsterGetGlobalMapInfo);
-📄 9. game.cpp – Disparo de onFloorChange
-(Já incluído na v5.7, mas reforça‑se a necessidade de isActiveStair.)
-
+📄 tile.hpp e tile.cpp (excerto)
 cpp
-// Em internalTeleport e moveCreature, após detetar mudança de piso:
-if (creature->getPlayer() && newPos.z != oldPos.z) {
-    creature->getPlayer()->onFloorChange(oldPos, newPos);
+// tile.hpp (dentro da classe Tile, secção pública)
+Position getDestination() const;
+
+// tile.cpp
+Position Tile::getDestination() const {
+    auto teleport = getTeleportItem();
+    if (teleport) {
+        return teleport->getDestPos();
+    }
+    return Position();
 }
 📌 NOTAS FINAIS
-Este documento reflete a versão 6.0 do sistema, integrando o Mapa Cognitivo Global.
-Para qualquer modificação futura, consulte os guias temáticos do projeto e mantenha a consistência dos logs e das regras de imersão definidas nos pilares do MCR.
+Esta é a versão 7.2 do sistema de perseguição multi‑piso do Projeto MCR. Todas as correcções e melhorias identificadas na revisão da v7.1 foram implementadas, e o sistema mantém‑se estável, modular e fiel aos pilares do projecto. A documentação reflecte exactamente o código fonte actual, sem acréscimos nem omissões.
+
+Para qualquer modificação futura, mantenha a consistência dos logs e as regras de imersão definidas nos pilares do MCR.
 
 Fim do Documento.

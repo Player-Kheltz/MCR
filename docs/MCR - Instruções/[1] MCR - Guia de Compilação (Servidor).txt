@@ -1,9 +1,9 @@
 PROJETO MCR – GUIA DE COMPILAÇÃO (SERVIDOR)
-Versão 6.0 – Sistema de Progressão do Aventureiro (SPA v4.7.0), perseguição multi‑piso com fila de transições, waypoints de superfície, retorno tático de hostis e comandos de diagnóstico
+Versão 7.2 – Sistema de Perseguição Multi‑Piso com Mapa Cognitivo Global, SPA v4.7.0, perseguição multi‑piso com fila de transições, waypoints de superfície, retorno tático de hostis, comandos de diagnóstico e GlobalMonsterMap
 Arquivo: [1] MCR - Guia de Compilação (Servidor).txt
 
 🎯 FUNÇÃO DESTE ARQUIVO
-Fornecer todas as instruções, dependências, customizações e verificações necessárias para compilar o servidor Canary do Projeto MCR a partir do código‑fonte. Esta versão incorpora todos os métodos Lua exigidos pelo Sistema de Progressão do Aventureiro (SPA v4.7.0), o sistema de perseguição multi‑piso revisto (fila de transições, waypoints de superfície, timeout real de 45 segundos, desistência por falta de progresso, retorno ao spawn e retorno a casa), e os comandos de diagnóstico !scan e !scanfull.
+Fornecer todas as instruções, dependências, customizações e verificações necessárias para compilar o servidor Canary do Projeto MCR a partir do código‑fonte. Esta versão incorpora todos os métodos Lua exigidos pelo Sistema de Progressão do Aventureiro (SPA v4.7.0), o sistema de perseguição multi‑piso revisto (v7.2) incluindo o Mapa Cognitivo Global (GlobalMonsterMap), máquina de estados unificada, sistema de engajamento adaptativo, revalidação de obstáculos temporários, atalhos cognitivos e os comandos de diagnóstico !scan, !scanfull, !pathtest, !mapinfo, !engagement, !deadline e !debugtile.
 
 Inclui ainda:
 
@@ -13,18 +13,20 @@ getAmmo para projéteis dinâmicos.
 
 getVocationBaseMaxHealth, getVocationBaseMaxMana, getNaturalSpeed e setMovementSpeed para atributos base sem acumulação.
 
-setCombatModifier para modificadores de combate dinâmicos.
+setCombatModifier e getCombatModifier para modificadores de combate dinâmicos.
 
 Métodos para o sistema de invocação e inventário remoto (openRemoteContainer, closeRemoteContainer, Monster.createInventory, Monster.addItemToInventory, Monster.getInventoryContainer, Monster.setCustomName, Monster.getCustomName).
 
-Novo sistema de perseguição multi‑piso com fila de transições (std::deque<StairTransition>), índices individuais por perseguidor, waypoints de superfície (SurfaceWaypoint) e retorno tático de hostis (caminhando ou teleportando apenas em último caso).
+Sistema de Perseguição Multi‑Piso v7.2: fila de transições (std::deque<StairTransition>), waypoints de superfície (SurfaceWaypoint), retorno tático de hostis, Mapa Cognitivo Global partilhado, BFS multi‑piso, engajamento adaptativo, revalidação de obstáculos, atalhos com verificação de direção, persistência assíncrona do grafo.
+
+Novos comandos de diagnóstico: !pathtest, !mapinfo, !engagement, !deadline, !debugtile.
 
 Estrutura modular de scripts em data-canary/scripts/MCR/SPA/core/ e subpastas.
 
 O assistente DEVE seguir estas directrizes ao modificar o código C++.
 
 🚧 ESTADO ATUAL DA IMPLEMENTAÇÃO
-Todos os métodos C++ descritos neste guia já estão implementados e funcionais no código‑fonte do servidor. Não há dependências de fases futuras. Os scripts da pasta MCR/SPA/ utilizam‑nos plenamente.
+Todos os métodos C++ descritos neste guia já estão implementados e funcionais no código‑fonte do servidor. Não há dependências de fases futuras. Os scripts da pasta MCR/SPA/ utilizam‑nos plenamente. O sistema de perseguição multi‑piso v7.2 está completo, testado e estável.
 
 ⚠️ REGRAS DE REVISÃO PARA O ASSISTENTE (C++ – SERVIDOR CANARY)
 Ao modificar QUALQUER arquivo .cpp/.h no diretório Canary/src/, o assistente DEVE:
@@ -72,19 +74,16 @@ bash
 Nota: Os pacotes podem mudar de nome; consulte o README.md do repositório Canary para obter a lista exacta para a versão actual.
 
 🔨 PROCEDIMENTO DE COMPILAÇÃO (PADRÃO)
-Clone o repositório MCR (já contém os fontes customizados):
-
+1. Clone o repositório MCR (já contém os fontes customizados):
 bash
 git clone https://github.com/Player-Kheltz/ProjetoMCR.git
 cd ProjetoMCR\Canary
-Configure o CMake (substitua o caminho do vcpkg pelo seu):
-
+2. Configure o CMake (substitua o caminho do vcpkg pelo seu):
 bash
 mkdir build
 cd build
 cmake .. -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows
-Compile:
-
+3. Compile:
 bash
 cmake --build . --config Release
 O executável será gerado em build\Release\canary.exe.
@@ -116,7 +115,7 @@ Monstros Customizados (monster.cpp): implementação de createInventoryContainer
 🔹 SPA Manager
 SPA Manager (spa_manager.cpp / spa_manager.hpp): motor de eventos genérico (SPA.onEvent, SPA.dispatchEvent) e registo de domínios em tempo real via Lua.
 
-🔹 Sistema de Perseguição Multi‑Piso (v6.0)
+🔹 Sistema de Perseguição Multi‑Piso (v7.2) — ACTUALIZADO
 📌 Estruturas de Dados (Player)
 std::deque<StairTransition> m_stairTransitions – fila de transições de piso do jogador.
 
@@ -128,8 +127,8 @@ touchSurfaceWaypoint(size_t index) – atualiza o timestamp de um waypoint de su
 
 getSurfaceWaypoints() / getStairTransitions() – acesso às listas.
 
-📌 Estruturas de Dados (Monster)
-Índices individuais:
+📌 Estruturas de Dados (Monster) – v7.2 expandida
+Índices e controle de perseguição:
 
 size_t m_nextStairIndex – próximo índice na fila de transições.
 
@@ -137,13 +136,11 @@ size_t m_currentTransitionIndex – índice da transição actual.
 
 size_t m_currentSurfaceWaypointIndex – índice actual nos waypoints de superfície.
 
-Controle de perseguição:
+uint64_t m_pursuitStartTime – timestamp de início da perseguição (timeout adaptativo de 10–45s via engajamento).
 
-uint64_t m_pursuitStartTime – timestamp de início da perseguição (timeout real de 45s).
+int m_minDistToStair / uint64_t m_lastDistImprovementTime – detecção de falta de progresso (4s sem melhoria).
 
-int m_minDistToStair / uint64_t m_lastDistImprovementTime – detecção de falta de progresso (8s sem melhoria).
-
-int m_forcedMoveFailCount – contador de falhas de movimento forçado.
+int m_forcedMoveFailCount – contador de falhas de movimento forçado (desistência após 3 falhas).
 
 Retorno ao spawn / casa:
 
@@ -153,17 +150,80 @@ Position m_homePosition – posição inicial antes da perseguição.
 
 bool m_returningToSpawn / bool m_returningHome – flags de estado.
 
-📌 Comportamento
-Summons seguem o mestre através de múltiplos pisos, consumindo transições da fila do jogador de forma independente (índice próprio). Se o mestre estiver acessível e próximo, cancelam a perseguição e avançam o índice.
+Mapa Cognitivo Global e BFS (novo na v7.2):
 
-Hostis perseguem o jogador usando a fila de transições. Têm um timeout real de 45 segundos para alcançar o alvo. Se ficarem bloqueados (sem progresso por 8s), desistem da escada actual e tentam a próxima. Se esgotarem as transições, iniciam o retorno ao spawn (caminhando pelo caminho inverso) ou retorno a casa (m_homePosition), utilizando waypoints de superfície e tiles adjacentes como guias.
+bool m_usingGlobalPath – se está a seguir um caminho planeado pelo BFS.
 
-Waypoints de superfície são largados pelo jogador a cada 5 tiles percorridos e expiram após 2 minutos sem uso. Tanto summons como hostis podem utilizá‑los para navegar em terrenos complexos.
+std::vector<Position> m_globalPath – caminho devolvido pelo GlobalMonsterMap::findPath.
 
-Movimento forçado (apenas summons) é usado como último recurso; hostis nunca teleportam durante a perseguição.
+size_t m_globalPathIndex – índice do próximo passo na rota global.
 
-🚀 NOVOS MÉTODOS LUA (SPA v6.0)
-Estes métodos estão implementados em player.h/cpp, monster.h/cpp e expostos em luascript.cpp (ou nos ficheiros de funções dedicados). São essenciais para o funcionamento de todos os subsistemas do SPA. Todos estão activos e podem ser usados pelos scripts da pasta MCR/SPA/.
+uint64_t m_lastGlobalScanAttempt – timestamp da última tentativa de BFS reativo.
+
+uint64_t m_lastExtendedScanAttempt – timestamp da última tentativa de scan expandido.
+
+Engajamento e timeouts (novo na v7.2):
+
+int m_engagement – barra de engajamento (0–100).
+
+int m_sightLostTicks – contador de ciclos sem ver o líder (timeout após 10 ticks).
+
+uint64_t m_pursuitDeadline – timestamp absoluto do fim da perseguição (calculado dinamicamente).
+
+int m_proactiveFailCount – falhas consecutivas da perseguição proativa.
+
+📌 GlobalMonsterMap (novo na v7.2)
+Classe singleton (global_monster_map.hpp / .cpp) que mantém:
+
+Grafo de tiles caminháveis (std::unordered_map<Position, TileInfo> m_tiles) com flags walkable e dynamic.
+
+Transições de piso (std::unordered_map<Position, std::vector<Position>> m_transitions).
+
+Obstáculos temporários (std::unordered_map<Position, TemporaryObstacle> m_temporaryObstacles).
+
+Métodos principais: addTile, isWalkable (com validação preguiçosa), scanArea (flood‑fill multi‑piso com descoberta automática de escadas), findPath (BFS multi‑piso até 2000 nós), addStairTransition, addTemporaryObstacle, cleanupTemporaryObstacles, saveToFile (persistência assíncrona), loadFromFile.
+
+Controle de concorrência com std::shared_mutex (leituras paralelas, escrita exclusiva).
+
+Limite de scans simultâneos: MAX_ACTIVE_SCANS = 1 (std::atomic<int> g_activeScans).
+
+📌 Comportamento (v7.2)
+Summons:
+
+Seguem a fila de transições do mestre com índice próprio.
+
+Se o mestre está acessível (pathfinding real com fullPathSearch = false), cancelam a perseguição e avançam o índice.
+
+Timeout de 120 ciclos; teleporte de emergência após 5 falhas de pathfinding.
+
+Podem utilizar o Mapa Cognitivo se ativado.
+
+Hostis:
+
+Perseguição por transições com suporte ao Mapa Cognitivo Global.
+
+Máquina de estados unificada: Combate > Retorno > BFS > Transições > Proativo.
+
+Sistema de engajamento: barra 0–100, deadline = 25000 + engagement × 350 ms (mín. 10s, máx. 45s). Renovado enquanto o líder está visível.
+
+BFS reativo (tryUseGlobalMap): throttle 3s; scan de 500 tiles (depois 1000 tiles com throttle 10s) se distância à escada > 1 tile.
+
+Atalhos cognitivos (checkStairPursuit): antes da fila do jogador, verifica se o GlobalMonsterMap tem uma rota melhor (com verificação de direção da escada).
+
+Perseguição proativa (tryProactiveGlobalPursuit): quando sem transições no piso, usa BFS para encontrar a melhor escada da fila (throttle 5–10s).
+
+Retorno ao spawn: após timeout, utiliza m_returnPath (caminho inverso) ou m_homePosition. Fallback: teleporte após 10 falhas totais.
+
+Revalidação de obstáculos: invalidateTileBlocked distingue TILESTATE_BLOCKSOLID (permanente) de TILESTATE_BLOCKPATH (temporário, TTL 15s). isWalkableUnlocked faz validação preguiçosa.
+
+Waypoints de Superfície:
+
+Jogador larga a cada 5 tiles percorridos; expiram após 2 minutos sem uso.
+
+Usados por summons e hostis como fallback quando o BFS falha.
+
+🚀 NOVOS MÉTODOS LUA (SPA v7.2)
+Estes métodos estão implementados em player.h/cpp, monster.h/cpp, global_monster_map.cpp e expostos em spa_functions.cpp. São essenciais para o funcionamento de todos os subsistemas do SPA. Todos estão activos e podem ser usados pelos scripts da pasta MCR/SPA/.
 
 🧬 Gestão de Afinidade e Domínios
 Método	Descrição
@@ -217,7 +277,7 @@ player:getVocationBaseMaxHealth()	Vida base (gainhp × level + offset).
 player:getVocationBaseMaxMana()	Mana base (gainmana × level + offset).
 player:getNaturalSpeed()	Velocidade natural (base + bónus por nível).
 player:setMovementSpeed(speed)	Define a velocidade de movimento actual.
-🐾 Invocação, Inventário Remoto e Perseguição
+🐾 Invocação, Inventário Remoto e Perseguição Multi‑Piso
 Método	Descrição
 player:openRemoteContainer(container)	Abre um container remoto.
 player:closeRemoteContainer()	Fecha o container remoto actual.
@@ -229,16 +289,69 @@ monster:getCustomName()	Retorna nome customizado.
 player:getSurfaceWaypoints()	Retorna a lista de waypoints de superfície do jogador.
 player:touchSurfaceWaypoint(index)	Atualiza o timestamp de um waypoint de superfície.
 player:getStairTransitions()	Retorna a fila de transições de piso do jogador.
+Novos na v7.2	
+monster:scanGlobalArea(radius, zRange)	Força um scan do GlobalMonsterMap ao redor da criatura. Retorna tiles adicionados.
+monster:findGlobalPath(targetPos)	Encontra rota do monstro até targetPos usando o GlobalMonsterMap. Retorna tabela de posições.
+monster:getGlobalMapInfo()	Retorna {tileCount, currentWalkable} do GlobalMonsterMap.
 ⚙️ LÓGICA INTERNA (C++)
-player.cpp: std::deque<ActionRecord> para histórico de acções; estados de alma via setDominioState/getAllActiveStates; Maestria com Vínculo permanente; buffer de afinidade com descarregamento em lote; modificadores de combate dinâmicos; vida/mana base com offsets; gestão de containers remotos; m_stairTransitions (fila de transições); m_surfaceWaypoints (fila de waypoints de superfície).
+player.cpp
+std::deque<ActionRecord> para histórico de acções.
 
-monster.cpp: checkStairPursuit com índices individuais, suporte a waypoints de superfície e verificação de acessibilidade real (fullPathSearch = false). walkToWaypoint com movimento nativo e fallback para hostis. clearStairPursuit com restauro do follow via m_savedFollowId e limpeza de flags. iniciarRetornoSpawn / processarRetornoSpawn / processarRetornoSimples para retorno tático.
+Estados de alma via setDominioState/getAllActiveStates; Maestria com Vínculo permanente.
 
-game.cpp / map.cpp: captura de mudanças de piso via onFloorChange em internalTeleport e moveCreature, alimentando a m_stairTransitions do jogador.
+Buffer de afinidade com descarregamento em lote.
 
-creature.h/cpp: método virtual onFloorChange.
+Modificadores de combate dinâmicos.
 
-tile.cpp: exceções no queryAdd para tiles de escada (TILESTATE_FLOORCHANGE | TILESTATE_TELEPORT) quando monster->isPursuingStairs() e monster->getStairOrigin() == getPosition().
+Vida/mana base com offsets (getVocationBaseMaxHealth, etc.).
+
+Gestão de containers remotos.
+
+m_stairTransitions (fila de transições) e m_surfaceWaypoints (waypoints de superfície).
+
+onFloorChange captura mudanças de piso e alimenta as listas.
+
+monster.cpp
+onThinkMCR() (novo, v7.2): máquina de estados principal (Combate > Retorno > BFS > Transições > Proativo). Controle de reentrância com m_inOnThinkMCR.
+
+checkStairPursuit(): atalho via mapa cognitivo + seleção da melhor escada da fila do jogador.
+
+tryUseGlobalMap(): BFS reativo com scan progressivo (500/1000 tiles).
+
+tryProactiveGlobalPursuit(): perseguição proativa quando não há transições no piso.
+
+followGlobalPathStep(): segue a rota do BFS.
+
+walkToWaypoint: fallback para movimento simples, tratamento de tile adjacente para escadas.
+
+invalidateTileBlocked(): distingue bloqueios permanentes de temporários; invoca GlobalMonsterMap::addTemporaryObstacle.
+
+computePursuitDeadline(): cálculo do deadline adaptativo.
+
+updateEngagement(): gestão da barra de engajamento.
+
+clearStairPursuit(): limpeza do estado de perseguição e restauro do follow.
+
+iniciarRetornoSpawn / processarRetornoSpawn / processarRetornoSimples: retorno tático com fallback para teleporte.
+
+global_monster_map.cpp (novo)
+Singleton GlobalMonsterMap com std::shared_mutex.
+
+addTile, isWalkableUnlocked (validação preguiçosa de tiles dinâmicos), scanArea (flood‑fill 8‑direcional, suporte a Tile::getDestination() para teleportes), findPath (BFS multi‑piso, limite 2000 nós, suporte a diagonais, transições e goalIsStair), addStairTransition, addTemporaryObstacle, cleanupTemporaryObstacles (TTL 15s), saveToFile (thread assíncrona, ignora tiles dinâmicos), loadFromFile.
+
+Controle de concorrência: std::atomic<int> g_activeScans (máx. 1 scan simultâneo).
+
+game.cpp / map.cpp
+Captura de mudanças de piso via onFloorChange em internalTeleport e moveCreature, alimentando a m_stairTransitions do jogador.
+
+creature.h/cpp
+Método virtual onFloorChange.
+
+tile.cpp
+Exceções no queryAdd para tiles de escada (TILESTATE_FLOORCHANGE | TILESTATE_TELEPORT) quando monster->isPursuingStairs() e monster->getStairOrigin() == getPosition().
+
+tile.hpp / tile.cpp (novo)
+Position Tile::getDestination() const – obtém o destino de teleportes/escadas activas.
 
 📅 EVENTO onHealthChange (JÁ IMPLEMENTADO)
 O evento onHealthChange está presente no Canary e é usado pelo script ProgDefesa (eventos.lua) para progressão de Sobrevivência e Escudo ao receber dano.
@@ -311,17 +424,21 @@ data-canary/scripts/MCR/Geral/
 Todas as funções e tabelas definidas nestes módulos tornam‑se globais e podem ser usadas por qualquer script, inclusive fora da árvore SPA.
 
 🛡️ COMANDOS DE DIAGNÓSTICO
-O servidor inclui dois comandos de administrador para depuração de terreno e perseguição:
+O servidor inclui os seguintes comandos de administrador para depuração de terreno, perseguição e mapa cognitivo:
 
-!scan [raio] – Exibe um mapa de caracteres coloridos no chat, mostrando tiles caminháveis (.), bloqueados (#), escadas (S), criaturas (C), zonas de proteção (P) e teleportes (T). Cobre 2 andares acima e abaixo do jogador (raio padrão: 5, máximo: 8).
+!scan [raio] – Mapa ASCII colorido do terreno ao redor do jogador (2 andares acima/abaixo). Legenda: . caminhável, # bloqueado, S escada, C criatura, P proteção, T teleporte. Raio padrão: 5 (máx. 8).
 
-!scanfull [raio] [zRange] – Gera um arquivo de log ultra detalhado em data/logs/scan/scan_YYYYMMDD_HHMMSS_Nome.log, contendo:
+!scanfull [raio] [zRange] – Relatório ultra detalhado salvo em data/logs/scan/scan_YYYYMMDD_HHMMSS.log com waypoints, transições e dados de cada tile. Raio padrão: 5 (máx. 10); zRange padrão: 2 (máx. 3).
 
-Lista de waypoints de superfície e transições de escada do jogador.
+!pathtest – (Novo na v7.2) Força o monstro alvo a fazer scan e planear uma rota global até ao jogador. Exibe os passos da rota.
 
-Para cada tile: posição, ID do chão, flags, lista de itens (ID, nome, tipo), criatura no topo, indicação de waypoints/transições.
+!mapinfo – (Novo na v7.2) Mostra o número de tiles no GlobalMonsterMap e se a posição do monstro alvo é caminhável.
 
-Raio padrão: 5 (máx. 10); zRange padrão: 2 (máx. 3).
+!engagement – (Novo na v7.2) Exibe a barra de engajamento (0–100) do monstro alvo.
+
+!deadline – (Novo na v7.2) Mostra o tempo restante (em ms) da perseguição atual do monstro alvo.
+
+!debugtile – (Novo na v7.2) Lista os vizinhos no grafo do GlobalMonsterMap ao redor do jogador.
 
 Estes comandos são registados em comandos_spa.lua e requerem grupo DEUS.
 
@@ -354,7 +471,7 @@ Inventário remoto: os métodos openRemoteContainer, closeRemoteContainer, creat
 
 Nome customizado: setCustomName/getCustomName substituem setName/getName para criaturas SPA, garantindo que o nome exibido no cliente seja o nome do escudeiro e não o nome do arquivo do monstro.
 
-Perseguição multi‑piso:
+Perseguição multi‑piso (v7.2):
 
 A transição do jogador é capturada automaticamente em Game::internalTeleport e Map::moveCreature via onFloorChange.
 
@@ -374,11 +491,27 @@ Timeout de progresso: hostis abandonam uma escada se ficarem 4 segundos sem redu
 
 Movimento forçado: apenas para summons; hostis utilizam waypoints de superfície e tiles adjacentes como alternativas.
 
+GlobalMonsterMap (v7.2):
+
+O grafo é partilhado entre todos os monstros; usar std::shared_mutex evita gargalos.
+
+MAX_ACTIVE_SCANS = 1 impede picos de CPU por scans simultâneos.
+
+Obstáculos temporários (Magic Walls, campos) são geridos com TTL de 15s; isWalkableUnlocked faz validação preguiçosa, garantindo reação imediata.
+
+Apenas tiles estáticos são salvos em disco; a persistência é assíncrona e não bloqueia o jogo.
+
+O Tile::getDestination() é usado para obter destinos reais de teleportes; se não disponível, assume z±1 como fallback.
+
+Máquina de estados: a prioridade máxima é sempre o combate; qualquer rota global ou perseguição é cancelada se o jogador ficar atacável.
+
+Engajamento: o deadline é renovado enquanto o líder está visível; o timeout por perda de visão (10s) impede perseguições eternas a jogadores escondidos.
+
 📤 COMO ATUALIZAR O REPOSITÓRIO GIT
 bash
 git add "<arquivos alterados>"
-git commit -m "feat(server): Atualiza guia de compilação com SPA v6.0, perseguição multi‑piso, waypoints de superfície e comandos de diagnóstico"
+git commit -m "feat(server): Atualiza guia de compilação com SPA v7.2, GlobalMonsterMap, engajamento e novos comandos"
 git push origin main
 ⚠️ PowerShell: use aspas duplas em caminhos com espaços.
 
-FIM DO GUIA DE COMPILAÇÃO (SERVIDOR) — VERSÃO 6.0
+FIM DO GUIA DE COMPILAÇÃO (SERVIDOR) — VERSÃO 7.2
