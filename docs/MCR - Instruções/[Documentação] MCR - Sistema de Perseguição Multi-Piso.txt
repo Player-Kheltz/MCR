@@ -1074,7 +1074,7 @@ void Monster::onThinkMCR() {
 
                     if (directionOk && newTotalDist < currentPlanDist * 0.7) {
                         auto tile = g_game().map.getTile(newStairOrigin);
-                        bool isActive = tile && tile->hasFlag(TILESTATE_FLOORCHANGE);
+                        bool isActive = tile && tile->hasFlag(TILESTATE_FLOORCHANGE) && tile->hasFlag(TILESTATE_BLOCKPATH);
                         clearStairPursuit();
                         m_pursuingStairs = true;
                         m_stairOrigin = newStairOrigin;
@@ -1398,7 +1398,7 @@ void Monster::checkStairPursuit() {
                                    (stairDest.z == leader->getPosition().z);
                 if (directionOk) {
                     auto tile = g_game().map.getTile(stairOrigin);
-                    bool isActive = tile && tile->hasFlag(TILESTATE_FLOORCHANGE);
+                    bool isActive = tile && tile->hasFlag(TILESTATE_FLOORCHANGE) && tile->hasFlag(TILESTATE_BLOCKPATH);
                     m_pursuingStairs = true;
                     clearGlobalPath();
                     m_stairOrigin          = stairOrigin;
