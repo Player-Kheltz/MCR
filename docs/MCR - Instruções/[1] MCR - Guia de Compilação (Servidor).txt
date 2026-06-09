@@ -1,9 +1,9 @@
-PROJETO MCR – GUIA DE COMPILAÇÃO (SERVIDOR)
-Versão 7.2 – Sistema de Perseguição Multi‑Piso com Mapa Cognitivo Global, SPA v4.7.0, perseguição multi‑piso com fila de transições, waypoints de superfície, retorno tático de hostis, comandos de diagnóstico e GlobalMonsterMap
+📘 PROJETO MCR – GUIA DE COMPILAÇÃO (SERVIDOR)
+Versão 7.2.1 – Sistema de Perseguição Multi‑Piso com Mapa Cognitivo Global, SPA v4.7.0, GlobalMonsterMap, cercamento, procura global de escadas
 Arquivo: [1] MCR - Guia de Compilação (Servidor).txt
 
 🎯 FUNÇÃO DESTE ARQUIVO
-Fornecer todas as instruções, dependências, customizações e verificações necessárias para compilar o servidor Canary do Projeto MCR a partir do código‑fonte. Esta versão incorpora todos os métodos Lua exigidos pelo Sistema de Progressão do Aventureiro (SPA v4.7.0), o sistema de perseguição multi‑piso revisto (v7.2) incluindo o Mapa Cognitivo Global (GlobalMonsterMap), máquina de estados unificada, sistema de engajamento adaptativo, revalidação de obstáculos temporários, atalhos cognitivos e os comandos de diagnóstico !scan, !scanfull, !pathtest, !mapinfo, !engagement, !deadline e !debugtile.
+Fornecer todas as instruções, dependências, customizações e verificações necessárias para compilar o servidor Canary do Projeto MCR a partir do código‑fonte. Esta versão incorpora todos os métodos Lua exigidos pelo Sistema de Progressão do Aventureiro (SPA v4.7.0), o sistema de perseguição multi‑piso revisto (v7.2.1) incluindo o Mapa Cognitivo Global (GlobalMonsterMap), máquina de estados unificada, sistema de engajamento adaptativo, revalidação de obstáculos temporários, atalhos cognitivos, procura global de escadas, cercamento multi‑piso (tryFlankingRoute), otimizações de performance e os comandos de diagnóstico !scan, !scanfull, !pathtest, !mapinfo, !engagement, !deadline, !debugtile, !checkstairs e !testglobalmap.
 
 Inclui ainda:
 
@@ -17,16 +17,16 @@ setCombatModifier e getCombatModifier para modificadores de combate dinâmicos.
 
 Métodos para o sistema de invocação e inventário remoto (openRemoteContainer, closeRemoteContainer, Monster.createInventory, Monster.addItemToInventory, Monster.getInventoryContainer, Monster.setCustomName, Monster.getCustomName).
 
-Sistema de Perseguição Multi‑Piso v7.2: fila de transições (std::deque<StairTransition>), waypoints de superfície (SurfaceWaypoint), retorno tático de hostis, Mapa Cognitivo Global partilhado, BFS multi‑piso, engajamento adaptativo, revalidação de obstáculos, atalhos com verificação de direção, persistência assíncrona do grafo.
+Sistema de Perseguição Multi‑Piso v7.2.1: fila de transições (std::deque<StairTransition>), waypoints de superfície (SurfaceWaypoint), retorno tático de hostis, Mapa Cognitivo Global partilhado (GlobalMonsterMap), BFS multi‑piso, engajamento adaptativo, revalidação de obstáculos, atalhos com verificação de direção, procura global de escadas no grafo, cercamento multi‑piso (tryFlankingRoute), mapeamento de 8 vizinhos nos destinos das escadas, profundidade Z=3 na exploração passiva, correção do updateEngagement, persistência assíncrona do grafo.
 
-Novos comandos de diagnóstico: !pathtest, !mapinfo, !engagement, !deadline, !debugtile.
+Novos comandos de diagnóstico: !pathtest, !mapinfo, !engagement, !deadline, !debugtile, !checkstairs, !testglobalmap.
 
 Estrutura modular de scripts em data-canary/scripts/MCR/SPA/core/ e subpastas.
 
 O assistente DEVE seguir estas directrizes ao modificar o código C++.
 
 🚧 ESTADO ATUAL DA IMPLEMENTAÇÃO
-Todos os métodos C++ descritos neste guia já estão implementados e funcionais no código‑fonte do servidor. Não há dependências de fases futuras. Os scripts da pasta MCR/SPA/ utilizam‑nos plenamente. O sistema de perseguição multi‑piso v7.2 está completo, testado e estável.
+Todos os métodos C++ descritos neste guia já estão implementados e funcionais no código‑fonte do servidor. Não há dependências de fases futuras. Os scripts da pasta MCR/SPA/ utilizam‑nos plenamente. O sistema de perseguição multi‑piso v7.2.1 está completo, testado e estável.
 
 ⚠️ REGRAS DE REVISÃO PARA O ASSISTENTE (C++ – SERVIDOR CANARY)
 Ao modificar QUALQUER arquivo .cpp/.h no diretório Canary/src/, o assistente DEVE:
@@ -49,6 +49,7 @@ O sistema de progressão usa Revscript: os scripts Lua ficam na pasta data-canar
 
 📦 DEPENDÊNCIAS (AMBIENTE WINDOWS)
 Ferramentas Obrigatórias
+
 Visual Studio 2022 (Community ou superior) com carga de trabalho "Desenvolvimento para desktop com C++".
 
 CMake 3.20 ou superior (adicionar ao PATH).
@@ -58,12 +59,14 @@ Git for Windows.
 vcpkg (gerenciador de bibliotecas). Instale em C:\vcpkg (ou caminho sem espaços).
 
 Comandos de instalação do vcpkg
+
 bash
 git clone https://github.com/Microsoft/vcpkg.git C:\vcpkg
 cd C:\vcpkg
 .\bootstrap-vcpkg.bat
 .\vcpkg integrate install
 Bibliotecas Requeridas (instalar via vcpkg, para x64-windows)
+
 bash
 .\vcpkg install boost-beast:x64-windows boost-asio:x64-windows
 .\vcpkg install boost-filesystem:x64-windows boost-system:x64-windows
@@ -74,16 +77,20 @@ bash
 Nota: Os pacotes podem mudar de nome; consulte o README.md do repositório Canary para obter a lista exacta para a versão actual.
 
 🔨 PROCEDIMENTO DE COMPILAÇÃO (PADRÃO)
-1. Clone o repositório MCR (já contém os fontes customizados):
+
+Clone o repositório MCR (já contém os fontes customizados):
+
 bash
 git clone https://github.com/Player-Kheltz/ProjetoMCR.git
 cd ProjetoMCR\Canary
-2. Configure o CMake (substitua o caminho do vcpkg pelo seu):
+Configure o CMake (substitua o caminho do vcpkg pelo seu):
+
 bash
 mkdir build
 cd build
 cmake .. -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows
-3. Compile:
+Compile:
+
 bash
 cmake --build . --config Release
 O executável será gerado em build\Release\canary.exe.
@@ -94,11 +101,13 @@ Copie o executável para a raiz do servidor (onde estão data/, config.lua) ou c
 As seguintes modificações já estão presentes nos fontes do repositório ProjetoMCR/Canary. O assistente NÃO precisa reaplicá‑las, mas deve conhecê‑las para manutenção e depuração.
 
 🔹 Console e Identidade do Servidor
+
 Console UTF‑8 (main.cpp): SetConsoleOutputCP(CP_UTF8) e SetConsoleCP(CP_UTF8).
 
 Identidade do Servidor (canary_server.cpp / canary_server.hpp): strings de log em PT‑BR, título "Projeto MCR".
 
 🔹 Bindings e Protocolo
+
 Bindings Lua Preservados: nenhuma remoção de métodos. Apenas adições documentadas.
 
 Remoção de restrições de vocação: vocation = 0 permitido em itens e magias (item.cpp, player.cpp, spells.cpp).
@@ -106,6 +115,7 @@ Remoção de restrições de vocação: vocation = 0 permitido em itens e magias
 Protocolo de Jogo (protocolgame.cpp): substituições de creature->getName() por creature->getCustomName() nas funções sendCreatureSay, sendToChannel e AddCreature, garantindo que o nome customizado do escudeiro seja exibido no cliente.
 
 🔹 Inventário e Escudeiro
+
 Gestão de Containers Remotos (player.cpp): implementação de openRemoteContainer, closeRemoteContainer e closeContainersByCreature, permitindo que a janela do escudeiro feche automaticamente quando este morre.
 
 Arrasto de Itens (game.cpp): função playerMoveItem ajustada para permitir arrasto livre entre jogador e escudeiro (containers remotos), mantendo verificações de proximidade para itens no chão.
@@ -113,10 +123,13 @@ Arrasto de Itens (game.cpp): função playerMoveItem ajustada para permitir arra
 Monstros Customizados (monster.cpp): implementação de createInventoryContainer, dropInventoryOnDeath, setCustomName e getCustomName, permitindo que o escudeiro possua inventário e derrame itens ao morrer.
 
 🔹 SPA Manager
+
 SPA Manager (spa_manager.cpp / spa_manager.hpp): motor de eventos genérico (SPA.onEvent, SPA.dispatchEvent) e registo de domínios em tempo real via Lua.
 
-🔹 Sistema de Perseguição Multi‑Piso (v7.2) — ACTUALIZADO
+🔹 Sistema de Perseguição Multi‑Piso (v7.2.1) — ACTUALIZADO
+
 📌 Estruturas de Dados (Player)
+
 std::deque<StairTransition> m_stairTransitions – fila de transições de piso do jogador.
 
 std::deque<SurfaceWaypoint> m_surfaceWaypoints – waypoints de superfície ("migalhas") largadas pelo jogador ao caminhar.
@@ -127,7 +140,8 @@ touchSurfaceWaypoint(size_t index) – atualiza o timestamp de um waypoint de su
 
 getSurfaceWaypoints() / getStairTransitions() – acesso às listas.
 
-📌 Estruturas de Dados (Monster) – v7.2 expandida
+📌 Estruturas de Dados (Monster) – v7.2.1 expandida
+
 Índices e controle de perseguição:
 
 size_t m_nextStairIndex – próximo índice na fila de transições.
@@ -150,7 +164,7 @@ Position m_homePosition – posição inicial antes da perseguição.
 
 bool m_returningToSpawn / bool m_returningHome – flags de estado.
 
-Mapa Cognitivo Global e BFS (novo na v7.2):
+Mapa Cognitivo Global e BFS (expandido na v7.2.1):
 
 bool m_usingGlobalPath – se está a seguir um caminho planeado pelo BFS.
 
@@ -162,7 +176,15 @@ uint64_t m_lastGlobalScanAttempt – timestamp da última tentativa de BFS reati
 
 uint64_t m_lastExtendedScanAttempt – timestamp da última tentativa de scan expandido.
 
-Engajamento e timeouts (novo na v7.2):
+uint64_t m_lastFlankingAttempt – Novo na v7.2.1: timestamp da última tentativa de cercamento (tryFlankingRoute).
+
+uint64_t m_lastGpsOptimization – timestamp da última otimização GPS (reavaliação periódica de atalho cognitivo).
+
+uint64_t m_lastRouteRequestTime – timestamp da última tentativa de perseguição proativa.
+
+bool m_inOnThinkMCR – proteção contra reentrância no onThinkMCR.
+
+Engajamento e timeouts (expandido na v7.2.1):
 
 int m_engagement – barra de engajamento (0–100).
 
@@ -172,7 +194,7 @@ uint64_t m_pursuitDeadline – timestamp absoluto do fim da perseguição (calcu
 
 int m_proactiveFailCount – falhas consecutivas da perseguição proativa.
 
-📌 GlobalMonsterMap (novo na v7.2)
+📌 GlobalMonsterMap (expandido na v7.2.1)
 Classe singleton (global_monster_map.hpp / .cpp) que mantém:
 
 Grafo de tiles caminháveis (std::unordered_map<Position, TileInfo> m_tiles) com flags walkable e dynamic.
@@ -181,13 +203,14 @@ Transições de piso (std::unordered_map<Position, std::vector<Position>> m_tran
 
 Obstáculos temporários (std::unordered_map<Position, TemporaryObstacle> m_temporaryObstacles).
 
-Métodos principais: addTile, isWalkable (com validação preguiçosa), scanArea (flood‑fill multi‑piso com descoberta automática de escadas), findPath (BFS multi‑piso até 2000 nós), addStairTransition, addTemporaryObstacle, cleanupTemporaryObstacles, saveToFile (persistência assíncrona), loadFromFile.
+Métodos principais: addTile, isWalkable (com validação preguiçosa), scanArea (flood‑fill multi‑piso com descoberta automática de escadas, mapeamento de 8 vizinhos no destino), findPath (BFS multi‑piso até 2000 nós), addStairTransition, getAllTransitions (novo) , addTemporaryObstacle, cleanupTemporaryObstacles, saveToFile (persistência assíncrona), loadFromFile.
 
 Controle de concorrência com std::shared_mutex (leituras paralelas, escrita exclusiva).
 
 Limite de scans simultâneos: MAX_ACTIVE_SCANS = 1 (std::atomic<int> g_activeScans).
 
-📌 Comportamento (v7.2)
+📌 Comportamento (v7.2.1)
+
 Summons:
 
 Seguem a fila de transições do mestre com índice próprio.
@@ -202,15 +225,17 @@ Hostis:
 
 Perseguição por transições com suporte ao Mapa Cognitivo Global.
 
-Máquina de estados unificada: Combate > Retorno > BFS > Transições > Proativo.
+Máquina de estados unificada (v7.2.1): Combate > Retorno > BFS > Transições > Proativo. Inclui cercamento multi‑piso (tryFlankingRoute) nos blocos 5.0.5 e 6.
 
-Sistema de engajamento: barra 0–100, deadline = 25000 + engagement × 350 ms (mín. 10s, máx. 45s). Renovado enquanto o líder está visível.
+Sistema de engajamento: barra 0–100, deadline = 25000 + engagement × 350 ms (mín. 10s, máx. 45s). Renovado enquanto o líder está visível. Corrigido na v7.2.1 para updateEngagement(visible, false, false).
 
 BFS reativo (tryUseGlobalMap): throttle 3s; scan de 500 tiles (depois 1000 tiles com throttle 10s) se distância à escada > 1 tile.
 
-Atalhos cognitivos (checkStairPursuit): antes da fila do jogador, verifica se o GlobalMonsterMap tem uma rota melhor (com verificação de direção da escada).
+Atalhos cognitivos (checkStairPursuit): antes da fila do jogador, verifica se o GlobalMonsterMap tem uma rota melhor (com verificação de direção da escada). Na v7.2.1, também percorre todas as transições do grafo (getAllTransitions) com limite de 30 tiles e throttle de 500 ms.
 
-Perseguição proativa (tryProactiveGlobalPursuit): quando sem transições no piso, usa BFS para encontrar a melhor escada da fila (throttle 5–10s).
+Perseguição proativa (tryProactiveGlobalPursuit): quando sem transições no piso, usa BFS para encontrar a melhor escada do grafo (throttle 5–10s). Na v7.2.1, utiliza getAllTransitions para considerar escadas nunca pisadas pelo jogador.
+
+Cercamento multi‑piso (tryFlankingRoute): ativado quando o líder está no mesmo piso mas inacessível; planeia uma rota completa que pode sair do piso actual e regressar por outra escada. Throttle 3s.
 
 Retorno ao spawn: após timeout, utiliza m_returnPath (caminho inverso) ou m_homePosition. Fallback: teleporte após 10 falhas totais.
 
@@ -222,10 +247,15 @@ Jogador larga a cada 5 tiles percorridos; expiram após 2 minutos sem uso.
 
 Usados por summons e hostis como fallback quando o BFS falha.
 
-🚀 NOVOS MÉTODOS LUA (SPA v7.2)
+Exploração Passiva:
+
+tryExploreArea() com throttle 30s, raio 30 tiles, profundidade Z=3 (aumentado de 2).
+
+🚀 NOVOS MÉTODOS LUA (SPA v7.2.1)
 Estes métodos estão implementados em player.h/cpp, monster.h/cpp, global_monster_map.cpp e expostos em spa_functions.cpp. São essenciais para o funcionamento de todos os subsistemas do SPA. Todos estão activos e podem ser usados pelos scripts da pasta MCR/SPA/.
 
 🧬 Gestão de Afinidade e Domínios
+
 Método	Descrição
 player:getDominioAfinidade(dominioId)	Retorna a afinidade acumulada.
 player:addDominioAfinidade(dominioId, valor)	Adiciona pontos de afinidade.
@@ -233,6 +263,7 @@ player:addDominioAfinidadeBatch(tabela)	Adiciona afinidades em lote.
 player:getDominioAfinidades(dom1, dom2, ...)	Retorna tabela com várias afinidades.
 player:setDominioDespertado(dominioId, bool)	Marca o domínio como despertado.
 ⚔️ Habilidades
+
 Método	Descrição
 player:hasHabilidade(habilidadeId)	Verifica se conhece a habilidade.
 player:learnHabilidade(habilidadeId)	Aprende uma habilidade.
@@ -241,6 +272,7 @@ player:unlearnHabilidade(habilidadeId)	Remove uma habilidade.
 player:unlearnAllHabilidades()	Remove todas as habilidades.
 player:learnHabilidadeBatch(tabela)	Aprende várias habilidades em lote.
 ✨ Estados de Alma e Histórico
+
 Método	Descrição
 player:registerDominioAction(dominioId)	Regista uma ação no histórico.
 player:getActionHistory(maxCount)	Retorna últimas ações.
@@ -249,6 +281,7 @@ player:getDominioState(dominioId)	Retorna 0 (normal), 1 (Lampejo) ou 2 (Vínculo
 player:setDominioState(dominioId, state)	Define o estado.
 player:getAllActiveStates()	Retorna tabela de estados ativos.
 🛡️ Atributos de Combate
+
 Método	Descrição
 player:setAttackSpeedModifier(mod)	Multiplicador de velocidade de ataque.
 player:getAttackSpeedModifier()	Retorna o valor actual.
@@ -263,6 +296,7 @@ creature:knockback(direction)	Empurra a criatura.
 player:setCombatModifier("chave", valor)	Define modificador dinâmico.
 player:getCombatModifier("chave")	Retorna o valor actual.
 🎒 Storages e Inventário
+
 Método	Descrição
 player:setStorages({[key] = value, ...})	Escreve múltiplas storages.
 player:getStorages(key1, key2, ...)	Lê múltiplas storages.
@@ -272,12 +306,14 @@ monster:getRaceId()	Retorna o ID da raça do monstro.
 item:getElementalBond()	Retorna o tipo de dano elemental do item.
 item:getElementType()	Retorna o elementType do item.
 ❤️ Atributos Base (Vida, Mana, Velocidade)
+
 Método	Descrição
 player:getVocationBaseMaxHealth()	Vida base (gainhp × level + offset).
 player:getVocationBaseMaxMana()	Mana base (gainmana × level + offset).
 player:getNaturalSpeed()	Velocidade natural (base + bónus por nível).
 player:setMovementSpeed(speed)	Define a velocidade de movimento actual.
 🐾 Invocação, Inventário Remoto e Perseguição Multi‑Piso
+
 Método	Descrição
 player:openRemoteContainer(container)	Abre um container remoto.
 player:closeRemoteContainer()	Fecha o container remoto actual.
@@ -289,12 +325,16 @@ monster:getCustomName()	Retorna nome customizado.
 player:getSurfaceWaypoints()	Retorna a lista de waypoints de superfície do jogador.
 player:touchSurfaceWaypoint(index)	Atualiza o timestamp de um waypoint de superfície.
 player:getStairTransitions()	Retorna a fila de transições de piso do jogador.
-Novos na v7.2	
+Novos na v7.2.1 |
+
+Método	Descrição
 monster:scanGlobalArea(radius, zRange)	Força um scan do GlobalMonsterMap ao redor da criatura. Retorna tiles adicionados.
 monster:findGlobalPath(targetPos)	Encontra rota do monstro até targetPos usando o GlobalMonsterMap. Retorna tabela de posições.
 monster:getGlobalMapInfo()	Retorna {tileCount, currentWalkable} do GlobalMonsterMap.
 ⚙️ LÓGICA INTERNA (C++)
+
 player.cpp
+
 std::deque<ActionRecord> para histórico de acções.
 
 Estados de alma via setDominioState/getAllActiveStates; Maestria com Vínculo permanente.
@@ -312,13 +352,16 @@ m_stairTransitions (fila de transições) e m_surfaceWaypoints (waypoints de sup
 onFloorChange captura mudanças de piso e alimenta as listas.
 
 monster.cpp
-onThinkMCR() (novo, v7.2): máquina de estados principal (Combate > Retorno > BFS > Transições > Proativo). Controle de reentrância com m_inOnThinkMCR.
 
-checkStairPursuit(): atalho via mapa cognitivo + seleção da melhor escada da fila do jogador.
+onThinkMCR() (v7.2.1): máquina de estados principal (Combate > Retorno > BFS > Transições > Proativo). Controle de reentrância com m_inOnThinkMCR. Inclui cercamento multi‑piso nos blocos 5.0.5 e 6.
+
+checkStairPursuit(): atalho via mapa cognitivo + procura global de escadas do grafo (getAllTransitions) + seleção da melhor escada da fila do jogador. Throttle 500 ms, limite 30 tiles.
 
 tryUseGlobalMap(): BFS reativo com scan progressivo (500/1000 tiles).
 
-tryProactiveGlobalPursuit(): perseguição proativa quando não há transições no piso.
+tryProactiveGlobalPursuit(): perseguição proativa usando getAllTransitions para considerar todas as escadas conhecidas.
+
+tryFlankingRoute(): Novo na v7.2.1 — cercamento multi‑piso com BFS completo até ao líder.
 
 followGlobalPathStep(): segue a rota do BFS.
 
@@ -328,29 +371,34 @@ invalidateTileBlocked(): distingue bloqueios permanentes de temporários; invoca
 
 computePursuitDeadline(): cálculo do deadline adaptativo.
 
-updateEngagement(): gestão da barra de engajamento.
+updateEngagement(): gestão da barra de engajamento (corrigido para (visible, false, false)).
 
 clearStairPursuit(): limpeza do estado de perseguição e restauro do follow.
 
 iniciarRetornoSpawn / processarRetornoSpawn / processarRetornoSimples: retorno tático com fallback para teleporte.
 
-global_monster_map.cpp (novo)
+global_monster_map.cpp (v7.2.1)
+
 Singleton GlobalMonsterMap com std::shared_mutex.
 
-addTile, isWalkableUnlocked (validação preguiçosa de tiles dinâmicos), scanArea (flood‑fill 8‑direcional, suporte a Tile::getDestination() para teleportes), findPath (BFS multi‑piso, limite 2000 nós, suporte a diagonais, transições e goalIsStair), addStairTransition, addTemporaryObstacle, cleanupTemporaryObstacles (TTL 15s), saveToFile (thread assíncrona, ignora tiles dinâmicos), loadFromFile.
+addTile, isWalkableUnlocked (validação preguiçosa de tiles dinâmicos), scanArea (flood‑fill 8‑direcional, suporte a Tile::getDestination() para teleportes, mapeamento de 8 vizinhos (raio 1) no destino das escadas), findPath (BFS multi‑piso, limite 2000 nós, suporte a diagonais, transições e goalIsStair), addStairTransition, getAllTransitions (novo), addTemporaryObstacle, cleanupTemporaryObstacles (TTL 15s), saveToFile (thread assíncrona, ignora tiles dinâmicos), loadFromFile.
 
 Controle de concorrência: std::atomic<int> g_activeScans (máx. 1 scan simultâneo).
 
 game.cpp / map.cpp
+
 Captura de mudanças de piso via onFloorChange em internalTeleport e moveCreature, alimentando a m_stairTransitions do jogador.
 
 creature.h/cpp
+
 Método virtual onFloorChange.
 
 tile.cpp
+
 Exceções no queryAdd para tiles de escada (TILESTATE_FLOORCHANGE | TILESTATE_TELEPORT) quando monster->isPursuingStairs() e monster->getStairOrigin() == getPosition().
 
-tile.hpp / tile.cpp (novo)
+tile.hpp / tile.cpp
+
 Position Tile::getDestination() const – obtém o destino de teleportes/escadas activas.
 
 📅 EVENTO onHealthChange (JÁ IMPLEMENTADO)
@@ -430,19 +478,24 @@ O servidor inclui os seguintes comandos de administrador para depuração de ter
 
 !scanfull [raio] [zRange] – Relatório ultra detalhado salvo em data/logs/scan/scan_YYYYMMDD_HHMMSS.log com waypoints, transições e dados de cada tile. Raio padrão: 5 (máx. 10); zRange padrão: 2 (máx. 3).
 
-!pathtest – (Novo na v7.2) Força o monstro alvo a fazer scan e planear uma rota global até ao jogador. Exibe os passos da rota.
+!pathtest – Força o monstro alvo a fazer scan e planear uma rota global até ao jogador. Exibe os passos da rota.
 
-!mapinfo – (Novo na v7.2) Mostra o número de tiles no GlobalMonsterMap e se a posição do monstro alvo é caminhável.
+!mapinfo – Mostra o número de tiles no GlobalMonsterMap e se a posição do monstro alvo é caminhável.
 
-!engagement – (Novo na v7.2) Exibe a barra de engajamento (0–100) do monstro alvo.
+!engagement – Exibe a barra de engajamento (0–100) do monstro alvo.
 
-!deadline – (Novo na v7.2) Mostra o tempo restante (em ms) da perseguição atual do monstro alvo.
+!deadline – Mostra o tempo restante (em ms) da perseguição atual do monstro alvo.
 
-!debugtile – (Novo na v7.2) Lista os vizinhos no grafo do GlobalMonsterMap ao redor do jogador.
+!debugtile – Lista os vizinhos no grafo do GlobalMonsterMap ao redor do jogador.
+
+!checkstairs – Novo na v7.2: Lista as escadas com destino mapeado no raio.
+
+!testglobalmap – Novo na v7.2: Testa se getDestinations retorna dados.
 
 Estes comandos são registados em comandos_spa.lua e requerem grupo DEUS.
 
 ⚠️ ARMADILHAS E LIÇÕES APRENDIDAS
+
 Codificação de console: SetConsoleOutputCP(CP_UTF8) é imprescindível para logs em PT‑BR.
 
 Tradução de logs: use SEMPRE escapes octais para todos os acentos nas strings C++. Não confie em UTF‑8 directo.
@@ -471,7 +524,7 @@ Inventário remoto: os métodos openRemoteContainer, closeRemoteContainer, creat
 
 Nome customizado: setCustomName/getCustomName substituem setName/getName para criaturas SPA, garantindo que o nome exibido no cliente seja o nome do escudeiro e não o nome do arquivo do monstro.
 
-Perseguição multi‑piso (v7.2):
+Perseguição multi‑piso (v7.2.1):
 
 A transição do jogador é capturada automaticamente em Game::internalTeleport e Map::moveCreature via onFloorChange.
 
@@ -491,7 +544,7 @@ Timeout de progresso: hostis abandonam uma escada se ficarem 4 segundos sem redu
 
 Movimento forçado: apenas para summons; hostis utilizam waypoints de superfície e tiles adjacentes como alternativas.
 
-GlobalMonsterMap (v7.2):
+GlobalMonsterMap (v7.2.1):
 
 O grafo é partilhado entre todos os monstros; usar std::shared_mutex evita gargalos.
 
@@ -503,15 +556,22 @@ Apenas tiles estáticos são salvos em disco; a persistência é assíncrona e n
 
 O Tile::getDestination() é usado para obter destinos reais de teleportes; se não disponível, assume z±1 como fallback.
 
+Novo na v7.2.1: getAllTransitions() permite a procura global de escadas no checkStairPursuit e tryProactiveGlobalPursuit.
+
+Novo na v7.2.1: Mapeamento de 8 vizinhos (raio 1) nos destinos das escadas durante o scanArea.
+
 Máquina de estados: a prioridade máxima é sempre o combate; qualquer rota global ou perseguição é cancelada se o jogador ficar atacável.
 
-Engajamento: o deadline é renovado enquanto o líder está visível; o timeout por perda de visão (10s) impede perseguições eternas a jogadores escondidos.
+Engajamento: o deadline é renovado enquanto o líder está visível; o timeout por perda de visão (10s) impede perseguições eternas a jogadores escondidos. Corrigido na v7.2.1 para não inflacionar artificialmente com updateEngagement(visible, false, false).
+
+Cercamento: tryFlankingRoute pode fazer o monstro sair do piso actual e regressar por outra escada; throttle de 3s evita abusos.
 
 📤 COMO ATUALIZAR O REPOSITÓRIO GIT
+
 bash
 git add "<arquivos alterados>"
-git commit -m "feat(server): Atualiza guia de compilação com SPA v7.2, GlobalMonsterMap, engajamento e novos comandos"
+git commit -m "feat(server): Atualiza guia de compilação com SPA v7.2.1, GlobalMonsterMap, cercamento, procura global de escadas"
 git push origin main
 ⚠️ PowerShell: use aspas duplas em caminhos com espaços.
 
-FIM DO GUIA DE COMPILAÇÃO (SERVIDOR) — VERSÃO 7.2
+FIM DO GUIA DE COMPILAÇÃO (SERVIDOR) — VERSÃO 7.2.1
