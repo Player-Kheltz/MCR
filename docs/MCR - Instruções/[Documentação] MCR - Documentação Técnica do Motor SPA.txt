@@ -1,37 +1,49 @@
-📘 Documentação Técnica do Motor SPA – Projeto MCR (v5.5)
-Última atualização: 09 de Junho de 2026
+📘 Documentação Técnica do Motor SPA – Projeto MCR (v5.7 Revisada)
+Última atualização: 12 de Junho de 2026
+Versão do documento: 5.7 (revisada – alinhamento com sistema de perseguição v8.0 e guia de compilação v8.1)
 
-Este documento descreve todas as APIs, métodos, constantes, estruturas de dados e sistemas que o servidor Canary expõe ao Sistema de Progressão do Aventureiro. Inclui também a integração completa com o Sistema de Perseguição Multi‑Piso v7.2.1 e o Mapa Cognitivo Global (GlobalMonsterMap). Todas as funcionalidades aqui listadas estão implementadas, compiladas e verificadas através do comando !testesistema.
+Este documento descreve todas as APIs, métodos, constantes, estruturas de dados e sistemas que o servidor Canary expõe ao Sistema de Progressão do Aventureiro (SPA). Inclui também a integração completa com o Sistema de Perseguição Multi‑Piso v8.0, o Mapa Cognitivo Global (GlobalMonsterMap) e o SPAManager (gestão de eventos e pets). Todas as funcionalidades aqui listadas estão implementadas, compiladas e verificadas através do comando !testesistema.
+
+Nota sobre codificação do código C++ do servidor: Todas as strings visíveis ao jogador e logs de sistema no código‑fonte Canary utilizam escapes octais Latin‑1 (ex.: "N\355vel", "Voca\347\343o") para garantir portabilidade e evitar problemas com UTF‑8 directo. Consulte o Guia de Compilação do Servidor para mais detalhes sobre a pipeline de tradução.
 
 🧠 1. Núcleo do SPA (Progressão por Domínios)
-
 1.1 Métodos C++ expostos ao Lua (Player)
 Método Lua	Descrição
-player:getDominioAfinidade(dominioId)	Retorna a afinidade acumulada (inteiro).
-player:addDominioAfinidade(dominioId, pontos)	Adiciona pontos de afinidade (INSERT … ON DUPLICATE KEY UPDATE).
-player:addDominioAfinidadeBatch(tabela)	Adiciona afinidades em lote ({[domId]=pontos}). Otimizado.
-player:getDominioAfinidades(dom1, dom2, …)	Retorna tabela {[domId]=valor}.
-player:setDominioDespertado(dominioId, bool)	Marca o domínio como despertado (1/0).
-player:hasHabilidade(habilidadeId)	Verifica se a habilidade está aprendida (BD).
+player:getDominioAfinidade(dominioId)	Retorna a afinidade acumulada (inteiro). Consulta directa à tabela player_dominios.
+player:addDominioAfinidade(dominioId, pontos)	Adiciona pontos de afinidade (INSERT … ON DUPLICATE KEY UPDATE). Usa buffer de progressão (descarrega a cada 2 segundos).
+player:addDominioAfinidadeBatch(tabela)	Adiciona afinidades em lote ({[domId]=pontos}). Otimizado, chama addDominioAfinidade para cada par.
+player:getDominioAfinidades(dom1, dom2, …)	Retorna tabela {[domId]=valor}. Consulta a BD com uma única query usando IN.
+player:setDominioDespertado(dominioId, bool)	Marca o domínio como despertado (1/0). Usado para indicar que o jogador já interagiu com o domínio.
+player:hasHabilidade(habilidadeId)	Verifica se a habilidade está aprendida (consulta player_habilidades).
 player:learnHabilidade(habilidadeId)	Aprende uma habilidade permanentemente (insere na BD).
 player:unlearnHabilidade(habilidadeId)	Remove uma habilidade específica da BD.
-player:unlearnAllHabilidades()	Remove TODAS as habilidades do jogador (uma única query).
-player:learnHabilidadeBatch(tabela)	Aprende várias habilidades em lote (array Lua {id1, id2, …}).
-player:getHabilidades()	Retorna lista de IDs das habilidades aprendidas.
+player:unlearnAllHabilidades()	Remove TODAS as habilidades do jogador (uma única query DELETE).
+player:learnHabilidadeBatch(tabela)	Aprende várias habilidades em lote (array Lua {id1, id2, …}). Usa INSERT com múltiplos valores.
+player:getHabilidades()	Retorna lista de IDs das habilidades aprendidas (consulta player_habilidades).
 player:getVocationBaseMaxHealth()	Retorna a vida base do Aventureiro (gainhp * level + offset). Nível 1 = 150.
 player:getVocationBaseMaxMana()	Retorna a mana base do Aventureiro (gainmana * level + offset). Nível 1 = 50.
-player:getNaturalSpeed()	Retorna a velocidade natural (base da vocação + (level - 1)).
-player:setMovementSpeed(speed)	Define a velocidade de movimento atual e notifica o cliente.
-1.2 Histórico de Ações e Estados de Alma
+player:getNaturalSpeed()	Retorna a velocidade natural (base da vocação + (level - 1)). Base = 110.
+player:setMovementSpeed(speed)	Define a velocidade de movimento actual e notifica o cliente (usa setBaseSpeed + changeSpeed).
+player:setStorages({[k]=v, …})	Escreve múltiplas storages de uma só vez (chama m_storage.add para cada par).
+player:getStorages(k1, k2, …)	Lê múltiplas storages (retorna mapa {[k]=v}).
+player:getAmmo()	Retorna o item da munição real (inclui aljavas/quivers). Usado por util_armas.lua para projécteis.
+player:getParty()	Retorna o grupo do jogador (ou nil).
+player:openRemoteContainer(container)	Abre um container remoto (escudeiro) no cliente. Atribui um CID livre, regista como remoto e envia o container.
+player:closeRemoteContainer()	Fecha o container remoto actual. Usado na morte do escudeiro.
+player:closeContainersByCreature(creature)	Fecha todos os containers abertos associados a uma criatura (ex.: escudeiro).
+player:getSurfaceWaypoints()	Retorna a lista de waypoints de superfície do jogador (std::deque<SurfaceWaypoint>).
+player:touchSurfaceWaypoint(index)	Actualiza o timestamp de um waypoint de superfície (prolonga a sua vida).
+player:getStairTransitions()	Retorna a fila de transições de escada do jogador (std::deque<StairTransition>).
+1.2 Histórico de Acções e Estados de Alma
 Método Lua	Descrição
-player:registerDominioAction(dominioId)	Regista uma ação com timestamp. Usado para alimentar a barra de foco.
-player:getActionHistory(maxCount)	Retorna as últimas ações como tabela {dominioId, timestamp}.
-player:clearActionHistory()	Limpa todo o histórico de ações.
-player:getDominioState(dominioId)	Retorna 0 (normal), 1 (Lampejo) ou 2 (Vínculo). A Maestria mantém o estado 2 permanentemente.
-player:setDominioState(dominioId, state)	Define o estado (0, 1, 2).
-player:getAllActiveStates()	Retorna {[dominioId] = state} para todos os domínios com estado > 0.
+player:registerDominioAction(dominioId)	Regista uma acção com timestamp (OTSYS_TIME()). Usado para alimentar a barra de foco. A acção é armazenada em recentActions (até 100 entradas).
+player:getActionHistory(maxCount)	Retorna as últimas acções como tabela {dominioId, timestamp}. Ordenada do mais recente para o mais antigo.
+player:clearActionHistory()	Limpa todo o histórico de acções e o mapa activeStates.
+player:getDominioState(dominioId)	Retorna 0 (normal), 1 (Lampejo) ou 2 (Vínculo). A Maestria mantém o estado 2 permanentemente. O estado é armazenado em activeStates (mapa partilhado com mutex).
+player:setDominioState(dominioId, state)	Define o estado (0, 1, 2). Actualiza activeStates.
+player:getAllActiveStates()	Retorna {[dominioId] = state} para todos os domínios com estado > 0. Acesso thread‑safe.
 1.3 Curva de Progressão
-Definida em constantes.lua na tabela NIVEL_PONTOS. Os valores atuais (para uma taxa de ≈1800 pontos/hora) são:
+Definida em constantes.lua na tabela NIVEL_PONTOS. Os valores actuais (para uma taxa de ≈1800 pontos/hora) são:
 
 lua
 NIVEL_PONTOS = {
@@ -67,7 +79,7 @@ Propagação de afinidade (rácio 4:2:1): quando um jogador ganha afinidade numa
 
 Os valores são arredondados para baixo (math.floor). A propagação usa os totais do ciclo, garantindo que pontos baixos sejam acumulados antes da divisão.
 
-A tabela domainChildren (construída em constantes.lua) mapeia cada domínio para os seus filhos diretos, sendo usada por getNivelEfetivo para a regra de Maestria condicionada.
+A tabela domainChildren (construída em constantes.lua) mapeia cada domínio para os seus filhos directos, sendo usada por getNivelEfetivo para a regra de Maestria condicionada.
 
 1.5 Compatibilidade Elemental
 Desde a v4.2, o SPA suporta sinergia elemental nativa: armas que possuem elementalBond definido no XML (ou elementType nas habilidades) desbloqueiam automaticamente as habilidades do domínio elemental correspondente.
@@ -88,11 +100,10 @@ damageDomains = {
 1.6 Campos Elementais (Fields)
 Desde a v4.3, habilidades de Maestria elemental podem criar campos elementais no chão. O conjurador é sempre imune aos seus próprios campos. Com a transformação de Maestria adequada (nível 20), o grupo também fica imune. A intensidade do campo (dano por tick, duração) escala com o nível de afinidade do conjurador.
 
-A função criarField() em funcoes_habilidade.lua (v2.0.2) gere a criação de campos, incluindo o loop de ticks, a imunidade do conjurador, a imunidade do grupo (se Maestria) e uma animação de ignição (onda que converge para o centro).
+A função criarField() em funcoes_habilidade.lua (v2.0.2) gere a criação de campos, incluindo o loop de ticks, a imunidade do conjurador, a imunidade do grupo (se Maestria) e uma animação de ignição (onda que converge para o centro). O campo é implementado como um item de MagicField (ID base 1497 + elemento) com atributos de dano e duração. O dano por tick é recalculado a cada intervalo (normalmente 1000 ms) e aplicado a todas as criaturas dentro do campo, excepto o conjurador e, opcionalmente, seu grupo.
 
 ⚔️ 2. Posturas de Combate
-
-As posturas são selecionadas pelos modos de luta nativos do Tibia (fightMode) e lidas pelo servidor via player:getFightMode().
+As posturas são seleccionadas pelos modos de luta nativos do Tibia (fightMode) e lidas pelo servidor via player:getFightMode().
 
 Modo	Postura SPA	Constante Lua
 Full Attack (1)	Ímpeto	FIGHTMODE_ATTACK
@@ -102,15 +113,15 @@ Métodos relacionados
 
 Método Lua	Descrição
 player:getFightMode()	Retorna o modo actual (1, 2, 3).
-player:setAttackSpeedModifier(mod)	Multiplicador da velocidade de ataque (0.1 a infinito).
+player:setAttackSpeedModifier(mod)	Multiplicador da velocidade de ataque (0.1 a infinito). Impacta o cálculo de getAttackSpeed().
 player:getAttackSpeedModifier()	Valor actual.
-player:setStealth(bool)	Activa/desactiva furtividade.
+player:setStealth(bool)	Activa/desactiva furtividade (usado pela Guarda com arma de distância).
 player:isStealth()	Verifica se está furtivo.
-player:setCanPushCreatures(bool)	Permite empurrar criaturas ao andar.
+player:setCanPushCreatures(bool)	Permite empurrar criaturas ao andar (usado pela Postura de Ímpeto).
 player:setLifeLeechModifier(percent)	Define % de life leech (0–100).
 player:setManaLeechModifier(percent)	Define % de mana leech (0–100).
-player:setDamageTakenModifier(mod)	Multiplicador do dano recebido.
-player:setRangeModifier(tiles)	Ajusta o alcance.
+player:setDamageTakenModifier(mod)	Multiplicador do dano recebido (1.0 = normal).
+player:setRangeModifier(tiles)	Ajusta o alcance (soma ao alcance base).
 Buffs temporários (geridos pelo buff_system.lua v6.2):
 
 Speed Burst (applySpeedBurst): acelera o ataque por X ms usando um token aleatório.
@@ -122,18 +133,17 @@ Life Leech / Mana Leech (applyLifeLeech, applyManaLeech): roubo de vida/mana por
 Next Attack Condition: aplica uma condição no próximo ataque.
 
 🛡️ 3. Sistema de Chi (Harmony) e Virtudes
-
 Integrado com as mecânicas do Monk nativo do Canary, o sistema de Chi é usado pelo domínio Artes Marciais (14) e suas especialidades.
 
 Métodos Lua
 
 Método Lua	Descrição
-player:fillHarmony()	Enche a barra de Harmony (Chi).
+player:fillHarmony()	Enche a barra de Harmony (Chi) completamente (harmony = 5).
 player:getHarmony()	Retorna o valor actual (0–5).
 player:setHarmony(value)	Define o valor manualmente.
-player:getHarmonyDamage(min, max)	Calcula dano com bónus de Harmony.
+player:getHarmonyDamage(min, max)	Calcula dano com bónus de Harmony (multiplicador baseado no nível de Harmony e virtude).
 player:setSerene(bool)	Activa/desactiva o estado Serenidade.
-player:setVirtue(virtue)	Define a Virtude actual.
+player:setVirtue(virtue)	Define a Virtude actual (Harmony, Justice, Sustain).
 player:getVirtue()	Retorna a Virtude actual.
 Constantes e storages
 
@@ -147,10 +157,9 @@ Virtue_t = {
 
 STORAGE.HARMONY = 97880
 STORAGE.CHI_ACCUMULATED = 97881
-A Serenidade é um estado especial activado automaticamente ao atingir a Maestria (nível 20) em Artes Marciais, ou ao encher a barra de Chi.
+A Serenidade é um estado especial activado automaticamente ao atingir a Maestria (nível 20) em Artes Marciais, ou ao encher a barra de Chi. Quando sereno, o jogador ganha bónus adicionais de dano e regeneração.
 
 🎯 4. Habilidades (Skills do SPA)
-
 O SPA utiliza uma arquitectura modular em três camadas:
 
 Motor de Habilidades (motor_habilidades.lua v2.0) — lógica central de execução, com 27 tipos de efeitos padronizados.
@@ -174,15 +183,15 @@ Adaptação elemental para Wands e Rods: as habilidades de Wands (210) e Rods (2
 
 Novos tipos de efeitos modulares: sinergia_escalonada, storm, orbit, rain, pulse, trap, summon.
 
-Controlo de efeitos temporais: limite de 2 efeitos temporais ativos por jogador.
+Controlo de efeitos temporais: limite de 2 efeitos temporais (storm, orbit, rain, pulse, trap, field) activos por jogador.
 
 Tipos de efeitos suportados (lista completa — 27 tipos)
 
 Tipo	Descrição	Parâmetros principais
-"dano_extra"	Dano adicional simples (corpo a corpo ou projétil).	percentual, tipo ("distancia" ou omitido), magicEffect
+"dano_extra"	Dano adicional simples (corpo a corpo ou projéctil).	percentual, tipo ("distancia" ou omitido), magicEffect
 "area_ground"	Explosão no chão centrada no jogador ou no alvo.	centro ("jogador" ou "alvo"), raio, percentual, magicEffect, knockback, condicao, conditionMagicEffect
 "area_target"	Explosão centrada no alvo.	percentual, areaPercentual, raio, magicEffect, knockback
-"ricochete"	Projétil que salta entre inimigos próximos.	percentual, raio, saltos, magicEffect
+"ricochete"	Projéctil que salta entre inimigos próximos.	percentual, raio, saltos, magicEffect
 "corrente"	Liga dois alvos e aplica dano ao secundário.	percentual, raio, magicEffect
 "knockback"	Empurra o alvo.	comDano, percentual, magicEffect
 "condicao"	Aplica uma condição ao alvo.	conditionType, duration, periodicDamage, comDano, percentual, magicEffect, conditionMagicEffect
@@ -197,11 +206,11 @@ Tipo	Descrição	Parâmetros principais
 "defesa_contra_ataque"	Contra-ataque em área ao receber dano.	percentual, magicEffect
 "field"	Cria campo elemental no chão.	elemento, danoPorTick, duracaoMs, intervaloMs, magicEffect, centro, raio
 "sinergia"	Combina múltiplos domínios com efeitos secundários.	efeitoBase, efeitosSecundarios, nivelMinSecundario
-"rajada"	Múltiplos projéteis em sequência.	percentual, numProjeteis, intervaloMs
+"rajada"	Múltiplos projécteis em sequência.	percentual, numProjeteis, intervaloMs
 "sinergia_escalonada"	Efeitos por domínio que escalam com nível; épico na maestria total.	efeitoBase (opcional), efeitosPorDominio ({ [domId] = { nivelMin, efeitoConfig, escala (opcional), chance (opcional), escalaChance (opcional) } }), efeitoEpico (opcional)
 "storm"	Atinge um inimigo aleatório na área a cada intervaloMs, durante duracaoMs.	centro, raio, elemento, danoPorTick, intervaloMs, duracaoMs, magicEffect
 "orbit"	Esferas que orbitam o jogador e causam dano a inimigos próximos periodicamente.	numEsferas, raio, elemento, danoPorTick, intervaloMs, duracaoMs, magicEffect
-"rain"	Projéteis caem aleatoriamente na área em intervalos regulares.	centro, raio, elemento, danoPorTick, intervaloMs, duracaoMs, magicEffect
+"rain"	Projécteis caem aleatoriamente na área em intervalos regulares.	centro, raio, elemento, danoPorTick, intervaloMs, duracaoMs, magicEffect
 "pulse"	Ondas de energia que se expandem e contraem, causando dano a cada pulso.	raioMax, elemento, danoPorPulso, intervaloMs, numPulsos, magicEffect
 "trap"	Armadilha tática com posicionamento inteligente.	centro ("alvo", "jogador", "entre", "fuga", "aleatorio"), duracaoMs, primeDelayMs, elemento, dano, raio, magicEffect, markEffect, condicao/condDuration/periodicDamage (opcional)
 "summon"	Invoca uma criatura mágica temporária.	monsterName, maxCount, dominio, afinidade, magicEffect
@@ -219,25 +228,8 @@ Físico	CONST_ME_HITAREA	CONST_ME_DRAWBLOOD	CONST_ME_DRAWBLOOD
 Veneno	CONST_ME_GREEN_RINGS	CONST_ME_MAGIC_GREEN	CONST_ME_GREEN_RINGS
 Este mapeamento é usado como fallback automático, garantindo que todas as habilidades tenham um efeito visual coerente com o seu elemento, mesmo que o campo magicEffect não seja especificado no efeitoConfig.
 
-4.1.2 Novos Tipos de Efeitos Modulares (v2.0)
-O motor v2.0 introduz sete novos tipos de efeitos, todos definidos exclusivamente por parâmetros, sem lógica manual:
-
-"sinergia_escalonada" — Efeitos por domínio que escalam com nível; épico na maestria total. Usa cfg.efeitosPorDominio (tabela indexada por domínio, cada entrada com nivelMin, efeitoConfig, e campos opcionais de escala e chance). Se cfg.efeitoEpico estiver definido e todos os domínios em efeitosPorDominio estiverem em nível 20, executa-se o efeito épico.
-
-"storm" — Atinge um inimigo aleatório na área a cada intervaloMs, durante duracaoMs. Ideal para tempestades de raios, chuva de meteoros localizada.
-
-"orbit" — Esferas que orbitam o jogador e causam dano a inimigos próximos periodicamente. Ideal para auras ofensivas, escudos de energia.
-
-"rain" — Projéteis caem aleatoriamente na área em intervalos regulares. Ideal para chuva de flechas, meteoros.
-
-"pulse" — Ondas de energia que se expandem e contraem, causando dano a cada pulso. Ideal para habilidades de paladino, energia sagrada.
-
-"trap" — Armadilha tática com posicionamento inteligente ("alvo", "jogador", "entre", "fuga", "aleatorio"), atraso de armação (primeDelayMs), marcador visual (markEffect) e condições na detonação. Ideal para caçadores, estratégia, controle de área.
-
-"summon" — Invoca uma criatura mágica temporária, com duração baseada na barra de foco. Ideal para invocadores arcanos.
-
-4.1.3 Controlo de Efeitos Temporais
-Os tipos storm, orbit, rain, pulse, trap e field são considerados efeitos temporais. Para evitar sobrecarga de addEvents, o motor limita a 2 efeitos temporais ativos por jogador. Se um novo efeito for solicitado e o limite estiver atingido, o efeito não é criado, a habilidade entra em cooldown normalmente, e o jogador é informado. O limite é gerido pelas funções canStartTempEffect, registerTempEffect e unregisterTempEffect no motor.
+4.1.2 Controlo de Efeitos Temporais
+Os tipos storm, orbit, rain, pulse, trap e field são considerados efeitos temporais. Para evitar sobrecarga de addEvents, o motor limita a 2 efeitos temporais activos por jogador. Se um novo efeito for solicitado e o limite estiver atingido, o efeito não é criado, a habilidade entra em cooldown normalmente, e o jogador é informado. O limite é gerido pelas funções canStartTempEffect, registerTempEffect e unregisterTempEffect no motor.
 
 4.2 Narrativa Centralizada (narrativa_habilidades.lua v1.0)
 A tabela Narrativa.frases contém frases organizadas por tipo de efeito e postura. A função Narrativa.gerar(player, target, habDef) compõe a frase final com cores, substituindo placeholders:
@@ -252,7 +244,7 @@ O motor chama Narrativa.gerar() automaticamente, garantindo feedback consistente
 
 4.3 Tipos de habilidade
 Tipo	Descrição
-"passiva"	Efeito permanente, aplicado no login e ao subir de nível. Renovada a cada 2 segundos pelo think_master. Passivas que afetam vida, mana ou velocidade têm o campo efeito vazio (são geridas centralizadamente).
+"passiva"	Efeito permanente, aplicado no login e ao subir de nível. Renovada a cada 2 segundos pelo think_master. Passivas que afectam vida, mana ou velocidade têm o campo efeito vazio (são geridas centralizadamente).
 "gatilho"	Disparada por eventos: onAttack, onDealtDamage, onKill, onBlock, onReceiveDamage. Devem usar obrigatoriamente o campo efeitoConfig (motor modular).
 "transformacao"	Activada/desactivada com base nos Estados de Alma (Lampejo/Vínculo/Maestria). Suporta campo desfazer para reverter bónus.
 4.4 Categorias de gatilho
@@ -317,7 +309,7 @@ if not jogadorConheceHabilidade(p, HAB_IRMA_III) then
     aprenderHabilidade(p, HAB_IRMA_III)
 end
 4.11 Execução (executor_habilidades.lua v9.0)
-O executor utiliza um motor de seleção inteligente com prioridade contextual, cooldowns individuais por domínio, e suporta:
+O executor utiliza um motor de selecção inteligente com prioridade contextual, cooldowns individuais por domínio, e suporta:
 
 Cooldown global por domínio: cada domínio tem o seu próprio cooldown, baseado na hierarquia (especialidade: 6s, secundário: 8s, primário: 10s), reduzido pelo nível de afinidade (2% por nível, máx. 40%) e pela barra de foco (até 30%).
 
@@ -327,11 +319,11 @@ Prioridade por especialização: bónus de +1 a cada 5 níveis de afinidade no d
 
 Disponibilidade por hierarquia: habilidades de secundários e primários só são elegíveis quando a barra de foco está em 100% (Vínculo/Maestria). Especialidades estão sempre disponíveis.
 
-Limites de categoria: o executor impõe limites por categoria (ex.: "aoe" = 2, "single" = 3, "finisher" = 1) numa janela de 10 segundos. Habilidades que excedem o limite não são selecionadas, não gastam cooldown, e ficam disponíveis no próximo ciclo.
+Limites de categoria: o executor impõe limites por categoria (ex.: "aoe" = 2, "single" = 3, "finisher" = 1) numa janela de 10 segundos. Habilidades que excedem o limite não são seleccionadas, não gastam cooldown, e ficam disponíveis no próximo ciclo.
 
 Throttle global: intervalo mínimo de 600ms entre qualquer execução de habilidade (MIN_GLOBAL_DELAY = 0.6).
 
-Seleção otimizada: a seleção de habilidades percorre apenas as primeiras 5 habilidades elegíveis (MAX_CANDIDATOS = 5), com fallback de categoria para "single" caso a habilidade não defina categoria.
+Selecção optimizada: a selecção de habilidades percorre apenas as primeiras 5 habilidades elegíveis (MAX_CANDIDATOS = 5), com fallback de categoria para "single" caso a habilidade não defina categoria.
 
 Delegação ao motor modular: chama MOTOR.executar() e Narrativa.gerar(). O sistema legado de buffType foi totalmente removido.
 
@@ -351,9 +343,8 @@ NUNCA usar travessões longos (—); usar hífen (-).
 Formatos: ataque simples (só alvo colorido), ataque com efeito ("Frase em Alvo - Efeito."), defesa ("Frase sobre bloqueio contra Alvo - Efeito.").
 
 ✨ 5. Lampejos e Vínculos (Sistema de Sintonia v6.2)
-
 5.1 Barra de Foco
-Cada domínio possui uma barra de foco (0–100) armazenada em STORAGE.FOCO + dominioId. A barra enche com cada ação que gera afinidade (+1 ponto) e decai 1 ponto a cada 2 segundos fora de combate. Em Maestria (nível 20), a barra é mantida permanentemente em 100% (mesmo durante o combate, gerido pelo think_master.lua v3.5.1).
+Cada domínio possui uma barra de foco (0–100) armazenada em STORAGE.FOCO + dominioId. A barra enche com cada acção que gera afinidade (+1 ponto) e decai 1 ponto a cada 2 segundos fora de combate. Em Maestria (nível 20), a barra é mantida permanentemente em 100% (mesmo durante o combate, gerido pelo think_master.lua v3.5.1).
 
 5.2 Lampejos com Chance Variável
 A chance de Lampejo depende do nível de afinidade e do preenchimento da barra de foco:
@@ -378,9 +369,8 @@ Foco	Bónus de Velocidade	Bónus de Dano
 Lampejo e Vínculo são mutuamente exclusivos no mesmo domínio. Podem coexistir em domínios diferentes.
 
 🔧 6. Atributos de Itens Expostos ao Lua
-
 Método Lua	Descrição
-item:getShootType()	Retorna o tipo de projétil (CONST_ANI_).
+item:getShootType()	Retorna o tipo de projéctil (CONST_ANI_).
 item:getRange()	Retorna o alcance da arma.
 item:getAttack()	Retorna o ataque base.
 item:getDefense()	Retorna a defesa base.
@@ -391,26 +381,24 @@ item:getElementType()	Retorna o tipo de dano elemental do Abilities.
 item:getCombatType()	Retorna o tipo de dano elemental do ItemType.
 item:getMagicLevelPoints()	Bónus de Magic Level do item.
 item:getSkillFist() a item:getSkillShield()	Bónus de skills.
-6.1 Sistema de Projéteis Dinâmico
-As funções getProjectile(player) e getElementalProjectile(player) em util_armas.lua resolvem automaticamente o projétil visual, efeito mágico e tipo de dano com base na arma e munição equipadas.
+6.1 Sistema de Projécteis Dinâmico
+As funções getProjectile(player) e getElementalProjectile(player) em util_armas.lua resolvem automaticamente o projéctil visual, efeito mágico e tipo de dano com base na arma e munição equipadas.
 
 🧩 7. Funções Auxiliares para Habilidades (funcoes_habilidade.lua v2.0.2)
-
 Função	Descrição
-dispararProjetil(player, target, danoBase, extraPercent)	Projétil elemental com dano proporcional.
-dispararRajada(player, target, danoBase, extraPercent, numProjeteis, intervaloMs)	N projéteis em sequência.
+dispararProjetil(player, target, danoBase, extraPercent)	Projéctil elemental com dano proporcional.
+dispararRajada(player, target, danoBase, extraPercent, numProjeteis, intervaloMs)	N projécteis em sequência.
 explosaoElementalArea(player, target, danoBase, extraPercent, raio)	Explosão elemental ao redor do alvo.
 danoElemental(player, target, dano, efeitoOpcional)	Dano com o elemento da arma.
 golpeCorpoACorpo(player, target, dano, efeito)	Dano físico com efeito visual (melee).
-empurrarAlvo(player, target)	Empurra o alvo na direção oposta.
+empurrarAlvo(player, target)	Empurra o alvo na direcção oposta.
 criarField(player, posicao, elemento, danoPorTick, duracaoMs, intervaloMs, efeitoVisual)	Cria campo elemental no chão.
 afetarArea(player, posicao, raio, danoBase, extraPercentDano, curaBase, extraPercentCura, curarAliados)	Dano a inimigos e cura a aliados numa área.
 ligarAlvos(player, alvo1, alvo2, danoBase, extraPercent, efeitoVisual)	Liga dois alvos com efeito visual e dano.
 aplicarCondicaoArea(player, posicao, raio, condType, duration, damagePerTick)	Aplica condição a todos os inimigos numa área.
 🖥️ 8. Sistema de Invocação (Summon/Pets)
-
 8.1 Domínio Summon (28)
-O domínio Summon é uma especialidade mágica (sob Magia 2) que permite ao Aventureiro invocar criaturas temporárias. A afinidade aumenta ao causar dano com uma arma mágica enquanto um summon está ativo, e a cada morte de um inimigo pelo summon.
+O domínio Summon é uma especialidade mágica (sob Magia 2) que permite ao Aventureiro invocar criaturas temporárias. A afinidade aumenta ao causar dano com uma arma mágica enquanto um summon está activo, e a cada morte de um inimigo pelo summon.
 
 8.2 Configuração de Summons (summon_configs.lua)
 A tabela SUMMON_CONFIGS define as criaturas invocáveis. Exemplo de entrada:
@@ -435,53 +423,84 @@ SUMMON_CONFIGS = {
 Método Lua	Descrição
 player:openRemoteContainer(container)	Abre a janela de inventário remoto do escudeiro.
 player:closeRemoteContainer()	Fecha a janela de inventário remoto.
-monster:createInventory(size)	Cria uma mochila interna na criatura.
+player:closeContainersByCreature(creature)	Fecha todas as janelas abertas de uma criatura (usado na morte do escudeiro).
+monster:createInventory(size)	Cria uma mochila interna na criatura (Item 2854 – Mochila).
 monster:addItemToInventory(itemId, count)	Adiciona itens à mochila da criatura.
 monster:getInventoryContainer()	Retorna o container do inventário da criatura.
 monster:setCustomName(name)	Define um nome alternativo para a criatura (ex.: escudeiro).
 monster:getCustomName()	Retorna o nome alternativo da criatura.
-8.5 Sistema de Perseguição Multi‑Piso (v7.2.1) — NOVO
-Nota: Esta secção substitui integralmente a versão 5.3 anterior. O sistema foi completamente revisto e expandido na v7.2.1, incorporando o Mapa Cognitivo Global, máquina de estados unificada, sistema de engajamento adaptativo, procura global de escadas, cercamento multi‑piso e comandos de diagnóstico alargados.
+8.5 SPAManager – Sistema de Pets
+O SPAManager (spa_manager.cpp) mantém em memória:
 
-8.5.1 Visão Geral
-O sistema de perseguição multi‑piso permite que summons/pets e criaturas hostis sigam o seu líder através de diferentes pisos (eixo Z), utilizando escadas, buracos, teleports, ladders e itens interativos do mapa. A perseguição é baseada numa fila de transições guardada no jogador e processada individualmente por cada criatura, mantendo um índice de progresso independente para evitar interferências entre múltiplos seguidores.
+m_playerPets: map playerId → vector de petId (IDs de criatura).
 
-Novidades na v7.2.1:
+m_petMaster: map petId → playerId.
 
-Mapa Cognitivo Global (GlobalMonsterMap) — um grafo partilhado por todos os monstros, que armazena tiles caminháveis e transições de piso, construído incrementalmente através de scans e alimentado pelas transições do jogador.
+m_playerPetMax: map playerId → maxPets (default 1).
 
-Máquina de estados unificada — define prioridades claras (Combate > Retorno > BFS > Transições > Proativo), eliminando conflitos entre comportamentos.
+m_petData: map petId → PetData { behavior, domain }.
 
-Sistema de engajamento adaptativo — barra de 0–100 que regula o tempo máximo de perseguição (10s–45s) com base nas interações com o jogador.
+Métodos expostos ao Lua:
 
-Revalidação de obstáculos temporários — Magic Walls, campos, etc. são detetados e geridos com TTL de 15 segundos; o grafo é revalidado automaticamente.
+Método Lua	Descrição
+player:getPets()	Retorna lista de IDs dos pets do jogador.
+player:getPetCount()	Número de pets activos.
+player:getPetMax()	Capacidade máxima de pets.
+player:addPet(petId)	Regista um pet (se houver slot livre).
+player:removePet(petId)	Remove o registo do pet.
+creature:setPetBehavior(behavior)	Define comportamento (1 = defensivo, 2 = ofensivo, etc.).
+creature:getPetBehavior()	Retorna comportamento actual.
+A persistência dos pets ainda não está implementada (roadmap futuro).
 
-Atalhos cognitivos com verificação de direção — o monstro pode usar escadas não percorridas pelo jogador se o mapa cognitivo encontrar uma rota melhor, desde que a direção seja coerente.
+8.6 Sistema de Perseguição Multi‑Piso (v8.0)
+8.6.1 Visão Geral
+O sistema de perseguição multi‑piso permite que summons/pets e criaturas hostis sigam o seu líder através de diferentes pisos (eixo Z), utilizando escadas, buracos, teleports, ladders e itens interactivos do mapa. A perseguição é baseada numa fila de transições guardada no jogador (Player::m_stairTransitions) e processada individualmente por cada criatura, mantendo um índice de progresso independente para evitar interferências entre múltiplos seguidores.
 
-Procura global de escadas — o checkStairPursuit agora percorre todas as transições do GlobalMonsterMap, com throttle de 500 ms e limite de 30 tiles, permitindo que o monstro utilize escadas que o jogador nunca pisou.
+Novidades na v8.0 (Refinada):
 
-Cercamento multi‑piso (tryFlankingRoute) — quando o líder está no mesmo piso mas inacessível directamente, o monstro tenta uma rota que pode sair do piso actual e regressar por outra escada.
+Mapa Cognitivo Global (GlobalMonsterMap) — grafo partilhado, construído incrementalmente, com BFS preguiçoso e expansão ao vivo.
 
-Otimizações de performance — mapeamento de 8 vizinhos (raio 1) em torno dos destinos das escadas; profundidade Z dos scans aumentada para 3 pisos; correcção do updateEngagement para (visible, false, false).
+Máquina de estados unificada — prioridades claras (Combate > Retorno > BFS > Transições > Proactivo), eliminando conflitos.
 
-Persistência assíncrona — o grafo estático é salvo em disco periodicamente e carregado no arranque.
+Sistema de engajamento adaptativo — barra 0–100 que regula o tempo máximo de perseguição (10s–45s).
 
-8.5.2 Estruturas de Dados
-8.5.2.1 StairTransition (player.h)
+Revalidação de obstáculos temporários — Magic Walls, campos, com TTL 30s e validação preguiçosa.
+
+Atalhos cognitivos com verificação de direcção — monstro pode usar escadas não percorridas pelo jogador se o mapa cognitivo encontrar uma rota melhor.
+
+Procura global de escadas — checkStairPursuit percorre todas as transições do GlobalMonsterMap (getAllTransitions), com throttle de 1500 ms e limite de distância 12 tiles.
+
+Cercamento multi‑piso (tryFlankingRoute) — quando o líder está no mesmo piso mas inacessível, o monstro tenta uma rota que pode sair do piso actual e regressar por outra escada.
+
+Anti‑ping‑pong — detecção e prevenção de ciclos de sobe‑e‑desce na mesma escada (cooldown longo de 45s após 3 repetições em 5s).
+
+Retorno ao spawn sem teleportes — o monstro regressa sempre a pé, usando as escadas percorridas, com timeout de caminhada (5s) e desistência após falhas consecutivas (15 falhas com escadas, 10 falhas simples).
+
+Cancelamento imediato ao receber dano — onAttackedByPlayer limpa todos os estados e foca no jogador.
+
+Persistência assíncrona do grafo em disco (global_monster_map.bin), com validação de transições no arranque.
+
+Throttles independentes para procura de escadas (1500 ms), cercamento (600/1000 ms), BFS (1000 ms), etc.
+
+8.6.2 Estruturas de Dados
+StairTransition (player.h):
+
 cpp
 struct StairTransition {
     Position origin;        // tile da escada (onde o jogador estava antes de mudar de piso)
     Position destination;   // tile de destino (onde o jogador apareceu)
     uint64_t timestamp;     // milissegundos desde epoch (para expiração)
-    bool isActive;          // true = escada ativa (precisa de teleporte), false = escada passiva
+    bool isActive;          // true = escada activa (precisa de teleporte), false = escada passiva
 };
-8.5.2.2 SurfaceWaypoint (player.h)
+SurfaceWaypoint (player.h):
+
 cpp
 struct SurfaceWaypoint {
     Position pos;
     uint64_t timestamp;   // última vez que foi utilizado (para expiração)
 };
-8.5.2.3 TileInfo e TemporaryObstacle (global_monster_map.hpp)
+TileInfo e TemporaryObstacle (global_monster_map.hpp):
+
 cpp
 struct TileInfo {
     bool walkable = true;
@@ -492,182 +511,144 @@ struct TileInfo {
 struct TemporaryObstacle {
     uint64_t expiryTime;
 };
-8.5.2.4 Membros do Player
-Membro	Tipo	Descrição
-m_stairTransitions	std::deque<StairTransition>	Fila de transições de piso do jogador.
-m_surfaceWaypoints	std::deque<SurfaceWaypoint>	Fila de waypoints de superfície ("migalhas").
-8.5.2.5 Membros do Monster (perseguição + mapa cognitivo + engajamento)
-Membro	Tipo	Descrição
-m_pursuingStairs	bool	Se está ativamente a perseguir uma escada.
-m_stairOrigin	Position	Origem da transição atual.
-m_stairDestination	Position	Destino da transição atual.
-m_stairIsActive	bool	Se a escada atual é ativa.
-m_stairStuckCount	int	Contador de ciclos preso durante a caminhada.
-m_stairTotalCycles	int	Total de ciclos desde o início da perseguição.
-m_stairPathfindFailCount	int	Falhas consecutivas de pathfinding.
-m_savedFollowId	uint32_t	ID do follow original (para restauro).
-m_nextStairIndex	size_t	Índice da próxima transição na fila do jogador.
-m_currentTransitionIndex	size_t	Índice da transição atualmente em perseguição.
-m_returnPath	std::vector<StairTransition>	Caminho percorrido (para retorno inverso).
-m_homePosition	Position	Posição inicial antes da perseguição.
-m_returningToSpawn	bool	Se está a regressar ao spawn.
-m_returningHome	bool	Se está a regressar à posição inicial.
-m_persistentTargetPlayer	std::shared_ptr<Player>	Jogador memorizado para perseguição contínua.
-m_pursuitStartTime	uint64_t	Timestamp de início da perseguição.
-m_forcedMoveFailCount	int	Contador de falhas de movimento forçado.
-m_followingSurfaceWaypoint	bool	Se está a seguir um waypoint de superfície.
-m_currentSurfaceWaypointIndex	size_t	Índice do waypoint de superfície atual.
-Novos na v7.2.1 |
+Membros do Player (perseguição e navegação):
 
-| m_usingGlobalPath | bool | Se está a seguir um caminho do mapa cognitivo. |
-| m_globalPath | std::vector<Position> | Caminho devolvido pelo BFS. |
-| m_globalPathIndex | size_t | Índice do próximo passo na rota global. |
-| m_lastGlobalScanAttempt | uint64_t | Timestamp da última tentativa de scan/rota. |
-| m_lastExtendedScanAttempt | uint64_t | Timestamp da última tentativa de scan expandido. |
-| m_engagement | int | Barra de engajamento (0–100). |
-| m_sightLostTicks | int | Contador de ciclos sem ver o líder. |
-| m_pursuitDeadline | uint64_t | Timestamp absoluto até ao qual pode perseguir. |
-| m_proactiveFailCount | int | Contador de falhas consecutivas da perseguição proativa. |
-| m_hasReturnedToSpawn | bool | Flag que impede perseguição após retorno. |
-| m_totalReturnFails | int | Contador de falhas durante o retorno. |
-| m_lastRouteRequestTime | uint64_t | Timestamp da última tentativa de perseguição proativa. |
-| m_lastGpsOptimization | uint64_t | Timestamp da última otimização GPS. |
-| m_inOnThinkMCR | bool | Proteção contra reentrância no onThinkMCR. |
-| m_lastFlankingAttempt | uint64_t | Timestamp da última tentativa de cercamento. |
+std::deque<StairTransition> m_stairTransitions – fila de transições.
 
-8.5.3 Arquitectura da Máquina de Estados
-O comportamento do monstro é regido por uma máquina de estados com prioridades bem definidas, executada a cada ciclo de onThinkMCR:
+std::deque<SurfaceWaypoint> m_surfaceWaypoints – waypoints de superfície.
 
-Prioridade	Estado	Gatilho	Ação
+onFloorChange(const Position& fromPos, const Position& toPos) – alimenta m_stairTransitions (chamado em Game::internalTeleport e Map::moveCreature).
+
+Membros do Monster (v8.0 – lista não exaustiva):
+
+bool m_pursuingStairs, bool m_returningToSpawn, bool m_returningHome.
+
+Position m_stairOrigin, m_stairDestination; bool m_stairIsActive.
+
+std::vector<StairTransition> m_returnPath (caminho percorrido).
+
+Position m_homePosition, m_spawnPosition.
+
+std::shared_ptr<Player> m_persistentTargetPlayer.
+
+bool m_usingGlobalPath; std::vector<Position> m_globalPath; size_t m_globalPathIndex.
+
+int m_engagement, int m_sightLostTicks, uint64_t m_pursuitDeadline.
+
+int m_flankingFailCount, int m_globalPathFailCount, int m_proactiveFailCount, int m_idleFailCount.
+
+uint64_t m_lastGlobalScanAttempt, m_lastExtendedScanAttempt, m_lastFlankingAttempt, m_lastGpsOptimization, m_lastStairCheck, m_lastProactiveCheck, m_lastIdleCheck, m_lastCombatCheck.
+
+std::unordered_map<Position, uint64_t> m_recentlyFailedStairs (cooldown de escadas falhadas).
+
+Position m_lastUsedStairOrigin, m_lastUsedStairDest; int m_sameStairRepeatCount.
+
+bool m_inOnThinkMCR (proteção contra reentrância).
+
+8.6.3 Arquitectura da Máquina de Estados (Monster::onThinkMCR)
+Prioridade	Estado	Gatilho	Acção
 1	Combate	Jogador visível e atacável	Cancela tudo (perseguição, BFS). Faz follow e ataca.
-2	Retorno ao spawn/casa	m_returningToSpawn ou m_returningHome ativo	Processa retorno (com fallback para teleporte após 10 falhas).
+2	Retorno ao spawn/casa	m_returningToSpawn ou m_returningHome activo	Processa retorno (caminhando, nunca teleporta). Usa m_returnPath ou caminha directamente para m_homePosition.
 3	Seguir rota global (BFS)	m_usingGlobalPath == true	Segue o caminho planeado; cancela se o líder ficar acessível.
-4	Perseguição ativa por transições	m_pursuingStairs == true	Tenta alcançar m_stairOrigin. Usa BFS reativo para desbloquear. Inclui cercamento (tryFlankingRoute) se o líder estiver inacessível.
-5	Procurar próxima transição	m_pursuingStairs == false, existem transições na fila	checkStairPursuit(): primeiro tenta atalho pelo mapa cognitivo (com verificação de direção), depois procura global de escadas no grafo, e por último escolhe a melhor escada da fila do jogador.
-6	Perseguição proativa + cercamento	Nenhuma transição no piso atual, throttle OK	tryFlankingRoute() → tryAlternativeRouteToLeader() → tryProactiveGlobalPursuit(): usa BFS para encontrar uma escada que leve ao jogador.
-8.5.4 Mapa Cognitivo Global (GlobalMonsterMap)
+4	Perseguição activa por transições	m_pursuingStairs == true	Tenta alcançar m_stairOrigin. Inclui BFS reativo, atalho cognitivo, cercamento e fallback para waypoints.
+5	Procurar próxima transição	m_pursuingStairs == false, existem transições na fila	checkStairPursuit(): atalho cognitivo, procura global de escadas no grafo, fallback para a melhor escada da fila do jogador.
+6	Perseguição proactiva + cercamento	Nenhuma transição no piso actual, throttle OK	tryFlankingRoute() → tryAlternativeRouteToLeader() → tryProactiveGlobalPursuit().
+7	Ocioso / deambulação	Sem alvo, sem perseguição, retorno concluído	Tenta seguir criatura (se existir) ou andar aleatoriamente perto do spawn.
+8.6.4 Mapa Cognitivo Global (GlobalMonsterMap)
 O GlobalMonsterMap é um singleton que mantém um grafo partilhado entre todos os monstros. Acesso protegido por std::shared_mutex (leituras concorrentes, escrita exclusiva).
 
-Métodos públicos:
+Métodos principais (C++):
+
+addTile(pos, walkable, dynamic) – adiciona/actualiza tile no grafo.
+
+isWalkable(pos) – verifica caminhabilidade (validação preguiçosa para tiles dinâmicos).
+
+scanArea(origin, radius, maxZUp, maxZDown, maxTiles, playerStairs, force) – flood‑fill multi‑piso. Se force=true, ignora MAX_ACTIVE_SCANS = 20.
+
+findPath(start, goal) – BFS multi‑piso com expansão ao vivo (regista tiles desconhecidos), limite 2000 nós. Suporta BFS bidireccional como fallback e bridgeCorridorUnlocked (até 64 passos) para conectar grafos no mesmo piso.
+
+findNearestApproachTo(start, goal) – BFS que encontra o tile mais próximo do objectivo.
+
+addStairTransition(from, to) – regista transição de piso.
+
+getDestinations(pos) – retorna destinos a partir de uma posição.
+
+getAllTransitions() – retorna todas as arestas (origem, destino).
+
+addTemporaryObstacle(pos, durationMs) – marca obstáculo temporário (TTL 30s).
+
+cleanupTemporaryObstacles() – remove obstáculos expirados.
+
+markTilePermanentlyBlocked(pos) – marca tile como permanentemente bloqueado.
+
+validateTransitions() – remove transições inválidas (destinos que são paredes sólidas).
+
+saveToFile(filename) / loadFromFile(filename) – persistência assíncrona.
+
+scanPlayerTrail(center, radius) – mini‑scan forçado (raio 10) para alimentar o grafo com o rasto do jogador.
+
+Exposição Lua (tabela global GlobalMap):
 
 Método	Descrição
-addTile(pos, walkable, dynamic)	Adiciona/atualiza um tile no grafo.
-isWalkable(pos)	Retorna true se o tile é caminhável (com validação preguiçosa para tiles dinâmicos).
-scanArea(origin, radius, maxZUp, maxZDown, maxTiles, playerStairs)	Flood‑fill 8‑direcional que adiciona tiles caminháveis e transições. Respeita MAX_ACTIVE_SCANS = 1.
-findPath(start, goal)	BFS multi‑piso (2000 nós máx.) que encontra rota entre dois pontos, usando transições de piso.
-addStairTransition(from, to)	Regista uma transição de piso (escada/teleporte).
-getDestinations(pos)	Retorna destinos de transições a partir de uma posição.
-getAllTransitions()	Novo na v7.2.1: Retorna todas as arestas (origem, destino) do grafo. Usado pela procura global de escadas.
-addTemporaryObstacle(pos, durationMs)	Marca um tile como bloqueado temporariamente (TTL).
-cleanupTemporaryObstacles()	Remove obstáculos expirados, revalidando o estado real do tile.
-invalidateTileBlocked(pos)	Chamado quando um movimento falha; distingue bloqueios permanentes (BLOCKSOLID) de temporários (BLOCKPATH).
-saveToFile(filename)	Persistência assíncrona (grava apenas tiles estáticos).
-loadFromFile(filename)	Carregamento no arranque do servidor.
-Alimentação do grafo:
+GlobalMap.addTile(x, y, z, walkable, dynamic)	Adiciona/actualiza um tile no grafo.
+GlobalMap.addTemporaryObstacle(x, y, z, durationMs)	Marca um tile como obstáculo temporário.
+GlobalMap.getDestinations(x, y, z)	Retorna as transições a partir de uma posição (array de posições).
+GlobalMap.isWalkable(x, y, z)	Verifica se um tile é caminhável.
+GlobalMap.scanArea(x, y, z, radius, maxZUp, maxZDown, maxTiles)	Executa um scan e retorna o número de tiles adicionados.
+GlobalMap.findPath(startX, startY, startZ, goalX, goalY, goalZ)	Retorna uma tabela de posições do caminho.
+GlobalMap.getAllTransitions()	Retorna todas as arestas (origem, destino) do grafo.
+GlobalMap.getTileCount()	Número total de tiles no grafo.
+A função global isWalkableGlobal(x, y, z) também está disponível como atalho.
 
-Transições do jogador: injetadas diretamente via addStairTransition sempre que o monstro consulta a fila do líder.
-
-Scans periódicos: scanArea faz flood‑fill limitado, adicionando tiles caminháveis e transições.
-
-Alimentação contínua: Monster::onWalkComplete adiciona o tile atual ao grafo.
-
-Descoberta automática de escadas: durante o scanArea, qualquer tile com TILESTATE_FLOORCHANGE tem o seu destino lido via Tile::getDestination(). Se inválido, assume z±1 na mesma coordenada. Na v7.2.1, após adicionar o destino, são também mapeados os 8 tiles vizinhos (raio 1) para garantir conectividade.
-
-Exploração passiva (tryExploreArea): scan de raio 30, profundidade Z=3, throttle 30s.
-
-Revalidação de obstáculos temporários:
-
-isWalkable (internamente isWalkableUnlocked) faz validação preguiçosa: se o tile é dinâmico, consulta o estado real no jogo.
-
-cleanupTemporaryObstacles corre a cada 10s e remove obstáculos expirados (TTL de 15s).
-
-invalidateTileBlocked distingue TILESTATE_BLOCKSOLID (permanente) de TILESTATE_BLOCKPATH (temporário).
-
-BFS Multi‑Piso (findPath):
-
-Expande 8 direções com validação de diagonais (evita cortar paredes).
-
-Inclui transições de piso como arestas.
-
-Permite alcançar o objetivo mesmo que bloqueado, se for uma escada (goalIsStair).
-
-Limite de 2000 nós expandidos.
-
-Suporte a Tile::getDestination() para obter o destino real de teleportes.
-
-8.5.5 Sistema de Engajamento e Timeout Adaptativo
-Barra de engajamento (m_engagement, 0–100):
-
-Sobe: +2 ao causar ou receber dano do jogador; +1 por segundo com o jogador visível.
-
-Desce: -3 por segundo sem ver o jogador.
-
-Cálculo do deadline:
-
-text
-deadline = currentTime + (25000 + engagement × 350) ms
-Mínimo: 10 segundos (engagement = 0).
-
-Máximo: 45 segundos (engagement = 100).
-
-Enquanto o líder está visível, o deadline é constantemente renovado.
-
-Timeout por perda de visão: 10 segundos consecutivos sem ver o líder → desistência.
-
-8.5.6 Métodos C++ Expostos ao Lua (Perseguição Multi‑Piso)
-Método Lua	Descrição
-player:getStairTransitions()	Retorna a fila de transições de escada do jogador (tabela de objetos com originX, originY, originZ, destX, destY, destZ, isActive, timestamp).
-player:getSurfaceWaypoints()	Retorna a lista de waypoints de superfície do jogador (tabela de objetos com x, y, z, timestamp).
-player:touchSurfaceWaypoint(index)	Atualiza o timestamp de um waypoint de superfície.
-monster:scanGlobalArea(radius, zRange)	Força um scan do GlobalMonsterMap ao redor da criatura. Retorna o número de tiles adicionados.
-monster:findGlobalPath(targetPos)	Encontra uma rota do monstro até targetPos usando o GlobalMonsterMap. Retorna tabela de posições.
-monster:getGlobalMapInfo()	Retorna uma tabela com tileCount (total de tiles no mapa) e currentWalkable (se a posição atual é caminhável).
-8.5.7 Comandos de Diagnóstico (Perseguição Multi‑Piso)
+8.6.5 Comandos de Diagnóstico (Perseguição Multi‑Piso)
 Comando	Função
-!scan [raio]	Mapa ASCII do terreno ao redor do jogador (2 andares acima/abaixo).
-!scanfull [raio] [zRange]	Relatório ultra detalhado em ficheiro (waypoints, transições, tiles).
-!pathtest	Força o monstro alvo a planear uma rota global até ao jogador.
-!mapinfo	Mostra o número de tiles no GlobalMonsterMap e se a posição do alvo é caminhável.
-!engagement	Exibe a barra de engajamento do monstro alvo.
-!deadline	Mostra o tempo restante da perseguição atual.
-!debugtile	Lista os vizinhos no grafo ao redor do jogador.
+!mcrfulldebug	Relatório ultra completo do estado do monstro, grafo, transições, escadas próximas, waypoints, acessibilidade, vizinhos, falhas, throttles. Salvo em data/logs/debug/.
+!scan [raio]	Mapa ASCII do terreno ao redor do jogador (2 andares acima/abaixo). Raio padrão: 5 (máx. 8).
+!scanfull [raio] [zRange]	Relatório detalhado em ficheiro. Raio padrão: 5 (máx. 10); zRange padrão: 2 (máx. 3).
+!pathtest	Força o monstro alvo a planear uma rota global.
+!mapinfo	Mostra o número de tiles no GlobalMonsterMap e se a posição actual é caminhável.
+!engagement	Barra de engajamento do monstro alvo (0–100).
+!deadline	Tempo restante da perseguição actual (em ms).
+!debugtile	Vizinhos no grafo ao redor do jogador.
 !checkstairs	Escadas com destino mapeado no raio.
 !testglobalmap	Testa se getDestinations retorna dados.
-8.5.8 Comportamento Esperado dos Monstros
-Perseguição multi‑piso: monstros seguem o jogador através de escadas usando a fila de transições.
+!forcescan	Força um scanArea (raio 10) na posição do jogador.
+8.6.6 Comportamento Esperado dos Monstros
+Perseguição multi‑piso: monstros seguem o jogador através de escadas usando a fila de transições e o grafo cognitivo.
 
-Contorno de obstáculos: o BFS reativo encontra caminhos alternativos quando estão bloqueados.
+Múltiplas mudanças de piso: o monstro pode planear rotas que atravessam vários andares para cercar o jogador.
 
-Atalhos proativos: mesmo sem ver o jogador, um monstro pode planear uma rota para uma escada que o leve ao alvo, usando o mapa cognitivo.
+Uso de escadas nunca pisadas pelo jogador: o monstro pode escolher qualquer escada do grafo cognitivo que o aproxime do líder.
 
-Atalhos via mapa cognitivo: no momento de escolher a escada, o monstro verifica se já conhece uma rota direta (incluindo escadas não percorridas pelo jogador) e utiliza‑a prioritariamente, desde que a direção seja coerente.
+Cercamento: se o caminho directo está bloqueado, o monstro faz mini‑scans ao redor do líder e de si próprio, e usa o BFS para encontrar uma rota alternativa.
 
-Uso de escadas nunca pisadas pelo jogador: graças à procura global no checkStairPursuit, o monstro pode escolher qualquer escada do grafo cognitivo que leve ao piso do líder.
+Aproximação progressiva: se o BFS não encontra uma rota completa, o findNearestApproachTo encontra o tile mais próximo do líder, e o monstro aproxima‑se.
 
-Cercamento: se o caminho direto está bloqueado (porta, monstro, Magic Wall), o monstro pode sair do piso actual, percorrer outro piso e regressar por uma escada diferente para cercar o jogador.
+Reacção imediata a obstáculos: se uma Magic Wall desaparece, o monstro detecta a mudança na próxima consulta ao tile (validação preguiçosa). Ao detectar um bloqueio, a rota é imediatamente recalculada.
 
-Reação imediata a obstáculos: se uma Magic Wall desaparece, o monstro deteta a mudança na próxima consulta ao tile (validação preguiçosa), sem esperar pelo ciclo de limpeza.
+Retorno sem teleportes: o monstro regressa ao spawn caminhando, usando as escadas percorridas. Se o líder reaparecer (≤ 25 tiles), o retorno é cancelado.
 
-Maior persistência: devido aos timeouts alargados (10s sem visão, 25s de deadline base), os monstros desistem menos facilmente.
+Foco imediato no jogador: ao receber dano (onAttackedByPlayer), o monstro abandona qualquer perseguição ou retorno e foca‑se no jogador.
 
-Retorno ao spawn com fallback: após timeout, o monstro regressa ao spawn usando o mapa cognitivo ou movimento simples; se falhar 10 vezes, teleporta como último recurso.
+Persistência adaptativa: o deadline aumenta com o engajamento; o monstro nunca desiste enquanto vê o jogador.
+
+Prevenção de ping‑pong: o monstro não fica preso a subir e descer a mesma escada repetidamente.
 
 🌐 9. Barramento de Eventos Universal (Event Bus)
-
 Implementado via SPAManager (C++) e exposto ao Lua.
 
 Método Lua	Descrição
 SPA.onEvent(eventName, callback)	Regista uma função Lua para um evento.
 SPA.dispatchEvent(eventName, ...)	Dispara um evento, invocando todos os callbacks.
-Eventos disponíveis: "onPlayerDealtDamage", "onPlayerKill", "onPlayerLogin".
+Eventos disponíveis (actualmente): "onPlayerDealtDamage", "onPlayerKill", "onPlayerLogin". Podem ser expandidos dinamicamente via Lua.
 
 🧩 10. Modificadores de Combate Dinâmicos
-
 Método Lua	Descrição
 player:setCombatModifier("chave", valor)	Define um modificador (ex.: "fire_damage", 25.0).
 player:getCombatModifier("chave")	Retorna o valor actual.
-🖥️ 11. Métodos Nativos Adicionais Expostos
+Exemplos de chaves usadas internamente: "fire_damage", "ice_damage", "earth_damage", "energy_damage", "holy_damage", "death_damage", "physical_damage".
 
+🖥️ 11. Métodos Nativos Adicionais Expostos
 Método Lua	Descrição
 player:getAmmo()	Retorna o item da munição real (inclui aljavas/quivers).
 monster:getRaceId()	Retorna o ID da raça do monstro.
@@ -676,20 +657,38 @@ monster:getCustomName()	Retorna o nome alternativo da criatura.
 player:getParty()	Retorna o grupo do jogador (ou nil).
 tile:hasFlag(flag)	Verifica propriedades do tile.
 Game.getWorldType()	Retorna o tipo de mundo.
-creature:knockback(direction)	Empurra a criatura na direção (0–3).
+creature:knockback(direction)	Empurra a criatura na direcção (0–3).
 player:getStorages(k1, k2, …)	Lê múltiplas storages.
 player:setStorages({[k]=v, …})	Escreve múltiplas storages.
 player:getSurfaceWaypoints()	Retorna a lista de waypoints de superfície do jogador.
-player:touchSurfaceWaypoint(index)	Atualiza o timestamp de um waypoint de superfície.
+player:touchSurfaceWaypoint(index)	Actualiza o timestamp de um waypoint de superfície.
 player:getStairTransitions()	Retorna a fila de transições de escada do jogador.
-Novos na v5.5 (SPA v7.2.1) |
-
-| monster:scanGlobalArea(radius, zRange) | Força um scan do GlobalMonsterMap ao redor da criatura. |
-| monster:findGlobalPath(targetPos) | Encontra uma rota do monstro até targetPos. |
-| monster:getGlobalMapInfo() | Retorna info do GlobalMonsterMap (tileCount, currentWalkable). |
+player:getPets()	Retorna lista de IDs dos pets.
+player:getPetCount()	Número de pets activos.
+player:getPetMax()	Capacidade máxima de pets.
+player:addPet(petId)	Regista um pet.
+player:removePet(petId)	Remove registo de pet.
+creature:setPetBehavior(behavior)	Define comportamento do pet.
+creature:getPetBehavior()	Retorna comportamento.
+monster:scanGlobalArea(radius, zRange)	Força um scan do GlobalMonsterMap.
+monster:findGlobalPath(targetPos)	Encontra uma rota até targetPos usando o GlobalMonsterMap.
+monster:getGlobalMapInfo()	Retorna info do GlobalMonsterMap (tileCount, currentWalkable).
+monster:getEngagement()	Barra de engajamento (0–100).
+monster:getPursuitDeadline()	Timestamp do fim da perseguição.
+monster:isPursuingStairs()	Booleano.
+monster:isUsingGlobalPath()	Booleano.
+monster:getStairOrigin() / getStairDestination()	Posições da escada actual.
+monster:getFlankingFailCount()	Falhas de cercamento.
+monster:getGlobalPathFailCount()	Falhas de rota global.
+monster:getProactiveFailCount()	Falhas proactivas.
+monster:getIdleFailCount()	Falhas ociosas.
+monster:getLastExplorationScan()	Timestamp da última exploração.
+monster:getLastGlobalScanAttempt()	Timestamp do último scan.
+monster:getLastFlankingAttempt()	Timestamp do último cercamento.
+monster:getLastStairCheck()	Timestamp da última verificação de escada.
+Além disso, a tabela global GlobalMap expõe métodos estáticos (ver secção 8.6.4) e a função global isWalkableGlobal(x, y, z).
 
 📦 12. SkillTrees (Pacotes de Habilidades)
-
 Implementado 100% em Lua (skilltree.lua v6.0).
 
 Função	Descrição
@@ -698,12 +697,11 @@ SPA.checkSkillTrees(player)	Verifica e desbloqueia pacotes elegíveis.
 A storage STORAGE.SKILLTREE_BASE = 94000 é usada para marcar pacotes já adquiridos.
 
 🗂️ 13. Módulos Lua de Apoio
-
 Módulo	Versão	Conteúdo
 constantes.lua	v5.5	IDs de domínios, weapon types, curva de progressão, DOMAIN_TREE, domainChildren, STORAGE, damageDomains, Virtue_t.
 texto_colorido.lua	v10.0	Tabela COR agrupada. Funções c() e enviarMsgColorida().
 util_armas.lua	v6.3	getWeaponType, hasShield, getWeaponEspecialidade, getElementalProjectile, getElementoItem (com fallback blindado).
-funcoes_habilidade.lua	v2.0.2	Funções auxiliares com proteção contra dano negativo.
+funcoes_habilidade.lua	v2.0.2	Funções auxiliares com protecção contra dano negativo.
 motor_habilidades.lua	v2.0	Motor central com 27 tipos de efeitos. Fallback automático de efeitos, conditionMagicEffect, aplicarDanoCircular, controlo de efeitos temporais.
 narrativa_habilidades.lua	v1.0	Sistema de frases de feedback por tipo de efeito, domínio e postura.
 util_criaturas.lua	v5.0	getCreaturesInArea, getCreatureDistance.
@@ -715,20 +713,21 @@ progressao.lua	v5.2	adicionarAfinidade (buffer), descarregarBuffer (com propaga�
 sintonia.lua	v6.2	Barra de foco, Lampejos com chance variável, bónus parciais de foco, Maestria mantém foco a 100% sempre.
 postura.lua	v6.2.1	aplicarPostura, eventos de postura, salvaguarda contra dano/cura.
 buff_system.lua	v6.2	Buffs temporários (speed, dano, leech, condições).
-executor_habilidades.lua	v9.0	Motor de seleção inteligente, cooldown por domínio, limite de ciclo, disponibilidade por hierarquia/barra de foco, limites de categoria, throttle 600ms, MAX_CANDIDATOS=5, combos.
+executor_habilidades.lua	v9.0	Motor de selecção inteligente, cooldown por domínio, limite de ciclo, disponibilidade por hierarquia/barra de foco, limites de categoria, throttle 600ms, MAX_CANDIDATOS=5, combos.
 eventos.lua	v6.2.1	ProgDano (afinidade física e elemental independentes), ProgKill, ProgDefesa, SPASpeedAdvance.
 passivas_ataque.lua	v5.0	Efeitos passivos de auto‑ataque.
 passivas.lua	v5.2	aplicarPassivasBasicas, recalcularVidaMana, recalcularVelocidade.
 login.lua	v5.6.2	Inicialização do jogador, passivas, postura (sem mínimo de capacidade).
 think_master.lua	v3.5.1	Think unificado (buffs, postura, sintonia, passivas, Arremesso de Escudo, vida/mana, velocidade, manutenção de foco para Maestria).
 skilltree.lua	v6.0	Sistema de SkillTrees.
-comandos_spa.lua	v5.5	Comandos: !platinar, !resetspa, !testesistema, /setskill, /setstatus, !testecriatura, !escudeiro, !pet, !scan, !scanfull, !pathtest, !mapinfo, !engagement, !deadline, !debugtile, !checkstairs, !testglobalmap.
-pet_system.lua	v1.0	Tabela ActivePets, funções de registo e gestão de pets.
+comandos_spa.lua	v5.5	Comandos: !platinar, !resetspa, !testesistema, /setskill, /setstatus, !testecriatura, !escudeiro, !pet, !scan, !scanfull, !pathtest, !mapinfo, !engagement, !deadline, !debugtile, !checkstairs, !testglobalmap, !forcescan, !mcrfulldebug.
+pet_system.lua	v1.0	Tabela ActivePets, funções de registo e gestão de pets (usa SPAManager via bindings).
 summon_configs.lua	v1.0	Definições de criaturas invocáveis (SUMMON_CONFIGS).
 summon_ai.lua	v1.0	IA modular para criaturas invocadas (usa SUMMON_CONFIGS).
+criatura_spa_template.lua	v1.0	Template para criação de escudeiros e pets.
+spa_death.lua	v1.0	Evento de morte para Criaturas SPA (limpeza de inventário remoto).
 ⚙️ 14. Performance e Modularidade
-
-Consultas em lote: addDominioAfinidadeBatch, learnHabilidadeBatch, unlearnAllHabilidades.
+Consultas em lote: addDominioAfinidadeBatch, learnHabilidadeBatch, unlearnAllHabilidades, getDominioAfinidades.
 
 Buffer de progressão: descarrega a cada 2 segundos, com propagação no descarregamento.
 
@@ -736,7 +735,7 @@ Think unificado: think_master.lua (v3.5.1) agrupa toda a manutenção periódica
 
 Sistema de token para Speed Burst.
 
-Projéteis dinâmicos centralizam a adaptação elemental.
+Projécteis dinâmicos centralizam a adaptação elemental.
 
 Passivas de vida/mana/velocidade geridas centralizadamente, sem risco de acumulação.
 
@@ -748,37 +747,36 @@ Executor (v9.0): cooldowns independentes por domínio, disponibilidade por hiera
 
 Onda expansiva circular com throttle de 2.0s para efeitos de área.
 
-Efeitos temporais (storm, rain, orbit, pulse, trap) limitados a 2 ativos por jogador.
+Efeitos temporais (storm, rain, orbit, pulse, trap) limitados a 2 activos por jogador.
 
-Perseguição multi‑piso v7.2.1: máquina de estados unificada, GlobalMonsterMap com std::shared_mutex, BFS limitado a 2000 nós, scan com MAX_ACTIVE_SCANS = 1, throttles independentes, TTL de obstáculos temporários, procura global de escadas com limite de 30 tiles, cercamento multi‑piso, persistência assíncrona.
+Perseguição multi‑piso v8.0: máquina de estados unificada, GlobalMonsterMap com std::shared_mutex, BFS limitado a 2000 nós, scan com MAX_ACTIVE_SCANS = 20, throttles independentes, TTL de obstáculos temporários (30s), procura global de escadas com limite de 12 tiles, cercamento multi‑piso, persistência assíncrona.
 
 Waypoints de superfície com tempo de vida controlado (2 minutos sem uso), sem limite fixo de quantidade.
 
-✅ Resumo do Estado Actual (09/06/2026)
+SPAManager com registo de domínios, eventos e gestão de pets em memória (persistência futura).
 
+✅ Resumo do Estado Actual (12/06/2026 – v5.7 Revisada)
 Motor de progressão genérico (SPAManager) funcional.
 
 Modificadores de combate dinâmicos implementados.
 
-Métodos nativos: unlearnHabilidade, unlearnAllHabilidades, learnHabilidadeBatch, getVocationBaseMaxHealth, getVocationBaseMaxMana, getNaturalSpeed, setMovementSpeed, openRemoteContainer, closeRemoteContainer, createInventory, setCustomName, getCustomName.
+Métodos nativos: unlearnHabilidade, unlearnAllHabilidades, learnHabilidadeBatch, getVocationBaseMaxHealth, getVocationBaseMaxMana, getNaturalSpeed, setMovementSpeed, openRemoteContainer, closeRemoteContainer, closeContainersByCreature, createInventoryContainer, setCustomName, getCustomName, getSurfaceWaypoints, touchSurfaceWaypoint, getStairTransitions, scanGlobalArea, findGlobalPath, getGlobalMapInfo, getEngagement, getPursuitDeadline, isPursuingStairs, isUsingGlobalPath, getStairOrigin, getStairDestination, getFlankingFailCount, getGlobalPathFailCount, getProactiveFailCount, getIdleFailCount, getLastExplorationScan, getLastGlobalScanAttempt, getLastFlankingAttempt, getLastStairCheck, entre outros.
 
-Métodos de perseguição multi‑piso: getStairTransitions, getSurfaceWaypoints, touchSurfaceWaypoint, scanGlobalArea, findGlobalPath, getGlobalMapInfo.
-
-Captura automática de transições de piso em Game::internalTeleport e Map::moveCreature.
+Captura automática de transições de piso em Game::internalTeleport e Map::moveCreature via Player::onFloorChange.
 
 Fila de transições no Player processada incrementalmente pelas criaturas, com índices individuais.
 
-Mapa Cognitivo Global (GlobalMonsterMap) com grafo partilhado, BFS multi‑piso, revalidação de obstáculos temporários, procura global de escadas, e persistência assíncrona.
+Mapa Cognitivo Global (GlobalMonsterMap) com grafo partilhado, BFS multi‑piso com expansão ao vivo, revalidação de obstáculos temporários, procura global de escadas, bridgeCorridorUnlocked, BFS bidireccional, persistência assíncrona.
 
-Máquina de estados unificada com 6 prioridades, incluindo cercamento multi‑piso.
+Máquina de estados unificada com 7 prioridades, incluindo cercamento multi‑piso.
 
 Sistema de engajamento adaptativo (barra 0–100, deadline 10–45s).
 
-Comandos de diagnóstico expandidos: !pathtest, !mapinfo, !engagement, !deadline, !debugtile, !checkstairs, !testglobalmap.
+Comandos de diagnóstico expandidos: !pathtest, !mapinfo, !engagement, !deadline, !debugtile, !checkstairs, !testglobalmap, !forcescan, !mcrfulldebug.
 
 Atributos de itens expandidos (20+ métodos).
 
-Sistema de projéteis 100% dinâmico com suporte a aljavas.
+Sistema de projécteis 100% dinâmico com suporte a aljavas.
 
 11 condições de activação + condicaoFocoMin.
 
@@ -804,11 +802,13 @@ Domínios pais só atingem Maestria quando todos os filhos são Mestres (getNive
 
 Capacidade sem limite mínimo artificial.
 
-Armadilhas táticas com posicionamento inteligente.
+Armadilhas tácticas com posicionamento inteligente.
 
 Sinergia escalonada modular, com efeitos por domínio e épico na maestria total.
 
 Sistema de invocação (Summon 28) com criaturas mágicas temporárias e perseguição multi‑piso.
+
+Sistema de Pets (SPAManager) com registo em memória, comportamento e domínio.
 
 Sistema de Waypoints de Superfície para navegação no mesmo piso.
 
@@ -818,7 +818,7 @@ Cores v10.0.
 
 Gabarito de habilidades v4.2.
 
-Guia de Criação de Habilidades [13] canónico (v2.1).
+Guia de Criação de Habilidades canónico (v2.1).
 
 Documento de Personalidade e Identidade de Domínios v1.0.
 
@@ -826,4 +826,4 @@ Todas as APIs verificadas com !testesistema.
 
 O SPA está preparado para receber qualquer domínio, habilidade ou mecânica futura sem necessidade de novas alterações no C++.
 
-Fim do Documento (v5.5 — 09 de Junho de 2026).
+Fim do Documento (v5.7 Revisada — 12/06/2026)

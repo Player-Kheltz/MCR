@@ -1,19 +1,18 @@
 PROJETO MCR – ÍNDICE GERAL E PILARES PERMANENTES
-Versão 5.7 – Sistema de Progressão do Aventureiro (SPA v4.6.1), perseguição multi‑piso para summons/pets, captura nativa de transições de piso e motor de habilidades otimizado
+Versão 5.9 – Sistema de Progressão do Aventureiro (SPA v4.7.0), perseguição multi‑piso v8.0 (Refinada), Mapa Cognitivo Global (GlobalMonsterMap), Sistema de Pets (SPAManager) e motor de habilidades v2.0
 Arquivo: [0] MCR - INDICE GERAL.txt
+Última actualização: 12 de Junho de 2026
 
 🎯 FUNÇÃO DESTE ARQUIVO
 Este documento é a raiz de toda a documentação do Projeto MCR. Serve a três propósitos fundamentais:
 
-LEMBRETE PERMANENTE: contém os pilares filosóficos e técnicos que NUNCA podem ser violados em nenhuma camada do projeto.
-
-ÍNDICE DE GUIAS: lista todos os documentos temáticos que compõem a base de conhecimento do Projeto MCR, com uma breve descrição do conteúdo de cada um.
-
-ARQUIVOS COMPLEMENTARES: relação de listas e recursos auxiliares, como a Lista de Itens Úteis.
-
-FERRAMENTAS DE AUTOMAÇÃO: scripts Python que compõem a pipeline de tradução.
+- LEMBRETE PERMANENTE: contém os pilares filosóficos e técnicos que NUNCA podem ser violados em nenhuma camada do projecto.
+- ÍNDICE DE GUIAS: lista todos os documentos temáticos que compõem a base de conhecimento do Projeto MCR, com uma breve descrição do conteúdo de cada um.
+- ARQUIVOS COMPLEMENTARES: relação de listas e recursos auxiliares, como a Lista de Itens Úteis.
+- FERRAMENTAS DE AUTOMAÇÃO: scripts Python que compõem a pipeline de tradução.
 
 ⚠️ PILARES PERMANENTES (APLICÁVEIS A TODAS AS CAMADAS)
+
 ▶ PILAR 1 – JORNADA 100% NO CLIENTE
 Nenhuma experiência essencial do jogador pode ocorrer fora do OTClient. Criação de conta, login, selecção de personagem, quests, loja, gerenciamento de conta – TUDO deve ser resolvido dentro do cliente. O site/AAC (MyAAC) é opcional e complementar, jamais um requisito para jogar.
 
@@ -30,91 +29,103 @@ O mundo MCR é um universo de fantasia original. NPCs possuem personalidade, var
 Interacções narrativas usam o chat com palavras destacadas entre {chaves} (destaque nativo do cliente), coloridas através da função c() e da tabela COR v10.0. O progresso de missões é exibido em HUD persistente. Feedback imediato é dado por notificações toast. Janelas modais são RESTRITAS a confirmações críticas irreversíveis, Loja e Banco. Jamais para progresso de missão.
 
 ▶ PILAR 6 – RASTREABILIDADE OBRIGATÓRIA POR LOGS (DEBUG FRIENDLY)
-Todo script que contenha lógica condicional (tópicos, estados, validações) DEVE incluir mensagens de debug no console do servidor, utilizando o prefixo "DEBUG:".
+Todo script que contenha lógica condicional (tópicos, estados, validações) DEVE incluir mensagens de debug no console do servidor, utilizando o prefixo "DEBUG:". O sistema de perseguição multi‑piso usa os prefixos [MCR-STAIR], [MCR-COGNI], [MCR-ENGAGE], [MCR-RETURN], [MCR-PLAYER], [MCR-WALK], [MCR-ROUTE], [MCR-EXPLORE] e [MCR-DEBUG].
 
 ▶ PILAR 7 – PROGRESSÃO ORGÂNICA E MODULAR (ACTUALIZADO)
-O Sistema de Progressão do Aventureiro (SPA v4.6.1) substitui completamente as vocações. O jogador evolui ao realizar acções no mundo, ganhando Afinidade em Domínios (Primários, Secundários e Especialidades). A afinidade propaga‑se automaticamente com rácio 4:2:1 (Especialidade → Secundário → Primário). Os Estados de Alma (Lampejo, Vínculo e Maestria) e as Posturas de Combate (Ímpeto, Equilíbrio, Guarda) são automatizados e não requerem intervenção directa do jogador além do estilo de jogo. A Maestria (nível 20) concede um Vínculo permanente com o Domínio. A sinergia elemental permite que armas com dano elemental desbloqueiem automaticamente habilidades do domínio mágico correspondente. As sinergias entre domínios recompensam a experimentação. Campos elementais (Fields) podem ser criados por habilidades de Maestria, com imunidade para o conjurador e seu grupo. Os bónus de vida, mana e velocidade são calculados dinamicamente sobre valores base da vocação, garantindo que escalem com o nível do personagem e nunca acumulem indevidamente. O sistema inclui invocação (Summon) e pets com IA modular e perseguição multi‑piso nativa, que utiliza uma fila de transições capturadas diretamente no motor C++ para seguir o jogador através de escadas, buracos e teleports. Toda a progressão é comunicada por feedback narrativo, efeitos visuais e o Jornal do Aventureiro (futuro). O sistema é modular: novos Domínios, habilidades e comportamentos são adicionados via banco de dados e scripts Lua na pasta data-canary/scripts/MCR/SPA (Revscript), sem alterar o núcleo C++ desnecessariamente.
+O Sistema de Progressão do Aventureiro (SPA v4.7.0) substitui completamente as vocações. O jogador evolui ao realizar acções no mundo, ganhando Afinidade em Domínios (Primários, Secundários e Especialidades). A afinidade propaga‑se automaticamente com rácio 4:2:1 (Especialidade → Secundário → Primário). Os Estados de Alma (Lampejo, Vínculo e Maestria) e as Posturas de Combate (Ímpeto, Equilíbrio, Guarda) são automatizados e não requerem intervenção directa do jogador além do estilo de jogo. A Maestria (nível 20) concede um Vínculo permanente com o Domínio. A sinergia elemental permite que armas com dano elemental desbloqueiem automaticamente habilidades do domínio mágico correspondente. As sinergias entre domínios recompensam a experimentação. Campos elementais (Fields) podem ser criados por habilidades de Maestria, com imunidade para o conjurador e seu grupo. Os bónus de vida, mana e velocidade são calculados dinamicamente sobre valores base da vocação, garantindo que escalem com o nível do personagem e nunca acumulem indevidamente. O sistema inclui invocação (Summon) e pets (Sistema de Pets gerido pelo SPAManager) com IA modular e perseguição multi‑piso nativa v8.0, que utiliza uma fila de transições capturadas directamente no motor C++, mapa cognitivo global (GlobalMonsterMap), cercamento multi‑piso, anti‑ping‑pong, retorno sem teleportes e cancelamento imediato ao receber dano. Toda a progressão é comunicada por feedback narrativo, efeitos visuais e o Jornal do Aventureiro (futuro). O sistema é modular: novos Domínios, habilidades e comportamentos são adicionados via banco de dados e scripts Lua na pasta data-canary/scripts/MCR/SPA (Revscript), sem alterar o núcleo C++ desnecessariamente.
 
-🚧 ESTADO ATUAL DA IMPLEMENTAÇÃO (SPA v4.6.1)
-O SPA v4.6.1 está totalmente implementado no núcleo (APIs C++). As principais funcionalidades estão operacionais e verificadas.
+🚧 ESTADO ACTUAL DA IMPLEMENTAÇÃO (SPA v4.7.0 + Perseguição v8.0 + SPAManager)
+
+O SPA v4.7.0 e o sistema de perseguição multi‑piso v8.0 estão totalmente implementados no núcleo (APIs C++). As principais funcionalidades estão operacionais e verificadas.
 
 ✅ O que está IMPLEMENTADO e pode ser usado:
-Base do servidor Canary, OTClient e Login Server compilando e funcionando.
 
-Sistema de criação de conta e personagem (Oráculo) com vocation = 0 (Aventureiro) e sem escolha de vocação.
-
-Máscara de Alma e transição de conta guest para permanente via opcode 200.
-
-Estrutura de Domínios no banco de dados completa, incluindo Summon (28), Sobrevivência (400) e os demais domínios elementais, de combate e mágicos, com parent_id de Sobrevivência corrigido para Natureza (4).
-
-Todos os métodos C++ listados na Documentação Técnica do SPA, incluindo unlearnHabilidade, unlearnAllHabilidades, learnHabilidadeBatch, getVocationBaseMaxHealth, getVocationBaseMaxMana, getNaturalSpeed, setMovementSpeed e os novos métodos para inventário remoto (openRemoteContainer, closeRemoteContainer, createInventoryContainer, getInventoryContainer, setCustomName, getCustomName), bem como a fila de transições de piso (Player::storeFloorChange, Player::hasPendingFloorChange, Player::getNextFloorChange, Player::clearNextFloorChange) e a perseguição multi‑piso (Monster::followTargetAcrossFloor, Monster::findFreeTileNear).
-
-Propagação de afinidade com rácio 4:2:1 implementada na função adicionarAfinidade.
-
-Buffer de progressão, descarregamento periódico, Lampejos com chance variável, Vínculos com bónus parciais e Maestria (Vínculo permanente no nível 20) funcionais.
-
-Sinergia elemental nativa.
-
-Posturas de combate (Ímpeto, Equilíbrio, Guarda) aplicadas dinamicamente.
-
-Sistema de Chi, Virtudes e Serenidade integrados.
-
-Sistema de cores integrado (texto_colorido.lua v10.0).
-
-Executor de Habilidades v8.0 totalmente migrado para o motor modular (efeitoConfig). Sistema legado de buffType removido.
-
-Motor de Habilidades (motor_habilidades.lua v2.0) com 18 tipos de efeito (incluindo summon, storm, orbit, pulse, rain, trap), fallback automático de efeitos visuais por elemento, suporte a conditionMagicEffect e adaptação elemental para Wands/Rods.
-
-Funções auxiliares de habilidades (funcoes_habilidade.lua v2.0.2) com proteção absoluta contra dano negativo.
-
-Projéteis 100% dinâmicos via getProjectile() e getElementalProjectile() (util_armas.lua v6.2.1 com suporte a aljavas).
-
-Think unificado (think_master.lua v3.4.1) incluindo recálculo de vida, mana e velocidade.
-
-Passivas auto‑suficientes, sem acumulação de vida/mana (geridas por recalcularVidaMana e recalcularVelocidade).
-
-Event Bus operacional.
-
-SkillTrees prontos para uso.
-
-Sistema de invocação e pets (pet_system.lua, summon_configs.lua, summon_ai.lua) com IA modular, comandos de gestão e perseguição multi‑piso nativa que segue o jogador através de qualquer transição de piso (escadas, buracos, ladders, teleports) utilizando uma fila de rastreamento capturada diretamente no motor C++.
-
-Criatura SPA com inventário remoto (!escudeiro abrir/adicionar/pegar) e arrasto livre de itens entre jogador e escudeiro.
-
-Template Revscript para CriaturaSPA (criatura_spa_template.lua) e evento de morte (spa_death.lua).
-
-Comandos de teste e diagnóstico: !resetspa (limpeza restrita às faixas 90000‑96999, com tratamento manual de Chi e Virtudes), !maximizar, !platinar, !testesistema (com layout completo e filtro por domínio), !aprendertudo, !habilidades, !especialidade, !exibircores, !iteminfo, !debugproj, além dos novos /setskill, /setstatus, /addskill, !testecriatura, !escudeiro, !pet list/killall/info/test/behavior.
-
-Scripts do núcleo completos em data-canary/scripts/MCR/SPA/core/, incluindo motor_habilidades.lua v2.0, narrativa_habilidades.lua v1.0, pet_system.lua, summon_configs.lua.
-
-Habilidades placeholder geradas para Espadas Leves (100), Escudo (15), Fogo (23), Wands (210), Lâminas (10), Combate (1), Elementos (20), Magia (2), Runologia (22), Terra e Veneno (25), Sobrevivência (400), Summon (28), permitindo testes completos do sistema.
-
-NPC Utils refatorado para usar exclusivamente Pronouns.getSubject, abolindo referências a vocações.
-
-Perseguição multi‑piso de summons/pets completamente funcional: ao mudar de piso, o jogador deixa um rastro capturado pelo motor C++ (Game::internalTeleport e Map::moveCreature), e a criatura caminha incrementalmente até ao ponto de origem antes de aparecer no destino. A fila é automaticamente limpa quando a criatura alcança o mestre no mesmo piso. Testado e aprovado com logs de diagnóstico.
-
-Todos os itens acima verificados com sucesso através dos comandos de diagnóstico.
+- Base do servidor Canary, OTClient e Login Server compilando e funcionando.
+- Sistema de criação de conta e personagem (Oráculo) com vocation = 0 (Aventureiro) e sem escolha de vocação.
+- Máscara de Alma e transição de conta guest para permanente via opcode 200.
+- Estrutura de Domínios no banco de dados completa, incluindo Summon (28), Sobrevivência (400) e os demais domínios elementais, de combate e mágicos, com parent_id de Sobrevivência corrigido para Natureza (4).
+- Todos os métodos C++ listados na Documentação Técnica do SPA, incluindo unlearnHabilidade, unlearnAllHabilidades, learnHabilidadeBatch, getVocationBaseMaxHealth, getVocationBaseMaxMana, getNaturalSpeed, setMovementSpeed e os métodos para inventário remoto (openRemoteContainer, closeRemoteContainer, createInventoryContainer, getInventoryContainer, setCustomName, getCustomName), bem como a fila de transições de piso (onFloorChange, getStairTransitions, addSurfaceWaypoint) e a perseguição multi‑piso v8.0 (Monster::onThinkMCR, checkStairPursuit, walkToWaypoint, GlobalMonsterMap, tryFlankingRoute, anti‑ping‑pong, retorno sem teleportes, cancelamento por dano, máquina de estados unificada).
+- Propagação de afinidade com rácio 4:2:1 implementada na função adicionarAfinidade (em progressao.lua).
+- Buffer de progressão, descarregamento periódico, Lampejos com chance variável, Vínculos com bónus parciais e Maestria (Vínculo permanente no nível 20) funcionais.
+- Sinergia elemental nativa (arma com dano elemental desbloqueia domínio correspondente).
+- Posturas de combate (Ímpeto, Equilíbrio, Guarda) aplicadas dinamicamente com base no fightMode do jogador.
+- Sistema de Chi (Harmony), Virtudes e Serenidade integrados (usado pelo domínio Artes Marciais).
+- Sistema de cores integrado (texto_colorido.lua v10.0).
+- Executor de Habilidades v9.0 totalmente migrado para o motor modular (efeitoConfig). Sistema legado de buffType removido.
+- Motor de Habilidades (motor_habilidades.lua v2.0) com 27 tipos de efeito (incluindo summon, storm, orbit, pulse, rain, trap, sinergia_escalonada), fallback automático de efeitos visuais por elemento, suporte a conditionMagicEffect e adaptação elemental para Wands/Rods.
+- Funções auxiliares de habilidades (funcoes_habilidade.lua v2.0.2) com protecção absoluta contra dano negativo.
+- Projécteis 100% dinâmicos via getProjectile() e getElementalProjectile() (util_armas.lua v6.3 com suporte a aljavas).
+- Think unificado (think_master.lua v3.5.1) incluindo recálculo de vida, mana e velocidade.
+- Passivas auto‑suficientes, sem acumulação de vida/mana (geridas por recalcularVidaMana e recalcularVelocidade).
+- Event Bus (SPA.onEvent / dispatchEvent) operacional.
+- SkillTrees (skilltree.lua) prontos para uso.
+- Sistema de invocação e pets (pet_system.lua, summon_configs.lua, summon_ai.lua) com IA modular, comandos de gestão (!pet, !escudeiro) e perseguição multi‑piso nativa v8.0 que segue o jogador através de qualquer transição de piso, utilizando fila de rastreamento, mapa cognitivo global, cercamento, anti‑ping‑pong e retorno sem teleportes.
+- Criatura SPA com inventário remoto (!escudeiro abrir/adicionar/pegar) e arrasto livre de itens entre jogador e escudeiro. O inventário é um container interno (Monster::m_inventoryContainer) que persiste até à morte, quando os itens são largados no corpo.
+- Template Revscript para CriaturaSPA (criatura_spa_template.lua) e evento de morte (spa_death.lua).
+- Comandos de teste e diagnóstico (todos implementados em comandos_spa.lua):
+  • !resetspa – limpeza restrita às faixas 90000‑96999, com tratamento manual de Chi e Virtudes.
+  • !maximizar – define afinidade máxima (Maestria) em todos os domínios.
+  • !platinar – concede afinidade máxima num domínio específico.
+  • !testesistema – relatório completo de todos os subsistemas, com filtro por domínio.
+  • !aprendertudo – aprende todas as habilidades placeholders.
+  • !habilidades – lista as habilidades aprendidas.
+  • !especialidade – mostra especialidades da arma equipada.
+  • !exibircores – testa a tabela de cores.
+  • !iteminfo – informação detalhada de um item (ID, atributos, peso, etc.).
+  • !debugproj – depura projécteis dinâmicos.
+  • /setskill, /setstatus, /addskill – comandos de desenvolvimento.
+  • !testecriatura – cria uma CriaturaSPA para testes.
+  • !escudeiro abrir/adicionar/pegar – gerencia inventário remoto do escudeiro.
+  • !pet list/killall/info/test/behavior – gerencia pets activos.
+  • !mcrfulldebug – relatório ultra completo do estado do monstro, grafo, transições, escadas próximas, waypoints, acessibilidade, vizinhos, falhas, throttles. Gerado em data/logs/debug/.
+  • !scan – mapa ASCII do terreno ao redor do jogador (2 andares acima/abaixo).
+  • !scanfull – relatório detalhado de tiles, waypoints e transições em ficheiro.
+  • !pathtest – força o monstro alvo a planear uma rota global e exibe os passos.
+  • !mapinfo – número de tiles no GlobalMonsterMap e se a posição actual é caminhável.
+  • !engagement – barra de engajamento (0‑100) do monstro alvo.
+  • !deadline – tempo restante da perseguição actual do monstro.
+  • !debugtile – lista vizinhos no grafo ao redor do jogador.
+  • !checkstairs – escadas com destino mapeado no raio.
+  • !testglobalmap – testa se getDestinations retorna dados.
+  • !forcescan – força um scanArea (raio 10) na posição do jogador para testes manuais.
+- Scripts do núcleo completos em data-canary/scripts/MCR/SPA/core/:
+  constantes.lua, postura_config.lua, progressao.lua, sintonia.lua, passivas.lua,
+  postura.lua, buff_system.lua, executor_habilidades.lua, eventos.lua, passivas_ataque.lua,
+  login.lua, think_master.lua, skilltree.lua, advance.lua, motor_habilidades.lua,
+  narrativa_habilidades.lua, pet_system.lua, summon_configs.lua, summon_ai.lua,
+  spa_death.lua, criatura_spa_template.lua, funcoes_habilidade.lua.
+- Habilidades placeholder geradas para todos os domínios (Espadas Leves, Escudo, Fogo, Wands, Lâminas, Combate, Elementos, Magia, Runologia, Terra e Veneno, Sobrevivência, Summon), permitindo testes completos do sistema.
+- NPC Utils refactorado para usar exclusivamente Pronouns.getSubject, abolindo referências a vocações.
+- Perseguição multi‑piso de summons/pets v8.0 completamente funcional: ao mudar de piso, o jogador deixa um rasto capturado pelo motor C++ (Player::onFloorChange), e a criatura caminha incrementalmente até ao ponto de origem antes de aparecer no destino. O sistema inclui:
+  • Mapa cognitivo global partilhado (GlobalMonsterMap) com BFS preguiçoso e expansão ao vivo.
+  • Cercamento multi‑piso (tryFlankingRoute) com mini‑scans duplos e aproximação progressiva.
+  • Anti‑ping‑pong – detecção e prevenção de ciclos de sobe‑e‑desce na mesma escada (cooldown de 45s após 3 repetições em 5s).
+  • Retorno ao spawn sem teleportes – o monstro regressa sempre a pé, usando as escadas percorridas, com timeout de caminhada (5s) e desistência após falhas consecutivas.
+  • Cancelamento imediato da perseguição ao receber dano – onAttackedByPlayer limpa todos os estados e foca no jogador.
+  • Throttles independentes para procura de escadas (1500 ms), cercamento (600/1000 ms), BFS (1000 ms), etc.
+  • Alimentação contínua do grafo pelo rasto do jogador (scanPlayerTrail, raio 10) e por scans reativos.
+  • Revalidação de obstáculos temporários (Magic Walls, campos) com TTL de 30s e validação preguiçosa.
+  • Persistência assíncrona do grafo em disco (global_monster_map.bin), com validação de transições no arranque.
+- Todos os itens acima verificados com sucesso através dos comandos de diagnóstico.
 
 🚧 O que está em DESENVOLVIMENTO ACTIVO:
-Geração das habilidades finais (35+ por domínio) seguindo o Guia [13], o Gabarito de Habilidades v4.5 e o Documento de Personalidade e Identidade de Domínios. As habilidades atuais são placeholders para teste; serão totalmente refatoradas.
 
-Refatoração do feedback visual para todos os domínios, garantindo efeitos temáticos consistentes (aproveitando o mapeamento central de efeitos visuais do motor v2.0).
-
-Ajuste fino de prioridades, cooldowns e condições de activação com base nos testes práticos.
+- Geração das habilidades finais (35+ por domínio) seguindo o Guia [13], o Gabarito de Habilidades v4.5 e o Documento de Personalidade e Identidade de Domínios. As habilidades actuais são placeholders para teste; serão totalmente refactoradas.
+- Refactoração do feedback visual para todos os domínios, garantindo efeitos temáticos consistentes (aproveitando o mapeamento central de efeitos visuais do motor v2.0).
+- Ajuste fino de prioridades, cooldowns e condições de activação com base nos testes práticos.
 
 📅 O que AINDA NÃO está implementado (roadmap futuro):
-Domínios de Ofícios (3) e Natureza (4).
 
-Tutorial da Ilha do Despertar (Eridanus).
-
-Listeners para os opcodes 182, 183 e 184 no cliente.
-
-Script Python para adicionar elementalBond no items.xml.
+- Domínios de Ofícios (3) e Natureza (4).
+- Tutorial da Ilha do Despertar (Eridanus).
+- Listeners para os opcodes 182, 183 e 184 no cliente.
+- Script Python para adicionar elementalBond no items.xml.
 
 🗂️ ÍNDICE DE DOCUMENTOS (GUIAS TEMÁTICOS)
+
 #	Documento	Descrição
 [0]	MCR - Índice Geral.txt	Este documento.
-[1]	MCR - Guia de Compilação (Servidor).txt	Compilação do Canary com todos os métodos Lua do SPA.
+[1]	MCR - Guia de Compilação (Servidor).txt	Compilação do Canary com todos os métodos Lua do SPA e sistema de perseguição v8.0.
 [2]	MCR - Guia de Compilação (Cliente).txt	Compilação do OTClient com opcodes e máscara de Alma.
 [3]	MCR - Guia de Configuração (Servidor e Rede).txt	Configuração de portas, storages, opcodes e OTCFeatures.
 [4]	MCR - Guia do Login Server.txt	API REST, endpoints, error codes e guest accounts.
@@ -127,74 +138,66 @@ Script Python para adicionar elementalBond no items.xml.
 [11]	MCR - Guia de Experiência do Jogador.txt	A jornada completa do jogador, do Alma ao herói.
 [12]	MCR - Guia de Conteúdo Inicial e Tutorial.txt	Tutorial de Eridanus, NPCs, missões iniciais.
 [13]	MCR - Guia de Criação de Habilidades.txt (v2.1)	Filosofia de design, estrutura por hierarquia, pacotes temáticos, processo de geração.
-—	[Documentação] MCR - Sistema de Progressão do Aventureiro (SPA v4.6.1).txt	Documentação técnica completa de todas as APIs, métodos e sistemas.
-—	[Filosofia] Filosofia do SPA – Sistema de Progressão do Aventureiro v4.6.1.txt	Visão filosófica e canónica do SPA.
+—	[Documentação] MCR - Sistema de Progressão do Aventureiro (SPA v4.7.0).txt	Documentação técnica completa de todas as APIs, métodos e sistemas.
+—	[Filosofia] Filosofia do SPA – Sistema de Progressão do Aventureiro v4.7.0.txt	Visão filosófica e canónica do SPA.
 —	[Personalidade] MCR - Personalidade e Identidade de Dominios.txt	Guia universal de design narrativo e mecânico para criação de domínios.
 —	[Gabarito] Habilidade Gabarito v4.5.txt	Referência máxima de todos os campos e regras para criação de habilidades.
+
 📁 ARQUIVOS COMPLEMENTARES
-[Arquivo Complementar] Lista de Items Uteis.txt — Lista com mais de 3000 itens traduzidos, seus IDs e atributos. Recurso de consulta rápida para criadores de conteúdo, missões e tutorial.
+
+- [Arquivo Complementar] Lista de Items Uteis.txt — Lista com mais de 3000 itens traduzidos, seus IDs e atributos. Recurso de consulta rápida para criadores de conteúdo, missões e tutorial.
 
 🛠️ FERRAMENTAS DE AUTOMAÇÃO (PIPELINE DE TRADUÇÃO)
+
 O projecto dispõe de um conjunto de scripts Python que automatizam a extracção, tradução e aplicação de textos traduzidos nos ficheiros fonte. Estas ferramentas estão documentadas nos seus próprios cabeçalhos e são utilizadas conforme a necessidade:
 
-1-extrator.py: extrai strings de código C++ e OTUI.
-
-2-tradutor.py: traduz strings extraídas (API Google).
-
-3-removedor.py: remove secções proibidas (bindings, cabeçalhos).
-
-4-reparador.py: corrige traduções usando dicionário MCR.
-
-5-corretor.py: restaura strings técnicas e aplica correcções manuais.
-
-6-aplicador.py: aplica traduções nos ficheiros C++ (com escapes octais).
-
-7-acentos.py: converte acentos em escapes octais (Latin‑1).
-
-1-extrair.py / 2-traduzir.py / 3-reparar.py / 4-aplicar.py: pipeline para scripts Lua (diálogos, mensagens).
-
-1b-extrair.py / 2b-traduzir.py / 3b-aplicar.py: pipeline para nomes de monstros.
-
-0-converter-loot.py / 0-converter-additem.py / 0-converter-custom-loot.py: conversão de loots e addItem de nome para ID.
-
-0-traduzir-items-xml.py: tradução completa do items.xml (com plurais e artigos).
-
-migra_items.py / aplicar_migracao_items.py: migração de nomes de itens em scripts Lua.
-
-mcr_dict.py / mcr_dict_monsters.py: dicionários manuais de traduções oficiais.
+- 1-extrator.py: extrai strings de código C++ e OTUI.
+- 2-tradutor.py: traduz strings extraídas (API Google).
+- 3-removedor.py: remove secções proibidas (bindings, cabeçalhos).
+- 4-reparador.py: corrige traduções usando dicionário MCR.
+- 5-corretor.py: restaura strings técnicas e aplica correcções manuais.
+- 6-aplicador.py: aplica traduções nos ficheiros C++ (com escapes octais).
+- 7-acentos.py: converte acentos em escapes octais (Latin‑1).
+- 1-extrair.py / 2-traduzir.py / 3-reparar.py / 4-aplicar.py: pipeline para scripts Lua (diálogos, mensagens).
+- 1b-extrair.py / 2b-traduzir.py / 3b-aplicar.py: pipeline para nomes de monstros.
+- 0-converter-loot.py / 0-converter-additem.py / 0-converter-custom-loot.py: conversão de loots e addItem de nome para ID.
+- 0-traduzir-items-xml.py: tradução completa do items.xml (com plurais e artigos).
+- migra_items.py / aplicar_migracao_items.py: migração de nomes de itens em scripts Lua.
+- mcr_dict.py / mcr_dict_monsters.py: dicionários manuais de traduções oficiais.
 
 Todos os scripts estão prontos para uso e devem ser executados na ordem adequada, conforme documentado nos cabeçalhos de cada um.
 
 🗺️ MAP EDITOR (RME) – MODIFICAÇÕES MCR
-O projeto inclui alterações no código‑fonte do Remere's Map Editor para garantir a compatibilidade total com os scripts Lua do MCR:
 
-Função de conversão ISO‑8859‑1 → UTF‑8 (encoding_utils.h)
+O projecto inclui alterações no código‑fonte do Remere's Map Editor para garantir a compatibilidade total com os scripts Lua do MCR:
 
-Parser Lua estendido (resolveLocalVar, parseNpcConfig)
+- Função de conversão ISO‑8859‑1 → UTF‑8 (encoding_utils.h)
+- Parser Lua estendido (resolveLocalVar, parseNpcConfig)
+- Modificações em monsters.cpp e npcs.cpp para usar as funções acima
 
-Modificações em monsters.cpp e npcs.cpp para usar as funções acima
 Consulte o Guia [2] para instruções de compilação.
 
 🧠 REGRA DE OURO PARA O ASSISTENTE (INTEGRAÇÃO DE GUIAS)
+
 SEMPRE que você, assistente, for modificar ou criar QUALQUER arquivo do projecto, você DEVE:
 
-Identificar TODOS os guias temáticos que se aplicam ao contexto da tarefa.
+1. Identificar TODOS os guias temáticos que se aplicam ao contexto da tarefa.
+2. Carregar mentalmente as "Regras de Revisão para o Assistente" de cada um desses guias.
+3. Executar uma revisão tripla que combine as listas de verificação de TODOS os guias pertinentes.
+4. Incluir na resposta a secção "✅ Autorevisão do Assistente", listando quais guias foram consultados e marcando os checklists específicos e universais.
 
-Carregar mentalmente as "Regras de Revisão para o Assistente" de cada um desses guias.
+📤 COMO ACTUALIZAR O REPOSITÓRIO GIT
 
-Executar uma revisão tripla que combine as listas de verificação de TODOS os guias pertinentes.
-
-Incluir na resposta a secção "✅ Autorevisão do Assistente", listando quais guias foram consultados e marcando os checklists específicos e universais.
-
-📤 COMO ATUALIZAR O REPOSITÓRIO GIT
 bash
 git add "<arquivos alterados>"
 git commit -m "feat(auth): <Comentário>"
 git push origin main
+
 ⚠️ PowerShell: aspas duplas em caminhos com espaços.
 
 🔗 REPOSITÓRIO OFICIAL
+
 GitHub: https://github.com/Player-Kheltz/ProjetoMCR
 Estrutura: Canary/ | OTClient/ | LoginServer/ | docs/ | MyAAC/
 
-FIM DO ÍNDICE GERAL (VERSÃO 5.7)
+FIM DO ÍNDICE GERAL (VERSÃO 5.9 — 12/06/2026)
