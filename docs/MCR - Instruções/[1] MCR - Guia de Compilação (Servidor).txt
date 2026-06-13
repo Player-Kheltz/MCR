@@ -1,13 +1,13 @@
 📘 PROJETO MCR – GUIA DE COMPILAÇÃO (SERVIDOR) – VERSÃO FINAL REVISADA
-Versão: 8.1 (Revisada)
-Sistema de Perseguição Multi‑Piso: v8.0 (Refinada)
-SPA (Sistema de Progressão do Aventureiro): v5.7 (alinhado com a documentação técnica)
-Última actualização: 12 de Junho de 2026
+Versão: 8.2 (Revisada)
+Sistema de Perseguição Multi‑Piso: v3.2.0 (A* Segmentado com Escadas + Atalho Multi‑Piso + Waypoints Cognitivos)
+SPA (Sistema de Progressão do Aventureiro): v5.8 (alinhado com a documentação técnica)
+Última actualização: 13 de Junho de 2026
 
-(Nota: Este documento foi alinhado com a Documentação Técnica do Motor SPA v5.7 e com o Documento de Perseguição Multi‑Piso v8.0. A versão do SPA foi corrigida de v4.7.0 para v5.7, mantendo todas as funcionalidades. Os métodos de diagnóstico e o sistema de perseguição reflectem a v8.0.)
+(Nota: Este documento foi alinhado com a Documentação Técnica do Motor SPA v5.8 e com o Documento de Perseguição Multi‑Piso v3.2.0. A versão do sistema multi‑piso foi actualizada de v8.0 para v3.2.0, reflectindo a reescrita completa do sistema.)
 
 🎯 FUNÇÃO DESTE ARQUIVO
-Fornecer todas as instruções, dependências, customizações e verificações necessárias para compilar o servidor Canary do Projeto MCR a partir do código‑fonte. Esta versão incorpora todos os métodos Lua exigidos pelo Sistema de Progressão do Aventureiro (SPA v5.7), o sistema de perseguição multi‑piso v8.0 (Refinada), o Mapa Cognitivo Global (GlobalMonsterMap), o SPAManager (gestão de eventos e pets), a máquina de estados unificada, sistema de engajamento adaptativo, revalidação de obstáculos temporários, atalhos cognitivos, procura global de escadas, cercamento multi‑piso (tryFlankingRoute), múltiplas mudanças de piso, anti‑ping‑pong, retorno sem teleportes, cancelamento imediato ao receber dano, e os comandos de diagnóstico !mcrfulldebug, !scan, !scanfull, !pathtest, !mapinfo, !engagement, !deadline, !forcescan, !checkstairs, !testglobalmap, !debugtile.
+Fornecer todas as instruções, dependências, customizações e verificações necessárias para compilar o servidor Canary do Projeto MCR a partir do código‑fonte. Esta versão incorpora todos os métodos Lua exigidos pelo Sistema de Progressão do Aventureiro (SPA v5.8), o sistema de perseguição multi‑piso v3.2.0 (A* Segmentado com Escadas + Atalho Multi‑Piso + Waypoints Cognitivos), o Mapa Cognitivo Global (GlobalMonsterMap), o SPAManager (gestão de eventos e pets), a máquina de estados unificada de 5 estados, sistema de engajamento adaptativo, avaliação de custo total para escolha de escadas, atalho multi‑piso vs rota alternativa, seguimento imediato da escada do líder, summons com destravamento silencioso, retorno sem teleportes para hostis, cancelamento imediato ao receber dano, e os comandos de diagnóstico !mcrfulldebug, !scan, !scanfull, !pathtest, !mapinfo, !engagement, !deadline, !forcescan, !checkstairs, !checkstair, !testglobalmap, !debugtile.
 
 Inclui ainda:
 
@@ -21,18 +21,18 @@ setCombatModifier e getCombatModifier para modificadores de combate dinâmicos.
 
 Métodos para o sistema de invocação e inventário remoto (openRemoteContainer, closeRemoteContainer, Monster::createInventoryContainer, Monster::addItemToInventory, Monster::getInventoryContainer, Monster::setCustomName, Monster::getCustomName, Player::closeContainersByCreature).
 
-Sistema de Perseguição Multi‑Piso v8.0: fila de transições (std::deque<StairTransition> e Player::onFloorChange), waypoints de superfície (SurfaceWaypoint), Mapa Cognitivo Global partilhado (GlobalMonsterMap) com BFS multi‑piso com expansão ao vivo, engajamento adaptativo, revalidação de obstáculos com TTL, atalhos com verificação de direcção, procura global de escadas no grafo, cercamento multi‑piso (tryFlankingRoute), mapeamento de 8 vizinhos nos destinos das escadas, profundidade Z=3 na exploração passiva, anti‑ping‑pong (cooldown de 45s), retorno ao spawn caminhando (nunca teleporta), cancelamento imediato ao receber dano (Monster::onAttackedByPlayer limpa estados).
+Sistema de Perseguição Multi‑Piso v3.2.0: máquina de 5 estados, A* segmentado com escadas, atalho multi‑piso com avaliação de custo total, rotas alternativas com waypoints cognitivos, seguimento imediato da escada do líder (≤ 3 tiles), summons que nunca desistem (destravamento silencioso após 3 ciclos paradas), hostis que retornam ao spawn caminhando, anti‑ping‑pong via flag m_multiFloorShortcut, integração corrigida com Tile::queryAdd.
 
 SPAManager (spa_manager.cpp/.hpp): registo de domínios, barramento de eventos genérico (SPA.onEvent / dispatchEvent), sistema de pets (registo, comportamento, domínio, contagem máxima).
 
-Novos métodos Lua expostos em spa_functions.cpp: getPets, getPetCount, getPetMax, addPet, removePet, setCustomName, setPetBehavior, getPetBehavior, scanGlobalArea, findGlobalPath, getGlobalMapInfo, getEngagement, getPursuitDeadline, isWalkableGlobal, GlobalMap.* (addTile, addTemporaryObstacle, getDestinations, isWalkable, scanArea, findPath, getAllTransitions, getTileCount), e dezenas de getters de diagnóstico para monstros (isPursuingStairs, isUsingGlobalPath, getStairOrigin, getStairDestination, getFlankingFailCount, getGlobalPathFailCount, getProactiveFailCount, getIdleFailCount, getLastExplorationScan, getLastGlobalScanAttempt, getLastFlankingAttempt, getLastStairCheck).
+Novos métodos Lua expostos em spa_functions.cpp: getPets, getPetCount, getPetMax, addPet, removePet, setCustomName, setPetBehavior, getPetBehavior, scanGlobalArea, findGlobalPath, getGlobalMapInfo, getEngagement, getPursuitDeadline, isWalkableGlobal, GlobalMap.* (addTile, addTemporaryObstacle, getDestinations, isWalkable, scanArea, findPath, getAllTransitions, getTileCount), e dezenas de getters de diagnóstico para monstros (isPursuingStairs, isUsingGlobalPath, getStairOrigin, getStairDestination, getFlankingFailCount, getGlobalPathFailCount, getProactiveFailCount, getIdleFailCount, getLastExplorationScan, getLastGlobalScanAttempt, getLastFlankingAttempt, getLastStairCheck, getWaypoints, getWaypointIndex, isFollowingWaypoints, getStairQueueSize, getStairQueueFront, getStairQueueBack, canStairBeUsed).
 
 Estrutura modular de scripts em data-canary/scripts/MCR/SPA/core/ e subpastas.
 
 O assistente DEVE seguir estas directrizes ao modificar o código C++.
 
 🚧 ESTADO ACTUAL DA IMPLEMENTAÇÃO
-Todos os métodos C++ descritos neste guia já estão implementados e funcionais no código‑fonte do servidor. Não há dependências de fases futuras. Os scripts da pasta MCR/SPA/ utilizam‑nos plenamente. O sistema de perseguição multi‑piso v8.0 está completo, testado e estável. O SPAManager está integrado e os comandos de diagnóstico estão operacionais.
+Todos os métodos C++ descritos neste guia já estão implementados e funcionais no código‑fonte do servidor. Não há dependências de fases futuras. Os scripts da pasta MCR/SPA/ utilizam‑nos plenamente. O sistema de perseguição multi‑piso v3.2.0 está completo, testado e estável. O SPAManager está integrado e os comandos de diagnóstico estão operacionais.
 
 ⚠️ REGRAS DE REVISÃO PARA O ASSISTENTE (C++ – SERVIDOR CANARY)
 Ao modificar QUALQUER arquivo .cpp/.h no directório Canary/src/, o assistente DEVE:
@@ -128,118 +128,93 @@ Registo de domínios em tempo real via Lua (SPA.registerDomain, getDomain, getAl
 
 Sistema de Pets: registo (registerPet), remoção (unregisterPet), consulta (getPets, getPetCount, isPet, getPetMasterId), comportamento (setPetBehavior, getPetBehavior), domínio (setPetDomain, getPetDomain) e capacidade máxima por jogador (setPetMax, getPetMax). Tudo armazenado em memória (persistência futura via banco de dados).
 
-🔹 Sistema de Perseguição Multi‑Piso (v8.0) — ACTUALIZADO
+🔹 Sistema de Perseguição Multi‑Piso (v3.2.0) — ACTUALIZADO
+📌 Arquivos Modificados para o Sistema Multi‑Piso (v3.2.0)
+src/creatures/monsters/monster.cpp – onThinkMCR, planStairTrajectory, evaluateMultiFloorCost, walkToWaypoint, clearStairPursuit, clearWaypoints, tryAlternativeRouteToLeader, canStairBeUsed, findStairNearReal, updateEngagement, computePursuitDeadline, invalidateTileBlocked, processarRetornoSimples, processarRetornoSpawn.
+
+src/creatures/monsters/monster.hpp – declarações dos novos membros e funções.
+
+src/mcr/spa/global_monster_map.cpp / .hpp – findPath, findNearestApproachTo, addStairTransition, getAllTransitions, scanPlayerTrail, etc.
+
+src/items/tile.cpp – queryAdd (correcção das máscaras de bits e permissão de acesso a escadas).
+
+src/spa_functions.cpp – bindings Lua para diagnóstico.
+
 📌 Estruturas de Dados (Player)
 std::deque<StairTransition> m_stairTransitions – fila de transições de piso do jogador (preenchida por onFloorChange chamado em Game::internalTeleport e Map::moveCreature).
 
-std::deque<SurfaceWaypoint> m_surfaceWaypoints – waypoints de superfície ("migalhas") largadas pelo jogador ao caminhar.
+getStairTransitions() – acesso à fila de transições.
 
-addSurfaceWaypoint(const Position& pos) – adiciona um waypoint de superfície (distância mínima de 5 tiles entre waypoints; expiração após 2 minutos sem uso).
+📌 Estruturas de Dados (Monster) – v3.2.0
+Perseguição de escada:
 
-touchSurfaceWaypoint(size_t index) – actualiza o timestamp de um waypoint de superfície (prolonga a sua vida).
+Membro	Tipo	Descrição
+m_pursuingStairs	bool	Se está activamente a perseguir uma escada.
+m_stairOrigin	Position	Origem da transição actual (tile da escada).
+m_stairDestination	Position	Destino da transição actual.
+m_stairIsActive	bool	Se a escada actual é activa (requer teleporte).
+m_stairStuckCount	int	Contador de ciclos preso durante a caminhada.
+m_stairTotalCycles	int	Total de ciclos desde o início da perseguição.
+m_forcedMoveFailCount	int	Falhas consecutivas de internalMoveCreature.
+m_multiFloorShortcut	bool	true se a escada actual é um atalho multi‑piso.
+m_savedFollowId	uint32_t	ID do follow original (para restauro).
+m_lastStuckDist	int	Última distância registada à escada.
+m_stairPathfindFailCount	int	Falhas consecutivas de pathfinding.
+m_pursuitStartTime	uint64_t	Timestamp de início da perseguição.
+m_stairAttemptStartTime	uint64_t	Timestamp do início da tentativa actual.
+m_minDistToStair	int	Distância mínima registada à escada.
+m_lastDistImprovementTime	uint64_t	Última vez que a distância à escada diminuiu.
+Retorno ao spawn:
 
-getSurfaceWaypoints() / getStairTransitions() – acesso às listas.
+Membro	Tipo	Descrição
+m_homePosition	Position	Posição de destino do retorno (spawn ou posição do mestre).
+m_returningHome	bool	Se está a regressar à posição inicial.
+m_returningToSpawn	bool	Se está a regressar ao spawn por escadas.
+m_returnPath	std::vector<StairTransition>	Caminho percorrido (para retorno inverso).
+m_walkingForReturn	bool	Flag de caminhada activa durante o retorno.
+m_returnWalkStartTime	uint64_t	Timestamp para timeout de caminhada de retorno.
+m_totalReturnFails	int	Total de falhas acumuladas no retorno.
+m_stuckReturnTarget	Position	Tile onde o retorno está preso.
+m_stuckReturnTargetFails	int	Falhas consecutivas no mesmo tile de retorno.
+Waypoints e rota alternativa:
 
-getFloorChangeQueue() / popFloorChangeQueueElements() – fila auxiliar de mudanças de piso (usada internamente).
-
-📌 Estruturas de Dados (Monster) – v8.0 expandida
-Índices e controle de perseguição:
-
-bool m_pursuingStairs – se está activamente a perseguir uma escada.
-
-Position m_stairOrigin, m_stairDestination – origem e destino da transição actual.
-
-bool m_stairIsActive – se a escada actual é activa (requer teleporte).
-
-int m_stairStuckCount – contador de ciclos preso durante a caminhada.
-
-int m_stairTotalCycles – total de ciclos desde o início da perseguição.
-
-int m_stairPathfindFailCount – falhas consecutivas de pathfinding.
-
-uint32_t m_savedFollowId – ID do follow original (para restauro).
-
-size_t m_nextStairIndex – índice da próxima transição na fila do jogador.
-
-size_t m_currentTransitionIndex – índice da transição actualmente em perseguição.
-
-std::vector<StairTransition> m_returnPath – caminho percorrido (para retorno inverso).
-
-Position m_homePosition – posição inicial antes da perseguição.
-
-bool m_returningToSpawn / bool m_returningHome – flags de estado de retorno.
-
-std::shared_ptr<Player> m_persistentTargetPlayer – jogador memorizado para perseguição contínua.
-
-uint64_t m_pursuitStartTime – timestamp de início da perseguição.
-
-int m_forcedMoveFailCount – contador de falhas de movimento forçado.
-
-bool m_followingSurfaceWaypoint – se está a seguir um waypoint de superfície.
-
-size_t m_currentSurfaceWaypointIndex – índice do waypoint de superfície actual.
-
-Mapa Cognitivo Global e BFS (v8.0):
-
-bool m_usingGlobalPath – se está a seguir um caminho planeado pelo BFS.
-
-std::vector<Position> m_globalPath – caminho devolvido pelo GlobalMonsterMap.
-
-size_t m_globalPathIndex – índice do próximo passo na rota global.
-
-uint64_t m_lastGlobalScanAttempt – timestamp da última tentativa de scan/rota.
-
-uint64_t m_lastExtendedScanAttempt – timestamp da última tentativa de scan expandido.
-
-uint64_t m_lastGpsOptimization – timestamp da última optimização GPS (atalho cognitivo).
-
-uint64_t m_lastFlankingAttempt – timestamp da última tentativa de cercamento.
-
-int m_globalPathFailCount – falhas consecutivas ao seguir rota global.
-
-int m_globalPathStuckCounter – contagem de tiles ocupados na rota global.
-
+Membro	Tipo	Descrição
+m_waypoints	std::vector<Position>	Lista de waypoints da rota actual.
+m_waypointIndex	size_t	Índice do próximo waypoint.
+m_followingWaypoints	bool	Se está a seguir uma rota de waypoints.
+m_waypointStuckCycles	int	Ciclos sem progresso nos waypoints.
+m_lastDistToLeaderWaypoints	int	Última distância ao líder durante waypoints.
 Engajamento e timeouts:
 
-int m_engagement – barra de engajamento (0–100).
+Membro	Tipo	Descrição
+m_engagement	int	Barra de engajamento (0–100).
+m_sightLostTicks	int	Contador de ciclos sem ver o líder.
+m_pursuitDeadline	uint64_t	Timestamp absoluto do fim da perseguição.
+m_defensiveRetaliation	bool	Flag de retaliação defensiva temporária.
+m_lastRetaliationTime	uint64_t	Timestamp do último ataque recebido.
+Cache e throttles:
 
-int m_sightLostTicks – contador de ciclos sem ver o líder (timeout após 5 ciclos).
+Membro	Tipo	Descrição
+m_recentlyFailedStairs	std::unordered_map<Position, uint64_t>	Escadas com cooldown por falha (10s).
+m_lastStairCheck	uint64_t	Throttle para planeamento de escadas (2500ms).
+m_lastRouteRequestTime	uint64_t	Throttle para rotas alternativas (5000ms).
+m_lastCombatCheck	uint64_t	Throttle para verificação de combate (2000ms).
+m_lastIdleCheck	uint64_t	Throttle para comportamento idle (2000ms).
+m_lastGlobalScanAttempt	uint64_t	Throttle para scans do mapa cognitivo.
+m_lastUsedStairOrigin / m_lastUsedStairDest	Position	Última escada usada (anti‑ping‑pong).
+m_sameStairRepeatCount	int	Contador de usos consecutivos da mesma escada.
+m_lastSuccessfulTeleport	uint64_t	Timestamp do último teleporte bem‑sucedido.
+Outros:
 
-uint64_t m_pursuitDeadline – timestamp absoluto do fim da perseguição (calculado dinamicamente).
-
-int m_proactiveFailCount – falhas consecutivas da perseguição proactiva.
-
-int m_flankingFailCount – falhas consecutivas de cercamento.
-
-int m_idleFailCount – falhas consecutivas no estado ocioso.
-
-bool m_hasReturnedToSpawn – impede nova perseguição após retorno.
-
-int m_totalReturnFails – contador de falhas durante o retorno.
-
-Position m_stuckReturnTarget – tile onde o retorno está preso.
-
-int m_stuckReturnTargetFails – falhas consecutivas no mesmo tile de retorno.
-
-uint64_t m_returnWalkStartTime – timestamp para timeout de caminhada de retorno.
-
-Position m_lastUsedStairOrigin, m_lastUsedStairDest – última escada usada (anti‑ping‑pong).
-
-int m_sameStairRepeatCount – contador de usos consecutivos da mesma escada.
-
-uint64_t m_lastSuccessfulTeleport – timestamp do último teleporte bem‑sucedido.
-
-std::unordered_map<Position, uint64_t> m_recentlyFailedStairs – escadas com cooldown (FAILED_STAIR_COOLDOWN = 15000 ms).
-
-uint64_t m_lastRouteRequestTime – throttle para perseguição proactiva.
-
-uint64_t m_lastExplorationScan – throttle para exploração passiva.
-
-uint64_t m_lastCombatCheck, m_lastStairCheck, m_lastProactiveCheck, m_lastIdleCheck – throttles específicos por estado.
-
-uint64_t m_lastGlobalPathStart – timestamp de início da rota global (para cancelamento tardio).
-
-📌 GlobalMonsterMap (v8.0)
+Membro	Tipo	Descrição
+m_persistentTargetPlayer	std::shared_ptr<Player>	Jogador memorizado para perseguição contínua.
+m_hasReturnedToSpawn	bool	Impede nova perseguição após retorno concluído.
+m_spawnPosition	Position	Posição original do spawn (definida no primeiro onThink).
+m_hasSpawnPosition	bool	Se a posição do spawn já foi guardada.
+m_inOnThinkMCR	bool	Proteção contra reentrância em onThinkMCR.
+m_stairQueue	std::deque<StairTransition>	Fila de escadas planeadas (uso residual).
+m_summonStuckCycles	int	Contador para destravamento de summons.
+📌 GlobalMonsterMap (v3.2.0)
 Classe singleton (global_monster_map.hpp / .cpp) que mantém:
 
 Grafo de tiles caminháveis (std::unordered_map<Position, TileInfo> m_tiles) com flags walkable e dynamic.
@@ -266,7 +241,7 @@ addStairTransition(from, to) – regista uma transição de piso (escada/telepor
 
 getDestinations(pos) – retorna destinos de transições a partir de uma posição.
 
-getAllTransitions() – retorna todas as arestas (origem, destino) do grafo. Usado pela procura global de escadas.
+getAllTransitions() – retorna todas as arestas (origem, destino) do grafo.
 
 addTemporaryObstacle(pos, durationMs) – marca um tile como bloqueado temporariamente (TTL).
 
@@ -282,96 +257,111 @@ loadFromFile(filename) – carregamento no arranque do servidor.
 
 scanPlayerTrail(center, radius) – mini‑scan (forçado) para alimentar o grafo com o rasto do jogador.
 
-Alimentação do grafo:
+📌 Arquitectura da Máquina de Estados (v3.2.0)
+A máquina de estados é executada integralmente dentro do ciclo Monster::onThinkMCR(), com apenas 5 estados processados por ciclo, pela seguinte ordem de prioridade:
 
-Transições do jogador: injectadas directamente via addStairTransition quando o monstro consulta a fila do líder.
+text
+┌──────────────────────────────────────────────┐
+│ 1. COMBATE (prioridade máxima)                │
+│    Se pode atacar → cancela tudo, ataca       │
+├──────────────────────────────────────────────┤
+│ 2. PERSEGUIÇÃO MULTI‑PISO (m_pursuingStairs)  │
+│    Tenta alcançar m_stairOrigin               │
+│    Gere travamentos, tenta movimento forçado   │
+│    Monitoriza progresso, teleporta para escada │
+├──────────────────────────────────────────────┤
+│ 3. PLANEAMENTO DE ESCADA                      │
+│    Se líder noutro piso → planStairTrajectory │
+│    Se líder no mesmo piso e inacessível →     │
+│      Avalia atalho multi‑piso vs rota alt.    │
+├──────────────────────────────────────────────┤
+│ 4. RETORNO AO SPAWN / CASA                   │
+│    (Apenas monstros normais)                  │
+│    processarRetornoSpawn / processarRetornoSimples │
+│    Summons NUNCA entram neste estado           │
+├──────────────────────────────────────────────┤
+│ 5. IDLE                                       │
+│    Se sem alvo → tenta follow, deambula ou    │
+│    retorna ao spawn (só normais)              │
+│    Inclui destravamento silencioso para summons│
+└──────────────────────────────────────────────┘
+📌 Comportamento (v3.2.0)
+Estado 1 – COMBATE: Se o monstro tem um alvo atacável, inicia follow direto.
 
-Scans periódicos: scanArea faz flood‑fill limitado, adicionando tiles caminháveis e transições. Descoberta automática de escadas: qualquer tile com TILESTATE_FLOORCHANGE gera transições para z±1 (ou para o destino exacto via Tile::getDestination). Os 8 vizinhos do destino são também mapeados.
+Estado 2 – PERSEGUIÇÃO MULTI‑PISO:
 
-Alimentação contínua: Monster::onWalkComplete adiciona o tile actual ao grafo.
+Cancela perseguição se o líder voltou ao mesmo piso e a escada não é um atalho (m_multiFloorShortcut == false).
 
-Invalidação reactiva: invalidateTileBlocked actualiza o grafo, distinguindo bloqueios permanentes (BLOCKSOLID) de temporários (BLOCKPATH sem BLOCKSOLID).
+Movimento para a escada: distância 1 → movimento direto (internalMoveCreature); se falhar 3×, teleporta para o tile. Distância > 1 e não está a caminhar → tenta A* para a escada; se falhar, procura tile adjacente; se tudo falhar, movimento forçado na direção da escada.
 
-Exploração passiva: tryExploreArea (chamada por monstros hostis) faz scans de raio 30, profundidade Z=3, a cada 30 segundos se a cobertura for inferior a 60%.
+Monitorização de progresso: se isWalkingToPosition(), reseta contador de stuck; senão, se a distância diminuiu, reseta; caso contrário, incrementa m_stairStuckCount. Após 5 ciclos preso, abandona a escada.
 
-BFS Multi‑Piso (findPath):
+Chegada à escada: se myPos == m_stairOrigin, efetua a transição (nativa ou ativa). Após transição, verifica se o líder ficou acessível; se sim, inicia follow; senão, limpa perseguição e permite reavaliação.
 
-Expande 8 direcções com validação de diagonais (evita cortar paredes).
+Estado 3 – PLANEAMENTO DE ESCADA:
 
-Inclui transições de piso como arestas.
+Se líder noutro piso → planStairTrajectory (throttle 2500ms).
 
-Permite alcançar o objectivo mesmo que bloqueado, se for uma escada (goalIsStair).
+Se líder no mesmo piso mas inacessível via A*:
 
-Regista automaticamente tiles desconhecidos via registerDiscoveredTileUnlocked (expansão ao vivo).
+Calcula multiFloorCost = evaluateMultiFloorCost(leaderPos).
+Calcula alternativeCost = findNearestApproachTo(myPos, leaderPos).size().
+Se multiFloorCost < alternativeCost e multiFloorCost < INT_MAX → inicia planStairTrajectory imediatamente (atalho multi‑piso).
+Se alternativeCost < INT_MAX → tenta tryAlternativeRouteToLeader (throttle 5000ms).
+Se a rota alternativa já estava ativa mas m_waypointStuckCycles >= 3 → força o atalho (limpa waypoints e chama planStairTrajectory).
+Estado 4 – RETORNO AO SPAWN (apenas hostis): Summons nunca entram neste estado. Hostis regressam ao spawn usando processarRetornoSimples (caminhada A* até m_homePosition) ou processarRetornoSpawn (percorre m_returnPath no sentido inverso, usando as escadas de volta).
 
-Se o BFS principal falhar, tenta BFS bidireccional (se existirem transições).
+Estado 5 – IDLE:
 
-Se ainda falhar e start e goal estiverem no mesmo piso, tenta bridgeCorridorUnlocked (até 64 passos) para reconectar o grafo.
+Se m_followingWaypoints ativo, chama walkToWaypoint para o waypoint atual.
 
-Se tudo falhar, retorna um caminho vazio e regista logs detalhados.
+Destravamento silencioso para summons: se a summon estiver a seguir waypoints e m_waypointStuckCycles >= 3, teleporta silenciosamente para o primeiro tile do caminho calculado pelo findNearestApproachTo e reinicia os waypoints.
 
-📌 Comportamento (v8.0)
-Máquina de estados unificada (Monster::onThinkMCR) com prioridades:
+Caso contrário, tenta follow normal, deambulação ou retorno ao spawn (apenas normais, se distToSpawn > 10).
 
-Combate – se o líder está visível e atacável, cancela tudo, faz follow e ataca.
+Tratamento de Summons vs Hostis:
 
-Retorno ao spawn/casa – se m_returningToSpawn ou m_returningHome activo, processa retorno (caminhando, nunca teleporta).
+Funcionalidade	Summons	Hostis
+Perda de líder (5 ticks)	Continua perseguição normal (nunca desiste)	Inicia retorno ao spawn
+Deadline expirado	Continua perseguição normal	Inicia retorno ao spawn
+Retorno ao spawn	Nunca – continua perseguição	Sim, caminha de volta
+Destravamento silencioso	Sim, se presa ≥ 3 ciclos	Não
+Seguimento imediato da escada do líder: No início do planStairTrajectory, se existir uma transição do jogador com origem no piso do monstro, destino no piso do líder, distância ≤ 3 tiles e válida → perseguição imediata.
 
-Seguir rota global (BFS) – se m_usingGlobalPath activo, segue o caminho planeado; cancela se o líder ficar acessível.
+Anti‑ping‑pong: O flag m_multiFloorShortcut é ativado quando leaderPos.z == myPos.z no momento do planeamento, protegendo perseguições de atalho. Escadas falhadas têm cooldown de 10 segundos em m_recentlyFailedStairs.
 
-Perseguição activa por transições – tenta alcançar m_stairOrigin. Usa BFS reativo, atalho cognitivo periódico, cercamento (tryFlankingRoute) e fallback para waypoints de superfície.
+Avaliação de custo total: custo = distância A* até à escada + 1 (transição) + distância estimada do destino ao líder, usando findNearestApproachTo para a estimativa.
 
-Procurar próxima transição – checkStairPursuit(): primeiro tenta atalho pelo mapa cognitivo, depois procura global de escadas no grafo (getAllTransitions), e por último escolhe a melhor escada da fila do jogador.
+Integração com Tile::queryAdd: Corrigidas as verificações de TILESTATE_FLOORCHANGE e TILESTATE_TELEPORT para usar || em vez de |. O pathfinding (A*) só considera escadas/teleportes se o monstro estiver em perseguição. O movimento real permite a entrada apenas quando o tile é a escada planeada.
 
-Perseguição proactiva + cercamento – tryFlankingRoute (cercamento multi‑piso), tryAlternativeRouteToLeader, tryProactiveGlobalPursuit.
+Sistema de engajamento e deadline:
 
-Ocioso / deambulação – se sem alvo, tenta seguir ou andar aleatoriamente perto do spawn.
+m_engagement (0–100): sobe +2 ao causar/receber dano, +1/s com líder visível; desce -3/s sem ver o líder.
 
-Sistema de engajamento e deadline adaptativo:
+deadline = currentTime + min(60000, 30000 + engagement * 500) ms. Renovado enquanto o líder está visível.
 
-m_engagement (0‑100) sobe: +2 ao causar ou receber dano do jogador; +1 por segundo com o jogador visível. Desce: -3 por segundo sem ver o jogador.
-
-deadline = currentTime + (25000 + engagement × 350) ms (mín. 10s, máx. 45s). Enquanto o líder está visível, o deadline é constantemente renovado.
-
-Timeout por perda de visão: 5 segundos consecutivos sem ver o líder → desistência e retorno ao spawn.
-
-Anti‑ping‑pong:
-
-Se a mesma escada for usada 3 vezes em menos de 5 segundos, é aplicado um cooldown longo de 45 segundos (FAILED_STAIR_COOLDOWN = 30000 ms), forçando o sistema a explorar outras alternativas.
-
-Retorno sem teleportes:
-
-Com escadas percorridas (m_returnPath): processarRetornoSpawn() percorre o caminho inverso, teleportando apenas nos tiles de escada.
-
-Sem escadas: processarRetornoSimples() caminha directamente para m_homePosition.
-
-Timeout de caminhada de 5 segundos – se a caminhada não progredir, cancela e avança.
-
-Após 15 falhas totais no retorno por escadas, reinicia o percurso.
-
-Após 10 falhas totais no retorno simples, desiste e deambula (tryIdleWander).
-
-Cancelamento do retorno: se o líder ficar visível (≤ 25 tiles), o retorno é cancelado e o monstro reengaja.
-
-Cancelamento imediato por dano:
-
-Monster::onAttackedByPlayer limpa m_pursuingStairs, m_usingGlobalPath, m_returningToSpawn, m_returningHome, m_returnPath, e define m_defensiveRetaliation = true por 5 segundos.
-
-Throttles independentes:
-
-Procura de escadas (checkStairPursuit): 1500 ms.
-
-BFS reativo (tryUseGlobalMap): 1000 ms (primeira tentativa), segunda tentativa com scan expandido a cada 10000 ms.
-
-Cercamento (tryFlankingRoute): 600 ms (líder visível) / 1000 ms (líder invisível).
-
-Perseguição proactiva (tryProactiveGlobalPursuit): 5000 ms (parado) / 10000 ms (perseguindo).
-
-Exploração passiva (tryExploreArea): 30000 ms.
-
-Idle wander (tryIdleWander): 3000 ms.
-
-🚀 NOVOS MÉTODOS LUA (SPA v5.7 e Perseguição v8.0)
+📌 Parâmetros Ajustáveis do Sistema Multi‑Piso (v3.2.0)
+Parâmetro	Localização	Valor
+Deadline base	computePursuitDeadline	30000 ms
+Deadline máximo (engagement=100)	computePursuitDeadline	60000 ms
+Perda de visão (summons)	onThinkMCR	5 ticks
+Perda de visão (hostis)	onThinkMCR	10 ticks
+Throttle planeamento de escada	m_lastStairCheck	2500 ms
+Throttle rota alternativa	m_lastRouteRequestTime	5000 ms
+Raio de scan para escadas (findStairNearReal)	planStairTrajectory	15 tiles
+Distância máx. para seguir escada do líder	planStairTrajectory (regra imediata)	3 tiles
+Cooldown de escada falhada	FAILED_STAIR_COOLDOWN	10000 ms
+Stuck antes de abandonar escada	m_stairStuckCount	5 ciclos
+Stuck antes de limpar waypoints	m_waypointStuckCycles	2 ciclos
+Stuck antes de forçar atalho (Bloco 3)	m_waypointStuckCycles	3 ciclos
+Stuck antes de destravar summon (Bloco 5)	m_waypointStuckCycles	3 ciclos
+MaxSearchDist A* (escadas)	planStairTrajectory	500
+MaxSearchDist A* (waypoints)	walkToWaypoint	120
+Distância para cancelar retorno	onThinkMCR (Bloco 4)	10 tiles
+Tempo limite retorno simples	processarRetornoSimples	15 segundos
+deSpawnRadius	config.lua	0 (ilimitado)
+deSpawnRange	config.lua	0 (ilimitado)
+🚀 NOVOS MÉTODOS LUA (SPA v5.8 e Perseguição v3.2.0)
 Estes métodos estão implementados em player.cpp, monster.cpp, global_monster_map.cpp e expostos em spa_functions.cpp. São essenciais para o funcionamento de todos os subsistemas do SPA. Todos estão activos e podem ser usados pelos scripts da pasta MCR/SPA/.
 
 🧬 Gestão de Afinidade e Domínios
@@ -395,14 +385,6 @@ player:getHabilidades()	Retorna IDs das habilidades conhecidas.
 player:unlearnHabilidade(habilidadeId)	Remove uma habilidade.
 player:unlearnAllHabilidades()	Remove todas as habilidades.
 player:learnHabilidadeBatch(tabela)	Aprende várias habilidades em lote (array Lua).
-✨ Estados de Alma e Histórico
-Método Lua	Descrição
-player:registerDominioAction(dominioId)	Regista uma acção no histórico.
-player:getActionHistory(maxCount)	Retorna últimas acções.
-player:clearActionHistory()	Limpa histórico.
-player:getDominioState(dominioId)	0/1/2.
-player:setDominioState(dominioId, state)	Define estado.
-player:getAllActiveStates()	Mapa {dominioId=state}.
 🛡️ Atributos de Combate
 Método Lua	Descrição
 player:setAttackSpeedModifier(mod)	Multiplicador de velocidade de ataque.
@@ -437,13 +419,11 @@ player:getVocationBaseMaxHealth()	Vida base (gainhp × level + offset).
 player:getVocationBaseMaxMana()	Mana base (gainmana × level + offset).
 player:getNaturalSpeed()	Velocidade natural (base + bónus por nível).
 player:setMovementSpeed(speed)	Define a velocidade de movimento actual.
-🐾 Invocação, Inventário Remoto e Perseguição Multi‑Piso
+🐾 Perseguição Multi‑Piso e Mapa Cognitivo
 Método Lua	Descrição
-player:getSurfaceWaypoints()	Retorna a lista de waypoints de superfície do jogador.
-player:touchSurfaceWaypoint(index)	Actualiza o timestamp de um waypoint.
 player:getStairTransitions()	Retorna a fila de transições de piso do jogador.
-monster:scanGlobalArea(radius, zRange)	Força um scan do GlobalMonsterMap ao redor da criatura. Retorna tiles adicionados.
-monster:findGlobalPath(targetPos)	Encontra rota do monstro até targetPos usando o GlobalMonsterMap. Retorna tabela de posições.
+monster:scanGlobalArea(radius, zRange)	Força um scan do GlobalMonsterMap ao redor da criatura.
+monster:findGlobalPath(targetPos)	Encontra rota do monstro até targetPos usando o GlobalMonsterMap.
 monster:getGlobalMapInfo()	Retorna {tileCount, currentWalkable} do GlobalMonsterMap.
 monster:getEngagement()	Retorna a barra de engajamento (0‑100).
 monster:getPursuitDeadline()	Retorna o timestamp absoluto do fim da perseguição.
@@ -451,14 +431,13 @@ monster:isPursuingStairs()	Booleano – se está a perseguir uma escada.
 monster:isUsingGlobalPath()	Booleano – se está a seguir uma rota do mapa cognitivo.
 monster:getStairOrigin()	Posição da escada que está a tentar alcançar.
 monster:getStairDestination()	Posição de destino da escada.
-monster:getFlankingFailCount()	Número de falhas consecutivas de cercamento.
-monster:getGlobalPathFailCount()	Falhas consecutivas ao seguir rota global.
-monster:getProactiveFailCount()	Falhas consecutivas da perseguição proactiva.
-monster:getIdleFailCount()	Falhas consecutivas no estado ocioso.
-monster:getLastExplorationScan()	Timestamp da última exploração passiva.
-monster:getLastGlobalScanAttempt()	Timestamp da última tentativa de scan.
-monster:getLastFlankingAttempt()	Timestamp da última tentativa de cercamento.
-monster:getLastStairCheck()	Timestamp da última verificação de escada.
+monster:getWaypoints()	Retorna a lista de waypoints actual.
+monster:getWaypointIndex()	Índice do waypoint actual.
+monster:isFollowingWaypoints()	Booleano – se está a seguir waypoints.
+monster:getStairQueueSize()	Tamanho da fila de escadas planeadas.
+monster:getStairQueueFront()	Primeira escada da fila.
+monster:getStairQueueBack()	Última escada da fila.
+monster:canStairBeUsed(origin, deltaZ)	Verifica se uma escada pode ser usada na direção pretendida.
 Além disso, a tabela global GlobalMap expõe métodos estáticos para manipular o mapa cognitivo directamente do Lua:
 
 Método	Descrição
@@ -472,68 +451,46 @@ GlobalMap.getAllTransitions()	Retorna todas as arestas (origem, destino) do graf
 GlobalMap.getTileCount()	Número total de tiles no grafo.
 A função global isWalkableGlobal(x, y, z) também está disponível como atalho.
 
-⚙️ LÓGICA INTERNA (C++)
+⚙️ LÓGICA INTERNA (C++) — v3.2.0
 player.cpp
 std::deque<StairTransition> m_stairTransitions – fila de transições de piso.
 
-std::deque<SurfaceWaypoint> m_surfaceWaypoints – waypoints de superfície.
-
 onFloorChange(const Position& fromPos, const Position& toPos) – captura mudanças de piso e alimenta m_stairTransitions (chamado em Game::internalTeleport e Map::moveCreature).
 
-addSurfaceWaypoint(const Position& pos) – adiciona waypoint (distância mínima 5 tiles, expiração 2 min).
-
-closeRemoteContainer() e closeContainersByCreature() – fecho de janelas remotas.
-
-Métodos de domínio (getDominioAfinidade, addDominioAfinidade, etc.) e habilidades (learnHabilidade, unlearnHabilidade, etc.) com acesso directo à base de dados.
-
-setStealth, setCanPushCreatures, setLifeLeechModifier, setManaLeechModifier, setDamageTakenModifier, setRangeModifier – modificadores de combate dinâmicos.
-
-getVocationBaseMaxHealth, getVocationBaseMaxMana, getNaturalSpeed, setMovementSpeed – atributos base.
-
-getCombatModifier, setCombatModifier – mapa de modificadores dinâmicos.
-
 monster.cpp
-onThinkMCR() – máquina de estados principal (v8.0) com controle de reentrância (m_inOnThinkMCR). Executa a cada ciclo de onThink.
+onThinkMCR() – máquina de estados principal (v3.2.0) com 5 estados e controle de reentrância (m_inOnThinkMCR). Executa a cada ciclo de onThink.
 
-checkStairPursuit() – procura atalhos cognitivos e escadas do grafo, com throttle de 1500 ms e limite de distância 12 tiles. Implementa anti‑ping‑pong e cooldown de escadas falhadas.
+planStairTrajectory(const Position& leaderPos) – planeia a melhor escada para alcançar o líder, com regra de seguimento imediato da escada do líder, rota global completa (BFS) e fallback heurístico com avaliação de custo total.
 
-walkToWaypoint(const Position& target) – caminha para um ponto, usando A*; se falhar, tenta mapa cognitivo ou aproximação máxima. Nunca pisa em cima de uma escada (escolhe adjacente).
+evaluateMultiFloorCost(const Position& leaderPos) – versão "seca" do planStairTrajectory que apenas calcula o custo da melhor escada, sem iniciar perseguição.
 
-clearStairPursuit() – limpa estado de perseguição, restaura follow original.
+walkToWaypoint(const Position& target) – inicia a caminhada para um waypoint, com avanço de índice se o movimento forçado falhar.
 
-iniciarRetornoSpawn() / processarRetornoSpawn() / processarRetornoSimples() – retorno sem teleportes, com timeout e contagem de falhas.
+tryAlternativeRouteToLeader() – encontra rota alternativa no mesmo piso usando o mapa cognitivo (findNearestApproachTo).
 
-tryUseGlobalMap() – BFS reactivo com scan progressivo (500/1000 tiles, throttle 1000 ms / 10000 ms).
+clearStairPursuit() – limpa estado de perseguição, restaura follow original. Não zera m_pursuitDeadline. Faz reset de m_multiFloorShortcut.
 
-tryProactiveGlobalPursuit() – perseguição proactiva usando getAllTransitions() (todas as escadas conhecidas, limite 12 tiles).
+clearWaypoints() – limpa waypoints e reseta contadores associados (m_waypointStuckCycles, m_lastDistToLeaderWaypoints).
 
-tryFlankingRoute() – cercamento multi‑piso com mini‑scans duplos (raio 10) e findPath/findNearestApproachTo. Throttle 600/1000 ms.
+canStairBeUsed(const Position& origin, int deltaZ) – valida se uma escada pode ser usada na direção pretendida, verificando flags TILESTATE_FLOORCHANGE, sub‑flags de direção e destino explícito.
 
-tryAlternativeRouteToLeader() – rota alternativa no mesmo piso quando o líder está inacessível.
-
-tryExploreArea() – exploração passiva (raio 30, profundidade 3, throttle 30s, cobertura mínima 40%).
-
-followGlobalPathStep() – segue uma rota do mapa cognitivo, tratando transições de piso como teleportes.
+findStairNearReal(const Position& leaderPos, int radius) – procura escadas reais no mapa ao redor do monstro (scan no mesmo piso, raio padrão 15 tiles).
 
 updateEngagement(bool visible, bool damagedPlayer, bool tookDamage) – actualiza barra de engajamento.
 
-computePursuitDeadline() – calcula deadline adaptativo (25s + engagement×350ms, máx. 45s).
+computePursuitDeadline() – calcula deadline adaptativo (30s + engagement×500ms, máx. 60s).
 
-invalidateTileBlocked(const Position& pos) – regista obstáculos temporários (30s) e força mini‑scans (raio 3).
-
-forceInvalidateTileInGraph(const Position& pos) – marca tile como permanentemente bloqueado.
+invalidateTileBlocked(const Position& pos) – regista obstáculos temporários (30s) e força mini‑scans.
 
 mcrEnsureMyTileWalkable() – garante que o tile actual está marcado como caminhável no grafo.
 
 onAttackedByPlayer(const std::shared_ptr<Player>& attackerPlayer) – limpa estados de perseguição e retorno, activa retaliação defensiva.
 
-onWalkComplete() – alimenta o grafo com o tile actual e, se m_walkingForReturn, chama processarRetornoSpawn().
+onWalkComplete() – alimenta o grafo com o tile actual.
 
-getGlobalDestinations(const Position& pos) – expõe getDestinations do GlobalMonsterMap para Lua.
+processarRetornoSimples() – caminhada A* até m_homePosition; timeout de 15s; fallback para teleporte se exceder.
 
-setCustomName / getCustomName – nome alternativo para escudeiros/pets.
-
-createInventoryContainer / dropInventoryOnDeath – inventário da criatura SPA.
+processarRetornoSpawn() – percorre m_returnPath no sentido inverso, usando escadas; timeout de caminhada de 5s; 15 falhas totais reiniciam o percurso.
 
 global_monster_map.cpp
 Singleton GlobalMonsterMap com std::shared_mutex.
@@ -561,8 +518,6 @@ internalTeleport e Map::moveCreature chamam creature->onFloorChange(origin, dest
 
 playerMoveItem – suporte a arrasto livre entre jogador e escudeiro via isRemoteContainer.
 
-loadMainMap / loadCustomMaps / loadMap – carregam o global_monster_map.bin e validam transições.
-
 spa_functions.cpp / spa_manager.cpp
 Exposição de todos os métodos Lua acima mencionados.
 
@@ -575,7 +530,9 @@ O evento onHealthChange está presente no Canary e é usado pelo script ProgDefe
 A partir da versão actual, TODO o código C++ do servidor foi traduzido para PT‑BR através de uma pipeline automática supervisionada. As directrizes abaixo DEVEM ser mantidas em qualquer modificação futura:
 
 Strings de interface e logs: PT‑BR com escapes octais Latin‑1 (OBRIGATÓRIO). NUNCA colocar texto acentuado em UTF‑8 directamente nas strings C++.
+
 Exemplo correcto: "N\355vel de magia \351 alto."
+
 Exemplo INCORRECTO: "Nível de magia é alto."
 
 Bindings Lua intactos: nomes de funções registadas NUNCA são alterados.
@@ -584,7 +541,7 @@ Cabeçalhos (.h/.hpp): comentários traduzidos, definições de classes/macros i
 
 Consulte a lista completa de scripts da pipeline no Índice Geral (Ferramentas de Automação).
 
-🗂️ ESTRUTURA DE PASTAS REVSCRIPT (SPA v5.7)
+🗂️ ESTRUTURA DE PASTAS REVSCRIPT (SPA v5.8)
 Os scripts do Sistema de Progressão do Aventureiro residem em data-canary/scripts/MCR/SPA/. Módulos de apoio e constantes globais estão em data-canary/scripts/MCR/Geral/. O Canary, com suporte a Revscript, carrega automaticamente todos os ficheiros .lua nessas pastas e subpastas.
 
 text
@@ -661,6 +618,8 @@ O servidor inclui os seguintes comandos de administrador para depuração de ter
 
 !checkstairs – Lista as escadas com destino mapeado no raio.
 
+!checkstair – Verifica escadas próximas com flags, itens e direção (útil para debug de canStairBeUsed).
+
 !testglobalmap – Testa se getDestinations retorna dados.
 
 !forcescan – Força um scanArea (raio 10) na posição do jogador para testes manuais.
@@ -668,6 +627,7 @@ O servidor inclui os seguintes comandos de administrador para depuração de ter
 Estes comandos são registados em comandos_spa.lua e requerem grupo DEUS.
 
 ⚠️ ARMADILHAS E LIÇÕES APRENDIDAS
+Gerais
 Codificação de console: SetConsoleOutputCP(CP_UTF8) é imprescindível para logs em PT‑BR.
 
 Tradução de logs: use SEMPRE escapes octais para todos os acentos nas strings C++. Não confie em UTF‑8 directo.
@@ -696,31 +656,27 @@ Inventário remoto: os métodos openRemoteContainer, closeRemoteContainer, creat
 
 Nome customizado: setCustomName/getCustomName substituem setName/getName para criaturas SPA, garantindo que o nome exibido no cliente seja o nome do escudeiro e não o nome do arquivo do monstro.
 
-Perseguição multi‑piso (v8.0):
-
+Perseguição Multi‑Piso (v3.2.0)
 A transição do jogador é capturada automaticamente em Player::onFloorChange chamado por Game::internalTeleport e Map::moveCreature.
 
 O sistema usa uma fila de transições (std::deque<StairTransition>) consumida de forma independente por cada perseguidor.
 
-Summons teleportam para o mestre se a fila estiver vazia e estiverem noutro piso; hostis nunca teleportam durante a perseguição (excepto para usar escadas activas).
+Summons nunca teleportam para o mestre durante a perseguição normal; se ficarem completamente bloqueadas, o destravamento silencioso (teleporte invisível para o primeiro waypoint) as recoloca em movimento.
 
-O Tile::queryAdd tem excepções para isPursuingStairs e getStairOrigin, permitindo que o monstro pise o tile de escada.
+O Tile::queryAdd foi corrigido para usar || em vez de | nas verificações de flags, e tem excepções para isPursuingStairs e getStairOrigin, permitindo que o monstro pise o tile de escada.
 
-O clearStairPursuit restaura o follow original usando m_savedFollowId.
+O clearStairPursuit restaura o follow original usando m_savedFollowId. Não zera m_pursuitDeadline.
 
-Transições expiradas (>30s) são removidas da fila.
+O flag m_multiFloorShortcut é ativado quando leaderPos.z == myPos.z no momento do planeamento, protegendo perseguições de atalho.
 
-Waypoints de superfície: o jogador DEVE chamar addSurfaceWaypoint(getPosition()) durante o movimento (ex.: no onWalkComplete) para que as "migalhas" sejam geradas. Sem isso, os monstros não terão referências para navegação em terrenos complexos.
+O findStairNearReal foi corrigido para usar deltaZ = 1 para FLOORCHANGE_DOWN (desce) e deltaZ = -1 para flags de subida.
 
-Timeout de progresso: hostis abandonam uma escada se ficarem 1,5 segundos sem reduzir a distância ao waypoint e sem estar a caminhar activamente.
+O destravamento silencioso de summons usa internalTeleport sem efeitos visuais, mantendo a imersão.
 
-Movimento forçado: apenas para summons; hostis utilizam waypoints de superfície e tiles adjacentes como alternativas.
-
-GlobalMonsterMap (v8.0):
-
+GlobalMonsterMap (v3.2.0)
 O grafo é partilhado entre todos os monstros; usar std::shared_mutex evita gargalos.
 
-MAX_ACTIVE_SCANS = 20 impede picos de CPU por scans simultâneos (valor muito mais alto que antes, permitindo scans concorrentes leves).
+MAX_ACTIVE_SCANS = 20 impede picos de CPU por scans simultâneos.
 
 Obstáculos temporários (Magic Walls, campos) são geridos com TTL de 30s; isWalkableUnlocked faz validação preguiçosa, garantindo reacção imediata.
 
@@ -728,7 +684,7 @@ Apenas tiles estáticos são salvos em disco; a persistência é assíncrona e n
 
 O Tile::getDestination() é usado para obter destinos reais de teleportes; se não disponível, assume z±1 como fallback.
 
-getAllTransitions() permite a procura global de escadas no checkStairPursuit e tryProactiveGlobalPursuit.
+getAllTransitions() é usado pelo planStairTrajectory para obter escadas candidatas.
 
 Mapeamento de 8 vizinhos (raio 1) nos destinos das escadas durante o scanArea.
 
@@ -736,19 +692,21 @@ bridgeCorridorUnlocked reconecta grafos desconectados no mesmo piso (até 64 pas
 
 BFS bidireccional como fallback melhora a descoberta de caminhos em grafos grandes.
 
-Máquina de estados: a prioridade máxima é sempre o combate; qualquer rota global ou perseguição é cancelada se o jogador ficar atacável.
+Máquina de estados (v3.2.0)
+A prioridade máxima é sempre o combate; qualquer rota ou perseguição é cancelada se o jogador ficar atacável.
 
-Engajamento: o deadline é renovado enquanto o líder está visível; o timeout por perda de visão (5s) impede perseguições eternas a jogadores escondidos.
+O Bloco 3 avalia simultaneamente o atalho multi‑piso e a rota alternativa, escolhendo o de menor custo total.
 
-Cercamento: tryFlankingRoute pode fazer o monstro sair do piso actual e regressar por outra escada; throttle de 600/1000 ms evita abusos.
+O Bloco 5 inclui o destravamento silencioso para summons, que só é activado se a summon estiver parada há ≥ 3 ciclos.
 
-SPAManager: os pets são armazenados em memória; a persistência (guarda/load) ainda não está implementada – é um ponto de melhoria futuro.
+SPAManager
+Os pets são armazenados em memória; a persistência (guarda/load) ainda não está implementada – é um ponto de melhoria futuro.
 
 📤 COMO ACTUALIZAR O REPOSITÓRIO GIT
 bash
 git add "<arquivos alterados>"
-git commit -m "feat(server): Actualiza guia de compilação com SPA v5.7, perseguição v8.0, GlobalMonsterMap e SPAManager"
+git commit -m "feat(server): Actualiza guia de compilação com SPA v5.8, perseguição v3.2.0, GlobalMonsterMap e SPAManager"
 git push origin main
 PowerShell: use aspas duplas em caminhos com espaços.
 
-FIM DO GUIA DE COMPILAÇÃO (SERVIDOR) — VERSÃO 8.1 REVISADA (12/06/2026)
+FIM DO GUIA DE COMPILAÇÃO (SERVIDOR) — VERSÃO 8.2 REVISADA (13/06/2026)

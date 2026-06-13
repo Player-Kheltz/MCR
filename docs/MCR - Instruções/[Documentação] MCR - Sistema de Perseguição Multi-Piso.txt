@@ -1,32 +1,12 @@
-📘 Documentação Técnica — Sistema de Perseguição Multi‑Piso do Projeto MCR (v8.0 Refinada)
-Última atualização: 12 de Junho de 2026
-Versão do sistema: 8.0 (refinamento completo de throttles, anti‑ping‑pong, múltiplas mudanças de piso, retorno sem teleportes, reação imediata a combate)
-Documento canónico e exaustivo
+📘 Documentação Técnica — Sistema de Perseguição Multi‑Piso do Projeto MCR (v3.2.0)
+Última atualização: 13 de Junho de 2026
+Versão do sistema: 3.2.0 – A Segmentado com Escadas + Atalho Multi‑Piso + Waypoints Cognitivos*
+Documento canónico e ultra‑detalhado
 
 🎯 OBJETIVO DESTE DOCUMENTO
-Este documento descreve de forma exaustiva e canónica o sistema de perseguição multi‑piso do Projeto MCR na sua versão 8.0. Inclui todos os ficheiros de código relevantes, a arquitetura da máquina de estados, as estruturas de dados, os mecanismos de timeout e desistência, o mapa cognitivo global partilhado (GlobalMonsterMap), os algoritmos de cercamento e flanqueamento, o retorno ao spawn sem teleportes, o sistema de engajamento e deadline adaptativo, a integração entre hostis e summons, os comandos de diagnóstico e as regras de log.
+Este documento descreve de forma exaustiva e canónica o sistema de perseguição multi‑piso do Projeto MCR na sua versão atual. Inclui todos os ficheiros de código relevantes, a arquitetura completa da máquina de estados, as estruturas de dados, os algoritmos de decisão (custo total, atalho multi‑piso vs rota alternativa, seguimento imediato da escada do líder), o tratamento diferenciado de summons e criaturas hostis, o sistema de waypoints com destravamento silencioso, o mapa cognitivo global partilhado (GlobalMonsterMap), os comandos de diagnóstico e as regras de log.
 
-A versão 8.0 é a consolidação de todas as melhorias introduzidas após a 7.2.1, com especial foco em:
-
-Throttles independentes para procura de escadas e rotas alternativas.
-
-Anti‑ping‑pong — detecção e prevenção de ciclos de sobe‑e‑desce na mesma escada.
-
-Múltiplas mudanças de piso no cercamento.
-
-Retorno ao spawn sempre a pé, sem teleportes (exceto as próprias transições de escada).
-
-Cancelamento imediato da perseguição ao receber dano.
-
-Reação mais rápida — throttles globalmente reduzidos.
-
-Invalidação reativa melhorada com mini‑scans e limpeza imediata da rota.
-
-BFS preguiçoso com expansão ao vivo e ponte de corredor (bridgeCorridorUnlocked).
-
-Alimentação contínua do grafo via scanPlayerTrail.
-
-Persistência assíncrona do grafo em disco com validação de transições.
+O sistema atual é o resultado de uma reescrita completa face à versão 8.0 original, abandonando o BFS cognitivo completo em favor de uma abordagem de A* segmentado com escadas, complementada por atalhos multi‑piso e rotas alternativas com waypoints cognitivos.
 
 📚 ÍNDICE
 Visão Geral
@@ -35,31 +15,49 @@ Arquitetura da Máquina de Estados
 
 Estruturas de Dados
 
-Mecanismos de Timeout e Desistência
+Funções Centrais
 
-Waypoints de Superfície (Migalhas)
+4.1 onThinkMCR()
+
+4.2 planStairTrajectory()
+
+4.3 evaluateMultiFloorCost()
+
+4.4 walkToWaypoint()
+
+4.5 tryAlternativeRouteToLeader()
+
+4.6 clearStairPursuit()
+
+4.7 clearWaypoints()
+
+4.8 canStairBeUsed()
+
+4.9 findStairNearReal()
+
+4.10 processarRetornoSimples() e processarRetornoSpawn()
+
+Mecanismos de Decisão
+
+5.1 Custo Total da Rota
+
+5.2 Atalho Multi‑Piso vs Rota Alternativa
+
+5.3 Seguimento Imediato da Escada do Líder
+
+5.4 Anti‑Ping‑Pong
+
+Tratamento de Summons vs Hostis
+
+Sistema de Waypoints e Destravamento Silencioso
+
+Integração com o Motor – Tile::queryAdd
 
 Mapa Cognitivo Global (GlobalMonsterMap)
 
-6.1 Alimentação do Grafo
+Sistema de Engajamento e Deadline
 
-6.2 Persistência e Auto‑Reparação
-
-6.3 Invalidação Reativa e Revalidação de Obstáculos Temporários
-
-6.4 Descoberta Automática de Escadas
-
-6.5 BFS Preguiçoso com Expansão ao Vivo (findPath)
-
-6.6 Ponte de Corredor (bridgeCorridorUnlocked)
-
-Cercamento e Flanqueamento (tryFlankingRoute)
-
-Retorno ao Spawn / Posição Inicial
-
-Sistema de Engajamento e Deadline Adaptativo
-
-Integração com Summons vs Hostis
+Parâmetros Ajustáveis
 
 Comandos de Diagnóstico
 
@@ -67,427 +65,629 @@ Regras de Log e Debug
 
 Comportamento Esperado dos Monstros
 
-Manutenção e Parâmetros Ajustáveis
-
-CÓDIGOS (Referência)
+Códigos (Referência)
 
 1. VISÃO GERAL
-O sistema permite que criaturas hostis e summons persigam um jogador através de escadas, buracos, teleportes e rampas. A base do sistema é a fila de transições de escada (StairTransition) que o jogador vai deixando ao mudar de piso. As criaturas consultam essa fila, o mapa cognitivo global (GlobalMonsterMap) e, se necessário, realizam scans reativos para planear uma rota até ao líder.
+O sistema permite que criaturas hostis e summons persigam um jogador através de escadas, buracos, teleportes e rampas. A base do sistema é:
 
-Quando o caminho direto (A*) falha, o monstro utiliza o grafo cognitivo para planear uma rota de cercamento que pode atravessar múltiplos pisos. Se nenhuma rota for encontrada após várias tentativas, o monstro desiste e regressa ao spawn caminhando, utilizando as escadas percorridas no sentido inverso, nunca usando teleportes (exceto a própria mecânica de subir/descer escadas).
+A* nativo do motor para navegação 2D de longa distância.
 
-A máquina de estados é executada integralmente dentro do ciclo onThinkMCR, sem threads adicionais (exceto a gravação assíncrona do ficheiro de cache).
+Escadas como pontos de ligação entre segmentos A* em pisos diferentes.
+
+Mapa cognitivo global (GlobalMonsterMap) como cache de transições e suporte a rotas alternativas.
+
+Avaliação de custo total para escolha de escadas, considerando o percurso completo até ao líder.
+
+Atalho multi‑piso: quando o líder está no mesmo piso mas inacessível, o monstro pode usar escadas para contornar o obstáculo.
+
+Rotas alternativas com waypoints: quando o A* falha no mesmo piso, o monstro usa o grafo cognitivo para encontrar um caminho alternativo.
+
+Seguimento imediato da escada do líder: se o jogador usou uma escada e o monstro está a ≤ 3 tiles da sua origem, o monstro segue‑o imediatamente.
+
+Summons nunca desistem: continuam a perseguição mesmo após perder o mestre de vista, sem nunca tentar voltar a um ponto de spawn. Se ficarem completamente bloqueadas, um destravamento silencioso (teleporte invisível) as recoloca em movimento.
+
+Monstros normais voltam ao seu ponto de origem (spawn) caminhando, utilizando as escadas que percorreram.
 
 1.1 Tipos de Criaturas e Comportamentos
 Tipo	Perseguição	Timeout	Retorno	Mapa Cognitivo
-Hostil	Persegue o jogador que está a atacar	Adaptativo (10–45s via engagement)	Caminha de volta ao spawn; nunca teleporta (exceto escadas)	Sim, para planear cercos e atalhos
-Summon	Segue o mestre através de escadas	120 ciclos (~120s)	Teleporta para o mestre	Sim, para regressar ao mestre (se ativado)
+Hostil	Persegue o jogador que está a atacar	Adaptativo (30–60s via engagement)	Caminha de volta ao spawn	Sim, para planear atalhos e rotas alternativas
+Summon	Segue o mestre através de escadas	5s sem ver → continua perseguição normal	Nunca retorna ao spawn; continua perseguição normal; em último caso, destravamento silencioso	Sim, para regressar ao mestre
 2. ARQUITETURA DA MÁQUINA DE ESTADOS
-A cada ciclo de onThinkMCR, o monstro avalia as seguintes prioridades pela ordem indicada. Apenas um estado é processado por ciclo, exceto a verificação de combate que pode cancelar tudo.
+A máquina de estados é executada integralmente dentro do ciclo Monster::onThinkMCR(). Apenas um estado é processado por ciclo, pela seguinte ordem de prioridade:
 
 text
 ┌──────────────────────────────────────────────┐
 │ 1. COMBATE (prioridade máxima)                │
 │    Se pode atacar → cancela tudo, ataca       │
 ├──────────────────────────────────────────────┤
-│ 2. RETORNO AO SPAWN / CASA                   │
-│    Se m_returningToSpawn / m_returningHome    │
-│    → processarRetornoSpawn/Simples            │
-│    (pode ser cancelado se líder visível)      │
-├──────────────────────────────────────────────┤
-│ 3. SEGUIR ROTA GLOBAL (BFS)                  │
-│    Se m_usingGlobalPath == true               │
-│    → followGlobalPathStep()                   │
-│    (verifica constantemente se líder acessível)│
-├──────────────────────────────────────────────┤
-│ 4. PROCURAR ESCADAS (checkStairPursuit)       │
-│    Se não estiver a perseguir nem a retornar  │
-│    → throttle 1500ms, procura melhor escada   │
-│    via grafo cognitivo ou fila do jogador     │
-├──────────────────────────────────────────────┤
-│ 5. PERSEGUIÇÃO ATIVA (m_pursuingStairs)       │
+│ 2. PERSEGUIÇÃO MULTI‑PISO (m_pursuingStairs)  │
 │    Tenta alcançar m_stairOrigin               │
-│    Gere travamentos, tenta atalhos,           │
-│    tenta cercamento se líder inacessível      │
+│    Gere travamentos, tenta movimento forçado   │
+│    Monitoriza progresso, teleporta para escada │
 ├──────────────────────────────────────────────┤
-│ 6. CERCAMENTO / ROTA ALTERNATIVA / PROATIVA   │
-│    Se líder no mesmo piso e inacessível       │
-│    → tryFlankingRoute()                       │
-│    → tryAlternativeRouteToLeader()            │
-│    → tryProactiveGlobalPursuit()              │
+│ 3. PLANEAMENTO DE ESCADA                      │
+│    Se líder noutro piso → planStairTrajectory │
+│    Se líder no mesmo piso e inacessível →     │
+│      Avalia atalho multi‑piso vs rota alt.    │
 ├──────────────────────────────────────────────┤
-│ 7. OCIOSO                                      │
-│    Se sem alvo → tryIdleWander()              │
+│ 4. RETORNO AO SPAWN / CASA                   │
+│    (Apenas monstros normais)                  │
+│    processarRetornoSpawn / processarRetornoSimples │
+│    Summons NUNCA entram neste estado           │
+├──────────────────────────────────────────────┤
+│ 5. IDLE                                       │
+│    Se sem alvo → tenta follow, deambula ou    │
+│    retorna ao spawn (só normais)              │
+│    Inclui destravamento silencioso para summons│
 └──────────────────────────────────────────────┘
-Regra de ouro: O BFS nunca toma o controlo primário. É sempre uma ferramenta auxiliar para planear uma rota até um alvo. Enquanto uma rota BFS está ativa, a máquina de estados continua a verificar se o jogador ficou atacável.
-
-Novidade v8.0: Ao receber dano (onAttackedByPlayer), todas as perseguições e retornos são cancelados imediatamente, e o monstro foca‑se no jogador.
+Regra de ouro: O BFS do mapa cognitivo nunca toma o controlo primário. É sempre uma ferramenta auxiliar para planear uma rota até um alvo. Enquanto uma rota BFS está ativa, a máquina de estados continua a verificar se o jogador ficou acessível por A*.
 
 3. ESTRUTURAS DE DADOS
-3.1 StairTransition (player.h)
+3.1 StairTransition (definida em player.h)
+Representa uma transição de piso efetuada pelo jogador.
+
 cpp
 struct StairTransition {
     Position origin;        // tile da escada (onde o jogador estava antes de mudar de piso)
     Position destination;   // tile de destino (onde o jogador apareceu)
     uint64_t timestamp;     // milissegundos desde epoch (para expiração)
-    bool isActive;          // true = escada activa (requer teleporte), false = escada passiva
+    bool isActive;          // true = escada ativa (requer teleporte), false = escada passiva
 };
-3.2 SurfaceWaypoint (player.h)
+3.2 Membros do Monster (perseguição multi‑piso)
+3.2.1 Perseguição de escada
+Membro	Tipo	Descrição
+m_pursuingStairs	bool	Indica se o monstro está ativamente a perseguir uma escada.
+m_stairOrigin	Position	Origem da transição atual (tile da escada).
+m_stairDestination	Position	Destino da transição atual.
+m_stairIsActive	bool	Se a escada é ativa (requer teleporte).
+m_stairStuckCount	int	Contador de ciclos preso a caminho da escada.
+m_stairTotalCycles	int	Total de ciclos na perseguição atual.
+m_stairPathfindFailCount	int	Falhas consecutivas de pathfinding para a escada.
+m_forcedMoveFailCount	int	Falhas consecutivas de internalMoveCreature.
+m_multiFloorShortcut	bool	true se a escada atual é um atalho multi‑piso (líder no mesmo piso).
+m_savedFollowId	uint32_t	ID da criatura que se está a seguir (restaurado após a perseguição).
+3.2.2 Retorno ao spawn
+Membro	Tipo	Descrição
+m_homePosition	Position	Posição de destino do retorno (spawn ou posição do mestre).
+m_returningHome	bool	Se está a regressar à posição inicial.
+m_returningToSpawn	bool	Se está a regressar ao spawn por escadas.
+m_returnPath	std::vector<StairTransition>	Caminho percorrido (para retorno inverso).
+3.2.3 Waypoints e rota alternativa
+Membro	Tipo	Descrição
+m_waypoints	std::vector<Position>	Lista de waypoints da rota atual.
+m_waypointIndex	size_t	Índice do próximo waypoint.
+m_followingWaypoints	bool	Se está a seguir uma rota de waypoints.
+m_waypointStuckCycles	int	Ciclos sem progresso nos waypoints.
+m_lastDistToLeaderWaypoints	int	Última distância registada ao líder durante waypoints.
+3.2.4 Engajamento e timeouts
+Membro	Tipo	Descrição
+m_engagement	int	Barra de engajamento (0–100).
+m_sightLostTicks	int	Contador de ciclos sem ver o líder.
+m_pursuitDeadline	uint64_t	Timestamp absoluto até ao qual pode perseguir.
+3.2.5 Cache e throttles
+Membro	Tipo	Descrição
+m_recentlyFailedStairs	std::unordered_map<Position, uint64_t>	Escadas com cooldown por falha.
+m_lastStairCheck	uint64_t	Throttle para planeamento de escadas.
+m_lastRouteRequestTime	uint64_t	Throttle para rotas alternativas.
+m_lastCombatCheck	uint64_t	Throttle para verificação de combate.
+m_lastIdleCheck	uint64_t	Throttle para comportamento idle.
+m_lastGlobalScanAttempt	uint64_t	Throttle para scans globais.
+3.2.6 Outros
+Membro	Tipo	Descrição
+m_spawnPosition	Position	Posição original do spawn (definida no primeiro onThink).
+m_hasSpawnPosition	bool	Se a posição do spawn já foi guardada.
+m_inOnThinkMCR	bool	Proteção contra reentrância em onThinkMCR.
+m_stairQueue	std::deque<StairTransition>	Fila de escadas planeadas (uso residual).
+m_summonStuckCycles	int	Contador de ciclos de stuck para destravamento de summons (apenas usado no Bloco 5).
+4. FUNÇÕES CENTRAIS
+4.1 Monster::onThinkMCR()
+Função principal chamada a cada ciclo de pensamento (1 Hz). Implementa a máquina de 5 estados descrita na secção 2.
+
+Pré‑processamento:
+
+Safeguard do auto‑walk: corrige fuga de estado isWalkingToPosition quando a fila de passos está vazia.
+
+Limpeza de escadas falhadas: remove escadas cujo cooldown expirou.
+
+Limpeza de obstáculos temporários no GlobalMonsterMap (a cada 5s).
+
+Obtenção do líder: para summons, getMaster(); para hostis, m_attackedCreature ou m_persistentTargetPlayer.
+
+Monitorização de waypoints: se m_followingWaypoints ativo, calcula distância ao líder; se preso há ≥ 2 ciclos, limpa waypoints.
+
+Estados (executados sequencialmente, apenas um por ciclo):
+
+COMBATE – Se o monstro tem um alvo atacável, inicia follow direto.
+
+PERSEGUIÇÃO MULTI‑PISO (m_pursuingStairs == true)
+
+Cancela perseguição se o líder voltou ao mesmo piso e a escada não é um atalho (m_multiFloorShortcut == false).
+
+Movimento para a escada:
+
+Distância 1: movimento direto (internalMoveCreature); se falhar 3×, teleporta para o tile.
+
+Distância > 1 e não está a caminhar: tenta A* para a escada; se falhar, procura tile adjacente; se tudo falhar, movimento forçado na direção da escada.
+
+Monitorização de progresso: se isWalkingToPosition(), reseta contador de stuck; senão, se a distância diminuiu, reseta; caso contrário, incrementa m_stairStuckCount. Após 5 ciclos preso, abandona a escada e regista em m_recentlyFailedStairs.
+
+Chegada à escada: se myPos == m_stairOrigin, efetua a transição (nativa ou ativa). Após transição, verifica se o líder ficou acessível; se sim, inicia follow; senão, limpa perseguição e permite reavaliação no próximo ciclo.
+
+PLANEAMENTO DE ESCADA – Se não está em perseguição nem retorno e o líder existe:
+
+Líder noutro piso: chama planStairTrajectory (throttle 2.5 s).
+
+Líder no mesmo piso mas inacessível via A*:
+
+Verifica se o A* nativo encontra caminho (leaderAcessivel). Se sim, não faz nada.
+Se inacessível:
+Calcula custo do atalho multi‑piso (evaluateMultiFloorCost).
+Calcula custo da rota alternativa (findNearestApproachTo).
+Se multiFloorCost < alternativeCost e multiFloorCost < INT_MAX → inicia planStairTrajectory imediatamente.
+Caso contrário, se alternativeCost < INT_MAX, tenta tryAlternativeRouteToLeader (throttle 5 s).
+Se a rota alternativa já estava ativa mas presa há ≥ 3 ciclos (m_followingWaypoints && m_waypointStuckCycles >= 3), força o atalho (limpa waypoints e chama planStairTrajectory).
+RETORNO AO SPAWN / CASA – Apenas monstros normais. Summons nunca entram neste estado (são barradas no início do bloco). Se o líder reaparecer a ≤ 10 tiles, o retorno é cancelado e o monstro reengaja. O retorno usa processarRetornoSimples (caminhada) ou processarRetornoSpawn (escadas).
+
+IDLE – Se não está a perseguir nem a retornar:
+
+Se m_followingWaypoints ativo, chama walkToWaypoint para o waypoint atual. Inclui destravamento silencioso para summons (ver secção 7).
+
+Caso contrário, tenta follow normal, deambulação ou retorno ao spawn (apenas normais, se distToSpawn > 10).
+
+4.2 Monster::planStairTrajectory(const Position& leaderPos)
+Planeia a melhor escada para alcançar o líder.
+
+Fluxo detalhado:
+
+Obtenção do líder (com fallback para getTargetList e jogadores no mesmo piso).
+
+Regra de seguimento imediato da escada do líder:
+
+Percorre as transições do jogador.
+
+Condições: origem no piso do monstro, destino no piso do líder, distância ≤ 3 tiles, não falhada recentemente, válida (canStairBeUsed).
+
+Se encontrada, inicia perseguição imediata (movimento direto se dist=1, A* se dist>1, movimento forçado se A* falhar).
+
+Rota global completa:
+
+Tenta GlobalMonsterMap::findPath(myPos, leaderPos).
+
+Se falhar, faz scans rápidos (scanPlayerTrail) ao redor do monstro e do líder e tenta de novo.
+
+Se encontrar:
+
+Procura a primeira transição de piso no caminho.
+
+Se existir, inicia perseguição para essa escada.
+
+Se não existir (caminho todo no mesmo piso), inicia waypoints.
+
+Fallback heurístico (quando não há rota global):
+
+Recolhe escadas candidatas: transições do grafo, transições do líder, e (se vazio) findStairNearReal.
+
+Para cada candidata:
+
+Valida direção (não oposta ao líder), não falhada recentemente, válida (canStairBeUsed).
+
+Calcula A* até à origem da escada.
+
+Estima distância do destino ao líder: usa findNearestApproachTo (com scan extra se falhar).
+
+Custo = |A\*| + 1 + distFromDest, com bónus de -1 para escadas do líder.
+
+Escolhe a de menor custo e inicia perseguição.
+
+Se nenhuma escada viável, inicia retorno ao spawn (apenas normais).
+
+4.3 Monster::evaluateMultiFloorCost(const Position& leaderPos)
+Versão "seca" do planStairTrajectory que apenas calcula o custo da melhor escada, sem iniciar perseguição. Usada no Bloco 3 para comparar atalho multi‑piso com rota alternativa.
+
+Fluxo detalhado:
+
+Obtenção do líder: idêntica à do planStairTrajectory, com fallback para getTargetList e jogadores no mesmo piso.
+
+Recolha de candidatas: transições do grafo (getAllTransitions), transições do líder e, se vazio, findStairNearReal.
+
+Avaliação de cada candidata:
+
+Verifica deltaZ e direção (não oposta ao líder).
+
+Verifica se não está em m_recentlyFailedStairs.
+
+Valida com canStairBeUsed (exceto escadas do líder, que têm bypass).
+
+Calcula A* até à origem (getPathTo).
+
+Estima distância do destino ao líder: primeiro tenta findNearestApproachTo; se falhar, faz scanPlayerTrail(dest, 8) e tenta de novo.
+
+Custo = |A\*| + 1 + distFromDest, com bónus de -1 para escadas do líder.
+
+Devolve o menor custo encontrado, ou INT_MAX se nenhuma escada for viável.
+
+Não modifica nenhum estado do monstro – é apenas uma função de avaliação.
+
+4.4 Monster::walkToWaypoint(const Position& target)
+Inicia a caminhada para um waypoint.
+
+Melhorias face à versão original:
+
+Se o alvo é a própria posição do monstro, avança para o próximo waypoint.
+
+Tenta A* nativo; se falhar e o alvo estiver a 1 tile, tenta movimento forçado (internalMoveCreature).
+
+Se o movimento forçado falhar, invalida o tile e avança para o próximo waypoint (ou limpa a rota se for o último). Isto evita que o monstro fique eternamente a tentar o mesmo tile bloqueado.
+
+Tenta tiles adjacentes ao alvo.
+
+Fallback para mapa cognitivo (BFS) e aproximação máxima.
+
+4.5 Monster::tryAlternativeRouteToLeader()
+Encontra uma rota alternativa no mesmo piso usando o mapa cognitivo.
+
+Verifica se o líder está no mesmo piso (senão, aborta).
+
+Garante que o próprio tile está marcado como caminhável.
+
+Efetua scan rápido se necessário.
+
+Usa findNearestApproachTo para obter uma aproximação ao líder.
+
+Converte o caminho em waypoints e força o primeiro passo imediatamente.
+
+4.6 Monster::clearStairPursuit()
+Limpa o estado de perseguição, restaura o follow original e faz reset dos flags.
+
+Importante: Não zera m_pursuitDeadline, permitindo que a perseguição continue enquanto o líder estiver visível. Também faz reset de m_multiFloorShortcut.
+
+4.7 Monster::clearWaypoints()
+Limpa a lista de waypoints e faz reset dos contadores associados, incluindo m_waypointStuckCycles e m_lastDistToLeaderWaypoints.
+
+4.8 Monster::canStairBeUsed(const Position& origin, int deltaZ)
+Valida se uma escada pode ser usada na direção pretendida.
+
+Algoritmo completo:
+
+Obtém o tile na posição origin. Se não existir ou não tiver flag TILESTATE_FLOORCHANGE, retorna false.
+
+Verifica se o tile tem um destino explícito (getDestination()). Se sim, compara o deltaZ do destino com o deltaZ pretendido.
+
+Se não tem destino explícito, verifica as sub‑flags de direção:
+
+TILESTATE_FLOORCHANGE_DOWN: a escada sempre desce (Z aumenta).
+
+TILESTATE_FLOORCHANGE_NORTH, SOUTH, EAST, WEST e variantes: a escada sempre sobe (Z diminui).
+
+Se o tile não tem nenhuma sub‑flag de direção, é considerado bidirecional (buracos, etc.) e retorna true.
+
+Se tem sub‑flags, valida conforme a direção pretendida:
+
+deltaZ < 0 (subir) → requer flags de subida.
+
+deltaZ > 0 (descer) → requer flag FLOORCHANGE_DOWN.
+
+Retorna true se a direção coincide; caso contrário, false.
+
+4.9 Monster::findStairNearReal(const Position& leaderPos, int radius)
+Procura escadas reais no mapa ao redor do monstro (scan no mesmo piso).
+
+Algoritmo completo:
+
+Itera todos os tiles num raio de radius (padrão 15) ao redor da posição do monstro, no mesmo piso.
+
+Para cada tile:
+
+Verifica se tem flag TILESTATE_FLOORCHANGE.
+
+Determina deltaZ com base nas sub‑flags:
+
+FLOORCHANGE_DOWN → deltaZ = 1 (desce).
+
+FLOORCHANGE_NORTH, SOUTH, EAST, WEST e variantes → deltaZ = -1 (sobe).
+
+Sem sub‑flags: assume deltaZ com base na diferença de Z entre líder e monstro (targetDeltaZ).
+
+Valida com canStairBeUsed(origin, deltaZ).
+
+Calcula destino (dest.z = origin.z + deltaZ).
+
+Custo = distância Manhattan até à escada + distância Manhattan do destino ao líder.
+
+Mantém a escada com menor custo.
+
+Retorna a posição da melhor escada encontrada, ou Position(0,0,0) se nenhuma.
+
+4.10 processarRetornoSimples() e processarRetornoSpawn()
+processarRetornoSimples() – Usado quando o monstro está no mesmo piso que m_homePosition.
+
+Tenta A* direto até casa.
+
+Se falhar, usa waypoints do mapa cognitivo.
+
+Timeout de 15 segundos: se exceder, força teleporte para casa (apenas para normais).
+
+Se não conseguir chegar após 10 falhas totais, desiste e deambula.
+
+processarRetornoSpawn() – Usado quando o monstro tem um caminho de escadas (m_returnPath) para voltar.
+
+Percorre m_returnPath no sentido inverso.
+
+Para cada transição, tenta caminhar até à origem da escada e usá‑la.
+
+Timeout de caminhada de 5s por etapa.
+
+Após 15 falhas totais, reinicia o percurso.
+
+Se ficar preso no mesmo tile 3×, invalida o tile e avança.
+
+5. MECANISMOS DE DECISÃO
+5.1 Custo Total da Rota
+A escolha da escada é baseada no custo total estimado até ao líder:
+
+text
+custo = distância A* até à escada + 1 (transição) + distância estimada do destino ao líder
+A distância do destino ao líder é calculada via findNearestApproachTo (se disponível) ou distância Manhattan como fallback. Se o grafo não tiver dados suficientes, é feito um mini‑scan (scanPlayerTrail) ao redor do destino antes de reavaliar.
+
+5.2 Atalho Multi‑Piso vs Rota Alternativa
+Quando o líder está no mesmo piso mas inacessível via A* (Bloco 3):
+
+Calcula-se o custo do atalho multi‑piso (evaluateMultiFloorCost). Este custo considera usar uma escada para sair do piso, caminhar noutro andar e regressar ao piso do líder.
+
+Calcula-se o custo da rota alternativa (findNearestApproachTo), que permanece no mesmo piso.
+
+Se o atalho for estritamente menor, inicia perseguição multi‑piso imediatamente (sem esperar por throttle adicional).
+
+Se a rota alternativa for viável, tenta‑a (com throttle de 5 s para evitar chamadas excessivas).
+
+Se a rota alternativa estiver ativa mas presa há ≥ 3 ciclos, força o atalho (limpa waypoints e chama planStairTrajectory).
+
+Isto garante que o monstro escolhe sempre o caminho com menor número total de passos, podendo usar escadas para contornar obstáculos mesmo quando o líder está no mesmo piso.
+
+5.3 Seguimento Imediato da Escada do Líder
+No início do planStairTrajectory, é executada uma verificação rápida:
+
+Se existir uma transição do jogador que:
+
+Tenha origem no piso atual do monstro.
+
+Tenha destino no piso atual do líder.
+
+Esteja a ≤ 3 tiles de distância do monstro.
+
+Não esteja na lista de escadas falhadas recentemente.
+
+Seja válida segundo canStairBeUsed.
+
+→ O monstro inicia a perseguição por essa escada imediatamente, sem avaliar outras opções. Isto garante que, quando o jogador usa uma escada próxima, o monstro o segue de imediato.
+
+5.4 Anti‑Ping‑Pong
+O flag m_multiFloorShortcut é ativado no planStairTrajectory quando leaderPos.z == myPos.z (líder no mesmo piso que o monstro no momento do planeamento). Isto protege a perseguição de ser cancelada quando o líder "volta" ao mesmo piso (pois o monstro está deliberadamente a contornar um obstáculo). Para perseguições normais (líder noutro piso), o flag é false.
+
+O flag é limpo em clearStairPursuit.
+
+Escadas que falham (abandonadas por falta de progresso) são registadas em m_recentlyFailedStairs com cooldown de 10 segundos (reduzido de 30s nas versões anteriores para permitir reavaliação mais rápida).
+
+6. TRATAMENTO DE SUMMONS VS HOSTIS
+Funcionalidade	Summons	Hostis
+Iniciar perseguição	Quando o mestre muda de piso	Quando o alvo muda de piso
+Perda de líder (5 ticks)	Continua perseguição normal (nunca desiste)	Inicia retorno ao spawn
+Deadline expirado	Continua perseguição normal	Inicia retorno ao spawn
+Retorno ao spawn	Nunca – continua perseguição	Sim, caminha de volta
+Destravamento silencioso	Sim, se presa ≥ 3 ciclos (teleporte invisível para waypoint)	Não
+Mapa cognitivo	Sim, para seguir o mestre	Sim, para atalhos e cercamentos
+Cancelamento ao receber dano	Sim (limpa perseguição)	Sim
+isInSpawnRange	Retorna sempre true	Verifica distância real ao spawn
+6.1 Porque as summons nunca retornam ao spawn
+No onThinkMCR, quando uma summon perde o mestre de vista (m_sightLostTicks >= 5) ou o deadline expira (now > m_pursuitDeadline), o código executa:
+
+clearStairPursuit() – limpa perseguição ativa.
+
+setFollowCreature(nullptr) e setAttackedCreature(nullptr) – remove follow direto.
+
+m_sightLostTicks = 0 – reseta o contador para reavaliar assim que o mestre reaparecer.
+
+Não define m_returningHome = true – ao contrário dos hostis.
+
+Retorna (m_inOnThinkMCR = false).
+
+No ciclo seguinte, a summon volta ao Bloco 3 (planeamento) ou Bloco 5 (waypoints), continuando a perseguição normal.
+
+6.2 Destravamento silencioso (apenas summons)
+Ver secção 7.3.
+
+7. SISTEMA DE WAYPOINTS E DESTRAVAMENTO SILENCIOSO
+7.1 Rotas Alternativas com Waypoints
+Quando o A* nativo falha no mesmo piso, o sistema chama tryAlternativeRouteToLeader() para obter um caminho do mapa cognitivo. Esse caminho é convertido numa lista de waypoints (m_waypoints), e o monstro segue‑os chamando walkToWaypoint a partir do Bloco 5 (IDLE).
+
+7.2 Monitorização de Progresso
+A cada ciclo, enquanto m_followingWaypoints está ativo, o sistema calcula a distância Manhattan ao líder. Se a distância diminuir, o contador m_waypointStuckCycles é resetado. Se não diminuir durante 2 ciclos, os waypoints são limpos (clearWaypoints).
+
+7.3 Destravamento Silencioso (apenas Summons)
+Condições:
+
+É uma summon.
+
+Está a seguir waypoints (m_followingWaypoints == true).
+
+m_waypointStuckCycles >= 3.
+
+Ação:
+
+Obtém um caminho do findNearestApproachTo entre a posição atual e o líder (ou a última posição conhecida).
+
+Se o caminho não estiver vazio:
+
+Teleporta silenciosamente para o primeiro tile desse caminho (g_game().internalTeleport).
+
+Limpa os waypoints antigos.
+
+Define os novos waypoints como o caminho obtido, começando no índice 1 (já que está no primeiro).
+
+Ativa m_followingWaypoints = true.
+
+Reseta m_waypointStuckCycles = 0.
+
+Se o caminho estiver vazio, limpa os waypoints e tentará de novo no próximo ciclo.
+
+Nota: Este teleporte não tem efeitos visuais e é apenas uma medida de segurança para evitar que summons fiquem permanentemente bloqueadas. Nenhum jogador vê a imersão ser quebrada.
+
+8. INTEGRAÇÃO COM O MOTOR – Tile::queryAdd
+Para que o A* nativo pudesse traçar rotas até escadas e o monstro conseguisse pisá‑las, foram necessárias correções no método Tile::queryAdd.
+
+8.1 Correção das máscaras de bits
+As verificações originais usavam o operador | (bitwise OR) em hasFlag, que exige que todos os bits estejam presentes simultaneamente. Como TILESTATE_FLOORCHANGE e TILESTATE_TELEPORT são mutuamente exclusivos, as condições nunca disparavam.
+
+Antes (errado):
+
 cpp
-struct SurfaceWaypoint {
-    Position pos;
-    uint64_t timestamp;   // última vez que foi utilizado (para expiração)
-};
-3.3 TileInfo e TemporaryObstacle (global_monster_map.hpp)
+hasFlag(TILESTATE_FLOORCHANGE | TILESTATE_TELEPORT)
+Depois (corrigido):
+
 cpp
-struct TileInfo {
-    bool walkable = true;
-    bool dynamic = false;
-    uint64_t lastUpdated = 0;
-};
+hasFlag(TILESTATE_FLOORCHANGE) || hasFlag(TILESTATE_TELEPORT)
+8.2 Pathfinding (FLAG_PATHFINDING)
+Quando o motor está a calcular uma rota A*:
 
-struct TemporaryObstacle {
-    uint64_t expiryTime;
-};
-3.4 Membros do Player (perseguição e navegação)
-Membro	Tipo	Descrição
-m_stairTransitions	std::deque<StairTransition>	Fila de transições de piso do jogador
-m_surfaceWaypoints	std::deque<SurfaceWaypoint>	Fila de waypoints de superfície
-3.5 Membros do Monster (perseguição + mapa cognitivo + engajamento)
-Índices e controle de perseguição
-Membro	Tipo	Descrição
-m_pursuingStairs	bool	Se está ativamente a perseguir uma escada
-m_clearingStairs	bool	Proteção contra reentrada em clearStairPursuit
-m_stairOrigin	Position	Origem da transição atual
-m_stairDestination	Position	Destino da transição atual
-m_stairIsActive	bool	Se a escada é ativa (requer teleporte)
-m_stairStuckCount	int	Contador de ciclos preso a caminho da escada
-m_stairTotalCycles	int	Total de ciclos na perseguição atual
-m_stairPathfindFailCount	int	Falhas consecutivas de pathfinding para a escada
-m_forcedMoveFailCount	int	Falhas consecutivas de internalMoveCreature
-m_savedFollowId	uint32_t	ID da criatura que se está a seguir
-m_pursuitStartTime	uint64_t	Timestamp de início da perseguição
-m_stairAttemptStartTime	uint64_t	Timestamp de início da tentativa atual de escada
-m_minDistToStair	int	Distância mínima registada à escada
-m_lastDistImprovementTime	uint64_t	Última vez que a distância à escada diminuiu
-m_homePosition	Position	Posição inicial antes da perseguição
-m_returningHome	bool	Se está a regressar à posição inicial (casa)
-m_returningToSpawn	bool	Se está a regressar ao spawn
-m_returnPath	std::vector<StairTransition>	Caminho percorrido (para retorno inverso)
-m_returnFailCount	int	Falhas no retorno (simples ou por escadas)
-m_totalReturnFails	int	Total de falhas acumuladas no retorno
-m_stuckReturnTarget	Position	Tile onde o retorno está preso
-m_stuckReturnTargetFails	int	Falhas consecutivas no mesmo tile de retorno
-m_walkingForReturn	bool	Se está a caminhar ativamente no retorno
-m_returnWalkStartTime	uint64_t	Timestamp para timeout de caminhada de retorno
-Mapa Cognitivo Global e BFS (v8.0)
-Membro	Tipo	Descrição
-m_usingGlobalPath	bool	Se está a seguir um caminho do mapa cognitivo
-m_globalPath	std::vector<Position>	Caminho devolvido pelo BFS
-m_globalPathIndex	size_t	Índice do próximo passo na rota global
-m_globalPathStuckCounter	int	Contador de ciclos preso na rota global
-m_lastGlobalScanAttempt	uint64_t	Throttle para o BFS reativo (tryUseGlobalMap) e partilhado para retorno
-m_lastExtendedScanAttempt	uint64_t	Throttle para o scan expandido
-m_lastFlankingAttempt	uint64_t	Throttle para tryFlankingRoute
-m_lastStairScanAttempt	uint64_t	Throttle independente para procura de escadas (checkStairPursuit)
-m_lastRouteScanAttempt	uint64_t	Throttle independente para rotas alternativas (tryAlternativeRouteToLeader, etc.)
-m_lastGpsOptimization	uint64_t	Throttle para atalhos cognitivos periódicos
-m_lastProactiveCheck	uint64_t	Throttle para ação proativa
-m_lastIdleWanderTime	uint64_t	Throttle para deambulação ociosa
-m_lastExplorationScan	uint64_t	Throttle para tryExploreArea
-Engajamento e timeouts
-Membro	Tipo	Descrição
-m_engagement	int	Barra de engajamento (0–100)
-m_sightLostTicks	int	Contador de ciclos sem ver o líder
-m_pursuitDeadline	uint64_t	Timestamp absoluto até ao qual pode perseguir
-m_defensiveRetaliation	bool	Se está em retaliação defensiva
-m_lastRetaliationTime	uint64_t	Timestamp do último ataque recebido
-m_proactiveFailCount	int	Falhas consecutivas de perseguição proativa
-m_flankingFailCount	int	Falhas consecutivas de cercamento
-m_globalPathFailCount	int	Falhas consecutivas da rota global
-m_idleFailCount	int	Falhas consecutivas de deambulação
-m_stairFailStreak	int	Sequência de falhas de escadas
-m_lastUsedStairOrigin	Position	Origem da última escada usada (anti‑ping‑pong)
-m_lastUsedStairDest	Position	Destino da última escada usada (anti‑ping‑pong)
-m_sameStairRepeatCount	int	Contador de usos consecutivos da mesma escada
-m_recentlyFailedStairs	std::unordered_map<Position, uint64_t>	Escadas com cooldown por falha
-m_persistentTargetPlayer	std::shared_ptr<Player>	Jogador alvo persistente
-m_spawnPosition	Position	Posição original do spawn (definida no primeiro onThink)
-m_hasSpawnPosition	bool	Se a posição do spawn já foi guardada
-m_isMCR	bool	Flag interna para identificar criaturas MCR
-m_lastSuccessfulTeleport	uint64_t	Timestamp do último teleporte bem‑sucedido
-m_inOnThinkMCR	bool	Proteção contra reentrância em onThinkMCR
-Método auxiliar: mcrEnsureMyTileWalkable() – garante que o tile do monstro está marcado como caminhável no grafo (chamado a cada ciclo onThinkMCR).
+Só permite que o A* considere um tile de escada/teleporte como destino se o monstro estiver em perseguição (isPursuingStairs()) e for a escada planeada (getStairOrigin() == getPosition()).
 
-4. MECANISMOS DE TIMEOUT E DESISTÊNCIA
-4.1 Timeout Adaptativo (Hostis)
-Deadline base: 25 segundos.
+Isto impede que o A* use escadas indevidamente durante a navegação normal.
 
-Fórmula: deadline = currentTime + (25000 + engagement × 350) ms.
+8.3 Movimento real (sem FLAG_PATHFINDING)
+Quando o monstro tenta pisar um tile:
 
-Máximo: 45 segundos (engagement = 100).
+Se o monstro está em perseguição e o tile é exatamente a escada planeada (monster->isPursuingStairs() && monster->getStairOrigin() == getPosition()), a entrada é permitida.
 
-Enquanto o líder está visível, o deadline é constantemente renovado.
+Caso contrário, tiles com TILESTATE_FLOORCHANGE ou TILESTATE_TELEPORT são bloqueados para monstros que não estejam em perseguição direcionada.
+
+9. MAPA COGNITIVO GLOBAL (GlobalMonsterMap)
+O GlobalMonsterMap é um grafo partilhado por todos os monstros que armazena tiles caminháveis e transições de piso. É implementado como um singleton com acesso thread‑safe (std::shared_mutex).
+
+9.1 Alimentação do Grafo
+Transições do jogador: injetadas via addStairTransition.
+
+scanPlayerTrail: mini‑scan de raio 10 tiles e profundidade Z=1.
+
+Scans reativos do monstro: tryAlternativeRouteToLeader faz scans ao redor do monstro e do líder.
+
+Descoberta automática de escadas: durante scanArea, tiles com flag TILESTATE_FLOORCHANGE geram automaticamente transições.
+
+9.2 Persistência
+Gravação: em thread separada para data/world/global_monster_map.bin. Apenas tiles estáticos (dynamic == false) são salvos. As transições estáticas também são guardadas.
+
+Carregamento: no arranque do servidor (Game::loadMap). Após a leitura, validateTransitions() remove transições inválidas.
+
+Limpeza de emergência: se o ficheiro estiver corrompido, basta apagar o .bin e o servidor iniciará com o grafo vazio.
+
+9.3 Invalidação Reativa
+invalidateTileBlocked(): marca tiles como obstáculos temporários (30 s) ou permanentes (BLOCKSOLID).
+
+cleanupTemporaryObstacles(): chamada a cada 5 segundos para revalidar tiles expirados.
+
+Validação preguiçosa: isWalkableUnlocked() consulta o estado real do jogo para tiles marcados como dynamic.
+
+10. SISTEMA DE ENGAJAMENTO E DEADLINE
+10.1 Barra de Engajamento (m_engagement, 0–100)
+Sobe: +2 ao causar ou receber dano do jogador; +1 por segundo enquanto o jogador está visível.
+
+Desce: -3 por segundo sem ver o jogador.
+
+10.2 Cálculo do Deadline (computePursuitDeadline)
+cpp
+uint64_t Monster::computePursuitDeadline() {
+    int baseTimeMs = 30000;                         // 30 segundos base
+    int engagementTimeMs = m_engagement * 500;      // até 50 segundos adicionais (engagement 100)
+    int totalMs = std::min(60000, baseTimeMs + engagementTimeMs); // máximo de 60 segundos
+    return getCurrentTimeMs() + totalMs;
+}
+O deadline é recalculado no início da perseguição e renovado enquanto o líder está visível.
 
 Se o engagement aumentar significativamente durante a perseguição, o deadline é estendido.
 
-4.2 Timeout por Perda de Visão
-Máximo sem ver o líder: 5 segundos (5 ciclos de onThinkMCR).
-
-Contador m_sightLostTicks incrementa quando o líder não está visível.
-
-Após 5 ticks, o monstro desiste e inicia retorno ao spawn.
-
-4.3 Timeout de Progresso (escada)
-Se o monstro não reduzir a distância à escada alvo por 1,5 segundos, abandona a escada e avança para a próxima transição.
-
-Utiliza m_minDistToStair e m_lastDistImprovementTime.
-
-4.4 Falhas de Movimento Forçado
-3 falhas consecutivas de internalMoveCreature → abandona a escada atual.
-
-4.5 Timeout de Summons
-120 ciclos de onThink → teleporta para o destino.
-
-4.6 Anti‑Ping‑Pong
-Se a mesma escada (origem e destino idênticos) for usada 3 vezes num intervalo de 5 segundos, é aplicado um cooldown longo de 45 segundos, forçando o sistema a explorar outras alternativas.
-
-Escadas falhadas são registadas em m_recentlyFailedStairs com cooldown de 30 segundos.
-
-4.7 Desistência no Retorno
-Retorno por escadas: após 15 falhas totais, reinicia o percurso (iniciarRetornoSpawn).
-
-Retorno simples: após 10 falhas totais, desiste e deambula (tryIdleWander).
-
-Timeout de caminhada: se a caminhada de retorno exceder 5 segundos, é cancelada e o sistema avança para a próxima etapa.
-
-5. WAYPOINTS DE SUPERFÍCIE (MIGALHAS)
-Os waypoints de superfície são pontos de passagem que o jogador larga ao caminhar. São usados como fallback quando o mapa cognitivo não consegue ajudar.
-
-O jogador adiciona um waypoint a cada 5 tiles percorridos (Player::addSurfaceWaypoint).
-
-Expiração: 2 minutos sem uso.
-
-Hostis usam waypoints quando ficam bloqueados a caminho da escada (após tentar o mapa cognitivo).
-
-Summons usam waypoints para encontrar o mestre no mesmo piso quando inacessível.
-
-6. MAPA COGNITIVO GLOBAL (GlobalMonsterMap)
-O GlobalMonsterMap é um grafo partilhado por todos os monstros que armazena tiles caminháveis e transições de piso. É implementado como um singleton com acesso thread‑safe (std::shared_mutex).
-
-6.1 Alimentação do Grafo
-O grafo é alimentado de quatro formas principais:
-
-Transições do jogador – injetadas diretamente via addStairTransition sempre que checkStairPursuit, tryFlankingRoute ou a perseguição proativa são executados. v8.0: addStairTransition já não força walkable = true nos tiles de origem/destino, evitando que tiles bloqueados sejam considerados transitáveis.
-
-scanPlayerTrail (rasto do jogador) – mini‑scan de raio 10 tiles e profundidade Z=1, executado automaticamente quando o tile atual do monstro ou do líder é desconhecido. Também chamado em onWalkComplete e em várias funções de perseguição.
-
-Scans reativos do monstro – tryFlankingRoute faz mini‑scans duplos (posição do líder + posição do monstro) com scanPlayerTrail. walkToWaypoint e processarRetornoSpawn também usam scanPlayerTrail em caso de falha de pathfinding.
-
-Descoberta automática de escadas – durante qualquer scanArea, tiles com flag TILESTATE_FLOORCHANGE geram automaticamente transições para z±1 (ou para o destino exato, se disponível via Tile::getDestination). Os 8 vizinhos do destino são também mapeados para garantir conectividade.
-
-6.2 Persistência e Auto‑Reparação
-Gravação: a cada saveServer, em thread separada, para data/world/global_monster_map.bin. Apenas tiles estáticos (dynamic == false) são salvos. Antes de gravar, validateTransitions() limpa transições inválidas.
-
-Carregamento: no arranque do servidor (Game::loadMap). Após a leitura, validateTransitions() remove automaticamente transições para tiles inexistentes ou bloqueados.
-
-Limpeza de emergência: se o ficheiro estiver corrompido, basta apagar o .bin e o servidor iniciará com o grafo vazio, reconstruindo‑o progressivamente.
-
-6.3 Invalidação Reativa e Revalidação de Obstáculos Temporários
-invalidateTileBlocked() determina se o bloqueio é permanente (TILESTATE_BLOCKSOLID) ou temporário (TILESTATE_BLOCKPATH sem BLOCKSOLID).
-
-Para bloqueios temporários, addTemporaryObstacle() marca o tile como walkable = false, dynamic = true com um TTL de 30 segundos.
-
-cleanupTemporaryObstacles() (chamada a cada 5 segundos pelo onThinkMCR) percorre a lista de obstáculos expirados e revalida o estado real do tile.
-
-v8.0: invalidateTileBlocked agora também executa scanPlayerTrail(pos, 3) e clearGlobalPath(), forçando o recálculo imediato da rota após a deteção de um bloqueio.
-
-Validação preguiçosa: isWalkableUnlocked() consulta o estado real do jogo para tiles marcados como dynamic, garantindo reação imediata ao desaparecimento de um obstáculo.
-
-6.4 Descoberta Automática de Escadas
-Durante o scanArea, para cada tile com flag TILESTATE_FLOORCHANGE:
-
-É chamado tile->getDestination(). Se o destino for válido (não Position()), a transição é registada com as coordenadas reais.
-
-Caso contrário, assume‑se z±1 na mesma posição (x,y).
-
-Em ambos os casos, os 8 tiles vizinhos do destino são também mapeados com addPos para garantir conectividade.
-
-v8.0 – Modo de sementes: Se a origem do scan já está mapeada, o scanArea procura tiles conhecidos que tenham vizinhos ainda não explorados e usa‑os como sementes adicionais para a BFS de expansão, acelerando a cobertura de áreas já parcialmente conhecidas.
-
-6.5 BFS Preguiçoso com Expansão ao Vivo (findPath)
-O coração do sistema de cercamento. Características:
-
-8 direções com validação de diagonais (evita cortar paredes).
-
-Expansão preguiçosa: isReachableForPathUnlocked() consulta o mapa real se o tile não estiver no grafo, e registerDiscoveredTileUnlocked() adiciona‑o automaticamente. Isto elimina o problema das "duas bolhas" desconectadas.
-
-Permite alcançar o destino mesmo que este seja uma escada bloqueada (goalIsStair).
-
-Limite de 2000 nós expandidos.
-
-BFS bidirecional ativado como fallback se o BFS principal falhar e existirem transições.
-
-Logs de diagnóstico detalhados em caso de falha (nós expandidos, estado dos tiles, total de tiles e transições no grafo).
-
-6.6 Ponte de Corredor (bridgeCorridorUnlocked)
-Quando o BFS principal falha e start e goal estão no mesmo piso, é tentada uma ponte leve de até 64 passos entre os dois pontos. Esta ponte:
-
-Usa apenas tiles caminháveis no mapa real.
-
-Regista os tiles descobertos no grafo.
-
-Não reinicia a busca – apenas expande o grafo para que futuros findPath possam ter sucesso.
-
-7. CERCAMENTO E FLANQUEAMENTO (tryFlankingRoute)
-Ativado quando o líder está no mesmo piso mas inacessível via A* (caminho direto bloqueado). Fluxo completo:
-
-Verifica condições: throttle de 600 ms (líder visível) ou 1000 ms (líder não visível).
-
-Mini‑scan duplo: scanPlayerTrail na posição do líder (raio 10) e na posição do monstro (raio 10), ambos com force=true.
-
-BFS: findPath(getPosition(), leaderPos). Se falhar, tenta findNearestApproachTo para uma aproximação progressiva.
-
-Aceitação da rota: a rota é aceite se a distância Manhattan do último tile ao líder for menor que a distância atual (newDist < currentDist). Isto garante que o monstro avança sempre para mais perto do líder, mesmo que temporariamente se afaste.
-
-Primeiro passo ocupado: se o primeiro tile da rota estiver ocupado por outra criatura, tenta avançar para o próximo passo da rota.
-
-Se encontrar rota, ativa m_usingGlobalPath e segue o caminho. Se estava em perseguição por escada, cancela‑a.
-
-Contador de falhas: m_flankingFailCount é incrementado apenas no onThinkMCR em caso de insucesso. Após 12 falhas consecutivas, o monstro desiste e inicia retorno ao spawn.
-
-8. RETORNO AO SPAWN / POSIÇÃO INICIAL
-Quando a perseguição termina por timeout ou desistência, o monstro regressa ao ponto de origem sem nunca usar teleportes (exceto as transições de escada, que são parte do mundo).
-
-Com escadas percorridas: processarRetornoSpawn() percorre o m_returnPath no sentido inverso, usando as escadas de volta. Apenas a transição de escada em si pode envolver um teleporte (ex.: internalTeleport para a origem da escada quando o monstro está no destino e a escada é ativa).
-
-Sem escadas: processarRetornoSimples() caminha diretamente para m_homePosition usando pathfinding A* normal.
-
-Novidades da v8.0:
-
-Nunca teleporta como fallback; toda a locomoção é por movimento normal e escadas.
-
-Timeout de caminhada de 5 segundos: se a caminhada não progredir, é cancelada e o sistema avança para a próxima escada ou etapa.
-
-Após 15 falhas totais no retorno por escadas: reinicia o percurso (iniciarRetornoSpawn).
-
-Após 10 falhas totais no retorno simples: desiste e deambula (tryIdleWander).
-
-Cancelamento do retorno: se o líder ficar visível a ≤ 25 tiles, o retorno é cancelado e o monstro reengaja.
-
-9. SISTEMA DE ENGAJAMENTO E DEADLINE ADAPTATIVO
-9.1 Barra de Engajamento
-Sobe: +2 ao causar ou receber dano do jogador; +1 por segundo enquanto o jogador está visível.
-
-Desce: −3 por segundo sem ver o jogador.
-
-Limites: 0–100.
-
-9.2 Cálculo do Deadline
-text
-deadline = currentTime + (25000 + engagement × 350) ms
-Recálculo no início da perseguição.
-
-Renovado enquanto o líder está visível (nunca desiste se vir o jogador).
-
-Estendido se o engagement aumentar significativamente durante a perseguição.
-
-10. INTEGRAÇÃO COM SUMMONS VS HOSTIS
-Funcionalidade	Summons	Hostis
-Iniciar perseguição	Sempre que o mestre muda de piso	Quando têm target e o alvo muda de piso
-Cancelar perseguição	Se o mestre fica acessível	Se o líder estiver acessível e a ≤ 3 tiles
-Timeout	120 ciclos (~120s)	Adaptativo (10–45s) + 5s sem ver
-Desistência por bloqueio	Teleporta após 5 falhas de pathfinding	Abandona a escada após 1,5s sem progresso
-Retorno	Teleporta para o mestre	Caminha de volta ao spawn; nunca teleporta (exceto escadas)
-Mapa cognitivo	Sim, para regressar ao mestre	Sim, prioritário em caso de bloqueio
-Cancelamento ao receber dano	Sim	Sim
-11. COMANDOS DE DIAGNÓSTICO
-Comando	Função
-!mcrfulldebug	Relatório ultra completo: estado do monstro, grafo, transições, escadas próximas, waypoints, acessibilidade, vizinhos, falhas, throttles. Gerado em data/logs/debug/.
-!scan [raio]	Mapa ASCII do terreno ao redor do jogador (2 andares acima/abaixo). Raio padrão: 5 (máx. 8).
-!scanfull [raio] [zRange]	Relatório detalhado de tiles, waypoints e transições em ficheiro. Raio padrão: 5 (máx. 10); zRange padrão: 2 (máx. 3).
-!pathtest	Força o monstro alvo a planear uma rota global e exibe os passos.
-!mapinfo	Número de tiles no GlobalMonsterMap e se a posição atual é caminhável.
-!engagement	Barra de engajamento do monstro alvo (0–100).
-!deadline	Tempo restante da perseguição atual (em ms).
-!debugtile	Vizinhos no grafo ao redor do jogador.
-!checkstairs	Escadas com destino mapeado no raio.
-!testglobalmap	Testa se getDestinations retorna dados.
-!forcescan	Força um scanArea (raio 10) na posição do jogador para testes manuais.
-12. REGRAS DE LOG E DEBUG
+10.3 Timeout por Perda de Visão
+Hostis: 10 ciclos (10 segundos) sem ver o líder → iniciam retorno ao spawn.
+
+Summons: 5 ciclos (5 segundos) sem ver o mestre → continuam perseguição normal (nunca retornam).
+
+11. PARÂMETROS AJUSTÁVEIS
+Parâmetro	Localização	Valor Atual
+Deadline base	computePursuitDeadline	30000 ms
+Deadline máximo (engagement=100)	computePursuitDeadline	60000 ms
+Perda de visão (summons)	onThinkMCR	5 ticks
+Perda de visão (hostis)	onThinkMCR	10 ticks
+Throttle planeamento escada	m_lastStairCheck	2500 ms
+Throttle rota alternativa	m_lastRouteRequestTime	5000 ms
+Raio de scan para escadas	findStairNearReal	15 tiles
+Distância máx. p/ seguir escada do líder	planStairTrajectory (regra imediata)	3 tiles
+Cooldown de escada falhada	FAILED_STAIR_COOLDOWN	10000 ms
+Stuck antes de abandonar escada	m_stairStuckCount	5 ciclos
+Stuck antes de limpar waypoints	m_waypointStuckCycles	2 ciclos
+Stuck antes de forçar atalho	m_waypointStuckCycles (Bloco 3)	3 ciclos
+Stuck antes de destravar summon	m_waypointStuckCycles (Bloco 5)	3 ciclos
+MaxSearchDist A* (escadas)	planStairTrajectory	500
+MaxSearchDist A* (waypoints)	walkToWaypoint	120
+Distância para cancelar retorno	onThinkMCR (Bloco 4)	10 tiles
+Tempo limite retorno simples	processarRetornoSimples	15 segundos
+deSpawnRadius	config.lua	0 (ilimitado)
+deSpawnRange	config.lua	0 (ilimitado)
+12. COMANDOS DE DIAGNÓSTICO
+Comando	Descrição	Parâmetros
+!mcrfulldebug	Relatório completo do estado do monstro e do grafo. Lista todos os membros relevantes do monstro (posição, waypoints, escadas, engajamento, deadlines, distâncias, etc.) e estado do GlobalMonsterMap.	Nenhum (usa o monstro alvo)
+!scan [raio]	Mapa ASCII do terreno ao redor do jogador (2 andares acima/abaixo).	raio (padrão: 5, máx: 8)
+!scanfull [raio] [zRange]	Relatório detalhado de tiles, waypoints e transições em ficheiro.	raio (padrão: 5, máx: 10); zRange (padrão: 2, máx: 3)
+!checkstairs	Escadas com destino mapeado no raio.	Nenhum
+!checkstair	Verifica escadas próximas com flags, itens e direção (útil para debug de canStairBeUsed).	Nenhum
+!mapinfo	Número de tiles no GlobalMonsterMap e se a posição atual é caminhável.	Nenhum
+!engagement	Barra de engajamento do monstro alvo (0–100).	Nenhum
+!deadline	Tempo restante da perseguição atual (em ms).	Nenhum
+13. REGRAS DE LOG E DEBUG
 Prefixo	Significado
-[MCR-STAIR]	Decisões da máquina de estados (início, transporte, atalhos, cercamento, anti‑ping‑pong)
-[MCR-COGNI]	Mapa cognitivo – scans, BFS (sucessos e falhas), pontes de corredor
-[MCR-ENGAGE]	Mudanças na barra de engajamento e deadline
-[MCR-SIGHT]	Timeout por perda de visão
-[MCR-RETURN]	Retorno ao spawn (incluindo timeouts, cancelamentos e desistências)
-[MCR-PLAYER]	Registo de transições do jogador
-[MCR-WALK]	Operações de caminhada (incluindo aproximações cognitivas)
-[MCR-ROUTE]	Rotas alternativas (tryAlternativeRouteToLeader)
-[MCR-IDLE]	Deambulação ociosa
-[MCR-moveCreature]	Captura de mudanças de piso (apenas jogadores)
+[MCR-PLAN]	Planeamento de escadas e decisões de rota
+[MCR-STAIR]	Perseguição de escada (início, transição, cancelamento)
+[MCR-DIAG]	Diagnóstico de movimento para escadas
+[MCR-WAY]	Monitorização de progresso em waypoints
+[MCR-WALK]	Operações de caminhada e waypoints
+[MCR-COGNI]	Mapa cognitivo – scans, BFS, pontes
+[MCR-RETURN]	Retorno ao spawn (cancelamentos, timeouts)
+[MCR-ALTROUTE]	Rotas alternativas
 [MCR-DEBUG]	Decisões gerais da máquina de estados
-13. COMPORTAMENTO ESPERADO DOS MONSTROS
+[MCR-IDLE]	Deambulação ociosa
+[MCR-moveCreature]	Captura de mudanças de piso
+14. COMPORTAMENTO ESPERADO DOS MONSTROS
 Perseguição multi‑piso: segue o jogador através de escadas usando a fila de transições e o grafo cognitivo.
 
 Múltiplas mudanças de piso: pode planear rotas que atravessam vários andares para cercar o jogador.
 
-Uso de escadas nunca pisadas pelo jogador: escolhe qualquer escada do grafo cognitivo que o aproxime do líder.
+Uso de escadas nunca pisadas pelo jogador: escolhe qualquer escada do grafo cognitivo que minimize o custo total.
 
-Cercamento: se o caminho direto está bloqueado, faz mini‑scans ao redor do líder e de si próprio, e usa o BFS para encontrar uma rota alternativa.
+Atalho multi‑piso: se o caminho direto está bloqueado no mesmo piso, usa escadas para contornar o obstáculo, desde que o custo total seja menor.
 
-Aproximação progressiva: se o BFS não encontra uma rota completa, findNearestApproachTo encontra o tile mais próximo do líder, e o monstro aproxima‑se (desde que a distância diminua).
+Rota alternativa: quando o A* falha, usa o mapa cognitivo para encontrar um caminho alternativo no mesmo piso.
 
-Reação imediata a obstáculos: se uma Magic Wall desaparece, o monstro deteta a mudança na próxima consulta ao tile (validação preguiçosa). Ao detetar um bloqueio, a rota é imediatamente recalculada.
+Seguimento imediato: se o jogador usa uma escada e o monstro está a ≤ 3 tiles, segue‑o instantaneamente.
 
-Retorno sem teleportes: regressa ao spawn caminhando, usando as escadas percorridas. Se o líder reaparecer (≤ 25 tiles), o retorno é cancelado.
+Reação a obstáculos: tiles bloqueados são invalidados no grafo; o monstro recalcula a rota.
 
-Foco imediato no jogador: ao receber dano, abandona qualquer perseguição ou retorno e foca‑se no jogador.
+Summons nunca desistem: continuam a perseguição mesmo após perder o mestre de vista, com destravamento silencioso em último caso.
 
-Persistência adaptativa: o deadline aumenta com o engajamento; nunca desiste enquanto vê o jogador.
+Hostis retornam ao spawn: caminham de volta usando escadas; se o líder reaparecer a ≤ 10 tiles, cancelam o retorno.
 
-Prevenção de ping‑pong: não fica preso a subir e descer a mesma escada repetidamente.
+Anti‑ping‑pong: não ficam presos a subir e descer a mesma escada repetidamente.
 
-14. MANUTENÇÃO E PARÂMETROS AJUSTÁVEIS
-Parâmetro	Localização	Valor (v8.0)
-Deadline base	computePursuitDeadline	25000 ms
-Perda de visão timeout	SIGHT_LOST_TIMEOUT_TICKS	5 ticks
-Throttle procura escadas	m_lastStairScanAttempt	1500 ms
-Throttle BFS reativo	tryUseGlobalMap	1000 ms (primeiro), 10000 ms (expandido)
-Throttle cercamento (líder visível)	tryFlankingRoute	600 ms
-Throttle cercamento (líder invisível)	tryFlankingRoute	1000 ms
-Raio do scanPlayerTrail	Player::onWalkComplete	10 tiles
-TTL de obstáculo temporário	invalidateTileBlocked	30000 ms
-Intervalo de limpeza de obstáculos	onThinkMCR	5000 ms
-Limite de nós do BFS	findPath	2000
-Passos máximos da ponte de corredor	bridgeCorridorUnlocked	64
-Máximo de falhas de cercamento	onThinkMCR	12
-Distância máxima para escada	MAX_STAIR_DIST	12 tiles
-Cooldown de escada falhada	FAILED_STAIR_COOLDOWN	30000 ms
-Anti‑ping‑pong – cooldown longo	interno	45000 ms
-Anti‑ping‑pong – máximo de repetições	interno	3 em 5s
-Falhas para desistência no retorno (escadas)	processarRetornoSpawn	15
-Falhas para desistência no retorno (simples)	processarRetornoSimples	10
-Timeout de caminhada no retorno	processarRetornoSpawn / Simples	5000 ms
-Distância para cancelar retorno	onThinkMCR	25 tiles
-Máximo de scans ativos	MAX_ACTIVE_SCANS	20
-Scan expandido – falhas para ativar	interno	3
-Scan expandido – cooldown	interno	10000 ms
-Stuck antes de desencravar	m_stairStuckCount	5 ciclos
-Throttle ação proativa	m_lastProactiveCheck	2000 ms
 15. CÓDIGOS (Referência)
 Os principais ficheiros C++ envolvidos são:
 
-src/player.cpp / player.h – transições, waypoints, onFloorChange.
+src/creatures/monsters/monster.cpp / monster.hpp – máquina de estados onThinkMCR, planStairTrajectory, walkToWaypoint, clearStairPursuit, clearWaypoints, evaluateMultiFloorCost, canStairBeUsed, findStairNearReal, processarRetornoSimples, processarRetornoSpawn.
 
-src/monster.cpp / monster.h – máquina de estados onThinkMCR, perseguição, retorno, engajamento.
+src/mcr/spa/global_monster_map.cpp / global_monster_map.hpp – mapa cognitivo, BFS, persistência.
 
-src/global_monster_map.cpp / global_monster_map.hpp – mapa cognitivo, BFS, persistência.
+src/creatures/players/player.cpp / player.hpp – transições de escada, waypoints de superfície.
 
-src/game.cpp – chamadas a onFloorChange em internalTeleport e Map::moveCreature.
+src/items/tile.cpp / tile.hpp – método queryAdd (correções de acesso a escadas).
 
-src/spa_functions.cpp – exposição Lua de todos os métodos de diagnóstico e navegação.
+src/spa_functions.cpp / spa_functions.hpp – bindings Lua para diagnóstico.
 
-Para mais detalhes sobre a integração com o SPA e os scripts Lua, consulte a Documentação Técnica do Motor SPA (v5.7).
+config.lua – parâmetros deSpawnRadius, deSpawnRange.
 
-Fim do Documento (Perseguição Multi‑Piso v8.0 Refinada — 12/06/2026)
+Fim do Documento
+*Sistema de Perseguição Multi‑Piso v3.2.0 — 13/06/2026*
