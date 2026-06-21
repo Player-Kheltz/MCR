@@ -1,5 +1,5 @@
 PROJETO MCR – GUIA DE COMPILAÇÃO (CLIENTE)
-Versão 4.0 – Integração total com o Sistema de Progressão do Aventureiro (SPA v4.5), novas APIs de atributos, opcodes de feedback, suporte a cores e velocidade
+Versão 4.1 – Adicionado: documentação de módulos cliente (mcr_modules, toast, charactercreation, item_translator), modificações C++ específicas (protocolgameparse, uiwidgettext, uimap, map, missile, mapview, creature), FastNoiseLite e Tibia/ no RME
 Arquivo: [2] MCR - Guia de Compilação (Cliente).txt
 
 🎯 OBJETIVO DESTE GUIA
@@ -106,6 +106,60 @@ Tradução do código‑fonte do OTClient para PT‑BR com escapes octais Latin�
 Comando look com pronome do personagem (integrado com pronouns.lua).
 
 Conversão de nome do personagem no entergame.lua (UTF‑8 → Latin‑1).
+
+🧩 MÓDULOS ESPECÍFICOS DO CLIENTE (modules/)
+
+Além das modificações C++ listadas acima, o MCR adicionou os seguintes módulos Lua/OTUI ao cliente:
+
+mcr_modules/mcr_name_fix.otmod — Corrige a exibição de nomes no cliente: converte caracteres UTF-8 para Latin-1 nos nomes das criaturas via monkey-patch do método Creature:setName(). Necessário porque o servidor envia nomes em Latin-1, mas o cliente espera UTF-8 internamente.
+
+mcr_modules/guest_mask.lua — Máscara de Alma em Lua: após onGameStart, percorre recursivamente a árvore de widgets da interface e substitui qualquer texto que contenha "Guest_" por "Alma". Complementa a máscara C++ em creature.cpp.
+
+mcr_modules/encoding_fix.otmod / mcr_utf8_fix.lua — Define o encoding padrão do cliente como UTF-8 via g_app.setDefaultEncoding("UTF-8"). Essencial para o funcionamento correcto do módulo de cores e texto acentuado.
+
+mcr_modules/item_translator_pt.lua + mcr_modules/pt_itens.lua (10893 linhas) — Motor de tradução de nomes de itens em tempo real. O item_translator_pt.lua hookeia os eventos onSetItemText e onTextMessage do cliente, consulta o dicionário pt_itens.lua, e substitui nomes de itens em inglês por português. Exemplo: "Dragon Shield" → "Escudo de Dragão". O dicionário também cobre diálogos de quests.
+
+data/scripts/consolefix.lua — Script de inicialização que aplica a conversão Latin-1→UTF-8 nos nomes dos personagens após a seleção na lista de personagens. Garante que a interface exiba nomes acentuados correctamente.
+
+game_toast/ — Sistema de notificações toast (pop-ups temporários não intrusivos). Implementado via game_toast.otmod e init.lua com fila de notificações, duração configurável e tipos (sucesso, erro, info). Estilo: fundo azul, texto branco, cantos arredondados, sombra.
+
+game_charactercreation/ — Módulo de criação de personagem no "Salão dos Destinos". Registra opcodes estendidos 160/161 e envia comandos de criação via NPC talk. Carregado por game_charactercreation.otmod.
+
+register_window.otui + register_window.txt — Interface de registo de conta (modal com campos: nome de conta, password, confirmar password). Estilo escuro do MCR.
+
+mcr_modules/creatureinformation.txt — Documentação da informação de criatura por widget: controlador para renderização de nome, barra de vida, mana, ícones, escudo, crânio, emblema, indicadores de tipo.
+
+⚙️ MODIFICAÇÕES C++ ESPECÍFICAS DO CLIENTE (src/client/)
+
+Para além das alterações C++ gerais listadas acima, as seguintes modificações nos fontes do cliente são específicas do MCR e devem ser preservadas:
+
+protocolgameparse.cpp (missile parsing): A função parseDistanceMissile foi completamente reescrita para ler coordenadas 16-bit X/Y e 8-bit Z directamente do buffer de rede (formato raw), em vez de usar funções de parsing do protocolo padrão. Isto permite que os projéteis funcionem correctamente com coordenadas multi-piso. Também removeu a validação isValiddatId que bloqueava IDs de projétil não reconhecidos. O parseAnthem foi removido por incompatibilidade com o protocolo MCR.
+
+uiwidgettext.cpp (suporte a cores): Adicionado suporte ao formato {texto, #cor} em todos os widgets de texto. Quando setText() detecta a presença de { e , no texto, chama setColoredText() em vez do método padrão. Isto permite que mensagens do servidor com formatação de cor sejam exibidas correctamente em qualquer widget UIText (não apenas no console). UITextEdit (input do console) ignora esta formatação para evitar interferência com digitação.
+
+uimap.cpp/h (isInRange): Adicionada proteção null-safe com try-catch no método isInRange(). O método foi movido de private para public no header para permitir acesso de outros componentes (como o sistema de visibilidade multi-piso do servidor). A verificação de null impede crashes quando o mapview ainda não foi inicializado.
+
+map.cpp/h (isSightClear 3D + gestão global de mísseis): O método isSightClear() foi reescrito para suportar visão entre pisos diferentes (3D line-of-sight). O armazenamento de mísseis foi reorganizado: passou de m_floors[z].missiles (per-piso) para uma única lista global m_missiles, acedida por getMissiles(). Isto permite que projéteis viajem entre pisos sem precisar de armazenamento separado por andar.
+
+missile.cpp/h (trajetória 3D com arco parabólico): O método draw() calcula um arco parabólico vertical usando sin(fraction * PI) para criar uma trajetória curva entre pisos. O método setPath() calcula o delta 3D incluindo o componente Z. Novos métodos: getPosition(), getFraction(), getCurrentZ(), getCurrentPosition() — todos baseados na interpolação linear entre a posição inicial e final do projétil. Isto permite que mísseis sejam renderizados correctamente durante a transição entre pisos.
+
+mapview.cpp (renderização multi-piso): A iteração de mísseis passou a usar a lista global (getMissiles()), filtrando por getCurrentZ() == z para exibir apenas os mísseis no piso actual. O desenho de informações de criatura (drawCreatureInformation) agora verifica isSightClear() 3D e aplica o estado "fantasma"/coberto para criaturas em pisos diferentes. A variável _camera foi removida em favor de cameraPos.
+
+creature.cpp/h (exibição condicional + máscara de Alma): A exibição de informações da criatura (nome, barra de HP) agora verifica isSightClear() antes de renderizar — criaturas sem linha de visão não têm nome/HP visíveis. A máscara de Alma (Guest_ → "Alma") foi implementada em getName() no C++, com getDisplayName()/setDisplayName()/clearDisplayName() expostos para uso Lua. O método setName() substitui "Guest_" por "Alma" automaticamente.
+
+game.cpp/h (login HTTP + logout): O método doLogin() foi reescrito para usar HTTP POST para http://<host>:8080/login, parseando a resposta JSON com dados de mundo/personagem. O método logout() foi adicionado para permitir migração de conta via opcode 200 — envia pacote de logout, desconecta imediatamente e limpa o estado do jogo. O processTalk() mascara nomes "Guest_". O loginWorld() armazena o nome mascarado.
+
+luafunctions.cpp: Registradas as funções Lua: g_game.logout(), Creature.setDisplayName(), Creature.getDisplayName(), Creature.clearDisplayName().
+
+init.lua: Nome da aplicação alterado para "MCR Client". Tabela Servers configurada para 127.0.0.1:8080. Diretório de escrita alterado para cache/. Protocolo padrão 1500. Serviços URL comentados.
+
+🖥️ MAP EDITOR (RME) – MODIFICAÇÕES MCR ADICIONAIS
+
+Para além das alterações documentadas na secção anterior, o Map Editor recebeu as seguintes modificações MCR:
+
+FastNoiseLite.h (source/lua/): Biblioteca de geração de ruído procedural (licença MIT, por Jordan Peck, v1.1.1). Suporta OpenSimplex2, Perlin, Cellular, ValueCubic e Value. Fornece tipos fractais (FBm, Ridged, PingPong) e funções de distância celular (Euclidean, Manhattan, Hybrid). Usado para geração procedural de terreno em scripts Lua do editor.
+
+Tibia/ (data directory): Diretório completo com assets de jogo do Canary client, incluindo milhares de ficheiros .ogg de som e índice .dat. Necessário para o editor renderizar sprites e reproduzir sons correctamente.
 
 🎮 REUTILIZAÇÃO DOS MODOS DE LUTA NATIVOS PARA POSTURAS (SPA v4.5)
 

@@ -1,5 +1,5 @@
 ﻿PROJETO MCR – GUIA DE INTERFACE (OTUI E LUA CLIENTE)
-Versão 3.1 – Integração com o Sistema de Progressão do Aventureiro (SPA v4.2), suporte a cores nativas (canal 24), opcodes 182/183/184 e Posturas nativas
+Versão 3.2 – Adicionado: sistema Toast, formato de cores expandido, novos módulos cliente (item_translator, mcr_name_fix, guest_mask)
 Arquivo: [5] MCR - Guia de Interface (OTUI e Lua Cliente).txt
 
 🎯 OBJETIVO DESTE GUIA
@@ -26,6 +26,12 @@ Os opcodes do SPA v4.2: 182 (ícone de Vínculo/Maestria), 183 (partículas de E
 A reutilização dos modos de luta nativos (Full Attack, Balanced, Full Defense) para as Posturas de Combate.
 
 A exibição das mensagens coloridas do SPA v4.2 através do canal 24 (suporte nativo do cliente, sem necessidade de alterações no motor).
+
+O sistema de notificações Toast (pop-ups temporários não intrusivos com fila de mensagens, duração configurável e tipos).
+
+O sistema de cores expandido: formato {texto, #hexcolor} em widgets de texto, console e balões de fala.
+
+O sistema de tradução de itens em tempo real (item_translator_pt.lua).
 
 Referência à pipeline de tradução para manter a interface em PT‑BR.
 
@@ -405,7 +411,26 @@ Se o servidor está a enviar as mensagens correctamente (use o comando !exibirco
 
 Se o módulo game_console ou equivalente está a filtrar o canal 24.
 
-🎨 12. CORES DAS POSTURAS NO CHAT
+🎨 12. FORMATO DE CORES EXPANDIDO ({texto, #hexcolor})
+Para além do canal 24, o MCR expandiu o suporte a cores para TODOS os widgets
+de texto do cliente através de uma modificação C++ em uiwidgettext.cpp.
+O método setText() agora detecta o formato {texto, #cor} e chama
+setColoredText() automaticamente quando detecta a presença de { e , no texto.
+
+Isto significa que o formato funciona em:
+- Mensagens do console (canal 24 e outros)
+- Balões de fala (speech bubbles) sobre NPCs/criaturas
+- Labels de interface (widgets UIText)
+- Dicas de ferramentas (tooltips)
+
+Exceção: UITextEdit (campo de input do console) ignora esta formatação para
+não interferir com a digitação do jogador.
+
+A implementação é transparente para scripts Lua do lado do servidor: qualquer
+mensagem enviada com c() e canal 24, ou com o formato {texto, #cor} em qualquer
+contexto, será renderizada com a cor apropriada.
+
+12.1 CORES DAS POSTURAS NO CHAT
 
 Quando o jogador alterna de postura, o servidor envia uma mensagem como:
 
@@ -436,6 +461,39 @@ Tentativa de máscara de nome via Lua falhou: O motor não expõe método para a
 ⚠️ SPA v4.2 – Posturas: Não confundir as mensagens de postura com as de modo de luta. O servidor pode enviar ambas; certifique-se de que o chat não está a filtrar mensagens do canal 24.
 
 ⚠️ SPA v4.2 – Maestria: O opcode 182 deve suportar um campo "maestria" (boolean) para diferenciar Vínculo temporário de Vínculo permanente.
+
+📟 13. SISTEMA DE NOTIFICAÇÕES TOAST (MÓDULO game_toast)
+
+O MCR adicionou um sistema de notificações toast (pop-ups temporários) ao
+cliente, implementado no módulo modules/game_toast/. O sistema é carregado
+automaticamente por game_toast.otmod e expõe:
+
+Funções Lua:
+  Toast.show(text, type, duration)
+  - text: string a exibir
+  - type: "success" (verde), "error" (vermelho), "info" (azul, padrão)
+  - duration: milissegundos (padrão 3000)
+
+Comportamento:
+  - As notificações são enfileiradas e exibidas sequencialmente
+  - Cada toast aparece no centro superior da tela
+  - Estilo: fundo azul/vermelho/verde, texto branco, cantos arredondados, sombra
+  - A fila garante que toasts não se sobreponham
+
+Uso típico:
+  - Feedback de acções do jogador (item recebido, missão completada, etc.)
+  - Mensagens de erro não críticas
+  - Notificações de progressão (nível de domínio, etc.)
+
+Estilo OTUI do toast:
+  text
+  ToastNotification {
+      background-color: #4169E1  -- azul info
+      margin: 2
+      padding: 8
+      text-align: center
+      text-auto-resize: true
+  }
 
 🔍 CHECKLIST DE REVISÃO PARA O ASSISTENTE (OTUI + LUA CLIENTE)
 

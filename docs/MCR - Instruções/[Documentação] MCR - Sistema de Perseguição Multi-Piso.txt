@@ -766,6 +766,12 @@ src/spa_functions.cpp / spa_functions.hpp – bindings Lua para diagnóstico.
 
 src/mcr/core/monster_ai.cpp / monster_ai.hpp – effectiveAttackDistance (penalidade Z 2.0/1.0), handleCombatState com fallback de escada por alcance efetivo.
 
+src/mcr/core/tile_registration.cpp / tile_registration.hpp – regista tiles básicos (chão, escadas) no GlobalMonsterMap durante o arranque do servidor.
+
+src/mcr/spa/mcr_map_loader.cpp / mcr_map_loader.hpp – carrega e cacheia topologia OTBM para o GlobalMonsterMap e sistema de perseguição.
+
+src/mcr/lua/mcr_lua.cpp / mcr_lua.hpp – bindings Lua genéricos do MCR (namespace MCR::LuaBindings), utilitários de diagnóstico e helpers.
+
 src/creatures/monsters/monster.cpp – getDistanceStep com effectiveDist > targetDistance, canUseAttack / canUseSpell com CROSS_FLOOR_RANGE_LIMIT (10) para range‑0.
 
 src/map/map_const.hpp – MAP_MAX_CLIENT_VIEW_PORT_X/Y (constantes de referência).

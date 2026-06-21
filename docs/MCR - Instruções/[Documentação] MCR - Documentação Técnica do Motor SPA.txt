@@ -122,6 +122,7 @@ player:setLifeLeechModifier(percent)	Define % de life leech (0–100).
 player:setManaLeechModifier(percent)	Define % de mana leech (0–100).
 player:setDamageTakenModifier(mod)	Multiplicador do dano recebido (1.0 = normal).
 player:setRangeModifier(tiles)	Ajusta o alcance (soma ao alcance base).
+player:clearCooldowns()	Limpa todos os cooldowns de habilidades do jogador. Usado para reset de emergência.
 Buffs temporários (geridos pelo buff_system.lua v6.2):
 
 Speed Burst (applySpeedBurst): acelera o ataque por X ms usando um token aleatório.
@@ -423,6 +424,7 @@ Método Lua	Descrição
 player:openRemoteContainer(container)	Abre a janela de inventário remoto do escudeiro.
 player:closeRemoteContainer()	Fecha a janela de inventário remoto.
 player:closeContainersByCreature(creature)	Fecha todas as janelas abertas de uma criatura (usado na morte do escudeiro).
+player:autoCloseContainers()	Fecha automaticamente containers antigos não-remotos (protege containers remotos como escudeiro/montaria de serem fechados).
 monster:createInventory(size)	Cria uma mochila interna na criatura (Item 2854 – Mochila).
 monster:addItemToInventory(itemId, count)	Adiciona itens à mochila da criatura.
 monster:getInventoryContainer()	Retorna o container do inventário da criatura.
@@ -984,4 +986,74 @@ A montaria é sempre ligeiramente mais rápida que o jogador para acompanhá-lo.
 15.9 Documentos Relacionados
 - [Documentação] MCR - Sistema de Montaria como Summon (MountSummon).txt (detalhes completos)
 
-Fim do Documento (v5.9 — 21/06/2026)
+🖥️ 16. Módulos de Infraestrutura C++ do MCR
+Além dos sistemas de alto nível documentados nas secções anteriores, o MCR
+adicionou vários módulos C++ de infraestrutura que suportam as funcionalidades
+do SPA. Esta secção documenta esses módulos.
+
+16.1 src/mcr/core/ – Núcleo do MCR
+
+Ficheiro	Propósito
+monster_ai.cpp/hpp	IA avançada de monstros: effectiveAttackDistance, planeamento de combate multi‑piso, handleCombatState com fallback de escadas. (Documentado nas secções 8.6 e 17 do documento de Perseguição Multi‑Piso.)
+player_tracking.cpp/hpp	Regista mudanças de piso do jogador (onFloorChange) e mantém a fila de transições (StairTransition). (Documentado nas secções 8.6.3 e referências em player.cpp.)
+tile_registration.cpp/hpp	Regista tiles básicos (chão caminhável, escadas) no GlobalMonsterMap durante a inicialização do mapa. Alimenta o grafo cognitivo com dados de topologia simples. Não requer chamadas manuais; é executado automaticamente no arranque do servidor.
+
+16.2 src/mcr/lua/ – Bindings Lua Genéricos
+
+Ficheiro	Propósito
+mcr_lua.cpp/hpp	Namespace MCR::LuaBindings. Regista funções Lua globais e utilitários específicos do MCR no estado Lua do servidor. Inclui bindings para diagnósticos, operações de mapa e helpers de depuração que não se encaixam nos sistemas maiores (SPA, perseguição). É carregado automaticamente durante a inicialização do servidor.
+
+16.3 src/mcr/spa/ – Infraestrutura do SPA
+
+Ficheiro	Propósito
+spa_manager.cpp/hpp	SPAManager: gere eventos, domínios, pets e dados de progressão em memória. (Documentado na secção 8.5.)
+spa_functions.cpp/hpp	Bindings Lua para APIs do SPA: pet management, domínios, diagnóstico. (Documentado nas secções 1–8.)
+global_monster_map.cpp/hpp	GlobalMonsterMap: mapa cognitivo global com BFS, persistência, e suporte a pathfinding multi‑piso. (Documentado na secção 8.6 e no documento de Perseguição Multi‑Piso.)
+mcr_map_loader.cpp/hpp	MCRMapLoader: carrega e cacheia a topologia do mapa a partir dos ficheiros OTBM. Fornece dados de tiles, waypoints de superfície e transições para o GlobalMonsterMap e para o sistema de perseguição. Executado no arranque do servidor.
+
+16.4 src/utils/ – Utilitários Genéricos
+
+Ficheiro	Propósito
+encoding.hpp	Funções de detecção de UTF-8 e conversão Latin-1↔UTF-8. Usado para garantir que strings com caracteres acentuados (português) sejam tratadas correctamente na interface entre o servidor (Latin-1) e o cliente (UTF-8). Inclui toLatin1() e toUTF8().
+
+16.5 src/main.cpp e src/canary_server.cpp – Inicialização do Servidor
+Modificações específicas do MCR:
+- main.cpp: Inicialização de locale Latin-1 (Windows code page 1252) para renderização correcta de caracteres acentuados no console. Configuração de híbrido de locale C++ para compatibilidade com UTF-8.
+- canary_server.cpp: Título da consola alterado para "Projeto MCR". Todas as mensagens de startup em português. Marca "Projeto MCR" e "Equipe MCR" como identificadores do servidor (substituindo canary_server).
+
+16.6 Estruturas de Dados Internas (Player.hpp)
+Além das estruturas documentadas nas secções anteriores, os seguintes tipos
+foram adicionados a player.hpp:
+
+struct SintoniaData {
+    uint8_t state;        // 0=normal, 1=Lampejo, 2=Vínculo
+    uint64_t lastUpdate;  // timestamp do OTSYS_TIME()
+    // Gerido pelo sistema de sintonia (sintonia.lua v6.2)
+};
+
+Usado internamente pelo sistema de Estados de Alma para rastrear o estado
+actual de cada domínio. O mapa activeStates (std::unordered_map<uint16_t, SintoniaData>)
+é acedido via getAllActiveStates(), getDominioState() e setDominioState().
+
+16.7 Lua Scripts de Inicialização do SPA
+A pasta data-canary/scripts/MCR/SPA/core/ contém os seguintes scripts de
+inicialização, que não aparecem na listagem da secção 13:
+
+Ficheiro	Propósito
+0_init.lua	Inicialização geral do SPA no arranque do servidor. Carrega constantes, registra eventos e configura o estado global.
+0_init_db.lua	Inicialização da base de dados do SPA. Cria tabelas e popula dados de domínios se necessário.
+0_init_dominios.lua	Inicializa a hierarquia de domínios na base de dados. Garante que todos os IDs de domínio e relações pai‑filho existem.
+processador_passivas	Pasta que contém scripts de processamento de passivas por domínio (cada ficheiro lida com um grupo de domínios específico).
+
+16.8 Documentação de Alterações Menores (C++)
+
+Ficheiro	Alteração
+creature.cpp	Correção de nullptr no onAttacking(): o código verificava getAttackedCreature() duas vezes — a segunda sem validação, causando potencial crash quando o alvo morria entre as duas chamadas.
+game.cpp	Tradução para português das escolhas de offlineTrainingWindow (treino offline) e nomes de badges (medalhas). Mensagens de boosted creature traduzidas.
+items/weapons/weapons.cpp	Z‑check removido em playerWeaponCheck para permitir ataques multi‑piso com armas de jogador. (Documentado no contexto de combate multi‑piso.)
+
+16.9 Documentos Relacionados
+- [Documentação] MCR - Sistema de Perseguição Multi-Piso.txt (perseguição multi-piso)
+- [Documentação] MCR - Sistema de Montaria como Summon (MountSummon).txt
+
+Fim do Documento (v6.0 — 21/06/2026)
