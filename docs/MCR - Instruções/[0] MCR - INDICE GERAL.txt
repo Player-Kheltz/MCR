@@ -1,7 +1,7 @@
 PROJETO MCR – ÍNDICE GERAL E PILARES PERMANENTES
-Versão 5.9 – Sistema de Progressão do Aventureiro (SPA v4.7.0), perseguição multi‑piso v8.0 (Refinada), Mapa Cognitivo Global (GlobalMonsterMap), Sistema de Pets (SPAManager) e motor de habilidades v2.0
+Versão 6.0 – Sistema de Progressão do Aventureiro (SPA v4.7.0), perseguição multi‑piso v8.0 (Refinada), Mapa Cognitivo Global (GlobalMonsterMap), Sistema de Pets (SPAManager), MountSummon v1.0 e motor de habilidades v2.0
 Arquivo: [0] MCR - INDICE GERAL.txt
-Última actualização: 12 de Junho de 2026
+Última actualização: 21 de Junho de 2026
 
 🎯 FUNÇÃO DESTE ARQUIVO
 Este documento é a raiz de toda a documentação do Projeto MCR. Serve a três propósitos fundamentais:
@@ -96,7 +96,9 @@ O SPA v4.7.0 e o sistema de perseguição multi‑piso v8.0 estão totalmente im
   spa_death.lua, criatura_spa_template.lua, funcoes_habilidade.lua.
 - Habilidades placeholder geradas para todos os domínios (Espadas Leves, Escudo, Fogo, Wands, Lâminas, Combate, Elementos, Magia, Runologia, Terra e Veneno, Sobrevivência, Summon), permitindo testes completos do sistema.
 - NPC Utils refactorado para usar exclusivamente Pronouns.getSubject, abolindo referências a vocações.
-- Perseguição multi‑piso de summons/pets v8.0 completamente funcional: ao mudar de piso, o jogador deixa um rasto capturado pelo motor C++ (Player::onFloorChange), e a criatura caminha incrementalmente até ao ponto de origem antes de aparecer no destino. O sistema inclui:
+- Sistema de Montaria como Summon (MountSummon v1.0): eventos C++ (CREATURE_EVENT_DISMOUNT/MOUNT), validação de espaço adjacente, disparo na janela de outfit, e Lua mount_summon.lua com persistência login/logout/morte e velocidade 1.1×.
+
+Perseguição multi‑piso de summons/pets v8.0 completamente funcional: ao mudar de piso, o jogador deixa um rasto capturado pelo motor C++ (Player::onFloorChange), e a criatura caminha incrementalmente até ao ponto de origem antes de aparecer no destino. O sistema inclui:
   • Mapa cognitivo global partilhado (GlobalMonsterMap) com BFS preguiçoso e expansão ao vivo.
   • Cercamento multi‑piso (tryFlankingRoute) com mini‑scans duplos e aproximação progressiva.
   • Anti‑ping‑pong – detecção e prevenção de ciclos de sobe‑e‑desce na mesma escada (cooldown de 45s após 3 repetições em 5s).
@@ -140,6 +142,7 @@ O SPA v4.7.0 e o sistema de perseguição multi‑piso v8.0 estão totalmente im
 [13]	MCR - Guia de Criação de Habilidades.txt (v2.1)	Filosofia de design, estrutura por hierarquia, pacotes temáticos, processo de geração.
 —	[Documentação] MCR - Sistema de Progressão do Aventureiro (SPA v4.7.0).txt	Documentação técnica completa de todas as APIs, métodos e sistemas.
 —	[Filosofia] Filosofia do SPA – Sistema de Progressão do Aventureiro v4.7.0.txt	Visão filosófica e canónica do SPA.
+—	[Documentação] MCR - Sistema de Montaria como Summon (MountSummon).txt	Sistema de montaria como summon persistente: eventos C++, validação de espaço, Lua mount_summon.lua, PetSystem, persistência e roadmap.
 —	[Personalidade] MCR - Personalidade e Identidade de Dominios.txt	Guia universal de design narrativo e mecânico para criação de domínios.
 —	[Gabarito] Habilidade Gabarito v4.5.txt	Referência máxima de todos os campos e regras para criação de habilidades.
 
@@ -200,4 +203,4 @@ git push origin main
 GitHub: https://github.com/Player-Kheltz/ProjetoMCR
 Estrutura: Canary/ | OTClient/ | LoginServer/ | docs/ | MyAAC/
 
-FIM DO ÍNDICE GERAL (VERSÃO 5.9 — 12/06/2026)
+FIM DO ÍNDICE GERAL (VERSÃO 6.0 — 21/06/2026)

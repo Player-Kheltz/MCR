@@ -397,11 +397,25 @@ uma espada longa até que o aço se tornou parte de si.
 O SPA respeita o teu tempo, a tua curiosidade e a tua identidade. As
 escolhas que fazes ecoam pelo mundo: os NPCs reconhecem o teu domínio, os
 teus golpes carregam a tua história, as tuas criaturas invocadas são a
-extensão da tua vontade, e as tuas habilidades são a assinatura do teu
-estilo. E quando a Maestria é alcançada, o mundo reconhece‑te como um
-verdadeiro Mestre — para sempre.
+extensão da tua vontade, a tua montaria é a manifestação da tua jornada,
+e as tuas habilidades são a assinatura do teu estilo. E quando a
+Maestria é alcançada, o mundo reconhece‑te como um verdadeiro Mestre
+— para sempre.
+
+Mais do que um meio de transporte, a montaria tornou-se uma companheira
+de aventura. Quando desmontas, ela permanece ao teu lado como um summon
+fiel — com inventário próprio, velocidade adaptativa e personalidade
+emergente. O sistema MountSummon (v1.0) materializa esta visão: a
+montaria não desaparece; fica contigo, luta contigo, cresce contigo.
+
+No futuro, as montarias terão domínios próprios (Cavalaria/Montaria),
+vínculo progressivo, personalidade por tipo (Guerra, Veloz, Carga,
+Arcana), equipamento específico e até capacidade de ataque montado.
+E mais além: a domesticação de criaturas selvagens — o sonho do Domador
+— nascerá desta mesma base, permitindo que qualquer criatura do mundo
+se torne a tua companheira de jornada.
 
 Este documento é o testemunho de uma filosofia: a de que um jogo de RPG
 deve ser sobre quem tu és, não sobre o que o sistema diz que deves ser.
 
-Fim do Documento.
+Fim do Documento (atualizado 21/06/2026).

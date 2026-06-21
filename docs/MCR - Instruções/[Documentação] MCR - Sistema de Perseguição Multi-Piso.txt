@@ -764,7 +764,62 @@ src/items/tile.cpp / tile.hpp – método queryAdd (correções de acesso a esca
 
 src/spa_functions.cpp / spa_functions.hpp – bindings Lua para diagnóstico.
 
+src/mcr/core/monster_ai.cpp / monster_ai.hpp – effectiveAttackDistance (penalidade Z 2.0/1.0), handleCombatState com fallback de escada por alcance efetivo.
+
+src/creatures/monsters/monster.cpp – getDistanceStep com effectiveDist > targetDistance, canUseAttack / canUseSpell com CROSS_FLOOR_RANGE_LIMIT (10) para range‑0.
+
+src/map/map_const.hpp – MAP_MAX_CLIENT_VIEW_PORT_X/Y (constantes de referência).
+
 config.lua – parâmetros deSpawnRadius, deSpawnRange.
 
+17. INTEGRAÇÃO COM O SISTEMA DE ATAQUE EFETIVO MULTI‑PISO
+A partir de Junho de 2026, o sistema de perseguição passou a considerar
+a distância efetiva de ataque (effectiveAttackDistance) como fator de
+decisão para monstros em pisos diferentes.
+
+17.1 effectiveAttackDistance
+Calculada em src/mcr/core/monster_ai.cpp:
+
+  effectiveAttackDistance = targetDistance + penaltyZ
+  penaltyZ = deltaZ * (deltaZ > 0 ? 2.0f : 1.0f)
+
+- Atirar para cima (deltaZ < 0): penalidade 2.0 por piso
+- Atirar para baixo (deltaZ > 0): penalidade 1.0 por piso
+
+A penalidade assimétrica reflete a dificuldade de atacar alvos em
+andares superiores (cobertura, ângulo) vs. inferiores.
+
+17.2 Impacto no getDistanceStep (monster.cpp)
+O método getDistanceStep (usado no A* para determinar quando o monstro
+parou de andar e começou a atacar) agora usa:
+
+  if (effectiveDist > targetDistance) → continua a andar
+
+Isto faz com que monstros em pisos diferentes caminhem para mais
+perto do líder (ou para escadas) até que a distância efetiva seja
+igual ou inferior ao alcance da arma, mesmo que a distância XY já
+seja suficiente.
+
+17.3 CROSS_FLOOR_RANGE_LIMIT = 10
+Para spells de range 0 (corpo a corpo), foi adicionado um limite
+absoluto de 10 tiles efetivos para ataques cross‑floor:
+
+  if (range == 0) {
+      return effectiveDist <= CROSS_FLOOR_RANGE_LIMIT;
+  }
+
+Isto impede que monstros ataquem de distâncias absurdas através de
+pisos, mesmo com range 0.
+
+17.4 Fallback de Escada no handleCombatState
+Quando o líder está visível mas o monstro está fora do alcance efetivo
+em piso diferente, handleCombatState chama tryPlanStairsIfNeeded como
+fallback. Sem isto, o monstro via que o líder estava "ao alcance" pela
+distância bruta mas nunca conseguia atacar, ficando parado.
+
+17.5 Documentos Relacionados
+- [Documentação] MCR - Documentação Técnica do Motor SPA.txt secção 8.6 (perseguição multi-piso)
+- [Documentação] MCR - Sistema de Montaria como Summon (MountSummon).txt
+
 Fim do Documento
-Sistema de Perseguição Multi‑Piso v3.2.0 — 13 de Junho de 2026 — com anti‑ping‑pong por penalização de custo e todas as correções integradas.
+Sistema de Perseguição Multi‑Piso v3.3.0 — 21 de Junho de 2026 — com integração de effectiveAttackDistance, CROSS_FLOOR_RANGE_LIMIT, e fallback de escada por alcance efetivo.

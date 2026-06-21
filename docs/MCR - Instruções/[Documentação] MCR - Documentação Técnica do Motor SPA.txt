@@ -911,8 +911,77 @@ Sistema de invocação (Summon 28) com perseguição multi‑piso.
 
 Sistema de Pets, Waypoints de Superfície, SkillTrees, Event Bus operacionais.
 
+Sistema de Montaria como Summon (MountSummon v1.0): eventos C++ CREATURE_EVENT_DISMOUNT (18) e CREATURE_EVENT_MOUNT (19), espaço‑check C++ (hasFreeAdjacentTile), disparo no playerChangeOutfit, e Lua mount_summon.lua com criação/remoção/persistência de pet de montaria.
+
 Todas as APIs verificadas com !testesistema.
 
 O SPA está preparado para receber qualquer domínio, habilidade ou mecânica futura sem necessidade de novas alterações no C++.
 
-Fim do Documento (v5.8 Revisada — 13/06/2026)
+📘 15. Sistema de Montaria como Summon (MountSummon)
+Ver documentação dedicada: "[Documentação] MCR - Sistema de Montaria como Summon (MountSummon).txt"
+
+15.1 Visão Geral
+O sistema MountSummon transforma a montaria do jogador num summon persistente (PetSystem)
+com inventário, velocidade 1.1×, e IA de combate. A integração é feita inteiramente via:
+
+- C++: 2 novos eventos de criatura (CREATURE_EVENT_DISMOUNT, CREATURE_EVENT_MOUNT)
+- C++: validação de espaço adjacente livre (hasFreeAdjacentTile)
+- C++: disparo do evento mount na janela de outfit (playerChangeOutfit)
+- Lua: criação, remoção, persistência (login/logout/morte) em mount_summon.lua
+
+15.2 Eventos C++
+
+CREATURE_EVENT_DISMOUNT = 18
+CREATURE_EVENT_MOUNT    = 19
+
+Adicionados em:
+- src/lua/lua_definitions.hpp (enum)
+- src/lua/creature/creatureevent.hpp (declarações)
+- src/lua/creature/creatureevent.cpp (execução e dispatch)
+- src/lua/functions/events/creature_event_functions.cpp (mapeamento Lua "dismount"/"mount")
+
+15.3 Validação de Espaço (hasFreeAdjacentTile)
+Adicionado em src/creatures/players/player.cpp:
+- Verifica os 8 tiles adjacentes se têm chão e não têm criaturas
+- Bloqueia a desmontagem se não houver espaço livre
+- Mensagem de cancelamento: "Não há espaço para sua montaria descer."
+
+15.4 Correção do Bug da Janela de Outfit
+Em src/game/game.cpp, Game::playerChangeOutfit() agora dispara o evento playerMount
+quando o jogador seleciona uma montaria pela janela de outfit (packet 0xD3).
+Isto remove o summon anterior antes de criar um novo, prevenindo duplicatas.
+
+15.5 Lua (mount_summon.lua)
+Arquivo: data-canary/scripts/MCR/MountSummon/mount_summon.lua
+
+Eventos registrados:
+- "MountDismount"   → type("dismount")   → onDismount(player, mountId, mountClientId)
+- "PlayerMount"     → type("mount")      → onMount(player, mountId, mountClientId)
+- "MountSummonLogin" → type("login")     → onLogin(player)
+- "MountSummonLogout" → type("logout")   → onLogout(player)
+- "MountSummonDeath" → type("death")     → onDeath(creature, ...)
+
+15.6 Persistência
+- KV do jogador no escopo "mount-summon": active, mount-id, mount-client-id
+- Login: recria o summon se active == true
+- Logout: remove o summon e limpa KV
+- Morte do summon: limpa ActivePets e KV
+
+15.7 Velocidade do Summon
+summon:setSpeed(math.floor(playerSpeed * 1.1))
+
+A montaria é sempre ligeiramente mais rápida que o jogador para acompanhá-lo.
+
+15.8 Roadmap (Funcionalidades Futuras)
+- Domínio de Cavalaria/Montaria (ramificação do Summon 28)
+- Vínculo Progressivo (Bonding) com passivas
+- Personalidade por Tipo de Montaria (Guerra, Veloz, Carga, Arcana)
+- Equipamento da Montaria (armadura, selim, alforjes)
+- Domesticação de Criaturas Selvagens (mecânica similar a Pokémon)
+- Ataque Montado e Entidade Composta
+- Montarias Selvagens vs Compradas
+
+15.9 Documentos Relacionados
+- [Documentação] MCR - Sistema de Montaria como Summon (MountSummon).txt (detalhes completos)
+
+Fim do Documento (v5.9 — 21/06/2026)
