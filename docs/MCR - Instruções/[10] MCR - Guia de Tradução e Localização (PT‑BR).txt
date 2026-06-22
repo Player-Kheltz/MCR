@@ -25,7 +25,7 @@ Atualização dos error_codes e mapeamento para PT‑BR.
 
 Pipeline de tradução automática supervisionada para C++.
 
-Uso de escapes octais (\ooo) em literais de string para garantir compatibilidade Latin‑1 em todos os compiladores e sistemas.
+Encoding: UTF‑8 em todo o código‑fonte (arquivos .cpp, .hpp, .lua, .xml). O compilador MSVC usa a flag `/utf-8` (configurada no .vcxproj) e as strings passam por `toLatin1()` antes de serem enviadas ao protocolo (implementado em `sendCancelMessage` e `sendTextMessage`). Escapes octais continuam a funcionar como alternativa mas não são obrigatórios.
 
 Protecção obrigatória de bindings Lua e ficheiros de cabeçalho (.h/.hpp).
 
@@ -37,7 +37,7 @@ Conversão do nome do personagem recebido via JSON de login (HTTP) de UTF‑8 pa
 
 ⚠️ ACTUALIZADO (SPA v4.2): Terminologia completa do Sistema de Progressão do Aventureiro (Domínios, Lampejo, Vínculo, Maestria, Posturas, Ímpeto, Equilíbrio, Guarda, Afinidade, Sinergia, Sinergia Elemental, Arremesso de Escudo, Chi, Virtudes, Serenidade, Despertar) e sua aplicação narrativa e técnica. As cores da tabela COR v9.1 são agora parte da linguagem visual.
 
-⚠️ ACTUALIZADO (SPA v4.2): Estrutura Revscript — os scripts Lua do servidor são organizados em subpastas dentro de data-canary/scripts/MCR/SPA/ (core/, habilidades/, comandos/). A codificação ISO‑8859‑1 continua obrigatória para todos os scripts que exibem texto ao jogador.
+⚠️ ACTUALIZADO (SPA v4.2): Estrutura Revscript — os scripts Lua do servidor são organizados em subpastas dentro de data-canary/scripts/MCR/SPA/ (core/, habilidades/, comandos/). A codificação deve ser UTF‑8 sem BOM (a antiga regra ISO‑8859‑1 foi substituída). O `toLatin1()` no servidor converte para Latin‑1 antes do protocolo.
 
 ⚠️ ACTUALIZADO (SPA v4.2): As funções de formatação colorida (c(), enviarMsgColorida) e a tabela COR (v9.1) fazem parte da localização e devem ser usadas de forma consistente. Novas constantes de cor para missões (MISSAO_*) e NPCs (NPC_*) foram adicionadas.
 
@@ -53,7 +53,7 @@ O código C++ do servidor e cliente já foi traduzido para PT‑BR utilizando es
 
 O padrão error_code no Login Server e o mapeamento no cliente estão implementados e funcionam correctamente.
 
-As regras de codificação de arquivos (ISO‑8859‑1 para scripts Lua, UTF‑8 com BOM para Go, etc.) são leis permanentes.
+As regras de codificação de arquivos foram actualizadas: UTF‑8 sem BOM para scripts Lua, UTF‑8 para C++ (com `/utf-8` no MSVC), UTF‑8 para XML. A antiga regra ISO‑8859‑1 foi substituída.
 
 O módulo pronouns.lua está em data-canary/scripts/MCR/Geral/ e é carregado automaticamente pelo Revscript; não se usa dofile.
 
@@ -152,25 +152,24 @@ As constantes da tabela COR (ex.: COR.SISTEMA_INFO, COR.DOM_COMBATE_LAMINAS, COR
 Esta é a secção MAIS CRÍTICA deste guia. A codificação errada é a causa número 1 de bugs visuais (acentos corrompidos) no Projeto MCR.
 
 Tipo de Arquivo | Codificação | BOM? | Exemplo
-Scripts Lua do CLIENTE (dofile, módulos) | ISO‑8859‑1 | Não | registro.lua, entergame.lua
-Scripts Lua do SERVIDOR (todas as subpastas) | ISO‑8859‑1 | Não | oraculo.lua, evento_kill.lua, player.lua, constantes.lua, postura.lua, executar_habilidades.lua
-Código C++ (servidor e cliente) com escapes octais (preferível) | UTF‑8 ou ASCII | COM | canary_server.cpp, main.cpp
-Código Go (Login Server) | UTF‑8 | COM | register.go, login.go
-Arquivos .otui (interface) | UTF‑8 | SEM | register_window.otui
-Arquivos .xml (spawn, itens) | UTF‑8 | SEM | MCR-npc.xml, items.xml
-Arquivos de configuração (.lua, .env) | UTF‑8 | SEM | config.lua, .env
-Documentação (.txt) | UTF‑8 | COM | MCR - Guia de *.txt
+Scripts Lua (servidor e cliente) | UTF‑8 | Não | mount_summon.lua, constantes.lua
+Código C++ (servidor e cliente) | UTF‑8 (`/utf-8` no MSVC) | Não | canary_server.cpp, player.cpp
+Código Go (Login Server) | UTF‑8 | Não | register.go, login.go
+Arquivos .otui (interface) | UTF‑8 | Não | register_window.otui
+Arquivos .xml (spawn, itens) | UTF‑8 real | Não | MCR-npc.xml, items.xml
+Arquivos de configuração (.lua, .env) | UTF‑8 | Não | config.lua, .env
+Documentação (.txt) | UTF‑8 | Não | MCR - Guia de *.txt
 
 Detalhamento:
 
 ⚠️ CÓDIGO C++ (SERVIDOR E CLIENTE):
-A partir da versão 5.0, todo o código‑fonte C++ do servidor e do cliente foi traduzido para PT‑BR utilizando uma pipeline de tradução automática supervisionada. Para garantir a máxima compatibilidade e evitar quaisquer artefactos de encoding, todas as strings que contêm acentos ou caracteres especiais são representadas exclusivamente através de escapes octais da tabela Latin‑1 (ISO‑8859‑1). Exemplo: "bem‑vindo ao Projeto MCR" pode ser escrito como "bem‑vindo ao Projeto MCR" (sem acentos) ou, se necessário, "bem‑vindo \340o Projeto MCR" para "à". NÃO se utiliza UTF‑8 directamente nas strings; o ficheiro pode ser salvo como ASCII puro, sem BOM, pois os escapes garantem a representação correcta. Comentários também seguem a mesma regra, embora seja preferível usar apenas caracteres ASCII nos comentários para evitar problemas.
+Codificação UTF‑8 com a flag `/utf-8` no compilador MSVC (configurada nas 3 configurações do .vcxproj: Debug, Release, ReleaseDebug). Strings com acentos podem ser escritas como UTF‑8 literal (ex.: "Você", "Configuração"). A função `toLatin1()` (em encoding.hpp) converte UTF‑8 → Latin‑1 antes do envio ao protocolo, e é chamada automaticamente em `sendCancelMessage` e `sendTextMessage`. Escapes octais continuam a funcionar como alternativa segura, mas não são obrigatórios.
 
 ⚠️ PROTEÇÃO DE BINDINGS LUA:
 Durante a tradução, foram preservados todos os nomes de funções e classes registados no Lua (ex.: Player::getPronoun, Game::logout). Nomes de parâmetros em C++ podem ser traduzidos nos comentários, mas nunca nos registerMethod ou registerClass.
 
-⚠️ ISO‑8859‑1 (SCRIPTS LUA – CLIENTE E SERVIDOR):
-Scripts Lua que contenham strings acentuadas e sejam exibidos ao jogador (tanto no cliente quanto no servidor) DEVEM ser salvos como ISO‑8859‑1 (Latin‑1 / ANSI no Windows). Isso porque o OTClient interpreta todas as strings recebidas como Latin‑1, mesmo quando originadas de um script do servidor. Caracteres como 'ç', 'ã', 'é' são representados por um ÚNICO byte (ex.: 0xE7 = ç). Se salvo como UTF‑8, aparecerão como "Ã§", "Ã£", "Ã©" na interface. Essa regra se aplica a todos os scripts Lua que geram texto visível ao jogador, sejam eles do cliente (dofile) ou do servidor (em qualquer subpasta de data-canary/scripts/MCR/). A estrutura Revscript não altera este requisito.
+⚠️ UTF‑8 (SCRIPTS LUA – SERVIDOR E CLIENTE):
+Scripts Lua devem ser salvos como UTF‑8 sem BOM. O `toLatin1()` nas funções do servidor (`sendCancelMessage`, `sendTextMessage`) converte automaticamente para Latin‑1 antes de enviar ao protocolo. No cliente OTClient, o InputMessage::getString() retorna bytes crus, e a renderização usa a codificação configurada (Latin‑1 por padrão). Caracteres como 'ç', 'ã', 'é' (UTF‑8: 2 bytes) são convertidos para Latin‑1 (1 byte) pelo servidor antes da transmissão. A antiga regra ISO‑8859‑1 está obsoleta.
 
 ⚠️ IMPACTO NO MAP EDITOR (RME)
 Os scripts de monstros e NPCs salvos como ISO‑8859‑1 causam um problema adicional no Remere's Map Editor (RME). O RME carrega esses ficheiros como bytes e depois assume que são UTF‑8 para criar as strings internas (wxString). Isto faz com que nomes com acentos apareçam em branco nas paletas de monstros e NPCs. Para resolver este problema, o código‑fonte do RME foi modificado para: converter o conteúdo de ISO‑8859‑1 para UTF‑8 ao ler os ficheiros .lua (função latin1_to_utf8 em encoding_utils.h). Estender o parser Lua com as funções resolveLocalVar e parseNpcConfig para reconhecer padrões comuns nos scripts do Projeto MCR. Consulte o Guia [2] para detalhes das modificações e compilação do RME.

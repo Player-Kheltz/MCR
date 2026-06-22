@@ -1,6 +1,6 @@
 📘 DOCUMENTAÇÃO TÉCNICA – SISTEMA DE MONTARIA COMO SUMMON (MountSummon)
-Projeto MCR – Versão 1.0
-Última atualização: 21 de Junho de 2026
+Projeto MCR – Versão 2.0
+Última atualização: 22 de Junho de 2026
 
 🎯 OBJETIVO
 Permitir que o jogador, ao desmontar da sua montaria, transforme-a num summon (pet)
@@ -11,14 +11,16 @@ sistema de eventos de criatura (CreatureEvents) do servidor Canary.
 📚 ÍNDICE
 1. Visão Geral e Fluxo
 2. C++ – Eventos de Criatura (CREATURE_EVENT_DISMOUNT / CREATURE_EVENT_MOUNT)
-3. C++ – Validação de Espaço (hasFreeAdjacentTile)
+3. C++ – Validação de Espaço (hasFreeAdjacentTile) + Dismount Block
 4. C++ – Disparo no playerChangeOutfit (correção do bug da janela de outfit)
-5. Lua – mount_summon.lua
+5. Lua – mount_summon.lua (v2.0)
 6. Integração com PetSystem e ActivePets
-7. Persistência (Login/Logout/Morte)
+7. Persistência (Login/Logout/Morte/HP tracking)
 8. Velocidade do Summon
-9. Spawn Position e Direção
-10. Roadmap: Novas Funcionalidades (Decisões 1–7)
+9. Spawn Position e Direção (force=true no tile do jogador)
+10. Estado Moribundo
+11. Comandos (!montarias, !portal, !todasmontarias)
+12. Roadmap: Novas Funcionalidades
 
 1. VISÃO GERAL E FLUXO
 O sistema funciona em três momentos principais:

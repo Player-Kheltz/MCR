@@ -31,7 +31,7 @@ As directrizes de codificação C++ (escapes octais para strings, comentários e
 
 Ao modificar QUALQUER arquivo .cpp/.h no diretório OTClient/src/, o assistente DEVE:
 
-Garantir que TODAS as strings de interface (menus, mensagens de toast, labels) estejam em PT‑BR, com acentuação correcta. Utilizar OBRIGATORIAMENTE escapes octais Latin‑1 (ex.: "Configura\347\343o") para garantir compatibilidade entre compiladores e sistemas. NÃO usar UTF‑8 directamente nas strings C++.
+Garantir que TODAS as strings de interface (menus, mensagens de toast, labels) estejam em PT‑BR, com acentuação correcta. Os caracteres acentuados PODEM ser escritos como UTF‑8 literal (ex.: "Configuração"). O compilador MSVC já tem a flag `/utf-8` activa via CMake. Escapes octais continuam a funcionar mas não são obrigatórios.
 
 Manter comentários em PT‑BR; nomes de funções e variáveis em inglês (camelCase).
 
@@ -242,7 +242,7 @@ Cache em %APPDATA%: use a cache local (cache/).
 
 Módulos de bot/walking: remova ou desabilite se causarem travamentos.
 
-Codificação de scripts Lua: salvar como ISO‑8859‑1.
+Codificação de scripts Lua: salvar como UTF‑8 sem BOM. A antiga regra ISO‑8859‑1 foi substituída; o pipeline `toLatin1()` no servidor converte UTF‑8 → Latin‑1 antes de enviar ao protocolo.
 
 Métodos setModal, center: use propriedades OTML ou cálculo manual.
 
@@ -250,7 +250,7 @@ Login HTTP: use HTTP.post, não ProtocolLogin.
 
 Máscara de nome via Lua: requer modificação em C++ (creature::setName).
 
-Escapes octais: usar SEMPRE para acentos no C++ do cliente. NÃO usar UTF‑8 diretamente nas strings.
+Encoding C++: usar UTF‑8 literal com acentos (ex.: "Configuração"). O CMake já passa `/utf-8` ao compilador. Escapes octais continuam a funcionar mas não são obrigatórios.
 
 A coluna lastlogin EXISTE na tabela players do schema actual do Canary (confirmado no banco de dados do projecto). O cliente não interage directamente com ela, mas scripts podem usar essa informação.
 

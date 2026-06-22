@@ -37,7 +37,13 @@ Todos os métodos C++ descritos neste guia já estão implementados e funcionais
 ⚠️ REGRAS DE REVISÃO PARA O ASSISTENTE (C++ – SERVIDOR CANARY)
 Ao modificar QUALQUER arquivo .cpp/.h no directório Canary/src/, o assistente DEVE:
 
-Garantir que TODAS as strings visíveis ao jogador (sendTextMessage, sendCancelMessage, logs de sistema) estejam em PT‑BR, com acentuação correcta. Os caracteres acentuados DEVEM ser escritos OBRIGATORIAMENTE como escapes octais Latin‑1 (ex.: "N\355vel", "Voca\347\343o"). NÃO é permitido usar UTF‑8 directamente nas strings; usar escapes octais garante portabilidade e evita problemas de compilador.
+Garantir que TODAS as strings visíveis ao jogador (sendTextMessage, sendCancelMessage, logs de sistema) estejam em PT‑BR, com acentuação correcta.
+
+Os caracteres acentuados PODEM ser escritos como UTF‑8 literal (ex.: "Não", "Você") desde que:
+- O compilador MSVC tenha a flag `/utf-8` activa (verificada nas 3 configurações do .vcxproj)
+- A string passe por `toLatin1()` antes de ser enviada ao protocolo (`sendCancelMessage` e `sendTextMessage` já fazem isto automaticamente)
+
+Escapes octais (ex.: `\343` para `ã`) continuam a funcionar e são uma alternativa segura, mas não são obrigatórios.
 
 Manter comentários em PT‑BR, excepto em nomes de funções/variáveis que permanecem em inglês (camelCase ou snake_case).
 
