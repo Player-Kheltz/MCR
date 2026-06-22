@@ -55,3 +55,12 @@ Não misture correções. Cada commit tem um propósito claro.
 ## 8. Documentação é Código
 
 Mantenha `docs/MCR - Instruções/` atualizado. Se você alterou o comportamento, atualize o doc correspondente no mesmo commit.
+
+## 9. Crowd Control e Performance
+
+Todo sistema multi-piso DEVE considerar:
+- **Jitter aleatório** (100-500ms) para evitar pico de pathfinding
+- **Limite de perseguidores** por líder (15, excluindo summons)
+- **Congestionamento de escadas**: se uma escada tem 5+ bichos, buscar alternativa
+- **Registro/desregistro** de perseguidores no GlobalMonsterMap (pursuerCount, stairOverload)
+- **Player navigation**: jogadores usam o GlobalMonsterMap para navegar entre pisos (ataque, follow, clique no mapa)
