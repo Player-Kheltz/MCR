@@ -1,7 +1,7 @@
 📘 DOCUMENTAÇÃO TÉCNICA – SISTEMA DE PERSEGUIÇÃO MULTI‑PISO
-Projeto MCR – Versão 3.2.0
-Última atualização: 13 de Junho de 2026
-Abordagem: A* Segmentado com Escadas + Atalho Multi‑Piso + Waypoints Cognitivos + Planeamento Híbrido + Anti‑Ping‑Pong por Penalização
+Projeto MCR – Versão 4.0
+Última atualização: 22 de Junho de 2026
+Abordagem: A* Segmentado com Escadas + Atalho Multi‑Piso + Waypoints Cognitivos + Planeamento Híbrido + Anti‑Ping‑Pong por Penalização + Crowd Control + Player Navigation
 
 🎯 OBJETIVO DESTE DOCUMENTO
 Descrever de forma exaustiva e canónica o sistema de perseguição multi‑piso do Projeto MCR na sua versão atual. Inclui:
@@ -87,9 +87,18 @@ Summons nunca desistem: continuam a perseguição mesmo após perder o mestre de
 Monstros normais voltam ao seu ponto de origem (spawn) caminhando, utilizando as escadas que percorreram.
 
 1.1 Tipos de Criaturas e Comportamentos
-Tipo	Perseguição	Timeout sem ver líder	Retorno ao spawn	Mapa cognitivo
-Hostil	Persegue o jogador que está a atacar	10 ciclos (10s)	Caminha de volta usando escadas	Sim, para atalhos e rotas alternativas
-Summon	Segue o mestre através de escadas	5 ciclos (5s) → continua perseguição	Nunca retorna; continua perseguição; destravamento silencioso	Sim, para regressar ao mestre
+Tipo	Perseguição	Timeout sem ver líder	Retorno ao spawn	Mapa cognitivo	Limite por líder
+Hostil	Persegue o jogador que está a atacar	10 ciclos (10s)	Caminha de volta usando escadas	Sim, para atalhos e rotas alternativas	15 (não conta summons)
+Summon	Segue o mestre através de escadas	5 ciclos (5s) → continua perseguição	Nunca retorna; continua perseguição; destravamento silencioso	Sim, para regressar ao mestre	Ilimitado
+Jogador	Navegação multi‑piso via GlobalMonsterMap	N/A	N/A	Sim	Ilimitado
+
+1.2 Crowd Control e Jitter
+Para evitar picos de processamento quando múltiplos monstros perseguem o mesmo líder:
+- Jitter aleatório de 100-500ms é adicionado ao throttle de planeamento (tryPlanStairsIfNeeded)
+- Cada monstro tem um atraso pseudo-aleatório, evitando que todos planeiem no mesmo frame
+- O registro de perseguidores é mantido no GlobalMonsterMap (pursuerCount, stairOverload)
+- Escadas com 5+ perseguidores são consideradas congestionadas e recebem cooldown temporário
+- O monstro então busca rotas alternativas naturalmente via planStairTrajectory
 2. ARQUITETURA DA MÁQUINA DE ESTADOS
 A máquina de estados é executada integralmente dentro do ciclo Monster::onThinkMCR(). Apenas um estado é processado por ciclo, pela seguinte ordem de prioridade:
 
@@ -674,7 +683,8 @@ Deadline base	computePursuitDeadline	30000 ms
 Deadline máximo (engagement=100)	computePursuitDeadline	60000 ms
 Perda de visão (summons)	onThinkMCR	5 ticks
 Perda de visão (hostis)	onThinkMCR	10 ticks
-Throttle planeamento escada	m_lastStairCheck	2500 ms
+Throttle planeamento escada (adaptativo)	m_lastStairCheck	500ms (perto) / 2500ms (longe)
+Jitter aleatório	tryPlanStairsIfNeeded	100-500ms
 Throttle rota alternativa	m_lastRouteRequestTime	5000 ms
 Raio de scan para escadas (findStairNearReal)	findStairNearReal	20 tiles
 Distância máx. p/ seguir escada do líder	planStairTrajectory (Fase 1)	3 tiles
@@ -691,6 +701,9 @@ MaxSearchDist A* (waypoints)	walkToWaypoint	120
 Distância para cancelar retorno	onThinkMCR (Bloco 4)	10 tiles
 Tempo limite retorno simples	processarRetornoSimples	15 segundos
 deSpawnRadius / deSpawnRange	config.lua	0 (ilimitado)
+Limite de perseguidores por líder (hostis)	tryPlanStairsIfNeeded	15 (exclui summons)
+Congestionamento por escada	startStairPursuit	5+ bichos → cooldown 5s
+Movimento nativo (getNextStep)	monster.cpp	isWalkingToPosition apenas para escada/retorno
 12. COMANDOS DE DIAGNÓSTICO
 Comando	Descrição	Parâmetros
 !mcrfulldebug	Relatório completo do estado do monstro e do grafo.	Nenhum (usa o monstro alvo)
@@ -823,9 +836,21 @@ em piso diferente, handleCombatState chama tryPlanStairsIfNeeded como
 fallback. Sem isto, o monstro via que o líder estava "ao alcance" pela
 distância bruta mas nunca conseguia atacar, ficando parado.
 
-17.5 Documentos Relacionados
+17.5 Navegação do Jogador (Player Navigation)
+A partir de Junho de 2026, os jogadores também podem usar o GlobalMonsterMap
+para navegar entre pisos:
+
+- Quando um jogador ataca ou segue uma criatura em outro piso,
+  Player::navigateTo() calcula a rota via GlobalMonsterMap::findPath()
+- O jogador caminha até a escada, teleporta automaticamente e continua
+- A navegação é ativada em playerSetAttackedCreature e playerFollowCreature
+- O sistema reutiliza a mesma lógica de stair pursuit dos monstros
+- Futuramente: clique no minimapa para navegação entre regiões exploradas
+
+17.6 Documentos Relacionados
 - [Documentação] MCR - Documentação Técnica do Motor SPA.txt secção 8.6 (perseguição multi-piso)
 - [Documentação] MCR - Sistema de Montaria como Summon (MountSummon).txt
+- AGENTS.md (regras de crowd control e performance)
 
 Fim do Documento
-Sistema de Perseguição Multi‑Piso v3.3.0 — 21 de Junho de 2026 — com integração de effectiveAttackDistance, CROSS_FLOOR_RANGE_LIMIT, e fallback de escada por alcance efetivo.
+Sistema de Perseguição Multi‑Piso v4.0 — 22 de Junho de 2026 — com integração de effectiveAttackDistance, CROSS_FLOOR_RANGE_LIMIT, fallback de escada por alcance efetivo, crowd control, jitter, limite de perseguidores, e navegação do jogador.
