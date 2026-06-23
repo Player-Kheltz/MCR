@@ -1,3 +1,4 @@
+>> CATALOG tags=translation, localization, pt-br, encoding updated=2026-06-23
 PROJETO MCR – GUIA DE TRADUÇÃO E LOCALIZAÇÃO (PT‑BR)
 (Versão 6.1 – Actualização para o SPA v4.2, novos termos, sistema de cores v9.1 e estrutura Revscript consolidada)
 Arquivo: [10] MCR - Guia de Tradução e Localização (PT‑BR).txt

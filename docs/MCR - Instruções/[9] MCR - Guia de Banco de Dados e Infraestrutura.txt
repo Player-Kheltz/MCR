@@ -1,3 +1,4 @@
+>> CATALOG tags=database, schema, infrastructure updated=2026-06-23
 PROJETO MCR – GUIA DE BANCO DE DADOS E INFRAESTRUTURA
 (Versão 4.4 – Consolidação do SPA v4.6, domínio Summon (28), propagação 4:2:1 movida para descarregarBuffer, estrutura Revscript actualizada)
 Arquivo: [9] MCR - Guia de Banco de Dados e Infraestrutura.txt

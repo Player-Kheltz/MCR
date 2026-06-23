@@ -1,3 +1,4 @@
+>> CATALOG tags=skills, template, reference, game-design updated=2026-06-23
 PROJETO MCR – HABILIDADE GABARITO (Documento Canónico)
 Versão 4.7 – Sistema de Progressão do Aventureiro (SPA v4.6)
 Arquivo: [Gabarito] Habilidade Gabarito.txt

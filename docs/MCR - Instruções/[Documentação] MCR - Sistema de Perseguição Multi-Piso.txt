@@ -1,3 +1,4 @@
+>> CATALOG tags=multi-piso, pursuit, pathfinding, monster-ai, crowd-control updated=2026-06-23
 📘 DOCUMENTAÇÃO TÉCNICA – SISTEMA DE PERSEGUIÇÃO MULTI‑PISO
 Projeto MCR – Versão 4.0
 Última atualização: 22 de Junho de 2026
@@ -785,7 +786,7 @@ src/mcr/spa/mcr_map_loader.cpp / mcr_map_loader.hpp – carrega e cacheia topolo
 
 src/mcr/lua/mcr_lua.cpp / mcr_lua.hpp – bindings Lua genéricos do MCR (namespace MCR::LuaBindings), utilitários de diagnóstico e helpers.
 
-src/creatures/monsters/monster.cpp – getDistanceStep com effectiveDist > targetDistance, canUseAttack / canUseSpell com CROSS_FLOOR_RANGE_LIMIT (10) para range‑0.
+src/creatures/monsters/monster.cpp – getDistanceStep com effectiveDist > targetDistance, canUseAttack / canUseSpell com CROSS_FLOOR_RANGE_LIMIT (10) para range‑0, isSightClear(player→monster) em canUseSpell como gatekeeper de linha de visão bilateral.
 
 src/map/map_const.hpp – MAP_MAX_CLIENT_VIEW_PORT_X/Y (constantes de referência).
 

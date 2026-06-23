@@ -1,3 +1,4 @@
+>> CATALOG tags=config, network, server updated=2026-06-23
 PROJETO MCR – GUIA DE CONFIGURAÇÃO (SERVIDOR E REDE)
 Versão 4.4 – Suporte ao SPA v4.6.0, perseguição multi‑piso, novos comandos, métodos C++ expandidos
 Arquivo: [3] MCR - Guia de Configuração (Servidor e Rede).txt

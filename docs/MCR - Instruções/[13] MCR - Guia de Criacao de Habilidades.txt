@@ -1,3 +1,4 @@
+>> CATALOG tags=skills, abilities, game-design updated=2026-06-23
 PROJETO MCR – GUIA DE CRIAÇÃO DE HABILIDADES
 (Versão 2.3 – Sistema de Progressão do Aventureiro v4.6 | Motor Modular v2.0 e Limites de Categoria)
 Arquivo: [13] MCR - Guia de Criacao de Habilidades.txt

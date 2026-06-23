@@ -1,3 +1,4 @@
+>> CATALOG tags=account, character, oracle, alma updated=2026-06-23
 PROJETO MCR – GUIA DE CRIAÇÃO DE CONTA E PERSONAGEM
 (Versão 6.1 – Integração com o SPA v4.2, vocação única (Aventureiro), Revscript e progressão em pleno funcionamento)
 Arquivo: [8] MCR - Guia de Criação de Conta e Personagem.txt

@@ -1,3 +1,4 @@
+>> CATALOG tags=encoding, utf-8, devlog updated=2026-06-23
 # DevLog — Sistema de Codificação (Encoding)
 
 ## Contexto

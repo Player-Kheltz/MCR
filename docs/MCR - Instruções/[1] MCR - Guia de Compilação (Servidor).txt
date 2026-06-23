@@ -1,3 +1,4 @@
+>> CATALOG tags=compilation, server, canary, build updated=2026-06-23
 📘 PROJETO MCR – GUIA DE COMPILAÇÃO (SERVIDOR) – VERSÃO FINAL REVISADA
 Versão: 8.2 (Revisada)
 Sistema de Perseguição Multi‑Piso: v3.2.0 (A* Segmentado com Escadas + Atalho Multi‑Piso + Waypoints Cognitivos)

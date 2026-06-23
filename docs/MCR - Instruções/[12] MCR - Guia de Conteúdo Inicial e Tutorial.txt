@@ -1,3 +1,4 @@
+>> CATALOG tags=tutorial, eridanus, new-player updated=2026-06-23
 PROJETO MCR – GUIA DE CONTEÚDO INICIAL E TUTORIAL
 (Versão 5.0 – Integração total com o SPA v3.2.0, sistema de cores, missões e progressão em Eridanus)
 Arquivo: [12] MCR - Guia de Conteúdo Inicial e Tutorial.txt

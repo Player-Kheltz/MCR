@@ -1,3 +1,4 @@
+>> CATALOG tags=interface, otui, lua-client updated=2026-06-23
 ﻿PROJETO MCR – GUIA DE INTERFACE (OTUI E LUA CLIENTE)
 Versão 3.2 – Adicionado: sistema Toast, formato de cores expandido, novos módulos cliente (item_translator, mcr_name_fix, guest_mask)
 Arquivo: [5] MCR - Guia de Interface (OTUI e Lua Cliente).txt

@@ -1,3 +1,4 @@
+>> CATALOG tags=player-experience, journey, overview updated=2026-06-23
 PROJETO MCR – GUIA DE EXPERIÊNCIA DO JOGADOR
 Versão 4.7.0 – A jornada completa, do Alma ao herói, com SPA v4.6, sistema de cores, sinergia elemental, propagação 4:2:1, bónus percentuais, invocação (Summon/Pets) e progressão totalmente activa
 Arquivo: [11] MCR - Guia de Experiência do Jogador.txt

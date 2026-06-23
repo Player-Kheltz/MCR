@@ -1,3 +1,4 @@
+>> CATALOG tags=quests, sqh, missions updated=2026-06-23
 PROJETO MCR – GUIA DE QUESTS (SISTEMA HÍBRIDO SQH)
 (Versão 7.2 – Integração total com o SPA v4.6.0, novos domínios Summon e Sobrevivência, propagação 4:2:1, níveis efetivos e feedback visual temático)
 Arquivo: [7] MCR - Guia de Quests (Sistema Híbrido SQH).txt

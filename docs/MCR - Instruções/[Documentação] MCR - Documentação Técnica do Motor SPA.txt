@@ -1,10 +1,11 @@
+>> CATALOG tags=spa, technical, api, progressao, dominios updated=2026-06-23
 📘 Documentação Técnica do Motor SPA – Projeto MCR (v5.8 Revisada)
 Última atualização: 13 de Junho de 2026
 Versão do documento: 5.8 (revisada – integração completa do Sistema de Perseguição Multi‑Piso v3.2.0)
 
 Este documento descreve todas as APIs, métodos, constantes, estruturas de dados e sistemas que o servidor Canary expõe ao Sistema de Progressão do Aventureiro (SPA). Inclui também a integração completa com o Sistema de Perseguição Multi‑Piso v3.2.0, o Mapa Cognitivo Global (GlobalMonsterMap) e o SPAManager (gestão de eventos e pets). Todas as funcionalidades aqui listadas estão implementadas, compiladas e verificadas através do comando !testesistema.
 
-Nota sobre codificação do código C++ do servidor: Todas as strings visíveis ao jogador e logs de sistema no código‑fonte Canary utilizam escapes octais Latin‑1 (ex.: "N\355vel", "Voca\347\343o") para garantir portabilidade e evitar problemas com UTF‑8 directo. Consulte o Guia de Compilação do Servidor para mais detalhes sobre a pipeline de tradução.
+Nota sobre codificação do código C++ do servidor: Strings no código‑fonte Canary podem usar UTF‑8 literal (ex.: "Não", "Você") desde que o compilador tenha a flag `/utf-8` ativa e a string passe por `toLatin1()` antes de ser enviada ao protocolo. Escapes octais Latin‑1 (ex.: `\343` para `ã`) continuam a funcionar como alternativa segura, mas não são obrigatórios. Consulte o Guia de Compilação do Servidor e o DevLog/Sistema de Codificação.md para mais detalhes.
 
 🧠 1. Núcleo do SPA (Progressão por Domínios)
 1.1 Métodos C++ expostos ao Lua (Player)

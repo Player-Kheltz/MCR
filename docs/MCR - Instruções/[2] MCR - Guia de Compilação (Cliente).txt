@@ -1,3 +1,4 @@
+>> CATALOG tags=compilation, client, otclient, build updated=2026-06-23
 PROJETO MCR – GUIA DE COMPILAÇÃO (CLIENTE)
 Versão 4.1 – Adicionado: documentação de módulos cliente (mcr_modules, toast, charactercreation, item_translator), modificações C++ específicas (protocolgameparse, uiwidgettext, uimap, map, missile, mapview, creature), FastNoiseLite e Tibia/ no RME
 Arquivo: [2] MCR - Guia de Compilação (Cliente).txt
@@ -145,7 +146,7 @@ missile.cpp/h (trajetória 3D com arco parabólico): O método draw() calcula um
 
 mapview.cpp (renderização multi-piso): A iteração de mísseis passou a usar a lista global (getMissiles()), filtrando por getCurrentZ() == z para exibir apenas os mísseis no piso actual. O desenho de informações de criatura (drawCreatureInformation) agora verifica isSightClear() 3D e aplica o estado "fantasma"/coberto para criaturas em pisos diferentes. A variável _camera foi removida em favor de cameraPos.
 
-creature.cpp/h (exibição condicional + máscara de Alma): A exibição de informações da criatura (nome, barra de HP) agora verifica isSightClear() antes de renderizar — criaturas sem linha de visão não têm nome/HP visíveis. A máscara de Alma (Guest_ → "Alma") foi implementada em getName() no C++, com getDisplayName()/setDisplayName()/clearDisplayName() expostos para uso Lua. O método setName() substitui "Guest_" por "Alma" automaticamente.
+creature.cpp/h (exibição condicional + máscara de Alma): O nome/HP da criatura NÃO faz mais isSightClear() internamente — quem controla a exibição é o mapview.cpp, que aplica o estado "coberto" (semi-transparente) via setCovered(). Isto garante que o nome/HP nunca desaparece completamente; se a linha de visão falha, o texto fica esmaecido (alpha 80). A máscara de Alma (Guest_ → "Alma") foi implementada em getName() no C++, com getDisplayName()/setDisplayName()/clearDisplayName() expostos para uso Lua. O método setName() substitui "Guest_" por "Alma" automaticamente.
 
 game.cpp/h (login HTTP + logout): O método doLogin() foi reescrito para usar HTTP POST para http://<host>:8080/login, parseando a resposta JSON com dados de mundo/personagem. O método logout() foi adicionado para permitir migração de conta via opcode 200 — envia pacote de logout, desconecta imediatamente e limpa o estado do jogo. O processTalk() mascara nomes "Guest_". O loginWorld() armazena o nome mascarado.
 

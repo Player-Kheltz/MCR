@@ -1,3 +1,4 @@
+>> CATALOG tags=index, overview, geral updated=2026-06-23
 PROJETO MCR – ÍNDICE GERAL E PILARES PERMANENTES
 Versão 6.0 – Sistema de Progressão do Aventureiro (SPA v4.7.0), perseguição multi‑piso v8.0 (Refinada), Mapa Cognitivo Global (GlobalMonsterMap), Sistema de Pets (SPAManager), MountSummon v1.0 e motor de habilidades v2.0
 Arquivo: [0] MCR - INDICE GERAL.txt

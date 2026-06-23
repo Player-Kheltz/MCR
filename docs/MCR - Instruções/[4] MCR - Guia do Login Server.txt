@@ -1,3 +1,4 @@
+>> CATALOG tags=login-server, auth, api updated=2026-06-23
 PROJETO MCR – GUIA DO LOGIN SERVER
 Versão 2.1 – Compatibilidade total com o Sistema de Progressão do Aventureiro (SPA v4.2), vocação única (0) e manutenção da limpeza automática
 Arquivo: [4] MCR - Guia do Login Server.txt

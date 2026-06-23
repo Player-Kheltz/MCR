@@ -1,3 +1,4 @@
+>> CATALOG tags=mounts, summon, pet updated=2026-06-23
 📘 DOCUMENTAÇÃO TÉCNICA – SISTEMA DE MONTARIA COMO SUMMON (MountSummon)
 Projeto MCR – Versão 2.0
 Última atualização: 22 de Junho de 2026
@@ -228,12 +229,16 @@ Baseado nas diretrizes do projeto, as seguintes funcionalidades estão planejada
    - A montaria mantém IA própria mesmo quando montada, atacando alvos
      independentemente
 
-IMPLEMENTAÇÃO ATUAL (v1.0, 21/06/2026):
+IMPLEMENTAÇÃO ATUAL (v2.0, 22/06/2026):
    - C++: eventos dismount/mount, validação de espaço, disparo no changeOutfit
    - Lua: criação/remoção/persistência do summon, velocidade 1.1×, spawn
      adjacente com direção
-   - Pendente para v2.0: equipamento, personalidade por tipo, dominação,
+   - HP tracking: salva/restaura HP entre sessões
+   - Estado moribundo: 60s de timer antes da morte definitiva
+   - Comandos !montarias, !todasmontarias, !portal (placeholder)
+   - force=true: montaria nasce no tile do jogador ignorando colisão
+   - Pendente para v3.0: equipamento, personalidade por tipo, dominação,
      ataque montado
 
 Fim do Documento.
-📘 Sistema de Montaria como Summon (MountSummon) v1.0 — 21 de Junho de 2026
+📘 Sistema de Montaria como Summon (MountSummon) v2.0 — 22 de Junho de 2026

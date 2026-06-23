@@ -1,3 +1,4 @@
+>> CATALOG tags=mounts, summon, devlog updated=2026-06-23
 # DevLog — Sistema de Montarias (MountSummon)
 
 ## Contexto

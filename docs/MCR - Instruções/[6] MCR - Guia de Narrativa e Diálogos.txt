@@ -1,3 +1,4 @@
+>> CATALOG tags=narrative, npc, dialogs updated=2026-06-23
 PROJETO MCR – GUIA DE NARRATIVA E DIÁLOGOS
 (Versão 8.1 – Consolidação SPA v4.6.0, domínios Summon e Sobrevivência, sistema de pets/escudeiro, nomenclatura unificada, remoção de vocações, sistema de cores v10.0 e novos métodos de progressão)
 Arquivo: [6] MCR - Guia de Narrativa e Diálogos.txt

@@ -1,3 +1,4 @@
+>> CATALOG tags=multi-piso, los, battlelist, navigation, combat, monster-ai updated=2026-06-23
 # DevLog — Sistema Multi-Piso (Perseguição, Navegação, BattleList, Combate)
 
 ## Contexto
@@ -49,20 +50,21 @@ O MCR permite combate, perseguição e navegação entre pisos, diferentemente d
 
 ### 3. BattleList com Linha de Visão
 **Arquivos:** `protocolgame.cpp`, `protocolgame.hpp`, `battle.lua` (OTClient)  
-**Status:** Funcional com limitações.
+**Status:** Funcional.
 
-**O que funciona:**
-- Opcode custom 57 (`GameServerBattleListVisibility`) envia creatureId + visible flag
-- Criaturas sem linha de visão são ocultadas da BattleList (não do mapa)
-- OTClient: `battle.lua` filtra `isHiddenFromBattleList()`
-- Atualização em tempo real: no passo do jogador + movimento de cada criatura
+**Como funciona (refinado em 23/06/2026):**
+- O servidor envia opcode 57 (`GameServerBattleListVisibility`) com `visible=true` para **todas** as criaturas — não filtra mais no servidor
+- O cliente (`battle.lua`) usa `g_map.isSightClear(player→creature)` como **gatekeeper único**: se a linha de visão falha, a criatura some da BattleList
+- O nome/HP (`drawInformation`) e os projéteis também usam `isSightClear` — tudo passa pelo mesmo check
+- A atualização ocorre a cada passo do jogador + movimento de cada criatura
 
 **O que tentamos e não deu certo:**
 - Remover sprites via `sendRemoveTileThing` (causava "no thing at pos" e quadrado preto)
 - `cleanupBattleList()` com stackpos — stackpos errado, removia chão
-- `isSightClear` para TODAS as criaturas a cada passo (discrepância servidor vs cliente)
+- `canSee` como filtro principal (criaturas atrás de paredes no mesmo piso apareciam)
+- Opcode 57 com `visible=false` no servidor (discrepância servidor vs cliente)
 
-**Decisão atual:** Usar `canSee` (viewport XY + Z-range) como filtro principal. `isSightClear` só para cross-floor. O OTClient faz o refinamento visual.
+**Decisão atual:** `isSightClear` é o único gatekeeper — decide BattleList, nome/HP e projéteis. O servidor envia todas as criaturas como visíveis; o cliente refina.
 
 ### 4. Runas entre Pisos
 **Status:** Não funciona, em investigação.

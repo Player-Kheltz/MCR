@@ -1,3 +1,4 @@
+>> CATALOG tags=items, reference, list updated=2026-06-23
 PROJETO MCR – Lista de Items Uteis
 Versão 1.0
 Arquivo: [Aquivo Complementar] Lista de Items Uteis.txt
