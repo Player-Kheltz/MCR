@@ -1,7 +1,7 @@
 {
   "conversation": 4,
   "date": "2026-06-23",
-  "task": "Implementar infraestrutura completa do assistente",
+  "task": "Infraestrutura completa + bridge chat + test bot funcionais",
   "files_changed": [
     "scripts/auto.py",
     "scripts/bridge.py",
@@ -9,12 +9,8 @@
     "scripts/create.py",
     "scripts/info.py",
     "scripts/tests/los_example.txt",
-    "data-canary/scripts/MCR/core/chat_bridge.lua",
-    "data-canary/scripts/MCR/core/test_bot.lua",
-    "data/logs/chat_in.txt",
-    "data/logs/chat_out.txt",
-    "data/logs/test_in.txt",
-    "data/logs/test_out.txt",
+    "Canary/data-canary/scripts/MCR/core/chat_bridge.lua",
+    "Canary/data-canary/scripts/MCR/core/test_bot.lua",
     "docs/session.json",
     "docs/TROUBLESHOOTING.md",
     "AGENTS.md"
@@ -22,20 +18,30 @@
   "decisions": [
     "4 entry points: auto.py (fazer), create.py (criar), info.py (ler), test.py (testar)",
     "Bridge chat assistente-jogo via arquivos (chat_in.txt, chat_out.txt)",
-    "test.py usa bot Lua no servidor (test_bot.lua) em vez de protocolo Tibia",
-    "auto.py server start/stop para controlar Canary.exe",
-    "Conta de teste: test_account / test123, personagem TestChar (GM, level 100)"
+    "test.py usa bot Lua no servidor (test_bot.lua) — TestChar precisa estar online",
+    "auto.py server start/stop controla canary-sln.exe (caminho corrigido)",
+    "Conta de teste: test_account / test123, personagem TestChar (GM lv 100)",
+    "API do servidor: pairs(Game.getPlayers()), pos:isSightClear(to, floorCheck), MESSAGE_GAMEMASTER_CONSOLE"
   ],
+  "tested": {
+    "test_bot": "Funcional — responde 'TestChar offline' corretamente",
+    "chat_bridge": "Script carregado, mensagem enviada ao chat_out.txt — aguardando Criador responder com !assistente",
+    "paths_corrigidos": "scripts apontam para Canary/data/logs/ (nao raiz data/logs/)",
+    "server": "canary-sln.exe rodando, Criador online as 01:51"
+  },
   "docs_updated": [
-    "AGENTS.md (secoes 9-11 adicionadas)",
-    "docs/TROUBLESHOOTING.md (novo)",
-    "docs/session.json (novo)"
+    "AGENTS.md (secoes 9-11)",
+    "docs/TROUBLESHOOTING.md",
+    "docs/session.json"
   ],
   "next_steps": [
-    "Testar chat_bridge.lua no servidor (logar TestChar, usar !assistente)",
-    "Testar test_bot.lua com test.py cmd \"!testesistema\"",
-    "Criar nova habilidade com create.py e verificar",
-    "Commit do ciclo completo"
+    "Logar TestChar e testar test.py cmd/los/walk/attack",
+    "Testar !assistente com Criador para validar bridge bidirecional",
+    "Ranged Weapon Range no navigateTo",
+    "Runas via BattleList cross-floor",
+    "Clique Direto no Monstro em outro piso",
+    "Limpar Logs de Debug [MCR-DEBUG-CLIENT/DOWN]",
+    "Atualizar guias [10], [1], [2] com encoding rules"
   ],
   "stuck_on": null
 }

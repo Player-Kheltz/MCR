@@ -1,57 +1,44 @@
 >> CATALOG tags=todo, next-steps, roadmap, pendencias updated=2026-06-23
-# Para Amanhã — 23 de Junho de 2026
+# Pendências — 23 de Junho de 2026
 
-## Contexto Geral
-Estamos no meio de uma grande reforma no Projeto MCR. As bases foram estabelecidas:
-- Encoding UTF-8 em todo lugar ✅
-- AGENTS.md com regras de ouro ✅
-- Documentação atualizada (parcialmente) ✅
-- Git com commits descritivos ✅
+## 🟢 Concluído Hoje
+- **AGENTS.md**: enxuto + seções 9-11 (TROUBLESHOOTING, Task Agent, auto.py)
+- **CATALOG.md + doc-sync.py**: sistema de catálogo de docs
+- **6 docs corrigidos**: info obsoleta atualizada (Multi-Piso, Para Amanhã, Perseguição, MountSummon, Guia [2], SPA)
+- **Infraestrutura do assistente**:
+  - `auto.py` (compile, status, verify, commit, sync, server)
+  - `bridge.py` (chat bidirecional jogo ↔ assistente)
+  - `test.py` (cmd, los, walk, attack, pos, assert, suite)
+  - `create.py` (dominio, habilidade, monster, item, spell, npc, quest, quest-stage)
+  - `info.py` (search, doc, grep, index, tree, session, status)
+- **Bridge chat**: `chat_bridge.lua` com TalkAction `!assistente` + polling de `chat_out.txt` ✅
+  - APIs corrigidas: `pairs(Game.getPlayers())`, `MESSAGE_GAMEMASTER_CONSOLE`
+- **Test bot**: `test_bot.lua` executando comandos via `test_in.txt` → `test_out.txt` ✅
+  - APIs corrigidas: `from:isSightClear(to, true)`, `pairs(Game.getPlayers())`
+- **Conta de teste**: `test_account` / `test123`, personagem `TestChar` (GM lv 100) ✅
+- **Servidor**: canary-sln.exe rodando, Criador online
 
-## Estado Atual dos Sistemas
-
-### 🟢 Finalizado / Funcional
-- **Encoding**: `/utf-8` + `toLatin1()` pipeline completo — C++ e Lua podem usar UTF-8 literal
-- **MountSummon (v2.0)**: HP tracking, moribundo, `!montarias`, `!todasmontarias`
-- **Perseguição multi-piso**: Jitter, crowd control, limite de perseguidores, movimento nativo
-- **Melee cross-floor bloqueado**: monstros e players
-- **MonsterAI**: pensamento do monstro (look directions), throttle adaptativo, try/catch no onThink (anti-reentrancia)
-- **BattleList/LOS**: refatorado — `isSightClear` como gatekeeper único. Servidor envia todas como visíveis, cliente decide com `g_map.isSightClear()`
-- **OTClient compilável**: VS 2026, OpenGL|x64, 0 erros
-- **CATALOG.md + doc-sync.py**: sistema de catálogo de docs implementado
-- **AGENTS.md**: enxuto com regras de conduta + compilação
-- **Docs atualizados**: 6 docs corrigidos com info obsoleta
-
-### 🟡 Funcional com problemas
-- **Player navigation**: `navigateTo` funciona para ataque/follow cross-floor, mas:
-  - Ranged weapon não respeita range (NÃO CORRIGIDO)
-
-### 🔴 Não funcional / Em investigação
-- **Runas via BattleList cross-floor**: `[MCR-USE]` log não apareceu — OTClient pode não estar enviando o pacote
-- **Clique direto no monstro em outro piso para atacar**: menu direito funciona, clique direto não
-- **Clique no mapa para andar em outro piso**: "Não há rota" (OTClient já tem `sendGoTo` + bindings, pode ser bug de runtime)
-
-## Tarefas Prioritárias
+## 🔴 Pendente
 
 ### 1. Ranged Weapon Range
-Modificar `navigateTo` ou `playerSetAttackedCreature` para:
-- Verificar o range da arma equipada do jogador
-- Se ranged (shootRange > 1), parar a navegação a `shootRange` tiles do alvo
-- Se melee (shootRange <= 1), ir até adjacente
+- Modificar `navigateTo` ou `playerSetAttackedCreature` para verificar `shootRange`
 
-### 2. Runas via BattleList
-- Investigar por que o `[MCR-USE]` log não apareceu
-- Verificar se o OTClient está enviando o pacote `parseUseItemEx` para alvos cross-floor
-- Verificar se `canUse(player, fromPos)` está falhando
+### 2. Runas via BattleList cross-floor
+- `[MCR-USE]` log não apareceu — OTClient pode não enviar o pacote
 
-### 3. Clique Direto no Monstro
-- Investigar o OTClient: quando o jogador clica em um monstro visível em outro piso, o clique é projetado para o piso do jogador
-- Solução: modificar o hit-test do MapView para considerar criaturas em TODOS os pisos visíveis
+### 3. Clique Direto no Monstro em outro piso
+- Menu direito funciona, clique direto não (hit-test projeta no piso do jogador)
 
 ### 4. Limpar Logs de Debug
-- Remover ou mover para toggle `[MCR-ATTACK]`, `[MCR-NAV]`, `[MCR-BATTLE]`, `[MCR-USE]`, `[MCR-DEBUG-CLIENT]`, `[MCR-DEBUG-DOWN]`
+- Remover/toggle `[MCR-DEBUG-CLIENT]`, `[MCR-DEBUG-DOWN]`, `[MCR-ATTACK]`, etc
 
-### 5. Documentação Pendente
-- [ ] `[10] MCR - Guia de Tradução e Localização (PT-BR).txt` — regras de encoding atualizadas
-- [ ] `[1] MCR - Guia de Compilação (Servidor).txt` — encoding rules
-- [ ] `[2] MCR - Guia de Compilação (Cliente).txt` — encoding rules
+### 5. Bridge: validar bidirecional
+- Logar Criador, digitar `!assistente ola` e ver se bridge.py recebe
+
+### 6. Test bot: validar com TestChar online
+- Logar TestChar, rodar `test.py cmd "!pos"`, `test.py los` e `test.py walk`
+
+### 7. Documentação
+- [ ] `[10] Guia de Tradução.txt` — encoding rules
+- [ ] `[1] Guia de Compilação Servidor.txt` — encoding rules
+- [ ] `[2] Guia de Compilação Cliente.txt` — encoding rules
