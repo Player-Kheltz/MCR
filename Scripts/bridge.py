@@ -19,8 +19,9 @@ import time
 import threading
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-CHAT_IN = os.path.join(BASE_DIR, "data", "logs", "chat_in.txt")
-CHAT_OUT = os.path.join(BASE_DIR, "data", "logs", "chat_out.txt")
+CANARY_DIR = os.path.join(BASE_DIR, "Canary")
+CHAT_IN = os.path.join(CANARY_DIR, "data", "logs", "chat_in.txt")
+CHAT_OUT = os.path.join(CANARY_DIR, "data", "logs", "chat_out.txt")
 
 _out_id = 0
 

@@ -22,8 +22,9 @@ import hashlib
 import re
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-TEST_IN = os.path.join(BASE_DIR, "data", "logs", "test_in.txt")
-TEST_OUT = os.path.join(BASE_DIR, "data", "logs", "test_out.txt")
+CANARY_DIR = os.path.join(BASE_DIR, "Canary")
+TEST_IN = os.path.join(CANARY_DIR, "data", "logs", "test_in.txt")
+TEST_OUT = os.path.join(CANARY_DIR, "data", "logs", "test_out.txt")
 
 _cmd_id = 0
 _last_read_pos = 0
@@ -37,7 +38,7 @@ DB_CONFIG = {
 
 
 def ensure_dirs():
-    os.makedirs(os.path.join(BASE_DIR, "data", "logs"), exist_ok=True)
+    os.makedirs(os.path.join(CANARY_DIR, "data", "logs"), exist_ok=True)
     for p in [TEST_IN, TEST_OUT]:
         if not os.path.exists(p):
             with open(p, "w") as f:
