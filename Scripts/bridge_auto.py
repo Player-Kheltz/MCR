@@ -16,7 +16,6 @@ LOG_FILE = os.path.join(BASE_DIR, "bridge_debug.log")
 KNOWLEDGE_FILE = os.path.join(SCRIPTS_DIR, "mcr_knowledge.txt")
 HOT_CACHE_FILE = os.path.join(BASE_DIR, ".rag_hot.json")
 HISTORY_DIR = os.path.join(CANARY_DIR, "data", "logs", "history")
-HISTORY_MAX = 15  # max mensagens por conta no contexto
 
 OLLAMA_URL = "http://localhost:11434/api/generate"
 OLLAMA_CHAT_URL = "http://localhost:11434/api/chat"
@@ -47,7 +46,14 @@ STOPWORDS = {
     "sair", "criar", "usar", "ter", "sua", "voce", "vc", "vou"
 }
 
-# --- Sistema de historico por conta ---
+# --- Sistema de historico por conta (busca semantica) ---
+# Em vez de jogar o historico bruto no prompt (que estoura 32k tokens),
+# indexamos por embedding e so retornamos as mensagens relevantes.
+
+HISTORY_MAX_STORED = 50   # max mensagens armazenadas por conta
+HISTORY_SEARCH_TOP_K = 2  # quantas mensagens retornar na busca
+
+EMBED_CACHE = {}  # {(account_id, idx): [embedding]}
 
 def ensure_history_dir():
     os.makedirs(HISTORY_DIR, exist_ok=True)
@@ -55,8 +61,34 @@ def ensure_history_dir():
 def history_path(account_id):
     return os.path.join(HISTORY_DIR, f"hist_{account_id}.json")
 
+def _get_embedding(text):
+    """Chama Ollama embedding API. Retorna lista de floats ou None."""
+    if not text or not text.strip():
+        return None
+    try:
+        req = urllib.request.Request(
+            "http://localhost:11434/api/embeddings",
+            data=json.dumps({"model": "nomic-embed-text", "prompt": text[:512]}).encode(),
+            headers={"Content-Type": "application/json"}
+        )
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            data = json.loads(resp.read())
+            return data.get("embedding")
+    except Exception:
+        return None
+
+def _cosine_similarity(a, b):
+    if not a or not b:
+        return 0
+    dot = sum(x*y for x, y in zip(a, b))
+    na = sum(x*x for x in a) ** 0.5
+    nb = sum(x*x for x in b) ** 0.5
+    if na == 0 or nb == 0:
+        return 0
+    return dot / (na * nb)
+
 def load_history(account_id):
-    """Carrega historico de conversa de uma conta. Retorna lista de dicts."""
+    """Carrega historico completo da conta."""
     if not account_id:
         return []
     path = history_path(account_id)
@@ -64,48 +96,88 @@ def load_history(account_id):
         return []
     try:
         with open(path, "r", encoding="utf-8") as f:
-            data = json.load(f)
-        # Mantem apenas as ultimas HISTORY_MAX mensagens
-        if len(data) > HISTORY_MAX:
-            data = data[-HISTORY_MAX:]
-        return data
+            return json.load(f)
     except (json.JSONDecodeError, OSError):
         return []
 
 def save_to_history(account_id, player, msg, reply):
-    """Salva uma interacao no historico da conta."""
+    """Salva interacao com embedding pre-computado para busca futura."""
     if not account_id:
         return
     ensure_history_dir()
     path = history_path(account_id)
-    history = []
-    if os.path.exists(path):
-        try:
-            with open(path, "r", encoding="utf-8") as f:
-                history = json.load(f)
-        except (json.JSONDecodeError, OSError):
-            history = []
+    history = load_history(account_id)
+
+    # Pre-computa embedding da msg do jogador para busca futura
+    emb = _get_embedding(msg)
+
     history.append({
         "t": int(time.time()),
         "p": player,
         "m": msg,
         "r": reply,
+        "e": emb,  # embedding pre-computado
     })
-    # Mantem apenas as ultimas HISTORY_MAX
-    if len(history) > HISTORY_MAX:
-        history = history[-HISTORY_MAX:]
+    # Limpa o cache de embeddings para esta conta
+    keys_to_remove = [k for k in EMBED_CACHE if k[0] == account_id]
+    for k in keys_to_remove:
+        EMBED_CACHE.pop(k, None)
+
+    # Mantem apenas as ultimas HISTORY_MAX_STORED
+    if len(history) > HISTORY_MAX_STORED:
+        history = history[-HISTORY_MAX_STORED:]
     try:
         with open(path, "w", encoding="utf-8") as f:
             json.dump(history, f, ensure_ascii=False)
     except OSError:
         pass
 
-def format_history(history):
-    """Formata historico para inclusao no prompt. Retorna string vazia se vazio."""
+def search_history(account_id, query, top_k=HISTORY_SEARCH_TOP_K):
+    """Busca no historico as mensagens mais relevantes para a query.
+    
+    Retorna string formatada com as top_k interacoes mais similares,
+    ou string vazia se nao houver historico ou similaridade relevante.
+    """
+    history = load_history(account_id)
     if not history:
         return ""
+    
+    # Embed da query
+    query_emb = _get_embedding(query)
+    if not query_emb:
+        return ""
+    
+    # Calcula similaridade com cada entrada (usando embedding armazenado ou
+    # embedding do texto da mensagem como fallback)
+    scored = []
+    for i, h in enumerate(history):
+        emb = h.get("e")
+        if not emb:
+            # Fallback: computa e armazena no cache em memoria
+            cache_key = (account_id, i)
+            if cache_key in EMBED_CACHE:
+                emb = EMBED_CACHE[cache_key]
+            else:
+                emb = _get_embedding(h["m"])
+                if emb:
+                    EMBED_CACHE[cache_key] = emb
+        if emb:
+            score = _cosine_similarity(query_emb, emb)
+            # Bonus temporal: mensagens recentes tem peso extra
+            age_bonus = 0.1 * (1 - min(i, 10) / 10)  # ultimas 10 tem bonus
+            scored.append((score + age_bonus, h))
+    
+    # Ordena por similaridade + bonus temporal
+    scored.sort(key=lambda x: x[0], reverse=True)
+    
+    # Pega as top_k com score minimo de 0.5
+    relevant = [h for s, h in scored if s > 0.5][:top_k]
+    
+    if not relevant:
+        return ""
+    
     lines = []
-    for h in history:
+    for h in relevant:
         lines.append(f"Jogador: {h['m']}")
         lines.append(f"Assistente: {h['r']}")
     return "\n".join(lines)
@@ -605,7 +677,7 @@ REGRAS:
 7. Voce NAO pode criar, editar ou modificar arquivos. Voce apenas RESPONDE perguntas.
 8. NUNCA responda com codigo a menos que seja explicitamente solicitado.
 
-HISTORICO DA CONVERSA (ultimas mensagens):
+HISTORICO RELEVANTE DA CONVERSA (apenas mensagens relacionadas a pergunta atual):
 {history}
 
 CONHECIMENTO DO MCR:
@@ -660,11 +732,10 @@ def ai_worker():
                 ai_queue.task_done()
                 continue
 
-            # 2. Carrega historico da conta
-            history = load_history(account_id)
-            history_str = format_history(history)
+            # 2. Busca historico relevante para a pergunta (busca semantica)
+            history_str = search_history(account_id, msg, top_k=2)
             if history_str:
-                log(f"Historico: {len(history)} mensagens carregadas")
+                log(f"Historico: busca semantica retornou contexto relevante")
 
             # 3. Busca RAG
             rag = ""
