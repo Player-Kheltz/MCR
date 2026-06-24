@@ -135,3 +135,75 @@ O assistente possui capacidade autonoma de:
 - Criar lições aprendidas
 
 Ver `scripts/README_AUTONOMY.md` para documentação completa do sistema autônomo.
+
+## 14. Session Checkpoint Recovery
+
+### Propósito
+Preservar o contexto entre conversas, mesmo que o usuário feche a janela acidentalmente sem se despedir.
+
+### O Sistema
+- O estado da conversa é salvo em `docs/MCR - Instruções/DevLog/.session_checkpoint.json`
+- O script `scripts/checkpoint.py` gerencia o arquivo (save/load/clear/recover)
+- `auto.py checkpoint` delega para `checkpoint.py`
+
+### Regras para o Assistente
+
+1. **No início de TODA conversa**, APÓS ler Pendências.md (§3), verifique o checkpoint:
+   ```python
+   python scripts/auto.py checkpoint show
+   ```
+   Ou leia o JSON diretamente:
+   ```
+   docs/MCR - Instruções/DevLog/.session_checkpoint.json
+   ```
+
+2. **Se houver um checkpoint `in_progress`** (não finalizado), apresente ao usuário:
+   ```
+   Encontrei uma sessão anterior não finalizada:
+   - Título: <titulo>
+   - Tarefa: <tarefa_andamento>
+   - Próximos passos: <proximos_passos>
+   - Sessão ID: <ultima_sessao>
+   
+   Deseja continuar de onde parou? [sim/nao]
+   ```
+   - Se **sim**: carregue o contexto manualmente ou sugira `opencode -s <ID>`.
+   - Se **não**: execute `python scripts/auto.py checkpoint abandon` para marcar como abandonado.
+
+3. **Salve checkpoint automaticamente** quando detectar despedida:
+   - O usuário disse "obrigado", "tchau", "valeu", "até mais", etc.
+   - Ou quando uma tarefa significativa for concluída.
+   - Use: `python scripts/auto.py checkpoint save --auto`
+
+4. **Ao salvar**, inclua:
+   - `ultima_sessao`: ID da sessão atual (do OpenCode ou variável de ambiente)
+   - `titulo`: breve descrição do que estava sendo feito
+   - `tarefa_andamento`: o que estava em andamento
+   - `decisoes`: decisões importantes tomadas
+   - `arquivos_alterados`: arquivos modificados
+   - `proximos_passos`: o que fazer a seguir
+
+5. **Modo autônomo**: O assistente pode executar `checkpoint save --auto` para salvar com valores
+   extraídos automaticamente do ambiente (git diff, session list).
+
+### Fluxo de Recuperação
+```
+Nova conversa inicia
+  → Leio Pendências.md (§3)
+  → Leio .session_checkpoint.json (§14)
+    ├── Se NÃO houver checkpoint ou status=completed → sigo normalmente
+    └── Se houver checkpoint com status=in_progress:
+          → "Encontrei uma sessão anterior! Deseja continuar?"
+            ├── sim → carrego contexto ou sugiro opencode -s <ID>
+            └── não → abandono e sigo do zero
+```
+
+### Comandos Úteis
+```powershell
+python scripts/auto.py checkpoint             # Mostra estado
+python scripts/auto.py checkpoint save        # Salva (modo prompt)
+python scripts/auto.py checkpoint save --auto # Salva automático
+python scripts/auto.py checkpoint clear       # Marca concluído
+python scripts/auto.py checkpoint recover     # Tenta abrir sessão
+python scripts/auto.py checkpoint abandon     # Marca abandonado
+```

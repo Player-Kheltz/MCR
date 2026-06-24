@@ -304,6 +304,14 @@ docs/MCR - Instruções/Sistema de Habilidades Contextuais/
 ## ⏳ Próximos Passos
 - NPC inteligente (Fase 3)
 
+## ✅ Concluído Hoje (Sessão 24/06 15:35 — Session Checkpoint)
+- ✅ **Sistema de Session Checkpoint** implementado:
+  - `docs/MCR - Instruções/DevLog/.session_checkpoint.json` — arquivo de checkpoint
+  - `Scripts/checkpoint.py` — script completo (save/load/clear/recover/abandon)
+  - `auto.py checkpoint` — comando delegado para checkpoint.py
+  - `AGENTS.md §14` — regra para assistente verificar checkpoint no início de toda conversa
+  - Modo `--auto` extrai session_id + arquivos alterados do git diff automaticamente
+
 ## 🔴 Pendente (Próximos Passos)
 ### SHC — Sistema de Habilidades Contextuais
 - [x] **Onda 0** — Build VS (Canary ✅, OTClient ✅ via VS 2026 v145)
