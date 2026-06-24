@@ -1,0 +1,55 @@
+# PLAN - Arquitetura
+# Modelo: deepseek-r1:8b
+# Tempo: 42.4s
+
+**Proposta de Solução para Limitar a Visão a 1 Piso**
+
+### 1. Qual constante/setting modificar?
+A configuração ideal a ser modificada é **`mapAwareUndergroundFloorRange`** (no código C++) ou **`undergroundAwareness`** (no arquivo `settings.xml`).  
+- **Valor ideal**: `0` (para limitar a visão a apenas o piso atual).  
+- **Razão**: Esta configuração controla quantos pisos acima/abaixo são visíveis no subsolo. Reduzindo para `0`, o sistema só mostrará o piso atual.
+
+---
+
+### 2. Quais arquivos precisam ser alterados?
+- **Caso queira alterar via código C++**:  
+  Modifique o valor de `mapAwareUndergroundFloorRange` no arquivo `settings.cpp` ou no arquivo de configuração do seu servidor (ex: `settings.cpp` ou `config.cpp`).  
+  Exemplo:  
+  ```cpp
+  settings.mapAwareUndergroundFloorRange = 0; // Em vez de 2
+  ```
+
+- **Caso prefira alterar via XML**:  
+  No arquivo `settings.xml` (localizado na pasta do cliente/servidor):  
+  ```xml
+  <setting name="undergroundAwareness" value="0" />
+  ```
+
+---
+
+### 3. Impacto negativo da mudança
+- **Visão reduzida**: Jogadores no subsolo só verão o piso atual, sem transparência ou fade.  
+- **Compatibilidade**: Se o servidor originalmente usava o valor `2`, outros jogadores ou scripts podem depender desta configuração.  
+- **Explosões de monstros/itens**: Em mapas com múltiplos pisos, jogadores podem não ver monstros/itens em pisos adjacentes, mas isso é intencional para a reclamação do usuário.
+
+---
+
+### 4. Configuração via Lua?
+Não existe uma configuração direta via Lua para isso, pois o controle é feito pelo código C++ ou XML.  
+- **Trabalar contorno**: Use um script Lua para forçar o piso atual ao renderizar, mas isso é mais complexo e menos eficiente.
+
+---
+
+### Abordagem Recomendada
+**Melhor solução**: Alterar o valor de `mapAwareUndergroundFloorRange` ou `undergroundAwareness` para `0` no arquivo de configuração.  
+- **Razão**:  
+  - Seguro e direto, sem impacto em scripts ou desempenho.  
+  - Respeita o comportamento original do Tibia (valor `0` é padrão para visão limitada).  
+  - Evita transparência ou fade, conforme solicitado.
+
+**Passos práticos**:  
+1. Localize o arquivo `settings.xml` ou modifique o código C++ conforme descrito.  
+2. Reinicie o cliente/servidor.  
+3. Teste a visão do jogador no subsolo para confirmar que só o piso atual é visível.
+
+Essa abordagem é a mais correta, pois atende ao problema sem afetar outras funcionalidades do sistema.
