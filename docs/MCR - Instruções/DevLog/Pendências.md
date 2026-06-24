@@ -296,9 +296,12 @@ docs/MCR - Instruções/Sistema de Habilidades Contextuais/
 - ✅ **OTClient compilado**: 0 erros (VS 2026 v145)
 - ✅ **Canary compilado**: 0 erros
 - ✅ **Renomeado**: `machados_leves.lua` → `espadas_leves.lua`
+- ✅ **Fase 2 — Histórico por conta**: Implementado
+  - Histórico salvo em `data/logs/history/hist_{account_id}.json`
+  - Últimas 15 mensagens incluídas no prompt da IA
+  - `!assistente` agora envia `account_id` também (não só canal 500)
 
 ## ⏳ Próximos Passos
-- Histórico por conta (Fase 2)
 - NPC inteligente (Fase 3)
 
 ## 🔴 Pendente (Próximos Passos)
