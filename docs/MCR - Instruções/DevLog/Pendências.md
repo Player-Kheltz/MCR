@@ -1,5 +1,5 @@
 >> CATALOG tags=todo, next-steps, roadmap, pendencias updated=2026-06-24
-# Pendências — 24 de Junho de 2026 (Atualizado 23:45 — Sessão Armas + Sinergias)
+# Pendências — 24 de Junho de 2026 (Atualizado 18:15 — Sessão Autônoma Final)
 
 ## 🧠 Decisões de Arquitetura — Sistema de Habilidades Contextuais (SHC)
 ### Data: 24 de Junho de 2026
@@ -291,18 +291,32 @@ docs/MCR - Instruções/Sistema de Habilidades Contextuais/
 - ✅ **Matriz de Sinergias** — documentada em `04 - MATRIZ DE SINERGIAS.txt`
 - **Total: ~400 habilidades** em todo o sistema SPA
 
-## ✅ Concluído Hoje
-- ✅ **RAG reindexado**: 25752 chunks (12766 → 25752, + 12986 novos embeddings)
-- ✅ **OTClient compilado**: 0 erros (VS 2026 v145)
-- ✅ **Canary compilado**: 0 erros
-- ✅ **Renomeado**: `machados_leves.lua` → `espadas_leves.lua`
-- ✅ **Fase 2 — Histórico por conta**: Implementado
-  - Histórico salvo em `data/logs/history/hist_{account_id}.json`
-  - Últimas 15 mensagens incluídas no prompt da IA
-  - `!assistente` agora envia `account_id` também (não só canal 500)
+## ✅ Concluído na Sessão Autônoma Final
+
+### Servidor e Login
+- ✅ **Servidor diagnosticado e corrigido**: 2 processos conflitantes encerrados
+- ✅ **`passivas.lua`**: nil comparison corrigido — personagens antigos voltaram a logar
+- ✅ **`terra.lua`**: stray `end` keyword removido (2 ocorrências, linhas 471 e 793)
+- ✅ **`_broken_bkp/` deletado**: arquivos quebrados não poluem mais o scan do servidor
+- ✅ **`server_manager.py`**: gerenciamento Python do servidor (start/kill/status sem loops)
+
+### Assistente In-Game (Canal 500)
+- ✅ **`assistente.lua` reformatado**: mensagens com nome do jogador, confirmação visual, menos poluição
+- ✅ **`chat_bridge.lua`**: agora usa `TALKTYPE_CHANNEL_O` (laranja) via canal 500
+- ✅ **`TALKTYPE_CHANNEL_O = 8`** confirmado em `utils_definitions.hpp`
+- ✅ **Bridge rodando**: `start_bridge.py` inicia bridge_auto.py com PID tracking
+- ✅ Bridge responde e processa mensagens do jogo
+
+### MCR-Dev
+- ✅ **24/25 testes passando** (0 FAIL, 1 WARN = falso positivo)
+- ✅ Router classifica 9/9 intenções corretamente
+- ✅ Engine cria NPCs, habilidades, scripts, OTUI, SQL
+- ✅ Validador captura sendTextMessage, danoMinimo, chaves desbalanceadas
+- ✅ Memória learn/recall funcional
 
 ## ⏳ Próximos Passos
 - NPC inteligente (Fase 3)
+- Recriar ability files quebrados (arcos, lutador, etc) pelo MCR-Dev com sintaxe correta
 
 ## ✅ Concluído Hoje (Sessão 24/06 15:35 — Session Checkpoint)
 - ✅ **Sistema de Session Checkpoint** implementado:
