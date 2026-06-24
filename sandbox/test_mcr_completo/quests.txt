@@ -1,0 +1,44 @@
+# AREA: Quests
+# Modelo: qwen2.5-coder:7b
+# Tempo: 4.8s
+
+```lua
+-- Quest: Ajude o Ferreiro
+
+local quest = {
+    id = 1,
+    name = "Ajude o Ferreiro",
+    description = "Fale com o ferreiro na cidade de Eridanus e ajude-o a coletar 5 barras de ferro. Depois, entregue-as para ele e receba 100 de XP e uma espada simples.",
+    stages = {
+        {
+            id = 1,
+            description = "Fale com o ferreiro na cidade de Eridanus.",
+            requirements = {
+                { type = "talk", npc = "ferreiro" }
+            },
+            rewards = {}
+        },
+        {
+            id = 2,
+            description = "Coletar 5 barras de ferro no campo próximo à cidade.",
+            requirements = {
+                { type = "collect", item = "barra de ferro", count = 5 }
+            },
+            rewards = {}
+        },
+        {
+            id = 3,
+            description = "Entregue as 5 barras de ferro para o ferreiro na cidade.",
+            requirements = {
+                { type = "deliver", npc = "ferreiro", item = "barra de ferro", count = 5 }
+            },
+            rewards = {
+                { type = "xp", amount = 100 },
+                { type = "item", item = "espada simples" }
+            }
+        }
+    }
+}
+
+return quest
+```

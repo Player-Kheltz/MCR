@@ -1,0 +1,35 @@
+# AREA: Configuracao
+# Modelo: qwen2.5-coder:7b
+# Tempo: 8.7s
+
+Aqui está um exemplo de arquivo `config.lua` para um servidor Canary com as configurações solicitadas:
+
+```lua
+-- Arquivo de Configuração do Servidor MCR
+
+-- Definição da porta em que o servidor será executado
+serverPort = 7171
+
+-- Taxa de experiência (XP) - 5x a taxa padrão
+experienceMultiplier = 5
+
+-- Taxa de loot - 3x a taxa padrão
+lootMultiplier = 3
+
+-- Taxa de skill - 10x a taxa padrão
+skillMultiplier = 10
+
+-- Tipo do mundo: PvP (Player vs Player)
+worldType = 'pvp'
+
+-- Mensagem de Bem-vindo ao Servidor (MOTD)
+motd = 'Bem-vindo ao MCR!'
+
+-- Número máximo de jogadores no servidor
+maxPlayers = 500
+
+-- Centro de Dados do Servidor (timezone)
+dataCenter = 'America/Sao_Paulo'
+```
+
+Este arquivo `config.lua` configura o servidor Canary com as opções desejadas, incluindo a porta, multiplicadores de experiência, loot e habilidades, tipo de mundo PvP, mensagem de boas-vindas, número máximo de jogadores e centro de dados.

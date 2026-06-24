@@ -1,0 +1,92 @@
+[
+  {
+    "area": "Compilacao",
+    "modelo": "qwen2.5-coder:7b",
+    "tempo": 6.5,
+    "tamanho": 1890,
+    "tem_codigo": false,
+    "util": "OK",
+    "resumo": "O erro LNK2001 indica que o linker não foi capaz de resolver um símbolo externo, no caso `__std_rotate`, durante a compilação do OTClient. Isso geralmente ocorre quando há uma incompatibilidade entre "
+  },
+  {
+    "area": "Banco de Dados",
+    "modelo": "llama3.1:8b",
+    "tempo": 10.7,
+    "tamanho": 2098,
+    "tem_codigo": true,
+    "util": "OK",
+    "resumo": "Aqui está a definição da tabela MySQL para armazenar o progresso dos dominios SPA dos jogadores:\n```sql\nCREATE TABLE dominio_progresso (\n  id INT AUTO_INCREMENT PRIMARY KEY,\n  account_id INT NOT NULL,"
+  },
+  {
+    "area": "Configuracao",
+    "modelo": "qwen2.5-coder:7b",
+    "tempo": 8.7,
+    "tamanho": 927,
+    "tem_codigo": true,
+    "util": "OK",
+    "resumo": "Aqui está um exemplo de arquivo `config.lua` para um servidor Canary com as configurações solicitadas:\n\n```lua\n-- Arquivo de Configuração do Servidor MCR\n\n-- Definição da porta em que o servidor será "
+  },
+  {
+    "area": "Interface OTUI",
+    "modelo": "qwen2.5-coder:7b",
+    "tempo": 8.7,
+    "tamanho": 2514,
+    "tem_codigo": true,
+    "util": "OK",
+    "resumo": "Aqui está um exemplo de layout OTUI para uma janela de \"Status do Personagem\" no OTClient:\n\n```otui\n<Window id=\"CharacterStatusWindow\" title=\"Status do Personagem\" width=\"300\" height=\"250\">\n    <Ancho"
+  },
+  {
+    "area": "Quests",
+    "modelo": "qwen2.5-coder:7b",
+    "tempo": 4.8,
+    "tamanho": 1210,
+    "tem_codigo": true,
+    "util": "OK",
+    "resumo": "```lua\n-- Quest: Ajude o Ferreiro\n\nlocal quest = {\n    id = 1,\n    name = \"Ajude o Ferreiro\",\n    description = \"Fale com o ferreiro na cidade de Eridanus e ajude-o a coletar 5 barras de ferro. Depois"
+  },
+  {
+    "area": "NPCs",
+    "modelo": "qwen2.5-coder:7b",
+    "tempo": 6.7,
+    "tamanho": 1794,
+    "tem_codigo": true,
+    "util": "OK",
+    "resumo": "Aqui está um script Lua para criar um NPC chamado \"Viajante\" em um servidor Tibia Canary usando o sistema de loja:\n\n```lua\n-- Definindo as funções do NPC\n\nfunction onSay(player, words, param)\n    if w"
+  },
+  {
+    "area": "Narrativa",
+    "modelo": "llama3.1:8b",
+    "tempo": 10.4,
+    "tamanho": 1675,
+    "tem_codigo": false,
+    "util": "OK",
+    "resumo": "Guardião do Templo: \"Bem-vindo, aventureiro. Você busca saber sobre os segredos dos dominios elementais? Pois bem, ouça a lenda que foi passada de geração em geração.\n\n\"Nos primeiros dias de Eridanus,"
+  },
+  {
+    "area": "Login Server",
+    "modelo": "qwen2.5-coder:7b",
+    "tempo": 13.7,
+    "tamanho": 3267,
+    "tem_codigo": true,
+    "util": "OK",
+    "resumo": "Claro! Abaixo está um exemplo de como você pode criar um endpoint REST em Python usando Flask para registrar um novo usuário. Este endpoint inclui validação básica para o username, senha e email.\n\nPri"
+  },
+  {
+    "area": "Traducao",
+    "modelo": "qwen2.5-coder:7b",
+    "tempo": 4.9,
+    "tamanho": 1038,
+    "tem_codigo": false,
+    "util": "OK",
+    "resumo": "Claro! Aqui estão as traduções das strings do inglês para o português (PT-BR) e a explicação do encoding a ser usado em cada tipo de arquivo:\n\n1. **'You have found a Golden Sword'**\n   - Tradução: 'Vo"
+  },
+  {
+    "area": "Itens",
+    "modelo": "deepseek-r1:8b",
+    "tempo": 28.4,
+    "tamanho": 5567,
+    "tem_codigo": false,
+    "util": "OK",
+    "resumo": "Okay, vamos analisar a espada \"Espada de Fogo\" dentro do contexto do Projeto MCR, considerando os sistemas como SPA, SHC e o balanceamento geral.\n\n**Espada de Fogo:**\n*   **Nome:** Espada de Fogo\n*   "
+  }
+]

@@ -1,0 +1,54 @@
+# AREA: NPCs
+# Modelo: qwen2.5-coder:7b
+# Tempo: 6.7s
+
+Aqui está um script Lua para criar um NPC chamado "Viajante" em um servidor Tibia Canary usando o sistema de loja:
+
+```lua
+-- Definindo as funções do NPC
+
+function onSay(player, words, param)
+    if words:lower() == 'ola' then
+        player:sendTextMessage(MESSAGE_INFO_DESCR, "Ola viajante! Precisa de ajuda?")
+    end
+end
+
+function onTradeRequest(player, npc, trade)
+    -- Adicionando itens à loja do NPC
+    trade:addItem(268, 100) -- Pocao de vida (100g)
+    trade:addItem(269, 80)  -- Pocao de mana (80g)
+
+    -- Permitindo a compra dos itens acima
+    trade:setAllowBuy(true)
+
+    -- Adicionando itens que o NPC pode comprar
+    trade:addItem(1734, 5)   -- Ossos (5g cada)
+    trade:addItem(2698, 10)  -- Peas de carne (10g cada)
+
+    -- Permitindo a venda dos itens acima
+    trade:setAllowSell(true)
+
+    return true
+end
+
+-- Criando o NPC e definindo suas propriedades
+
+local npc = Game.createMonster("Viajante", Position(32856, 31974, 7)) -- Posição do NPC no mapa
+
+npc:setScriptName("viajante.lua") -- Nome do arquivo Lua que contém as funções acima
+npc:setType(NPC_TYPE_TRADE)       -- Definindo o tipo como loja
+npc:setShop(trade)                 -- Associando a loja ao NPC
+
+-- Adicionando eventos para interação com o NPC
+
+npc:addEvent("onSay", onSay)
+npc:addEvent("onTradeRequest", onTradeRequest)
+
+print("NPC 'Viajante' criado com sucesso!")
+```
+
+Este script cria um NPC chamado "Viajante" na posição especificada no mapa. Quando um jogador cumprimenta o NPC dizendo "Ola", ele responderá com a mensagem solicitada.
+
+O NPC terá uma loja onde os jogadores podem comprar pocções de vida e mana, além de vender ossos e peias de carne.
+
+Certifique-se de que o arquivo `viajante.lua` esteja no diretório correto do seu servidor Canary para que ele possa ser carregado corretamente.

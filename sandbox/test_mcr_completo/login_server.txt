@@ -1,0 +1,90 @@
+# AREA: Login Server
+# Modelo: qwen2.5-coder:7b
+# Tempo: 13.7s
+
+Claro! Abaixo está um exemplo de como você pode criar um endpoint REST em Python usando Flask para registrar um novo usuário. Este endpoint inclui validação básica para o username, senha e email.
+
+Primeiro, certifique-se de ter o Flask instalado:
+
+```bash
+pip install Flask
+```
+
+Agora, crie um arquivo `app.py` com o seguinte conteúdo:
+
+```python
+from flask import Flask, request, jsonify
+import re
+
+app = Flask(__name__)
+
+# Simulação de banco de dados (usando uma lista de dicionários)
+users_db = []
+
+@app.route('/api/register', methods=['POST'])
+def register():
+    data = request.get_json()
+    
+    # Validação dos dados
+    if not data:
+        return jsonify({'status': 'error', 'message': 'No data provided'}), 400
+    
+    username = data.get('username')
+    password = data.get('password')
+    email = data.get('email')
+    
+    if not username or len(username) < 4:
+        return jsonify({'status': 'error', 'message': 'Username must be at least 4 characters long'}), 400
+    
+    if not password or len(password) < 6:
+        return jsonify({'status': 'error', 'message': 'Password must be at least 6 characters long'}), 400
+    
+    if not email or not re.match(r"[^@]+@[^@]+\.[^@]+", email):
+        return jsonify({'status': 'error', 'message': 'Invalid email address'}), 400
+    
+    # Verifica se o username já existe
+    for user in users_db:
+        if user['username'] == username:
+            return jsonify({'status': 'error', 'message': 'Username already exists'}), 409
+    
+    # Adiciona o novo usuário ao banco de dados (simulado)
+    new_user = {
+        'username': username,
+        'password': password,  # Em um ambiente real, você deve armazenar a senha criptografada
+        'email': email
+    }
+    users_db.append(new_user)
+    
+    return jsonify({'status': 'success', 'message': 'User registered successfully'}), 201
+
+if __name__ == '__main__':
+    app.run(debug=True, port=5000)
+```
+
+### Explicação do Código:
+
+1. **Importações**: Importamos as bibliotecas necessárias (`Flask`, `request`, `jsonify` e `re` para validação de email).
+2. **Banco de Dados Simulado**: Usamos uma lista de dicionários para simular um banco de dados.
+3. **Endpoint `/api/register`**:
+   - Aceita requisições POST.
+   - Obtém os dados JSON da solicitação.
+   - Realiza validações básicas:
+     - Verifica se o username tem pelo menos 4 caracteres.
+     - Verifica se a senha tem pelo menos 6 caracteres.
+     - Verifica se o email é válido usando uma expressão regular.
+   - Verifica se o username já existe no banco de dados.
+   - Se todas as validações passarem, adiciona o novo usuário ao banco de dados e retorna uma resposta de sucesso.
+
+### Como Executar:
+
+1. Salve o código em um arquivo chamado `app.py`.
+2. Execute o servidor Flask:
+   ```bash
+   python app.py
+   ```
+3. Você pode testar o endpoint usando ferramentas como Postman ou cURL. Por exemplo, com cURL:
+   ```bash
+   curl -X POST http://127.0.0.1:5000/api/register -H "Content-Type: application/json" -d '{"username": "testuser", "password": "testpass", "email": "test@example.com"}'
+   ```
+
+Este exemplo é básico e não inclui criptografia de senha, validação de email real ou outras melhorias de segurança. Em um ambiente de produção, você deve considerar essas questões adicionais.
