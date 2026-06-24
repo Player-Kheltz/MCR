@@ -1,0 +1,157 @@
+{
+  "resumo": {
+    "total": 21,
+    "pass": 12,
+    "fail": 0,
+    "warn": 9
+  },
+  "resultados": [
+    {
+      "fase": "F1",
+      "nome": "Tool calling: modelo respondeu sem ferramenta",
+      "status": "WARN",
+      "detalhes": "Resposta: {\n  \"name\": \"read_file\",\n  \"arguments\": {\n    \"path\": \"E:\\\\Projeto MCR\\\\AGENTS.md\"\n  }\n}",
+      "tempo": 5.6
+    },
+    {
+      "fase": "F1",
+      "nome": "Instrucao negativa: pode ter inventado",
+      "status": "WARN",
+      "detalhes": "Resposta: Não sei.",
+      "tempo": 2.15
+    },
+    {
+      "fase": "F2",
+      "nome": "T2.1 Arquivo inexistente",
+      "status": "WARN",
+      "detalhes": "Respondeu sem contexto: Não encontrei essa informação no código ou documentação do MCR.",
+      "tempo": 2.27
+    },
+    {
+      "fase": "F2",
+      "nome": "T2.2 Funcao falsa",
+      "status": "WARN",
+      "detalhes": "Respondeu sem contexto: Para usar a função `calculateDamageMCR()` no código do MCR, você deve seguir os ",
+      "tempo": 4.47
+    },
+    {
+      "fase": "F2",
+      "nome": "T2.3 API inventada",
+      "status": "WARN",
+      "detalhes": "Respondeu sem contexto: Não encontrei essa informação no código ou documentação do MCR.",
+      "tempo": 2.26
+    },
+    {
+      "fase": "F2",
+      "nome": "T2.4 Item falso com RAG-like",
+      "status": "PASS",
+      "detalhes": "Recusou: Nao encontrei essa informacao no codigo ou documentacao do MCR.",
+      "tempo": 2.27
+    },
+    {
+      "fase": "F2",
+      "nome": "T2.5 Consistencia (repetir 2x)",
+      "status": "WARN",
+      "detalhes": "Respondeu sem contexto: Não encontrei essa informação no código ou documentação do MCR.",
+      "tempo": 2.31
+    },
+    {
+      "fase": "F2",
+      "nome": "T2.5 Consistencia (2x mesma pergunta)",
+      "status": "WARN",
+      "detalhes": "Respostas divergentes (Jaccard: 0.47)",
+      "tempo": 2.88
+    },
+    {
+      "fase": "F3",
+      "nome": "qwen2.5-coder:7b - Complexa",
+      "status": "PASS",
+      "detalhes": "331 chars em 2.9s: O Sistema de Progressão do Aventureiro (SPA) no MCR é um sistema de pontos que o",
+      "tempo": 2.87
+    },
+    {
+      "fase": "F3",
+      "nome": "qwen2.5-coder:7b - Tecnica",
+      "status": "PASS",
+      "detalhes": "221 chars em 2.6s: COMBAT_FIREDAMAGE é um tipo de dano em combate no jogo Minecraft, especificament",
+      "tempo": 2.64
+    },
+    {
+      "fase": "F3",
+      "nome": "qwen2.5-coder:7b - Simples",
+      "status": "PASS",
+      "detalhes": "31 chars em 2.2s: A capital do Brasil é Brasília.",
+      "tempo": 2.18
+    },
+    {
+      "fase": "F3",
+      "nome": "deepseek-r1:7b - Complexa",
+      "status": "PASS",
+      "detalhes": "56 chars em 8.8s: O Sistema de Progressão do Aventureiro (SPA) no MCR é um",
+      "tempo": 8.77
+    },
+    {
+      "fase": "F3",
+      "nome": "deepseek-r1:7b - Tecnica",
+      "status": "WARN",
+      "detalhes": "7 chars em 4.4s: (vazio)",
+      "tempo": 4.43
+    },
+    {
+      "fase": "F3",
+      "nome": "deepseek-r1:7b - Simples",
+      "status": "PASS",
+      "detalhes": "35 chars em 3.4s: A capital do Brasil é **Brasília**.",
+      "tempo": 3.45
+    },
+    {
+      "fase": "F3",
+      "nome": "deepseek-r1:8b - Complexa",
+      "status": "PASS",
+      "detalhes": "180 chars em 8.9s: O Sistema de Progressão do Aventureiro (SPA) no MCR é um sistema de desenvolvime",
+      "tempo": 8.86
+    },
+    {
+      "fase": "F3",
+      "nome": "deepseek-r1:8b - Tecnica",
+      "status": "WARN",
+      "detalhes": "7 chars em 4.6s: (vazio)",
+      "tempo": 4.63
+    },
+    {
+      "fase": "F3",
+      "nome": "deepseek-r1:8b - Simples",
+      "status": "PASS",
+      "detalhes": "31 chars em 4.3s: A capital do Brasil é Brasília.",
+      "tempo": 4.3
+    },
+    {
+      "fase": "F4",
+      "nome": "qwen2.5-coder:7b - resposta curta (3x)",
+      "status": "PASS",
+      "detalhes": "Media: 3.38s (min: 2.13s, max: 5.87s)",
+      "tempo": 3.38
+    },
+    {
+      "fase": "F4",
+      "nome": "qwen2.5-coder:7b - resposta media",
+      "status": "PASS",
+      "detalhes": "1064 chars em 4.6s",
+      "tempo": 4.63
+    },
+    {
+      "fase": "F4",
+      "nome": "deepseek-r1:7b - resposta curta (3x)",
+      "status": "PASS",
+      "detalhes": "Media: 3.67s (min: 2.19s, max: 6.63s)",
+      "tempo": 3.67
+    },
+    {
+      "fase": "F4",
+      "nome": "deepseek-r1:7b - resposta media",
+      "status": "PASS",
+      "detalhes": "314 chars em 4.6s",
+      "tempo": 4.63
+    }
+  ]
+}
