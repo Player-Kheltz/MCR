@@ -400,7 +400,7 @@ ROUTER_SYSTEM_PROMPT = """Classifique a mensagem do jogador em uma das intencoes
 
 Mensagem: "{message}"
 
-Responda APENAS o JSON: {"intent": "item_info|monster_info|complex", "entity": "nome_do_item_ou_monstro_encontrado"}"""
+Responda APENAS o JSON: {{"intent": "item_info|monster_info|complex", "entity": "nome_do_item_ou_monstro_encontrado"}}"""
 
 
 def route_intent(message):
