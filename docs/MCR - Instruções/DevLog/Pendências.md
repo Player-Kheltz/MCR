@@ -292,10 +292,11 @@ docs/MCR - Instruções/Sistema de Habilidades Contextuais/
 - **Total: ~400 habilidades** em todo o sistema SPA
 
 ## ⏳ Próximos Passos
-- RAG: indexação completa do OTClient + data-otservbr (parcial)
+- RAG: reindexar quando Ollama estiver online (embedding pendente)
 - Histórico por conta (Fase 2)
 - NPC inteligente (Fase 3)
-- Testes pós-compilação
+- Renomear `machados_leves.lua` → `espadas_leves.lua` (conteúdo correto é Espadas Leves)
+- Testes pós-compilação (Canary OK, OTClient pendente)
 
 ## 🔴 Pendente (Próximos Passos)
 ### SHC — Sistema de Habilidades Contextuais
