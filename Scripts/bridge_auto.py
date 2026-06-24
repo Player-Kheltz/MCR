@@ -15,7 +15,14 @@ RESPONSE = os.path.join(BASE_DIR, "bridge_response.txt")
 LOG_FILE = os.path.join(BASE_DIR, "bridge_debug.log")
 KNOWLEDGE_FILE = os.path.join(SCRIPTS_DIR, "mcr_knowledge.txt")
 HOT_CACHE_FILE = os.path.join(BASE_DIR, ".rag_hot.json")
+EXACT_CACHE_FILE = os.path.join(BASE_DIR, ".exact_cache.json")
 HISTORY_DIR = os.path.join(CANARY_DIR, "data", "logs", "history")
+
+# Limites de tokens para nao estourar contexto 32k
+MAX_RAG_CHARS = 1200   # max chars do contexto RAG
+MAX_HISTORY_CHARS = 400  # max chars do historico
+MAX_KNOWLEDGE_CHARS = 800  # max chars do knowledge base
+MAX_PROMPT_CHARS = 2500  # max total do prompt (evita estourar 32k)
 
 OLLAMA_URL = "http://localhost:11434/api/generate"
 OLLAMA_CHAT_URL = "http://localhost:11434/api/chat"
@@ -189,6 +196,8 @@ ai_queue = queue.Queue()
 KNOWLEDGE = ""
 rag_ctx = None
 HOT_CACHE = []  # [(pergunta_chave, resposta, contexto)]
+EXACT_CACHE = {}  # {msg_normalizada: resposta}
+EXACT_CACHE_LOCK = threading.Lock()
 
 
 def log(msg):
@@ -440,6 +449,24 @@ def route_intent(message):
         entity = result.get("entity", "")
         if intent not in ("item_info", "monster_info", "complex"):
             intent = "complex"
+        
+        # Smart Router: filtra falsos positivos
+        if intent in ('item_info', 'monster_info') and entity:
+            entity_clean = entity.strip()
+            # Siglas maiusculas de 2-6 letras
+            if entity_clean.isupper() and 2 <= len(entity_clean) <= 6:
+                intent = 'complex'
+                entity = ''
+            # Palavras que indicam conceito abstrato
+            elif any(kw in entity_clean.lower() for kw in ["sistema", "conceito", "oque", "como", "onde", 
+                   "quando", "quem", "por que", "skill", "dominio", "progressao"]):
+                intent = 'complex'
+                entity = ''
+            # Entity muito longa
+            elif len(entity_clean) > 30:
+                intent = 'complex'
+                entity = ''
+        
         log(f"route_intent: {message[:50]} -> {intent}/{entity}")
         return {"intent": intent, "entity": entity}
     except (json.JSONDecodeError, Exception) as e:
@@ -633,32 +660,105 @@ def rpc_request(player_name, action, param, timeout=RPC_TIMEOUT):
     return {"status": "timeout", "data": None}
 
 
+# --- Cache exato (evita reprocessar perguntas identicas) ---
+def exact_cache_lookup(msg):
+    with EXACT_CACHE_LOCK:
+        key = msg.lower().strip()
+        return EXACT_CACHE.get(key)
+
+def exact_cache_store(msg, resp):
+    with EXACT_CACHE_LOCK:
+        key = msg.lower().strip()
+        EXACT_CACHE[key] = resp
+        # Limita a 500 entradas
+        if len(EXACT_CACHE) > 500:
+            # Remove as mais antigas
+            for k in list(EXACT_CACHE.keys())[:100]:
+                EXACT_CACHE.pop(k, None)
+
+def save_exact_cache():
+    try:
+        with open(EXACT_CACHE_FILE, "w", encoding="utf-8") as f:
+            json.dump(EXACT_CACHE, f, ensure_ascii=False)
+    except Exception:
+        pass
+
+def load_exact_cache():
+    global EXACT_CACHE
+    try:
+        if os.path.exists(EXACT_CACHE_FILE):
+            with open(EXACT_CACHE_FILE, "r", encoding="utf-8") as f:
+                EXACT_CACHE = json.load(f)
+            log(f"Cache exato carregado: {len(EXACT_CACHE)} entradas")
+    except Exception:
+        EXACT_CACHE = {}
+
 # --- Template de respostas rapidas (NUNCA alucina) ---
+# Usa combinacao de palavras-chave para evitar chamar IA desnecessariamente.
+# ATUALIZACAO v2: mais padroes, contains() em vez de match exato, pre-router.
+
+# Palavras de saudacao/despedida
+_SAUDACOES = {"ola", "oi", "oie", "hey", "hello", "bom dia", "boa tarde", "boa noite", 
+              "eai", "e aí", "fala", "opa", "oiee", "olá", "blz", "beleza"}
+_DESPEDIDAS = {"tchau", "bye", "ate mais", "até mais", "flw", "falou", "ate logo", "até logo",
+               "obrigado", "obrigada", "valeu", "brigado", "vlw"}
+_AJUDA = {"ajuda", "help", "comandos", "comandos", "oque voce faz", "o que voce faz", 
+          "como usar", "como funciona", "socorro"}
+
+def _match_keywords(m, keywords, min_words=1):
+    """Retorna True se a mensagem contem pelo menos min_words palavras-chave."""
+    count = sum(1 for k in keywords if k in m)
+    return count >= min_words
+
 def template_reply(player, msg):
-    """Retorna (resposta, blocked) onde blocked=True = IA nao deve processar."""
+    """
+    Retorna (resposta, blocked).
+    blocked=True  → IA nao deve processar (pergunta proibida ou ja respondida).
+    blocked=False → IA ainda pode processar (template deu resposta, mas router decide).
+    """
     m = msg.lower().strip()
-
-    # PERGUNTAS PROIBIDAS (credenciais, senhas) — blocked=True impede IA de processar
+    
+    # ==================== BLOQUEIO ====================
+    # PERGUNTAS PROIBIDAS (credenciais, senhas)
     if any(w in m for w in ["senha", "password", "usuario", "user", "login", "credential"]):
-        return f"{player}, nao posso fornecer informacoes de acesso. Consulte o arquivo de configuracao ou o administrador.", True
-
+        return f"{player}, nao posso fornecer informacoes de acesso.", True
     if any(w in m for w in ["admin", "root", "mysql", "banco", "database"]):
         if any(w in m for w in ["senha", "password", "usuario", "user", "login"]):
-            return f"{player}, informacoes de acesso ao banco de dados sao confidenciais. Nao posso compartilha-las.", True
+            return f"{player}, informacoes de acesso sao confidenciais.", True
 
-    # Ola
-    if m in ("ola", "oi", "oie", "hey", "hello"):
-        return f"Ola {player}! Sou o assistente MCR.", False
+    # ==================== SAUDACOES ====================
+    if _match_keywords(m, _SAUDACOES):
+        return f"Ola {player}! Sou o assistente MCR. Como posso ajudar?", True
+    
+    # ==================== DESPEDIDAS ====================
+    if _match_keywords(m, _DESPEDIDAS):
+        return f"Disponha, {player}! Estou aqui se precisar.", True
+    
+    # ==================== TESTE ====================
+    if _match_keywords(m, {"teste", "testando"}):
+        return f"Teste recebido, {player}! Sistema funcionando.", True
 
-    # Teste
-    if "teste" in m or "testando" in m:
-        return f"Teste recebido, {player}! Sistema funcionando.", False
+    # ==================== AJUDA ====================
+    if _match_keywords(m, _AJUDA):
+        return (f"{player}, sou o assistente do MCR! Pergunte sobre itens, monstros, "
+                f"habilidades, dominios SPA, ou duvidas gerais sobre o jogo.", True)
+    
+    # ==================== REPETICAO EXATA ====================
+    cached = exact_cache_lookup(msg)
+    if cached:
+        log(f"Cache exato HIT: {cached[:60]}")
+        return f"{player}, {cached}", True
 
-    # Obrigado
-    if "obrigado" in m or "valeu" in m or "brigado" in m:
-        return f"Disponha, {player}!", False
+    # ==================== PRE-ROUTER (classifica sem modelo) ====================
+    # Perguntas sobre items (padrao: "o que e X", "info X", "qual o dano de X")
+    if re.match(r"^(o que e|o que é|me fale sobre|info|qual o dano|como e|como é)", m):
+        return None, False  # Deixa o router classificar (mas nao damos reply template)
+    
+    # Perguntas sobre monstros (padrao: "fale sobre [monstro]", "onde fica [monstro]")
+    if re.match(r"^(fale sobre|onde fica|como matar)", m):
+        return None, False
 
-    return f"{player}, mensagem recebida!", False
+    return None, False  # Nao encaixou em template, router decide
 
 
 ANTI_HALLUCINATION_PROMPT = """Voce e o assistente do Projeto MCR, um servidor CUSTOMIZADO de Tibia.
@@ -704,8 +804,8 @@ def ai_worker():
         rag_ctx = None
         log(f"RAG nao disponivel: {e}")
 
-    # Carrega cache quente
-    global HOT_CACHE
+    # Carrega caches
+    global HOT_CACHE, EXACT_CACHE
     try:
         if os.path.exists(HOT_CACHE_FILE):
             with open(HOT_CACHE_FILE, "r", encoding="utf-8") as f:
@@ -713,6 +813,7 @@ def ai_worker():
             log(f"Cache quente carregado: {len(HOT_CACHE)} entradas")
     except Exception:
         HOT_CACHE = []
+    load_exact_cache()
 
     ensure_history_dir()
     while True:
@@ -724,7 +825,15 @@ def ai_worker():
             account_id = data.get("account_id", "")
             log(f"IA processando: {player} (acc={account_id[:8]}): {msg[:50]}")
 
-            # 1. Verifica cache quente
+            # 1. Verifica cache exato (mesma pergunta igual)
+            cached_exact = exact_cache_lookup(msg)
+            if cached_exact:
+                log(f"Cache exato HIT: {cached_exact[:60]}")
+                send_out(f"[IA] {cached_exact}", channel=is_channel)
+                ai_queue.task_done()
+                continue
+
+            # 2. Verifica cache quente (pergunta similar)
             cached = get_hot_cache(msg)
             if cached:
                 log(f"Cache quente HIT: {cached[:60]}")
@@ -732,12 +841,15 @@ def ai_worker():
                 ai_queue.task_done()
                 continue
 
-            # 2. Busca historico relevante para a pergunta (busca semantica)
+            # 3. Busca historico relevante para a pergunta (busca semantica)
             history_str = search_history(account_id, msg, top_k=2)
             if history_str:
                 log(f"Historico: busca semantica retornou contexto relevante")
+                # Limita tamanho do historico no prompt
+                if len(history_str) > MAX_HISTORY_CHARS:
+                    history_str = history_str[:MAX_HISTORY_CHARS] + "..."
 
-            # 3. Busca RAG
+            # 4. Busca RAG
             rag = ""
             if rag_ctx:
                 try:
@@ -746,19 +858,28 @@ def ai_worker():
                     rag = ""
                 if rag:
                     log(f"RAG: {len(rag)} bytes")
+                    # Limita tamanho do RAG no prompt
+                    if len(rag) > MAX_RAG_CHARS:
+                        rag = rag[:MAX_RAG_CHARS] + "..."
                 else:
                     log("RAG: sem resultado relevante")
 
-            # 4. Monta prompt anti-alucinacao
+            # 5. Monta prompt anti-alucinacao com limites de tamanho
             rag_context = rag if rag else "(RAG VAZIO - sem contexto relevante. Nao invente informacoes.)"
             hist_context = history_str if history_str else "(Sem historico recente.)"
+            know = KNOWLEDGE[:MAX_KNOWLEDGE_CHARS] + "..." if len(KNOWLEDGE) > MAX_KNOWLEDGE_CHARS else KNOWLEDGE
+            
             prompt = ANTI_HALLUCINATION_PROMPT.format(
                 history=hist_context,
-                knowledge=KNOWLEDGE,
+                knowledge=know,
                 rag_context=rag_context,
                 player=player,
                 msg=msg
             )
+            
+            # Garante que o prompt nao excede o maximo
+            if len(prompt) > MAX_PROMPT_CHARS:
+                prompt = prompt[:MAX_PROMPT_CHARS] + "\n...(truncado)"
 
             # 5. Pergunta ao Ollama (7b primeiro, fallback 1.5b)
             log(f"Modelo: {OLLAMA_MODEL}")
@@ -770,6 +891,8 @@ def ai_worker():
             # 6. Salva no historico da conta
             if reply:
                 save_to_history(account_id, player, msg, reply)
+                # Tambem guarda no cache exato
+                exact_cache_store(msg, reply)
 
             # 7. Resposta final
             if reply:
@@ -825,13 +948,14 @@ def main():
 
                     # 1. Template imediato (sempre, da feedback rapido)
                     reply, blocked = template_reply(player_name, msg_text)
-                    send_out(reply, channel=is_channel, account_id=m.get('account_id', ''))
+                    if reply:
+                        send_out(reply, channel=is_channel, account_id=m.get('account_id', ''))
 
                     # 2. Se bloqueado pelo template (senhas etc), nao processa mais
                     if blocked:
                         continue
 
-                    # 3. Router: classifica intencao
+                    # 3. Router: classifica intencao (so se template nao respondeu)
                     route = route_intent(msg_text)
 
                     # 4. Se for item_info ou monster_info, usa RPC (sem GPU)
