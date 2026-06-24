@@ -1,5 +1,5 @@
 >> CATALOG tags=todo, next-steps, roadmap, pendencias updated=2026-06-24
-# Pendências — 24 de Junho de 2026 (Atualizado 23:00 — Sessão SHC Completa)
+# Pendências — 24 de Junho de 2026 (Atualizado 23:45 — Sessão Armas + Sinergias)
 
 ## 🧠 Decisões de Arquitetura — Sistema de Habilidades Contextuais (SHC)
 ### Data: 24 de Junho de 2026
@@ -284,11 +284,18 @@ docs/MCR - Instruções/Sistema de Habilidades Contextuais/
 - **Contexto preservado via**: `opencode export ses_10ba7461affezWI30j8va6C5Kx` (7MB, 899 mensagens)
 - **Lições aprendidas**: Criado lesson sobre `opencode session` para recuperação de conversas
 
-## 🟡 Em Andamento
+## ✅ Concluído
 - ✅ **OTClient compilado** (VS 2026, toolset v145) — 0 erros
-- ✅ **5 domínios elementais completos** (150 habilidades SHC)
-- ⏳ **Matriz de Sinergias** — documentar sinergias entre domínios
+- ✅ **5 domínios elementais** — 150 habilidades SHC
+- ✅ **9 domínios de arma + sobrevivência** — 120 habilidades SHC
+- ✅ **Matriz de Sinergias** — documentada em `04 - MATRIZ DE SINERGIAS.txt`
+- **Total: ~400 habilidades** em todo o sistema SPA
+
+## ⏳ Próximos Passos
 - RAG: indexação completa do OTClient + data-otservbr (parcial)
+- Histórico por conta (Fase 2)
+- NPC inteligente (Fase 3)
+- Testes pós-compilação
 
 ## 🔴 Pendente (Próximos Passos)
 ### SHC — Sistema de Habilidades Contextuais
@@ -301,8 +308,8 @@ docs/MCR - Instruções/Sistema de Habilidades Contextuais/
 - [x] **Onda 6** — TERRA/VENENO (25): identidade + 30 habilidades ✅
 - [x] **Onda 7** — ENERGIA (26): identidade + 30 habilidades ✅
 - [x] **Onda 8** — SAGRADO/MORTE (200): identidade + 30 habilidades ✅
-- [ ] **Onda 9** — DOMÍNIOS DE ARMA (Espadas, Machados, Clavas)
-- [ ] **Onda 10** — Matriz de Sinergias completa + domínios secundários/primários
+- [x] **Onda 9** — DOMÍNIOS DE ARMA: espadas_pesadas, machados_pesados, clavas_leves/pesadas, arcos, lutador, armas_punho, bastoes_arcanos, sobrevivência ✅
+- [x] **Onda 10** — Matriz de Sinergias completa + documentação ✅
 
 ### Router de Itens
 - [x] **Pipeline completo** implementado e verificado ✅
