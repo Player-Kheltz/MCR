@@ -1,0 +1,147 @@
+# REVIEW - Revisao do Dominio CRISTAL
+# Modelo: deepseek-r1:8b
+# Tempo: 27.263155698776245s
+
+**Revisão do Dominio CRISTAL (ID 27):**
+
+## 1. Nicho Único?
+
+**Análise:**
+O domínio CRISTAL atualmente ainda não está bem definido. A descrição fala sobre manipulação de cristais, mas não explica como isso se diferencia dos outros domínios (Fogo, Gelo, Terra, Energia). A falta de uma essência única dificulta a avaliação de seu nicho.
+
+**Recomendação:**
+Defina claramente o que torna o Cristal único. Por exemplo:
+- Manipulação de elementos sólidos e duráveis
+- Criação de barreiras defensivas complexas
+- Capacidade de armazenar energia de forma estruturada
+- Possibilidade de transformar elementos externos em cristais
+
+## 2. Formato SHC?
+
+**Análise:**
+O formato SHC está presente, mas com inconsistências:
+
+* **Problemas:**
+  * Todas as habilidades têm sinergias com Fogo e Energia (repetitivo e não lógico)
+  * Condições genéricas ("em combate") sem valor agregado
+  * Falta descrição completa das habilidades
+  * Níveis de habilidade começam em 1, o que dificulta a diferenciação
+
+* **O que está correto:**
+  * Estrutura básica de campos (postura/nível/sinergia/estado/condição)
+  * Uso do sistema de combate
+
+## 3. Sinergias com outros dominios?
+
+**Análise:**
+As sinergias são forçadas e não criam uma relação orgânica:
+
+* **Problemas:**
+  * Combinação de Cristal com Fogo para chamas cristalizadas não está bem integrada
+  * Relação com Terra é muito superficial ("cristais geológicos")
+  * Energia é uma sinergia repetida em todas as habilidades
+
+* **O que está correto:**
+  * A ideia de combinação entre elementos é válida, mas precisa de mais desenvolvimento
+
+## 4. Recomendações para melhoria
+
+### A. Redefinir o Nicho
+* Especifique claramente o que torna o Cristal único
+* Defina limites e potencialidades
+* Crie uma essência mais profunda
+
+### B. Refinar o Formato SHC
+* **Habilidades:**
+  * Defina descrições completas
+  * Ajuste os níveis para criar progressão lógica
+  * Crie diferentes tipos de habilidades (ataque, defesa, cura, suporte)
+  * Evite repetições de sinergias
+
+### C. Melhorar as Sinergias
+* Crie combinações orgânicas entre domínios
+* Desenvolva uma lógica coerente para as interações
+* Evite sinergias forçadas
+
+### D. Identidade Visual
+* Ajuste os efeitos visuais para refletir melhor o domínio
+* Crie uma paleta de cores única
+* Defina padrões visuais distintos
+
+### E. Exemplos de Habilidades Melhoradas
+
+```lua
+HABILIDADES[27001] = {
+    nome = "Cristalização Rápida",
+    tipo = "gatilho",
+    dominio = {27},
+    efeitoConfig = {
+        elemento = COMBAT_ENERGYDAMAGE,
+        danoMinimo = 50,
+        danoMaximo = 100
+    },
+    postura = {"ataque"},
+    niveis = {minimo = 5, maximo = 20},
+    sinergias = {"fogo", "terra"},
+    estados = {"alvo_vulneravel"},
+    condicoes = {"em_combate"}
+}
+
+HABILIDADES[27002] = {
+    nome = "Reflexão Elemental",
+    tipo = "gatilho",
+    dominio = {27},
+    efeitoConfig = {
+        elemento = COMBAT_REFLECT,
+        danoReducao = 20
+    },
+    postura = {"defesa"},
+    niveis = {minimo = 10, maximo = 25},
+    sinergias = {"fogo", "gel"},
+    estados = {"reflexao_ativa"},
+    condicoes = {"em_combate"}
+}
+
+HABILIDADES[27003] = {
+    nome = "Resonância Cósmica",
+    tipo = "gatilho",
+    dominio = {27},
+    efeitoConfig = {
+        elemento = COMBAT_HEALING,
+        curaMinima = 30,
+        curaMaxima = 60
+    },
+    postura = {"cura"},
+    niveis = {minimo = 15, maximo = 30},
+    sinergias = {"energia", "terra"},
+    estados = {"resonancia"},
+    condicoes = {"em_combate"}
+}
+```
+
+### F. Nova Identidade Visual
+* Efeitos: CONST_ME_CRYSTALIZE, CONST_ME_GLOW, CONST_ME_ENERGYHIT
+* Cores: Branco, prata, azul-fosco
+* Modelagem: Vestes com padrões geométricos, armaduras com detalhes cristalinos
+
+### G. Identidade Completa
+```markdown
+## Identidade do Domínio Cristal (ID 27)
+
+### Essência
+Manipulação de elementos sólidos e duráveis, capaz de transformar energia em formas estruturadas e controladas.
+
+### Combate
+Aventureiros que dominam o Cristal são conhecidos por sua habilidade de criar defesas complexas e armas precisas, utilizando a energia de forma eficiente.
+
+### Percepção do Mundo
+A visão do mundo no domínio Cristal é centrada na geometria e estrutura, permitindo aos aventureiros perceber padrões e formas ocultos.
+
+### Arquétipo do Mestre
+O arquétipo do mestre em Cristal é o **Geômetra**, capaz de criar estruturas complexas e precisas, seja para defesa ou para explorar novos caminhos.
+
+### Identidade Visual
+* Efeitos: CONST_ME_CRYSTALIZE, CONST_ME_GLOW, CONST_ME_ENERGYHIT
+* Cores: Branco, prata, azul-fosco
+* Modelagem: Vestes com padrões geométricos, armaduras com detalhes cristalinos
+```

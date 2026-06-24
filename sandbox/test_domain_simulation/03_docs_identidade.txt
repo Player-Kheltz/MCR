@@ -1,0 +1,33 @@
+# DOCS - Identidade do Dominio CRISTAL
+# Modelo: qwen2.5-coder:7b
+# Tempo: 8.994193077087402s
+
+# Identidade do Domínio Cristal (ID 27)
+
+## Essência
+O domínio Cristal é uma das principais áreas de conhecimento no Sistema de Progressão do Aventureiro (SPA) do Projeto MCR. Ele se concentra na manipulação e controle dos elementos cristálicos, permitindo aos aventureiros criar e controlar estruturas sólidas e duradouras.
+
+## Combate
+Os aventureiros que dominam o Cristal são conhecidos por suas habilidades defensivas excepcionais. Eles podem criar barreiras de cristal impenetráveis, absorver ataques e até mesmo refleti-los de volta aos inimigos. Além disso, eles possuem uma resistência física significativa, capaz de suportar danos que seriam mortais para outros aventureiros.
+
+## Percepção do Mundo
+A percepção do mundo no domínio Cristal é centrada na visão e sensação dos elementos cristálicos. Aperfeiçoar-se nesse domínio melhora a capacidade de identificar e manipular diferentes tipos de cristais, desde os mais fracos até os mais poderosos.
+
+## Arquétipo do Mestre
+O arquétipo do mestre em Cristal é o **Construtor**. Esses mestres são habilidosos em criar estruturas complexas e duradouras, seja para defesa ou para criação de ambientes controlados. Eles possuem uma profunda compreensão dos princípios da física cristalina e podem usar esses conhecimentos para criar e controlar objetos sólidos.
+
+## Identidade Visual
+Os aventureiros que dominam o Cristal são reconhecidos por suas aparências distintas. Eles geralmente vestem roupas de cor prata ou branca, com elementos cristálicos incorporados em seus equipamentos. Suas armas favoritas incluem espadas e escudos feitos de cristais, além de conjuntos de armaduras que refletem a luz.
+
+## Pacotes Temáticos
+1. **Construção Forte**: Aperfeiçoar-se nesse pacote melhora a habilidade de criar estruturas sólidas e duradouras.
+2. **Defesa Elemental**: Capacitação em defesa contra ataques físicos e mágicos usando cristais.
+3. **Manipulação de Cristais**: Aperfeiçoar-se nesse pacote melhora a capacidade de manipular diferentes tipos de cristais.
+
+## Sinergias
+1. **Cristal e Fogo**: Ao combinar o domínio Cristal com o domínio Fogo, os aventureiros podem criar estruturas que são simultaneamente duradouras e fofcas.
+2. **Cristal e Energia**: Combinando Cristal com Energia, os mestres podem criar campos de energia cristalina que protegem suas posições ou causam danos aos inimigos.
+3. **Cristal e Terra**: Ao combinar Cristal com Terra, os aventureiros podem criar estruturas sólidas e duradouras que são imunes à erosão.
+
+## Conclusão
+O domínio Cristal é uma área de conhecimento poderosa e versátil no Projeto MCR. Ele oferece habilidades defensivas excepcionais, capacidade de manipulação dos elementos cristálicos e um arquétipo do mestre que valoriza a construção e defesa. Com o domínio Cristal, os aventureiros podem se tornar verdadeiros protetores e construtores em qualquer território.
