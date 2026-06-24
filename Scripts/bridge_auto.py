@@ -971,14 +971,19 @@ def main():
                             else:
                                 formatted = format_monster_response(rpc_result['data'])
                             if formatted:
-                                send_out(f"[Item] {formatted}", channel=is_channel)
+                                send_out(formatted, channel=is_channel)
                                 log(f"RPC resposta enviada para {player_name}: {formatted[:60]}")
                                 continue  # Pula IA
                             else:
-                                # Falha formatacao, fallback
                                 log(f"RPC format falhou, fallback IA")
+                        elif rpc_result['status'] == 'not_found':
+                            # Item nao encontrado no servidor — mensagem clara sem IA
+                            entity = route.get('entity', '')
+                            log(f"RPC not_found para {entity}")
+                            send_out(f"{entity}: Item nao encontrado no servidor. Tente o nome em ingles (ex: Fire Sword).", channel=is_channel)
+                            continue
                         else:
-                            # RPC falhou (timeout, erro, not_found)
+                            # RPC falhou (timeout, erro)
                             log(f"RPC {rpc_result['status']} para {route['intent']} '{route['entity']}', fallback IA")
 
                     # 5. Fallback: IA processa (GPU) com account_id
