@@ -1,0 +1,49 @@
+>> CATALOG tags=terra, veneno, earth, poison, domain, identity updated=2026-06-24
+╔══════════════════════════════════════════════════════════════╗
+║       DOMÍNIO: TERRA e VENENO (ID 25) - Identidade         ║
+║              Projeto MCR — SPA — SHC v1.0                   ║
+╚══════════════════════════════════════════════════════════════╝
+
+ARQUIVO: 02 - CATALOGO DE DOMINIOS/25 - TERRA_VENENO.txt
+DOMÍNIO: Terra e Veneno
+ID: 25
+HIERARQUIA: Especialidade (Elementos 20 → Magia 2)
+DOMÍNIOS IRMÃOS: Fogo (23), Água/Gelo (24), Energia (26)
+
+═══════════════════════════════════════════════════════════════
+1. ESSÊNCIA
+═══════════════════════════════════════════════════════════════
+
+Sentimento central:
+  Resiliência inabalável, decadência lenta, força bruta da natureza.
+  A terra não se move — você é que cai.
+
+Três adjetivos-chave:
+  Resistente, tóxico, implacável.
+
+Frase de assinatura:
+  "A montanha não se curva. O veneno não perdoa."
+
+═══════════════════════════════════════════════════════════════
+2. COMBATE E COMPORTAMENTO
+═══════════════════════════════════════════════════════════════
+
+Como um Mestre da Terra se comporta:
+  Tanque natural. Absorve dano enquanto envenena lentamente.
+  Cria barreiras de pedra, envenena áreas, resiste a tudo.
+  Quanto mais tempo passa, mais veneno acumula no alvo.
+
+Força: Resistência absurda + dano veneno progressivo.
+Fraqueza: Dano baixo no curto prazo, mobilidade limitada.
+
+═══════════════════════════════════════════════════════════════
+6. PACOTES TEMÁTICOS
+═══════════════════════════════════════════════════════════════
+IDs: 25001-25030 — Projéteis de Rocha, Campos de Veneno, Buffs de Terra, Supremas
+
+═══════════════════════════════════════════════════════════════
+8. NOTAS DE IMPLEMENTAÇÃO
+═══════════════════════════════════════════════════════════════
+- Usa COMBAT_EARTHDAMAGE + COMBAT_POISONDAMAGE
+- Veneno é DOT progressivo (like Fogo but more sustain, less burst)
+- Nicho: Tanque/DOT/Controle de área

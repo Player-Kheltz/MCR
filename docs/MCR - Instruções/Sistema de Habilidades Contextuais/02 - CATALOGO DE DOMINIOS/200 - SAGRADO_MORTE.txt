@@ -1,0 +1,18 @@
+>> CATALOG tags=sagrado, morte, holy, death, domain, identity updated=2026-06-24
+╔══════════════════════════════════════════════════════════════╗
+║      DOMÍNIO: SAGRADO e MORTE (ID 200) - Identidade        ║
+║              Projeto MCR — SPA — SHC v1.0                   ║
+╚══════════════════════════════════════════════════════════════╝
+
+DOMÍNIO: Sagrado e Morte
+ID: 200
+HIERARQUIA: Especialidade (Espectro 21 → Magia 2)
+
+Essência: Dualidade entre luz e trevas, cura e destruição.
+Tagline: "A linha entre a vida e a morte é tênue. Eu a atravesso."
+Força: Versatilidade entre cura/holy vs dano/Death.
+Fraqueza: Especialização dividida, bônus menores que domínios puros.
+
+Nicho: Suporte híbrido / Dano contra mortos-vivos / Cura / Drenagem
+IDs: 200001-200030
+Elemento: COMBAT_HOLYDAMAGE e COMBAT_DEATHDAMAGE

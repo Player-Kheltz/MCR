@@ -1,0 +1,20 @@
+>> CATALOG tags=energia, energy, lightning, domain, identity updated=2026-06-24
+╔══════════════════════════════════════════════════════════════╗
+║         DOMÍNIO: ENERGIA (ID 26) - Identidade               ║
+║              Projeto MCR — SPA — SHC v1.0                   ║
+╚══════════════════════════════════════════════════════════════╝
+
+DOMÍNIO: Energia
+ID: 26
+HIERARQUIA: Especialidade (Elementos 20 → Magia 2)
+
+Essência: Velocidade, precisão, trovão. A energia não espera.
+Tagline: "O relâmpago não avisa. Eu também não."
+Força: Dano burst massivo, velocidade de ataque, mobilidade.
+Fraqueza: Consumo de mana alto, sem sustain, vulnerável após burst.
+
+Nicho: Burst damage / Velocidade / Precisão cirúrgica
+IDs: 26001-26030
+Elemento: COMBAT_ENERGYDAMAGE
+Visual: CONST_ME_ENERGYAREA, CONST_ME_ENERGYHIT, CONST_ANI_ENERGY
+Sinergias: Fogo (plasma), Gelo (raio glacial), Terra (campo eletrificado)

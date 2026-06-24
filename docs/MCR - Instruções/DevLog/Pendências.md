@@ -1,5 +1,5 @@
 >> CATALOG tags=todo, next-steps, roadmap, pendencias updated=2026-06-24
-# Pendências — 24 de Junho de 2026 (Atualizado 12:40 — Sessão Autônoma)
+# Pendências — 24 de Junho de 2026 (Atualizado 23:00 — Sessão SHC Completa)
 
 ## 🧠 Decisões de Arquitetura — Sistema de Habilidades Contextuais (SHC)
 ### Data: 24 de Junho de 2026
@@ -225,16 +225,13 @@ docs/MCR - Instruções/Sistema de Habilidades Contextuais/
 - ✅ **Anti-alucinação**: Prompt que bloqueia invenção de dados + `player_mode` restrito a docs seguros ✅
 - ⚠️ **Sessão `ses_108b08760ffe73IEqNi2RcJhcV`**: Não disponível como arquivo, mas análise de código confirma implementação completa
 
-### SHC — Onda 4 (FOGO) Iniciada
-- ✅ **Identidade do FOGO**: `docs/.../02 - CATALOGO DE DOMINIOS/23 - FOGO.txt` criado
-  - Essência, comportamento, percepção, arquétipo, identidade visual, pacotes temáticos, sinergias
-- ✅ **6 habilidades FOGO criadas** em `Canary/.../habilidades/fogo.lua`:
-  - 23001 Orbital Ígneo (toggle, 5 camadas SHC completas)
-  - 23002 Bola de Fogo (gatilho, AoE clássico)
-  - 23003 Combustão Lenta (gatilho, DOT progressivo)
-  - 23004 Manto de Chamas (toggle, defensivo)
-  - 23005 Fúria da Chama (gatilho, buff)
-  - 23006 Jato de Chamas (gatilho, cone frontal)
+### SHC — Todos os 5 Domínios Elementais Completos (150 habilidades)
+- ✅ **30 FOGO** (23001-23030): Orbital, Bola de Fogo, Combustão, Manto, Fúria, Jato + 24 adicionais
+- ✅ **30 GELO** (24001-24030): Estalactite, Explosão Glacial, Prisão de Diamante, Aura Glacial, Nevasca + 25 adicionais
+- ✅ **30 TERRA/VENENO** (25001-25030): Projétil de Rocha, Nuvem de Veneno, Armadura de Pedra, Espinhos, Terremoto + 25 adicionais
+- ✅ **30 ENERGIA** (26001-26030): Raio, Centelha, Tempestade Elétrica, Escudo de Energia, Sobrecarga + 25 adicionais
+- ✅ **30 SAGRADO/MORTE** (200001-200030): Luz Sagrada, Toque da Morte, Julgamento Divino + 27 adicionais
+- ✅ **Identidade dos 5 domínios** em `02 - CATALOGO DE DOMINIOS/`
 
 ---
 
@@ -289,11 +286,9 @@ docs/MCR - Instruções/Sistema de Habilidades Contextuais/
 
 ## 🟡 Em Andamento
 - ✅ **OTClient compilado** (VS 2026, toolset v145) — 0 erros
-- ✅ **FOGO identidade + 6 habilidades** criadas
-- ⏳ **FOGO**: 24 habilidades restantes (23007-23030) — próxima sessão
+- ✅ **5 domínios elementais completos** (150 habilidades SHC)
+- ⏳ **Matriz de Sinergias** — documentar sinergias entre domínios
 - RAG: indexação completa do OTClient + data-otservbr (parcial)
-- Histórico por conta (Fase 2)
-- NPC inteligente (Fase 3)
 
 ## 🔴 Pendente (Próximos Passos)
 ### SHC — Sistema de Habilidades Contextuais
@@ -301,13 +296,13 @@ docs/MCR - Instruções/Sistema de Habilidades Contextuais/
 - [x] **Onda 1** — `contexto.lua` criado ✅ (Resolvedor Contextual v1.0)
 - [x] **Onda 2** — `executor.lua` modificado ✅ (v10.0 com SHC)
 - [x] **Onda 3** — Documentação criada ✅ (00-INDICE, 01-ARQUITETURA, 05-GUIAS)
-- [x] **Onda 4** — FOGO: identidade + 6 habilidades (24 restantes: 23007-23030)
-- [ ] **Onda 5** — GELO (24): identidade + habilidades (~30)
-- [ ] **Onda 6** — TERRA/VENENO (25): identidade + habilidades (~30)
-- [ ] **Onda 7** — ENERGIA (26): identidade + habilidades (~30)
-- [ ] **Onda 8** — SAGRADO/MORTE (200): identidade + habilidades (~30)
-- [ ] **Onda 9** — Demais domínios elementais
-- [ ] **Onda 10** — Matriz de Sinergias completa + validação + commit
+- [x] **Onda 4** — FOGO: identidade + 30 habilidades ✅
+- [x] **Onda 5** — GELO (24): identidade + 30 habilidades ✅
+- [x] **Onda 6** — TERRA/VENENO (25): identidade + 30 habilidades ✅
+- [x] **Onda 7** — ENERGIA (26): identidade + 30 habilidades ✅
+- [x] **Onda 8** — SAGRADO/MORTE (200): identidade + 30 habilidades ✅
+- [ ] **Onda 9** — DOMÍNIOS DE ARMA (Espadas, Machados, Clavas)
+- [ ] **Onda 10** — Matriz de Sinergias completa + domínios secundários/primários
 
 ### Router de Itens
 - [x] **Pipeline completo** implementado e verificado ✅
