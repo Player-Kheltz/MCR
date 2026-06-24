@@ -728,20 +728,20 @@ def template_reply(player, msg):
 
     # ==================== SAUDACOES ====================
     if _match_keywords(m, _SAUDACOES):
-        return f"Ola {player}! Sou o assistente MCR. Como posso ajudar?", True
+        return f"Ola {player}! Bem-vindo ao MCR. Estou aqui para ajudar com: itens, monstros, habilidades SPA, duvidas sobre o jogo.", True
     
     # ==================== DESPEDIDAS ====================
     if _match_keywords(m, _DESPEDIDAS):
-        return f"Disponha, {player}! Estou aqui se precisar.", True
+        return f"Disponha {player}! Sessao MCR encerrada.", True
     
     # ==================== TESTE ====================
     if _match_keywords(m, {"teste", "testando"}):
-        return f"Teste recebido, {player}! Sistema funcionando.", True
+        return f"MCR Assistente OK. Canais: 500, !assistente. Modelo: qwen 7b local.", True
 
     # ==================== AJUDA ====================
     if _match_keywords(m, _AJUDA):
-        return (f"{player}, sou o assistente do MCR! Pergunte sobre itens, monstros, "
-                f"habilidades, dominios SPA, ou duvidas gerais sobre o jogo.", True)
+        return (f"Comandos MCR: pergunte sobre itens (\"War Hammer\"), "
+                f"monstros, dominios SPA, ou digite !assistente <msg>.", True)
     
     # ==================== REPETICAO EXATA ====================
     cached = exact_cache_lookup(msg)
@@ -776,6 +776,8 @@ REGRAS:
    NAO invente nomes como CONST_EFFECT_FIRESWELL, addEffect, increaseTime ou similares.
 7. Voce NAO pode criar, editar ou modificar arquivos. Voce apenas RESPONDE perguntas.
 8. NUNCA responda com codigo a menos que seja explicitamente solicitado.
+9. Nomes de itens do jogo (ex: espadas, pocao, armaduras) devem estar entre aspas duplas 
+   para que o cliente do jogo os destaque, como: "War Hammer", "Pocao de Vida".
 
 HISTORICO RELEVANTE DA CONVERSA (apenas mensagens relacionadas a pergunta atual):
 {history}
