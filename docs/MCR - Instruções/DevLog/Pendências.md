@@ -291,12 +291,15 @@ docs/MCR - Instruções/Sistema de Habilidades Contextuais/
 - ✅ **Matriz de Sinergias** — documentada em `04 - MATRIZ DE SINERGIAS.txt`
 - **Total: ~400 habilidades** em todo o sistema SPA
 
+## ✅ Concluído Hoje
+- ✅ **RAG reindexado**: 25752 chunks (12766 → 25752, + 12986 novos embeddings)
+- ✅ **OTClient compilado**: 0 erros (VS 2026 v145)
+- ✅ **Canary compilado**: 0 erros
+- ✅ **Renomeado**: `machados_leves.lua` → `espadas_leves.lua`
+
 ## ⏳ Próximos Passos
-- RAG: reindexar quando Ollama estiver online (embedding pendente)
 - Histórico por conta (Fase 2)
 - NPC inteligente (Fase 3)
-- Renomear `machados_leves.lua` → `espadas_leves.lua` (conteúdo correto é Espadas Leves)
-- Testes pós-compilação (Canary OK, OTClient pendente)
 
 ## 🔴 Pendente (Próximos Passos)
 ### SHC — Sistema de Habilidades Contextuais
