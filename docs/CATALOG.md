@@ -1,6 +1,6 @@
 # Catalogo de Documentacao MCR
 
-> Gerado por scripts/doc-sync.py em 2026-06-23
+> Gerado por scripts/doc-sync.py em 2026-06-24
 > Leia este arquivo no inicio de toda conversa para saber quais docs carregar.
 
 ## Tabela de Decisao Rapida
@@ -32,7 +32,7 @@
 
 | Arquivo | Tags | Atualizado | Resumo |
 |---|---|---|---|
-| `DevLog\Pendências.md` | `todo, next-steps, roadmap, pendencias` | 2026-06-23 | Estado atual do projeto, tarefas pendentes e decisoes em aberto |
+| `DevLog\Pendências.md` | `todo, next-steps, roadmap, pendencias` | 2026-06-24 | Estado atual do projeto, tarefas pendentes e decisoes em aberto |
 | `DevLog\Sistema Multi-Piso.md` | `multi-piso, los, battlelist, navigation, combat, monster-ai` | 2026-06-23 | Decisoes e historico do sistema multi-piso: LOS, BattleList, perseguicao, navegacao do jogador |
 | `DevLog\Sistema de Codificação.md` | `encoding, utf-8, devlog` | 2026-06-23 | Decisoes e historico sobre encoding e padronizacao UTF-8 |
 | `DevLog\Sistema de Montarias.md` | `mounts, summon, devlog` | 2026-06-23 | Decisoes e historico do sistema MountSummon |

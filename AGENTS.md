@@ -73,15 +73,28 @@ Nunca gere falsas informações ou reescritas desnecessárias nos docs.
 
 ## 8. Compilação
 
-### OTClient (VS 2026)
-```cmd
-"${VS2026}\\VC\\Auxiliary\\Build\\vcvars64.bat" && msbuild "${MCR}\\OTClient\\vc17\\otclient.vcxproj" /p:Configuration=OpenGL /p:Platform=x64 /t:Build /m"
-```
+Ambos os projetos compilam com **Visual Studio 2022** (`v143` toolset).
 
 ### Canary Server (VS 2022)
 ```cmd
-"${VS2022}\\VC\\Auxiliary\\Build\\vcvars64.bat" && msbuild "${MCR}\\Canary\\vcproj\\canary.vcxproj" /p:Configuration=Release /p:Platform=x64 /t:Build /m"
+cmd.exe /c """C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"" && ""C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\amd64\MSBuild.exe"" ""%MCR%\Canary\vcproj\canary.vcxproj"" /p:Configuration=Release /p:Platform=x64 /t:Build /m"
 ```
+
+### OTClient (VS 2026)
+> **Motivo:** O vcpkg (v2026-04-08) detecta automaticamente o VS mais recente (2026) e compila
+> as dependências com MSVC 14.51. Para alinhar ABI, o OTClient deve ser compilado com
+> VS 2026 (toolset v145).
+
+```cmd
+cmd.exe /c """C:\Program Files\Microsoft Visual Studio\2026\Community\VC\Auxiliary\Build\vcvars64.bat"" && ""C:\Program Files\Microsoft Visual Studio\2026\Community\MSBuild\Current\Bin\amd64\MSBuild.exe"" ""%MCR%\OTClient\vc17\otclient.vcxproj"" /p:Configuration=OpenGL /p:Platform=x64 /t:Build /m"
+```
+
+### Alternativa: Compilar pelo Visual Studio
+Abra o `.vcxproj` diretamente no **VS 2026** e clique em Build → Build Solution.
+A primeira compilação do OTClient pode demorar (vcpkg compila dependências estáticas).
+Depois da primeira vez, as compilações são rápidas (1-2 min).
+> **Nota:** Se tiver VS 2022 e VS 2026 instalados, o OTClient DEVE ser compilado com VS 2026.
+> O Canary (servidor) continua compilando com VS 2022.
 
 ## 9. Consulte TROUBLESHOOTING.md Antes de Debuggar
 
@@ -101,3 +114,24 @@ Prefira `python scripts/auto.py <comando>` em vez de comandos manuais:
 - `sync` — regenera CATALOG.md
 - `session` — mostra session.json
 - `server start / stop / restart` — controla Canary.exe
+- `up` — sobe tudo (server + bridge + watchdog)
+- `doctor` — diagnóstico e sugestões
+
+## 12. Limpeza de Processos
+
+Sempre que iniciar um servidor, bridge, watchdog ou qualquer processo em segundo plano para testes, **finalize-o após a validação**. Processos esquecidos:
+- Bloqueiam compilação (LNK1104: exe em uso)
+- Consomem memória/CPU desnecessariamente
+- Causam conflitos de porta (ex: servidor duplicado)
+
+Use `auto.py server stop` ou `Get-Process | Stop-Process` para limpar.
+
+## 13. Autonomia
+
+O assistente possui capacidade autonoma de:
+- Compilar servidor e cliente
+- Gerenciar bridge e watchdog
+- Indexar RAG automaticamente
+- Criar lições aprendidas
+
+Ver `scripts/README_AUTONOMY.md` para documentação completa do sistema autônomo.
