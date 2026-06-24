@@ -1,0 +1,33 @@
+# NPC
+# Modelo: qwen2.5-coder:7b
+# Tempo: 4.4s
+
+```lua
+local npc = NPCHandler:new("Vendedor")
+function npc:onGreet(player) selfSay("Ola!") end
+function npc:onSell(player, item, amount)
+    if item:getId() == 268 then -- ID da pocao de vida
+        local price = 100 * amount
+        player:addMoney(price)
+        player:sendTextMessage(MESSAGE_INFO_DESCR, "Voce comprou " .. amount .. " pocoes de vida por " .. price .. " gold.")
+        return true
+    end
+    return false
+end
+function npc:onBuy(player, item, amount)
+    if item:getId() == 2160 then -- ID dos ossos
+        local price = 5 * amount
+        if player:getMoney() >= price then
+            player:addItem(item:getId(), amount)
+            player:removeMoney(price)
+            player:sendTextMessage(MESSAGE_INFO_DESCR, "Voce vendeu " .. amount .. " ossos por " .. price .. " gold.")
+            return true
+        else
+            player:sendTextMessage(MESSAGE_STATUS_WARNING, "Voce nao tem dinheiro suficiente para comprar isso.")
+            return false
+        end
+    end
+    return false
+end
+npc:register()
+```
