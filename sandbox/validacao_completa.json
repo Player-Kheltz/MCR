@@ -1,0 +1,190 @@
+{
+  "resumo": {
+    "total": 30,
+    "pass": 27,
+    "fail": 2,
+    "warn": 1
+  },
+  "detalhes": [
+    {
+      "nome": "opencode.local.json e valido",
+      "resultado": "PASS",
+      "detalhe": "4545 bytes",
+      "tempo": 0
+    },
+    {
+      "nome": "Ollama online",
+      "resultado": "PASS",
+      "detalhe": "11 modelos instalados",
+      "tempo": 0
+    },
+    {
+      "nome": "Modelo llama3.1:8b esta instalado",
+      "resultado": "PASS",
+      "detalhe": "Disponivel em E:\\Modelos IA",
+      "tempo": 0
+    },
+    {
+      "nome": "Modelo qwen2.5-coder:7b esta instalado",
+      "resultado": "PASS",
+      "detalhe": "Disponivel em E:\\Modelos IA",
+      "tempo": 0
+    },
+    {
+      "nome": "Modelo hermes3:8b esta instalado",
+      "resultado": "PASS",
+      "detalhe": "Disponivel em E:\\Modelos IA",
+      "tempo": 0
+    },
+    {
+      "nome": "Modelo phi3.5:3.8b esta instalado",
+      "resultado": "PASS",
+      "detalhe": "Disponivel em E:\\Modelos IA",
+      "tempo": 0
+    },
+    {
+      "nome": "Modelo deepseek-r1:7b esta instalado",
+      "resultado": "PASS",
+      "detalhe": "Disponivel em E:\\Modelos IA",
+      "tempo": 0
+    },
+    {
+      "nome": "Modelo deepseek-r1:8b esta instalado",
+      "resultado": "PASS",
+      "detalhe": "Disponivel em E:\\Modelos IA",
+      "tempo": 0
+    },
+    {
+      "nome": "Agente explore -> phi3.5:3.8b",
+      "resultado": "PASS",
+      "detalhe": "Modelo disponivel",
+      "tempo": 0
+    },
+    {
+      "nome": "Agente plan -> deepseek-r1:8b",
+      "resultado": "PASS",
+      "detalhe": "Modelo disponivel",
+      "tempo": 0
+    },
+    {
+      "nome": "Agente dev -> qwen2.5-coder:7b",
+      "resultado": "PASS",
+      "detalhe": "Modelo disponivel",
+      "tempo": 0
+    },
+    {
+      "nome": "Agente build -> qwen2.5-coder:7b",
+      "resultado": "PASS",
+      "detalhe": "Modelo disponivel",
+      "tempo": 0
+    },
+    {
+      "nome": "Agente chat -> llama3.1:8b",
+      "resultado": "PASS",
+      "detalhe": "Modelo disponivel",
+      "tempo": 0
+    },
+    {
+      "nome": "Agente review -> deepseek-r1:8b",
+      "resultado": "PASS",
+      "detalhe": "Modelo disponivel",
+      "tempo": 0
+    },
+    {
+      "nome": "Agente docs -> qwen2.5-coder:7b",
+      "resultado": "PASS",
+      "detalhe": "Modelo disponivel",
+      "tempo": 0
+    },
+    {
+      "nome": "Resposta phi3.5:3.8b",
+      "resultado": "PASS",
+      "detalhe": "82 chars em 2.2s",
+      "tempo": 2.23
+    },
+    {
+      "nome": "Resposta qwen2.5-coder:7b",
+      "resultado": "PASS",
+      "detalhe": "36 chars em 11.2s",
+      "tempo": 11.16
+    },
+    {
+      "nome": "Resposta llama3.1:8b",
+      "resultado": "PASS",
+      "detalhe": "52 chars em 6.2s",
+      "tempo": 6.23
+    },
+    {
+      "nome": "Resposta hermes3:8b",
+      "resultado": "PASS",
+      "detalhe": "39 chars em 6.4s",
+      "tempo": 6.38
+    },
+    {
+      "nome": "Resposta deepseek-r1:7b",
+      "resultado": "PASS",
+      "detalhe": "50 chars em 8.4s",
+      "tempo": 8.42
+    },
+    {
+      "nome": "Resposta deepseek-r1:8b",
+      "resultado": "PASS",
+      "detalhe": "18 chars em 7.7s",
+      "tempo": 7.7
+    },
+    {
+      "nome": "Phi3.5 tool calling: JSON valido",
+      "resultado": "PASS",
+      "detalhe": "Chamou list_dir({'dir': 'sandbox'})",
+      "tempo": 4.87
+    },
+    {
+      "nome": "Hermes3 tool calling: JSON valido",
+      "resultado": "PASS",
+      "detalhe": "Chamou read_file({'caminho': 'AGENTS.md'})",
+      "tempo": 6.46
+    },
+    {
+      "nome": "Consistencia phi3.5:3.8b",
+      "resultado": "PASS",
+      "detalhe": "Jaccard=1.00",
+      "tempo": 0
+    },
+    {
+      "nome": "Consistencia hermes3:8b",
+      "resultado": "PASS",
+      "detalhe": "Jaccard=1.00",
+      "tempo": 0
+    },
+    {
+      "nome": "Consistencia llama3.1:8b",
+      "resultado": "WARN",
+      "detalhe": "Respostas divergentes Jaccard=0.00",
+      "tempo": 0
+    },
+    {
+      "nome": "Anti-alucinacao Phi3.5",
+      "resultado": "PASS",
+      "detalhe": "Recusou: Nao encontrei uma função `calculateDamageMCR()` em um contexto geral, o que pode",
+      "tempo": 8.48
+    },
+    {
+      "nome": "Anti-alucinacao Hermes3",
+      "resultado": "FAIL",
+      "detalhe": "Pode ter inventado: Desculpe, mas como assistente do Projeto MCR, não posso fornecer informações sob",
+      "tempo": 12.27
+    },
+    {
+      "nome": "Anti-alucinacao Llama3.1",
+      "resultado": "FAIL",
+      "detalhe": "Pode ter inventado: Não encontrei informações sobre uma função chamada `calculateDamageMCR()` no Pro",
+      "tempo": 8.14
+    },
+    {
+      "nome": "RAG responde com contexto",
+      "resultado": "PASS",
+      "detalhe": "1717 chars retornados",
+      "tempo": 0
+    }
+  ]
+}
