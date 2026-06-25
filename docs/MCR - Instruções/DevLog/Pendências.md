@@ -348,7 +348,26 @@ docs/MCR - Instruções/Sistema de Habilidades Contextuais/
 - [x] **Integração Bridge** completa ✅ (template → router → RPC → formatação → IA)
 - ⚠️ Sessão `ses_108b08760ffe73IEqNi2RcJhcV` indisponível, mas código confirma implementação
 
-### Infraestrutura
-- Reestruturação de docs/ (remover numeração, organizar em subpastas)
+## 🔴 Resolvido na Sessão (24/06 23:00)
+### OpenCode 1.17.9 — Bun Crash Resolvido
+- ✅ **Causa raiz identificada**: Bun 1.3.14 corrompe heap com NVIDIA GPU memory mapping
+- ✅ **Solução**: Downgrade OpenCode 1.17.10 → **1.17.9** (Bun 1.3.13)
+- ✅ **Binário baixado**: `opencode-windows-x64.zip` (53 MB) do GitHub Releases (tag v1.17.9)
+- ✅ **Verificado**: `opencode --version` → 1.17.9, sem crash com Ollama na GPU
+- ✅ **Lições registradas**: `recentes.md` com causa raiz + solução completa
+
+### Passivas SHC — Erro 40007/40001 Corrigido
+- ✅ **Causa**: `passivas.lua` chamava `hab.efeito(player)` mas habilidades SHC usam `efeitoConfig`
+- ✅ **Correção**: `passivas.lua v5.2` — verifica se `hab.efeito` existe antes de chamar; se não, ignora (efeito aplicado via `recalcularVidaMana`/`recalcularVelocidade`)
+- ✅ **Arquivos de habilidade verificados**: 20 arquivos, 368 habilidades, 11.605 linhas — **todos OK** (zero stray `end`, zero chaves desbalanceadas)
+
+### Testes — Sistema Completo
+- ✅ **7/7 testes passando** (Ollama, inferência, server ports, RPC, MCR-Dev)
+- ✅ **Servidor rodando** (portas 7171-7173 abertas)
+- ✅ **Bridge rodando** (PID 21524)
+- ✅ **OpenCode 1.17.9 estável**
+
+## ⏳ Próximos Passos (Opcionais)
+- Reestruturação de docs/ (remover numeração, organizar em subpastas) — baixa prioridade
 - Sistema de lessons automático com RAG (já parcial)
-- Testes autônomos pós-compilação
+- Criar ability files para domínios pendentes se necessário
