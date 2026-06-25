@@ -44,6 +44,16 @@ Toda nova interface gráfica em C++ deve utilizar os recursos existentes do moto
 
 Após a edição, listar explicitamente os arquivos modificados para compilação selectiva.
 
+🎯 ENCODING RULES (CLIENTE)
+
+| Tipo | Padrão |
+|---|---|
+| `.cpp`/`.hpp` | UTF-8 literal com `/utf-8` no MSVC |
+| `.lua` (cliente) | UTF-8 sem BOM |
+| `.otui` | UTF-8 sem BOM |
+| `.xml` | UTF-8 real + `encoding="UTF-8"` |
+| Saída protocolo | `toLatin1()` no servidor antes do envio |
+
 📦 DEPENDÊNCIAS (AMBIENTE WINDOWS)
 
 Ferramentas Obrigatórias:

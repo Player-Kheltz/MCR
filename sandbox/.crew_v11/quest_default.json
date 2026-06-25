@@ -1,0 +1,61 @@
+{
+  "modulo": "quest",
+  "projeto_scan": {
+    "caminho": "E:\\Projeto MCR\\Canary\\data-canary",
+    "arquivos": 2468,
+    "extensoes_principais": [
+      [
+        ".lua",
+        2433
+      ],
+      [
+        ".xml",
+        10
+      ],
+      [
+        ".bak2",
+        9
+      ],
+      [
+        "",
+        3
+      ],
+      [
+        ".otbm",
+        2
+      ]
+    ]
+  },
+  "exemplos_bons": [
+    "Quest com 3+ etapas progressivas",
+    "Quest com dialogo inicial e final",
+    "Quest com recompensa em XP e itens",
+    "Quest com requisito de nivel",
+    "Quest com escolha do jogador (dual reward)",
+    "Quest com boss fight no final",
+    "Quest com exploracao (descobrir lugares)",
+    "Quest com coleta de recursos",
+    "Quest com entrega de itens para NPC",
+    "Quest com timeline (tempo limite)"
+  ],
+  "exemplos_ruins": [
+    "Quest sem objetivos definidos",
+    "Quest com recompensa desproporcional",
+    "Quest sem dialogo ou lore",
+    "Quest impossivel de completar"
+  ],
+  "regras": [
+    "Seguir o padrao de nomenclatura do projeto existente",
+    "Manter consistencia com arquivos ja existentes",
+    "Respeitar a estrutura de diretorios do projeto",
+    "Codigo deve seguir o estilo do projeto (indentacao, etc)"
+  ],
+  "metricas": {
+    "acertos": 1,
+    "erros": 0
+  },
+  "criado_em": "2026-06-25 00:45:22.409185",
+  "acertos_recentes": [
+    "Aventura"
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "metricas": {
+    "acertos": 1,
+    "erros": 0
+  },
+  "bons": [
+    "spell",
+    "{'nome': 'Terra Invulnerável', 'elemento': 'Terra', 'dano': '35', 'mana': '25', 'cd': '4'}"
+  ]
+}

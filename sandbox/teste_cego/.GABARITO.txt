@@ -1,0 +1,11 @@
+TESTE CEGO - GABARITO
+==================================================
+1. MERCADOR_VIAGEM.lua: nome inconsistente (maiusculas vs CamelCase)
+2. goblin_fraco.lua: HP negativo (-50)
+3. pocao_mana.lua: ID 101 ja usado pelo NPC (possivel duplicata)
+4. mago.lua: funcoes setMana/setMagicLevel nao existem em NPC
+5. slime.lua: monstro sem loot (addLoot ausente)
+6. item_especial.lua: arquivo com BOM (Byte Order Mark)
+7. sem_saudacao.lua: NPC sem setSaudacao
+8. demonio.lua: indentacao mista (tabs + espacos)
+==================================================

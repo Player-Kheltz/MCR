@@ -1,0 +1,14 @@
+<OTUI>
+  <Window name="MinhaJanela" title="Janela OTClient">
+    <Panel name="main" width="800" height="600">
+      <Label text="HP" x="10" y="10" width="780" height="30"/>
+      <Label text="Mana" x="10" y="45" width="780" height="30"/>
+      <Button text="Atacar" x="10" y="80" width="100" height="30">
+        <onClick> MinhaJanela.on0() </onClick>
+      </Button>
+      <Button text="Defender" x="10" y="120" width="100" height="30">
+        <onClick> MinhaJanela.on1() </onClick>
+      </Button>
+    </Panel>
+  </Window>
+</OTUI>

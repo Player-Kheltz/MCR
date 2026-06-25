@@ -1,0 +1,24 @@
+{
+  "modulo": "",
+  "tarefa": "",
+  "exemplos_bons": [],
+  "exemplos_ruins": [],
+  "palavras_chave": [],
+  "palavras_proibidas": [],
+  "padroes_qualidade": [],
+  "anti_padroes": [],
+  "metricas": {
+    "geracoes": 0,
+    "taxa_aprovacao": 0.0,
+    "aprovados": 5,
+    "rejeitados": 0
+  },
+  "ultimos_erros": [],
+  "aprovados_recentes": [
+    "Giro de Bambu",
+    "Dança das Clavas",
+    "Redemoinho de Impacto",
+    "Ventania de Golpes",
+    "Crescente Agilidade"
+  ]
+}

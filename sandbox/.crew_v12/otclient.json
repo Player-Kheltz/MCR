@@ -1,0 +1,12 @@
+{
+  "metricas": {
+    "acertos": 2,
+    "erros": 0
+  },
+  "bons": [
+    "otclient",
+    "{'nome': 'Jogo OtClient', 'titulo': 'Bem-vindo ao OtClient', 'label_texto': 'Digite seu nome de usuário', 'botao_texto': 'Entrar'}",
+    "otclient",
+    "{'nome': 'OtClient', 'titulo': 'Bem-vindo ao OtClient', 'label_texto': 'Digite seu nome de usuário', 'botao_texto': 'Entrar'}"
+  ]
+}

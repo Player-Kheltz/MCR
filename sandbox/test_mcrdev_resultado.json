@@ -1,0 +1,107 @@
+{
+  "pass": 24,
+  "fail": 0,
+  "warn": 1,
+  "detalhes": [
+    {
+      "teste": "Router: saudacao",
+      "status": "PASS"
+    },
+    {
+      "teste": "Router: NPC",
+      "status": "PASS"
+    },
+    {
+      "teste": "Router: habilidade",
+      "status": "PASS"
+    },
+    {
+      "teste": "Router: codigo",
+      "status": "PASS"
+    },
+    {
+      "teste": "Router: sistema",
+      "status": "PASS"
+    },
+    {
+      "teste": "Router: pergunta",
+      "status": "PASS"
+    },
+    {
+      "teste": "Router: quest",
+      "status": "PASS"
+    },
+    {
+      "teste": "Router: despedida",
+      "status": "PASS"
+    },
+    {
+      "teste": "Router: ajuda",
+      "status": "PASS"
+    },
+    {
+      "teste": "Validador: NPC valido",
+      "status": "PASS"
+    },
+    {
+      "teste": "Validador: NPC com sendTextMessage",
+      "status": "PASS"
+    },
+    {
+      "teste": "Validador: SHC valido",
+      "status": "PASS"
+    },
+    {
+      "teste": "Validador: SHC com danoMinimo",
+      "status": "PASS"
+    },
+    {
+      "teste": "Validador: Lua chaves ok",
+      "status": "PASS"
+    },
+    {
+      "teste": "Validador: Lua chaves erradas",
+      "status": "PASS"
+    },
+    {
+      "teste": "Engine: saudacao",
+      "status": "PASS"
+    },
+    {
+      "teste": "Engine: despedida",
+      "status": "PASS"
+    },
+    {
+      "teste": "Engine: ajuda",
+      "status": "PASS"
+    },
+    {
+      "teste": "Memoria: learn+recall",
+      "status": "PASS"
+    },
+    {
+      "teste": "Engine: criar arquivo txt",
+      "status": "PASS"
+    },
+    {
+      "teste": "Engine: criar script python",
+      "status": "PASS"
+    },
+    {
+      "teste": "Engine: deletar arquivo",
+      "status": "WARN"
+    },
+    {
+      "teste": "Engine: sistema info",
+      "status": "PASS"
+    },
+    {
+      "teste": "Engine: pergunta RAG",
+      "status": "PASS"
+    },
+    {
+      "teste": "Memoria: stats",
+      "status": "PASS"
+    }
+  ]
+}

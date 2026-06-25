@@ -1,0 +1,56 @@
+{
+  "dominio": "",
+  "criterios_qualidade": [
+    "Nome reflete a mecanica da habilidade",
+    "Nome usa vocabulario do dominio (NAO usar palavras de outros dominios)",
+    "Descricao curta (max 80 chars), estilo \"Acao que efeito.\"",
+    "Sinergia comeca com nome do dominio parceiro + \":\"",
+    "Cada habilidade tem proposito unico no kit"
+  ],
+  "anti_padroes": [
+    "Nome contem palavra de OUTRO dominio (ex: \"punho\" em Clavas)",
+    "Nome muito generico (serviria pra qualquer dominio)",
+    "Descricao tem \":\" (confunde com sinergia)",
+    "Descricao repetida entre habilidades"
+  ],
+  "palavras_proibidas_por_dominio": {},
+  "ultimos_erros": [
+    {
+      "erro": "Identidade: resposta nao foi JSON valido (tentativa 1)",
+      "data": "2026-06-25T00:16:44.141330"
+    },
+    {
+      "erro": "Identidade: resposta nao foi JSON valido (tentativa 2)",
+      "data": "2026-06-25T00:16:48.602950"
+    },
+    {
+      "erro": "Identidade: resposta nao foi JSON valido (tentativa 3)",
+      "data": "2026-06-25T00:16:53.060710"
+    },
+    {
+      "erro": "Identidade: resposta nao foi JSON valido (tentativa 1)",
+      "data": "2026-06-25T00:17:54.230081"
+    },
+    {
+      "erro": "Identidade: resposta nao foi JSON valido (tentativa 2)",
+      "data": "2026-06-25T00:17:58.391327"
+    },
+    {
+      "erro": "Identidade: resposta nao foi JSON valido (tentativa 3)",
+      "data": "2026-06-25T00:18:02.023544"
+    }
+  ],
+  "melhores_exemplos": [],
+  "versoes_geradas": [
+    {
+      "nomes": [],
+      "nota": 5,
+      "data": "2026-06-25T00:17:09.989494"
+    },
+    {
+      "nomes": [],
+      "nota": 5,
+      "data": "2026-06-25T00:18:46.286166"
+    }
+  ]
+}

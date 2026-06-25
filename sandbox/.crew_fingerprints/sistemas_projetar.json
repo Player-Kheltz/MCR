@@ -1,0 +1,41 @@
+{
+  "modulo": "",
+  "tarefa": "",
+  "exemplos_bons": [],
+  "exemplos_ruins": [],
+  "palavras_chave": [],
+  "palavras_proibidas": [],
+  "padroes_qualidade": [],
+  "anti_padroes": [],
+  "metricas": {
+    "geracoes": 0,
+    "taxa_aprovacao": 0.0,
+    "aprovados": 1,
+    "rejeitados": 2
+  },
+  "ultimos_erros": [
+    {
+      "item": "Sistema de Crafting onde jogadores combinam recurs",
+      "motivo": "JSON invalido",
+      "data": "2026-06-25 00:36:17.627902"
+    },
+    {
+      "item": "Sistema de crafting",
+      "motivo": "JSON invalido",
+      "data": "2026-06-25 00:36:37.603814"
+    }
+  ],
+  "rejeitados_recentes": [
+    {
+      "item": "Sistema de Crafting onde jogadores combinam recurs",
+      "motivo": "JSON invalido"
+    },
+    {
+      "item": "Sistema de crafting",
+      "motivo": "JSON invalido"
+    }
+  ],
+  "aprovados_recentes": [
+    "Sistema de Crafting MCR"
+  ]
+}

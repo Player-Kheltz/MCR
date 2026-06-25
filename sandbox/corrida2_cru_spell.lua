@@ -1,0 +1,8 @@
+-- CRU: Spell — Luz de Eridanus (recompensa por completar a quest)
+local spell = Spell("Luz de Eridanus", "holy")
+spell:setDamage(150)
+spell:setManaCost(60)
+spell:setCooldown(8)
+spell:setDescription("Invoca a luz ancestral de Eridanus para purificar as trevas.")
+spell:setMagicLevel(15)
+print("Spell Luz de Eridanus carregada.")

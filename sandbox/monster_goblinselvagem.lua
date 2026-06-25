@@ -1,0 +1,2 @@
+-- Monster gerado pelo MCR Crew v10
+-- NOME: GoblinSelvagem | HP: 120 | ATK: 18 | DEF: 6 | LOOT: 150:0.4, 170:0.3, 190:0.3

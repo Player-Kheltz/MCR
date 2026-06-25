@@ -1,9 +1,9 @@
 {
   "version": 1,
-  "ultima_sessao": "ses_10522998bffeCRAqtbL2lNFI7W",
+  "ultima_sessao": "â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€",
   "status": "in_progress",
-  "titulo": "Session Checkpoint System - travas de seguranca entre conversas",
-  "ultimo_prompt": "vamos bolar uma maneira de adicionar essa trava de seguranca para futuras conversas",
+  "titulo": "Sessão autônoma - 24/06/2026 23:07",
+  "ultimo_prompt": "(salvamento automático)",
   "tarefa_andamento": "",
   "decisoes": [
     ".session_checkpoint.json salva estado da ultima conversa",
@@ -12,14 +12,31 @@
     "checkpoint e atualizado automaticamente ao detectar despedida"
   ],
   "arquivos_alterados": [
-    "Scripts/checkpoint.py",
-    "Scripts/auto.py",
-    "AGENTS.md",
-    "docs/MCR - Instrucoes/DevLog/.session_checkpoint.json",
-    "docs/MCR - Instrucoes/DevLog/Pendencias.md"
+    ".gitignore",
+    "Canary/data-canary/scripts/MCR/SPA/habilidades/TESTE/TESTE.lua",
+    "Canary/data-canary/scripts/MCR/SPA/habilidades/TESTE/sobrevivencia.lua",
+    "Canary/data-canary/scripts/MCR/core/test_bot.lua",
+    "Canary/data/chatchannels/chatchannels.xml",
+    "Canary/src/creatures/monsters/monster.cpp",
+    "Canary/src/creatures/players/player.hpp",
+    "Canary/src/game/game.cpp",
+    "Canary/src/lua/functions/creatures/player/player_functions.cpp",
+    "Canary/src/lua/functions/creatures/player/player_functions.hpp",
+    "Canary/src/mcr/core/monster_ai.cpp",
+    "Canary/src/utils/const.hpp",
+    "OTClient/modules/game_battle/battle.lua",
+    "OTClient/modules/game_console/console.lua",
+    "OTClient/modules/game_interface/widgets/uigamemap.lua",
+    "OTClient/modules/mcr_modules/item_translator_pt.lua",
+    "OTClient/modules/mcr_modules/pt_itens.lua",
+    "OTClient/src/client/protocolgamesend.cpp",
+    "OTClient/src/framework/stdext/string.cpp",
+    "\"docs/MCR - Instru\\303\\247\\303\\265es/DevLog/Para Amanh\\303\\243.md\"",
+    "\"docs/MCR - Instru\\303\\247\\303\\265es/[1] MCR - Guia de Compila\\303\\247\\303\\243o (Servidor).txt\"",
+    "\"docs/MCR - Instru\\303\\247\\303\\265es/[2] MCR - Guia de Compila\\303\\247\\303\\243o (Cliente).txt\""
   ],
   "proximos_passos": [
     "Continue na sessao ses_10606fcccffe4ELHlHrfcy1sPn (otimizacao hibrida Bridge)"
   ],
-  "ultima_atualizacao": "2026-06-24T15:45:00-03:00"
+  "ultima_atualizacao": "2026-06-24T23:07:29.917876-03:00"
 }

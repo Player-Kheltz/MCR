@@ -1,0 +1,4 @@
+HISTORIA: Guardiao da Profecia de Eridanus
+PERSONALIDADE: Sabio, Calmo, Justo
+SAUDACAO: "Ola."
+SEGREDO: Segredo.

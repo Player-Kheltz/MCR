@@ -1,0 +1,26 @@
+{
+  "versoes": 4,
+  "acertos": 3,
+  "erros": 0,
+  "modulos": {
+    "npc_O Legado Perdido de Erid": {
+      "nome": "O Legado Perdido de Erid",
+      "saudacao": "\"Estranho! Como você encontrou meu legado?\"",
+      "item_id": "1001",
+      "item_preco": "50"
+    },
+    "npc_Legado Perdido": {
+      "nome": "Legado Perdido",
+      "saudacao": "\"Olá, viajante! Eu sou o Legado Perdido, um antigo curandeiro que preserva segredos ancestrais. Como posso ajudar você hoje?\"",
+      "item_id": "102",
+      "item_preco": "50"
+    },
+    "npc_Senhor Coruja Enigmática": {
+      "nome": "Senhor Coruja Enigmática",
+      "saudacao": "\"Ah, saudades! Você parece estar perdido no tempo. Permita-me ajudar!\"",
+      "item_id": "1024",
+      "item_preco": "50"
+    }
+  },
+  "lore_criado": 0
+}

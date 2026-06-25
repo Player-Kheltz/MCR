@@ -1,0 +1,64 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "ollama": {
+      "api": "openai",
+      "name": "Ollama Local",
+      "options": {
+        "baseURL": "http://localhost:11434/v1",
+        "apiKey": "ollama"
+      },
+      "models": {
+        "qwen2.5-coder:7b": {
+          "name": "Qwen 2.5 Coder (7B)",
+          "tool_call": true,
+          "limit": {
+            "context": 32768,
+            "output": 4096
+          }
+        },
+        "deepseek-r1:8b": {
+          "name": "DeepSeek R1 (8B)",
+          "tool_call": false,
+          "reasoning": true,
+          "limit": {
+            "context": 32768,
+            "output": 4096
+          }
+        }
+      }
+    }
+  },
+  "model": "ollama/qwen2.5-coder:7b",
+  "permission": {
+    "edit": {
+      "sandbox/**": "allow",
+      "*": "ask"
+    },
+    "write": {
+      "sandbox/**": "allow",
+      "*": "ask"
+    },
+    "bash": {
+      "sandbox/**": "allow",
+      "*": "ask"
+    },
+    "read": "allow",
+    "grep": "allow",
+    "glob": "allow"
+  },
+  "agent": {
+    "plan": {
+      "model": "ollama/deepseek-r1:8b",
+      "prompt": "Analise o problema profundamente antes de agir. Consulte o RAG primeiro."
+    },
+    "build": {
+      "model": "ollama/qwen2.5-coder:7b",
+      "prompt": "Você é um assistente de desenvolvimento local do Projeto MCR.\n\nREGRAS:\n1. ANTES de responder sobre codigo, CONSULTE o RAG: python scripts/rag_query.py \"sua pergunta\" --context-only\n2. Use grep e read para verificar o codigo real antes de sugerir mudancas.\n3. NUNCA invente funcoes, classes ou APIs que nao existem no codigo.\n4. Para alteracoes, leia o arquivo primeiro, depois edite.\n5. Para tarefas complexas (arquitetura, revisao profunda), avise:\n   'Isso pode exigir analise mais profunda. Considere usar opencode (modo padrao).'\n6. Responda em portugues, seja direto e pratico.\n7. Se nao tiver certeza, use grep para verificar.\n8. Consulte docs/lessons/ para decisoes passadas.\n9. Dentro de sandbox/ voce tem permissao TOTAL para criar, editar e executar arquivos."
+    }
+  },
+  "instructions": [
+    "AGENTS.md",
+    "docs/lessons/recentes.md"
+  ]
+}

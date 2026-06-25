@@ -1,0 +1,264 @@
+╔══════════════════════════════════════════════════════════════╗
+║         SISTEMA DE HABILIDADES CONTEXTUAIS — GUIAS          ║
+║              Projeto MCR — SPA — v1.0 (24/06/2026)           ║
+╚══════════════════════════════════════════════════════════════╝
+
+1. CRIANDO UMA NOVA HABILIDADE (Checklist)
+═══════════════════════════════════════════
+    
+    ☐ Definir ID único (consultar constantes.lua para ranges)
+    ☐ Definir nome, tipo, domínio, cooldown
+    ☐ Criar efeitoConfig BASE (comportamento padrão)
+    ☐ [OPCIONAL] Adicionar bloco postura para variações por postura
+    ☐ [OPCIONAL] Adicionar bloco niveis para melhorias automáticas
+    ☐ [OPCIONAL] Adicionar bloco sinergias para interações com outros domínios
+    ☐ [OPCIONAL] Adicionar bloco estados para Vínculo/Lampejo
+    ☐ [OPCIONAL] Adicionar bloco condicoes para adaptação tática
+    ☐ Validar que não repete nicho de domínio irmão
+
+2. TEMPLATE COMPLETO
+═════════════════════
+-- Copie e cole este template para criar uma nova habilidade
+HABILIDADES[ID] = {
+    nome = "Nome da Habilidade",
+    tipo = "gatilho",   -- gatilho | passiva | toggle | transformacao
+    dominio = {ID_DOMINIO_PRINCIPAL},
+    cooldown = 6,
+    categoria = "single",  -- aoe | single | debuff | buff | finisher | defense
+    
+    -- Comportamento BASE (obrigatório)
+    efeitoConfig = {
+        tipo = "area_target",
+        raio = 2,
+        dano = 1.0,
+        percentual = 0.5,
+    },
+    
+    -- CAMADA 1: Postura (OPCIONAL)
+    postura = {
+        [1] = {
+            descricao = "Ímpeto: descrição da variação",
+            efeitoConfig = { dano = 1.3 },
+        },
+        [3] = {
+            descricao = "Guarda: descrição da variação",
+            efeitoConfig = { dano = 0.6, efeitoExtra = "lentidao" },
+        },
+    },
+    
+    -- CAMADA 2: Níveis (OPCIONAL)
+    niveis = {
+        [5] = { { mod = "efeitoConfig", efeitoConfig = { dano = dano * 1.1 } } },
+        [10] = { { mod = "efeitoConfig", efeitoConfig = { raio = raio + 1 } } },
+        [15] = { { mod = "efeitoConfig", efeitoConfig = { onHit = funcaoExtra } } },
+        [20] = { { mod = "efeitoConfig", efeitoConfig = { dano = dano * 1.5 } } },
+    },
+    
+    -- CAMADA 3: Sinergias (OPCIONAL)
+    sinergias = {
+        [ID_OUTRO_DOMINIO] = {
+            nivelMin = 1,
+            descricao = "Descrição da sinergia",
+            efeitoConfig = { elemento = COMBAT_FIREDAMAGE },
+        },
+    },
+    
+    -- CAMADA 4: Estados (OPCIONAL)
+    estados = {
+        vinculo = { efeitoConfig = { dano = 1.5 } },
+        lampejo = { efeitoConfig = { dano = 2.0, damageType = "absolute" } },
+    },
+    
+    -- CAMADA 5: Condições (OPCIONAL)
+    condicoes = {
+        cercado = { efeitoConfig = { tipo = "explosion_ring", raio = 5 } },
+        vidaBaixa = { efeitoConfig = { lifesteal = 0.4 } },
+        fullHp = { efeitoConfig = { critChance = 0.25 } },
+        singleTarget = { efeitoConfig = { tipo = "beam", dano = 2.5 } },
+    },
+}
+
+3. REGRAS DE DIFERENCIAÇÃO (Anti-Repetição)
+═════════════════════════════════════════════
+CADA DOMÍNIO tem um NICHO PRINCIPAL ÚNICO:
+    Lâminas       → Sangramento
+    Energia       → Corrente / Choque
+    Gelo          → Lentidão / Congelamento
+    Fogo          → Dano em área / DOT
+    Terra         → Armadura / Absorção
+    Sagrado       → Cura / Proteção
+    Morte         → Dano ao longo do tempo / Debuff
+
+DOMÍNIOS IRMÃOS NÃO COMPARTILHAM O MESMO NICHO:
+    Espadas Leves   → Velocidade, golpes múltiplos
+    Espadas Pesadas → Dano massivo, quebra de guarda
+    (Ambos são Lâminas, mas nichos são diferentes)
+
+VARIAÇÃO ELEMENTAL NÃO É REPETIÇÃO:
+    "Orbital Ígneo" (Fogo) != "Orbital Glacial" (Gelo)
+    São propositalmente diferentes — elementos diferentes
+    implicam efeitos visuais, sonoros e mecânicos diferentes.
+
+SE UMA HABILIDADE PARECE REPETIDA, PERGUNTE-SE:
+    "Esta habilidade existe porque o jogador TREINOU dois domínios?"
+    Se sim → é uma sinergia, não repetição.
+
+4. DIRETRIZES DE QUANTIDADE
+════════════════════════════
+Cada habilidade DEVE ter:
+    ☐ efeitoConfig BASE (sempre)
+    
+Cada habilidade PODE ter:
+    ☐ 1-3 variações de postura  (recomendado)
+    ☐ 2-4 marcos de nível      (recomendado)
+    ☐ 0-5 sinergias            (recomendado: 2-3)
+    ☐ 0-2 estados              (recomendado: ambos ou nenhum)
+    ☐ 0-4 condições            (recomendado: 1-2)
+
+Evite colocar TODAS as 5 camadas em toda habilidade.
+Cada habilidade deve ter seu próprio conjunto único de variações.
+
+5. VALIDAÇÃO DE CONSISTÊNCIA
+═════════════════════════════
+Antes de finalizar, verifique:
+    
+    [ ] A habilidade funciona SEM nenhuma variação ativa? (fallback)
+    [ ] As variações de postura são DISTINTAS entre si?
+    [ ] Os marcos de nível são CUMULATIVOS e fazem sentido?
+    [ ] As sinergias têm nivelMin apropriado?
+    [ ] Os estados de alma são NOTAVELMENTE mais poderosos?
+    [ ] As condições são SITUACIONAIS e transformam o uso?
+
+6. EXEMPLO COMPLETO: Orbital Ígneo
+════════════════════════════════════
+HABILIDADES["orbital_igneo"] = {
+    nome = "Orbital Ígneo",
+    tipo = "toggle",
+    dominio = {23},
+    cooldown = 0,
+    categoria = "aoe",
+    
+    -- Comportamento BASE (3 orbes, dano 0.8x)
+    efeitoConfig = {
+        tipo = "orbit",
+        orbes = 3, raio = 3, dano = 0.8,
+        elemento = COMBAT_FIREDAMAGE, frequencia = 2.0,
+    },
+    
+    -- Postura Ímpeto: maior dano e alcance
+    postura = {
+        [1] = { efeitoConfig = { raio = 4, dano = 1.1, manaCostMult = 1.3 } },
+        [3] = { efeitoConfig = { orbes = 4, raio = 1.5, dano = 0.5,
+                                  frequencia = 1.0,
+                                  onHit = function(j) aplicarEscudoTermico(j, 0.05, 5) end } },
+    },
+    
+    -- Níveis: trail (5), +1 orb (10), medo (15), supremo (20)
+    niveis = {
+        [5]  = { { efeito = "adicional", type = "trail", duracao = 2.0, dano = 0.2 } },
+        [10] = { { mod = "efeitoConfig", efeitoConfig = { orbes = orbes + 1 } } },
+        [15] = { { mod = "efeitoConfig", efeitoConfig = { onHit = medoEmMobsFracos } } },
+        [20] = { { mod = "efeitoConfig", efeitoConfig = { orbes = orbes + 3,
+                                                           dano = dano * 1.5,
+                                                           visualEffect = "orbital_supremo" } } },
+    },
+    
+    -- Sinergias com Gelo, Terra, Energia, Sagrado
+    sinergias = {
+        [24] = { descricao = "Vapor Escaldante (Gelo ≥ 1)",
+                 efeitoConfig = { onHit = function() cegueira(0.3, 3.0) end } },
+        [25] = { nivelMin = 5,
+                 descricao = "Magma (Terra ≥ 5)",
+                 efeitoConfig = { onHit = function() dot(0.3, 5) end } },
+        [26] = { nivelMin = 10,
+                 descricao = "Plasma (Energia ≥ 10)",
+                 efeitoConfig = { elemento = COMBAT_ENERGYDAMAGE,
+                                   armorPenetration = 0.3 } },
+        [27] = { descricao = "Fogo Purificador (Sagrado ≥ 1)",
+                 efeitoConfig = { extraDamageVs = { type = "race",
+                                                      race = "undead", mult = 1.5 } } },
+    },
+    
+    -- Estados: Vínculo e Lampejo
+    estados = {
+        vinculo = { efeitoConfig = { dano = 1.5,
+                                      elemento = COMBAT_HOLYDAMAGE,
+                                      visualEffect = "chama_branca" } },
+        lampejo = { efeitoConfig = { orbes = 9, dano = 2.0,
+                                      damageType = "absolute",
+                                      manaCost = 0,
+                                      visualEffect = "lampejo_orbital" } },
+    },
+    
+    -- Condições situacionais
+    condicoes = {
+        cercado = { efeitoConfig = { tipo = "explosion_ring", raio = 5, dano = 1.2 } },
+        vidaBaixa = { efeitoConfig = { lifesteal = 0.4, dano = 1.2 } },
+        fullHp = { efeitoConfig = { critChance = 0.25, critDamage = 1.5 } },
+        singleTarget = { efeitoConfig = { tipo = "beam", dano = 2.5, range = 6 } },
+    },
+}
+
+7. EFEITOS DISPONÍVEIS NO MOTOR
+════════════════════════════════
+Dano / Ataque:
+    dano_extra       → Dano adicional em corpo a corpo ou projétil
+    area_ground      → Dano em área centrado no jogador ou alvo
+    area_target      → Dano no alvo + área ao redor
+    ricochete        → Ricochete entre inimigos próximos
+    knockback        → Empurra o alvo
+    finisher         → Dano massivo em vida baixa
+    rajada           → Múltiplos projéteis em sequência
+
+Condições:
+    condicao         → Aplica condição (sangramento, lentidão, etc)
+    next_condition   → Próximo ataque aplica condição
+
+Defesa / Suporte:
+    defesa_cura       → Cura + refleto
+    defesa_barreira   → Mitigação de dano temporária
+    defesa_contra_ataque → Reflete dano em área
+
+Buff / Utilities:
+    buff_speed       → Aumento temporário de velocidade
+    buff_damage      → Aumento temporário de dano
+    life_leech       → Roubo de vida por tempo
+    mana_leech       → Roubo de mana por tempo
+
+Campo / Área Contínua:
+    field            → Cria campo elemental no chão
+    storm            → Tempestade contínua em área
+    orbit            → Orbes que orbitam o jogador
+    rain             → Chuva de projéteis em área
+    pulse            → Pulsos expansivos
+    trap             → Armadilha que detona ao contato
+
+Encadeamento:
+    chain            → Corrente entre inimigos
+    corrente         → Similar a chain
+
+Invocação:
+    summon           → Invoca criatura aliada
+
+Sinergia:
+    sinergia          → Efeito base + efeitos por domínio
+    sinergia_escalonada → Efeito por domínio com escala
+
+8. REFERÊNCIAS RÁPIDAS
+═══════════════════════
+postura = {
+    [1] = {...},  -- FIGHTMODE_ATTACK  (Ímpeto)
+    [2] = {...},  -- FIGHTMODE_BALANCED (Equilíbrio)
+    [3] = {...},  -- FIGHTMODE_DEFENSE (Guarda)
+}
+
+estados = {
+    vinculo = {...},  -- player:getDominioState() == 2
+    lampejo = {...},  -- player:getDominioState() == 1
+}
+
+condicoes (por ordem de prioridade):
+    "cercado"       → 3+ inimigos no raio 3
+    "vidaBaixa"     → HP < 20%
+    "fullHp"        → HP = 100%
+    "singleTarget"  → 0-1 inimigos no raio 3

@@ -1,0 +1,10 @@
+-- CRU: Monster — Espectro da Torre (guarda o Selo)
+local mon = Monster("Espectro da Torre")
+mon:setHealth(300)
+mon:setAttack(35)
+mon:setDefense(5)
+mon:setExperience(200)
+mon:setType("undead")
+mon:addLoot(41001, 1.0) -- Selo do Guardiao (100% drop)
+mon:addLoot(40001, 0.5) -- Pocao de cura
+print("Monster Espectro da Torre carregado.")

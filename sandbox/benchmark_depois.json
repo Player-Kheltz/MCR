@@ -1,0 +1,199 @@
+{
+  "mode": "depois",
+  "timestamp": 1782323308.5413032,
+  "summary": {
+    "total_queries": 16,
+    "template_hits": 4,
+    "router_hits": 8,
+    "ai_calls": 4,
+    "total_model_calls": 16,
+    "total_tokens_input": 439,
+    "total_tokens_output": 247
+  },
+  "results": [
+    {
+      "id": "saudacao_1",
+      "pergunta": "ola",
+      "categoria": "template",
+      "caminho": "template",
+      "tempo": 3.814697265625e-06,
+      "tokens_input": 0,
+      "tokens_output": 0,
+      "model_calls": 0,
+      "resposta": "Ola! Sou o assistente MCR."
+    },
+    {
+      "id": "saudacao_2",
+      "pergunta": "oi tudo bem?",
+      "categoria": "template",
+      "caminho": "ia",
+      "tempo": 6.981387376785278,
+      "tokens_input": 12,
+      "tokens_output": 17,
+      "model_calls": 2,
+      "resposta": "Oi! Tudo ótimo, obrigado por perguntar! Como posso ajudar você hoje?",
+      "rag_time": 2.4398882389068604,
+      "ai_time": 2.2341926097869873
+    },
+    {
+      "id": "agradecimento",
+      "pergunta": "obrigado",
+      "categoria": "template",
+      "caminho": "template",
+      "tempo": 6.67572021484375e-06,
+      "tokens_input": 0,
+      "tokens_output": 0,
+      "model_calls": 0,
+      "resposta": "Disponha!"
+    },
+    {
+      "id": "teste",
+      "pergunta": "testando o sistema",
+      "categoria": "template",
+      "caminho": "template",
+      "tempo": 2.6226043701171875e-06,
+      "tokens_input": 0,
+      "tokens_output": 0,
+      "model_calls": 0,
+      "resposta": "Teste recebido! Sistema funcionando."
+    },
+    {
+      "id": "senha",
+      "pergunta": "qual a senha do banco?",
+      "categoria": "bloqueado",
+      "caminho": "template_blocked",
+      "tempo": 1.430511474609375e-06,
+      "tokens_input": 0,
+      "tokens_output": 0,
+      "model_calls": 0,
+      "resposta": "Nao posso fornecer informacoes de acesso."
+    },
+    {
+      "id": "item_1",
+      "pergunta": "o que e a War Hammer?",
+      "categoria": "item_info",
+      "caminho": "router_rpc",
+      "tempo": 2.1968700885772705,
+      "tokens_input": 0,
+      "tokens_output": 0,
+      "model_calls": 1,
+      "resposta": "[item_info] Entity: War Hammer"
+    },
+    {
+      "id": "item_2",
+      "pergunta": "info sobre dark sword",
+      "categoria": "item_info",
+      "caminho": "router_rpc",
+      "tempo": 2.1812102794647217,
+      "tokens_input": 0,
+      "tokens_output": 0,
+      "model_calls": 1,
+      "resposta": "[item_info] Entity: Dark Sword"
+    },
+    {
+      "id": "item_3",
+      "pergunta": "qual o dano de uma crown shield?",
+      "categoria": "item_info",
+      "caminho": "router_rpc",
+      "tempo": 2.1794071197509766,
+      "tokens_input": 0,
+      "tokens_output": 0,
+      "model_calls": 1,
+      "resposta": "[item_info] Entity: Crown Shield"
+    },
+    {
+      "id": "monster_1",
+      "pergunta": "fale sobre o demon",
+      "categoria": "monster_info",
+      "caminho": "router_rpc",
+      "tempo": 2.161397695541382,
+      "tokens_input": 0,
+      "tokens_output": 0,
+      "model_calls": 1,
+      "resposta": "[monster_info] Entity: Demon"
+    },
+    {
+      "id": "monster_2",
+      "pergunta": "o que e dragon?",
+      "categoria": "monster_info",
+      "caminho": "router_rpc",
+      "tempo": 2.16184401512146,
+      "tokens_input": 0,
+      "tokens_output": 0,
+      "model_calls": 1,
+      "resposta": "[item_info] Entity: Dragon"
+    },
+    {
+      "id": "complex_1",
+      "pergunta": "como upar rapido no nivel 50?",
+      "categoria": "complex",
+      "caminho": "ia",
+      "tempo": 7.26712441444397,
+      "tokens_input": 141,
+      "tokens_output": 100,
+      "model_calls": 2,
+      "resposta": "Para upar rapido no nível 50, você pode usar os efeitos temporais disponíveis no MCR (Motor SPA). Pr",
+      "rag_time": 2.4806268215179443,
+      "ai_time": 2.5822737216949463
+    },
+    {
+      "id": "complex_2",
+      "pergunta": "o que e o Sistema de Progressao do Aventureiro?",
+      "categoria": "complex",
+      "caminho": "router_rpc",
+      "tempo": 2.2220778465270996,
+      "tokens_input": 0,
+      "tokens_output": 0,
+      "model_calls": 1,
+      "resposta": "[item_info] Entity: Sistema de Progressao do Aventureiro"
+    },
+    {
+      "id": "complex_3",
+      "pergunta": "como funciona o sistema de habilidades?",
+      "categoria": "complex",
+      "caminho": "ia",
+      "tempo": 7.2977306842803955,
+      "tokens_input": 144,
+      "tokens_output": 103,
+      "model_calls": 2,
+      "resposta": "O sistema de habilidades do MCR funciona através de parâmetros padronizados em ficheiros de dados ch",
+      "rag_time": 2.47947096824646,
+      "ai_time": 2.611238718032837
+    },
+    {
+      "id": "complex_4",
+      "pergunta": "onde fica a cidade de Eridanus?",
+      "categoria": "complex",
+      "caminho": "router_rpc",
+      "tempo": 2.1920366287231445,
+      "tokens_input": 0,
+      "tokens_output": 0,
+      "model_calls": 1,
+      "resposta": "[item_info] Entity: cidade_de_eridanus"
+    },
+    {
+      "id": "complex_5",
+      "pergunta": "quais dominios elementais existem?",
+      "categoria": "complex",
+      "caminho": "ia",
+      "tempo": 6.934112787246704,
+      "tokens_input": 142,
+      "tokens_output": 27,
+      "model_calls": 2,
+      "resposta": "Elementais existem para representar os domínios principais do MCR, como Filosofia do Aventureiro e A",
+      "rag_time": 2.4479410648345947,
+      "ai_time": 2.2882649898529053
+    },
+    {
+      "id": "historico",
+      "pergunta": "qual o dano de uma espada?",
+      "categoria": "complex",
+      "caminho": "router_rpc",
+      "tempo": 2.190692901611328,
+      "tokens_input": 0,
+      "tokens_output": 0,
+      "model_calls": 1,
+      "resposta": "[item_info] Entity: Dark Sword"
+    }
+  ]
+}

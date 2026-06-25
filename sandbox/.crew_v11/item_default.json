@@ -1,0 +1,61 @@
+{
+  "modulo": "item",
+  "projeto_scan": {
+    "caminho": "E:\\Projeto MCR\\Canary\\data-canary",
+    "arquivos": 2468,
+    "extensoes_principais": [
+      [
+        ".lua",
+        2433
+      ],
+      [
+        ".xml",
+        10
+      ],
+      [
+        ".bak2",
+        9
+      ],
+      [
+        "",
+        3
+      ],
+      [
+        ".otbm",
+        2
+      ]
+    ]
+  },
+  "exemplos_bons": [
+    "Item com ID unico e nome descritivo",
+    "Weapon com ataque e defesa balanceados",
+    "Armor com defesa e peso",
+    "Consumable com efeito (cura, buff)",
+    "Item com requisito de nivel",
+    "Item com requisito de vocacao",
+    "Item com durabilidade",
+    "Item com efeito visual ao usar",
+    "Item com stack (pocao, flecha)",
+    "Item com descricao de lore"
+  ],
+  "exemplos_ruins": [
+    "Item sem tipo definido",
+    "Item com stats negativos",
+    "Item com ID duplicado",
+    "Item sem nome"
+  ],
+  "regras": [
+    "Seguir o padrao de nomenclatura do projeto existente",
+    "Manter consistencia com arquivos ja existentes",
+    "Respeitar a estrutura de diretorios do projeto",
+    "Codigo deve seguir o estilo do projeto (indentacao, etc)"
+  ],
+  "metricas": {
+    "acertos": 1,
+    "erros": 0
+  },
+  "criado_em": "2026-06-25 00:45:22.469450",
+  "acertos_recentes": [
+    "EspadaLonga"
+  ]
+}

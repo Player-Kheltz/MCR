@@ -1,0 +1,10 @@
+{
+  "metricas": {
+    "acertos": 1,
+    "erros": 0
+  },
+  "bons": [
+    "npc",
+    "{'nome': 'Joao', 'saudacao': 'Ola!', 'item_id': '100', 'item_preco': '25'}"
+  ]
+}

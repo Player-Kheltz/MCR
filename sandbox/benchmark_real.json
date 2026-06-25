@@ -1,0 +1,151 @@
+{
+  "mode": "pos_otimizacao",
+  "timestamp": 1782324061.2315078,
+  "results": [
+    {
+      "id": "saudacao_1",
+      "pergunta": "ola",
+      "esperado": "template",
+      "caminho": "template_blocked",
+      "resposta": "Ola Testador! Sou o assistente MCR. Como posso ajudar?",
+      "tempo": 7.867813110351562e-06,
+      "model_calls": 0
+    },
+    {
+      "id": "saudacao_2",
+      "pergunta": "oi tudo bem?",
+      "esperado": "template",
+      "caminho": "template_blocked",
+      "resposta": "Ola Testador! Sou o assistente MCR. Como posso ajudar?",
+      "tempo": 6.198883056640625e-06,
+      "model_calls": 0
+    },
+    {
+      "id": "saudacao_3",
+      "pergunta": "bom dia",
+      "esperado": "template",
+      "caminho": "template_blocked",
+      "resposta": "Ola Testador! Sou o assistente MCR. Como posso ajudar?",
+      "tempo": 4.0531158447265625e-06,
+      "model_calls": 0
+    },
+    {
+      "id": "agradecimento",
+      "pergunta": "obrigado",
+      "esperado": "template",
+      "caminho": "template_blocked",
+      "resposta": "Disponha, Testador! Estou aqui se precisar.",
+      "tempo": 4.76837158203125e-06,
+      "model_calls": 0
+    },
+    {
+      "id": "despedida",
+      "pergunta": "tchau",
+      "esperado": "template",
+      "caminho": "template_blocked",
+      "resposta": "Disponha, Testador! Estou aqui se precisar.",
+      "tempo": 4.76837158203125e-06,
+      "model_calls": 0
+    },
+    {
+      "id": "teste",
+      "pergunta": "testando o sistema",
+      "esperado": "template",
+      "caminho": "template_blocked",
+      "resposta": "Teste recebido, Testador! Sistema funcionando.",
+      "tempo": 5.9604644775390625e-06,
+      "model_calls": 0
+    },
+    {
+      "id": "ajuda",
+      "pergunta": "o que voce faz?",
+      "esperado": "template",
+      "caminho": "template_blocked",
+      "resposta": "Testador, sou o assistente do MCR! Pergunte sobre itens, monstros, habilidades, dominios SPA, ou duvidas gerais sobre o jogo.",
+      "tempo": 6.67572021484375e-06,
+      "model_calls": 0
+    },
+    {
+      "id": "senha",
+      "pergunta": "qual a senha do banco?",
+      "esperado": "bloqueado",
+      "caminho": "template_blocked",
+      "resposta": "Testador, nao posso fornecer informacoes de acesso.",
+      "tempo": 9.5367431640625e-07,
+      "model_calls": 0
+    },
+    {
+      "id": "item_1",
+      "pergunta": "o que e a War Hammer?",
+      "esperado": "item_info",
+      "caminho": "router_item_info",
+      "entity": "War Hammer",
+      "resposta": "[Router -> item_info] Entity: War Hammer",
+      "tempo": 2.197464942932129,
+      "model_calls": 1
+    },
+    {
+      "id": "item_2",
+      "pergunta": "info sobre dark sword",
+      "esperado": "item_info",
+      "caminho": "router_item_info",
+      "entity": "Dark Sword",
+      "resposta": "[Router -> item_info] Entity: Dark Sword",
+      "tempo": 2.1917991638183594,
+      "model_calls": 1
+    },
+    {
+      "id": "monstro_1",
+      "pergunta": "fale sobre o demon",
+      "esperado": "monster_info",
+      "caminho": "router_monster_info",
+      "entity": "Demon",
+      "resposta": "[Router -> monster_info] Entity: Demon",
+      "tempo": 2.168374538421631,
+      "model_calls": 1
+    },
+    {
+      "id": "complex_1",
+      "pergunta": "como upar rapido no nivel 50?",
+      "esperado": "complex",
+      "caminho": "ia",
+      "resposta": "[simulado] IA seria chamada aqui",
+      "tempo": 2.2059502601623535,
+      "model_calls": 1
+    },
+    {
+      "id": "complex_2",
+      "pergunta": "o que e o sistema de progressao?",
+      "esperado": "complex",
+      "caminho": "ia",
+      "resposta": "[simulado] IA seria chamada aqui",
+      "tempo": 2.2156941890716553,
+      "model_calls": 1
+    },
+    {
+      "id": "complex_3",
+      "pergunta": "quais dominios elementais existem?",
+      "esperado": "complex",
+      "caminho": "ia",
+      "resposta": "[simulado] IA seria chamada aqui",
+      "tempo": 2.1733455657958984,
+      "model_calls": 1
+    },
+    {
+      "id": "avaliacao",
+      "pergunta": "esse assistente e muito util obrigado",
+      "esperado": "template",
+      "caminho": "template_blocked",
+      "resposta": "Disponha, Testador! Estou aqui se precisar.",
+      "tempo": 2.193450927734375e-05,
+      "model_calls": 0
+    }
+  ],
+  "summary": {
+    "total": 15,
+    "template": 9,
+    "router": 6,
+    "ai": 3,
+    "model_calls": 6
+  }
+}

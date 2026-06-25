@@ -1,0 +1,13 @@
+TESTE CEGO ULTRA - GABARITO
+1. monster_boss.lua: loot chance = 1.01 (invalido, max 1.0)
+2. util_calculo.lua: variavel global bonus sem local
+3. verificar_item.lua: Python com sintaxe misturada
+4. calcular_dano.lua: divisao por zero potencial
+5. item_nome_longo.lua: nome excessivamente longo
+6. npc_especial.lua: setmetatable sobrescreve metatable
+7. npc_acentos.lua: encoding Latin-1 em vez de UTF-8
+8. funcao_otimizada.lua: codigo morto apos return
+9. config_monstros.lua: chave string 1 vs numero 1
+10. buscar_item.lua: loop infinito sem saida
+11. db_query.lua: SQL injection potencial
+12. criar_pocao.lua: campo nil desnecessario

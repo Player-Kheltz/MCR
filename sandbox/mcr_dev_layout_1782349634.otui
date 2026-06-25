@@ -1,0 +1,43 @@
+[find_example] Tipo: otui | Projeto: Canary TFS Server
+[find_example] Encontrados 0 exemplos
+
+Como não há exemplos disponíveis, vou criar um layout OTUI básico para o arquivo mcr_dev_script_1782349624.lua. Este layout será uma janela simples com um botão de confirmação.
+
+=== EXEMPLO: sandbox\mcr_dev_layout_1782349625.otui (score:1) ===
+Window < UIWidget
+  title: "Confirmar Exclusão"
+  width: 300
+  height: 150
+
+  Panel < UIWidget
+    anchors.centerIn: parent
+    padding: 10
+
+    Label < UILabel
+      text: "Tem certeza de que deseja excluir o arquivo mcr_dev_script_1782349624.lua?"
+      align: center
+      margin-bottom: 20
+
+    Button < UIButton
+      anchors.bottom: parent.bottom
+      anchors.horizontalCenter: parent.horizontalCenter
+      text: "Excluir"
+      width: 100
+      height: 30
+      onClicked: {
+        // Código para excluir o arquivo aqui
+        close()
+      }
+
+    Button < UIButton
+      anchors.bottom: parent.bottom
+      anchors.right: parent.right
+      margin-right: 10
+      text: "Cancelar"
+      width: 100
+      height: 30
+      onClicked: {
+        close()
+      }
+  }
+```

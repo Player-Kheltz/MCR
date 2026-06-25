@@ -1,0 +1,24 @@
+{
+  "exemplos_bons": [
+    "Spell: {nome:\"Bola de Fogo\", elemento:\"fire\", dano:100, mana:30, cooldown:4}",
+    "Spell com formula de dano escalonada",
+    "Spell com efeito visual definido"
+  ],
+  "exemplos_ruins": [
+    "Spell sem custo de mana",
+    "Spell com cooldown 0 (spammavel)",
+    "Spell sem elemento definido"
+  ],
+  "regras": [
+    "Spell precisa de nome, elemento, dano, mana, cooldown",
+    "Dano pode ser fixo ou por formula (ex: nivel * 2)",
+    "Efeito visual opcional mas recomendado"
+  ],
+  "metricas": {
+    "acertos": 1,
+    "erros": 0
+  },
+  "acertos_recentes": [
+    "BolaDeFogo"
+  ]
+}

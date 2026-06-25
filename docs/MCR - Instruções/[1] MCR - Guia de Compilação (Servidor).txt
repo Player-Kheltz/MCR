@@ -533,6 +533,16 @@ SPAManager: registo de domínios, eventos e gestão de pets em memória.
 📅 EVENTO onHealthChange (JÁ IMPLEMENTADO)
 O evento onHealthChange está presente no Canary e é usado pelo script ProgDefesa (eventos.lua) para progressão de Sobrevivência e Escudo ao receber dano.
 
+🎯 ENCODING RULES (RESUMO)
+
+| Tipo | Padrão |
+|---|---|
+| `.cpp`/`.hpp` | UTF-8 literal com `/utf-8` no MSVC |
+| `.lua` (servidor) | UTF-8 sem BOM |
+| `.xml` | UTF-8 real + `encoding="UTF-8"` |
+| Saída protocolo | `toLatin1()` em `sendCancelMessage` e `sendTextMessage` |
+| Banco de dados | `utf8mb4` |
+
 🛠️ PIPELINE DE TRADUÇÃO AUTOMÁTICA
 A partir da versão actual, TODO o código C++ do servidor foi traduzido para PT‑BR através de uma pipeline automática supervisionada. As directrizes abaixo DEVEM ser mantidas em qualquer modificação futura:
 

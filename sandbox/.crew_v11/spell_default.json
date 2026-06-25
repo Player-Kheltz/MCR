@@ -1,0 +1,61 @@
+{
+  "modulo": "spell",
+  "projeto_scan": {
+    "caminho": "E:\\Projeto MCR\\Canary\\data-canary",
+    "arquivos": 2468,
+    "extensoes_principais": [
+      [
+        ".lua",
+        2433
+      ],
+      [
+        ".xml",
+        10
+      ],
+      [
+        ".bak2",
+        9
+      ],
+      [
+        "",
+        3
+      ],
+      [
+        ".otbm",
+        2
+      ]
+    ]
+  },
+  "exemplos_bons": [
+    "Spell com nome e elemento definido",
+    "Spell com formula de dano escalonada (nivel * 2)",
+    "Spell com custo de mana e cooldown",
+    "Spell com efeito visual (particles)",
+    "Spell com alcance e area",
+    "Spell com condicao (stun, slow, burn)",
+    "Spell com som de cast",
+    "Spell com requisito de magia level",
+    "Spell com variacao de dano (min-max)",
+    "Spell com efeito em grupo (party)"
+  ],
+  "exemplos_ruins": [
+    "Spell sem custo de mana",
+    "Spell com cooldown 0 (spammavel)",
+    "Spell sem elemento definido",
+    "Spell com dano fixo sem scaling"
+  ],
+  "regras": [
+    "Seguir o padrao de nomenclatura do projeto existente",
+    "Manter consistencia com arquivos ja existentes",
+    "Respeitar a estrutura de diretorios do projeto",
+    "Codigo deve seguir o estilo do projeto (indentacao, etc)"
+  ],
+  "metricas": {
+    "acertos": 1,
+    "erros": 0
+  },
+  "criado_em": "2026-06-25 00:45:22.496262",
+  "acertos_recentes": [
+    "BolaDeFogo"
+  ]
+}

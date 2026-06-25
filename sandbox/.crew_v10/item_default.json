@@ -1,0 +1,24 @@
+{
+  "exemplos_bons": [
+    "Item: {id:123, nome:\"Espada Longa\", tipo:\"weapon\", atk:25, def:5, peso:40}",
+    "Item com requisito de nivel ou vocacao",
+    "Item com efeito especial (cura, buff)"
+  ],
+  "exemplos_ruins": [
+    "Item sem tipo definido",
+    "Item com stats negativos",
+    "Item sem nome descritivo"
+  ],
+  "regras": [
+    "Item precisa de ID unico, nome, tipo",
+    "Atributos dependem do tipo (arma: atk; armadura: def)",
+    "Itens especiais precisam de efeito definido"
+  ],
+  "metricas": {
+    "acertos": 1,
+    "erros": 0
+  },
+  "acertos_recentes": [
+    "Espada"
+  ]
+}

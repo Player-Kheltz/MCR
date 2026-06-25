@@ -1,0 +1,74 @@
+[
+  {
+    "tipo": "sintaxe",
+    "severidade": "ALTA",
+    "arquivo": "spa/habilidades/arcos.lua",
+    "detalhe": "Chaves: 94/88 (diff 6)"
+  },
+  {
+    "tipo": "sintaxe",
+    "severidade": "ALTA",
+    "arquivo": "spa/habilidades/armas_punho.lua",
+    "detalhe": "Chaves: 88/82 (diff 6)"
+  },
+  {
+    "tipo": "sintaxe",
+    "severidade": "ALTA",
+    "arquivo": "spa/habilidades/bastoes_arcanos.lua",
+    "detalhe": "Chaves: 77/70 (diff 7)"
+  },
+  {
+    "tipo": "sintaxe",
+    "severidade": "ALTA",
+    "arquivo": "spa/habilidades/clavas_leves.lua",
+    "detalhe": "Chaves: 89/84 (diff 5)"
+  },
+  {
+    "tipo": "sintaxe",
+    "severidade": "ALTA",
+    "arquivo": "spa/habilidades/clavas_pesadas.lua",
+    "detalhe": "Chaves: 92/87 (diff 5)"
+  },
+  {
+    "tipo": "sintaxe",
+    "severidade": "ALTA",
+    "arquivo": "spa/habilidades/espadas_pesadas.lua",
+    "detalhe": "Chaves: 95/90 (diff 5)"
+  },
+  {
+    "tipo": "sintaxe",
+    "severidade": "ALTA",
+    "arquivo": "spa/habilidades/lutador.lua",
+    "detalhe": "Chaves: 64/54 (diff 10)"
+  },
+  {
+    "tipo": "sintaxe",
+    "severidade": "ALTA",
+    "arquivo": "spa/habilidades/machados_pesados.lua",
+    "detalhe": "Chaves: 92/87 (diff 5)"
+  },
+  {
+    "tipo": "sintaxe",
+    "severidade": "ALTA",
+    "arquivo": "spa/habilidades/sobrevivencia.lua",
+    "detalhe": "Chaves: 78/72 (diff 6)"
+  },
+  {
+    "tipo": "runtime",
+    "severidade": "MEDIA",
+    "arquivo": "startup_log.txt",
+    "detalhe": "33 erros de passiva"
+  },
+  {
+    "tipo": "kg",
+    "severidade": "INFO",
+    "arquivo": "KG",
+    "detalhe": "19 licoes, V19"
+  },
+  {
+    "tipo": "kg",
+    "severidade": "BAIXA",
+    "arquivo": "KG",
+    "detalhe": "Licoes duplicadas"
+  }
+]

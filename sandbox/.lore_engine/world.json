@@ -1,0 +1,43 @@
+{
+  "mundo": {
+    "nome": "Eridanus",
+    "era": "Terceira Era",
+    "descricao": "Uma cidade-estado fundada ha tres seculos por tres herois."
+  },
+  "cidades": {
+    "eridanus": {
+      "nome": "Eridanus",
+      "fundacao": "Ha 300 anos",
+      "fundadores": [
+        "Aeliana, a Mago",
+        "Thorn, o Guerreiro",
+        "Lyra, a Protetora"
+      ],
+      "descricao": "Construida sobre um antigo vilarejo, Eridanus prospera as margens do Lago Azure.",
+      "locais": [
+        "Mina Abandonada",
+        "Ruinas do Templo",
+        "Biblioteca Antiga",
+        "Lago Azure",
+        "Praca Central"
+      ]
+    }
+  },
+  "racas": {
+    "humanos": "A maioria dos habitantes de Eridanus. Conhecidos por sua resiliencia.",
+    "elfos": "Raros na cidade, mas respeitados por sua sabedoria antiga.",
+    "anoes": "Habitam as profundezas da Mina Abandonada. Conhecem os segredos da pedra."
+  },
+  "personagens": {},
+  "itens_lendarios": {
+    "olho de eridanus": {
+      "ORIGEM": "Eriano foi criado durante uma noite mágica em meio ao Lago Azure. A Mago, encantada pela tranquilidade da superfície d'água, conjurou um olho mágico nas profundezas do lago como tributo a sua amada cidade-estado.\n\n**Poder/efeito:**  \nQuando observado através do Olho de Eridanus, os habitantes conseguem ver uma visão sobrenatural das esferas vitais e energia dos monstros que se movimentam nas margens do lago. Isso ajuda os defensores da cidade a prever ataques e tomar decisões estratégicas.\n\n**Le",
+      "LENDA": "Acreditava-se em Eriano por muitos anos como um símbolo de segurança para a cidade. Além disso, algumas histórias falam que quem observa o Olho de Eridanus pode ouvir as vozes dos espíritos das águas do lago, recebendo conselhos sobre ameaças iminentes ou oportunidades em breve."
+    }
+  },
+  "eventos": {},
+  "metricas": {
+    "lore_criado": 0,
+    "lore_usado": 0
+  }
+}

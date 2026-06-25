@@ -1,5 +1,5 @@
 {
-  "versoes": 38,
+  "versoes": 66,
   "licoes": [
     {
       "id": "L001",
@@ -332,13 +332,235 @@
       "solucao": "Antes de editar um arquivo, primeiro LEIA ele para entender o formato. Depois adapte a edicao ao formato real. Use a mesma funcao de leitura para encontrar e para editar.",
       "ctx": "meta_aprendizado",
       "usos": 0
+    },
+    {
+      "id": "L0043",
+      "erro": "Sistema de Profecia de Eridanus",
+      "causa": "Uma antiga profecia envolve 3 artefatos perdidos",
+      "solucao": "NPC SabioDeEridanus inicia a quest, LordeDasSombras guarda o Cristal",
+      "ctx": "runtime",
+      "usos": 0
+    },
+    {
+      "id": "S0044",
+      "erro": "Arquivo .lua salvo em Latin-1 em vez de UTF-8 (acentos corrompidos)",
+      "causa": "Detector de encoding tentou UTF-8, fallback pra Latin-1 sem avisar",
+      "solucao": "Sempre verificar se o encoding do arquivo e UTF-8. Se nao for, avisar e sugerir conversao.",
+      "ctx": "encoding"
+    },
+    {
+      "id": "S0045",
+      "erro": "Arquivo .lua com sintaxe de Python (def, True, False)",
+      "causa": "Detector so procura keywords Lua, nao detecta keywords de outras linguagens",
+      "solucao": "Verificar se o arquivo contem keywords de outras linguagens (def, class, import) e avisar.",
+      "ctx": "sintaxe"
+    },
+    {
+      "id": "D0046",
+      "erro": "Scanner nao detectava: contem sintaxe Python (def, True, False) em um arquivo .lua",
+      "causa": "Faltava detector para verificar_item.lua",
+      "solucao": "Detector gerado automaticamente e incorporado ao scanner",
+      "ctx": "auto_detector",
+      "usos": 0
+    },
+    {
+      "id": "D0047",
+      "erro": "Scanner nao detectava: atribui explicitamente nil a um campo (p.efeito = nil)",
+      "causa": "Faltava detector para criar_pocao.lua",
+      "solucao": "Detector gerado automaticamente e incorporado ao scanner",
+      "ctx": "auto_detector",
+      "usos": 0
+    },
+    {
+      "id": "D0048",
+      "erro": "Scanner nao detectava: contem sintaxe Python (def, True, False) em um arquivo .lua",
+      "causa": "Faltava detector para verificar_item.lua",
+      "solucao": "Detector gerado automaticamente e incorporado ao scanner",
+      "ctx": "auto_detector",
+      "usos": 0
+    },
+    {
+      "id": "D0049",
+      "erro": "Scanner nao detectava: atribui explicitamente nil a um campo (p.efeito = nil)",
+      "causa": "Faltava detector para criar_pocao.lua",
+      "solucao": "Detector gerado automaticamente e incorporado ao scanner",
+      "ctx": "auto_detector",
+      "usos": 0
+    },
+    {
+      "id": "D0050",
+      "erro": "Scanner nao detectava: contem sintaxe Python (def, True, False) em um arquivo .lua",
+      "causa": "Faltava detector para verificar_item.lua",
+      "solucao": "Detector gerado automaticamente e incorporado ao scanner",
+      "ctx": "auto_detector",
+      "usos": 0
+    },
+    {
+      "id": "D0051",
+      "erro": "Scanner nao detectava: atribui explicitamente nil a um campo (p.efeito = nil)",
+      "causa": "Faltava detector para criar_pocao.lua",
+      "solucao": "Detector gerado automaticamente e incorporado ao scanner",
+      "ctx": "auto_detector",
+      "usos": 0
+    },
+    {
+      "id": "D0052",
+      "erro": "Scanner nao detectava: contem sintaxe Python (def, True, False) em um arquivo .lua",
+      "causa": "Faltava detector para verificar_item.lua",
+      "solucao": "Detector gerado automaticamente e incorporado ao scanner",
+      "ctx": "auto_detector",
+      "usos": 0
+    },
+    {
+      "id": "D0053",
+      "erro": "Scanner nao detectava: atribui explicitamente nil a um campo (p.efeito = nil)",
+      "causa": "Faltava detector para criar_pocao.lua",
+      "solucao": "Detector gerado automaticamente e incorporado ao scanner",
+      "ctx": "auto_detector",
+      "usos": 0
+    },
+    {
+      "id": "D0054",
+      "erro": "Scanner nao detectava: contem sintaxe Python (def, True, False) em um arquivo .lua",
+      "causa": "Faltava detector para verificar_item.lua",
+      "solucao": "Detector gerado automaticamente e incorporado ao scanner",
+      "ctx": "auto_detector",
+      "usos": 0
+    },
+    {
+      "id": "D0055",
+      "erro": "Scanner nao detectava: atribui explicitamente nil a um campo (p.efeito = nil)",
+      "causa": "Faltava detector para criar_pocao.lua",
+      "solucao": "Detector gerado automaticamente e incorporado ao scanner",
+      "ctx": "auto_detector",
+      "usos": 0
+    },
+    {
+      "id": "D0056",
+      "erro": "Scanner nao detectava: contem sintaxe Python (def, True, False) em um arquivo .lua",
+      "causa": "Faltava detector para verificar_item.lua",
+      "solucao": "Detector gerado automaticamente e incorporado ao scanner",
+      "ctx": "auto_detector",
+      "usos": 0
+    },
+    {
+      "id": "D0057",
+      "erro": "Scanner nao detectava: atribui explicitamente nil a um campo (p.efeito = nil)",
+      "causa": "Faltava detector para criar_pocao.lua",
+      "solucao": "Detector gerado automaticamente e incorporado ao scanner",
+      "ctx": "auto_detector",
+      "usos": 0
+    },
+    {
+      "id": "D0058",
+      "erro": "Detectores gerados mas nunca chamados pelo scan()",
+      "causa": "Auto-aprendizado cria funcoes detectoras mas nao as integra no fluxo principal",
+      "solucao": "No final do scan(), procurar por funcoes detectar_* no proprio modulo e chama-las para cada arquivo. Assim novos detectores sao automaticamente usados.",
+      "ctx": "auto_integracao",
+      "usos": 0
+    },
+    {
+      "id": "C0059",
+      "erro": "12 detectores orfaos — gerados mas nunca integrados ao scan()",
+      "causa": "KG cresce mas deteccao nao melhora. Aprendizado sem aplicacao.",
+      "solucao": "Adicionar loop no scan() que descobre e chama automaticamente funcoes detectar_*",
+      "ctx": "meta_correlacao",
+      "usos": 0
+    },
+    {
+      "id": "D0060",
+      "erro": "Scanner nao detectava: contem sintaxe Python (def, True, False) em um arquivo .lua",
+      "causa": "Faltava detector para verificar_item.lua",
+      "solucao": "Detector gerado automaticamente e incorporado ao scanner",
+      "ctx": "auto_detector",
+      "usos": 0
+    },
+    {
+      "id": "D0061",
+      "erro": "Scanner nao detectava: atribui explicitamente nil a um campo (p.efeito = nil)",
+      "causa": "Faltava detector para criar_pocao.lua",
+      "solucao": "Detector gerado automaticamente e incorporado ao scanner",
+      "ctx": "auto_detector",
+      "usos": 0
+    },
+    {
+      "id": "D0062",
+      "erro": "Scanner nao detectava: contem sintaxe Python (def, True, False) em um arquivo .lua",
+      "causa": "Faltava detector para verificar_item.lua",
+      "solucao": "Detector gerado automaticamente e incorporado ao scanner",
+      "ctx": "auto_detector",
+      "usos": 0
+    },
+    {
+      "id": "D0063",
+      "erro": "Scanner nao detectava: atribui explicitamente nil a um campo (p.efeito = nil)",
+      "causa": "Faltava detector para criar_pocao.lua",
+      "solucao": "Detector gerado automaticamente e incorporado ao scanner",
+      "ctx": "auto_detector",
+      "usos": 0
+    },
+    {
+      "id": "D0064",
+      "erro": "Scanner nao detectava: contem sintaxe Python (def, True, False) em um arquivo .lua",
+      "causa": "Faltava detector para verificar_item.lua",
+      "solucao": "Detector gerado automaticamente e incorporado ao scanner",
+      "ctx": "auto_detector",
+      "usos": 0
+    },
+    {
+      "id": "D0065",
+      "erro": "Scanner nao detectava: atribui explicitamente nil a um campo (p.efeito = nil)",
+      "causa": "Faltava detector para criar_pocao.lua",
+      "solucao": "Detector gerado automaticamente e incorporado ao scanner",
+      "ctx": "auto_detector",
+      "usos": 0
+    },
+    {
+      "id": "D0066",
+      "erro": "Scanner nao detectava: contem sintaxe Python (def, True, False) em um arquivo .lua",
+      "causa": "Faltava detector para verificar_item.lua",
+      "solucao": "Detector gerado automaticamente e incorporado ao scanner",
+      "ctx": "auto_detector",
+      "usos": 0
+    },
+    {
+      "id": "D0067",
+      "erro": "Scanner nao detectava: atribui explicitamente nil a um campo (p.efeito = nil)",
+      "causa": "Faltava detector para criar_pocao.lua",
+      "solucao": "Detector gerado automaticamente e incorporado ao scanner",
+      "ctx": "auto_detector",
+      "usos": 0
+    },
+    {
+      "id": "D0068",
+      "erro": "Scanner nao detectava: contem sintaxe Python (def, True, False) em um arquivo .lua",
+      "causa": "Faltava detector para verificar_item.lua",
+      "solucao": "Detector gerado automaticamente e incorporado ao scanner",
+      "ctx": "auto_detector",
+      "usos": 0
+    },
+    {
+      "id": "D0069",
+      "erro": "Scanner nao detectava: atribui explicitamente nil a um campo (p.efeito = nil)",
+      "causa": "Faltava detector para criar_pocao.lua",
+      "solucao": "Detector gerado automaticamente e incorporado ao scanner",
+      "ctx": "auto_detector",
+      "usos": 0
+    },
+    {
+      "id": "L0070",
+      "erro": "Corrigi o scan() que estava com return no meio cortando o codigo original",
+      "causa": "Meu codigo de integracao tinha return antes do codigo original de deteccao",
+      "solucao": "Sempre verificar se o codigo inserido nao corta o fluxo original. Colocar integracao ANTES do return final",
+      "ctx": "meta_aprendizado",
+      "usos": 0
     }
   ],
   "index": {},
   "metricas": {
-    "licoes": 42,
+    "licoes": 70,
     "usos": 0,
-    "geracoes": 12,
+    "geracoes": 13,
     "compilacoes": 0
   }
 }

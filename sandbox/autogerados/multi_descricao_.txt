@@ -1,0 +1,208 @@
+# descricao do sistema de crafting do MCR
+## Rascunho
+Sistema de Crafting no Minecraft Real (MCR)
+
+Introdução:
+
+O Sistema de Crafting é uma parte essencial do jogo Minecraft Real, permitindo aos jogadores criar novos itens e melhorar suas habilidades através da produção de recursos. Este sistema fomenta a exploração, planejamento e a criação de estruturas mais complexas no jogo.
+
+Componentes do Sistema:
+
+1. Workbench (Mesa de Trabalho):
+   - O principal local para realizar crafting.
+   - Disponível em várias dimensões do jogo, como o mundo físico e o nether.
+   
+2. Ingredientes:
+   - Recursos coletados durante as missões diárias ou adquiridos através da exploração.
+   - Inclui metais, pedras preciosas, materiais de construção e muito mais.
+
+3. Receitas:
+   - Conjuntos de regras que definem como os ingredientes são combinados para criar novos itens.
+   - Aprender novas receitas é crucial para avançar no jogo e explorar áreas mais avançadas.
+
+4. Tipos de Itens:
+   - Ferramentas: Espada, machado, adaga, etc.
+   - Armadilhas: Cota de malha, capacete, protetor de peito, panturrilhas, botas.
+   - Materiais de Construção: Tijolo, pedra, madeira, concreto, etc.
+   - Consumíveis: Alimentos, pocções, elixirs.
+   - Outros: Candelabro, lâmpada.
+
+Funcionamento:
+
+1. Seleção de Receitas:
+   - Jogadores podem visualizar as receitas disponíveis na Workbench.
+   - Clicar em uma receita seleciona-a e mostra os ingredientes necessários.
+
+2. Colocando Ingredientes:
+   - Os jogadores arrastam e soltam os itens necessários na grade da Workbench.
+   - A ordem dos ingredientes pode ser importante dependendo da receita.
+
+3. Produção do Item:
+   - Quando todos os ingredientes estão em suas posições corretas, o item é criado automaticamente.
+   - O novo item aparece em uma caixa de saída à direita da Workbench.
+
+4. Coleta e Uso:
+   - Os itens podem ser movidos para o inventário ou usado imediatamente no jogo.
+   - Alguns itens requerem energia adicional, como combustível para fogões.
+
+Desenvolvimentos Futuros:
+
+1. Novas Receitas:
+   - Adição de receitas avançadas para equipamentos raros e objetos únicos.
+   
+2. Interoperabilidade entre Dimensões:
+   - Permitir crafting em diferentes dimensões do jogo, facilitando o acesso a recursos raras.
+
+3. Aprendizado Automático:
+   - Sistemas de aprendizado que sugerem receitas com base no inventário dos jogadores.
+
+4. Integração com Missões e Eventos:
+   - Crafting especial para itens únicos associados a missões diárias ou eventos especiais.
+
+5. Personalização do Inventário:
+   - Permite organizar o inventário de maneira mais eficiente, permitindo separar itens por tipos.
+
+Conclusão:
+
+O Sistema de Crafting no Minecraft Real é um elemento fundamental que adiciona profundidade e diversidade ao jogo. Ao aprender e dominar as receitas, os jogadores podem explorar novas áreas, criar estruturas mais complexas e aumentar significativamente sua eficiência em missões diárias. O sistema também serve como uma base para o desenvolvimento de habilidades técnicas importantes, fomentando a criatividade e a resolução de problemas no jogo.
+## Revisao
+O rascunho apresenta uma visão geral do Sistema de Crafting no Minecraft Real (MCR), mas há alguns problemas e áreas que podem ser aprimoradas para torná-lo mais completo e preciso. Aqui estão três problemas principais:
+
+1. **Incompletude na descrição dos tipos de itens**:
+   - O texto menciona apenas "Ferramentas" e "Armadilhas", mas não completa a lista de todos os tipos de itens que podem ser criados através do crafting. A lista de itens pode incluir mais categorias como armaduras, escudos, utensílios de cozinha, materiais para construções (como madeira, pedra, etc.), e muito mais.
+
+2. **Falta de detalhes sobre a complexidade das receitas**:
+   - O texto não explora o nível de complexidade das receitas disponíveis no MCR. Receitas simples podem ser feitas em uma mesa de trabalho com poucos ingredientes, enquanto as receitas mais avançadas exigem uma mesa de trabalho superior e muitos ingredientes diferentes. Esta informação é crucial para entender a dinâmica do jogo.
+
+3. **Desconsideração da economia no crafting**:
+   - O texto não menciona como o crafting afeta a economia do jogador. O custo dos ingredientes, a dificuldade em encontrar certos recursos e a necessidade de gerenciar os recursos disponíveis são aspectos importantes que devem ser explorados para oferecer uma visão mais completa do sistema.
+
+Aqui está um exemplo de como o texto poderia ser aprimorado:
+
+---
+
+**Sistema de Crafting no Minecraft Real (MCR)**
+
+Introdução:
+
+O Sistema de Crafting é uma parte essencial do jogo Minecraft Real, permitindo aos jogadores criar novos itens e melhorar suas habilidades através da produção de recursos. Este sistema fomenta a exploração, planejamento e a criação de estruturas mais complexas no jogo.
+
+Componentes do Sistema:
+
+1. **Workbench (Mesa de Trabalho)**:
+   - O principal local para realizar crafting.
+   - Disponível em várias dimensões do jogo, como o mundo físico e o nether.
+   
+2. **Ingredientes**:
+   - Recursos coletados durante as missões diárias ou adquiridos através da exploração.
+   - Inclui metais (ferro, cobre, ouro), pedras preciosas (diamante, esmeralda, rubi), materiais de construção (madeira, pedra, aço), e muito mais.
+
+3. **Receitas**:
+   - Conjuntos de regras que definem como os ingredientes são combinados para criar novos itens.
+   - Aprender novas receitas é crucial para avançar no jogo e explorar áreas mais avançadas. Receitas simples podem ser feitas em uma mesa de trabalho com poucos ingredientes, enquanto as receitas mais avançadas exigem uma mesa de trabalho superior e muitos ingredientes diferentes.
+
+4. **Tipos de Itens**:
+   - Ferramentas: Espada, machado, adaga, ferramenta de mineração (picareta, hacha).
+   - Armadilhas: Cota de malha, cinto de corda, escudo.
+   - Utensílios de cozinha: Panela, forno, prato.
+   - Materiais para construções: Madeira, pedra, aço, vidro.
+
+5. **Complexidade das Receitas**:
+   - As receitas podem variar em complexidade, desde simples como uma panela até receitas mais avançadas como um escudo de cobre ou uma picareta de aço.
+   - A disponibilidade de ingredientes e o nível de dificuldade do crafting influenciam diretamente na progressão do jogador.
+
+6. **Economia no Crafting**:
+   - O custo dos ingredientes é crucial para o desenvolvimento econômico do jogador.
+   - Recursos como diamante são raros e caros, enquanto recursos comuns como madeira podem ser mais fáceis de encontrar.
+   - A gestão eficiente dos recursos é essencial para sobrevivência e exploração no jogo.
+
+---
+
+Esse aprimoramento adiciona detalhes sobre os tipos de itens, a complexidade das receitas e a economia no crafting, fornecendo uma visão mais completa e precisa do Sistema de Crafting no Minecraft Real.
+## Final
+**Sistema de Crafting no Minecraft Real (MCR)**
+
+Introdução:
+
+O Sistema de Crafting é uma parte essencial do jogo Minecraft Real, permitindo aos jogadores criar novos itens e melhorar suas habilidades através da produção de recursos. Este sistema fomenta a exploração, planejamento e a criação de estruturas mais complexas no jogo.
+
+Componentes do Sistema:
+
+1. **Workbench (Mesa de Trabalho)**:
+   - O principal local para realizar crafting.
+   - Disponível em várias dimensões do jogo, como o mundo físico e o nether.
+   
+2. **Ingredientes**:
+   - Recursos coletados durante as missões diárias ou adquiridos através da exploração.
+   - Inclui metais (ferro, cobre, ouro), pedras preciosas (diamante, esmeralda, rubi), materiais de construção (madeira, pedra, aço), e muito mais.
+
+3. **Receitas**:
+   - Conjuntos de regras que definem como os ingredientes são combinados para criar novos itens.
+   - Aprender novas receitas é crucial para avançar no jogo e explorar áreas mais avançadas. Receitas simples podem ser feitas em uma mesa de trabalho com poucos ingredientes, enquanto as receitas mais avançadas exigem uma mesa de trabalho superior e muitos ingredientes diferentes.
+
+4. **Tipos de Itens**:
+   - Ferramentas: Espada, machado, adaga, ferramenta de mineração (picareta, hacha).
+   - Armadilhas: Cota de malha, cinto de corda, escudo.
+   - Utensílios de cozinha: Panela, forno, prato.
+   - Materiais para construções: Madeira, pedra, aço, vidro.
+   - Consumíveis: Alimentos, pocções, elixirs.
+   - Outros: Candelabro, lâmpada.
+
+5. **Complexidade das Receitas**:
+   - As receitas podem variar em complexidade, desde simples como uma panela até receitas mais avançadas como um escudo de cobre ou uma picareta de aço.
+   - A disponibilidade de ingredientes e o nível de dificuldade do crafting influenciam diretamente na progressão do jogador.
+
+6. **Economia no Crafting**:
+   - O custo dos ingredientes é crucial para o desenvolvimento econômico do jogador.
+   - Recursos como diamante são raros e caros, enquanto recursos comuns como madeira podem ser mais fáceis de encontrar.
+   - A gestão eficiente dos recursos é essencial para sobrevivência e exploração no jogo.
+
+Funcionamento:
+
+1. **Seleção de Receitas**:
+   - Jogadores podem visualizar as receitas disponíveis na Workbench.
+   - Clicar em uma receita seleciona-a e mostra os ingredientes necessários.
+
+2. **Colocando Ingredientes**:
+   - Os jogadores arrastam e soltam os itens necessários na grade da Workbench.
+   - A ordem dos ingredientes pode ser importante dependendo da receita.
+
+3. **Produção do Item**:
+   - Quando todos os ingredientes estão em suas posições corretas, o item é criado automaticamente.
+   - O novo item aparece em uma caixa de saída à direita da Workbench.
+
+4. **Coleta e Uso**:
+   - Os itens podem ser movidos para o inventário ou usado imediatamente no jogo.
+   - Alguns itens requerem energia adicional, como combustível para fogões.
+
+Desenvolvimentos Futuros:
+
+1. **Novas Receitas**:
+   - Adição de receitas avançadas para equipamentos raros e objetos únicos.
+   
+2. **Interoperabilidade entre Dimensões**:
+   - Permitir crafting em diferentes dimensões do jogo, facilitando o acesso a recursos raras.
+
+3. **Aprendizado Automático**:
+   - Sistemas de aprendizado que sugerem receitas com base no inventário dos jogadores.
+
+4. **Integração com Missões e Eventos**:
+   - Crafting especial para itens únicos associados a missões diárias ou eventos especiais.
+
+5. **Personalização do Inventário**:
+   - Permite organizar o inventário de maneira mais eficiente, permitindo separar itens por tipos.
+
+6. **Sistemas de Desbloqueio Automático**:
+   - Sistemas que desbloqueiam automaticamente receitas com base no progresso do jogador e na disponibilidade de recursos.
+
+7. **Influência em Missões Diárias**:
+   - Crafting especial para itens únicos associados a missões diárias ou eventos especiais.
+
+8. **Integração com Economia Real**:
+   - Permitir que os jogadores troquem seus itens no jogo por dinheiro real em casos específicos, como compras de itens raros.
+
+Conclusão:
+
+O Sistema de Crafting no Minecraft Real é um elemento fundamental que adiciona profundidade e diversidade ao jogo. Ao aprender e dominar as receitas, os jogadores podem explorar novas áreas, criar estruturas mais complexas e aumentar significativamente sua eficiência em missões diárias. O sistema também serve como uma base para o desenvolvimento de habilidades técnicas importantes, fomentando a criatividade e a resolução de problemas no jogo.
+
+Este sistema de crafting continua evoluindo, oferecendo novas funcionalidades e melhorias que tornam ainda mais dinâmico e envolvente o processo de criação dos jogadores.

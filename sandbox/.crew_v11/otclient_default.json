@@ -1,0 +1,70 @@
+{
+  "modulo": "otclient",
+  "projeto_scan": {
+    "caminho": "E:\\Projeto MCR\\Canary\\data-canary",
+    "arquivos": 2468,
+    "extensoes_principais": [
+      [
+        ".lua",
+        2433
+      ],
+      [
+        ".xml",
+        10
+      ],
+      [
+        ".bak2",
+        9
+      ],
+      [
+        "",
+        3
+      ],
+      [
+        ".otbm",
+        2
+      ]
+    ]
+  },
+  "exemplos_bons": [
+    "Module com Window + Panel organizado",
+    "UIMap com camadas (floor, creatures, effects)",
+    "Console com input/output separados",
+    "Battle com HP bar + status icons",
+    "Container com slots de item",
+    "Button com onClick e hover color",
+    "Label com font e color customizados",
+    "TextEdit com placeholder e max length",
+    "ImageView com source e scale",
+    "ProgressBar com cores de estado",
+    "MenuItem com icone e shortcut",
+    "TabPanel com abas organizadas",
+    "Scrollbar com thumb e track",
+    "ComboBox com dropdown items",
+    "CheckBox com label e estado"
+  ],
+  "exemplos_ruins": [
+    "Window sem Panel (widgets soltos)",
+    "Button sem onClick handler",
+    "Label sem text definido",
+    "Module sem .lua correspondente",
+    "OTUI com sintaxe invalida"
+  ],
+  "regras": [
+    "Seguir o padrao de nomenclatura do projeto existente",
+    "Manter consistencia com arquivos ja existentes",
+    "Respeitar a estrutura de diretorios do projeto",
+    "Codigo deve seguir o estilo do projeto (indentacao, etc)"
+  ],
+  "metricas": {
+    "acertos": 1,
+    "erros": 1
+  },
+  "criado_em": "2026-06-25 00:45:22.353165",
+  "erros_recentes": [
+    "OTClient:JanelaTeste"
+  ],
+  "acertos_recentes": [
+    "MinhaJanela"
+  ]
+}

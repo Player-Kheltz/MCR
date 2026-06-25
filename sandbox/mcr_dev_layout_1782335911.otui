@@ -1,0 +1,64 @@
+[find_example] Tipo: otui | Projeto: Canary TFS Server
+[find_example] Encontrados 0 exemplos
+
+Como não há exemplos disponíveis, vou criar um layout OTUI simples com base nas informações fornecidas:
+
+=== EXEMPLO: sandbox\mcr_dev_layout_1782335908.otui (score:1) ===
+Panel < UIWidget
+  phantom: true
+  auto-focus: first
+
+ScrollablePanel < UIScrollArea
+  phantom: true
+  auto-focus: first
+
+FlatPanel < Panel
+  image-source: /images/ui/panel_flat
+  image-border: 1
+
+ScrollableFlatPanel < ScrollablePanel
+  image-source: /images/ui/panel_flat
+  image-border: 1
+
+LightFlatPanel < Panel
+  image-source: /images/ui/panel_lightflat
+  image-border: 1
+
+QtPanel < UIWidget
+  padding: 10
+  auto-focus: first
+
+  UIWidget
+    anchors.top: parent.top
+    anchors.left: parent.left
+    anchors.right: parent.right
+    image-source: /images/ui/2pixel_up_frame_borderimage_dark
+    image-clip: 2 0 96 2
+    margin-left: -10
+    margin-right: -10
+    margin-top: -10
+    height: 2
+
+  UIWidget
+    anchors.top: parent.top
+    anchors.left: parent.left
+    anchors.bottom: parent.bottom
+
+  Text < UILabel
+    text: "Confirmar exclusão do arquivo mcr_dev_script_1782335899.lua?"
+    font-size: 14
+    color: #000000
+
+  Button < UIButton
+    text: "Sim"
+    anchors.bottom: parent.bottom
+    anchors.right: parent.right
+    margin-right: 10
+    margin-bottom: 10
+
+  Button < UIButton
+    text: "Não"
+    anchors.bottom: parent.bottom
+    anchors.left: parent.left
+    margin-left: 10
+    margin-bottom: 10
