@@ -187,6 +187,48 @@ registro do Windows/COM, não por environment variables.
 - O OTClient (cliente) SEMPRE compila com VS 2026 (v145) se ambos VS estiverem instalados
 - AGENTS.md atualizado com comandos corretos para cada projeto
 
+## 2026-06-24 — OpenCode 1.17.10: Bun Segmentation Fault ao criar subprocessos com GPU
+
+### Problema
+OpenCode v1.17.10 (Bun v1.3.14) crasha com Segmentation Fault sempre que tenta criar
+qualquer subprocesso (`python`, `git`, etc.) enquanto o Ollama está rodando na GPU
+(NVIDIA driver 591.86). O Bun tenta mapear memória da GPU e corrompe o heap.
+
+### Sintomas
+- `opencode --version` funciona OK (não cria subprocesso)
+- Qualquer comando via terminal (ex: `python -c "..."`) → Segmentation Fault
+- `opencode --no-session` com Ollama desligado → funciona
+- OpenClaw (Node.js, sem Bun) → funciona sempre
+
+### Causa Raiz
+Bun v1.3.14 tem um bug de corrupção de heap com NVIDIA CUDA memory mapping
+(driver 591.86). Ocorre especificamente quando:
+1. Ollama está rodando com GPU (carregou modelos na VRAM)
+2. Bun tenta criar um subprocesso via `Bun.spawn()` ou similar
+3. O memory-mapping do CUVA conflita com o allocator do Bun → SIGSEGV
+
+### Solução
+**Downgrade para OpenCode v1.17.9** (Bun v1.3.13 ou anterior):
+- Baixar o binário do CDN da opencode.ai (NÃO está no GitHub Releases)
+- Substituir `C:\Users\Kheltz\opencode\opencode.exe`
+- Verificar com `opencode --version`
+
+### Onde baixar
+O GitHub Releases (`github.com/opencode-ai/opencode/releases`) contém apenas:
+- Código fonte (source code zip)
+- Assets da release atual (1.17.10)
+
+Para versões antigas, é necessário:
+1. Navegar até a página de releases
+2. Clicar no seletor de **Tags** e escolher `v1.17.9`
+3. Baixar `opencode-windows-x64.zip` (53 MB) ou `opencode-desktop-win-x64.exe` (116 MB)
+
+### Prevenção
+- NÃO atualizar o OpenCode sem testar antes em ambiente isolado
+- Se o Bun crashar ao criar subprocessos, verificar a versão do OpenCode
+- Manter uma cópia do binário 1.17.9 em local seguro para rollback
+- Como fallback: OpenClaw (Node.js, sem Bun) + Hermes 3 funciona em paralelo
+
 ## 2026-06-24 — OpenCode: Recuperacao de conversas fechadas
 
 O OpenCode CLI salva automaticamente todas as sessoes de conversa. Comandos uteis:
