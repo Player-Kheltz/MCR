@@ -1,0 +1,344 @@
+{
+  "versoes": 38,
+  "licoes": [
+    {
+      "id": "L001",
+      "erro": "LNK2001 __std_*",
+      "causa": "ABI mismatch VS 2022 vs 2026",
+      "solucao": "Usar VS 2026 (toolset v145)",
+      "ctx": "compilar"
+    },
+    {
+      "id": "L002",
+      "erro": "D9002 /std:c++latest",
+      "causa": "stdcpp23 no MSVC 14.41",
+      "solucao": "Mudar para stdcpp20 no vcxproj",
+      "ctx": "compilar"
+    },
+    {
+      "id": "L003",
+      "erro": "string_view::contains",
+      "causa": "contains() e C++23, codigo usa C++20",
+      "solucao": "Substituir por find() != npos",
+      "ctx": "compilar"
+    },
+    {
+      "id": "L004",
+      "erro": "canary-sln.exe ocupado",
+      "causa": "Processo rodando em BG",
+      "solucao": "taskkill /f /im canary-sln.exe",
+      "ctx": "runtime"
+    },
+    {
+      "id": "L005",
+      "erro": "passiva nil value 40007",
+      "causa": "habilidade SHC sem efeito()",
+      "solucao": "Verificar hab.efeito antes de chamar",
+      "ctx": "runtime"
+    },
+    {
+      "id": "L006",
+      "erro": "Bun crash GPU",
+      "causa": "Bun 1.3.14 + NVIDIA",
+      "solucao": "Downgrade OpenCode 1.17.9",
+      "ctx": "ferramenta"
+    },
+    {
+      "id": "L007",
+      "erro": "HABILIDADES vazio",
+      "causa": "Arquivos de habilidade nao carregados",
+      "solucao": "Adicionar dofile no init",
+      "ctx": "runtime"
+    },
+    {
+      "id": "L008",
+      "erro": "Motor sem tipos",
+      "causa": "projectile/melee/cone nao existiam",
+      "solucao": "Adicionar 9 tipos ao motor",
+      "ctx": "runtime"
+    },
+    {
+      "id": "L009",
+      "erro": "IA gera em ingles",
+      "causa": "Qwen 7B tem bias ingles",
+      "solucao": "Detector de ingles + fallback tematico",
+      "ctx": "geracao"
+    },
+    {
+      "id": "L010",
+      "erro": "Chaves Lua desbalanceadas",
+      "causa": "Template fechava na linha errada",
+      "solucao": "Abrir/fechar em linhas separadas",
+      "ctx": "geracao"
+    },
+    {
+      "id": "L011",
+      "erro": "PowerShell Unicode",
+      "causa": "cp1252 encoding",
+      "solucao": "Nao usar emojis em prints",
+      "ctx": "ferramenta"
+    },
+    {
+      "id": "L012",
+      "erro": "IA nao segue JSON",
+      "causa": "Modelo 7B tem dificuldade",
+      "solucao": "Usar formato TEXTO (NOME: valor)",
+      "ctx": "geracao"
+    },
+    {
+      "id": "L0013",
+      "erro": "MSBuild not found",
+      "causa": "VS nao no PATH",
+      "solucao": "Usar caminho completo do MSBuild",
+      "ctx": "compilar",
+      "usos": 0
+    },
+    {
+      "id": "L0014",
+      "erro": "CMake Error",
+      "causa": "Falta dependencia",
+      "solucao": "Instalar com vcpkg",
+      "ctx": "compilar",
+      "usos": 0
+    },
+    {
+      "id": "L0015",
+      "erro": "ErroTesteCLOUD",
+      "causa": "Causa",
+      "solucao": "Solucao",
+      "ctx": "geral",
+      "usos": 0
+    },
+    {
+      "id": "L0016",
+      "erro": "PistaB_erro",
+      "causa": "Erro simulado",
+      "solucao": "Correcao automatica",
+      "ctx": "teste",
+      "usos": 0
+    },
+    {
+      "id": "L0017",
+      "erro": "ErroTesteMCR-DevIA",
+      "causa": "Causa",
+      "solucao": "Solucao",
+      "ctx": "geral",
+      "usos": 0
+    },
+    {
+      "id": "L0018",
+      "erro": "PistaB_erro",
+      "causa": "Erro simulado",
+      "solucao": "Correcao automatica",
+      "ctx": "teste",
+      "usos": 0
+    },
+    {
+      "id": "L0019",
+      "erro": "UnicodeEncodeError cp1252 emoji no Windows",
+      "causa": "PowerShell usa cp1252 que nao suporta caracteres Unicode como ✅ ❌",
+      "solucao": "Usar apenas ASCII ([OK] [ERRO]) em scripts Python para Windows. Substituir print(f'  {emoji}') por print(f'  [OK]') ou [ERRO]",
+      "ctx": "ferramenta",
+      "usos": 0
+    },
+    {
+      "id": "K0020",
+      "erro": "O que é a verdadeira felicidade?",
+      "causa": "[Dominio: filosofia]",
+      "solucao": "A verdadeira felicidade, segundo Platão, não reside na busca de prazer momentâneo ou nas riquezas materiais. Ela se manifesta no autoconhecimento e na realização da virtude moral.",
+      "ctx": "filosofia",
+      "fonte": "knowledge_farmer",
+      "usos": 0,
+      "criada_em": "2026-06-25"
+    },
+    {
+      "id": "K0021",
+      "erro": "** Como Aristóteles concebia a natureza humana e como isso influenciava sua filosofia política?",
+      "causa": "[Dominio: filosofia]",
+      "solucao": "** Aristóteles via a natureza humana como intrínsecamente social e orientada para o bem comum. Ele argumentava que os seres humanos, por natureza, são sociais e desejam viver em comunidade, buscando virtude e realização pessoal através do exercício da razão e da prudência.",
+      "ctx": "filosofia",
+      "fonte": "knowledge_farmer",
+      "usos": 0,
+      "criada_em": "2026-06-25"
+    },
+    {
+      "id": "K0022",
+      "erro": "O que é um Decorator em Python?",
+      "causa": "[Dominio: python]",
+      "solucao": "** Um decorator em Python é uma função que aceita outra função como argumento e retorna uma nova função. Ele é usado para modificar ou estender o comportamento de funções ou métodos existentes sem alterar seu código-fonte original.",
+      "ctx": "python",
+      "fonte": "knowledge_farmer",
+      "usos": 0,
+      "criada_em": "2026-06-25"
+    },
+    {
+      "id": "K0023",
+      "erro": "** O que é um Generator em Python?",
+      "causa": "[Dominio: python]",
+      "solucao": "** Em Python, um generator é uma função especial que retorna um iterador. Em vez de retornar todos os valores de uma só vez e encerrar a função, generators permitem que os valores sejam gerados sob demanda. Isso significa que cada valor é calculado no momento em que é solicitado, economizando memóri",
+      "ctx": "python",
+      "fonte": "knowledge_farmer",
+      "usos": 0,
+      "criada_em": "2026-06-25"
+    },
+    {
+      "id": "M0024",
+      "erro": "V12 Pattern: Python estrutura, IA preenche blanks - aplicavel a QUALQUER linguagem",
+      "causa": "O segredo do V12 eh separar ESTRUTURA (fixa, garantida por Python) de CONTEUDO (criativo, preenchido por IA). Funciona pra Lua, C++, Python, OTUI, XML, JSON, markdown - QUALQUER linguagem.",
+      "solucao": "1) Identifique a estrutura FIXA (template) 2) Identifique os blanks VARIAVEIS 3) Python monta o template 4) IA preenche blanks 5) Python valida. Isso elimina 100% dos erros de sintaxe.",
+      "ctx": "meta",
+      "usos": 0
+    },
+    {
+      "id": "L0025",
+      "erro": "Padroes de codigo para monster no MCR",
+      "causa": "Funcoes reais usadas em 37 arquivos",
+      "solucao": "Usar: setOutfit, setSpeed, setMaxHealth, addHealth, setMaster",
+      "ctx": "learning_scan",
+      "usos": 0
+    },
+    {
+      "id": "L0026",
+      "erro": "Padroes de codigo para item no MCR",
+      "causa": "Funcoes reais usadas em 112 arquivos",
+      "solucao": "Usar: setAttribute, setDuration, setActionId",
+      "ctx": "learning_scan",
+      "usos": 0
+    },
+    {
+      "id": "L0027",
+      "erro": "Padroes de codigo para talkaction no MCR",
+      "causa": "Funcoes reais usadas em 76 arquivos",
+      "solucao": "Usar: ",
+      "ctx": "learning_scan",
+      "usos": 0
+    },
+    {
+      "id": "L0028",
+      "erro": "Padroes de codigo para creaturescript no MCR",
+      "causa": "Funcoes reais usadas em 15 arquivos",
+      "solucao": "Usar: ",
+      "ctx": "learning_scan",
+      "usos": 0
+    },
+    {
+      "id": "L0029",
+      "erro": "Padroes de codigo para spell no MCR",
+      "causa": "Funcoes reais usadas em 169 arquivos",
+      "solucao": "Usar: ",
+      "ctx": "learning_scan",
+      "usos": 0
+    },
+    {
+      "id": "AR0030",
+      "erro": "Template de monster desatualizado no mcr_ultimate.py",
+      "causa": "Faltavam 8 funcoes usadas no projeto real",
+      "solucao": "Adicionadas: setCustomName, setSpeed, setMaster, setDropLoot, addHealth",
+      "ctx": "auto_reparo",
+      "usos": 0
+    },
+    {
+      "id": "AR0031",
+      "erro": "Template de monster desatualizado no mcr_ultimate.py",
+      "causa": "Faltavam 8 funcoes usadas no projeto real",
+      "solucao": "Adicionadas: setDropLoot, setMaster, setSpeed, setOutfit, setMaxHealth",
+      "ctx": "auto_reparo",
+      "usos": 0
+    },
+    {
+      "id": "AR0032",
+      "erro": "Template de monster desatualizado no mcr_ultimate.py",
+      "causa": "Faltavam 8 funcoes usadas no projeto real",
+      "solucao": "Adicionadas: setCustomName, setMaster, setMaxHealth, setDropLoot, addHealth",
+      "ctx": "auto_reparo",
+      "usos": 0
+    },
+    {
+      "id": "AR0033",
+      "erro": "Template de monster desatualizado no mcr_ultimate.py",
+      "causa": "Faltavam 8 funcoes usadas no projeto real",
+      "solucao": "Adicionadas: setCustomName, setOutfit, setPetBehavior, setMaxHealth, setSpeed",
+      "ctx": "auto_reparo",
+      "usos": 0
+    },
+    {
+      "id": "AR0034",
+      "erro": "Template de monster desatualizado no mcr_ultimate.py",
+      "causa": "Faltavam 8 funcoes usadas no projeto real",
+      "solucao": "Adicionadas: setPetBehavior, setSpeed, setOutfit, addHealth, setMaster",
+      "ctx": "auto_reparo",
+      "usos": 0
+    },
+    {
+      "id": "AR0035",
+      "erro": "Template de monster desatualizado no mcr_ultimate.py",
+      "causa": "Faltavam 8 funcoes usadas no projeto real",
+      "solucao": "Adicionadas: addHealth, setOutfit, setDropLoot, setPetBehavior, setCustomName",
+      "ctx": "auto_reparo",
+      "usos": 0
+    },
+    {
+      "id": "AR0036",
+      "erro": "Template de monster desatualizado no mcr_ultimate.py",
+      "causa": "Faltavam 8 funcoes usadas no projeto real",
+      "solucao": "Adicionadas: setPetBehavior, setMaster, setSpeed, addHealth, setCustomName",
+      "ctx": "auto_reparo",
+      "usos": 0
+    },
+    {
+      "id": "AR0037",
+      "erro": "Template de monster desatualizado no mcr_ultimate.py",
+      "causa": "Faltavam 8 funcoes usadas no projeto real",
+      "solucao": "Adicionadas: setSpeed, setOutfit, setCustomName, setDropLoot, setPetBehavior",
+      "ctx": "auto_reparo",
+      "usos": 0
+    },
+    {
+      "id": "AR0038",
+      "erro": "Template de monster desatualizado no mcr_ultimate.py",
+      "causa": "Faltavam 8 funcoes usadas no projeto real",
+      "solucao": "Adicionadas: setSpeed, addHealth, setOutfit, setCustomName, setDropLoot",
+      "ctx": "auto_reparo",
+      "usos": 0
+    },
+    {
+      "id": "AR0039",
+      "erro": "Template de monster desatualizado no mcr_ultimate.py",
+      "causa": "Faltavam 8 funcoes usadas no projeto real",
+      "solucao": "Adicionadas: setDropLoot, setCustomName, setPetBehavior, addHealth, setSpeed",
+      "ctx": "auto_reparo",
+      "usos": 0
+    },
+    {
+      "id": "AR0040",
+      "erro": "Template de monster desatualizado no mcr_ultimate.py",
+      "causa": "Faltavam 8 funcoes usadas no projeto real",
+      "solucao": "Adicionadas: setMaster, setOutfit, setPetBehavior, setMaxHealth, setDropLoot",
+      "ctx": "auto_reparo",
+      "usos": 0
+    },
+    {
+      "id": "AR0041",
+      "erro": "Template de monster desatualizado no mcr_ultimate.py",
+      "causa": "Faltavam 8 funcoes usadas no projeto real",
+      "solucao": "Adicionadas: setSpeed, setMaster, setCustomName, addHealth, setOutfit",
+      "ctx": "auto_reparo",
+      "usos": 0
+    },
+    {
+      "id": "S0042",
+      "erro": "Reparo falhou porque tentei editar meu proprio arquivo sem entender o formato dele primeiro",
+      "causa": "Auto-reparo tentou encontrar templates com regex de string simples, mas o arquivo usa f-strings multi-linha",
+      "solucao": "Antes de editar um arquivo, primeiro LEIA ele para entender o formato. Depois adapte a edicao ao formato real. Use a mesma funcao de leitura para encontrar e para editar.",
+      "ctx": "meta_aprendizado",
+      "usos": 0
+    }
+  ],
+  "index": {},
+  "metricas": {
+    "licoes": 42,
+    "usos": 0,
+    "geracoes": 12,
+    "compilacoes": 0
+  }
+}
