@@ -88,6 +88,79 @@ o ABI com as libs do vcpkg (que inevitavelmente usam MSVC 14.51):
 - Se tiver ambas (2022 + 2026), o OTClient DEVE ser compilado com VS 2026
 - O Canary (servidor) continua compilando normalmente com VS 2022 (v143)
 
+## 2026-06-24 — Lição Crítica: Processos esquecidos causam crash cumulativo
+
+### Problema
+Deixei um bridge Python rodando em background (PID 17728) por 12+ horas.
+Quando o usuário abria novas sessões do OpenCode, o processo antigo ainda
+estava lá, consumindo recursos. Acumulei:
+  - 1 bridge Python esquecido
+  - 1 arquivo .bridge_pid com PID inválido
+  - Múltiplas tentativas de Start-Process via PowerShell (em vez de Python)
+
+O Bun crashava porque:
+  1. Processos acumulados fragmentavam a memória
+  2. Arquivos PID com referências a processos mortos confundiam scripts
+  3. Eu entrava em loops de "tenta de novo" em vez de parar e limpar
+
+### O que vou fazer diferente
+
+1. **Cleanup obrigatório no início de cada sessão** — matar Python e canary
+   antes de qualquer operação, remover arquivos PID órfãos
+2. **NUNCA deixar processo em background** — se eu iniciar, eu mato antes
+   de encerrar ou antes de iniciar outro
+3. **Um arquivo .pid por processo, sempre verificado** — se o PID não
+   existe mais, remover o arquivo
+4. **Máximo 1 tentativa por operação crítica** — falhou, reporto e paro
+5. **Usar sempre Python para processos** — `subprocess.Popen` com
+   `creationflags=CREATE_NEW_PROCESS_GROUP` para garantir isolamento
+6. **Verificar tasklist antes de iniciar qualquer processo** —
+   confirmar que o anterior realmente morreu
+
+### Script de cleanup padrão (executar no início de toda sessão):
+```python
+import subprocess, os
+subprocess.run(["taskkill", "/f", "/im", "python.exe"], capture_output=True)
+subprocess.run(["taskkill", "/f", "/im", "canary-sln.exe"], capture_output=True)
+for f in [".bridge_pid", ".watchdog_pid"]:
+    if os.path.exists(f): os.remove(f)
+```
+
+## 2026-06-24 — Lição Crítica: Loop de processos causou crash do Bun (OpenCode)
+
+### Problema
+Ficar criando/matando/reiniciando processos em loop (servidor, bridge, compilação)
+causou:
+- Acúmulo de processos zombies no Windows
+- Fragmentação de memória (~1.5GB commit)
+- Segmentation fault no Bun v1.3.14 (runtime do OpenCode)
+- Perda da sessão do usuário
+
+### Causa Raiz
+1. Usei `Start-Process` do PowerShell repetidamente sem verificar se o anterior
+   realmente morreu
+2. Entrei em loops de "tenta de novo" em vez de parar e reportar o erro
+3. Acumulei servidor + bridge + compilações simultâneas
+4. Não respeitei limites de recursos do sistema
+
+### Regras para o Futuro (NÃO QUEBRAR)
+
+1. **NUNCA usar `Start-Process`** — sempre Python (`subprocess.Popen`) com PID tracking
+2. **NUNCA entrar em loop de tentativas** — máximo 1 retry, depois fallback
+3. **UM processo de cada vez** — matar antes de criar novo
+4. **Timeout explícito em tudo** — comandos bash com `--timeout` sempre
+5. **Se falhou 2x, pare e reporte** — não tente 3, 4, 5 vezes
+6. **Antes de qualquer operação no servidor**, verificar: `server_manager.py status`
+7. **Prefira scripts Python** a comandos PowerShell (menos parsing issues)
+8. **Cada shell command deve ser auto-suficiente** — sem depender de estado anterior
+
+### Fallback
+Se o sistema travar ou o Bun crashar:
+1. `taskkill /f /im canary-sln.exe`
+2. `taskkill /f /im python.exe`
+3. Limpar `.bridge_pid`, `.watchdog_pid`
+4. `opencode -c` para recuperar sessão
+
 ## 2026-06-24 — OTClient: Solução definitiva ABI mismatch com VS 2026 + v145
 
 ### Problema
