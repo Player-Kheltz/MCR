@@ -229,6 +229,46 @@ Para versões antigas, é necessário:
 - Manter uma cópia do binário 1.17.9 em local seguro para rollback
 - Como fallback: OpenClaw (Node.js, sem Bun) + Hermes 3 funciona em paralelo
 
+## 2026-06-24 — REGRA ABSOLUTA: Cleanup obrigatório no início e fim de toda sessão
+
+### Problema
+Repetidamente, processos do servidor (`canary-sln.exe`) e bridge (`python.exe`) ficam
+rodando em segundo plano entre sessões. O servidor estava rodando há **1 hora** sem
+que o assistente ou o usuário soubessem. O OTClient conseguiu logar porque o servidor
+ainda estava vivo — prova de que **esquecemos de limpar**.
+
+### Consequências
+- Servidor ocupando RAM e CPU sem necessidade
+- Bridge consumindo recursos do modelo Ollama
+- Portas 7171-7173 ocupadas (impede restart limpo)
+- Usuário pensa que está tudo desligado, mas não está
+- Acúmulo de processos ao longo de múltiplas sessões = crash
+
+### Checklist Obrigatório (NUNCA ESQUECER)
+
+**No INÍCIO de toda resposta:**
+```python
+import subprocess, os
+# 1. Matar servidor
+subprocess.run(["taskkill", "/f", "/im", "canary-sln.exe"], capture_output=True)
+# 2. Matar bridge Python
+subprocess.run(["taskkill", "/f", "/im", "python.exe"], capture_output=True)
+# 3. Limpar PID files
+for f in [".bridge_pid", ".watchdog_pid"]:
+    if os.path.exists(f): os.remove(f)
+```
+
+**Ao FINAL de toda resposta:**
+1. Verificar se servidor foi desligado (`server_manager.py status`)
+2. Verificar se bridge foi desligado
+3. Remover arquivos PID órfãos
+
+### Regra de Ouro
+> Se o assistente iniciou um processo, ele DEVE matá-lo antes de encerrar a sessão.
+> Se o assistente encontrou um processo rodando, ele DEVE matá-lo ao terminar.
+> O servidor e bridge SÓ devem rodar quando explicitamente solicitado pelo usuário
+> para TESTE. Fora isso, TUDO desligado.
+
 ## 2026-06-24 — OpenCode: Recuperacao de conversas fechadas
 
 O OpenCode CLI salva automaticamente todas as sessoes de conversa. Comandos uteis:

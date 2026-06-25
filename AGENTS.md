@@ -10,6 +10,7 @@
 
 | Passo | Ação |
 |---|---|
+| 0 | **⚠️ LIMPEZA OBRIGATÓRIA:** `taskkill /f /im canary-sln.exe` + `taskkill /f /im python.exe` + remover `.bridge_pid` e `.watchdog_pid` |
 | 1 | Leia `docs/MCR - Instruções/DevLog/Pendências.md` — estado atual do projeto |
 | 2 | Verifique `python scripts/auto.py checkpoint show` — sessão anterior |
 | 3 | Leia `docs/rules/licoes.md` — lições aprendidas recentes |
