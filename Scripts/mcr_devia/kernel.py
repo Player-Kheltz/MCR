@@ -295,6 +295,11 @@ class MCRKernel:
             _rp = os.path.join(os.path.dirname(__file__), '..', '..', 'sandbox', '.mcr_result.json')
             with open(_rp, 'w', encoding='utf-8') as _f:
                 _j.dump({'cmd':cmd,'status':'processando','ts':time.time()}, _f, ensure_ascii=False)
+            # Progress tracker
+            try:
+                from modulos.progress_tracker import reportar as _trk_report2
+                _trk_report2('Kernel', f'executando {cmd}', 0.1)
+            except: pass
         except: pass
         
         try:
@@ -390,6 +395,23 @@ def try_executar(cmd, args, kg=None, ia=None):
 # ============================================================
 def main_kernel():
     """Entry point principal do kernel."""
+    
+    # ============================================================
+    # Limpa progress tracker anterior (se houver)
+    try:
+        from modulos.progress_tracker import limpar as _trk_limpar
+        _trk_limpar()
+    except:
+        pass
+    
+    # Inicia tracker para esta execucao
+    if '--json' in sys.argv:
+        try:
+            from modulos.progress_tracker import iniciar as _trk_iniciar, reportar as _trk_report
+            _trk_iniciar(pipeline='kernel_json')
+            _trk_report('Kernel', 'inicializando', 0.05)
+        except:
+            pass
     
     # ============================================================
     # Processa --json    # Contexto rapido para Cloud (suprimido se --chat)

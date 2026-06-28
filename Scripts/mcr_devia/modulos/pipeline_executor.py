@@ -79,7 +79,7 @@ class RequestPlanner:
                 tool = 'PYTHON'
             elif re.search(r'\d+\s*[\*\+]\s*\d+', s):
                 tool = 'PYTHON'
-            elif 'pi' in s_lower or 'π' in s:
+            elif re.search(r'\bpi\b', s_lower) or 'π' in s:
                 tool = 'PYTHON'
             elif any(k in s_lower for k in ['processo', 'recursos', 'cpu', 'memoria', 'tasklist']):
                 tool = 'TASKLIST'
@@ -178,28 +178,81 @@ class PipelineReviewer:
 class PipelineExecutor:
     """Orquestrador do pipeline multi-request."""
     
-    def __init__(self, kg=None, ia=None, ctx_crew=None, orquestrador=None, identidade=""):
+    def __init__(self, kg=None, ia=None, ctx_crew=None, orquestrador=None, identidade="",
+                 task_planner=None, tool_orchestrator=None):
         self.kg = kg
         self.ia = ia
         self.ctx_crew = ctx_crew
         self.orquestrador = orquestrador
         self.identidade = identidade
+        self.task_planner = task_planner
+        self.tool_orchestrator = tool_orchestrator
         self.planner = RequestPlanner(ia=ia)
         self.frag_manager = FragmentManager()
         self.assembler = ResponseAssembler()
         self.reviewer = PipelineReviewer()
     
-    def executar(self, texto: str) -> Tuple[str, Dict]:
-        """Executa pipeline completo: planejar → executar → montar → revisar."""
+    def _detectar_complexidade(self, texto):
+        """Detecta se a pergunta e complexa o suficiente para usar TaskPlanner."""
+        # Perguntas com multiplas interrogacoes
+        if texto.count('?') > 1:
+            return True
+        # Perguntas de comparacao
+        if any(p in texto.lower() for p in ['diferenca', 'comparar', 'vs ', ' x ', 'ou']):
+            return True
+        # Perguntas longas
+        if len(texto) > 300:
+            return True
+        return False
+
+    def executar(self, texto: str, skip_tot=False) -> Tuple[str, Dict]:
+        """Executa pipeline completo: planejar → executar → montar → revisar.
+        
+        Args:
+            texto: Pergunta/texto a processar
+            skip_tot: Se True, pula Tree of Thought (modo rapido)
+        
+        Se task_planner estiver disponivel e a pergunta for complexa,
+        delega para TaskPlanner + ToolOrchestrator.
+        """
+        # Se tem TaskPlanner e a pergunta e complexa, usa plano avancado
+        if self.task_planner and self._detectar_complexidade(texto):
+            print(f'[Pipeline] Pergunta complexa detectada, usando TaskPlanner')
+            plano = self.task_planner.planejar(texto)
+            # Executa cada subtarefa do TaskPlanner via ToolOrchestrator
+            respostas = []
+            for sub in plano:
+                ferramenta = sub.get('ferramenta', '')
+                params = sub.get('params', {})
+                if ferramenta and self.tool_orchestrator:
+                    r = self.tool_orchestrator.executar(ferramenta, params)
+                    if r.get('sucesso'):
+                        respostas.append(str(r['resultado'])[:1000])
+                elif ferramenta == 'perguntar_ia' and self.ia:
+                    pergunta = params.get('pergunta', sub.get('descricao', texto))
+                    r = self.ia.gerar(pergunta, 0.4, 'pesado')
+                    if r:
+                        respostas.append(r[:2000])
+            if respostas:
+                resultado = '\n\n'.join(respostas)
+                return resultado[:10000], {'status': 'OK', 'plano': len(plano), 'sucesso': len(respostas)}
+            # Fallback: se TaskPlanner falhou, continua pipeline normal
+        
+        from modulos.progress_tracker import iniciar as _trk_iniciar, reportar as _trk_report, concluir as _trk_concluir, erro as _trk_erro, limpar as _trk_limpar
+        _trk_limpar()  # Limpa estado anterior (do kernel)
+        _trk_iniciar(pipeline='pipeline_executor')
+        self._skip_tot = skip_tot
         t0 = time.time()
         
         # Passo 1: Planejar
+        _trk_report('Planner', 'criando plano', 0.05)
         plano = self.planner.criar_plano(texto)
         print(f'[Pipeline] Plano com {len(plano)} solicitacoes')
         
         # Passo 2: Executar cada solicitacao em sequencia
         for i, item in enumerate(plano):
             print(f'[Pipeline] {i+1}/{len(plano)}: {item["tool"]} - {item["solicitacao"][:60]}...')
+            _trk_report('Pipeline', f'solicitacao {i+1}/{len(plano)}', 0.1 + (0.6 * (i / len(plano))))
             resposta = self._executar_item(item, texto, indice=i)
             self.frag_manager.salvar(resposta, i, item['tool'])
         
@@ -209,9 +262,11 @@ class PipelineExecutor:
         
         # Passo 4: Revisar
         revisao = self.reviewer.revisar(resposta_final, fragmentos)
+        _trk_report('Pipeline', 'montando resposta', 0.9)
         tempo_total = round(time.time() - t0, 1)
         print(f'[Pipeline] OK ({tempo_total}s) — {len(plano)} solicitacoes, {revisao["status"]}')
         
+        _trk_concluir()
         return resposta_final, revisao
     
     def _executar_item(self, item: Dict, texto_original: str, indice: int = 0) -> str:
@@ -288,6 +343,9 @@ class PipelineExecutor:
         TODO: 1. CR extrai termos + valida + weblearn + gera instrucao
               2. ctx_infinity dos fragmentos anteriores
               3. Chama Orquestrador com contexto reforcado"""
+        from modulos.progress_tracker import reportar as _trk_report, step as _trk_step
+        # Verifica skip_tot: atributo do objeto OU env var (para subprocessos)
+        skip_tot = getattr(self, '_skip_tot', False) or os.environ.get('MCR_SKIP_TOT') == '1'
         if not self.orquestrador:
             return f"[IA] Orquestrador indisponivel para: {solicitacao[:80]}"
         
@@ -326,6 +384,7 @@ class PipelineExecutor:
         print(f'  [Pipeline] Escopo: MCR (ativando CR + Enricher + ToT)')
         
         # 0. Context Reinforcer: extrai, valida, aprende, desambigua
+        _trk_report('CR', 'iniciando', 0.1)
         cr_contexto = ""
         cr_instrucao = ""
         solicitacao_mod = solicitacao  # Pode ser modificada pelo CR
@@ -333,8 +392,10 @@ class PipelineExecutor:
         try:
             from modulos.context_reinforcer import ContextReinforcer
             cr = ContextReinforcer(ctx_crew=self.ctx_crew, kg=self.kg)
+            _trk_step('chamando CR')
             print(f'  [Pipeline] Chamando CR...')
             cr_result = cr.reforcar(solicitacao, self.ctx_crew)
+            _trk_step('CR concluido')
             cr_termos = cr_result.get('termos', [])
             if cr_result.get('instrucao'):
                 cr_instrucao = cr_result['instrucao']
@@ -348,11 +409,13 @@ class PipelineExecutor:
             print(f'  [CR] ERRO: {e}')
         
         # 0.5. Context Enricher: gera conteudo NOVO para enriquecer resposta
+        _trk_report('Enricher', 'iniciando', 0.25)
         cr_instrucao_limpa = ""
         contexto_enriquecido = ""
         try:
             from modulos.context_enricher import ContextEnricher
             enricher = ContextEnricher(ctx_crew=self.ctx_crew, kg=self.kg)
+            _trk_step('chamando Enricher')
             print(f'  [Pipeline] Chamando Enricher...')
             enr_result = enricher.enriquecer(solicitacao, cr_termos)
             if enr_result.get('valido') and enr_result.get('conteudo'):
@@ -393,6 +456,8 @@ class PipelineExecutor:
         except:
             pass
         
+        _trk_report('Pipeline', 'montando params', 0.4)
+        
         # 2. Chama Orquestrador COM contexto reforcado + Tree of Thought
         try:
             params = {
@@ -406,30 +471,37 @@ class PipelineExecutor:
             if cr_contexto:
                 params['contexto_extra'] = cr_contexto
             
-            # TREE OF THOUGHT: 3 perspectivas paralelas + sintese
-            from modulos.tree_of_thought import TreeOfThought
-            tot = TreeOfThought(orquestrador=self.orquestrador)
-            tot_result = tot.pensar(solicitacao_mod, params)
-            
-            if tot_result.get('resposta') and not tot_result.get('erro'):
-                resposta = tot_result['resposta']
-                print(f'  [Pipeline] ToT resposta ({len(resposta)} chars, {tot_result["tempo_total"]}s)')
+            # TREE OF THOUGHT: 3 perspectivas paralelas + sintese (pula se skip_tot)
+            if not skip_tot:
+                from modulos.tree_of_thought import TreeOfThought
+                _trk_report('ToT', '3 perspectivas paralelas', 0.55)
+                tot = TreeOfThought(orquestrador=self.orquestrador)
+                tot_result = tot.pensar(solicitacao_mod, params)
                 
-                # Pos-validacao do enriquecimento
-                if contexto_enriquecido and resposta:
-                    palavras_import = re.findall(r'\b[a-zA-Z]+/[a-zA-Z/]+\b|(?<=  )[a-zA-Z_]+\.\w+', contexto_enriquecido)
-                    if palavras_import:
-                        encontradas = sum(1 for p in palavras_import[:10] if p.lower() in resposta.lower())
-                        if encontradas < 2:
-                            print(f'  [Pipeline] ToT resposta nao usou enriquecimento. Fallback para Orquestrador direto.')
-                            resultado = self.orquestrador.executar('perguntar', params, consulta=solicitacao_mod, temp=0.4)
-                            if resultado and resultado.get('sucesso'):
-                                resposta = resultado['resposta']
+                if tot_result.get('resposta') and not tot_result.get('erro'):
+                    resposta = tot_result['resposta']
+                    print(f'  [Pipeline] ToT resposta ({len(resposta)} chars, {tot_result["tempo_total"]}s)')
+                    
+                    # Pos-validacao do enriquecimento
+                    if contexto_enriquecido and resposta:
+                        palavras_import = re.findall(r'\b[a-zA-Z]+/[a-zA-Z/]+\b|(?<=  )[a-zA-Z_]+\.\w+', contexto_enriquecido)
+                        if palavras_import:
+                            encontradas = sum(1 for p in palavras_import[:10] if p.lower() in resposta.lower())
+                            if encontradas < 2:
+                                print(f'  [Pipeline] ToT resposta nao usou enriquecimento. Fallback para Orquestrador direto.')
+                                _trk_report('ToT', 'fallback Orquestrador', 0.6)
+                                resultado = self.orquestrador.executar('perguntar', params, consulta=solicitacao_mod, temp=0.4)
+                                if resultado and resultado.get('sucesso'):
+                                    resposta = resultado['resposta']
+                    
+                    return resposta
                 
-                return resposta
+                print(f'  [Pipeline] ToT falhou. Usando Orquestrador direto.')
+            else:
+                print(f'  [Pipeline] ToT PULADO (modo rapido). Usando Orquestrador direto.')
             
-            # Fallback: Orquestrador direto
-            print(f'  [Pipeline] ToT falhou. Usando Orquestrador direto.')
+            # Fallback: Orquestrador direto (ou skip_tot ativo)
+            _trk_report('Orquestrador', 'gerando resposta', 0.65)
             resultado = self.orquestrador.executar('perguntar', params, consulta=solicitacao_mod, temp=0.4)
             if resultado and resultado.get('sucesso'):
                 return resultado['resposta']
@@ -443,4 +515,5 @@ class PipelineExecutor:
             except:
                 pass
         
+        _trk_report('Pipeline', 'resposta obtida', 0.95)
         return f"[IA] Nao foi possivel responder: {solicitacao[:80]}"

@@ -1,5 +1,115 @@
 # Licoes Recentes
 
+## 2026-06-28 — Sessao 4: Refatoracao Caminho Enxuto — ~30 linhas resolvem o que 3050 linhas tentaram
+
+### Resumo do que foi feito
+1. **Diagnóstico do gargalo real**: `agent_loop.py` já busca NPCs reais no CanaryIndexer (THINK) mas NÃO passa os dados para o NPCGenerator (ACT). O generator recomeça do zero via LLM → gera "example item" (3003).
+2. **engine/ + strategies/ era sistema paralelo**: Construímos 3050 linhas (engine/ + strategies/) como pipeline paralelo ao agent_loop que já existia. Funcionava, mas duplicava lógica.
+3. **Correção de ~30 linhas**: 
+   - `npc_generator.py`: `gerar()` aceita `exemplos=None`, `_placeholders_por_tipo()` usa itens reais do CanaryIndexer quando disponíveis
+   - `agent_loop.py`: 1 linha para passar `exemplos=exemplos` na chamada `generator.gerar()`
+4. **Arquivamento**: engine/ + strategies/ marcados como EXPERIMENTAL (comentário no topo de cada arquivo). Mantidos como referência arquitetural. knowledge/item_database.py e knowledge/tool_registry.py mantidos (não duplicam nada).
+5. **Testes validados**: 4 cenários (ferreiro, poções, guarda, banco) — 0 placeholders lixo, 100% redução, código Lua válido.
+
+### Problemas Identificados e Soluções
+
+#### 1. AgentLoop ignora exemplos que ele mesmo encontra
+- **Causa**: Linha 93 `self.generator.gerar(descricao, tipo)` não passava `exemplos` (disponíveis na linha 69).
+- **Solução**: `self.generator.gerar(descricao, tipo, exemplos=exemplos)` — 1 caractere `,` + `exemplos=exemplos`.
+- **Resultado**: NPCGenerator recebe dados reais do CanaryIndexer em vez de começar do zero.
+
+#### 2. NPCGenerator gera "example item" (3003) via LLM
+- **Causa**: `_placeholders_por_tipo(tipo='shop')` retornava valores fixos: "example item", "another item", "third item".
+- **Solução**: Se `exemplos` tiver NPCs com `itens_shop`, usar itens REAIS (nome, client_id, sell/buy). Fallback mantém placeholders antigos.
+- **Resultado**: Ferreiro → "axe" (3274) em vez de "example item" (3003). Poções → "health potion" em vez de "example item".
+
+### Métricas
+- Placeholders lixo eliminados: 6 (100%)
+- Linhas modificadas: ~21 (NPCGenerator) + 1 (AgentLoop) = ~22 linhas
+- engine/ + strategies/ arquivados: ~3050 linhas marcadas como EXPERIMENTAL
+- Tempo de geração: 0.0s (não usa LLM para placeholders quando há exemplos)
+- Código gerado: Válido (LuaValidator) em todos os 4 cenários
+
+### Lições Aprendidas
+> **Sempre verificar se o pipeline existente já faz o que você está construindo.**
+> agent_loop já tinha Think->Act->Observe->Learn. engine/ duplicou isso.
+> A correção eram ~30 linhas, não ~3000.
+>
+> **O maior ganho veio de REMOVER código, não de adicionar.**
+> Arquivar engine/ + strategies/ como EXPERIMENTAL reduziu a base de código ativo
+> sem perder o trabalho — o código ainda existe como referência.
+>
+> **Testes com e sem a mudança são obrigatórios.**
+> O teste comparativo provou que a correção funciona (6 lixo → 0) sem quebrar
+> os tipos não-shop (bank/gate continuam funcionando).
+
+### Pendentes
+- Nenhum — refatoração concluída e validada.
+
+## 2026-06-28 — Sessao 2: Progress Tracker + Auto-Teste Turbo + Live Feedback
+
+### Resumo do que foi feito
+1. **progress_tracker.py**: Novo modulo central de rastreamento de progresso em tempo real. Singleton module thread-safe com context manager, stages, substages, ETA, barra de progresso no terminal, e escrita em `.mcr_progress.json`.
+2. **Auto-Teste turbo**: Adicionados flags `--fast` (skip ToT) e `--parallel` (execucao paralela com ThreadPoolExecutor) no `cmd_autoteste.py`. Batch auto-critica reduz 5 chamadas LLM para 1. Timeout inteligente de 120s (fast) / 180s (completo). Ambiente `MCR_SKIP_TOT=1` controla skip ToT via env var.
+3. **Pipeline executor**: Respeita `MCR_SKIP_TOT` env var. Integrado com progress_tracker em todos os estagios (CR, Enricher, ToT, Orquestrador).
+4. **Orquestrador/Supervisor/Kernel**: Todos integrados com progress_tracker para reportar estagios internos.
+5. **Dashboard**: Novo endpoint `/api/progress` e painel "Live Pipeline" com barra de progresso, ETA, questao atual.
+6. **Arquivos modificados**: 7 (progress_tracker.py criado, cmd_autoteste.py rewrite, pipeline_executor.py, orquestrador.py, supervisor.py, kernel.py, dashboard.py).
+
+### Problemas Identificados e Solucoes
+- **Sem feedback durante autoteste**: Agora cada estagio escreve `.mcr_progress.json` com stage, substage, progresso, ETA. Dashboard e `--watch` mostram em tempo real.
+- **5 LLM calls para auto-critica**: Batch auto-critica faz 1 chamada para todas as respostas. Prompt unico com array JSON.
+- **ToT mesmo em testes**: Flag `--fast` skipa Tree of Thought completamente. Para testes gerais, CR + Enricher + Orquestrador sao suficientes.
+- **Execucao sequencial lenta**: Flag `--parallel` usa ThreadPoolExecutor para rodar ate 3 perguntas simultaneas (modo fast apenas, modelo 7b).
+- **Conflito GPU com paralelismo**: Modo paralelo usa modelo leve (7b, headroom de VRAM). Modo completo (qwen14b) roda 1 pergunta por vez para manter qualidade.
+
+### Metricas
+- Autoteste 1 pergunta (modo fast): 80s (antes ~60-165s)
+- Batch auto-critica: 1 call vs 5 individuais (economia de ~40s em ciclo de 5)
+- Progress tracker: escrita <1ms, polling via arquivo JSON
+
+### Pendentes
+- Testar ciclo completo 5 perguntas com --fast para medir tempo real
+- Testar ciclo com --parallel para medir ganho real de paralelismo
+- Investigar se dashboard SSE streaming seria melhor que polling
+- context_enricher.py: cache fuzzy entre perguntas
+
+## 2026-06-28 — Sessao 3: Retry + Diversidade de Perguntas + Fix PI no Pipeline
+
+### Resumo do que foi feito
+1. **Retry automático para respostas lixo**: `_executar_pergunta` agora detecta respostas < 50 chars ou padrão de timestamp (`\bpi\b` match) e faz retry automático (max 3 tentativas) com prompt reforçado "Seja DETALHADO".
+2. **Sistema de fingerprints**: `_gerar_fingerprint()` normaliza pergunta (lowercase, remove acentos/pontuação, ordena palavras) e gera hash MD5. Armazenado em `historico['perguntas_fingerprints']` para dedup preciso.
+3. **Validação de diversidade**: `_validar_diversidade()` checa 3 critérios: fingerprint nunca usado, similaridade SequenceMatcher < 70%, e pelo menos 60% das categorias únicas.
+4. **FAST com 3 tentativas**: Gerador FAST tenta até 3x. Se todas falham validação, fallback usa banco de 20 perguntas variadas (antes 5) que filtram pelo fingerprint.
+5. **Fix PI bug**: `'pi' in s_lower` → `re.search(r'\bpi\b', s_lower)` no `pipeline_executor.py`. Antes, "principio" ativava PYTHON tool errado.
+6. **Banco de fallback expandido**: 20 opções de perguntas em 7 categorias diferentes para evitar repetição entre ciclos.
+
+### Problemas Identificados e Soluções
+- **"principio" ativava PYTHON tool**: `'pi' in 'principio'` = True. O RequestPlanner classificava perguntas sobre "principio de funcionamento" como PYTHON, que retornava PI + timestamp em vez de resposta real. Solução: `\bpi\b` só casa "pi" como palavra isolada.
+- **FAST repetia mesmas perguntas**: Mesmo com "Nao repetir" no prompt, o modelo 1.5b gerava perguntas iguais (95% similaridade). Solução: validação pós-geração com 3 tentativas + fallback.
+- **Fallback tinha só 5 opções**: Após o 6º ciclo, perguntas começariam a repetir. Solução: expandido para 20 opções em 7 categorias.
+- **Respostas lixo (timestamp)**: O modelo ocasionalmente retornava data/hora em vez de resposta. Solução: `_detectar_resposta_lixo()` + retry com "Seja DETALHADO".
+
+### Métricas
+- Ciclo 4 (com PI bug, 5 perguntas): 178s, 1 resposta lixo (Q1)
+- Ciclo 5 (PI fix + validação, 5 perguntas): **196s, 0 erros, nota mínima 8**
+- Média por pergunta: **35-39s** (vs 39.6s antes, vs 400-900s pré-otimizações)
+- Fingerprints salvos: 10 (ciclos 4+5), perguntas usadas: 21 (5 ciclos)
+- FAST tenta 3x + fallback: ~18s total para gerar perguntas diversificadas
+
+### Lições Aprendidas
+> **`\b` boundaries salvam classificadores**: `'pi' in texto` é um bug clássico. Sempre usar regex `\bpi\b` para matching de palavras isoladas.
+>
+> **Modelo 1.5b ignora "não repita"**: O gerador FAST (qwen2.5-coder:1.5b) ignora instruções de não repetição. Validação pós-geração com retry é obrigatória.
+>
+> **Fingerprint > similaridade para dedup**: Similaridade SequenceMatcher pega SEMELHANÇAS (70%+ bloqueia), enquanto fingerprint (hash normalizado) pega IDENTIDADES exatas. Ambos são necessários.
+
+### Pendentes
+- Testar ciclo com --parallel para medir ganho real de paralelismo (3 threads 7b)
+- Investigar se dashboard SSE streaming seria melhor que polling
+- context_enricher.py: cache fuzzy entre perguntas
+- Adicionar mais 10 perguntas ao banco de fallback quando ciclos chegarem a 10+
+
 ## 2026-06-28 — Sessao Major: qwen14b GPU + Enricher + ToT + Auto-Teste + Framing Positivo
 
 ### Resumo do que foi feito

@@ -1,65 +1,200 @@
-# AGENTS.md — Regras de Ouro do Assistente MCR
+# AGENTS.md — Regras Absolutas do Assistente MCR
 
-> Regras consolidadas baseadas na prática, para maximizar precisão e minimizar retrabalho.
->
-> **Este arquivo é um ponteiro.** Cada tópico tem seu próprio arquivo modular em `docs/rules/`.
+> **LEIA O ARQUIVO INTEIRO ANTES DE QUALQUER AÇÃO.**
+> Estas regras foram APRENDIDAS na prática, não inventadas.
+> Violá-las causa retrabalho, alucinação ou perda de contexto.
 
 ---
 
-## Antes de Começar
+## 🚨 CHECKLIST OBRIGATÓRIO — INÍCIO DE SESSÃO
 
-| Passo | Ação |
-|---|---|
-| 0 | **⚠️ LIMPEZA OBRIGATÓRIA:** `taskkill /f /im canary-sln.exe` + `taskkill /f /im python.exe` + remover `.bridge_pid` e `.watchdog_pid` |
-| 1 | Leia `docs/MCR - Instruções/DevLog/Pendências.md` — estado atual do projeto |
-| 2 | Verifique `python scripts/auto.py checkpoint show` — sessão anterior |
-| 3 | Leia `docs/rules/licoes.md` — lições aprendidas recentes |
-| 4 | Execute rotina de intercâmbio → `docs/rules/intercambio.md` |
+```python
+# 1. Matar processos anteriores (sempre!)
+import subprocess, os
+subprocess.run(["taskkill", "/f", "/im", "python.exe"], capture_output=True)
+subprocess.run(["taskkill", "/f", "/im", "canary-sln.exe"], capture_output=True)
+for f in [".bridge_pid", ".watchdog_pid"]:
+    if os.path.exists(f): os.remove(f)
 
-## Durante o Desenvolvimento
+# 2. Verificar estado do MCR-DevIA
+# python MCR_DevIA-Kernel.py status
 
-| Contexto | Consulte |
-|---|---|
-| Fluxo diário (comandos, operações massa, design, validação, commits, limpeza) | `docs/rules/workflow.md` |
-| Compilação (Canary VS 2022, OTClient VS 2026) | `docs/rules/compilacao.md` |
-| Encoding UTF-8 (C++, Lua, XML, MySQL) | `docs/rules/encoding.md` |
-| Dúvidas técnicas do projeto | `docs/CATALOG.md` |
-| Problemas conhecidos | `docs/TROUBLESHOOTING.md` |
+# 3. Ler AGENTS.md (este arquivo) e LEMBRETE.md
+```
 
-## Ao Finalizar
+## 🚨 CHECKLIST OBRIGATÓRIO — FIM DE SESSÃO
 
-| Tarefa | Como |
-|---|---|
-| Salvar checkpoint | `python scripts/auto.py checkpoint save --auto` |
-| Registrar lições | Via `scripts/lesson.py` |
-| Compartilhar com Hub do Lojista | Veja `docs/rules/intercambio.md` |
-| Sincronizar docs | `python scripts/auto.py sync` |
-| Verificar tudo | `python scripts/auto.py verify` |
+```python
+# 1. Registrar lição no KG
+python MCR_DevIA-Kernel.py ensinar "<resumo>" "<oque>" "<solucao>" "<categoria>"
 
-## Capacidades Autônomas
+# 2. Limpar processos
+taskkill /f /im python.exe; taskkill /f /im canary-sln.exe
+```
 
-O assistente pode executar sem supervisão: `docs/rules/autonomia.md`
+---
 
-## Sistema de Auto-Aprendizado (v2.0)
+## 📡 COMUNICAÇÃO — JSON IPC (SEMPRE)
 
-O assistente agora possui um sistema de conhecimento que cresce com o tempo:
+**NUNCA** use shell com aspas, escaping ou pipes. Sempre use **JSON IPC**:
 
-| Ferramenta | Função | Como usar |
-|:-----------|:-------|:----------|
-| `scripts/find_example.py` | Encontra exemplos reais no código | `python scripts/find_example.py "criar NPC" --project . -k 3` |
-| `scripts/auto_learn.py` | Registra e recupera aprendizados | `python scripts/auto_learn.py recall "criar dominio"` |
-| `scripts/win_tools.py` | Operações Windows seguras | `python scripts/win_tools.py system_info` |
-| `scripts/rag_query.py` | Busca semântica no código | `python scripts/rag_query.py "habilidades fire" --context-only` |
+```python
+import json, subprocess
 
-**Fluxo Autônomo Completo:**
-1. `find_example.py` → encontra exemplos reais do que precisa fazer
-2. `read` + `grep` → estuda os exemplos encontrados
-3. Gera código seguindo o formato exato dos exemplos
-4. `auto_learn.py learn` → registra o aprendizado
-5. Da próxima vez, `auto_learn.py recall` → recupera experiências passadas
+# Criar comando
+cmd_data = {"cmd": "perguntar", "args": ["minha pergunta"]}
+with open("sandbox/.mcr_cmd.json", "w", encoding="utf-8") as f:
+    json.dump(cmd_data, f, ensure_ascii=False)
 
-**Fora do Projeto MCR (qualquer projeto):**
-- `find_example.py` detecta automaticamente o tipo de projeto
-- `win_tools.py` fornece acesso seguro ao sistema Windows
-- `auto_learn.py` acumula conhecimento entre projetos
-- O sistema funciona para qualquer linguagem/tecnologia
+# Executar via kernel
+r = subprocess.run(
+    ["python", "scripts/mcr_devia/MCR_DevIA-Kernel.py",
+     "--json", "sandbox/.mcr_cmd.json"],
+    capture_output=True, text=True, timeout=300
+)
+stdout = r.stdout  # Sempre completo, sem truncamento
+```
+
+**Regras:**
+- `sandbox/.mcr_cmd.json` = comando de entrada
+- `sandbox/.mcr_result.json` = status da execução
+- `sandbox/.mcr_resposta.txt` = resposta completa (quando aplicável)
+- Zero shell escaping, zero truncamento, UTF-8 seguro.
+
+---
+
+## 🧠 ARQUITETURA MENTE-CORPO
+
+```
+USUÁRIO → perguntar("algo")
+    ↓
+[1] KG PRE-CHECK: se < 2 lessons → weblearn pesquisa
+[2] MENTE.think(): conselho delibera com memória pessoal
+[3] ORQUESTRADOR: template universal "perguntar" + fragmentação
+[4] AUTO-REVISOR: heurística verifica classes suspeitas
+[5] AUTO-WEB: se FAST disser "resposta NAO atende" → weblearn + regenera
+[6] MENTE.learn(): autoavalia qualidade + atualiza scores
+[7] AUTO-REVIEW: 20% chance → MCR analisa próprio código fonte
+    ↓
+RESPOSTA ← Completa, verificada, aprendizado registrado
+```
+
+### Módulos principais
+
+```
+scripts/mcr_devia/
+  MCR_DevIA-Kernel.py   ← Entry point (uso diário)
+  kernel.py             ← Núcleo: CommandLoader + EventBus
+  modulos/
+    orquestrador.py     ← Motor de templates + fragmentação
+    supervisor.py       ← Classificador + roteador universal
+    mente.py            ← Conselho + memória + aprendizado
+    memoria_conselho.py ← Memória individual com SCORE por membro
+    auto_revisor.py     ← Revisão heurística pós-resposta
+    conselho.py         ↑ Personalidades com memória
+    kg.py               ↑ Knowledge Graph
+    ia.py               ↑ Interface Ollama
+    context_crew.py     ↑ 5 fontes de contexto (KG, Web, Docs, Código, WebLearn)
+    watchdog.py         ↑ Monitora comandos/ + sandbox/
+  comandos/             ↑ 46 comandos modulares
+```
+
+---
+
+## 🔴 REGRAS DE OURO
+
+### 1. USE JSON IPC PARA TUDO
+Nunca use shell diretamente. Sempre crie `.mcr_cmd.json` e use `--json`.
+Exceção: comandos simples como `status` ou `ensinar`.
+
+### 2. RESPOSTAS SÃO COMPLETAS (sem [:2000])
+O `cmd_perguntar.py` NÃO pode truncar respostas. Se vir `[:2000]`, remova.
+A resposta completa é salva em `.mcr_resposta.txt`.
+
+### 3. AUTO-REVISOR É HEURÍSTICO (não FAST)
+O FAST é muito permissivo ("A" para tudo). Use heurística:
+- Classe dentro de ```code``` = válida
+- Classe contextualizada ("A classe X faz") = válida
+- Nome composto 10+ chars com 3+ maiúsculas = suspeita
+
+### 4. APRENDIZADO CONTÍNUO
+- `weblearn` pesquisa web e salva no KG
+- `Mente.think()` carrega memórias de ALTO SCORE
+- `Mente.learn()` autoavalia e atualiza scores
+- Se resposta < 500 chars ou FAST disser "errada" → weblearn + regenera
+
+### 5. COMPARAÇÕES SEGUEM TESTE CEGO
+```
+1. Cloud escreve resposta PRIMEIRO (sem ler MCR)
+2. MCR escreve resposta (sem ler Cloud)
+3. SÓ ENTÃO comparar
+```
+
+### 6. ENSINE SEMPRE NO KG
+Toda ação relevante DEVE ser registrada:
+```bash
+python MCR_DevIA-Kernel.py ensinar "<oque>" "<contexto>" "<solucao>" "<categoria>"
+```
+
+### 7. SUPERVISIONE, NÃO ASSUMA
+Se MCR-DevIA errar: Cloud dá feedback específico (onde e por que errou).
+MCR se auto-repara. NUNCA assuma sem o HUMANO autorizar.
+
+---
+
+## 📊 CAPACIDADES ATUAIS
+
+| Componente | Qtde | Descrição |
+|-----------|------|-----------|
+| Comandos | 46 | `comandos/` modulares |
+| Módulos | 18 | orquestrador, supervisor, mente, kg, ia, etc |
+| Templates | 8+ | perguntar (universal), analisar_codigo, analisar_bug, conceito, lore |
+| Fragmentação | Auto | Quebra respostas longas em seções (12+ fragmentos) |
+| Mente | 9 membros | analista, critico, estrategista, arquiteto, etc |
+| Memória | ∞ | Individual por membro, com SCORE de qualidade |
+| Auto-revisor | Heurístico | Detecta classes suspeitas sem FAST |
+| Auto-web | Gatilho | Pesquisa quando resposta é fraca ou errada |
+| Watchdog | Sandbox | Monitora respostas e dispara auto-revisor |
+| KG | 1900+ lessons | Conhecimento acumulado do projeto |
+| ContextCrew | 5 fontes | KG, WebLearn, Docs, Código, Web |
+
+---
+
+## ⚠️ ARMADILHAS CONHECIDAS (NUNCA CAIR)
+
+| Armadilha | Consequência | Como evitar |
+|-----------|-------------|-------------|
+| Shell com aspas | Erro de parsing, comando falha | Use JSON IPC |
+| FAST como validador | Aceita tudo ("A" sempre) | Use heurística |
+| Lista fixa de classes | Falso positivo | Use heurística contextual |
+| `resposta[:2000]` | Resposta truncada | Remova o slice |
+| Template específico | Roteamento errado | Use `perguntar` (universal) |
+| V12 como fallback | Resposta genérica | Use Orquestrador + Mente |
+| Cache sem revisão | Resposta desatualizada | FAST verifica antes de usar |
+
+---
+
+## 📁 ARQUIVOS DE SUPORTE
+
+| Arquivo | Função |
+|---------|--------|
+| `docs/MCR_IDENTITY.md` | Identidade do projeto (injetada em templates) |
+| `docs/lessons/recentes.md` | Lições recentes aprendidas |
+| `sandbox/.mcr_cmd.json` | Comando JSON IPC |
+| `sandbox/.mcr_result.json` | Resultado da execução |
+| `sandbox/.mcr_resposta.txt` | Resposta completa |
+| `sandbox/.mcr_metricas.json` | Métricas do Orquestrador |
+| `sandbox/.mcr_devia/conselho_memoria/` | Memória individual dos membros |
+
+---
+
+## 💡 FLUXO PARA NOVAS TAREFAS
+
+```
+1. PARE e pergunte: "O MCR-DevIA pode fazer isso?"
+2. Se SIM: use o comando apropriado (analisar, perguntar, etc)
+3. Se NÃO: implemente, registre no KG, atualize AGENTS.md
+4. Sempre use JSON IPC para comunicação
+5. Sempre registre lições aprendidas
+6. Sempre verifique se respostas não estão truncadas
+```

@@ -70,6 +70,71 @@ def extrair_codigo(resposta):
     if m: return m.group(1).strip()
     return re.sub(r'```\w*\n?', '', resposta).strip()
 
+
+def extrair_codigo_puro(resposta):
+    """Extrai o primeiro bloco ```python ... ```, ignorando texto explicativo."""
+    # Se nao tem ```, ja e codigo puro
+    if '```' not in resposta:
+        return resposta.strip()
+    # Tenta bloco ```python
+    m = re.search(r'```python\s*\n(.+?)```', resposta, re.DOTALL)
+    if m:
+        return m.group(1).strip()
+    # Fallback: qualquer bloco ```
+    m = re.search(r'```\s*\n(.+?)```', resposta, re.DOTALL)
+    if m:
+        return m.group(1).strip()
+    # Fallback extremo: remove linhas de explicacao (comecam com Clarao/Aqui/Primeiro)
+    linhas = []
+    for l in resposta.split('\n'):
+        ls = l.strip()
+        if not ls or ls.startswith('Claro') or ls.startswith('Aqui') \
+           or ls.startswith('Primeiro') or ls.startswith('Primeira') \
+           or '```' in ls:
+            continue
+        linhas.append(l)
+    return '\n'.join(linhas).strip()
+
+
+def extrair_nome_projeto(request):
+    """Extrai nome do projeto do request (ex: 'jogo_plataforma', 'meu_projeto').
+
+    Usa Decider.extrair_json() como metodo principal.
+    Fallback para regex se Decider nao estiver disponivel ou falhar.
+    """
+    try:
+        from modulos.decider import Decider
+        from modulos.ia import IA
+        decider = Decider(IA())
+        exemplos = [
+            ("Cria um jogo de plataforma em Python", {"nome": "jogo_plataforma"}),
+            ("Cria um site em JavaScript", {"nome": "site"}),
+        ]
+        dados = decider.extrair_json(request, {'nome': ''},
+                                     exemplos=exemplos,
+                                     instrucao="Extraia o nome do projeto")
+        if dados.get('nome'):
+            return dados['nome']
+    except Exception:
+        pass
+    # Fallback: regex
+    m = re.search(r'jogo\s+(?:de\s+)?(\w+)', request.lower())
+    if m:
+        return f"jogo_{m.group(1)}"
+    m = re.search(r'(?:projeto|app|site|sistema)\s+(\w+)', request.lower())
+    if m:
+        return m.group(1)
+    # Fallback: pega a primeira palavra significativa
+    palavras = re.findall(r'\b[a-z]{4,}\b', request.lower())
+    stop = {'com', 'para', 'que', 'como', 'mais', 'mas', 'por', 'sao', 'esta',
+            'pode', 'ser', 'tem', 'seu', 'sua', 'entre', 'sobre', 'quando',
+            'onde', 'quem', 'qual', 'cada', 'todo', 'apos', 'isso', 'esse',
+            'num', 'sem', 'sob', 'ate', 'vai', 'era', 'foi'}
+    for p in palavras:
+        if p not in stop:
+            return p
+    return "meu_projeto"
+
 def webfetch(url, timeout=15):
     """Busca conteudo de uma URL. Retorna texto ou None."""
     try:
