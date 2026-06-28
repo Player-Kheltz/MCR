@@ -1,0 +1,29 @@
+========================================
+TESTE: CODIGO - Funcao Python de validacao de CPF
+MODELO: Deepseek R1 (7B) - RACIOCINIO (deepseek-r1:7b)
+DATA: 27/06/2026
+========================================
+
+PROMPT:
+Crie uma funcao em Python que valide CPF. A funcao deve:
+1. Receber uma string de CPF (com ou sem pontuacao)
+2. Remover caracteres nao numericos
+3. Validar digitos verificadores
+4. Retornar True/False
+5. Incluir exemplos de uso
+
+Responda APENAS com o codigo Python, bem comentado.
+
+----------------------------------------
+RESPOSTA:
+----------------------------------------
+
+
+----------------------------------------
+METRICAS:
+----------------------------------------
+Tempo total: 24.19s
+Tokens gerados: 2048
+Tokens/segundo: 122.9
+Caracteres: 0
+Erro: Nenhum

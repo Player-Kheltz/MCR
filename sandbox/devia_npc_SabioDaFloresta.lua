@@ -1,5 +1,5 @@
 -- NPC: SabioDaFloresta
 local npc = NPC("SabioDaFloresta")
 npc:setSaudacao("A")
-npc:addItem(natureza, ensina.)
+npc:addNPC(natureza, ensina.)
 print("NPC SabioDaFloresta carregado.")

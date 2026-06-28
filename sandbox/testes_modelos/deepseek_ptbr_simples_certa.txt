@@ -1,0 +1,43 @@
+========================================
+TESTE DEEPSEEK R1 - PT-BR SIMPLES - Traducao de mensagens do jogo
+CONFIG: CERTA
+DATA: 27/06/2026
+========================================
+
+PROMPT:
+Traduza estas mensagens de jogo do ingles para o portugues brasileiro:
+
+1. 'You have found a secret passage!'
+2. 'Your equipment is too heavy.'
+3. 'This spell requires level 45.'
+4. 'The dragon lord casts a powerful fireball at you!'
+5. 'You cannot attack while in protection zone.'
+
+Responda APENAS com as traducoes, uma por linha.
+
+----------------------------------------
+THINKING TOKENS:
+----------------------------------------
+(sem thinking tokens detectados - resposta direta)
+
+----------------------------------------
+RESPOSTA FINAL (0c):
+----------------------------------------
+[ERRO] empty separator
+
+----------------------------------------
+RESPOSTA BRUTA COMPLETA (0c):
+----------------------------------------
+
+
+----------------------------------------
+METRICAS:
+----------------------------------------
+Tempo total: 6.6s
+Tokens gerados: 0
+Tokens/segundo: 0
+Caracteres (bruto): 0
+Caracteres (final): 0
+Thinking tokens: 0c
+Resposta util: NAO
+Erro: empty separator

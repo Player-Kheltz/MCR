@@ -1,0 +1,101 @@
+﻿## Plano de Implementacao: Sistema de Plugins Externos
+
+### Visao Geral
+
+Um sistema de plugins onde desenvolvedores terceiros podem criar funcionalidades que sao carregadas dinamicamente, executadas em sandbox, e se comunicam via barramento de eventos.
+
+---
+
+### Curto Prazo (1-2 semanas): Fundacao
+
+**1.1 Descoberta e Carregamento Dinamico**
+- Usar `importlib` + `pkgutil.walk_packages()` para escanear diretorios configurados (ex: `plugins/`, `~/.mcr/plugins/`)
+- Cada plugin e um pacote Python com `plugin.json` de metadados (nome, versao, autor, dependencias)
+- PluginLoader verifica dependencias, versao do host, e carrega apenas plugins compativeis
+- Hot-reload: watchdog monitora diretorios e recarrega plugins alterados
+
+```
+plugins/
+  exemplo_saudacao/
+    plugin.json  # {"name": "saudacao", "version": "1.0", "hooks": ["on_message"]}
+    __init__.py  # implementa os hooks declarados
+```
+
+**1.2 Interface Base**
+```python
+class Plugin(ABC):
+    @abstractmethod
+    def activar(self, host): ...
+    @abstractmethod
+    def desactivar(self): ...
+    
+    @property
+    def metadados(self) -> dict: ...
+    
+    # Hooks opcionais
+    def on_message(self, mensagem): pass
+    def on_command(self, comando, args): pass
+    def on_event(self, evento, dados): pass
+```
+
+**1.3 Barramento de Eventos Simples**
+- Implementacao inicial com `asyncio.Event` ou `threading.Event`
+- Eventos padrao: `plugin.loaded`, `plugin.unloaded`, `command.before`, `command.after`, `message.received`
+- Plugins se inscrevem via decorator `@evento.on("message.received")`
+
+---
+
+### Medio Prazo (3-4 semanas): Seguranca e Comunicacao
+
+**2.1 Sandbox de Seguranca**
+- Usar `RestrictedPython` ou `pypy3` com `sandbox` para execucao restrita
+- Lista branca de imports: apenas modulos aprovados (os.path, json, re, etc.)
+- Bloquear: subprocess, socket, ctypes, importlib (o proprio plugin), open() sem permissao
+- Quotas de CPU/memoria via `resource` module (Unix) ou `joblib` (Windows)
+- Timeout: cada chamada de plugin tem timeout de 5s padrao, configuravel no plugin.json
+
+**2.2 Barramento de Eventos Avancado**
+- Eventos assincronos com `asyncio`
+- Prioridade de execucao (plugins com prioridade maior executam primeiro)
+- Cadeia de eventos: um plugin pode modificar dados do evento e passar para o proximo
+- Eventos com filtro: `@evento.on("command.before", filtro=lambda cmd: cmd.nome == "lore")`
+
+```python
+# Exemplo de plugin saudacao
+class PluginSaudacao(Plugin):
+    def on_message(self, mensagem):
+        if "ola" in mensagem.texto.lower():
+            return f"Ola! Eu sou o plugin de saudacao v{self.metadados['versao']}"
+```
+
+**2.3 Registro e Descoberta**
+- Comando `plugin list` - lista plugins ativos, inativos, com erros
+- Comando `plugin install <caminho>` - copia plugin para diretorio de plugins
+- Comando `plugin info <nome>` - mostra metadados e hooks do plugin
+- Cache de plugins compativeis em JSON para inicio rapido
+
+---
+
+### Longo Prazo (2+ meses): Ecossistema
+
+**3.1 Marketplace de Plugins**
+- Repositorio remoto (GitHub Pages ou servidor simples)
+- Comando `plugin search <termo>` - busca no repositorio
+- Comando `plugin install <nome> --from-repo` - baixa e instala
+- Verificacao de checksum (SHA256) para integridade
+
+**3.2 Isolamento Avancado**
+- Containers Docker para plugins nao-conflaveis
+- Plugins rodam em processos separados com IPC via pipes ou sockets Unix
+- Limite de acesso a sistema de arquivos por bind mount read-only
+
+**3.3 Plugin API Estavel v1.0**
+- Documentacao publica da API
+- Versionamento semantico (plugin.json declara `host_api: ">=1.0,<2.0"`)
+- Plugin SDK com exemplos e template project
+
+### Consideracoes de Risco
+- **Seguranca**: plugin malicioso pode roubar dados. O sandbox e CRITICO.
+- **Performance**: plugin lento pode travar o host. Timeout + thread separada sao obrigatorios.
+- **Compatibilidade**: mudancas na API host quebram plugins. Versionamento semantico + periodo de deprecacao.
+- **Estado global**: plugins nao devem compartilhar estado global. Cada plugin tem seu namespace.

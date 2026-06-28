@@ -1,0 +1,24 @@
+PROMPT: Find the bug in this code:
+function withdraw(player, amount)
+    local balance = player:getBalance()
+    if balance >= amount then
+        player:setBalance(balance - amount)
+        player:addItem(2148, amount)
+        return true
+    end
+    return false
+end
+What happens if amount is negative?
+
+RESPOSTA:
+The code contains a bug when `amount` is negative because:
+
+1. **Balance Check**: The condition `balance >= amount` evaluates to `true` even for negative amounts, allowing transactions despite invalid parameters.
+
+2. **Balance Adjustment**: Subtracting a negative `amount` increases the balance unintentionally.
+
+3. **Item Addition**: Adding an item with a negative count is likely incorrect and could cause errors or unintended effects.
+
+4. **Return Statement**: The function returns `true`, indicating success even though the operation was invalid.
+
+**Conclusion:** Negative amounts should be treated as invalid transactions, resulting in an error or no action being taken.

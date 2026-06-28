@@ -1,0 +1,14 @@
+PROMPT: Explain the concept of CAP theorem in simple terms. Give a concrete example for an MMORPG server.
+
+RESPOSTA:
+The CAP theorem, standing for Consistency, Availability, Partition tolerance, highlights the trade-offs in designing distributed systems, particularly those used in online multiplayer games like MMORPGs. In such games, ensuring real-time data (consistency), high availability without downtime, and fault tolerance are all critical.
+
+In an MMORPG server, choosing between these aspects determines its performance:
+
+1. **Consistency**: Prioritizing this ensures all players see the same game state in real-time but may limit the number of users due to potential performance issues as more users connect.
+
+2. **Availability**: Focusing here means the server can handle a high load with minimal downtime, which is crucial for a seamless gaming experience but might introduce slight inconsistencies when partitions occur.
+
+3. **Partition Tolerance**: This ensures the server remains functional even if part of it goes down, enhancing availability but potentially at the cost of consistency and performance during partitioned states.
+
+Thus, an MMORPG server must balance these factors to provide both responsiveness and reliability, understanding that achieving all three is impossible simultaneously. The choice depends on whether the priority is smooth gameplay with possible inconsistencies or high availability despite minor performance trade-offs.

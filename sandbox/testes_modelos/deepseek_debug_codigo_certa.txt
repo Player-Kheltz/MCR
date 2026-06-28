@@ -1,0 +1,66 @@
+========================================
+TESTE DEEPSEEK R1 - REVIEW/DEBUG - Encontrar bug em codigo Lua
+CONFIG: CERTA
+DATA: 27/06/2026
+========================================
+
+PROMPT:
+Find the bug in this Lua function for an OTServ (Tibia server). The function is supposed to give a reward to a player when they kill a boss, but sometimes it gives the reward twice.
+
+```lua
+function onKillBoss(cid, bossName)
+    local player = Player(cid)
+    if not player then return false end
+    
+    local storage = 50001
+    local killTime = player:getStorageValue(storage)
+    
+    if killTime > 0 and (os.time() - killTime) < 3600 then
+        return false  -- Already killed in last hour
+    end
+    
+    player:setStorageValue(storage, os.time())
+    player:addItem(2152, 10)  -- 10 gold coins
+    player:addItem(2491, 1)   -- Boss trophy
+    
+    if math.random(1, 100) <= 20 then
+        player:addItem(2387, 1)  -- Rare item (20% chance)
+    end
+    
+    player:sendTextMessage(MESSAGE_INFO_DESCR, "You killed " .. bossName .. "! Reward received.")
+    return true
+end
+```
+
+Analyze the code and tell me:
+1. What is the bug?
+2. Why does it happen?
+3. How to fix it?
+4. Show the corrected code.
+
+----------------------------------------
+THINKING TOKENS:
+----------------------------------------
+(sem thinking tokens detectados - resposta direta)
+
+----------------------------------------
+RESPOSTA FINAL (0c):
+----------------------------------------
+[ERRO] empty separator
+
+----------------------------------------
+RESPOSTA BRUTA COMPLETA (0c):
+----------------------------------------
+
+
+----------------------------------------
+METRICAS:
+----------------------------------------
+Tempo total: 84.2s
+Tokens gerados: 0
+Tokens/segundo: 0
+Caracteres (bruto): 0
+Caracteres (final): 0
+Thinking tokens: 0c
+Resposta util: NAO
+Erro: empty separator

@@ -1,0 +1,1 @@
+O arquivo `.lua` no Projeto MCR é uma linguagem de programação usada para criar scripts personalizados e funções dentro do servidor. Lua é conhecida por sua simplicidade e eficiência, tornando-a ideal para desenvolver funcionalidades adicionais ou modificar comportamentos existentes do jogo.

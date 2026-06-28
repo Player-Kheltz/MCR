@@ -1,0 +1,502 @@
+[
+  {
+    "id": "1000",
+    "nome": "Item_0",
+    "artigo": "uma",
+    "plural": "Item_0s",
+    "tipo": "pergaminho",
+    "raridade": "incomum",
+    "valor": "534",
+    "_linha": "1000"
+  },
+  {
+    "id": "1001",
+    "nome": "Item_1",
+    "artigo": "uma",
+    "plural": "Item_1s",
+    "tipo": "None",
+    "raridade": "incomum",
+    "valor": "491",
+    "_linha": "1001"
+  },
+  {
+    "id": "1002",
+    "nome": "Item_2",
+    "artigo": "um",
+    "plural": "Item_2s",
+    "tipo": "arma",
+    "raridade": "raro",
+    "valor": "232",
+    "_linha": "1002"
+  },
+  {
+    "id": "1003",
+    "nome": "Item_3",
+    "artigo": "um",
+    "plural": "Item_3s",
+    "tipo": "arma",
+    "raridade": "comum",
+    "valor": "498",
+    "_linha": "1003"
+  },
+  {
+    "id": "1004",
+    "nome": "Item_4",
+    "artigo": "uma",
+    "plural": "Item_4s",
+    "tipo": "arma",
+    "raridade": "raro",
+    "valor": "536",
+    "_linha": "1004"
+  },
+  {
+    "id": "1005",
+    "nome": "Item_5",
+    "artigo": "uma",
+    "plural": "Item_5s",
+    "tipo": "pergaminho",
+    "raridade": "comum",
+    "valor": "0",
+    "_linha": "1005"
+  },
+  {
+    "id": "1006",
+    "nome": "Item_6",
+    "artigo": "um",
+    "plural": "Item_6s",
+    "tipo": "pergaminho",
+    "raridade": "incomum",
+    "valor": "634",
+    "_linha": "1006"
+  },
+  {
+    "id": "1007",
+    "nome": "Item_7",
+    "artigo": "uma",
+    "plural": "Item_7s",
+    "tipo": "pocao",
+    "raridade": "comum",
+    "valor": "432",
+    "_linha": "1007"
+  },
+  {
+    "id": "1008",
+    "nome": "Item_8",
+    "artigo": "um",
+    "plural": "Item_8s",
+    "tipo": "pergaminho",
+    "raridade": "comum",
+    "valor": "658",
+    "_linha": "1008"
+  },
+  {
+    "id": "1009",
+    "nome": "Item_9",
+    "artigo": "um",
+    "plural": "Item_9s",
+    "tipo": "pergaminho",
+    "raridade": "epico",
+    "valor": "530",
+    "_linha": "1009"
+  },
+  {
+    "id": "1010",
+    "nome": "Objeto",
+    "artigo": "uma",
+    "plural": "Item_10s",
+    "tipo": "pergaminho",
+    "raridade": "raro",
+    "valor": "986",
+    "_linha": "1010"
+  },
+  {
+    "id": "1011",
+    "nome": "Item_11",
+    "artigo": "uma",
+    "plural": "Item_11s",
+    "tipo": "arma",
+    "raridade": "incomum",
+    "valor": "182",
+    "_linha": "1011"
+  },
+  {
+    "id": "1012",
+    "nome": "Item_12",
+    "artigo": "uma",
+    "plural": "Item_12s",
+    "tipo": "armadura",
+    "raridade": "comum",
+    "valor": "812",
+    "_linha": "1012"
+  },
+  {
+    "id": "1013",
+    "nome": "Item_13",
+    "artigo": "um",
+    "plural": "Item_13s",
+    "tipo": "armadura",
+    "raridade": "incomum",
+    "valor": "703",
+    "_linha": "1013"
+  },
+  {
+    "id": "1014",
+    "nome": "Item_14",
+    "artigo": "uma",
+    "plural": "Item_14s",
+    "tipo": "arma",
+    "raridade": "raro",
+    "valor": "773",
+    "_linha": "1014"
+  },
+  {
+    "id": "1015",
+    "nome": "Item_15",
+    "artigo": "uma",
+    "plural": "Item_15s",
+    "tipo": "pergaminho",
+    "raridade": "comum",
+    "valor": "753",
+    "_linha": "1015"
+  },
+  {
+    "id": "1016",
+    "nome": "Objeto",
+    "artigo": "um",
+    "plural": "Item_16s",
+    "tipo": "arma",
+    "raridade": "incomum",
+    "valor": "223",
+    "_linha": "1016"
+  },
+  {
+    "id": "1017",
+    "nome": "Item_17",
+    "artigo": "um",
+    "plural": "Item_17s",
+    "tipo": "arma",
+    "raridade": "raro",
+    "valor": "675",
+    "_linha": "1017"
+  },
+  {
+    "id": "1018",
+    "nome": "Item_18",
+    "artigo": "uma",
+    "plural": "Item_18s",
+    "tipo": "pocao",
+    "raridade": "incomum",
+    "valor": "919",
+    "_linha": "1018"
+  },
+  {
+    "id": "1019",
+    "nome": "Item_19",
+    "artigo": "um",
+    "plural": "Item_19",
+    "tipo": "pergaminho",
+    "raridade": "epico",
+    "valor": "528",
+    "_linha": "1019"
+  },
+  {
+    "id": "1020",
+    "nome": "Item_20",
+    "artigo": "um",
+    "plural": "Item_20s",
+    "tipo": "pergaminho",
+    "raridade": "comum",
+    "valor": "139",
+    "_linha": "1020"
+  },
+  {
+    "id": "1021",
+    "nome": "Item_21",
+    "artigo": "uma",
+    "plural": "Item_21s",
+    "tipo": "pergaminho",
+    "raridade": "epico",
+    "valor": "750",
+    "_linha": "1021"
+  },
+  {
+    "id": "1022",
+    "nome": "Item_22",
+    "artigo": "um",
+    "plural": "Item_22s",
+    "tipo": "pocao",
+    "raridade": "raro",
+    "valor": "958",
+    "_linha": "1022"
+  },
+  {
+    "id": "1023",
+    "nome": "Item_23",
+    "artigo": "uma",
+    "plural": "Item_23",
+    "tipo": "pergaminho",
+    "raridade": "raro",
+    "valor": "761",
+    "_linha": "1023"
+  },
+  {
+    "id": "1024",
+    "nome": "Item_24",
+    "artigo": "uma",
+    "plural": "Item_24s",
+    "tipo": "pocao",
+    "raridade": "comum",
+    "valor": "437",
+    "_linha": "1024"
+  },
+  {
+    "id": "1025",
+    "nome": "Item_25",
+    "artigo": "um",
+    "plural": "Item_25s",
+    "tipo": "arma",
+    "raridade": "epico",
+    "valor": "338",
+    "_linha": "1025"
+  },
+  {
+    "id": "1026",
+    "nome": "Item_26",
+    "artigo": "uma",
+    "plural": "Item_26s",
+    "tipo": "armadura",
+    "raridade": "comum",
+    "valor": "292",
+    "_linha": "1026"
+  },
+  {
+    "id": "1027",
+    "nome": "Item_27",
+    "artigo": "um",
+    "plural": "Item_27s",
+    "tipo": "arma",
+    "raridade": "epico",
+    "valor": "576",
+    "_linha": "1027"
+  },
+  {
+    "id": "1028",
+    "nome": "Coisa",
+    "artigo": "uma",
+    "plural": "Item_28s",
+    "tipo": "pocao",
+    "raridade": "incomum",
+    "valor": "633",
+    "_linha": "1028"
+  },
+  {
+    "id": "1029",
+    "nome": "Item_29",
+    "artigo": "uma",
+    "plural": "Item_29s",
+    "tipo": "armadura",
+    "raridade": "epico",
+    "valor": "724",
+    "_linha": "1029"
+  },
+  {
+    "id": "1030",
+    "nome": "Item_30",
+    "artigo": "uma",
+    "plural": "Item_30s",
+    "tipo": "arma",
+    "raridade": "epico",
+    "valor": "113",
+    "_linha": "1030"
+  },
+  {
+    "id": "1031",
+    "nome": "Item_31",
+    "artigo": "um",
+    "plural": "Item_31",
+    "tipo": "pocao",
+    "raridade": "raro",
+    "valor": "733",
+    "_linha": "1031"
+  },
+  {
+    "id": "1032",
+    "nome": "Item_32",
+    "artigo": "um",
+    "plural": "Item_32s",
+    "tipo": "arma",
+    "raridade": "comum",
+    "valor": "874",
+    "_linha": "1032"
+  },
+  {
+    "id": "1033",
+    "nome": "Item_33",
+    "artigo": "uma",
+    "plural": "Item_33s",
+    "tipo": "pocao",
+    "raridade": "raro",
+    "valor": "411",
+    "_linha": "1033"
+  },
+  {
+    "id": "1034",
+    "nome": "Item_34",
+    "artigo": "um",
+    "plural": "Item_34s",
+    "tipo": "pocao",
+    "raridade": "epico",
+    "valor": "833",
+    "_linha": "1034"
+  },
+  {
+    "id": "1035",
+    "nome": "Item_35",
+    "artigo": "uma",
+    "plural": "Item_35s",
+    "tipo": "armadura",
+    "raridade": "incomum",
+    "valor": "674",
+    "_linha": "1035"
+  },
+  {
+    "id": "1036",
+    "nome": "Item_36",
+    "artigo": "uma",
+    "plural": "Item_36s",
+    "tipo": "pocao",
+    "raridade": "comum",
+    "valor": "214",
+    "_linha": "1036"
+  },
+  {
+    "id": "1037",
+    "nome": "Item_37",
+    "artigo": "um",
+    "plural": "Item_37s",
+    "tipo": "pergaminho",
+    "raridade": "comum",
+    "valor": "-1",
+    "_linha": "1037"
+  },
+  {
+    "id": "1038",
+    "nome": "Item_38",
+    "artigo": "um",
+    "plural": "Item_38s",
+    "tipo": "pergaminho",
+    "raridade": "comum",
+    "valor": "241",
+    "_linha": "1038"
+  },
+  {
+    "id": "1039",
+    "nome": "Objeto",
+    "artigo": "uma",
+    "plural": "Item_39s",
+    "tipo": "pocao",
+    "raridade": "incomum",
+    "valor": "218",
+    "_linha": "1039"
+  },
+  {
+    "id": "1040",
+    "nome": "Item_40",
+    "artigo": "um",
+    "plural": "Item_40s",
+    "tipo": "pergaminho",
+    "raridade": "epico",
+    "valor": "831",
+    "_linha": "1040"
+  },
+  {
+    "id": "1041",
+    "nome": "Item_41",
+    "artigo": "uma",
+    "plural": "Item_41s",
+    "tipo": "armadura",
+    "raridade": "comum",
+    "valor": "870",
+    "_linha": "1041"
+  },
+  {
+    "id": "1042",
+    "nome": "Item_42",
+    "artigo": "uma",
+    "plural": "Item_42s",
+    "tipo": "pocao",
+    "raridade": "raro",
+    "valor": "663",
+    "_linha": "1042"
+  },
+  {
+    "id": "1043",
+    "nome": "Item_43",
+    "artigo": "um",
+    "plural": "Item_43",
+    "tipo": "arma",
+    "raridade": "incomum",
+    "valor": "257",
+    "_linha": "1043"
+  },
+  {
+    "id": "1044",
+    "nome": "Item_44",
+    "artigo": "um",
+    "plural": "Item_44s",
+    "tipo": "None",
+    "raridade": "incomum",
+    "valor": "835",
+    "_linha": "1044"
+  },
+  {
+    "id": "1045",
+    "nome": "Coisa",
+    "artigo": "uma",
+    "plural": "Item_45s",
+    "tipo": "pergaminho",
+    "raridade": "comum",
+    "valor": "310",
+    "_linha": "1045"
+  },
+  {
+    "id": "1046",
+    "nome": "Item_46",
+    "artigo": "uma",
+    "plural": "Item_46s",
+    "tipo": "armadura",
+    "raridade": "epico",
+    "valor": "64",
+    "_linha": "1046"
+  },
+  {
+    "id": "1047",
+    "nome": "Item_47",
+    "artigo": "um",
+    "plural": "Item_47s",
+    "tipo": "arma",
+    "raridade": "comum",
+    "valor": "553",
+    "_linha": "1047"
+  },
+  {
+    "id": "1048",
+    "nome": "Item_48",
+    "artigo": "um",
+    "plural": "Item_48s",
+    "tipo": "pocao",
+    "raridade": "incomum",
+    "valor": "78",
+    "_linha": "1048"
+  },
+  {
+    "id": "1049",
+    "nome": "Item_49",
+    "artigo": "uma",
+    "plural": "Item_49s",
+    "tipo": "None",
+    "raridade": "comum",
+    "valor": "350",
+    "_linha": "1049"
+  }
+]

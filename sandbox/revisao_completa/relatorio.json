@@ -1,0 +1,75 @@
+{
+  "inicio": "2026-06-25T18:33:35.302629",
+  "etapas": [
+    {
+      "nome": "scanner_mestre",
+      "resultado": "SCAN FINAL: 0/127 arquivos com problemas",
+      "duracao": "0.3s"
+    },
+    {
+      "nome": "learning_scan",
+      "duracao": "0.2s"
+    },
+    {
+      "nome": "revisao_codigo",
+      "arquivos": 12,
+      "duracao": "2.0s"
+    },
+    {
+      "nome": "revisao_items",
+      "status": "extraido"
+    }
+  ],
+  "problemas": [],
+  "simulacoes": [
+    {
+      "origem": "E:\\Projeto MCR\\Canary\\config.lua",
+      "simulacao": "E:\\Projeto MCR\\sandbox\\simulacao_correcoes\\config.lua"
+    },
+    {
+      "origem": "E:\\Projeto MCR\\Canary\\gerar_spell_dominios.py",
+      "simulacao": "E:\\Projeto MCR\\sandbox\\simulacao_correcoes\\gerar_spell_dominios.py"
+    },
+    {
+      "origem": "E:\\Projeto MCR\\Canary\\data\\core.lua",
+      "simulacao": "E:\\Projeto MCR\\sandbox\\simulacao_correcoes\\data_core.lua"
+    },
+    {
+      "origem": "E:\\Projeto MCR\\Canary\\data\\global.lua",
+      "simulacao": "E:\\Projeto MCR\\sandbox\\simulacao_correcoes\\data_global.lua"
+    },
+    {
+      "origem": "E:\\Projeto MCR\\Canary\\data\\chatchannels\\chatchannels.xml",
+      "simulacao": "E:\\Projeto MCR\\sandbox\\simulacao_correcoes\\data_chatchannels_chatchannels.xml"
+    },
+    {
+      "origem": "E:\\Projeto MCR\\Canary\\data\\events\\events.xml",
+      "simulacao": "E:\\Projeto MCR\\sandbox\\simulacao_correcoes\\data_events_events.xml"
+    },
+    {
+      "origem": "E:\\Projeto MCR\\Canary\\data\\items\\remover_level_items.py",
+      "simulacao": "E:\\Projeto MCR\\sandbox\\simulacao_correcoes\\data_items_remover_level_items.py"
+    },
+    {
+      "origem": "E:\\Projeto MCR\\Canary\\docs\\python-scripts\\convert_monsters_callbacks.py",
+      "simulacao": "E:\\Projeto MCR\\sandbox\\simulacao_correcoes\\docs_python-scripts_convert_monsters_callbacks.py"
+    },
+    {
+      "origem": "E:\\Projeto MCR\\Canary\\src\\canary_server.cpp",
+      "simulacao": "E:\\Projeto MCR\\sandbox\\simulacao_correcoes\\src_canary_server.cpp"
+    },
+    {
+      "origem": "E:\\Projeto MCR\\Canary\\src\\main.cpp",
+      "simulacao": "E:\\Projeto MCR\\sandbox\\simulacao_correcoes\\src_main.cpp"
+    },
+    {
+      "origem": "E:\\Projeto MCR\\Canary\\vcpkg_installed\\x64-windows\\include\\argon2.h",
+      "simulacao": "E:\\Projeto MCR\\sandbox\\simulacao_correcoes\\vcpkg_installed_x64-windows_include_argon2.h"
+    },
+    {
+      "origem": "E:\\Projeto MCR\\Canary\\vcpkg_installed\\x64-windows\\include\\utf8_range.h",
+      "simulacao": "E:\\Projeto MCR\\sandbox\\simulacao_correcoes\\vcpkg_installed_x64-windows_include_utf8_range.h"
+    }
+  ],
+  "fim": "2026-06-25T18:34:16.637829"
+}

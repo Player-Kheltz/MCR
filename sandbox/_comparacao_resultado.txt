@@ -1,0 +1,13 @@
+RELATORIO DE COMPARACAO (TESTE CEGO)
+============================================================
+Pergunta: Crie uma historia completa da cidade de Eridanus em Tibia, com origem mitologica...
+
+METRICA                   MCR             Cloud          
+-------------------------------------------------------
+Tamanho (chars)                      1580            1085
+Nomes proprios                         13              37
+Numeros                                 0               2
+
+Arquivos:
+  MCR:   E:\Projeto MCR\sandbox\_resposta_mcr.txt
+  Cloud: E:\Projeto MCR\sandbox\_resposta_cloud.txt

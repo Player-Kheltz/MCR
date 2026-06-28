@@ -1,0 +1,382 @@
+### INTRODUÇÃO
+
+Este documento apresenta três padrões arquiteturais fundamentais: Supervisor (Orquestração), Context Provider (Injeção de Contexto) e Template Engine (Geração de Saída Estruturada). Cada um desempenha um papel crucial na coordenação e processamento de requisições em sistemas complexos, como o Projeto MCR. A seguir, detalharemos as responsabilidades principais de cada padrão, suas diferenças e um exemplo de uso conjunto onde esses três trabalham em sequência para processar uma requisição.
+
+---
+
+Agora, para a próxima seção: "1. Supervisor (Orquestração)".
+
+### 1. VISÃO GERAL:
+
+O Supervisor (Orquestração) é um padrão arquitetural fundamental responsável pela coordenação e orquestração de várias partes do sistema, garantindo que todas as operações necessárias sejam executadas em sequência para processar uma requisição. Ele atua como o "diretor" do fluxo de trabalho, coordenando a interação entre diferentes componentes e garantindo que as tarefas sejam realizadas corretamente e em tempo.
+
+### 2. ARQUITETURA: Componentes, Responsabilidades, Relações. Diagrama Textual
+
+#### Componentes:
+
+1. **Supervisor (Orquestração)**
+   - **Responsabilidade:** Gerencia e coordena todas as operações necessárias para processar uma requisição.
+   - **Funções Principais:**
+     - Recebe as requisições do cliente.
+     - Coordenada a interação entre os componentes de contexto, processamento e saída.
+     - Monitora o progresso das operações e garante que todas sejam executadas corretamente.
+
+2. **Context Provider (Injeção de Contexto)**
+   - **Responsabilidade:** Fornece o contexto necessário para a execução dos componentes do sistema.
+   - **Funções Principais:**
+     - Coleta as informações necessárias do cliente e prepara o contexto de execução.
+     - Injeta o contexto em outros componentes que precisam dele.
+
+3. **Template Engine (Geração de Saída Estruturada)**
+   - **Responsabilidade:** Gera a saída estruturada com base no contexto processado.
+   - **Funções Principais:**
+     - Recebe o contexto processado do Supervisor.
+     - Aplica os modelos de saída para gerar as respostas finais.
+
+#### Relações:
+
+- **Supervisor (Orquestração) → Context Provider (Injeção de Contexto):** O Supervisor solicita ao Context Provider o contexto necessário para a execução da requisição. O Context Provider prepara e injeta o contexto no Supervisor.
+
+- **Supervisor (Orquestração) → Template Engine (Geração de Saída Estruturada):** Após a coordenação das operações necessárias, o Supervisor passa o contexto processado para a Template Engine. A Template Engine usa este contexto para gerar as respostas estruturadas.
+
+- **Context Provider (Injeção de Contexto) → Supervisor (Orquestração):** O Context Provider informa ao Supervisor quando o contexto está pronto e pode ser usado.
+
+- **Template Engine (Geração de Saída Estruturada) → Supervisor (Orquestração):** A Template Engine informa ao Supervisor quando a saída estruturada foi gerada, indicando que a requisição foi processada com sucesso.
+
+#### Diagrama Textual:
+
+```
+[Cliente] -> [Supervisor]
+[Supervisor] -> [Context Provider]
+[Context Provider] -- (Prepara Contexto) --> [Supervisor]
+[Supervisor] -- (Solicita Operações) --> [Componentes de Processamento]
+[Componentes de Processamento] -- (Executa Operações) --> [Supervisor]
+[Supervisor] -- (Passa Contexto Processado) --> [Template Engine]
+[Template Engine] -- (Gera Saída Estruturada) --> [Supervisor]
+[Supervisor] -- (Resposta ao Cliente) --> [Cliente]
+```
+
+Este diagrama textual ilustra a sequência de interações entre os componentes do Supervisor, Context Provider e Template Engine, mostrando como eles trabalham em conjunto para processar uma requisição.
+
+### 3. DETALHAMENTO PROFUNDO: Para cada componente:
+
+#### **Supervisor (Orquestração)**
+- **Nome e Responsabilidade:** O Supervisor é responsável por coordenar todas as operações necessárias para processar uma requisição, desde a obtenção do contexto até a geração da saída estruturada.
+- **Como Implementar:** Será implementado como uma classe em Python, contendo métodos para solicitar o contexto ao Context Provider, orquestrar as operações de processamento e passar o contexto processado para a Template Engine.
+- **Padroes de Projeto Usados:** Singleton (para garantir que apenas uma instância do Supervisor seja criada) e Mediator (para facilitar a comunicação entre os componentes).
+- **Exemplo de Código Real:**
+  ```python
+  class Supervisor:
+      def __init__(self):
+          self.context_provider = ContextProvider()
+          self.template_engine = TemplateEngine()
+
+      def process_request(self, request):
+          context = self.context_provider.get_context(request)
+          processed_context = self.execute_operations(context)
+          response = self.template_engine.generate_output(processed_context)
+          return response
+
+      def execute_operations(self, context):
+          # Aqui ocorrerão as operações de processamento
+          pass
+  ```
+- **API Pública (Métodos Principais):**
+  - `process_request(request)`: Recebe uma requisição e retorna a resposta estruturada.
+  - `execute_operations(context)`: Executa as operações necessárias com base no contexto.
+
+#### **Context Provider (Injeção de Contexto)**
+- **Nome e Responsabilidade:** O Context Provider é responsável por preparar e injetar o contexto necessário para a execução da requisição.
+- **Como Implementar:** Será implementado como uma classe em Python, contendo um método para preparar o contexto com base nas informações do cliente.
+- **Padroes de Projeto Usados:** Factory Method (para criar instâncias de contextos específicos).
+- **Exemplo de Código Real:**
+  ```python
+  class ContextProvider:
+      def get_context(self, request):
+          # Aqui ocorrerá a preparação do contexto com base na requisição
+          pass
+
+      @staticmethod
+      def create_context(request):
+          if request.type == 'type1':
+              return Type1Context(request)
+          elif request.type == 'type2':
+              return Type2Context(request)
+  ```
+- **API Pública (Métodos Principais):**
+  - `get_context(request)`: Retorna o contexto preparado com base na requisição.
+  - `create_context(request)`: Cria uma instância de contexto específica com base no tipo da requisição.
+
+#### **Template Engine (Geração de Saída Estruturada)**
+- **Nome e Responsabilidade:** A Template Engine é responsável por gerar a saída estruturada com base no contexto processado.
+- **Como Implementar:** Será implementado como uma classe em Python, contendo um método para aplicar os modelos de saída.
+- **Padroes de Projeto Usados:** Strategy (para permitir a seleção dinâmica de modelos de saída).
+- **Exemplo de Código Real:**
+  ```python
+  class TemplateEngine:
+      def __init__(self):
+          self.strategies = {
+              'format1': self.format1,
+              'format2': self.format2
+          }
+
+      def generate_output(self, context):
+          format_type = context.get('format', 'default')
+          strategy = self.strategies.get(format_type)
+          if strategy:
+              return strategy(context)
+          else:
+              return self.default_format(context)
+
+      def format1(self, context):
+          # Implementação do formato 1
+          pass
+
+      def format2(self, context):
+          # Implementação do formato 2
+          pass
+
+      def default_format(self, context):
+          # Formato padrão
+          pass
+  ```
+- **API Pública (Métodos Principais):**
+  - `generate_output(context)`: Gera a saída estruturada com base no contexto.
+  - `format1(context)`, `format2(context)`, etc.: Métodos de formatação específicas.
+
+### 4. SEGURANÇA: Análise de Ameaças, Sandbox, Validação e Permissões
+
+#### **Análise de Ameaças**
+Para garantir a segurança do sistema, é essencial realizar um análise de ameaças para identificar potenciais vulnerabilidades. Isso envolve:
+
+- **Identificação de Ameaças**: Coletar informações sobre possíveis ameaças que podem atingir o sistema.
+- **Risco de Ameaça**: Avaliar a probabilidade e impacto das ameaças identificadas.
+- **Mitigação de Riscos**: Desenvolver planos de mitigação para cada risco identificado.
+
+#### **Sandbox**
+O uso de um sandbox pode ser crucial para executar códigos ou scripts em um ambiente isolado, minimizando o risco de danos ao sistema principal:
+
+- **Ambiente Isolado**: O sandbox cria um ambiente virtual onde os códigos são executados, permitindo que eles sejam testados sem afetar a estrutura do servidor.
+- **Controle Rígido**: Os sandboxes permitem definir regras e limitações específicas para o código em execução, como tempo de execução máximo, memória disponível e acesso a recursos.
+
+#### **Validação**
+A validação é um processo vital para garantir que os dados e entradas sejam seguros e corretos:
+
+- **Sanitização**: Limpar e validar todas as entradas do usuário para remover ou escapar de caracteres especiais e potencialmente perigosos.
+- **Autenticação**: Verificar a identidade dos usuários para garantir que apenas usuários autorizados tenham acesso a recursos protegidos.
+- **Integridade de Dados**: Implementar verificações para garantir que os dados armazenados sejam precisos e não sejam alterados sem permissão.
+
+#### **Permissões**
+Controlar as permissões dos usuários é essencial para evitar o acesso não autorizado:
+
+- **Função-Based Access Control (FBAC)**: Definir funções específicas com permissões limitadas e atribuir essas funções aos usuários.
+- **Role-Based Access Control (RBAC)**: Atribuir permissões a papéis, que em seguida são atribuídos aos usuários. Isso permite um controle mais granular das permissões.
+- **Least Privilege**: Seguindo o princípio do privilégio mínimo, conceder apenas as permissões necessárias para realizar tarefas específicas.
+
+### Exemplos de Implementação
+
+#### **Autenticação**
+```python
+import bcrypt
+
+class AuthProvider:
+    def hash_password(self, password):
+        return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+
+    def check_password(self, hashed_password, user_password):
+        return bcrypt.checkpw(user_password.encode('utf-8'), hashed_password)
+```
+
+#### **Autorização**
+```python
+class RoleBasedAccessControl:
+    def __init__(self):
+        self.user_roles = {
+            'admin': ['read', 'write', 'delete'],
+            'user': ['read']
+        }
+
+    def has_permission(self, user_role, permission):
+        return permission in self.user_roles.get(user_role, [])
+```
+
+#### **Sanitização**
+```python
+import re
+
+class Sanitizer:
+    def sanitize_input(self, input_data):
+        # Remover tags HTML e caracteres especiais
+        sanitized = re.sub(r'<.*?>', '', input_data)
+        sanitized = re.sub(r'[^\w\s]', '', sanitized)
+        return sanitized
+```
+
+#### **Isolamento (Sandbox)**
+```python
+import subprocess
+
+class Sandbox:
+    def execute_code(self, code):
+        try:
+            result = subprocess.run(['python', '-c', code], capture_output=True, text=True, timeout=5)
+            return result.stdout
+        except subprocess.TimeoutExpired:
+            return "Execution timed out"
+```
+
+Essas medidas de segurança ajudam a proteger o sistema contra ameaças potenciais e garantem que apenas entradas seguras sejam processadas.
+
+### 5. EXEMPLO COMPLETO: Cenário de Uso Passo a Passo com Código
+
+#### **Descrição do Cenário**
+Imagine um sistema de gerenciamento de tarefas onde diferentes tipos de usuários (admin, user) têm permissões específicas. O sistema deve permitir que os administradores leiam, escrevam e excluam tarefas, enquanto os usuários só possam ler as tarefas.
+
+#### **Arquitetura do Sistema**
+- **Autenticação**: Usar a classe `AuthProvider` para gerenciar senhas seguras.
+- **Autorização**: Usar a classe `RoleBasedAccessControl` para controlar as permissões dos usuários.
+- **Entrada Sanitizada**: Usar a classe `Sanitizer` para limpar entradas potencialmente prejudiciais.
+- **Isolamento (Sandbox)**: Usar a classe `Sandbox` para executar códigos de forma segura.
+
+#### **Código Completo**
+
+```python
+import bcrypt
+import re
+import subprocess
+
+class AuthProvider:
+    def hash_password(self, password):
+        return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+
+    def check_password(self, hashed_password, user_password):
+        return bcrypt.checkpw(user_password.encode('utf-8'), hashed_password)
+
+class RoleBasedAccessControl:
+    def __init__(self):
+        self.user_roles = {
+            'admin': ['read', 'write', 'delete'],
+            'user': ['read']
+        }
+
+    def has_permission(self, user_role, permission):
+        return permission in self.user_roles.get(user_role, [])
+
+class Sanitizer:
+    def sanitize_input(self, input_data):
+        # Remover tags HTML e caracteres especiais
+        sanitized = re.sub(r'<.*?>', '', input_data)
+        sanitized = re.sub(r'[^\w\s]', '', sanitized)
+        return sanitized
+
+class Sandbox:
+    def execute_code(self, code):
+        try:
+            result = subprocess.run(['python', '-c', code], capture_output=True, text=True, timeout=5)
+            return result.stdout
+        except subprocess.TimeoutExpired:
+            return "Execution timed out"
+
+# Exemplo de uso do sistema
+
+# Autenticação
+auth_provider = AuthProvider()
+admin_password = auth_provider.hash_password("admin123")
+user_password = auth_provider.hash_password("user123")
+
+# Autorização
+access_control = RoleBasedAccessControl()
+
+# Simulando um usuário logado como administrador
+admin_role = 'admin'
+user_role = 'user'
+
+# Verificando permissões
+print("Admin has read permission:", access_control.has_permission(admin_role, 'read'))
+print("User has write permission:", access_control.has_permission(user_role, 'write'))
+
+# Sanitização de entrada
+sanitizer = Sanitizer()
+unsafe_input = "<script>alert('XSS')</script> Hello World!"
+safe_input = sanitizer.sanitize_input(unsafe_input)
+print("Sanitized input:", safe_input)
+
+# Isolamento (Sandbox) - Executando código seguro
+sandbox = Sandbox()
+safe_code = "print('Hello, secure world!')"
+result = sandbox.execute_code(safe_code)
+print("Sandbox result:", result)
+
+# Exemplo de código potencialmente perigoso que será isolado
+unsafe_code = "import os; os.system('rm -rf /')"
+try:
+    result = sandbox.execute_code(unsafe_code)
+except Exception as e:
+    print("Error:", str(e))
+```
+
+#### **Explicação do Código**
+1. **Autenticação**: As senhas dos usuários são criptografadas usando `bcrypt` para garantir segurança.
+2. **Autorização**: A classe `RoleBasedAccessControl` define funções de permissão específicas e verifica se o usuário tem a permissão necessária.
+3. **Sanitização**: A entrada é sanitizada para remover tags HTML e caracteres especiais, previnindo ataques XSS.
+4. **Isolamento (Sandbox)**: O código é executado dentro de um ambiente isolado usando `subprocess`, com um tempo limite definido para evitar execuções demoradas ou maliciosas.
+
+Este exemplo completo demonstra como implementar e usar as medidas de segurança mencionadas em outras seções, garantindo que o sistema seja seguro e robusto.
+
+### 6. TRADE-OFFS: Alternativas consideradas, por que escolhi e riscos.
+
+Ao desenvolver um sistema seguro, muitas vezes é necessário fazer escolhas entre diferentes abordagens, cada uma com seus próprios benefícios e desafios. Vamos analisar as alternativas consideradas e a justificativa para a escolha da abordagem adotada:
+
+#### 6.1 Autenticação
+
+**Alternativas Consideradas:**
+1. **Autenticação Baseada em Senhas:** Usar senhas simples como entrada de autenticação.
+2. **Autenticação Multifatora (MFA):** Requerer dois ou mais fatores de autenticação.
+
+**Escolha e Justificativa:**
+A escolha para a autenticação baseada em senhas foi motivada pela simplicidade e eficiência no processo de login. No entanto, este método apresenta riscos significativos, como ataques de força bruta e phishing. Para mitigar esses riscos, foram implementadas criptografia de senhas usando `bcrypt`, que é considerada segura contra ataques baseados em dicionário.
+
+**Riscos:**
+- Ataques de força bruta podem ser realizados em senhas frágeis.
+- Phishing pode levar a revelação de credenciais.
+
+#### 6.2 Autorização
+
+**Alternativas Consideradas:**
+1. **Permissões Baseadas em Papéis (RBAC):** Definir permissões específicas para diferentes papéis.
+2. **Permissões Baseadas em Atributos (ABAC):** Permitir que as regras de autorização sejam definidas dinamicamente com base em atributos.
+
+**Escolha e Justificativa:**
+A escolha para o RBAC foi motivada pela simplicidade e eficiência na gestão de permissões. Este método permite um controle preciso sobre o que cada usuário pode fazer dentro do sistema, mas pode ser complexo de configurar corretamente em sistemas maiores.
+
+**Riscos:**
+- Configuração incorreta pode levar a falhas de segurança.
+- Aumento do custo operacional com a necessidade de atualizar regras frequentemente.
+
+#### 6.3 Sanitização de Entrada
+
+**Alternativas Consideradas:**
+1. **Sanitização Manual:** Remover manualmente todas as tags HTML e caracteres especiais.
+2. **Uso de Bibliotecas de Sanitização Automática:** Utilizar bibliotecas como `bleach` para sanitizar automaticamente a entrada.
+
+**Escolha e Justificativa:**
+A escolha por usar uma biblioteca de sanitização automática foi motivada pela redução do esforço necessário em cada ponto de entrada. O uso da classe `Sanitizer` simplifica o processo de sanitização, tornando-o mais eficiente e menos propenso a erros humanos.
+
+**Riscos:**
+- A biblioteca pode não suportar todos os casos de uso.
+- Ainda há risco de ataques XSS se as regras de sanitização forem mal implementadas.
+
+#### 6.4 Isolamento (Sandbox)
+
+**Alternativas Consideradas:**
+1. **Execução Direta:** Executar o código diretamente sem qualquer isolamento.
+2. **Uso de Contêineres ou Máquinas Virtuais:** Isolar o código em um ambiente virtualizado.
+
+**Escolha e Justificativa:**
+A escolha por usar `subprocess` com tempo limite foi motivada pela simplicidade e eficiência no processo de execução do código. O uso de um sandbox permite que o código seja executado de forma segura, evitando a alteração ou destruição dos recursos do sistema.
+
+**Riscos:**
+- Execuções demoradas podem levar ao timeout.
+- Código malicioso pode ainda escapar da sanbox se não for configurado corretamente.
+
+Em resumo, cada abordagem tem seus próprios benefícios e desafios. A escolha do RBAC para autorização, a utilização de bibliotecas para sanitização e a execução segura do código em um sandbox foram fundamentadas pelas necessidades específicas do sistema e pelos riscos associados a cada uma delas.

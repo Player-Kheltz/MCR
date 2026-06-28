@@ -1,0 +1,6 @@
+Terreno: loot_vs_item
+Loot table de monster NAO deve ser confundida com API de item. addLoot e de monster, setAttribute e de item
+
+monster_com_loot.lua: tipo=monster, APIs=setHealth,setAttack,addLoot(101, 0.5),addLoot(102, 0.3)
+monster_sem_loot.lua: tipo=monster, APIs=setMaxHealth,setSpeed
+item_verdadeiro.lua: tipo=item, APIs=setAttribute,setDuration

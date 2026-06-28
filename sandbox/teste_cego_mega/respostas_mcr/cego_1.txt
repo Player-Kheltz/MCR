@@ -1,0 +1,77 @@
+**Análise do Arquivo context_crew.py**
+
+**Problemas de Segurança:**
+1. **Função `register` Duplicada**: A função `register` está duplicada no arquivo, uma para cada comando (`fix_excepts` e `ensinar`). Isso pode levar a bugs ou inconsistências se as duas funções forem modificadas de forma diferente.
+
+**Problemas de Performance:**
+1. **Função `register` Duplicada**: A função `register` está duplicada no arquivo, uma para cada comando (`fix_excepts` e `ensinar`). Isso pode levar a uma sobrecarga desnecessária de recursos se ambas as funções forem chamadas simultaneamente.
+
+**Problemas de Manutenção:**
+1. **Função `register` Duplicada**: A função `register` está duplicada no arquivo, uma para cada comando (`fix_excepts` e `ensinar`). Isso dificulta a manutenção do código, pois qualquer alteração necessária deve ser feita em duas locações diferentes.
+
+**Melhoria:**
+```python
+def buscar_priorizando_kg(query):
+    # Busca no Knowledge Graph
+    kg_results = knowledge_graph.search(query)
+    
+    # Busca na Web
+    web_results = web_search.search(query)
+    
+    # Prioriza resultados do Knowledge Graph
+    prioritized_results = sorted(kg_results + web_results, key=lambda x: x['source'] == 'KG', reverse=True)
+    
+    return prioritizado_results
+```
+
+**Impacto:**
+- **Segurança**: A melhoria não introduz novos riscos de segurança.
+- **Performance**: Melhora a performance ao priorizar resultados do Knowledge Graph.
+- **Manutenção**: Simplifica a manutenção ao centralizar a lógica de busca em um único método.
+
+**Código Completo do Método `buscar_priorizando_kg`:**
+```python
+class Buscador:
+    def __init__(self, knowledge_graph, web_search):
+        self.knowledge_graph = knowledge_graph
+        self.web_search = web_search
+
+    def buscar_priorizando_kg(self, query):
+        # Busca no Knowledge Graph
+        kg_results = self.knowledge_graph.search(query)
+        
+        # Busca na Web
+        web_results = self.web_search.search(query)
+        
+        # Prioriza resultados do Knowledge Graph
+        prioritized_results = sorted(kg_results + web_results, key=lambda x: x['source'] == 'KG', reverse=True)
+        
+        return prioritized_results
+```
+
+**Uso do Método `buscar_priorizando_kg`:**
+```python
+# Supondo que você tenha instâncias de knowledge_graph e web_search configuradas
+knowledge_graph = KnowledgeGraph()
+web_search = WebSearch()
+
+buscador = Buscador(knowledge_graph, web_search)
+
+query = "informação sobre Tibia"
+resultados = buscador.buscar_priorizando_kg(query)
+print(resultados)
+```
+
+**Explicação do Código:**
+- A classe `Buscador` é criada para encapsular a lógica de busca.
+- O método `buscar_priorizando_kg` realiza duas buscas separadas, uma no Knowledge Graph e outra na Web.
+- Os resultados são combinados e ordenados com prioridade aos resultados do Knowledge Graph.
+
+**Benefícios:**
+1. **Segurança**: A melhoria não introduz novos riscos de segurança.
+2. **Performance**: Melhora a performance ao priorizar resultados do Knowledge Graph.
+3. **Manutenção**: Simplifica a manutenção ao centralizar a lógica de busca em um único método.
+
+**Considerações Adicionais:**
+- Certifique-se de que o `knowledge_graph` e `web_search` estejam corretamente configurados e funcionalmente disponíveis no seu ambiente.
+- A implementação das funções `search` dentro dos objetos `knowledge_graph` e `web_search` deve ser otimizada para garantir a performance desejada.

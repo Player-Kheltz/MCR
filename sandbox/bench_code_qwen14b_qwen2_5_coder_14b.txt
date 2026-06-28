@@ -1,0 +1,74 @@
+Aqui está um exemplo de código Lua para criar um NPC chamado Mestre Borin, um ferreiro que vende armas e armaduras no servidor OTServ usando o sistema KeywordHandler. O NPC terá pelo menos 5 itens no estoque e responderá em português.
+
+```lua
+local keywordHandler = KeywordHandler:new()
+local npcHandler = NpcHandler:new(keywordHandler)
+NpcSystem.parseParameters(npcHandler)
+
+function onCreatureAppear(cid)
+	npcHandler:onCreatureAppear(cid)
+end
+
+function onCreatureDisappear(cid)
+	npcHandler:onCreatureDisappear(cid)
+end
+
+function onCreatureSay(cid, type, msg)
+	npcHandler:onCreatureSay(cid, type, msg)
+end
+
+function onThink()
+	npcHandler:onThink()
+end
+
+local function creatureSayCallback(npc, creature, message)
+	local player = Player(creature)
+	if not player then
+		return false
+	end
+
+	local items = {
+		{ name = "sword", id = 3264, price = 10 },
+		{ name = "axe", id = 3274, price = 15 },
+		{ name = "helmet", id = 3351, price = 20 },
+		{ name = "plate armor", id = 3361, price = 25 },
+		{ name = "boots", id = 3349, price = 18 }
+	}
+
+	if message:lower() == "hello" then
+		npcHandler:say("Olá! Eu sou o Mestre Borin, ferreiro. Posso vender armas e armaduras. Digite 'comprar' para ver meus itens.", creature)
+	elseif message:lower() == "comprar" then
+		local itemList = "Eu tenho os seguintes itens disponíveis:\n"
+		for i, item in ipairs(items) do
+			itemList = itemList .. string.format("%d - %s (Preço: %d moedas)\n", i, item.name, item.price)
+		end
+		npcHandler:say(itemList, creature)
+	elseif message:lower():match("^%d+$") then
+		local choice = tonumber(message)
+		if choice >= 1 and choice <= #items then
+			local selectedItem = items[choice]
+			if player:getMoney() >= selectedItem.price then
+				player:removeMoney(selectedItem.price)
+				player:addItem(selectedItem.id, 1)
+				npcHandler:say(string.format("Você comprou um %s por %d moedas.", selectedItem.name, selectedItem.price), creature)
+			else
+				npcHandler:say("Você não tem dinheiro suficiente para comprar este item.", creature)
+			end
+		else
+			npcHandler:say("Escolha inválida. Por favor, escolha um número entre 1 e " .. #items .. ".", creature)
+		end
+	else
+		npcHandler:say("Desculpe, não entendi. Digite 'hello' para começar.", creature)
+	end
+
+	return true
+end
+
+npcHandler:setCallback(CALLBACK_MESSAGE_DEFAULT, creatureSayCallback)
+
+npcHandler:addModule(FocusModule:new())
+```
+
+Este código cria um NPC chamado Mestre Borin que responde a comandos em português. Ele lista itens disponíveis para venda e permite que o jogador escolha e compre um item se tiver dinheiro suficiente. O sistema KeywordHandler é usado para gerenciar as interações do NPC.
+
+Para usar este código, você deve colocá-lo em um arquivo Lua no diretório `data/npc/scripts` do seu servidor OTServ e configurar o NPC correspondente no arquivo XML de NPCs (`data/npc/npcs.xml`).

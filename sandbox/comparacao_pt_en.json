@@ -1,0 +1,791 @@
+[
+  {
+    "id": "102",
+    "tipo": "nome_diferente",
+    "pt": "Flor Branca",
+    "en": "white flower",
+    "pt_plural": "Flores Brancas",
+    "en_plural": ""
+  },
+  {
+    "id": "102",
+    "tipo": "artigo_errado",
+    "pt": "Flor Branca",
+    "artigo": "um",
+    "sugestao": "uma"
+  },
+  {
+    "id": "105",
+    "tipo": "nome_diferente",
+    "pt": "Campo Venenoso",
+    "en": "poison field",
+    "pt_plural": "Campos Venenosos",
+    "en_plural": ""
+  },
+  {
+    "id": "107",
+    "tipo": "nome_diferente",
+    "pt": "Frasco Especial",
+    "en": "special flask",
+    "pt_plural": "Frascos Especiais",
+    "en_plural": ""
+  },
+  {
+    "id": "110",
+    "tipo": "nome_diferente",
+    "pt": "Frasco Especial",
+    "en": "special flask",
+    "pt_plural": "Frascos Especiais",
+    "en_plural": ""
+  },
+  {
+    "id": "111",
+    "tipo": "nome_diferente",
+    "pt": "Humano Morto",
+    "en": "dead human",
+    "pt_plural": "Humanos Mortos",
+    "en_plural": ""
+  },
+  {
+    "id": "112",
+    "tipo": "nome_diferente",
+    "pt": "Relógio Mágico",
+    "en": "magical watch",
+    "pt_plural": "Relógios Mágicos",
+    "en_plural": ""
+  },
+  {
+    "id": "113",
+    "tipo": "nome_diferente",
+    "pt": "Barba do Imperador Anão",
+    "en": "dwarven emperor's beard",
+    "pt_plural": "Barbas do Imperador Anão",
+    "en_plural": ""
+  },
+  {
+    "id": "120",
+    "tipo": "nome_diferente",
+    "pt": "Algumas Folhas Especiais",
+    "en": "some special leaves",
+    "pt_plural": "Algumas Folhas Especiais",
+    "en_plural": ""
+  },
+  {
+    "id": "121",
+    "tipo": "nome_diferente",
+    "pt": "Almofada de Grito",
+    "en": "whoopee cushion",
+    "pt_plural": "Almofadas Whoopee",
+    "en_plural": ""
+  },
+  {
+    "id": "122",
+    "tipo": "nome_diferente",
+    "pt": "Cesto para Gatos",
+    "en": "cat basket",
+    "pt_plural": "Cestos para Gatos",
+    "en_plural": ""
+  },
+  {
+    "id": "123",
+    "tipo": "nome_diferente",
+    "pt": "Ratinho de Brinquedo",
+    "en": "toy mouse",
+    "pt_plural": "Ratos de Brinquedo",
+    "en_plural": ""
+  },
+  {
+    "id": "124",
+    "tipo": "nome_diferente",
+    "pt": "Enxofre Facilmente Inflamável",
+    "en": "easily inflammable sulphur",
+    "pt_plural": "Enxofres Facilmente Inflamáveis ??",
+    "en_plural": ""
+  },
+  {
+    "id": "125",
+    "tipo": "nome_diferente",
+    "pt": "Frasco Especial",
+    "en": "special flask",
+    "pt_plural": "Frascos Especiais",
+    "en_plural": ""
+  },
+  {
+    "id": "126",
+    "tipo": "nome_diferente",
+    "pt": "Frasco Especial",
+    "en": "special flask",
+    "pt_plural": "Frascos Especiais",
+    "en_plural": ""
+  },
+  {
+    "id": "127",
+    "tipo": "nome_diferente",
+    "pt": "Tinteiro Mágico",
+    "en": "magical inkwell",
+    "pt_plural": "Tinteiros Mágicos",
+    "en_plural": ""
+  },
+  {
+    "id": "128",
+    "tipo": "nome_diferente",
+    "pt": "Contrato Assinado",
+    "en": "signed contract",
+    "pt_plural": "Contratos Assinados",
+    "en_plural": ""
+  },
+  {
+    "id": "130",
+    "tipo": "nome_diferente",
+    "pt": "Biscoito Explodindo",
+    "en": "exploding cookie",
+    "pt_plural": "Biscoitos Explodindo",
+    "en_plural": ""
+  },
+  {
+    "id": "131",
+    "tipo": "nome_diferente",
+    "pt": "Recipiente de Ectoplasma",
+    "en": "ectoplasm container",
+    "pt_plural": "Recipientes de Ectoplasma",
+    "en_plural": ""
+  },
+  {
+    "id": "131",
+    "tipo": "artigo_errado",
+    "pt": "Recipiente de Ectoplasma",
+    "artigo": "um",
+    "sugestao": "uma"
+  },
+  {
+    "id": "133",
+    "tipo": "nome_diferente",
+    "pt": "Frasco Especial",
+    "en": "special flask",
+    "pt_plural": "Frascos Especiais",
+    "en_plural": ""
+  },
+  {
+    "id": "135",
+    "tipo": "nome_diferente",
+    "pt": "Frasco Especial",
+    "en": "special flask",
+    "pt_plural": "Frascos Especiais",
+    "en_plural": ""
+  },
+  {
+    "id": "136",
+    "tipo": "nome_diferente",
+    "pt": "Garrafa de Cerveja",
+    "en": "beer bottle",
+    "pt_plural": "Garrafas de Cerveja",
+    "en_plural": ""
+  },
+  {
+    "id": "137",
+    "tipo": "nome_diferente",
+    "pt": "Barril de Água",
+    "en": "water cask",
+    "pt_plural": "Barris de Água",
+    "en_plural": ""
+  },
+  {
+    "id": "137",
+    "tipo": "artigo_errado",
+    "pt": "Barril de Água",
+    "artigo": "um",
+    "sugestao": "uma"
+  },
+  {
+    "id": "138",
+    "tipo": "nome_diferente",
+    "pt": "Garrafa de Cerveja Vazia",
+    "en": "empty beer bottle",
+    "pt_plural": "Garrafas de Cerveja Vazias",
+    "en_plural": ""
+  },
+  {
+    "id": "139",
+    "tipo": "nome_diferente",
+    "pt": "Capacete de Mineração",
+    "en": "mining helmet",
+    "pt_plural": "Capacetes de Mineração",
+    "en_plural": ""
+  },
+  {
+    "id": "142",
+    "tipo": "nome_diferente",
+    "pt": "Fardo de Pano Branco",
+    "en": "bale of white cloth",
+    "pt_plural": "Fardo de Panos Brancos",
+    "en_plural": ""
+  },
+  {
+    "id": "143",
+    "tipo": "nome_diferente",
+    "pt": "Fardo de Pano Amarelado",
+    "en": "bale of yellowed cloth",
+    "pt_plural": "Fardo de Panos Amarelados",
+    "en_plural": ""
+  },
+  {
+    "id": "144",
+    "tipo": "nome_diferente",
+    "pt": "Disfarce de Múmia",
+    "en": "mummy disguise",
+    "pt_plural": "Disfarces de Múmia",
+    "en_plural": ""
+  },
+  {
+    "id": "144",
+    "tipo": "artigo_errado",
+    "pt": "Disfarce de Múmia",
+    "artigo": "um",
+    "sugestao": "uma"
+  },
+  {
+    "id": "145",
+    "tipo": "nome_diferente",
+    "pt": "Pacote Pesado",
+    "en": "heavy package",
+    "pt_plural": "Pacotes Pesados ??",
+    "en_plural": ""
+  },
+  {
+    "id": "166",
+    "tipo": "nome_diferente",
+    "pt": "Caixão de Madeira",
+    "en": "wooden coffin",
+    "pt_plural": "Caixões de Madeira",
+    "en_plural": ""
+  },
+  {
+    "id": "166",
+    "tipo": "artigo_errado",
+    "pt": "Caixão de Madeira",
+    "artigo": "um",
+    "sugestao": "uma"
+  },
+  {
+    "id": "167",
+    "tipo": "nome_diferente",
+    "pt": "Caixão de Madeira",
+    "en": "wooden coffin",
+    "pt_plural": "Caixões de Madeira",
+    "en_plural": ""
+  },
+  {
+    "id": "167",
+    "tipo": "artigo_errado",
+    "pt": "Caixão de Madeira",
+    "artigo": "um",
+    "sugestao": "uma"
+  },
+  {
+    "id": "169",
+    "tipo": "nome_diferente",
+    "pt": "Queijo Escaravelho",
+    "en": "scarab cheese",
+    "pt_plural": "Queijos Escaravelhos",
+    "en_plural": ""
+  },
+  {
+    "id": "170",
+    "tipo": "nome_diferente",
+    "pt": "Barba de Anão Falsa",
+    "en": "fake dwarven beard",
+    "pt_plural": "Barbas Anãs Falsas",
+    "en_plural": ""
+  },
+  {
+    "id": "172",
+    "tipo": "nome_diferente",
+    "pt": "Pergaminho de Poesia em Branco",
+    "en": "blank poetry parchment",
+    "pt_plural": "Pergaminhos de Poesia em Branco",
+    "en_plural": ""
+  },
+  {
+    "id": "181",
+    "tipo": "nome_diferente",
+    "pt": "Ovo de Aranha",
+    "en": "spider egg",
+    "pt_plural": "Ovos de Aranha",
+    "en_plural": ""
+  },
+  {
+    "id": "181",
+    "tipo": "artigo_errado",
+    "pt": "Ovo de Aranha",
+    "artigo": "um",
+    "sugestao": "uma"
+  },
+  {
+    "id": "188",
+    "tipo": "nome_diferente",
+    "pt": "Restos de Uma Teia de Aranha",
+    "en": "remains of a spider web",
+    "pt_plural": "Restos de Uma Teia de Aranha",
+    "en_plural": ""
+  },
+  {
+    "id": "188",
+    "tipo": "artigo_errado",
+    "pt": "Restos de Uma Teia de Aranha",
+    "artigo": "um",
+    "sugestao": "uma"
+  },
+  {
+    "id": "189",
+    "tipo": "nome_diferente",
+    "pt": "Restos de Uma Teia de Aranha",
+    "en": "remains of a spider web",
+    "pt_plural": "Restos de Uma Teia de Aranha",
+    "en_plural": ""
+  },
+  {
+    "id": "189",
+    "tipo": "artigo_errado",
+    "pt": "Restos de Uma Teia de Aranha",
+    "artigo": "um",
+    "sugestao": "uma"
+  },
+  {
+    "id": "193",
+    "tipo": "nome_diferente",
+    "pt": "Algo Rastejando",
+    "en": "something crawling",
+    "pt_plural": "Algo Rastejando",
+    "en_plural": ""
+  },
+  {
+    "id": "195",
+    "tipo": "nome_diferente",
+    "pt": "Algo Rastejando",
+    "en": "something crawling",
+    "pt_plural": "Algo Rastejando",
+    "en_plural": ""
+  },
+  {
+    "id": "197",
+    "tipo": "nome_diferente",
+    "pt": "Concha Grande",
+    "en": "large seashell",
+    "pt_plural": "Conchas Grandes",
+    "en_plural": ""
+  },
+  {
+    "id": "198",
+    "tipo": "nome_diferente",
+    "pt": "Concha Grande",
+    "en": "large seashell",
+    "pt_plural": "Conchas Grandes",
+    "en_plural": ""
+  },
+  {
+    "id": "211",
+    "tipo": "nome_diferente",
+    "pt": "Restos de Um Ovo de Aranha",
+    "en": "remains of a spider egg",
+    "pt_plural": "Restos de Ovos de Aranha",
+    "en_plural": ""
+  },
+  {
+    "id": "211",
+    "tipo": "artigo_errado",
+    "pt": "Restos de Um Ovo de Aranha",
+    "artigo": "um",
+    "sugestao": "uma"
+  },
+  {
+    "id": "227",
+    "tipo": "nome_diferente",
+    "pt": "Vaso Fino",
+    "en": "fine vase",
+    "pt_plural": "Vasos Finos",
+    "en_plural": ""
+  },
+  {
+    "id": "228",
+    "tipo": "nome_diferente",
+    "pt": "Vaso Fino",
+    "en": "fine vase",
+    "pt_plural": "Vasos Finos",
+    "en_plural": ""
+  },
+  {
+    "id": "229",
+    "tipo": "nome_diferente",
+    "pt": "Casquinha de Sorvete",
+    "en": "ice cream cone",
+    "pt_plural": "Casquinhas de Sorvete",
+    "en_plural": ""
+  },
+  {
+    "id": "230",
+    "tipo": "nome_diferente",
+    "pt": "Parede da Cabine do Navio",
+    "en": "ship cabin wall",
+    "pt_plural": "Paredes da Cabine do Navio",
+    "en_plural": ""
+  },
+  {
+    "id": "232",
+    "tipo": "nome_diferente",
+    "pt": "Parede em Chamas",
+    "en": "burning wall",
+    "pt_plural": "Paredes em Chamas",
+    "en_plural": ""
+  },
+  {
+    "id": "233",
+    "tipo": "nome_diferente",
+    "pt": "Ovo de Aranha",
+    "en": "spider egg",
+    "pt_plural": "Ovos de Aranha",
+    "en_plural": ""
+  },
+  {
+    "id": "233",
+    "tipo": "artigo_errado",
+    "pt": "Ovo de Aranha",
+    "artigo": "um",
+    "sugestao": "uma"
+  },
+  {
+    "id": "236",
+    "tipo": "nome_diferente",
+    "pt": "Poção de Vida Forte",
+    "en": "strong health potion",
+    "pt_plural": "Poções Fortes de Saúde",
+    "en_plural": ""
+  },
+  {
+    "id": "239",
+    "tipo": "nome_diferente",
+    "pt": "Poção de Vida Maior",
+    "en": "great health potion",
+    "pt_plural": "Ótimas Poções de Saúde",
+    "en_plural": ""
+  },
+  {
+    "id": "266",
+    "tipo": "nome_diferente",
+    "pt": "Poção de Vida",
+    "en": "health potion",
+    "pt_plural": "Poções de Saúde",
+    "en_plural": ""
+  },
+  {
+    "id": "269",
+    "tipo": "nome_diferente",
+    "pt": "Filhote de Dragão Morto",
+    "en": "dead dragon hatchling",
+    "pt_plural": "Filhotes de Dragão Morto",
+    "en_plural": ""
+  },
+  {
+    "id": "270",
+    "tipo": "nome_diferente",
+    "pt": "Filhote de Dragão Morto",
+    "en": "dead dragon hatchling",
+    "pt_plural": "Filhotes de Dragão Morto",
+    "en_plural": ""
+  },
+  {
+    "id": "271",
+    "tipo": "nome_diferente",
+    "pt": "Filhote de Dragão Morto",
+    "en": "dead dragon hatchling",
+    "pt_plural": "Filhotes de Dragão Morto",
+    "en_plural": ""
+  },
+  {
+    "id": "272",
+    "tipo": "nome_diferente",
+    "pt": "Filhote de Dragão Morto",
+    "en": "dead dragon hatchling",
+    "pt_plural": "Filhotes de Dragão Morto",
+    "en_plural": ""
+  },
+  {
+    "id": "273",
+    "tipo": "nome_diferente",
+    "pt": "Filhote de Dragão Morto",
+    "en": "dead dragon hatchling",
+    "pt_plural": "Filhotes de Dragão Morto",
+    "en_plural": ""
+  },
+  {
+    "id": "274",
+    "tipo": "nome_diferente",
+    "pt": "Filhote de Dragão Morto",
+    "en": "dead dragon hatchling",
+    "pt_plural": "Filhotes de Dragão Morto",
+    "en_plural": ""
+  },
+  {
+    "id": "275",
+    "tipo": "nome_diferente",
+    "pt": "Filhote de Dragão Morto",
+    "en": "dead dragon hatchling",
+    "pt_plural": "Filhotes de Dragão Morto",
+    "en_plural": ""
+  },
+  {
+    "id": "276",
+    "tipo": "nome_diferente",
+    "pt": "Esquilo Morto",
+    "en": "dead squirrel",
+    "pt_plural": "Esquilos Mortos",
+    "en_plural": ""
+  },
+  {
+    "id": "277",
+    "tipo": "nome_diferente",
+    "pt": "Esquilo Morto",
+    "en": "dead squirrel",
+    "pt_plural": "Esquilos Mortos",
+    "en_plural": ""
+  },
+  {
+    "id": "278",
+    "tipo": "nome_diferente",
+    "pt": "Esquilo Morto",
+    "en": "dead squirrel",
+    "pt_plural": "Esquilos Mortos",
+    "en_plural": ""
+  },
+  {
+    "id": "279",
+    "tipo": "nome_diferente",
+    "pt": "Esquilo Morto",
+    "en": "dead squirrel",
+    "pt_plural": "Esquilos Mortos",
+    "en_plural": ""
+  },
+  {
+    "id": "280",
+    "tipo": "nome_diferente",
+    "pt": "Aterramento",
+    "en": "earth ground",
+    "pt_plural": "Aterramentos",
+    "en_plural": ""
+  },
+  {
+    "id": "283",
+    "tipo": "nome_diferente",
+    "pt": "Frasco de Poção Vazio",
+    "en": "empty potion flask",
+    "pt_plural": "Frascos de Poção Vazios",
+    "en_plural": ""
+  },
+  {
+    "id": "284",
+    "tipo": "nome_diferente",
+    "pt": "Frasco de Poção Vazio",
+    "en": "empty potion flask",
+    "pt_plural": "Frascos de Poção Vazios",
+    "en_plural": ""
+  },
+  {
+    "id": "285",
+    "tipo": "nome_diferente",
+    "pt": "Frasco de Poção Vazio",
+    "en": "empty potion flask",
+    "pt_plural": "Frascos de Poção Vazios",
+    "en_plural": ""
+  },
+  {
+    "id": "286",
+    "tipo": "nome_diferente",
+    "pt": "Gato Morto",
+    "en": "dead cat",
+    "pt_plural": "Gatos Mortos",
+    "en_plural": ""
+  },
+  {
+    "id": "287",
+    "tipo": "nome_diferente",
+    "pt": "Gato Morto",
+    "en": "dead cat",
+    "pt_plural": "Gatos Mortos",
+    "en_plural": ""
+  },
+  {
+    "id": "288",
+    "tipo": "nome_diferente",
+    "pt": "Gato Morto",
+    "en": "dead cat",
+    "pt_plural": "Gatos Mortos",
+    "en_plural": ""
+  },
+  {
+    "id": "289",
+    "tipo": "nome_diferente",
+    "pt": "Gato Morto",
+    "en": "dead cat",
+    "pt_plural": "Gatos Mortos",
+    "en_plural": ""
+  },
+  {
+    "id": "306",
+    "tipo": "nome_diferente",
+    "pt": "Vaso de Flores Vazio",
+    "en": "empty flower pot",
+    "pt_plural": "Vasos de Flores Vazios",
+    "en_plural": ""
+  },
+  {
+    "id": "316",
+    "tipo": "nome_diferente",
+    "pt": "Vaso de Flores",
+    "en": "flower pot",
+    "pt_plural": "Vasos de Flores",
+    "en_plural": ""
+  },
+  {
+    "id": "321",
+    "tipo": "nome_diferente",
+    "pt": "Vaso de Flores",
+    "en": "flower pot",
+    "pt_plural": "Vasos de Flores",
+    "en_plural": ""
+  },
+  {
+    "id": "324",
+    "tipo": "nome_diferente",
+    "pt": "Vaso de Flores",
+    "en": "flower pot",
+    "pt_plural": "Vasos de Flores",
+    "en_plural": ""
+  },
+  {
+    "id": "325",
+    "tipo": "nome_diferente",
+    "pt": "Planta Murcha",
+    "en": "withered plant",
+    "pt_plural": "Plantas Murchas",
+    "en_plural": ""
+  },
+  {
+    "id": "326",
+    "tipo": "nome_diferente",
+    "pt": "Planta Murcha",
+    "en": "withered plant",
+    "pt_plural": "Plantas Murchas",
+    "en_plural": ""
+  },
+  {
+    "id": "327",
+    "tipo": "nome_diferente",
+    "pt": "Planta Murcha",
+    "en": "withered plant",
+    "pt_plural": "Plantas Murchas",
+    "en_plural": ""
+  },
+  {
+    "id": "328",
+    "tipo": "nome_diferente",
+    "pt": "Planta Murcha",
+    "en": "withered plant",
+    "pt_plural": "Plantas Murchas",
+    "en_plural": ""
+  },
+  {
+    "id": "329",
+    "tipo": "nome_diferente",
+    "pt": "Vaso de Flores",
+    "en": "flower pot",
+    "pt_plural": "Vasos de Flores",
+    "en_plural": ""
+  },
+  {
+    "id": "330",
+    "tipo": "nome_diferente",
+    "pt": "Vaso de Flores",
+    "en": "flower pot",
+    "pt_plural": "Vasos de Flores",
+    "en_plural": ""
+  },
+  {
+    "id": "331",
+    "tipo": "nome_diferente",
+    "pt": "Vaso de Flores",
+    "en": "flower pot",
+    "pt_plural": "Vasos de Flores",
+    "en_plural": ""
+  },
+  {
+    "id": "332",
+    "tipo": "nome_diferente",
+    "pt": "Vaso de Flores",
+    "en": "flower pot",
+    "pt_plural": "Vasos de Flores",
+    "en_plural": ""
+  },
+  {
+    "id": "333",
+    "tipo": "nome_diferente",
+    "pt": "Vaso de Flores",
+    "en": "flower pot",
+    "pt_plural": "Vasos de Flores",
+    "en_plural": ""
+  },
+  {
+    "id": "334",
+    "tipo": "nome_diferente",
+    "pt": "Vaso de Flores",
+    "en": "flower pot",
+    "pt_plural": "Vasos de Flores",
+    "en_plural": ""
+  },
+  {
+    "id": "335",
+    "tipo": "nome_diferente",
+    "pt": "Vaso de Flores",
+    "en": "flower pot",
+    "pt_plural": "Vasos de Flores",
+    "en_plural": ""
+  },
+  {
+    "id": "336",
+    "tipo": "nome_diferente",
+    "pt": "Vaso de Flores",
+    "en": "flower pot",
+    "pt_plural": "Vasos de Flores",
+    "en_plural": ""
+  },
+  {
+    "id": "337",
+    "tipo": "nome_diferente",
+    "pt": "Vaso de Flores",
+    "en": "flower pot",
+    "pt_plural": "Vasos de Flores",
+    "en_plural": ""
+  },
+  {
+    "id": "338",
+    "tipo": "nome_diferente",
+    "pt": "Vaso de Flores",
+    "en": "flower pot",
+    "pt_plural": "Vasos de Flores",
+    "en_plural": ""
+  },
+  {
+    "id": "339",
+    "tipo": "nome_diferente",
+    "pt": "Vaso de Flores",
+    "en": "flower pot",
+    "pt_plural": "Vasos de Flores",
+    "en_plural": ""
+  },
+  {
+    "id": "340",
+    "tipo": "nome_diferente",
+    "pt": "Vaso de Flores",
+    "en": "flower pot",
+    "pt_plural": "Vasos de Flores",
+    "en_plural": ""
+  }
+]

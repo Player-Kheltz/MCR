@@ -1,0 +1,98 @@
+{
+  "qwen2.5-coder:7b": [
+    {
+      "teste": "SPA",
+      "tempo": 6.9,
+      "tamanho": 414,
+      "nomes": 3,
+      "spa_correto": false,
+      "spa_erro": true
+    },
+    {
+      "teste": ".lua",
+      "tempo": 5.2,
+      "tamanho": 1459,
+      "nomes": 18,
+      "lua_correto": true,
+      "lua_satelite": false
+    },
+    {
+      "teste": "Lore",
+      "tempo": 7.0,
+      "tamanho": 2017,
+      "nomes": 19
+    }
+  ],
+  "qwen2.5-coder:14b": [
+    {
+      "teste": "SPA",
+      "tempo": 14.9,
+      "tamanho": 396,
+      "nomes": 3,
+      "spa_correto": false,
+      "spa_erro": true
+    },
+    {
+      "teste": ".lua",
+      "tempo": 19.4,
+      "tamanho": 1080,
+      "nomes": 13,
+      "lua_correto": true,
+      "lua_satelite": false
+    },
+    {
+      "teste": "Lore",
+      "tempo": 37.5,
+      "tamanho": 1769,
+      "nomes": 26
+    }
+  ],
+  "deepseek-r1:7b": [
+    {
+      "teste": "SPA",
+      "tempo": 10.0,
+      "tamanho": 602,
+      "nomes": 5,
+      "spa_correto": false,
+      "spa_erro": false
+    },
+    {
+      "teste": ".lua",
+      "tempo": 4.4,
+      "tamanho": 628,
+      "nomes": 7,
+      "lua_correto": true,
+      "lua_satelite": false
+    },
+    {
+      "teste": "Lore",
+      "tempo": 15.7,
+      "tamanho": 3499,
+      "nomes": 65
+    }
+  ],
+  "deepseek-r1:14b": [
+    {
+      "teste": "SPA",
+      "tempo": 22.4,
+      "tamanho": 356,
+      "nomes": 4,
+      "spa_correto": false,
+      "spa_erro": false
+    },
+    {
+      "teste": ".lua",
+      "tempo": 27.8,
+      "tamanho": 757,
+      "nomes": 2,
+      "lua_correto": true,
+      "lua_satelite": false
+    },
+    {
+      "teste": "Lore",
+      "tempo": 113.4,
+      "tamanho": 2350,
+      "nomes": 62
+    }
+  ]
+}

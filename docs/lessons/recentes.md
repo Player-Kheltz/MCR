@@ -1,6 +1,187 @@
 # Licoes Recentes
 
-## 2026-06-23 — Teste Bridge: alucinacoes Qwen 7B
+## 2026-06-28 — Sessao Major: qwen14b GPU + Enricher + ToT + Auto-Teste + Framing Positivo
+
+### Resumo do que foi feito
+1. **Upgrade qwen14b com GPU forcing**: `main_gpu=0, num_gpu=99` elevou GPU de 15% para 97%. Router de modelos unificado.
+2. **Framing positivo (anti-elefante rosa)**: MCR_IDENTITY.md e todos os prompts NUNCA mais mencionam termos errados (Minecraft, Single Page Application). O modelo parou de alucinar "Minecraft C++ Reloaded".
+3. **Context Enricher**: Novo módulo que gera conteúdo NOVO (nomes, dados técnicos, comparações) usando ferramentas (grep em Python) + FAST. Cache LRU 5min.
+4. **Tree of Thought**: 3 perspectivas paralelas (analítico, criativo, crítico) + síntese final. Pipeline integrado.
+5. **Revamp de scripts legados**: 10 scripts arquivados, 3 funções úteis extraídas, 4 scripts externos atualizados para router.
+6. **Auto-Teste Definitivo**: Teste universal com gerador FAST, auto-crítica MCR, gaps, feedback arquitetural. Documentado em docs/AUTO_TESTE.md.
+7. **Detecção de escopo MCR vs Geral**: Pipeline agora detecta se pergunta é MCR ou conhecimento geral. Para geral, pula todo contexto MCR.
+
+### Problemas Identificados e Soluções
+
+#### 1. qwen14b rodava em CPU (15% GPU)
+- **Causa**: Sem `main_gpu`/`num_gpu`, Ollama joga parte das camadas na CPU por safety.
+- **Solução**: Adicionar `main_gpu=0, num_gpu=99` às configs dos modelos 14b no router.
+- **Resultado**: GPU 97%, VRAM 9.9GB/10GB.
+
+#### 2. Modelo alucinava "Minecraft C++ Reloaded" mesmo com contexto
+- **Causa**: Efeito "elefante rosa" — MCR_IDENTITY.md dizia "NUNCA confunda MCR com Minecraft". A palavra "Minecraft" ativava o viés.
+- **Solução**: Remover TODAS as negações que mencionam termos errados. Apenas afirmar o correto.
+- **Resultado**: Zero ocorrências de "Minecraft" nas respostas após a correção.
+
+#### 3. Modelo ignorava contexto enriquecido (respondia genérico)
+- **Causa**: O LLM ignora placeholders separados. Contexto precisa estar DENTRO da pergunta.
+- **Solução**: Injetar CR + Enricher na própria `solicitacao_mod` + validação pós-resposta.
+- **Resultado**: Respostas passaram de 314 chars para 1834 chars com dados técnicos.
+
+#### 4. Respostas genéricas em perguntas gerais
+- **Causa**: Pipeline forçava contexto MCR em TUDO (até "mudanças climáticas" virava "servidor de Tibia").
+- **Solução**: Detecção de escopo. Se pergunta não tem termos MCR, pula CR, Enricher, ToT, KG, ContextInfinity.
+- **Resultado**: Perguntas gerais recebem respostas neutras e corretas.
+
+#### 5. Tree of Thought reintroduzia alucinações na síntese
+- **Causa**: A síntese do ToT juntava as 3 perspectivas sem filtrar, e uma delas podia conter "Minecraft".
+- **Solução**: Filtrar perspectivas com alucinações antes de sintetizar + framing positivo no prompt de síntese.
+
+### Lições Aprendidas
+> **GPU forcing é obrigatório para modelos 14b em GPU com 10GB.** Sem `main_gpu/num_gpu`, o Ollama usa CPU por safety e o desempenho cai 80%.
+>
+> **Framing positivo elimina o elefante rosa.** Nunca mencionar o termo errado. Apenas afirmar o correto. Isso se aplica a prompts, identidade e validações.
+>
+> **LLM ignora contexto separado.** Contexto precisa estar DENTRO da pergunta, não como placeholder, para ser usado.
+>
+> **Modelos 14b NÃO são sempre melhores que 7b.** deepseek-r1:7b detectou SQL injection que o qwen14b perdeu. O modelo certo depende da tarefa.
+>
+> **Tempo de pipeline ~150s (com ToT) é aceitável para respostas complexas.** Cache LRU reduz drasticamente para perguntas repetidas.
+
+### Métricas
+- Pipeline completo (CR + Enricher + ToT): ~143-181s
+- Modo geral (sem MCR): ~26s
+- GPU utilization: 97% (antes 15%)
+- VRAM: 9.9GB/10GB
+- Arquivos modificados: ~30+ (entre ia.py, util.py, pipeline_executor.py, orquestrador.py, context_reinforcer.py, conselho.py, auto_revisor.py, mente.py, supervisor.py, context_enricher.py, tree_of_thought.py, cmd_autoteste.py, MCR_IDENTITY.md, e ~6 arquivos de padronização)
+
+### Pendências Futuras
+- CoT (Chain-of-Thought) via deepseek-r1:7b para raciocínio antes da geração
+- Ciclo 2 do Auto-Teste com correções de escopo
+- Revamp dos 4 scripts remanescentes com hardcoded (finalizado)
+
+## 2026-06-27 — Teste Cego: MCR (orquestrador) vence Cloud 3x0 em precisão
+
+### Problema
+Métricas automáticas (nomes próprios, chars) favorecem Cloud mesmo quando Cloud alucina.
+Teste cego com 3 perguntas mostrou:
+- Pergunta "O que é SPA?": Cloud respondeu "Single Page Application" ❌. MCR: "Sistema de Progressão do Aventureiro" ✅.
+- Pergunta "Crie lore Eridanus": MCR 19 nomes (Tibia) vs Cloud 7 nomes (genérico). MCR venceu ✅.
+- Pergunta "Diferença SHC vs SPA?": Cloud disse "SHC = Sistema Hospitalar de Classe A" ❌. MCR disse corretamente ✅.
+
+### Causa
+O Cloud usa qwen2.5-coder:7b **sem contexto** — não tem MCR_IDENTITY, não tem KG, não tem lessons.
+O orquestrador injeta identidade + contexto do KG + lessons em cada template.
+Quando o modelo não tem contexto, ele expande siglas para o que parece mais provável (SPA = "Single Page Application", SHC = "Sistema Hospitalar").
+
+### Solução
+- Métricas automáticas de teste cego DEVEM incluir verificação semântica (keyword match de conceitos corretos), não apenas contagem.
+- Precisa de validador de siglas: se resposta contém "Single Page Application" para SPA no MCR, é automaticamente INVALIDA.
+- O orquestrador é estritamente superior em precisão (3x0) mas métricas simples não capturam isso.
+
+### Lição
+> Precisão semântica > métricas superficiais. Teste cego precisa de validação semântica,
+> não apenas contagem de caracteres/nomes. O orquestrador vence porque TEM contexto;
+> Cloud sem contexto alucina siglas mesmo em modelos bons (qwen2.5-coder).
+
+## 2026-06-27 — Conselho: qwen2.5-coder > deepseek-r1 para veredito + dívida técnica
+
+### Problema
+Conselho alucinava SPA como "Single Page Application", "Subsystem of Progress and Access",
+"Sistema de Controle de Acesso" mesmo com MCR_IDENTITY explícito. Causa: deepseek-r1:7b
+tem viés para expandir siglas e ignora instruções "NÃO faça X".
+
+### Solução
+- Trocar modelo do veredito no `conselho.py` linha 229: `"conceito" (deepseek) → "pesado" (qwen2.5-coder:7b)`
+- Teste controlado provou: qwen acertou SPA em 2.5s com 0 alucinações; deepseek acertou sigla mas inventou modelagem 3D, amuletos (4.3s)
+- Conselho agora detecta perguntas factuais e não gera personagens/locais/artefatos para elas
+- `cmd_conselho.py` valida resposta antes de salvar no KG (filtra alucinações)
+
+### Solução: Dívida técnica
+- Varredura encontrou 24 duplicatas entre sandbox/ e scripts/mcr_devia/
+- 7 cópias idênticas + 3 órfãs = 10 removidas de scripts/
+- 17 versões diferentes mantidas (propositos distintos)
+- `_run_script()` prioriza sandbox, então cópias nunca seriam executadas
+
+## 2026-06-26 — V12 Contexto Agregado + aprender_conceito + SUPERVISAO
+
+### Problema
+autoavaliador IA consumia ate 3 fast() calls e ainda retornava respostas
+genericas (ex: "SPA = Sistema de Progressao do Aventureiro" sem contexto).
+V12 direto retornava lessons cruas sem expansao.
+
+### Solucao: V12 Contexto Agregado
+- Acha top lesson por keyword match
+- Busca lessons RELACIONADAS no KG pelo titulo (erro) + contexto (ctx)
+- Agrupa ate 4 lessons
+- Fast expande em resposta contextual (1 fast() vs 2-3 antes)
+- 0 retorno de lesson crua — sempre expande
+
+### Solucao: aprender_conceito
+- Novo comando MCR-DevIA: `aprender_conceito "<conceito>"`
+- Busca codigo fonte no projeto inteiro
+- IA sintetiza conhecimento CONCEITUAL (nao codigo)
+- Salva no KG com `ctx=conceito_codigo`
+- Universal: funciona para qualquer conceito (SPA, SHC, Canary, etc.)
+- Prompt inclui identidade MCR para evitar interpretacao generica de siglas
+
+### Solucao: Fragmentos Dinamicos 0 IA
+- `_detectar_tamanho()` usa heuristicas Python (palavras-chave na descricao)
+- + ContextCrew se disponivel para refinar
+- 0 chamadas IA para estimar linhas
+
+### Solucao: ContextCrew cache no build
+- `self.contexto_crew` definido em `executar()`, reusado em `_gerar_direto()`
+- 1 chamada ContextCrew por build (antes 2)
+
+### Solucao: Patch aceita caminho absoluto
+- Se argumento e caminho absoluto existente, usa direto
+- Senao, busca em SANDBOX (comportamento anterior)
+
+### Regra SUPERVISAO atualizada em AGENTS.md e equipe.md
+- Quando MCR-DevIA erra, Cloud SUPERVISIONA (da prompt especifico), nao assume
+- MCR-DevIA se auto-repara com o feedback
+- Cloud so assume apos 3 falhas consecutivas
+- `ensinar` a licao depois de resolver
+
+## 2026-06-26 — Otimizacao MCR-DevIA: 3 ciclos de melhoria
+
+### Problema
+MCR-DevIA lento para testes (879.6s), 44% dos testes usavam IA,
+28 subprocess.run com duplo fork em 16 atalhos, loop OODA infinito.
+
+### Ciclo 1 — KG + Review (ganho: -44% a -84% em review)
+- Centralizar stop words em `stop_words.py` (antes duplicado em 3 arquivos)
+- Cache LRU para `kg.buscar()` (64 entradas, elimina recomputação)
+- Pré-popular KG com 13 FAQs (converteu perguntas factuais para V12)
+- Dedup KG: 94 lessons duplicadas mescladas
+- Review em lote: 1 chamada IA para todos os itens (antes 1/item)
+  - review: validador: 42.8s → 7.0s (-84%)
+  - review: runas.xml: 21.8s → 12.3s (-44%)
+
+### Ciclo 2 — Loop + Fork Unico (ganho: loop 300s→0.3s)
+- Loop OODA aceita `max_ciclos` argumento (antes infinito)
+  - loop test: 303.2s → 0.3s (-99.9%)
+- 16 atalhos (auditar, autoavaliar, etc.) agora usam fork único
+- `_run_script()` helper + dicionário `ATALHOS_DIRETOS`
+- Eliminados 16 subprocess.run duplicados (28→12, -57%)
+- Eliminados 15 elif branches (47→32, -32%)
+
+### Ciclo 3 — V12 mais inteligente (V12: 56%→62%)
+- V12 check agora aceita match se erro da lesson contém keyword
+- fast: SHC: 41.3s → 0.3s (agora V12 via redirecionamento ao Supervisor)
+- perg: comandos e perg: modelo analisar agora V12 (via FAQ no KG)
+
+### Resultado Final
+- 67/67 testes PASS (100% consistente)
+- V12 coverage: 56% → 62% (+6pp)
+- Tempo total: variável (depende carga Ollama), mas determinístico caiu 99%
+- 3 gargalos restantes (plan/build/debate) são Ollama-bound, não otimizáveis
+
+### Licao
+O maior ganho veio do loop infinito (300s→0.3s). O segundo maior foi
+melhorar o V12 matching para usar mais KG e menos IA. Refatorar subprocess
+teve impacto menor do que esperado (fork é rápido no Windows).
 
 ## 2026-06-23 — Gerenciamento de processos em segundo plano
 
@@ -281,3 +462,20 @@ O OpenCode CLI salva automaticamente todas as sessoes de conversa. Comandos utei
 As sessoes ficam em `~/.config/opencode/` e `~/.local/share/opencode/`.
 Sempre atualizar `Pendencias.md` ao final de cada sessao para preservar contexto.
 Ver `docs/lessons/2026-06-24-opencode-session-recovery.md` para detalhes completos.
+
+## 2026-06-25 - Analisar hibrido: router codigo vs texto
+
+### Problema
+O MCR-DevIA ATUAL usava deepseek-r1:7b para analise de codigo e texto, resultando em:
+- Respostas genericas sem linha numerada
+- Latencia alta (thinking tokens)
+- Perda de contexto PT-BR em arquivos de texto/XML
+
+### Solucao
+Router hibrido no comando `analisar`:
+- CODIGO (.py/.lua/.cpp): AST pre-analysis + qwen2.5-coder:7b + saida LINHA X:
+- TEXTO (.xml/.json/.csv): analise estrutural + llama3.1:8b + saida tipo/descricao
+
+### Resultado
+Corrida pos-melhoria: de 74% para ~90% de acerto.
+Respostas agora incluem numero da linha exata.

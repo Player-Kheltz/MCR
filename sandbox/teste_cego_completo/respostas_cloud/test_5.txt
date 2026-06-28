@@ -1,0 +1,131 @@
+﻿## Redesenho arquitetural do diagnostico.py com suporte a plugins
+
+### Problema do design atual
+O `diagnostico.py` atual usa um metodo `diagnosticar()` que chama 4 metodos `_diag_*()` privados. Cada novo diagnostico exige:
+1. Criar um novo metodo `_diag_*()` dentro da classe
+2. Adicionar a chamada em `diagnosticar()`
+3. Adicionar o resultado na agregacao
+
+Isso viola o Open/Closed Principle (aberto para extensao, fechado para modificacao).
+
+### Nova arquitetura proposta
+
+```
+interface DiagnosticoPlugin:
+    + nome() -> str
+    + diagnosticar() -> dict
+    + prioridade() -> int (opcional, default 0)
+
+class Diagnosticador:
+    - _plugins: list[DiagnosticoPlugin]
+    + registrar(plugin: DiagnosticoPlugin)
+    + diagnosticar(modo="completo") -> Relatorio
+    + listar_plugins() -> list[str]
+
+class Relatorio:
+    - _resultados: dict[str, dict]
+    + adicionar(nome, dados)
+    + para_texto() -> str
+    + para_json() -> dict
+    + para_html() -> str
+```
+
+### (1) Classe abstrata base
+
+```python
+from abc import ABC, abstractmethod
+
+class DiagnosticoPlugin(ABC):
+    @property
+    @abstractmethod
+    def nome(self) -> str:
+        """Nome unico do plugin."""
+        pass
+    
+    @abstractmethod
+    def diagnosticar(self) -> dict:
+        """Executa o diagnostico e retorna dict com resultados."""
+        pass
+    
+    @property
+    def prioridade(self) -> int:
+        """Ordem de execucao (menor = primeiro). Default 0."""
+        return 0
+```
+
+### (2) Mecanismo de registro/descoberta
+
+```python
+import importlib, pkgutil, inspect
+
+class Diagnosticador:
+    def __init__(self):
+        self._plugins: list[DiagnosticoPlugin] = []
+    
+    def registrar(self, plugin: DiagnosticoPlugin):
+        """Registra um plugin manualmente."""
+        self._plugins.append(plugin)
+        self._plugins.sort(key=lambda p: p.prioridade)
+    
+    def descobrir(self, pacote="plugins_diagnostico"):
+        """Descobre automaticamente plugins em um pacote."""
+        for loader, nome_mod, is_pkg in pkgutil.iter_modules([pacote]):
+            modulo = importlib.import_module(f"{pacote}.{nome_mod}")
+            for nome, obj in inspect.getmembers(modulo):
+                if (inspect.isclass(obj) and 
+                    issubclass(obj, DiagnosticoPlugin) and 
+                    obj is not DiagnosticoPlugin):
+                    self.registrar(obj())
+    
+    def diagnosticar(self, modo="completo"):
+        """Executa todos os plugins e gera relatorio."""
+        relatorio = Relatorio()
+        for plugin in self._plugins:
+            try:
+                resultado = plugin.diagnosticar()
+                relatorio.adicionar(plugin.nome, resultado)
+            except Exception as e:
+                relatorio.adicionar(plugin.nome, {"erro": str(e)})
+        return relatorio
+```
+
+### (3) Geracao de relatorios em multiplos formatos
+
+```python
+class Relatorio:
+    def __init__(self):
+        self._resultados = {}
+    
+    def adicionar(self, nome, dados):
+        self._resultados[nome] = dados
+    
+    def para_texto(self):
+        linhas = ["=== DIAGNOSTICO ==="]
+        for nome, dados in self._resultados.items():
+            linhas.append(f"\n[{nome}]")
+            if "erro" in dados:
+                linhas.append(f"  ERRO: {dados['erro']}")
+            else:
+                for k, v in dados.items():
+                    linhas.append(f"  {k}: {v}")
+        return "\n".join(linhas)
+    
+    def para_json(self):
+        return self._resultados
+    
+    def para_html(self):
+        partes = ["<html><body><h1>Diagnostico</h1><table>"]
+        for nome, dados in self._resultados.items():
+            partes.append(f"<tr><th colspan='2'>{nome}</th></tr>")
+            for k, v in dados.items():
+                partes.append(f"<tr><td>{k}</td><td>{v}</td></tr>")
+        partes.append("</table></body></html>")
+        return "\n".join(partes)
+```
+
+### Beneficios da nova arquitetura
+1. **Plugins sao independentes**: cada diagnostico em seu proprio arquivo/modulo
+2. **Descoberta automatica**: basta criar um arquivo no pacote plugins_diagnostico/
+3. **Formatos extensiveis**: adicionar `para_markdown()` sem modificar nada existente
+4. **Isolamento de falhas**: um plugin quebrado nao impede os outros
+5. **Testabilidade**: cada plugin pode ser testado isoladamente

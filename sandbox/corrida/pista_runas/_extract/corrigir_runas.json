@@ -1,0 +1,11 @@
+[
+  {
+    "_nome": "runas",
+    "id": "1",
+    "nome": "Runa",
+    "article": "uma",
+    "mana": "150",
+    "dano": "100",
+    "elemento": "fire"
+  }
+]

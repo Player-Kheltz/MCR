@@ -1,0 +1,46 @@
+﻿## Diagnostico: Sistema de geracao de conteudo produzindo saidas genericas
+
+### (A) 3 Causas Possiveis
+
+**1. Temperature do modelo muito baixa**
+Se o parametro de temperatura do LLM estiver abaixo de 0.2, o modelo sempre escolhe o token mais provavel, que e o mais "seguro" e generico. Isso produz saidas que parecem templates: sempre a mesma estrutura, mesmos adjetivos, mesmos padroes de frase.
+
+**2. Template/prompt muito restritivo**
+Se o prompt de geracao tem uma estrutura rigida demais (ex: "Nome: X | Funcao: Y | Personalidade: Z"), o modelo preenche os campos mas nao tem liberdade para criar variacao. O resultado e sempre o mesmo formato com sinonimos trocados.
+
+**3. Overfitting no fine-tuning ou RAG**
+Se o modelo foi ajustado ou aumentado com RAG usando um conjunto de dados muito homogeneo (ex: centenas de exemplos do mesmo estilo), ele aprende a reproduzir aquele estilo e nao generaliza para variacao criativa. O RAG pode estar retornando sempre os mesmos documentos, fazendo o modelo "copiar" o estilo ao inves de criar.
+
+### (B) Como Verificar Cada Causa
+
+**Causa 1 (temperature):**
+- Verificar o parametro `temperature` passado para o LLM. Em chamadas Ollama, olhar o `options.temperature` no JSON da requisicao.
+- Se estiver abaixo de 0.3, aumentar gradualmente (0.5, 0.7, 0.9) e comparar saidas.
+- TESTE: rodar o mesmo prompt 5 vezes com temperature=0.7. Se as 5 respostas forem muito parecidas, o problema nao e temperature.
+
+**Causa 2 (template):**
+- Extrair o prompt exato que esta sendo enviado ao modelo (pode ser via logging ou interceptacao).
+- Analisar se o prompt contem instrucoes de formato rigido (>50% do prompt e template vs <50% e contexto/dados).
+- TESTE: enviar o mesmo prompt SEM o template (apenas "Crie algo criativo sobre X") e ver se a saida melhora.
+
+**Causa 3 (RAG/dados):**
+- Listar os documentos retornados pelo RAG nas ultimas N requisicoes. Se sao sempre os mesmos 2-3 documentos, o RAG esta viesado.
+- Verificar a diversidade do dataset de treino ou da base de conhecimento.
+- TESTE: desabilitar o RAG temporariamente e gerar sem contexto. Se a saida ficar mais criativa, o RAG e a causa.
+
+### (C) Solucoes
+
+**Solucao 1 (temperature baixa):**
+- Aumentar temperature para 0.7-0.9 para tarefas criativas.
+- Implementar "temperature scheduling": criativo = 0.8, factual = 0.2, padrao = 0.5.
+- Adicionar variacao controlada: junto com temperature, adicionar `top_p=0.9` e `top_k=40` para permitir tokens nao-top.
+
+**Solucao 2 (template restritivo):**
+- Reduzir a rigidez do template: em vez de "Nome: X | Funcao: Y", usar "Descreva um personagem para esta historia, inclua nome, funcao e personalidade."
+- Adicionar exemplos variados (few-shot) em vez de formato fixo.
+- Separar template de estrutura (o que deve conter) de template de formato (como deve parecer).
+
+**Solucao 3 (RAG homogeneo):**
+- Implementar diversificacao forÃ§ada no RAG: se os mesmos docs sao retornados sempre, rotacionar ou adicionar variedade.
+- Aumentar o numero de documentos candidatos (top_k) e aplicar re-ranking com diversidade.
+- Se o fine-tuning e o problema, considerar treinar com dados mais variados ou usar LoRA com dominios diferentes.

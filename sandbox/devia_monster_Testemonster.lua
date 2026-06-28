@@ -1,7 +1,7 @@
--- Monster: Testemonster
-local mon = Monster("Testemonster")
-mon:setHealth(150)
-mon:setAttack(30)
-mon:setDefense(20)
-mon:addLoot(101, 80)
-print("Monster Testemonster carregado.")
+-- Monster: TesteMonster
+local mon = Monster("TesteMonster")
+mon:setHealth(200)
+mon:setAttack(20)
+mon:setDefense(10)
+mon:addLoot(201, 0.3)
+print("Monster TesteMonster carregado.")

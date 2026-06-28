@@ -47,11 +47,10 @@ class KG:
 class IA:
     def gerar(self, prompt, temp=0.5):
         try:
-            d = json.dumps({'model':'qwen2.5-coder:7b','prompt':prompt,'stream':False,
-                'options':{'temperature':temp,'num_ctx':4096}}).encode()
-            r = urllib.request.Request(OLLAMA_URL,data=d,headers={'Content-Type':'application/json'})
-            return json.loads(urllib.request.urlopen(r,timeout=60).read()).get('response','')
-        except: return None
+            from modulos.util import gerar as _gerar_ag
+            return _gerar_ag(prompt, temp, "pesado") or ""
+        except Exception as e:
+            print(f"[Fix] ERRO: {e}")
 
 
 # ============================================================

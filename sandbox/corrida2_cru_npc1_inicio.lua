@@ -11,5 +11,5 @@ npc:addDialog("quest", {
     {"Aceito a missao!", "Entao va! Procure a Sabia Anciã na biblioteca. Ela tem o mapa dos artefatos. Que os ventos te protejam."},
 })
 
-npc:addItem(40001, 50) -- Pocoes de cura
+npc:addNPC(40001, 50) -- Pocoes de cura
 print("NPC Guardiao das Profecias carregado.")

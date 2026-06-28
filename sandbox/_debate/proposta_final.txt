@@ -1,0 +1,14 @@
+  [KG Purge] 0 lessons marcadas como inativas
+[SUPERVISOR] "Proposta original:
+  [KG Purge] 0 lessons marcadas como inativas
+[SUPERVISOR] "P..."
+  [Classificador] Tipo: factual/dado
+  [Gatekeeper] Entrada com 2 fragmentos.
+  [ContextCrew] Analisador: fontes=['kg', 'weblearn'] termos=[Purge, SUPERVISOR, V12, IA, genero]
+  [ContextCrew] Pesquisador: 30 resultados brutos
+  [ContextCrew] Filtrador: 28 resultados apos filtro
+  [ContextCrew] Compactador: 1728 tokens finais
+  [ContextCrew] Analisador: fontes=['kg', 'weblearn', 'docs'] termos=[classificador, tipo, desconhecido, geral, validar]
+  [ContextCrew] Pesquisador: 30 resultados brutos
+  [ContextCrew] Filtrador: 11 resultados apos filtro
+  [ContextCrew] Compactador: 1253 tokens finais

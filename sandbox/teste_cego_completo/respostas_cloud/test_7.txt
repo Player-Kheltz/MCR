@@ -1,0 +1,50 @@
+﻿## Code Review: context_crew.py
+
+### (1) SEGURANCA
+
+**Linha 14: URL de API hardcoded com fallback via env var**
+`OLLAMA_URL = os.environ.get('OLLAMA_URL', 'http://localhost:11434/api/generate')`
+Usar environment var e bom, mas o fallback hardcoded para localhost significa que se o OLLAMA_URL nao estiver configurado corretamente, ele silenciosamente usa localhost. Um atacante com acesso a rede local poderia explorar isso.
+
+**Linha 169-176: WebFetch sem validacao de URL**
+`urls = [f'https://en.wikipedia.org/w/api.php?...']` - A URL e construida com termos do usuario (linha 163: `consulta = '+'.join(termos[:3])`). Se `_extrair_termos()` for contaminado com injecao de URL, poderia causar SSRF. Embora o regex de extracao de termos filtre bem (`re.findall(r'\b[a-zA-Z]{3,}\b', ...)`), a cosntrucao da URL deveria usar `urllib.parse.urlencode()` em vez de concatenacao.
+
+**Linha 15: Import relativo**
+`from stop_words import STOP_V12 as _STOP` - Import de um modulo local sem path absoluto. Se houver um `stop_words.py` malicioso no PYTHONPATH, ele seria carregado em vez do esperado.
+
+### (2) PERFORMANCE
+
+**Linha 17-23: _fast() recria conexao HTTP a cada chamada**
+A funcao _fast() abre uma nova conexao HTTP para cada chamada ao Ollama. Nao ha pool de conexoes ou reuso. Se o ContextCrew for chamado muitas vezes, cada chamada faz handshake TCP + SSL.
+
+**Linha 39-58: _carregar_cache() le o arquivo inteiro para a memoria**
+O cache e um arquivo JSONL que e lido linha por linha, mas o arquivo inteiro e aberto e processado a cada inicializacao. Para um arquivo de cache grande (~10MB+), isso poderia ser lento.
+
+**Linha 200-212: ThreadPoolExecutor com timeout de 15s**
+Cinco threads sao criadas a cada chamada de `executar()`. Criacao de threads tem custo. Melhor usar um pool reutilizavel ou async I/O (asyncio). O timeout de 15s no `as_completed` pode deixar threads orfaos se uma fonte demorar mais.
+
+**Linha 131-158: _buscar_codigo() varre diretorio inteiro**
+Para cada consulta, esta funcao percorre recursivamente `SRC_DIR` (que pode ser `Canary/src/` com centenas de arquivos .cpp/.h). Faz isso para cada chamada, sem cache de indice ou grep indexado.
+
+### (3) MANUTENCAO
+
+**Linha 6: Import de modulo especifico**
+`from stop_words import STOP_V12 as _STOP` - Isto cria um acoplamento rigido com o modulo `stop_words.py`. Se a estrutura de diretorios mudar ou o modulo for renomeado, quebra.
+
+**Linha 60-62: _extrair_termos() com logica duplicada**
+A extracao de stop words e feita inline (linha 62: `if p not in _STOP`). Se a logica de stop words mudar, precisa alterar aqui. Melhor seria ter o filtro de stop words como servico.
+
+**Linha 67-177: 5 metodos de busca quase identicos**
+Cada metodo `_buscar_*` tem a mesma estrutura: abrir arquivos, fazer loop, calcular score, ordenar, limitar. Isso e copia-e-cola. Uma refatoracao com um metodo `_buscar_generico()` que aceita parametros (fonte, ext, parser) reduziria 80% do codigo.
+
+**Linha 220-221: Cache com _hash de pergunta**
+A chave do cache e `_hash(pergunta)` = md5 dos primeiros 12 caracteres. Colisoes sao possiveis com 12 hex chars (16^12 = 2.8e14 possibilidades, mas para ~1000 perguntas unicas o risco e baixo). Ainda assim, deveria usar o hash completo.
+
+### (4) SUGESTOES DE MELHORIA
+
+1. **Pool de conexoes HTTP**: usar `urllib.request.build_opener()` com `HTTPHandler` para reutilizar conexoes
+2. **Indice de codigo**: em vez de varrer diretorios a cada chamada, construir um indice invertido (termo -> arquivos) na inicializacao
+3. **Metodo _buscar_generico()**: unificar os 5 metodos de busca em um so com parametros
+4. **Async I/O**: substituir ThreadPoolExecutor por `asyncio` com `aiohttp` para I/O concorrente verdadeiro
+5. **Validacao de URL**: usar `urllib.parse.urlencode()` em vez de concatenacao de strings (linha 163)
+6. **Cache mais robusto**: usar hash completo md5 e invalidacao por TTL, nao apenas por versao do KG

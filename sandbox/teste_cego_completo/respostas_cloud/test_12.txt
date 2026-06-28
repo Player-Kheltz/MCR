@@ -1,0 +1,53 @@
+﻿## Alucinacao em Large Language Models para Geracao de Codigo
+
+### (1) O que sao alucinacoes em contexto de codigo
+
+Alucinacao em LLMs de codigo ocorre quando o modelo gera codigo que parece plausivel mas e semanticamente incorreto, incompleto ou perigoso. Os tipos mais comuns sao:
+
+- **APIs inexistentes**: o modelo inventa funcoes, classes ou metodos que nao existem em nenhuma biblioteca real (ex: `string.reverseWords()`).
+- **Bibliotecas falsas**: o modelo sugere `pip install` de pacotes que nunca existiram, potencialmente levando a ataques de typosquatting.
+- **Logica incorreta**: o codigo compila/parseia mas faz a coisa errada (ex: ordenacao que nao ordena, condicao de borda incorreta).
+- **Contexto ignorado**: o modelo recebe um contexto (ex: "usamos Python 3.8") mas gera codigo com syntax de Python 3.10+.
+- **Alucinacao de siglas**: expandir siglas para significados incorretos quando fora de contexto (ex: SPA = "Single Page Application" em vez de "Sistema de Progressao do Aventureiro").
+- **Codigo inseguro**: gerar codigo com SQL injection, eval() de input do usuario, ou secrets hardcoded.
+
+### (2) Por que ocorrem
+
+**Causas no treinamento:**
+- **Next-token prediction**: o modelo e treinado para prever o proximo token mais provavel, nao para garantir correcao semÃ¢ntica. Se no dataset de treino "reverseWords" aparece como funcao de string, o modelo aprende que e uma associacao valida.
+- **ViÃ©s de frequencia**: funcoes que aparecem muitas vezes no treino (ex: `os.path.join`) sao super-representadas, enquanto funcoes raras ou novas sao sub-representadas, fazendo o modelo "preferir" caminhos incorretos mas frequentes.
+- **Dados da web**: codigo em repositorios GitHub, Stack Overflow e foruns frequentemente contem exemplos incompletos, errados ou desatualizados.
+
+**Causas na inferencia:**
+- **Temperature alta**: com temperature > 0.7, o modelo explora tokens menos provaveis, aumentando a chance de inventar APIs.
+- **Contexto insuficiente**: quando o prompt nao especifica versao, linguagem ou bibliotecas, o modelo preenche com o que e mais "provarel" globalmente (ex: JavaScript para frontend mesmo quando o projeto e Python).
+- **Limite de contexto**: se o contexto relevante ultrapassa o limite de tokens do modelo (ex: 4k, 8k, 128k), o modelo "esquece" partes cruciais e completa com informacao generica.
+
+### (3) Estrategias para mitigar
+
+**Prompt Engineering:**
+- Especificar versoes explicitamente: "Use Python 3.8 com typing module"
+- Few-shot com exemplos corretos e compilaveis
+- Chain-of-thought: "Pense passo a passo antes de escrever o codigo"
+- Instrucoes negativas: "NAO invente funcoes que nao existem na stdlib"
+
+**RAG (Retrieval-Augmented Generation):**
+- Injetar documentacao real das bibliotecas no contexto
+- Usar ferramentas como `grep` ou `ast` para verificar se a API existe antes de gerar
+- Manter um indice de funcoes reais do projeto (ex: classes e metodos do codigo-fonte)
+
+**Validacao pos-geracao:**
+- Compilar/executar o codigo gerado em sandbox antes de aceitar
+- Verificar syntax com `compile()` ou `ast.parse()`
+- Testes unitarios gerados junto com o codigo e executados automaticamente
+- Analise estatica com pylint/mypy/flake8 sobre o codigo gerado
+- ValidaÃ§Ã£o semÃ¢ntica de siglas: se a resposta contÃ©m definiÃ§Ãµes genÃ©ricas de siglas do projeto, rejeitar
+
+**Arquiteturais:**
+- Temperatura adaptativa: mais baixa para codigo (0.2), mais alta para docstring/comentarios (0.7)
+- Modelos especializados: usar modelos fine-tunados em codigo (CodeLlama, StarCoder, Qwen-Coder) para geracao e modelos maiores para revisao
+- Human-in-the-loop: codigo gerado nunca vai para producao sem revisao humana
+
+### (4) Licao Principal
+
+> **Nunca confie cegamente em codigo gerado por IA.** O modelo nao "sabe" programar - ele "adivinha" o proximo token. Alucinacoes sao inevitaveis em qualquer modelo generativo. A combinacao de tecnicas (prompt engineering + RAG + validacao pos-geracao + revisao humana) reduz o risco mas nunca elimina. A habilidade mais importante para quem usa IA para codigo nao e escrever prompts, e **saber identificar quando o resultado esta errado.**

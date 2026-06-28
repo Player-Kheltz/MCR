@@ -1,5 +1,5 @@
 -- NPC: Feldspato
 local npc = NPC("Feldspato")
 npc:setSaudacao("Bem-vindo")
-npc:addItem(a, forja!)
+npc:addNPC(a, forja!)
 print("NPC Feldspato carregado.")

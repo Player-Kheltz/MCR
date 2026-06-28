@@ -20,14 +20,14 @@ function onBuy(cid, itemid, amount, fromPosition)
 		selfSay("I'm sorry, but you don't have enough gold to buy that.", cid)
 	else
 		doPlayerRemoveMoney(cid, price)
-		doPlayerAddItem(cid, itemid, amount)
+		doPlayerAddNPC(cid, itemid, amount)
 		selfSay("Here is your " .. getArticle(itemid) .. " " .. getItemName(itemid), cid)
 	end
 end
 
 function onSell(cid, itemid, amount, toPosition)
 	local price = getItemPrice(itemid) * amount
-	doPlayerRemoveItem(cid, itemid, amount)
+	doPlayerRemoveNPC(cid, itemid, amount)
 	doPlayerAddMoney(cid, price)
 	selfSay("Thank you for your business! Here is your gold.", cid)
 end

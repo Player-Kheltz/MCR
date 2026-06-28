@@ -1,0 +1,34 @@
+﻿## Analise do cmd_fix_excepts.py - Problemas encontrados
+
+### LINHA 20: Bug de logica - preview padrao inseguro
+`preview = '--preview' in args or not forcar`
+Se o usuario nao passa --force, o preview e True, MAS se ele passa --force, preview vira False e as modificacoes sao aplicadas sem confirmacao. Nao ha opcao de ver o preview E aplicar. Se o usuario quer ver primeiro e depois aplicar, precisa rodar duas vezes.
+
+### LINHA 50: Regex pode falhar com indentacao mista
+`pattern = re.compile(r'^(\s*)except\s*:\s*(.*)$', re.MULTILINE)`
+Usa `^` com MULTILINE, o que funciona, mas `\s*` captura tabs e espacos. Se o arquivo mistura tabs e espacos, o `\s*` no replacement na linha 66-68 usa espacos, quebrando a indentacao original. Correcao: usar a indentacao capturada do grupo(1) no replacement.
+
+### LINHA 65: Condicao redundante
+`if resto and resto != 'pass':` e `else:` produzem EXATAMENTE o mesmo codigo (linhas 66 e 68 sao identicas). O if/else e inutil. Poderia ser simplificado para um unico template.
+
+### LINHA 70: Substituicao pode corromper
+`modified = modified.replace(old, new, 1)` - Se o mesmo padrao de except aparece em lugares diferentes com o mesmo texto exato, o `replace` com count=1 substitui sempre a primeira ocorrencia, nao a atual do loop. Se ha dois except: identicos, o loop encontra ambos mas o replace sempre age no primeiro, criando um loop infinito potencial ou substituindo o lugar errado. Correcao: usar `modified = modified[:match.start()] + new + modified[match.end():]` ou iterar sobre `re.finditer` com slices.
+
+### LINHA 74: Path relativo incorreto
+`rel = os.path.relpath(fpath, os.path.dirname(os.path.dirname(__file__)) + '/..')`
+`__file__` esta em `scripts/mcr_devia/comandos/cmd_fix_excepts.py`. `dirname(dirname(__file__))` = `scripts/mcr_devia`. Depois concatena `/..` = `scripts/mcr_devia/..` = `scripts/`. Mas o BASE do projeto e `E:/Projeto MCR`, entao o diretorio base deveria ser `E:/Projeto MCR` (tres niveis acima de comandos/, nao dois). O caminho relativo vai ficar incorreto.
+
+### LINHA 79-80: zip truncado
+`for i, (ol, nl) in enumerate(zip(orig_lines, mod_lines)):` - Se o numero de linhas mudou (o que e comum ao adicionar linhas com `except Exception as e:\n    print(...)`), o zip vai truncar na lista mais curta. Linhas adicionadas no final seriam ignoradas no diff. Correcao: usar `itertools.zip_longest`.
+
+### LINHA 88: Backup sem diretorio
+`bak = fpath + '.bak'` - Se `fpath` estiver em um diretorio onde o usuario nao tem permissao de escrita, o `shutil.copy2` vai falhar. Nao ha tratamento de erro para isso.
+
+### LINHA 97-100: Mensagem de sucesso mesmo sem alteracoes
+Se `total_fixes == 0`, retorna "Nenhum except: generico encontrado". Correto. Mas se `total_fixes > 0`, as linhas 99-102 sao executadas dentro do `if fixes > 0` do loop, entao cada arquivo imprime seu resultado. A linha 97-100 esta FORA do loop, entao funciona como resumo final. OK.
+
+### Ausencia de tratamento de erro no loop principal
+O loop `for fpath in files:` (linha 44) nao tem try/except. Se um arquivo estiver corrompido ou com encoding problematico, todo o comando quebra.
+
+### Ausencia de logging estruturado
+Usa `print()` para tudo. Nao ha suporte a logging padrao, verbosidade, ou saida JSON. Para um comando que modifica arquivos, isso e arriscado.

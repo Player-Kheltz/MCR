@@ -1,0 +1,39 @@
+No Mecanismo de Combate Rolável (MCR), que é um sistema de RPG desenvolvido pela WotC (Wizards of the Coast), os sistemas de progressão do personagem, como o Sistema de Progressão do Aventureiro (SPA) e o Sistema de Habilidades Contextuais (SHC), são duas abordagens diferentes para a evolução dos personagens ao longo do tempo. Vamos explorar cada um com detalhes:
+
+### Sistema de Progressão do Aventureiro (SPA)
+
+O SPA é um sistema tradicional que se concentra na progressão linear e incremental do personagem. Ele é baseado em níveis e é caracterizado por ganhar pontos de experiência (XP) ao longo das aventuras, levando a melhorias graduais no personagem.
+
+#### Características principais:
+1. **Progressão Linear**: Cada nível representa um avanço significativo na habilidade do personagem.
+2. **Atributos e Habilidades**: Os personagens ganham pontos para aumentar seus atributos (Força, Destreza, Constituição, Inteligência, Sabedoria, Carisma) e suas habilidades profissionais.
+3. **Classes de Personagem**: Cada classe tem sua própria progressão de habilidades e características específicas.
+
+#### Exemplo:
+- Um guerreiro começa como um soldado com uma certa força e resistência.
+- Ao ganhar experiência em batalhas, ele avança para o nível 2, aumentando sua força e aprendendo novas técnicas de combate.
+- Com mais níveis, ele pode se tornar um cavaleiro ou um paladino, obtendo habilidades ainda mais poderosas.
+
+### Sistema de Habilidades Contextuais (SHC)
+
+O SHC é uma abordagem mais flexível e modular para a progressão do personagem. Ele se concentra em habilidades específicas que podem ser adquiridas e melhoradas com base no contexto da aventura, sem necessariamente seguir uma estrutura de níveis tradicional.
+
+#### Características principais:
+1. **Flexibilidade**: As habilidades são ganhas e aprimoradas de acordo com as necessidades do personagem e da história.
+2. **Habilidades Contextuais**: Habilidades podem ser adquiridas em diferentes momentos, dependendo das circunstâncias da aventura.
+3. **Aprendizado Contínuo**: Personagens podem continuar a aprender e melhorar suas habilidades mesmo após atingir um "nível máximo".
+
+#### Exemplo:
+- Um mago começa com algumas habilidades básicas de feitiçaria.
+- Ao longo das aventuras, ele aprende novas habilidades específicas para enfrentar desafios únicos, como conjurar armadilhas ou controlar o clima.
+- Ele pode continuar a aprender e aprimorar essas habilidades conforme necessário, sem seguir uma estrutura de níveis fixa.
+
+### Comparação
+
+- **SPA vs SHC**:
+  - **SPA** é mais estruturado e segue um caminho predefinido de progressão.
+  - **SHC** oferece maior flexibilidade e personalização, permitindo que os personagens evoluam de maneiras não convencionais.
+
+### Conclusão
+
+Ambos os sistemas têm suas vantagens e desvantagens. O SPA é mais adequado para jogadores que preferem seguir uma estrutura clara e previsível, enquanto o SHC pode ser melhor para aqueles que buscam maior liberdade e personalização na evolução de seus personagens. A escolha entre eles depende das preferências do grupo de jogadores e da natureza da campanha em questão.

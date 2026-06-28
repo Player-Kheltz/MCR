@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<runas>
+	<runa id="1" name="Runa de Fogo" article="uma" damage="100" elements="fire" />
+	<runa id="2" name="Runa de Gelo" article="uma" damage="80" elements="ice" />
+	<runa id="3" name="Runa de Energia" article="um" damage="120" elements="energy" />
+	<runa id="4" name="Runa de Terra" article="uma" damage="60" elements="earth" />
+	<runa id="5" name="Runa de Luz" article="um" damage="40" elements="holy" />
+	<runa id="6" name="Runa Sombria" article="um" damage="150" elements="death" />
+</runas>

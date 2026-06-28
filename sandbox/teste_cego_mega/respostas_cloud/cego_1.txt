@@ -1,0 +1,148 @@
+## Análise do context_crew.py e Nova Funcionalidade de Busca
+
+### Problemas Encontrados
+
+**SEGURANÇA:**
+
+1. **URL de API hardcoded com fallback via env var (linha 14)**: `OLLAMA_URL = os.environ.get('OLLAMA_URL', 'http://localhost:11434/api/generate')` — se a variável de ambiente não estiver configurada, usa localhost. Um atacante com acesso à rede local pode explorar isso.
+
+2. **WebFetch sem validação de URL (linhas 163-176)**: A URL da Wikipedia é construída com termos do usuário via concatenação: `f'https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch={consulta}&format=json...'`. Se `_extrair_termos()` retornar algo contaminado, pode causar SSRF ou injeção de parâmetros.
+
+3. **Import relativo sem verificação (linha 15)**: `from stop_words import STOP_V12 as _STOP` — importa de um módulo local. Se houver um `stop_words.py` malicioso no PYTHONPATH, ele seria carregado.
+
+**PERFORMANCE:**
+
+4. **Conexão HTTP recriada a cada chamada (linhas 17-23)**: A função `_fast()` cria uma nova conexão HTTP para cada chamada ao Ollama. Não há pool de conexões ou reuso de sessão.
+
+5. **Varredura completa do diretório src/ a cada consulta (linhas 131-158)**: `_buscar_codigo()` percorre recursivamente `SRC_DIR` (Canary/src/) que pode ter centenas de arquivos .cpp/.hpp, sem cache de índice.
+
+6. **ThreadPoolExecutor recriado a cada execução (linhas 200-212)**: 5 threads são criadas a cada chamada de `executar()`. Criação de threads tem custo.
+
+**MANUTENÇÃO:**
+
+7. **5 métodos de busca quase idênticos (linhas 69-177)**: Cada `_buscar_*` tem a mesma estrutura: abrir arquivos, fazer loop, calcular score com `sum(1 for t in termos if t in alvo)`, ordenar, limitar. Isso é copia-e-cola.
+
+8. **Cache com hash de 12 caracteres (linha 65)**: `hashlib.md5(q.lower().encode()).hexdigest()[:12]` — risco de colisão.
+
+### Nova Funcionalidade: Método `buscar_priorizando_kg`
+
+```python
+def buscar_priorizando_kg(self, consulta, max_r=5, peso_kg=2.0, peso_web=0.5):
+    """Busca contexto priorizando resultados do KG sobre resultados da Web.
+    
+    Args:
+        consulta: Termo de busca
+        max_r: Máximo de resultados
+        peso_kg: Peso multiplicador para resultados do KG (default 2.0)
+        peso_web: Peso multiplicador para resultados da Web (default 0.5)
+    
+    Returns:
+        String com contexto priorizado
+    """
+    termos = self._extrair_termos(consulta)
+    if not termos:
+        return ""
+    
+    h = self._hash(consulta)
+    if h in self._cache:
+        return self._cache[h].get('r', '')
+    
+    todas_fontes = []
+    
+    # Busca KG com peso MAIOR
+    try:
+        kg_results = self._buscar_kg(termos, max_r=max_r)
+        for texto, fonte in kg_results:
+            todas_fontes.append((fonte, texto, peso_kg))
+    except:
+        pass
+    
+    # Busca WebLearn com peso MEDIO
+    try:
+        wl_results = self._buscar_weblearn(termos, max_r=max_r)
+        for texto, fonte in wl_results:
+            todas_fontes.append((fonte, texto, 1.0))
+    except:
+        pass
+    
+    # Busca Docs com peso NORMAL
+    try:
+        docs_results = self._buscar_docs(termos, max_r=max_r)
+        for texto, fonte in docs_results:
+            todas_fontes.append((fonte, texto, 1.0))
+    except:
+        pass
+    
+    # Busca Web com peso MENOR (priorizada abaixo do KG)
+    try:
+        web_results = self._buscar_web(termos, max_r=max_r)
+        for texto, fonte in web_results:
+            todas_fontes.append((fonte, texto, peso_web))
+    except:
+        pass
+    
+    if not todas_fontes:
+        return ""
+    
+    # Ordena por peso (prioridade: KG > WebLearn/Docs > Web)
+    todas_fontes.sort(key=lambda x: -x[2])
+    
+    # Monta contexto com marcadores de peso
+    contexto = '\n'.join(
+        f'[{fonte} (peso={peso:.1f})] {texto}'
+        for fonte, texto, peso in todas_fontes
+    )
+    
+    self._cache[h] = {'r': contexto, 'n': len(todas_fontes)}
+    self._salvar_cache(h, consulta, contexto, 'priorizado', len(todas_fontes))
+    
+    return contexto
+
+
+def _buscar_web_seguro(self, termos, max_r=3):
+    """Versao segura do WebFetch com validacao de URL.
+    Substitui a funcao _buscar_web original que tinha risco de SSRF."""
+    import urllib.parse
+    
+    resultados = []
+    consulta = '+'.join(termos[:3])
+    
+    # Usa urlencode em vez de concatenacao
+    params = urllib.parse.urlencode({
+        'action': 'query',
+        'list': 'search',
+        'srsearch': consulta,
+        'format': 'json',
+        'srlimit': max_r
+    })
+    url = f'https://en.wikipedia.org/w/api.php?{params}'
+    
+    try:
+        req = urllib.request.Request(url, headers={'User-Agent': 'MCR-DevIA/1.0'})
+        resp = urllib.request.urlopen(req, timeout=10)
+        data = json.loads(resp.read().decode('utf-8'))
+        for item in data.get('query', {}).get('search', [])[:max_r]:
+            titulo = item.get('title', '')
+            snippet = re.sub(r'<[^>]+>', '', item.get('snippet', ''))
+            resultados.append((2, f'{titulo}: {snippet[:200]}', f'Web:{titulo[:30]}'))
+    except:
+        pass
+    
+    return [(r[1], r[2]) for r in resultados[:max_r]]
+```
+
+### Como usar a nova funcionalidade
+
+```python
+cc = ContextCrew()
+# Antes: contexto = cc.executar("minha pergunta")
+# Depois: 
+contexto = cc.buscar_priorizando_kg("minha pergunta", peso_kg=3.0, peso_web=0.3)
+```
+
+A nova função `buscar_priorizando_kg` resolve 3 problemas:
+1. **Prioriza KG**: resultados do Knowledge Graph têm peso 2.0× maior que resultados da Web
+2. **Método dedicado**: não quebra a interface existente (`executar()` continua funcionando)
+3. **Cache preservado**: usa o mesmo sistema de cache do ContextCrew
+
+Além disso, o `_buscar_web_seguro` substitui a função original que tinha risco de SSRF, usando `urllib.parse.urlencode` em vez de concatenação direta.

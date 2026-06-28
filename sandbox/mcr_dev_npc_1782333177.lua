@@ -49,7 +49,7 @@ function onBuy(cid)
     npcHandler:addCallback(cid, "onBuyItem")
 end
 
-function onSellItem(cid, words)
+function onSellNPC(cid, words)
     local items = {
         {id = 2160, name = "Espada de Fogo", price = 500},
         {id = 2497, name = "Arco e Flecha", price = 300},
@@ -61,7 +61,7 @@ function onSellItem(cid, words)
             local player = Player(cid)
             if player:getMoney() >= item.price then
                 player:removeMoney(item.price)
-                player:addItem(item.id, 1)
+                player:addNPC(item.id, 1)
                 selfSay("Aqui está sua " .. item.name .. ", " .. cid .. "! Tenha um ótimo dia!", cid)
                 return true
             else
@@ -75,7 +75,7 @@ function onSellItem(cid, words)
     return true
 end
 
-function onBuyItem(cid, words)
+function onBuyNPC(cid, words)
     local items = {
         {id = 2160, name = "Espada de Fogo", price = 500},
         {id = 2497, name = "Arco e Flecha", price = 300},
@@ -86,7 +86,7 @@ function onBuyItem(cid, words)
         if string.lower(words) == item.name then
             local player = Player(cid)
             if player:getItemCount(item.id) > 0 then
-                player:removeItem(item.id, 1)
+                player:removeNPC(item.id, 1)
                 player:addMoney(item.price)
                 selfSay("Aqui está o seu dinheiro por " .. item.name .. ", " .. cid .. "! Tenha um ótimo dia!", cid)
                 return true

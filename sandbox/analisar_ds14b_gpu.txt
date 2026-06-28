@@ -1,0 +1,25 @@
+```lua
+-- Problemas identificados no código Lua:
+
+Linha 3 - GRAVIDADE: ALTA - DESCRIÇÃO: O uso de comentários com caracteres especiais (como "?") pode causar problemas de codificação, especialmente em ambientes que usam UTF-8 por padrão. Isso pode resultar em erros de leitura ou comportamento inesperado do código.
+
+Linha 15 - GRAVIDADE: ALTA - DESCRIÇÃO: A função `isGuestAccount` utiliza `db.escapeString`, mas outros pontos do código, como a função `buildOpcodeJSON`, não escapam strings adequadamente, tornando vulneráveis a injeção SQL ou XSS.
+
+Linha 32 - GRAVIDADE: MÉDIA - DESCRIÇÃO: A função `isValidAccountOrPassword` realiza validações básicas, mas falta a utilização de expressões regulares para garantir que os dados sejam seguros e conformem padrões específicos.
+
+Linha 40 - GRAVIDADE: ALTA - DESCRIÇÃO: Na função `buildOpcodeJSON`, as variáveis `account`, `password` e `character` não são escapadas adequadamente, tornando o código vulnerável a injeções de script (XSS) ou alterações no JSON.
+
+Linha 58 - GRAVIDADE: ALTA - DESCRIÇÃO: A função `getCharactersFromAccount` realiza uma consulta SQL sem validação adequada dos dados de entrada, potencializando riscos de injeção SQL.
+
+Linha 73 - GRAVIDADE: BAIXA - DESCRIÇÃO: Na função `buildCharacterListString`, não há tratamento para casos onde a lista de personagens esteja vazia ou inválida, o que pode resultar em uma string mal-formada.
+
+Linha 82 - GRAVIDADE: ALTA - DESCRIÇÃO: A função `getPronounFromMessage` utiliza `NpcUtils.correspondeAcao`, mas não há validação do parâmetro `msg`, potencializando riscos de manipulação indevida das ações.
+
+Linha 94 - GRAVIDADE: BAIXA - DESCRIÇÃO: Na função `handleBackCommand`, o tratamento da variável `tratamento` depende diretamente dos dados armazenados em `data.playerPronoun`, sem validação adicional, podendo resultar em mensagens inconsistentes.
+
+Linha 105 - GRAVIDADE: BAIXA - DESCRIÇÃO: A função `isValidCharacterName` realiza validações básicas, mas não verifica se o nome contém caracteres proibidos específicos, como espaços consecutivos ou símbolos especiais.
+
+Linha 120 - GRAVIDADE: ALTA - DESCRIÇÃO: O código final da função `handleBackCommand` está incompleto, possivelmente resultando em erros de execução ou comportamento inesperado.
+```
+
+**Conclusão:** O código apresenta problemas significativos relacionados a segurança e estabilidade. É recomendável revisar as funções de validação e escape de strings para prevenir injeções e garantir que todos os dados sejam tratados adequadamente.

@@ -71,23 +71,20 @@ class ObservatorioTempoReal:
                     self.ultimo_tamanho = tamanho_atual
                 
                 time.sleep(0.5)  # Verifica a cada 0.5s
-            except:
-                time.sleep(1)
+            except Exception as e:
+                print(f"[Fix] ERRO: {e}")
     
     def perguntar(self, pergunta):
         """Faz uma pergunta e obtem resposta."""
         prompt = f"MCR-DevIA esta ativo. Estado atual: {self._estado_atual()}\n\nUsuario: {pergunta}\n\nResponda de forma TECNICA e DIRETA sobre o estado do MCR-DevIA."
         
         try:
-            import urllib.request, json
-            d = json.dumps({'model':'qwen2.5-coder:7b','prompt':prompt,'stream':False,
-                'options':{'temperature':0.5,'num_ctx':4096}}).encode()
-            r = urllib.request.Request('http://localhost:11434/api/generate',data=d,headers={'Content-Type':'application/json'})
-            resp = json.loads(urllib.request.urlopen(r,timeout=60).read()).get('response','')
+            from modulos.util import gerar as _gerar_obs
+            resp = _gerar_obs(prompt, 0.5, "pesado") or ""
             if resp:
                 print(f'\n[Narrador] {resp[:500]}')
-        except:
-            print('\n[Narrador] (IA ocupada)')
+        except Exception as e:
+            print(f"[Fix] ERRO: {e}")
     
     def _estado_atual(self):
         """Pega o estado atual do sistema."""

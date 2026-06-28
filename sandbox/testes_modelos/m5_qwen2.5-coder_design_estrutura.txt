@@ -1,0 +1,173 @@
+========================================
+MELHOR DE 5 - DESIGN - Sistema de quests para MMORPG
+MODELO: Qwen 2.5 Coder (7B)
+DATA: 27/06/2026
+========================================
+
+PROMPT:
+Projete a estrutura de dados para um sistema de quests em um MMORPG (Tibia/OTServ).
+
+Requisitos:
+- Quests podem ter prerequisitos (level, quests anteriores, itens)
+- Quests tem multiplos objetivos (matar X monstros, coletar Y itens, falar com Z NPCs)
+- Quests tem recompensas (experiencia, itens, acesso a novas areas)
+- Jogador pode ter ate 25 quests ativas simultaneamente
+- Historico de quests completadas precisa ser persistente
+
+Sua resposta deve incluir:
+1. Estrutura de dados (tabelas/classes/JSON schema)
+2. Fluxo de progressao (como o jogador avanca na quest)
+3. Como validar requisitos de forma eficiente
+4. Exemplo concreto de uma quest implementada com sua estrutura
+
+Use pseudo-codigo ou Python para exemplificar.
+
+----------------------------------------
+RESPOSTA (4253c, 12.1s, 124.3 tok/s):
+----------------------------------------
+1. Estrutura de Dados:
+
+```python
+class Quest:
+    def __init__(self, id, name, prereqs, objectives, rewards):
+        self.id = id
+        self.name = name
+        self.prereqs = prereqs  # {'level': int, 'previous_quests': [int], 'items': [Item]}
+        self.objectives = objectives  # [{'type': str, 'value': int}]
+        self.rewards = rewards  # {'experience': int, 'items': [Item]}
+
+class Player:
+    def __init__(self, id):
+        self.id = id
+        self.quests = []  # List[Quest]
+        self.completed_quests = []  # List[int]
+
+class Item:
+    def __init__(self, id, name, quantity):
+        self.id = id
+        self.name = name
+        self.quantity = quantity
+
+# JSON Schema (simplificado)
+{
+  "type": "object",
+  "properties": {
+    "id": {"type": "integer"},
+    "name": {"type": "string"},
+    "prereqs": {
+      "type": "object",
+      "properties": {
+        "level": {"type": "integer"},
+        "previous_quests": {"type": "array", "items": {"type": "integer"}},
+        "items": {"type": "array", "items": {"$ref": "#/definitions/Item"}}
+      },
+      "required": ["level"]
+    },
+    "objectives": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "type": {"enum": ["kill", "collect", "talk_to"]},
+          "value": {"type": "integer"}
+        },
+        "required": ["type", "value"]
+      }
+    },
+    "rewards": {
+      "type": "object",
+      "properties": {
+        "experience": {"type": "integer"},
+        "items": {"type": "array", "items": {"$ref": "#/definitions/Item"}}
+      },
+      "required": ["experience"]
+    }
+  },
+  "required": ["id", "name", "prereqs", "objectives", "rewards"],
+  "definitions": {
+    "Item": {
+      "type": "object",
+      "properties": {
+        "id": {"type": "integer"},
+        "name": {"type": "string"},
+        "quantity": {"type": "integer"}
+      },
+      "required": ["id", "name", "quantity"]
+    }
+  }
+}
+```
+
+2. Fluxo de Progressão:
+
+```python
+def complete_objective(player, quest_id, objective_type, value):
+    for quest in player.quests:
+        if quest.id == quest_id:
+            for i, obj in enumerate(quest.objectives):
+                if obj['type'] == objective_type and obj['value'] == value:
+                    # Marca como concluído
+                    quest.objectives[i]['completed'] = True
+                    return True
+    return False
+
+def check_prereqs(player, quest):
+    if quest.prereqs.get('level') and player.level < quest.prereqs['level']:
+        return False
+    for q_id in quest.prereqs.get('previous_quests', []):
+        if q_id not in player.completed_quests:
+            return False
+    for item in quest.prereqs.get('items', []):
+        if item.id not in player.inventory or player.inventory[item.id] < item.quantity:
+            return False
+    return True
+
+def complete_quest(player, quest_id):
+    for i, quest in enumerate(player.quests):
+        if quest.id == quest_id and all(obj['completed'] for obj in quest.objectives):
+            # Marca como concluído
+            player.completed_quests.append(quest_id)
+            player.quests.pop(i)
+            return True
+    return False
+```
+
+3. Validação Eficiente:
+
+A validação de requisitos é feita em tempo linear com relação ao número de requisitos. Usamos listas e dicionários para armazenar informações, o que permite acessos rápidos.
+
+4. Exemplo Concreto:
+
+```python
+# Questa quest requer level 10, ter completado a quest 1 e coletar 5 itens de ID 101
+quest = Quest(2, "Quest Example", {'level': 10, 'previous_quests': [1], 'items': [{'id': 101, 'quantity': 5}]}, 
+              [{'type': 'collect', 'value': 5}], {'experience': 100})
+
+# Player começa com level 12 e item ID 101
+player = Player(1)
+player.level = 12
+player.inventory = {101: 3}
+
+# Completa a quest
+complete_objective(player, 2, 'collect', 5)  # Marca como concluído
+complete_quest(player, 2)  # Quest completa e adicionada ao histórico
+
+print(f"Player completed quests: {player.completed_quests}")
+```
+
+Este exemplo mostra como uma quest é implementada com a estrutura de dados definida. O jogador pode completar partes da quest e, quando todas as partes forem concluídas, a quest inteira é marcada como completa e adicionada ao histórico do jogador.
+
+----------------------------------------
+ANALISE QUALITATIVA:
+----------------------------------------
+COMPLETUDE: ██░░░░░░░░ 2/10  (Respondeu todos os pontos solicitados? (0-10))
+CLAREZA: ████████░░ 8/10  (A resposta e clara, bem estruturada e facil de entender? (0-10))
+PROFUNDIDADE: ██░░░░░░░░ 2/10  (A analise e superficial ou vai alem do basico? (0-10))
+RELEVANCIA: ███░░░░░░░ 3/10  (Responde especificamente ao contexto do MCR/Tibia? (0-10))
+PRECISAO_TECNICA: ██████████ 10/10  (O conteudo tecnico esta correto e preciso? (0-10))
+
+MEDIA GERAL: 5.0/10
+CARACTERES: 4253
+TEMPO: 12.1s
+TOKENS: 1141
+TOKENS/S: 124.3

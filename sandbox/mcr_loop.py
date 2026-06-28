@@ -38,14 +38,19 @@ class CicloCompleto:
         self.problema_atual = None
         self.problemas_consecutivos = 0
     
-    def rodar(self):
+    def rodar(self, max_ciclos=None):
+        """Roda o loop. Se max_ciclos for definido, para apos N ciclos."""
         log('='*50)
         log('MCR-DevIA INICIADO — Modo Resolucao Continua')
         log('='*50)
         
-        while True:
+        while max_ciclos is None or self.ciclo < max_ciclos:
             self.ciclo += 1
             resolveu = self._ciclo_unico()
+            
+            if max_ciclos is not None and self.ciclo >= max_ciclos:
+                log(f'[CICLO {self.ciclo}] Limite de {max_ciclos} ciclos atingido. Encerrando.')
+                break
             
             if resolveu:
                 log(f'[CICLO {self.ciclo}] Problema resolvido! Descansando 10s...')
@@ -187,5 +192,11 @@ class CicloCompleto:
 
 
 if __name__ == '__main__':
+    max_ciclos = None
+    if len(sys.argv) > 1:
+        try:
+            max_ciclos = int(sys.argv[1])
+        except ValueError:
+            pass
     ciclo = CicloCompleto()
-    ciclo.rodar()
+    ciclo.rodar(max_ciclos=max_ciclos)

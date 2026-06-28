@@ -168,10 +168,9 @@ class DiagnosticarCorrigir:
     
     def _check_ia(self):
         try:
-            data = json.dumps({'model':'qwen2.5-coder:7b','prompt':'test','stream':False}).encode()
-            req = urllib.request.Request(OLLAMA_URL, data=data, headers={'Content-Type':'application/json'})
-            urllib.request.urlopen(req, timeout=5)
-            return True
+            from modulos.util import fast as _fast_ab
+            resp = _fast_ab("teste de conectividade", 0.1, "fast")
+            return bool(resp)
         except:
             return False
     
@@ -210,17 +209,15 @@ class DiagnosticarCorrigir:
         if self.ia_available:
             prompt = f"Responda em formato JSON:\n{{\"causa\":\"...\",\"solucao\":\"...\",\"arquivo\":\"...\"}}\n\nErro de compilacao C++:\n{erro[:500]}"
             try:
-                data = json.dumps({'model':'qwen2.5-coder:7b','prompt':prompt,'stream':False,
-                    'options':{'temperature':0.3,'num_ctx':4096}}).encode()
-                req = urllib.request.Request(OLLAMA_URL, data=data, headers={'Content-Type':'application/json'})
-                r = json.loads(urllib.request.urlopen(req, timeout=60).read()).get('response','')
+                from modulos.util import gerar as _gerar_ab
+                r = _gerar_ab(prompt, 0.3, "fast") or ""
                 
                 import json as j
                 try:
                     parsed = j.loads(re.search(r'\{.*\}', r, re.DOTALL).group())
                     return {'causa': parsed.get('causa','?'), 'dica': parsed.get('solucao','?'), 'arquivo': parsed.get('arquivo',''), 'acao': 'ia'}
-                except:
-                    return {'causa': erro[:100], 'dica': 'Analise manual necessaria', 'acao': None}
+                except Exception as e:
+                    print(f"[Fix] ERRO: {e}")
             except:
                 pass
         

@@ -10,5 +10,5 @@ npc:addDialog("quest_progress", {
     {"Obrigado!", "Que a sabedoria te acompanhe."},
 })
 
-npc:addItem(40002, 100) -- Pocoes de mana
+npc:addNPC(40002, 100) -- Pocoes de mana
 print("NPC Sabia Ancia carregado.")

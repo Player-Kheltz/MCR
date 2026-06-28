@@ -1,0 +1,28 @@
+﻿## Analise do fragmentador.py
+
+### (1) Proposito
+O Fragmentador e um pipeline que gera codigo automaticamente a partir de uma descricao textual, usando IA (Ollama). Ele extrai o nome do arquivo, estima o tamanho do codigo, e decide se gera tudo de uma vez ou em fragmentos para nao estourar o limite de contexto do modelo.
+
+### (2) Fluxo de execucao do metodo executar()
+1. `_extrair_nome(descricao)` - Usa regex para extrair o nome do arquivo da descricao textual (ex: "crie um arquivo chamado foo.py" -> "foo.py"). Fallback: hash da descricao.
+2. `_detectar_tamanho(descricao)` - Heuristica baseada em palavras-chave na descricao. Se tem "sistema" -> 300 linhas, "classe" -> 80, "script" -> 15. Fallback: len(desc) // 20.
+3. `math.ceil(linhas_est / 80)` - Calcula quantos fragmentos de 80 linhas serao necessarios.
+4. Se 1 fragmento: `_gerar_direto()` - chama a IA uma vez para gerar todo o codigo.
+5. Se mais de 1: `_gerar_fragmentado()` - chama a IA N vezes, cada chamada recebendo o contexto dos fragmentos anteriores.
+6. Extrai o codigo de dentro de ```python ... ``` usando regex.
+7. Salva o arquivo em SANDBOX com o nome extraido.
+
+### (3) 3 pontos fracos
+
+**1. Fraca extracao de nome (linha 34-39)**
+A regex busca padroes como "chamado X.py" ou "criar X.py". Se o usuario disser "gere um script de validacao" sem extensao, o fallback e `script_{hash}.py` - um nome sem sentido. Alem disso, nao valida se o nome e um path valido (poderia gerar "../../etc/passwd" como nome).
+
+**2. Heuristica de tamanho muito simplista (linha 41-49)**
+A deteccao de tamanho usa palavras-chave fixas: "sistema" = 300, "classe" = 80, "script" = 15. Um "script de machine learning" seria classificado como 15 linhas (contem "script"), quando deveria ser muito mais. Um "sistema simples de hello world" seria 300 linhas. A heuristica nao considera o contexto semantico.
+
+**3. Nao ha validacao do codigo gerado (linha 51-65)**
+O codigo gerado pela IA e extraido com regex (busca ```python ... ```) e salvo diretamente. Nao ha:
+- Validacao de sintaxe Python (compile())
+- Verificacao de seguranca (imports maliciosos, acesso a sistema de arquivos)
+- Tratamento de erro se a IA retorna codigo mal formatado (o regex pode falhar e retornar lixo)
+- Feedback loop: o codigo gerado nunca e testado ou revisado antes de ser salvo

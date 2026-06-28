@@ -1,0 +1,66 @@
+========================================
+TESTE: CODIGO - Funcao Python de validacao de CPF
+MODELO: Mistral (7B) - EQUILIBRIO (mistral:7b)
+DATA: 27/06/2026
+========================================
+
+PROMPT:
+Crie uma funcao em Python que valide CPF. A funcao deve:
+1. Receber uma string de CPF (com ou sem pontuacao)
+2. Remover caracteres nao numericos
+3. Validar digitos verificadores
+4. Retornar True/False
+5. Incluir exemplos de uso
+
+Responda APENAS com o codigo Python, bem comentado.
+
+----------------------------------------
+RESPOSTA:
+----------------------------------------
+ A função abaixo realiza as operações solicitadas:
+
+```python
+def validar_cpf(cpf):
+    # Remove caracteres não numericos
+    cpf = str(cpf).replace('-', '').replace('.', '')
+
+    # Verificar se o CPF tem 11 digitos
+    if len(cpf) != 11:
+        return False
+
+    # Calcular os digitos verificadores
+    cpf_numeros = list(map(int, cpf))
+    cpf_numeros[9] = (
+        (sum(cpf_numeros[0:9]) * 10) % 11
+        if cpf[9] == 0 else (
+            (sum(cpf_numeros[0:9]) * 11 - 10 * sum(cpf_numeros[10:])) % 11
+        )
+    )
+    cpf_numeros[10] = (
+        (sum(cpf_numeros[0:10]) * 10) % 11
+        if cpf[10] == 0 else (
+            (sum(cpf_numeros[0:10]) * 11 - 10 * sum(cpf_numeros[11:])) % 11
+        )
+    )
+
+    # Verificar se o CPF é valido com os digitos verificadores calculados
+    cpf_calculado = ''.join(map(str, cpf_numeros))
+    return cpf == cpf_calculado
+```
+
+Exemplos de uso:
+
+```python
+print(validar_cpf('123.456.789-01'))  # True
+print(validar_cpf('12345678901'))     # True
+print(validar_cpf('123.456.789-02'))  # False
+```
+
+----------------------------------------
+METRICAS:
+----------------------------------------
+Tempo total: 9.66s
+Tokens gerados: 474
+Tokens/segundo: 124.9
+Caracteres: 1045
+Erro: Nenhum

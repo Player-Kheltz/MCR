@@ -13,8 +13,8 @@ npc:addDialog("quest", {
     {"Aceito a missao!", "Entao va! Que a sabedoria dos antigos te guie. Lembre-se: cada artefato esta protegido por enigmas do passado."},
 })
 
-npc:addItem(30001, 1)  -- Mapa do Legado (item de quest)
-npc:addItem(30002, 1)  -- Pocao do Sabio (recompensa)
-npc:addItem(30003, 1)  -- Livro de Eridanus (lore)
+npc:addNPC(30001, 1)  -- Mapa do Legado (item de quest)
+npc:addNPC(30002, 1)  -- Pocao do Sabio (recompensa)
+npc:addNPC(30003, 1)  -- Livro de Eridanus (lore)
 
 print("NPC Velho Sabio carregado.")

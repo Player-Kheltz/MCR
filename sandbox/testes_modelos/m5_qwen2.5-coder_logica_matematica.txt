@@ -1,0 +1,110 @@
+========================================
+MELHOR DE 5 - LOGICA MATEMATICA - Calculo de drop rate em MMORPG
+MODELO: Qwen 2.5 Coder (7B)
+DATA: 27/06/2026
+========================================
+
+PROMPT:
+Em um servidor de Tibia, o monstro "Dragon Lord" tem:
+- 35% de chance de drop de "Dragon Ham"
+- 15% de chance de drop de "Dragon Scale Mail"
+- 5% de chance de drop de "Dragon Lord Trophy"
+- 45% de chance de drop de "Gold Coins" (quantidade: 100-500)
+
+Um jogador mata 20 Dragon Lords. Calcule:
+1. A probabilidade de obter pelo menos 1 Dragon Scale Mail
+2. O valor esperado (expected value) de Gold Coins obtidas
+3. A probabilidade de obter exatamente 2 Dragon Hams
+
+Mostre os cálculos passo a passo e explique a lógica. Use Python se necessário para demonstrar.
+
+----------------------------------------
+RESPOSTA (2536c, 14.2s, 124.3 tok/s):
+----------------------------------------
+Vamos resolver cada parte do problema passo a passo.
+
+### 1. Probabilidade de obter pelo menos 1 Dragon Scale Mail
+
+Primeiro, vamos calcular a probabilidade de não obter nenhum Dragon Scale Mail em uma única batalha contra o Dragon Lord. A chance de não obter um Dragon Scale Mail é:
+
+\[ P(\text{Não Scale Mail}) = 1 - 0.15 = 0.85 \]
+
+Agora, a probabilidade de não obter nenhum Dragon Scale Mail em 20 batalhas é:
+
+\[ P(\text{Nenhum Scale Mail em 20 batalhas}) = (0.85)^{20} \approx 0.0316 \]
+
+Portanto, a probabilidade de obter pelo menos um Dragon Scale Mail em 20 batalhas é:
+
+\[ P(\text{Pelo menos 1 Scale Mail}) = 1 - P(\text{Nenhum Scale Mail em 20 batalhas}) \approx 1 - 0.0316 = 0.9684 \]
+
+### 2. Valor esperado de Gold Coins obtidas
+
+A quantidade de Gold Coins dropada segue uma distribuição uniforme entre 100 e 500. O valor esperado (expected value) de uma distribuição uniforme é dado por:
+
+\[ E(X) = \frac{\text{Valor mínimo} + \text{Valor máximo}}{2} \]
+
+Substituindo os valores:
+
+\[ E(\text{Gold Coins}) = \frac{100 + 500}{2} = 300 \]
+
+Como o jogador mata 20 Dragon Lords, o valor esperado total de Gold Coins obtidos é:
+
+\[ E(\text{Total Gold Coins}) = 20 \times 300 = 6000 \]
+
+### 3. Probabilidade de obter exatamente 2 Dragon Hams
+
+A chance de dropar um Dragon Ham em uma única batalha contra o Dragon Lord é:
+
+\[ P(\text{Dragon Ham}) = 0.35 \]
+
+A probabilidade de não dropar um Dragon Ham em uma única batalha é:
+
+\[ P(\text{Não Dragon Ham}) = 1 - 0.35 = 0.65 \]
+
+A probabilidade de obter exatamente 2 Dragon Hams em 20 batalhas segue a distribuição binomial, e é dada por:
+
+\[ P(X = k) = \binom{n}{k} p^k (1-p)^{n-k} \]
+
+Onde:
+- \( n = 20 \) (número de batalhas)
+- \( k = 2 \) (número desejado de Dragon Hams)
+- \( p = 0.35 \) (probabilidade de dropar um Dragon Ham)
+
+Substituindo os valores:
+
+\[ P(X = 2) = \binom{20}{2} (0.35)^2 (0.65)^{18} \]
+
+Calculando as combinações e as potências:
+
+\[ \binom{20}{2} = \frac{20!}{2!(20-2)!} = \frac{20 \times 19}{2 \times 1} = 190 \]
+
+\[ (0.35)^2 = 0.1225 \]
+
+\[ (0.65)^{18} \approx 0.00047 \]
+
+Multiplicando tudo:
+
+\[ P(X = 2) = 190 \times 0.1225 \times 0.00047 \approx 0.0113 \]
+
+### Resumo dos cálculos
+
+1. A probabilidade de obter pelo menos 1 Dragon Scale Mail em 20 batalhas é aproximadamente **96,84%**.
+2. O valor esperado total de Gold Coins obtidos em 20 batalhas é **6000**.
+3. A probabilidade de obter exatamente 2 Dragon Hams em 20 batalhas é aproximadamente **1,13%**.
+
+Estes cálculos foram feitos usando a lógica das probabilidades e distribuições estatísticas.
+
+----------------------------------------
+ANALISE QUALITATIVA:
+----------------------------------------
+COMPLETUDE: ██████████ 10/10  (Respondeu todos os pontos solicitados? (0-10))
+CLAREZA: ██████████ 10/10  (A resposta e clara, bem estruturada e facil de entender? (0-10))
+PROFUNDIDADE: ██░░░░░░░░ 2/10  (A analise e superficial ou vai alem do basico? (0-10))
+RELEVANCIA: ██░░░░░░░░ 2/10  (Responde especificamente ao contexto do MCR/Tibia? (0-10))
+PRECISAO_TECNICA: ██████░░░░ 6/10  (O conteudo tecnico esta correto e preciso? (0-10))
+
+MEDIA GERAL: 6.0/10
+CARACTERES: 2536
+TEMPO: 14.2s
+TOKENS: 947
+TOKENS/S: 124.3

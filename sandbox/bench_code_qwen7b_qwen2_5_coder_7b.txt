@@ -1,0 +1,66 @@
+Aqui está um exemplo de um NPC em Lua para o servidor Canary (OTServ) que atende às suas especificações:
+
+```lua
+-- Mestre Borin - Ferreiro
+local keywordHandler = KeywordHandler:new()
+local npcHandler = NpcHandler:new(keywordHandler)
+NpcSystem.SetNpcHandler(npcHandler)
+
+function onCreatureAppear(cid)
+    npcHandler:onCreatureAppear(cid)
+end
+
+function onCreatureDisappear(cid)
+    npcHandler:onCreatureDisappear(cid)
+end
+
+function onCreatureSay(cid, type, msg)
+    return npcHandler:onCreatureSay(cid, type, msg)
+end
+
+function onThink()
+    npcHandler:onThink()
+end
+
+local function greetCallback(cid, message, keywords)
+    if (message:lower():find("olá") or message:lower():find("Oi")) then
+        selfSay("Olá! Eu sou Mestre Borin, seu ferreiro. Como posso ajudar você hoje?", cid)
+        return true
+    end
+end
+
+npcHandler:addCallback(CALLBACK_GREET, greetCallback)
+
+local function buyItem(cid, itemId, itemName, price)
+    if getPlayerMoney(cid) >= price then
+        doPlayerRemoveMoney(cid, price)
+        doPlayerAddItem(cid, itemId, 1)
+        selfSay("Aqui está seu " .. itemName .. ", " .. cid:getName() .. "! Tenha um ótimo dia!", cid)
+    else
+        selfSay("Desculpe, " .. cid:getName() .. ", você não tem dinheiro suficiente para comprar isso.", cid)
+    end
+end
+
+-- Itens no estoque
+local items = {
+    {id = 2481, name = "Espada de fogo", price = 500},
+    {id = 3279, name = "Arco e Flecha", price = 300},
+    {id = 2667, name = "Escudo de madeira", price = 400},
+    {id = 2818, name = "Martelo de pedra", price = 250},
+    {id = 2819, name = "Cajado de madeira", price = 350}
+}
+
+for _, item in ipairs(items) do
+    keywordHandler:addKeyword(item.name:lower(), string.format("comprar %s", item.name), function(cid)
+        buyItem(cid, item.id, item.name, item.price)
+    end)
+end
+
+npcHandler:addModule(FreePassModule:new())
+```
+
+Este código cria um NPC chamado Mestre Borin que vende armas e armorias. Ele possui 5 itens no estoque (espada de fogo, arco e flecha, escudo de madeira, martelo de pedra e cajado de madeira) com preços específicos.
+
+O NPC responde em português e usa o sistema KeywordHandler para lidar com as interações do jogador. Ele também tem uma função `greetCallback` que responde ao jogador quando ele diz "olá" ou "Oi".
+
+Para usar este código, você precisa adicioná-lo ao seu servidor OTServ e configurar corretamente os caminhos dos arquivos Lua. Certifique-se de que o sistema KeywordHandler está habilitado em seu servidor para que este código funcione adequadamente.

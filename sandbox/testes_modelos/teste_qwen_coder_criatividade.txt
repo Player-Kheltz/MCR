@@ -1,0 +1,30 @@
+========================================
+TESTE: TEXTO/CRIATIVIDADE - Descricao de Eridanus (cidade do Projeto MCR)
+MODELO: Qwen 2.5 Coder (7B) - ATUAL PADRAO (qwen2.5-coder:7b)
+DATA: 27/06/2026
+========================================
+
+PROMPT:
+Descreva a cidade de Eridanus, cidade inicial do Projeto MCR (um servidor customizado de Tibia), em um paragrafo de ambientacao de fantasia medieval. Inclua elementos como: arquitetura, habitantes, guildas, economia e atmosfera. Seja rico em detalhes e nomes proprios com personalidade.
+
+----------------------------------------
+RESPOSTA:
+----------------------------------------
+Eridanus é uma cidade vibrante e encantadora situada no coração da região de Eternaria, um vasto reino medieval fantástico. A cidade é conhecida por sua arquitetura única, misturando edifícios históricos com modernas construções de pedra escura e vidro, criando uma atmosfera mágica e intrigante.
+
+A economia de Eridanus é diversificada e robusta. A cidade abriga diversos mercados onde se trocam armamentos, roupas, alimentos frescos e itens mágicos. O porto fluvial da cidade é um importante centro comercial, com barcos cheios de tesouro navegando entre as águas do rio Eridano.
+
+Os habitantes de Eridanus são uma mistura diversa de povos, incluindo elfos, anões, humanos e outros seres mágicos. A cidade é governada por um conselho de nobres e magos, que trabalham para manter a paz e prosperidade da região.
+
+Entre os diversos grupos profissionais em Eridanus, destacam-se as guildas dos Artesãos, cujos membros criam maravilhosos objetos decorativos e utilitários; a Guarnição Real, formada por bravos guerreiros e magos; e a Guilda dos Exploradores, que busca novas terras e tesouros além das fronteiras conhecidas.
+
+A atmosfera de Eridanus é uma mistura de intriga, aventura e mágia. A cidade é um lugar onde histórias se tornam realidade, onde magia e arte se fundem em harmonia e onde a vida é cheia de possibilidades.
+
+----------------------------------------
+METRICAS:
+----------------------------------------
+Tempo total: 5.48s
+Tokens gerados: 377
+Tokens/segundo: 126.4
+Caracteres: 1328
+Erro: Nenhum

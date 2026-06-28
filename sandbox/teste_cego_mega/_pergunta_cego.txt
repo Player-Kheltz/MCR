@@ -1,0 +1,83 @@
+## Refatorando Código Legado com Async/await em Python
+
+### Problema
+
+O código abaixo é um sistema legado de processamento de arquivos que executa tarefas sequencialmente. Ele é lento e não escala. Seu trabalho é ANALISAR, REFATORAR e MELHORAR.
+
+```python
+import requests
+import time
+import json
+from typing import List, Dict
+
+class FileProcessor:
+    """Processa arquivos de configuração de servidores."""
+    
+    def __init__(self):
+        self.resultados = []
+        self.erros = []
+    
+    def processar_tudo(self, arquivos: List[str]) -> List[Dict]:
+        """Processa uma lista de arquivos SEQUENCIALMENTE (lento!)."""
+        for arquivo in arquivos:
+            try:
+                with open(arquivo, 'r') as f:
+                    conteudo = f.read()
+                
+                dados = json.loads(conteudo)
+                
+                # Validação inline (misturada com processamento)
+                if 'servidor' not in dados:
+                    self.erros.append(f"{arquivo}: sem campo servidor")
+                    continue
+                if 'porta' not in dados:
+                    self.erros.append(f"{arquivo}: sem campo porta")
+                    continue
+                
+                # Processamento
+                resultado = {
+                    'arquivo': arquivo,
+                    'servidor': dados['servidor'],
+                    'porta': dados['porta'],
+                    'status': self._verificar_servidor(dados['servidor'], dados['porta']),
+                    'tamanho': len(conteudo),
+                }
+                self.resultados.append(resultado)
+                
+            except Exception as e:
+                self.erros.append(f"{arquivo}: {str(e)}")
+        
+        return self.resultados
+    
+    def _verificar_servidor(self, servidor: str, porta: int) -> str:
+        """Verifica se o servidor está respondendo (chamada de rede SINCRONA)."""
+        try:
+            resp = requests.get(f"http://{servidor}:{porta}/health", timeout=5)
+            return "online" if resp.status_code == 200 else "offline"
+        except:
+            return "offline"
+    
+    def salvar_relatorio(self, path: str):
+        """Salva relatório em arquivo."""
+        with open(path, 'w') as f:
+            json.dump({
+                'resultados': self.resultados,
+                'erros': self.erros,
+                'total_processados': len(self.resultados),
+                'total_erros': len(self.erros),
+            }, f, indent=2)
+```
+
+### Sua Tarefa
+
+Produza um **ÚNICO documento técnico** cobrindo TUDO abaixo:
+
+1. **Análise**: Quais problemas de performance, manutenção e segurança existem? Cite linhas.
+
+2. **Refatoração**: Reescreva o código usando `asyncio` e `aiohttp` para processamento paralelo. Use `asyncio.gather()` para concorrência. Trate erros appropriadamente.
+
+3. **Melhoria**: Adicione um sistema de **retry com backoff exponencial** para falhas de rede. Implemente **timeout configurável** por requisição. Adicione **logging estruturado** em vez de prints.
+
+4. **Boas práticas**: Separe responsabilidades em classes menores. Adicione type hints. Documente com docstrings. Siga SOLID.
+
+O código deve ser COMPLETO, FUNCIONAL e SEGURO. Responda em português técnico.
