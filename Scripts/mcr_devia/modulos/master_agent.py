@@ -28,6 +28,7 @@ from modulos.sandbox_executor import SandboxExecutor
 from modulos.ia import IA
 from modulos.kg import KnowledgeGraph
 from context_infinity import SessionCache
+from modulos.enricher import Enricher
 
 
 class MasterAgent:
@@ -41,6 +42,7 @@ class MasterAgent:
         self.planner = TaskPlanner(tools_orchestrator=self.tools, ia=self.ia)
         self.sandbox = SandboxExecutor()
         self._passos = []
+        self._execution_count = 0  # G10: contador para auto-diagnostico
 
     def autoavaliar(self, request):
         """Autoavaliacao: o sistema sabe o que sabe e o que nao sabe.
@@ -424,9 +426,32 @@ class MasterAgent:
         # === 6. FEEDBACK (Backpropagation) ===
         self._feedback(request, tipo_porte, plano, resultados)
 
+        # === 7. G11 — AUTO-REVISAO FINAL ===
+        if artefato_final.get('resposta_final'):
+            try:
+                from modulos.auto_revisor import AutoRevisor
+                revisor = AutoRevisor()
+                revisao = revisor.revisar(artefato_final['resposta_final'])
+                if revisao.get('problemas'):
+                    self._log('REVISOR', f'{len(revisao["problemas"])} problemas encontrados')
+            except Exception:
+                pass
+
         self._log('APRENDER', f'Licao registrada: {licao[:80]}')
         self._log('FIM', f'Concluido em {tempo_total:.1f}s - '
                   f'{resultado_final["n_sucesso"]}/{len(plano)} subtarefas OK')
+
+        # === 8. G10 — AUTO-DIAGNOSTICO PERIODICO (a cada 10 execucoes) ===
+        self._execution_count += 1
+        if self._execution_count % 10 == 0:
+            try:
+                from modulos.diagnostico import Diagnostico
+                diag = Diagnostico()
+                resultado_diag = diag.diagnosticar()
+                score = resultado_diag.get('score', 0)
+                self._log('DIAG', f'Auto-diagnostico: score {score}/100')
+            except Exception:
+                pass
 
         return resultado_final
 
@@ -572,11 +597,22 @@ class MasterAgent:
             resultado = self.tools.executar(ferramenta, params)
             return resultado
 
-        # Se e pergunta, usa IA
+        # Se e pergunta, usa IA com ENRIQUECIMENTO DINAMICO
         if acao == 'perguntar_ia':
             pergunta = params.get('pergunta', subtarefa.get('descricao', ''))
             if contexto_extra:
                 pergunta = f"Contexto adicional:\n{contexto_extra}\n\nPergunta:\n{pergunta}"
+            
+            # SISTEMA DE ENRIQUECIMENTO DINAMICO (evita respostas genericas)
+            try:
+                enricher = Enricher(self.ia, self.kg, getattr(self, 'ctx', None))
+                prompt_enriquecido = enricher.enriquecer(pergunta)
+                if prompt_enriquecido and prompt_enriquecido != pergunta:
+                    self._log('ENRICHER', 'Prompt enriquecido com contexto externo')
+                    pergunta = prompt_enriquecido
+            except Exception as e:
+                print(f"[MasterAgent] Enricher error: {e}")
+            
             resposta = self.ia.gerar(pergunta, 0.4, 'pesado')
             return {
                 'sucesso': bool(resposta),
@@ -643,9 +679,7 @@ class MasterAgent:
     def _aprender_kg(self, request, resultado, licao, task_type=''):
         """Registra aprendizado no Knowledge Graph como DATASET estruturado.
         
-        Agora salva com contexto rico que permite consultas semanticas:
-        - ctx indica o TIPO de tarefa (exec_projeto_jogo, exec_criar_codigo, etc)
-        - causa detalha metricas de sucesso para analise futura
+        [G9] Usa LessonsBuffer para detectar contradicoes antes de salvar.
         """
         try:
             erro = request[:80]
@@ -656,8 +690,16 @@ class MasterAgent:
             causa = (f"tipo={tt} | subtarefas={n_ok}/{n_total} | "
                      f"tempo={tempo}s | request={request[:50]}")
             solucao = licao[:500]
-            ctx = f'exec_{tt}'  # ex: exec_projeto_jogo, exec_criar_codigo
-            self.kg.aprender(erro, causa, solucao, ctx)
+            ctx = f'exec_{tt}'
+            
+            # G9: Tenta usar LessonsBuffer (detecta contradicoes)
+            try:
+                from modulos.lessons_buffer import LessonsBuffer
+                buffer = LessonsBuffer(self.kg)
+                buffer.adicionar(erro, causa, solucao, ctx)
+            except Exception:
+                # Fallback: salva direto no KG
+                self.kg.aprender(erro, causa, solucao, ctx)
         except Exception:
             pass
 
