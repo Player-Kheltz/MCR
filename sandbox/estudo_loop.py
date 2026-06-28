@@ -23,7 +23,7 @@ from modulos.decider import Decider
 from modulos.master_agent import MasterAgent
 
 # Config
-INTERVALO_MIN = int(os.environ.get('MCR_ESTUDO_INTERVALO', '5'))  # minutos
+INTERVALO_MIN = int(os.environ.get('MCR_ESTUDO_INTERVALO', '0'))  # minutos (0 = imediato)
 LOG_PATH = os.path.join(BASE, 'sandbox', '.mcr_estudo_log.jsonl')
 
 
@@ -312,14 +312,17 @@ class EstudoLoop:
             if self.ciclo % 5 == 0:
                 print(f"\n{self._relatorio()}")
 
-            # 6. Aguardar entre ciclos
+            # 6. Aguardar entre ciclos (se configurado)
             if ciclos is None or self.ciclo < ciclos:
-                print(f"\n  [Aguardando] Proximo ciclo em {INTERVALO_MIN} min...")
-                try:
-                    time.sleep(INTERVALO_MIN * 60)
-                except KeyboardInterrupt:
-                    print("\n\n  [Parado] Loop interrompido pelo usuario.")
-                    break
+                if INTERVALO_MIN > 0:
+                    print(f"\n  [Aguardando] Proximo ciclo em {INTERVALO_MIN} min...")
+                    try:
+                        time.sleep(INTERVALO_MIN * 60)
+                    except KeyboardInterrupt:
+                        print("\n\n  [Parado] Loop interrompido pelo usuario.")
+                        break
+                else:
+                    print()  # linha em branco, ja começa o proximo
 
         # Relatorio final
         print(f"\n{'=' * 56}")
