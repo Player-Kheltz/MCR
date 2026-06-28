@@ -46,6 +46,7 @@ class EstudoLoop:
         self.agent = MasterAgent()
         self.ciclo = 0
         self.topicos_estudados = set()
+        self.perguntas_anteriores = set()  # para evitar perguntas repetidas
 
     def _get_topicos_conhecidos(self):
         """Retorna topicos ja registrados no KG."""
@@ -62,33 +63,28 @@ class EstudoLoop:
                 topicos.add(p)
         return topicos
 
+    def _normalizar_topico(self, topico):
+        """Normaliza topico para comparacao."""
+        t = topico.lower().strip()
+        t = t.replace(' ', '_').replace('-', '_').replace('/', '_')
+        # Remove artigos e preposicoes comuns
+        for w in ['o_', 'a_', 'os_', 'as_', 'de_', 'da_', 'do_', 'em_', 'para_', 'com_']:
+            if t.startswith(w):
+                t = t[len(w):]
+        return t[:40]
+
     def _escolher_topico(self, topicos_conhecidos):
-        """Decide QUAL topico estudar — algo que NAO sabe ainda."""
+        """Decide QUAL topico estudar — GARANTIDO como NAO estudado ainda.
+        
+        Tenta ate 5 vezes. Usa salt para evitar cache do Decider.
+        Se tudo falhar, fallback para lista geral.
+        """
         exemplos = [
             ("Ja estudei Python, FastAPI, Docker. Qual estudar agora?", "Rust para WebAssembly"),
             ("Sei pygame, tkinter. Qual biblioteca grafica estudar?", "OpenGL basico"),
             ("Topicos: SPA, SHC, Canary. Proximo?", "Design Patterns em Python"),
         ]
 
-        contexto = (f"Topicos ja estudados: {', '.join(sorted(topicos_conhecidos)[-15:])}"
-                    if topicos_conhecidos else "Nenhum topico estudado ainda.")
-
-        try:
-            dados = self.decider.extrair_json(
-                "Escolha UM topico de estudo NOVO e UTIL",
-                {'topico': '', 'justificativa': ''},
-                exemplos=exemplos[:2],
-                instrucao=(
-                    f"{contexto}\n"
-                    f"NUNCA repita topicos ja estudados.\n"
-                    f"Escolha algo util: programacao, arquitetura, algoritmo, ferramenta, framework."
-                )
-            )
-            return dados.get('topico', '')
-        except Exception as e:
-            print(f"[Erro ao escolher topico: {e}]")
-
-        # Fallback: lista de topicos gerais
         fallbacks = [
             "Python assincrono com asyncio",
             "SOLID principles",
@@ -98,38 +94,110 @@ class EstudoLoop:
             "Docker compose basico",
             "Pytest fixtures e mocks",
             "Design patterns: Factory, Strategy, Observer",
+            "Algoritmos de ordenacao",
+            "Estruturas de dados: Arvores",
+            "Testes de integracao vs unitarios",
+            "CI/CD com GitHub Actions",
         ]
+
+        for tentativa in range(5):
+            salt = random.randint(0, 99999)
+            contexto = (f"Topicos ja estudados: {', '.join(sorted(topicos_conhecidos)[-15:])}"
+                        if topicos_conhecidos else "Nenhum topico estudado ainda.")
+
+            try:
+                dados = self.decider.extrair_json(
+                    f"Escolha topico de estudo NOVO [{salt}]",
+                    {'topico': '', 'justificativa': ''},
+                    exemplos=exemplos[:2],
+                    instrucao=(
+                        f"{contexto}\n"
+                        f"NUNCA repita topicos ja estudados.\n"
+                        f"Tente variar area de conhecimento.\n"
+                        f"Escolha algo util: programacao, arquitetura, algoritmo, ferramenta."
+                    )
+                )
+                topico = dados.get('topico', '').strip()
+            except Exception as e:
+                topico = random.choice(fallbacks)
+
+            if not topico:
+                topico = random.choice(fallbacks)
+
+            # Verifica se topico ja foi estudado
+            topico_norm = self._normalizar_topico(topico)
+            ja_estudado = topico_norm in topicos_conhecidos
+
+            if not ja_estudado:
+                return topico
+
+            print(f"  [!] Topico '{topico}' ja estudado, tentando outro...")
+
+        # Fallback apos 5 tentativas
+        for fb in fallbacks:
+            if self._normalizar_topico(fb) not in topicos_conhecidos:
+                return fb
         return random.choice(fallbacks)
 
     def _gerar_pergunta(self, topico):
-        """Gera uma pergunta de estudo ESPECIFICA sobre o topico."""
+        """Gera pergunta GARANTIDA como diferente das anteriores.
+        
+        Tenta ate 3 vezes com salts diferentes.
+        Verifica se pergunta ja foi usada antes.
+        """
         exemplos = [
             ("async/await em Python", "Como funciona o asyncio em Python? Qual a diferenca entre Thread e Coroutine?"),
             ("SOLID principles", "O que e o principio Open/Closed? De um exemplo pratico em Python."),
+            ("Docker compose", "Como configurar volumes e networks no Docker Compose?"),
         ]
 
-        try:
-            dados = self.decider.extrair_json(
-                f"Crie pergunta de estudo sobre: {topico}",
-                {'pergunta': '', 'area': ''},
-                exemplos=exemplos[:2],
-                instrucao="Pergunta deve ser especifica, pratica e respondivel via pesquisa web."
-            )
-            pergunta = dados.get('pergunta', '')
-            if pergunta and len(pergunta) > 20:
-                return pergunta
-        except Exception as e:
-            print(f"[Erro ao gerar pergunta: {e}]")
+        for tentativa in range(3):
+            salt = random.randint(0, 99999)
+            try:
+                dados = self.decider.extrair_json(
+                    f"Crie pergunta de estudo DIFERENTE sobre: {topico} [{salt}]",
+                    {'pergunta': '', 'area': ''},
+                    exemplos=exemplos[:3],
+                    instrucao=(
+                        "Pergunta deve ser ESPECIFICA e DIFERENTE do que ja perguntei antes.\n"
+                        "Varie o enfoque: teoria, pratica, comparacao, implementacao.\n"
+                        "Seja objetiva e respondivel via pesquisa web."
+                    )
+                )
+                pergunta = dados.get('pergunta', '').strip()
+                if pergunta and len(pergunta) > 25:
+                    # Verifica se pergunta ja foi usada
+                    pergunta_norm = pergunta.lower().strip()[:60]
+                    if pergunta_norm not in self.perguntas_anteriores:
+                        self.perguntas_anteriores.add(pergunta_norm)
+                        return pergunta
+                    print(f"  [!] Pergunta repetida, tentando outra...")
+            except Exception as e:
+                print(f"[Erro ao gerar pergunta: {e}]")
 
-        return f"O que e {topico}? Como usar na pratica?"
+        return f"Explique {topico} com exemplos praticos e comparativos. Diferencie de abordagens similares."
 
     def _realizar_estudo(self, pergunta, topico):
         """Estuda o topico: busca web + IA sintetiza + registra no KG."""
         print(f"\n  [Estudando] {pergunta[:80]}...")
         t0 = time.time()
 
-        # 1. Busca contexto web
-        contexto = self.ia.buscar_web(pergunta, max_resultados=5)
+        # 1. Busca contexto web (com retry + fallback Wikipedia)
+        contexto = None
+        for tentativa in range(2):
+            contexto = self.ia.buscar_web(pergunta, max_resultados=5)
+            if contexto:
+                break
+            print(f"  [!] Web search falhou, tentando novamente...")
+            time.sleep(2)
+        
+        # Fallback: busca Wikipedia diretamente
+        if not contexto:
+            try:
+                print(f"  [!] Tentando Wikipedia como fallback...")
+                contexto = self.ia._web_search(pergunta, max_r=3)
+            except Exception:
+                pass
 
         # 2. IA sintetiza o conhecimento
         prompt = f"Pergunta de estudo: {pergunta}\n\n"
