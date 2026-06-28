@@ -137,11 +137,14 @@ _CAMINHOS_TOT = {
 }
 
 def tree_of_thought(ia, prompt_base):
-    """Gera 3 perspectivas (analitico, criativo, critico) e sintetiza."""
+    """Gera 3 perspectivas (analitico, criativo, critico) e sintetiza.
+    
+    [Conselho 2.0] Usa FAST em vez de 14b — contexto externo compensa.
+    """
     perspectivas = {}
     for nome, instrucao in _CAMINHOS_TOT.items():
         prompt = f"{instrucao}\n\nResponda EXATAMENTE a pergunta abaixo:\n{prompt_base}"
-        resp = ia.gerar(prompt, 0.4, 'pesado')
+        resp = ia.fast(prompt, 0.3, 'leve')  # FAST em vez de 14b
         if resp:
             perspectivas[nome] = resp.strip()
     if len(perspectivas) < 2:
@@ -152,7 +155,8 @@ def tree_of_thought(ia, prompt_base):
         f"Perspectiva CRITICA:\n{perspectivas.get('critico', '')[:1500]}\n"
         f"Sintetize em resposta UNICA, focando na pergunta original."
     )
-    return ia.gerar(prompt_sintese, 0.3, 'pesado') or prompt_base
+    sintese = ia.fast(prompt_sintese, 0.3, 'leve')  # FAST em vez de 14b
+    return sintese or prompt_base
 
 
 # ============================================================
@@ -430,7 +434,8 @@ class Conselho:
                 if memoria_pessoal:
                     prompt += f"\n\nSUA MEMORIA PESSOAL:\n{memoria_pessoal}\n"
                 
-                opiniao = _gerar(prompt, 0.4, router) or _fast(prompt, 0.4, router) or ""
+                # [Conselho 2.0] FAST + contexto, sem 14b
+                opiniao = _fast(prompt, 0.4, router) or ""
                 with lock:
                     resultados[nome] = opiniao
                 # Salva na memoria pessoal
@@ -498,7 +503,7 @@ class Conselho:
                "Nao invente significados para siglas - use os significados do CONTEXTO DO PROJETO MCR.\n"
                "Estruture em paragrafos se necessario.")
 
-        v = _gerar(db, 0.4, "pesado") or _fast(db, 0.4, "leve") or "Sem consenso"
+        v = _fast(db, 0.4, "leve") or "Sem consenso"  # [Conselho 2.0] FAST em vez de 14b
 
         # 6. VALIDACAO ANTI-ALUCINACAO
         if kg:

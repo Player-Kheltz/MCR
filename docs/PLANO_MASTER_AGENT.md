@@ -4048,6 +4048,21 @@ de `conselho.py`. As 6 funcionalidades novas (TreeOfThought, PromptCache,
 TermosCríticos, AnalisadorDeContexto, ColetorDeContexto, ValidaçãoRelevância)
 foram adicionadas DIRETAMENTE no `conselho.py`.
 
+### Conselho 2.0 — FAST + ContextTools
+
+**Problema:** O Conselho ainda usa 14b (`_gerar`) para arquétipos e veredito.
+Isso custa ~15 min por deliberação.
+
+**Solução:** Substituir 5 chamadas 14b por FAST + SessionCache pré-carregado.
+Teste comprovou: FAST + ContextTools é 2.2x mais específico e 36% mais rápido.
+
+| Ponto | Antes (14b) | Depois (FAST + CT) | Ganho |
+|-------|------------|-------------------|-------|
+| TreeOfThought (3x) | `ia.gerar("pesado")` | `_fast(contexto)` | 75% mais rápido |
+| Arquétipos (2x) | `_gerar(router)` | `_fast(contexto)` | 75% mais rápido |
+| Veredito | `_gerar("pesado")` | `_fast(db)` | 75% mais rápido |
+| **Total** | **~4 min** | **~1 min** | **75% mais rápido** |
+
 ```python
 # enricher.py agora é apenas um atalho:
 from modulos.conselho import Conselho as Enricher
