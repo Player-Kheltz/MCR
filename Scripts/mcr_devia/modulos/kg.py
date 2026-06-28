@@ -1,11 +1,45 @@
 """Modulo: KnowledgeGraph - Gerenciamento de conhecimento do MCR-DevIA.
 Pode ser carregado pelo kernel ou importado diretamente."""
-import os, json, re, hashlib
+import os, json, re, hashlib, math, urllib.request
 
 # Paths dinamicos
 BASE = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
 SANDBOX = os.path.join(BASE, 'sandbox')
 KG_PATH = os.path.join(SANDBOX, '.mcr_devia', 'knowledge.json')
+OLLAMA_URL = os.environ.get('OLLAMA_URL', 'http://localhost:11434')
+
+# Cache de embeddings para KG (separado do episodic_memory)
+_embedding_cache_kg = {}
+_EMBED_MODEL = 'nomic-embed-text:latest'
+
+
+def _cosine_similaridade(a, b):
+    """Similaridade cosseno entre dois vetores."""
+    dot = sum(x * y for x, y in zip(a, b))
+    na = math.sqrt(sum(x * x for x in a))
+    nb = math.sqrt(sum(x * x for x in b))
+    if na == 0 or nb == 0:
+        return 0.0
+    return dot / (na * nb)
+
+
+def _gerar_embedding_kg(texto):
+    """Gera embedding via Ollama para KG. Cache proprio."""
+    if texto in _embedding_cache_kg:
+        return _embedding_cache_kg[texto]
+    try:
+        dados = json.dumps({'model': _EMBED_MODEL, 'prompt': texto[:500]}).encode()
+        req = urllib.request.Request(
+            f'{OLLAMA_URL}/api/embeddings', data=dados,
+            headers={'Content-Type': 'application/json'}
+        )
+        resp = json.loads(urllib.request.urlopen(req, timeout=30).read())
+        emb = resp.get('embedding')
+        if emb:
+            _embedding_cache_kg[texto] = emb
+        return emb
+    except Exception:
+        return None
 STOP_BUSCA = {'o', 'a', 'os', 'as', 'um', 'uma', 'de', 'da', 'do', 'das', 'dos',
     'em', 'no', 'na', 'nos', 'nas', 'para', 'pra', 'por', 'com', 'sem', 'sob',
     'entre', 'como', 'que', 'qual', 'quais', 'quem', 'quando', 'onde', 'se',
@@ -101,12 +135,42 @@ class KnowledgeGraph:
                     count += 1
         self.salvar()
     
+    def buscar_por_embedding(self, texto, n=3):
+        """Busca licoes por similaridade semantica (cosine).
+        
+        Supervisionado: usa exemplos rotulados (licoes) como dataset.
+        Fallback para keyword match se embedding nao disponivel.
+        """
+        emb = _gerar_embedding_kg(texto)
+        if not emb:
+            return self.buscar(texto, n)
+
+        scores = []
+        for l in self.data['licoes']:
+            if 'embedding' not in l:
+                continue
+            score = _cosine_similaridade(emb, l['embedding'])
+            if score > 0:
+                scores.append((score, l))
+
+        scores.sort(key=lambda x: -x[0])
+        return [s[1] for s in scores[:n]]
+
     def aprender(self, erro, causa, solucao, ctx='geral'):
+        """Registra aprendizado com embedding para busca semantica."""
         lid = f'L{len(self.data["licoes"])+1:04d}'
-        self.data['licoes'].append({
+        lesson = {
             'id': lid, 'erro': erro[:80], 'causa': causa[:200],
             'solucao': solucao[:500], 'ctx': ctx, 'usos': 0
-        })
+        }
+        # Tenta salvar embedding para busca semantica
+        try:
+            emb = _gerar_embedding_kg(erro + ' ' + causa)
+            if emb:
+                lesson['embedding'] = emb
+        except Exception:
+            pass
+        self.data['licoes'].append(lesson)
         self.salvar()
     
     def gerar_licoes(self, dominio, quantidade=5):

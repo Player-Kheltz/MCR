@@ -41,6 +41,61 @@ class MasterAgent:
         self.sandbox = SandboxExecutor()
         self._passos = []
 
+    def autoavaliar(self, request):
+        """Autoavaliacao: o sistema sabe o que sabe e o que nao sabe.
+        
+        AGI: consciencia dos proprios limites antes de agir.
+        Retorna dict com confianca, gaps, e acao sugerida.
+        """
+        lessons = self.kg.buscar(request, max_r=3)
+        lessons_sem = []
+        try:
+            if hasattr(self.kg, 'buscar_por_embedding'):
+                lessons_sem = self.kg.buscar_por_embedding(request, n=2)
+        except Exception:
+            pass
+        total_conhecimento = len(lessons) + len(lessons_sem)
+        experiencias = self.memoria.buscar(request, n=3)
+        n_exp = len(experiencias)
+        tx_suc = sum(1 for e in experiencias if e.get('sucesso')) / max(n_exp, 1)
+
+        if total_conhecimento >= 3 and n_exp >= 2 and tx_suc >= 0.7:
+            return {'confianca': 'alta', 'gaps': [], 'acao': 'executar'}
+        if total_conhecimento >= 1:
+            gaps = []
+            if n_exp < 2:
+                gaps.append('pouca experiencia pratica')
+            if total_conhecimento < 3:
+                gaps.append('conhecimento teorico limitado')
+            return {'confianca': 'media', 'gaps': gaps, 'acao': 'executar_com_cautela'}
+        return {
+            'confianca': 'baixa',
+            'gaps': ['nenhum conhecimento previo no KG'],
+            'acao': 'estudar_antes'
+        }
+
+    def _feedback(self, request, tipo_porte, plano, resultados):
+        """Feedback do resultado para ajustar decisoes futuras.
+        
+        Backpropagation: erro na saida ajusta camadas anteriores.
+        Se a execucao falhou muito, registra licao de 'o que nao fazer'.
+        """
+        sucesso = all(r.get('sucesso', False) for r in resultados.values())
+        if sucesso:
+            return
+        n_ok = sum(1 for r in resultados.values() if r.get('sucesso'))
+        n_total = len(plano)
+        if n_total > 0 and n_ok < n_total * 0.5:
+            licao = (f"FRACASSO: {n_ok}/{n_total} subtarefas para "
+                     f"'{request[:60]}'. Tipo classificado como "
+                     f"'{tipo_porte}' parece incorreto.")
+            self.kg.aprender(
+                erro=f"Feedback: {request[:60]}",
+                causa=f"tipo={tipo_porte} | sucesso={n_ok}/{n_total}",
+                solucao=licao[:300],
+                ctx='feedback_fracasso'
+            )
+
     def executar(self, request, task_type=''):
         """Executa QUALQUER request.
 
@@ -55,6 +110,14 @@ class MasterAgent:
         self._passos = []
 
         self._log('PERCEBER', f'Request: {request[:100]}')
+
+        # === METACOGNICAO (AGI) ===
+        try:
+            avaliacao = self.autoavaliar(request)
+            if avaliacao['confianca'] != 'alta':
+                self._log('METACOG', f'Confianca {avaliacao["confianca"]}: {", ".join(avaliacao["gaps"])}')
+        except Exception:
+            pass
 
         # === 1. PERCEBER ===
         # Buscar experiencias similares
@@ -74,6 +137,7 @@ class MasterAgent:
         # Usa Decider para classificar o porte do projeto
         projeto_grande = False
         request_ambiguo = False
+        tipo_porte = 'simples'
         try:
             from modulos.decider import Decider
             decider = Decider(self.ia)
@@ -198,12 +262,16 @@ class MasterAgent:
             'n_sucesso': sum(1 for r in resultados.values() if r.get('sucesso')),
             'tempo': round(tempo_total, 1),
             'passos': self._passos,
+            'task_type': task_type or tipo_porte or 'geral',
         }
 
         # === 5. APRENDER ===
         licao = self._extrair_licao(request, plano, resultados)
         self.memoria.registrar(request, resultado_final, licao)
-        self._aprender_kg(request, resultado_final, licao)
+        self._aprender_kg(request, resultado_final, licao, task_type=task_type)
+
+        # === 6. FEEDBACK (Backpropagation) ===
+        self._feedback(request, tipo_porte, plano, resultados)
 
         self._log('APRENDER', f'Licao registrada: {licao[:80]}')
         self._log('FIM', f'Concluido em {tempo_total:.1f}s - '
@@ -421,14 +489,23 @@ class MasterAgent:
             acoes_falhas = ', '.join(f['acao'] for f in falhas[:3])
             return f"Tarefa parcial ({n_sucesso}/{n_total}). Falhas em: {acoes_falhas}"
 
-    def _aprender_kg(self, request, resultado, licao):
-        """Registra aprendizado no Knowledge Graph."""
+    def _aprender_kg(self, request, resultado, licao, task_type=''):
+        """Registra aprendizado no Knowledge Graph como DATASET estruturado.
+        
+        Agora salva com contexto rico que permite consultas semanticas:
+        - ctx indica o TIPO de tarefa (exec_projeto_jogo, exec_criar_codigo, etc)
+        - causa detalha metricas de sucesso para analise futura
+        """
         try:
             erro = request[:80]
-            causa = f"Subtarefas: {resultado.get('n_subtarefas', 0)}, "
-            causa += f"sucesso: {resultado.get('n_sucesso', 0)}"
-            solucao = licao[:300]
-            ctx = 'master_agent'
+            tt = resultado.get('task_type', task_type) or 'geral'
+            n_ok = resultado.get('n_sucesso', 0)
+            n_total = resultado.get('n_subtarefas', 0)
+            tempo = resultado.get('tempo', 0)
+            causa = (f"tipo={tt} | subtarefas={n_ok}/{n_total} | "
+                     f"tempo={tempo}s | request={request[:50]}")
+            solucao = licao[:500]
+            ctx = f'exec_{tt}'  # ex: exec_projeto_jogo, exec_criar_codigo
             self.kg.aprender(erro, causa, solucao, ctx)
         except Exception:
             pass

@@ -2848,3 +2848,254 @@ O código real pode diferir do blueprint original — os Apêndices documentam a
 | Retry automático quando `validar_codigo` falhar (regenerar código) | Baixa | +30 linhas |
 | Suporte a mais validadores (CSS, YAML, XML, SQL) | Baixa | +20 linhas |
 | Testes paralelos para bateria completa | Baixa | +40 linhas |
+
+---
+
+## Apêndice D — Arquitetura ML/NN/AGI (6 Correções)
+
+> **Data:** 2026-06-28
+> **Filosofia:** O MCR-DevIA não deve apenas *estudar* sobre Machine Learning, Redes Neurais
+> e AGI — ele deve **incorporar esses conceitos em sua arquitetura**. Cada correção abaixo
+> mapeia um conceito de ML para uma implementação concreta no código.
+
+### Diagnóstico: 10 Pontos Fracos
+
+| # | Fraqueza | Módulo | Impacto | Conceito ML |
+|---|----------|--------|---------|-------------|
+| **F1** | `KG.buscar()` usa só keyword match, sem embeddings | `kg.py:62-79` | Busca semântica pobre | Supervisionado |
+| **F2** | Score de sucesso não influencia decisões futuras | `episodic_memory.py:192-196` | Sistema não "aprende" com erros | Reforço |
+| **F3** | `_aprender_kg()` salva sempre `ctx='master_agent'` | `master_agent.py:424-434` | KG vira depósito sem estrutura | Dataset |
+| **F4** | Sem feedback do APRENDER para PERCEBER/PLANEJAR | `master_agent.py:203-206` | Pipeline não se ajusta com erros | Backpropagation |
+| **F5** | Sem clusterização de requests similares | `episodic_memory.py` | Não encontra padrões ocultos | Não Supervisionado |
+| **F6** | Sem metacognição (sabe o que sabe?) | `master_agent.py` | Não sabe seus próprios limites | AGI |
+| **F7** | KG sem embeddings para busca semântica | `kg.py` | Busca por palavra exata apenas | Supervisionado |
+| **F8** | Decider não aprende com erros de classificação | `decider.py` | Mesmo erro sempre | Reforço |
+| **F9** | Formato de resultado não padronizado | `episodic_memory.py:123-132` | Dados não estruturados para treino | Dataset |
+| **F10** | Sem replay de experiências | `episodic_memory.py` | Episódios antigos nunca reavaliados | Replay |
+
+### Plano de Correções (6 Módulos, ~+210 linhas)
+
+#### C1 — KG com Embeddings (Supervisionado)
+
+**Arquivo:** `modulos/kg.py`
+**Conceito:** Supervisionado — usar exemplos rotulados (lições) como dataset de treino
+
+```python
+def _gerar_embedding_kg(texto):
+    """Gera embedding para busca no KG."""
+    if texto in _embedding_cache_kg:
+        return _embedding_cache_kg[texto]
+    try:
+        dados = json.dumps({'model': 'nomic-embed-text:latest', 'prompt': texto[:500]}).encode()
+        req = urllib.request.Request(f'http://localhost:11434/api/embeddings', data=dados,
+            headers={'Content-Type': 'application/json'})
+        resp = json.loads(urllib.request.urlopen(req, timeout=30).read())
+        emb = resp.get('embedding')
+        if emb:
+            _embedding_cache_kg[texto] = emb
+        return emb
+    except:
+        return None
+
+def buscar_por_embedding(self, texto, n=3):
+    """Busca lições por similaridade semântica (cosine). Fallback keyword."""
+    emb = _gerar_embedding_kg(texto)
+    if not emb:
+        return self.buscar(texto, n)
+    scores = []
+    for l in self.data['licoes']:
+        if 'embedding' not in l: continue
+        score = sum(x*y for x,y in zip(emb, l['embedding']))
+        na = math.sqrt(sum(x*x for x in emb))
+        nb = math.sqrt(sum(x*x for x in l['embedding']))
+        if na > 0 and nb > 0:
+            scores.append((score/(na*nb), l))
+    scores.sort(key=lambda x: -x[0])
+    return [s[1] for s in scores[:n]]
+
+# Modificar aprender() para salvar embedding:
+def aprender(self, erro, causa, solucao, ctx='geral'):
+    lid = f'L{len(self.data["licoes"])+1:04d}'
+    lesson = {'id': lid, 'erro': erro[:80], 'causa': causa[:200],
+              'solucao': solucao[:500], 'ctx': ctx, 'usos': 0}
+    try:
+        emb = _gerar_embedding_kg(erro + ' ' + causa)
+        if emb: lesson['embedding'] = emb
+    except: pass
+    self.data['licoes'].append(lesson)
+    self.salvar()
+```
+
+#### C2 — EpisodicMemory como Função de Recompensa (Reforço)
+
+**Arquivo:** `modulos/episodic_memory.py`
+**Conceito:** Reforço — ações com maior sucesso têm prioridade
+
+```python
+def taxa_sucesso_para(self, acao, request=''):
+    """Retorna taxa de sucesso historica para uma acao. Reforco."""
+    episodios_acao = [e for e in self.episodios
+                      if acao in str(e.get('resultado', ''))]
+    if not episodios_acao:
+        return 0.5  # desconhecido = neutro
+    sucessos = sum(1 for e in episodios_acao if e.get('sucesso'))
+    return sucessos / len(episodios_acao)
+
+def buscar_com_peso_de_reforco(self, request, n=3, acoes=None):
+    """Busca experiencias com peso extra para acoes que funcionaram."""
+    resultados = self.buscar(request, n * 2)
+    if acoes and resultados:
+        for ep in resultados:
+            for acao in acoes:
+                taxa = self.taxa_sucesso_para(acao, request)
+                if taxa > 0.7:
+                    ep['_score_reforco'] = ep.get('_score_reforco', 0) + taxa
+    return resultados[:n]
+```
+
+#### C3 — KG Estruturado como Dataset (Dados de Treino)
+
+**Arquivo:** `modulos/master_agent.py` — método `_aprender_kg()`
+
+```python
+# Substituir linhas 424-434:
+def _aprender_kg(self, request, resultado, licao, task_type=''):
+    """Registra aprendizado como DATASET estruturado."""
+    try:
+        erro = request[:80]
+        tt = resultado.get('task_type', task_type) or 'geral'
+        n_ok = resultado.get('n_sucesso', 0)
+        n_total = resultado.get('n_subtarefas', 0)
+        tempo = resultado.get('tempo', 0)
+        causa = f"tipo={tt} | subs={n_ok}/{n_total} | tempo={tempo}s"
+        solucao = licao[:500]
+        ctx = f'exec_{tt}'  # ex: exec_projeto_jogo, exec_criar_codigo
+        self.kg.aprender(erro, causa, solucao, ctx)
+    except Exception:
+        pass
+```
+
+#### C4 — Feedback Loop (Backpropagation no Pipeline)
+
+**Arquivo:** `modulos/master_agent.py` — NOVO método
+
+```python
+def _feedback(self, request, tipo_porte, plano, resultados):
+    """Feedback do resultado para ajustar decisoes futuras.
+    Backpropagation: erro na saida ajusta camadas anteriores."""
+    sucesso = all(r.get('sucesso', False) for r in resultados.values())
+    if sucesso:
+        return
+    n_ok = sum(1 for r in resultados.values() if r.get('sucesso'))
+    n_total = len(plano)
+    if n_ok < n_total * 0.5 and n_total > 0:
+        licao = (f"FRACASSO: {n_ok}/{n_total} para '{request[:60]}'. "
+                 f"Tipo='{tipo_porte}' parece incorreto.")
+        self.kg.aprender(
+            erro=f"Feedback: {request[:60]}",
+            causa=f"tipo={tipo_porte} | sucesso={n_ok}/{n_total}",
+            solucao=licao[:300],
+            ctx='feedback_fracasso'
+        )
+```
+
+#### C5 — Clusterização de Requests (Não Supervisionado)
+
+**Arquivo:** `modulos/episodic_memory.py`
+
+```python
+def clusterizar(self, n_clusters=5):
+    """Agrupa episodios por similaridade semantica (K-means simplificado).
+    Nao Supervisionado: descobre padrões sem rotulos."""
+    episodios = [e for e in self.episodios if 'embedding' in e]
+    if len(episodios) < n_clusters:
+        return {}
+    embeddings = [e['embedding'] for e in episodios]
+    import random
+    centroides = random.sample(embeddings, min(n_clusters, len(embeddings)))
+    clusters = {i: [] for i in range(len(centroides))}
+    for _ in range(5):
+        for e, ep in zip(embeddings, episodios):
+            dists = [sum((a-b)**2 for a,b in zip(e, c))**0.5 for c in centroides]
+            clusters[dists.index(min(dists))].append(ep)
+        for cid in clusters:
+            if clusters[cid]:
+                centroides[cid] = [sum(vals)/len(vals) for vals in
+                                   zip(*[e['embedding'] for e in clusters[cid]])]
+    return {k: [ep['request'][:60] for ep in v] for k, v in clusters.items()}
+```
+
+#### C6 — Metacognição (AGI)
+
+**Arquivo:** `modulos/master_agent.py` — NOVO método
+
+```python
+def autoavaliar(self, request):
+    """Autoavaliacao: o sistema sabe o que sabe e o que nao sabe.
+    AGI: consciencia dos proprios limites."""
+    lessons = self.kg.buscar(request, max_r=3)
+    lessons_sem = []
+    try:
+        if hasattr(self.kg, 'buscar_por_embedding'):
+            lessons_sem = self.kg.buscar_por_embedding(request, n=2)
+    except: pass
+    total_conc = len(lessons) + len(lessons_sem)
+    experiencias = self.memoria.buscar(request, n=3)
+    n_exp = len(experiencias)
+    tx_suc = sum(1 for e in experiencias if e.get('sucesso')) / max(n_exp, 1)
+    if total_conc >= 3 and n_exp >= 2 and tx_suc >= 0.7:
+        return {'confianca': 'alta', 'gaps': [], 'acao': 'executar'}
+    if total_conc >= 1:
+        gaps = []
+        if n_exp < 2: gaps.append('pouca experiencia')
+        if total_conc < 3: gaps.append('conhecimento limitado')
+        return {'confianca': 'media', 'gaps': gaps, 'acao': 'executar_com_cautela'}
+    return {'confianca': 'baixa', 'gaps': ['sem conhecimento'], 'acao': 'estudar_antes'}
+```
+
+### Matriz de Implementação
+
+| # | O que | Arquivo | +/- | Conceito |
+|---|-------|---------|-----|----------|
+| C1 | KG com embeddings + busca semântica | `kg.py` | +35 | Supervisionado |
+| C2 | EpisodicMemory como função de recompensa | `episodic_memory.py` | +40 | Reforço |
+| C3 | KG estruturado como dataset | `master_agent.py` | +15 | Dataset |
+| C4 | Feedback loop (backpropagation) | `master_agent.py` | +40 | Backpropagation |
+| C5 | Clusterização de requests | `episodic_memory.py` | +45 | Não Supervisionado |
+| C6 | Metacognição (AGI) | `master_agent.py` | +35 | AGI |
+| | **Total** | | **~+210** | |
+
+### O que NÃO muda
+
+| Módulo | Motivo |
+|--------|--------|
+| `decider.py` | Já usa embeddings via `extrair_json()` — é nossa "camada neural" |
+| `tool_orchestrator.py` | Ferramentas são ações, não precisam de aprendizado |
+| `task_planner.py` | Planejamento usa Decider — feedback ajusta Decider |
+| `ia.py` | Interface com LLM — o "cérebro" externo |
+
+### Testes
+
+```python
+# C1: KG busca semantica
+kg = KnowledgeGraph()
+r = kg.buscar_por_embedding("criar um jogo", n=2)
+assert len(r) > 0
+
+# C2: Reforco
+mem = EpisodicMemory()
+taxa = mem.taxa_sucesso_para('gerar_codigo')
+assert 0.0 <= taxa <= 1.0
+
+# C4: Feedback
+agent = MasterAgent()
+agent._feedback("teste", "simples", [], {'1': {'sucesso': False}})
+
+# C5: Clusterizacao
+clusters = mem.clusterizar(n_clusters=3)
+assert len(clusters) <= 3
+
+# C6: Metacognicao
+avaliacao = agent.autoavaliar("criar um jogo em Python")
+assert avaliacao['acao'] in ('executar', 'executar_com_cautela', 'estudar_antes')
+```

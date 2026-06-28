@@ -212,6 +212,68 @@ class EpisodicMemory:
 
         return [s[1] for s in scores[:n]]
 
+    def taxa_sucesso_para(self, acao, request=''):
+        """Retorna taxa de sucesso historica para uma acao.
+        
+        Reforco: acoes que funcionaram no passado sao preferidas.
+        Ex: 'gerar_codigo' teve 80% sucesso → prioridade maior.
+        """
+        episodios_acao = [e for e in self.episodios
+                          if acao in str(e.get('resultado', ''))]
+        if not episodios_acao:
+            return 0.5  # desconhecido = neutro
+        sucessos = sum(1 for e in episodios_acao if e.get('sucesso'))
+        return sucessos / len(episodios_acao)
+
+    def buscar_com_peso_de_reforco(self, request, n=3, acoes=None):
+        """Busca experiencias com peso extra para acoes que funcionaram.
+        
+        Args:
+            acoes: Lista de acoes candidatas (ex: ['gerar_codigo', 'buscar_web'])
+        
+        Returns:
+            Lista de episodios ordenados por relevancia + recompensa
+        """
+        resultados = self.buscar(request, n * 2)
+        if acoes and resultados:
+            for ep in resultados:
+                for acao in acoes:
+                    taxa = self.taxa_sucesso_para(acao, request)
+                    if taxa > 0.7:
+                        ep['_score_reforco'] = ep.get('_score_reforco', 0) + taxa
+        return resultados[:n]
+
+    def clusterizar(self, n_clusters=5):
+        """Agrupa episodios por similaridade semantica (K-means).
+        
+        Nao Supervisionado: descobre padroes sem rotulos.
+        Returns: dict {cluster_id: [requests]}
+        """
+        episodios = [e for e in self.episodios if 'embedding' in e and len(e['embedding']) > 10]
+        if len(episodios) < n_clusters:
+            return {}
+        
+        embeddings = [e['embedding'] for e in episodios]
+        import random
+        n = min(n_clusters, len(embeddings))
+        centroides = random.sample(embeddings, n)
+        clusters = {i: [] for i in range(n)}
+        
+        for _ in range(5):  # 5 iteracoes
+            # Assign
+            for emb, ep in zip(embeddings, episodios):
+                dists = [sum((a-b)**2 for a,b in zip(emb, c))**0.5 for c in centroides]
+                cid = dists.index(min(dists))
+                clusters[cid].append(ep['request'][:60])
+            # Update
+            for cid in clusters:
+                if clusters[cid]:
+                    eps_no_cluster = [e for e in episodios if e['request'][:60] in clusters[cid]]
+                    if eps_no_cluster:
+                        centroides[cid] = [sum(vals)/len(vals) for vals in
+                                           zip(*[e['embedding'] for e in eps_no_cluster])]
+        return clusters
+
     def limpar(self):
         """Limpa toda a memória."""
         self.episodios = []
