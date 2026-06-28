@@ -4039,3 +4039,16 @@ if artefato_final.get('resposta_final'):
 | G10 | Auto-diagnóstico | +25 | Baixo | diagnostico.py |
 | G11 | Auto-revisão final | +30 | Médio | auto_revisor.py |
 | | **Total** | **~+300** | | |
+
+### Nota: Fusão conselho.py + enricher.py
+
+**Decisão:** `conselho.py` já tinha 90% das funcionalidades do `enricher.py`.
+Em vez de duplicar, o `enricher.py` foi transformado em atalho que importa
+de `conselho.py`. As 6 funcionalidades novas (TreeOfThought, PromptCache,
+TermosCríticos, AnalisadorDeContexto, ColetorDeContexto, ValidaçãoRelevância)
+foram adicionadas DIRETAMENTE no `conselho.py`.
+
+```python
+# enricher.py agora é apenas um atalho:
+from modulos.conselho import Conselho as Enricher
+```

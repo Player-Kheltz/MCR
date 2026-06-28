@@ -2,8 +2,11 @@
 - Zero arquivos de personalidade fixas
 - Arquetipos gerados dinamicamente via FAST + contexto do ContextCrew
 - Router de modelos por arquétipo (cada um usa o melhor modelo)
-- Validação anti-alucinacao + auto-revisao + traducao PT-BR"""
-import sys, os, time, json, threading
+- Validação anti-alucinacao + auto-revisao + traducao PT-BR
+- + TreeOfThought (G1), PromptCache (G5), TermosCriticos (G7), ValidacaoRelevancia (G6)
+  (fundido do enricher.py)"""
+import sys, os, time, json, threading, re
+from collections import OrderedDict
 sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 os.environ['PYTHONIOENCODING'] = 'utf-8'
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
@@ -11,6 +14,8 @@ from modulos.util import gerar as _gerar, fast as _fast
 from modulos.tradutor import traduzir as _traduzir
 from modulos.orquestrador import Orquestrador as _Orquestrador, _TEMPLATES as _ORQ_TEMPLATES
 from modulos import memoria_conselho as _memoria  # Memoria individual por membro
+from modulos.decider import Decider  # G1, G6, G7
+from modulos.ia import IA
 
 _MCR_IDENTITY = """CONTEXTO DO PROJETO MCR (leia antes de responder):
 - MCR = Projeto MCR, um servidor CUSTOMIZADO de Tibia baseado em Canary (OTServ)
@@ -120,6 +125,84 @@ _ARQUETIPOS_POR_TIPO = {
     'codigo': ['revisor_codigo', 'arquiteto', 'critico'],
     'desconhecido': ['analista', 'critico', 'estrategista'],
 }
+
+
+# ============================================================
+# G1 — TREE OF THOUGHT (fundido do enricher.py)
+# ============================================================
+_CAMINHOS_TOT = {
+    "analitico": "Pense como um ANALISTA. Foque em dados, fatos, numeros, versoes, metricas e detalhes tecnicos. Seja especifico e preciso.",
+    "criativo": "Pense como um CONTADOR DE HISTORIAS. Use exemplos concretos, analogias, cenarios praticos e aplicacoes reais.",
+    "critico": "Pense como um CRITICO. Questione suposicoes, aponte limitacoes, riscos, pontos cegos. Nao aceite nada pelo valor nominal.",
+}
+
+def tree_of_thought(ia, prompt_base):
+    """Gera 3 perspectivas (analitico, criativo, critico) e sintetiza."""
+    perspectivas = {}
+    for nome, instrucao in _CAMINHOS_TOT.items():
+        prompt = f"{instrucao}\n\nResponda EXATAMENTE a pergunta abaixo:\n{prompt_base}"
+        resp = ia.gerar(prompt, 0.4, 'pesado')
+        if resp:
+            perspectivas[nome] = resp.strip()
+    if len(perspectivas) < 2:
+        return prompt_base
+    prompt_sintese = (
+        f"Perspectiva ANALITICA:\n{perspectivas.get('analitico', '')[:1500]}\n"
+        f"Perspectiva CRIATIVA:\n{perspectivas.get('criativo', '')[:1500]}\n"
+        f"Perspectiva CRITICA:\n{perspectivas.get('critico', '')[:1500]}\n"
+        f"Sintetize em resposta UNICA, focando na pergunta original."
+    )
+    return ia.gerar(prompt_sintese, 0.3, 'pesado') or prompt_base
+
+
+# ============================================================
+# G5 — PROMPT CACHE LRU
+# ============================================================
+class PromptCache:
+    """Cache LRU de prompts enriquecidos."""
+    def __init__(self, max_size=64):
+        self._cache = OrderedDict()
+        self._max_size = max_size
+    def get(self, pergunta):
+        return self._cache.get(hash(pergunta) % 1000000)
+    def set(self, pergunta, prompt):
+        key = hash(pergunta) % 1000000
+        self._cache[key] = prompt
+        if len(self._cache) > self._max_size:
+            self._cache.popitem(last=False)
+
+
+# ============================================================
+# G7 — TERMOS CRITICOS (extracao melhorada)
+# ============================================================
+def extrair_termos_criticos(texto):
+    """Extrai termos relevantes incluindo siglas e extensoes (.lua, .py)."""
+    if not texto:
+        return []
+    termos = re.findall(r'\b[a-zA-Z.]{2,}\b', texto.lower())
+    stop = {'de','para','que','com','uma','era','mais','como','por','seu','sua',
+            'tem','ela','ele','voce','me','te','se','nos','lhe','das','dos',
+            'nas','nem','mas','sobre','isto','isso','aquele','este','essa',
+            'em','no','na','um','uns','umas','a','o','as','os','do','da','e'}
+    return [t for t in termos if t not in stop][:15]
+
+
+# ============================================================
+# G6 — VALIDACAO DE RELEVANCIA
+# ============================================================
+def validar_relevancia(ia, pergunta, contexto):
+    """FAST valida se o contexto coletado e relevante para a pergunta."""
+    if not contexto:
+        return False
+    textos = ' '.join(t[:300] for _, t in contexto[:3])
+    if not textos.strip() or len(textos) < 20:
+        return False
+    try:
+        prompt = f"Contexto: {textos[:500]}\nPergunta: {pergunta}\nEste contexto ajuda a responder? (sim/nao)"
+        resp = ia.fast(prompt, 0.1, 'leve').strip().lower()
+        return resp.startswith('sim')
+    except Exception:
+        return True
 
 
 class Conselho:
