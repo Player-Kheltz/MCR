@@ -63,28 +63,32 @@ class EstudoLoop:
                 topicos.add(p)
         return topicos
 
+    # Lista de topicos que o FAST tem vies e precisa de exclusao explicita
+    _TOPICOS_VIESADOS = ['machine_learning', 'machine learning', 'inteligencia_artificial',
+                         'ia', 'deep_learning', 'redes_neurais', 'data_science']
+
     def _normalizar_topico(self, topico):
         """Normaliza topico para comparacao."""
         t = topico.lower().strip()
         t = t.replace(' ', '_').replace('-', '_').replace('/', '_')
-        # Remove artigos e preposicoes comuns
         for w in ['o_', 'a_', 'os_', 'as_', 'de_', 'da_', 'do_', 'em_', 'para_', 'com_']:
             if t.startswith(w):
                 t = t[len(w):]
         return t[:40]
 
+    def _filtrar_nao_estudados(self, topicos, topicos_conhecidos):
+        """Filtra apenas topicos que NAO estao em topicos_conhecidos."""
+        return [t for t in topicos if self._normalizar_topico(t) not in topicos_conhecidos]
+
     def _escolher_topico(self, topicos_conhecidos):
         """Decide QUAL topico estudar — GARANTIDO como NAO estudado ainda.
         
-        Tenta ate 5 vezes. Usa salt para evitar cache do Decider.
-        Se tudo falhar, fallback para lista geral.
+        Como o FAST tem vies para topicos comuns (Machine Learning, IA...),
+        a estrategia eh:
+        1. Tenta FAST com exclusao explicita dos viesados
+        2. Se repetir, usa fallback filtrado (topicos NAO estudados)
         """
-        exemplos = [
-            ("Ja estudei Python, FastAPI, Docker. Qual estudar agora?", "Rust para WebAssembly"),
-            ("Sei pygame, tkinter. Qual biblioteca grafica estudar?", "OpenGL basico"),
-            ("Topicos: SPA, SHC, Canary. Proximo?", "Design Patterns em Python"),
-        ]
-
+        # Fallback: topicos diversos, filtrados pelos nao estudados
         fallbacks = [
             "Python assincrono com asyncio",
             "SOLID principles",
@@ -98,46 +102,53 @@ class EstudoLoop:
             "Estruturas de dados: Arvores",
             "Testes de integracao vs unitarios",
             "CI/CD com GitHub Actions",
+            "Programacao funcional em Python",
+            "WebSockets e tempo real",
+            "Criptografia basica aplicada",
+            "GraphQL vs REST",
+            "Microservicos vs Monolitos",
+            "ORM vs SQL puro",
         ]
 
-        for tentativa in range(5):
+        # Tenta FAST com exclusao explicita dos viesados
+        for tentativa in range(3):
             salt = random.randint(0, 99999)
             contexto = (f"Topicos ja estudados: {', '.join(sorted(topicos_conhecidos)[-15:])}"
                         if topicos_conhecidos else "Nenhum topico estudado ainda.")
+
+            # Exclusao explicita de topicos viaveis
+            exclusoes = ', '.join(self._TOPICOS_VIESADOS)
+            if topicos_conhecidos:
+                exclusoes += ', ' + ', '.join(list(topicos_conhecidos)[-10:])
 
             try:
                 dados = self.decider.extrair_json(
                     f"Escolha topico de estudo NOVO [{salt}]",
                     {'topico': '', 'justificativa': ''},
-                    exemplos=exemplos[:2],
+                    exemplos=[],
                     instrucao=(
-                        f"{contexto}\n"
-                        f"NUNCA repita topicos ja estudados.\n"
-                        f"Tente variar area de conhecimento.\n"
-                        f"Escolha algo util: programacao, arquitetura, algoritmo, ferramenta."
+                        f"EXCLUA estes topicos (ja estudados): {exclusoes}\n"
+                        f"Escolha algo DIFERENTE.\n"
+                        f"Topicos permitidos: programacao, ferramentas, arquitetura, algoritmos.\n"
+                        f"Topico:"
                     )
                 )
                 topico = dados.get('topico', '').strip()
-            except Exception as e:
-                topico = random.choice(fallbacks)
+            except Exception:
+                topico = ''
 
-            if not topico:
-                topico = random.choice(fallbacks)
+            if topico:
+                topico_norm = self._normalizar_topico(topico)
+                if topico_norm not in topicos_conhecidos:
+                    return topico
 
-            # Verifica se topico ja foi estudado
-            topico_norm = self._normalizar_topico(topico)
-            ja_estudado = topico_norm in topicos_conhecidos
+        # Fallback: pega o primeiro topico nao estudado da lista
+        nao_estudados = self._filtrar_nao_estudados(fallbacks, topicos_conhecidos)
+        if nao_estudados:
+            return random.choice(nao_estudados)
 
-            if not ja_estudado:
-                return topico
-
-            print(f"  [!] Topico '{topico}' ja estudado, tentando outro...")
-
-        # Fallback apos 5 tentativas
-        for fb in fallbacks:
-            if self._normalizar_topico(fb) not in topicos_conhecidos:
-                return fb
-        return random.choice(fallbacks)
+        # Se TODOS ja foram estudados, gera um generico
+        return f"Topico avancado de {random.choice(['Python', 'Arquitetura', 'Algoritmos', 'Bancos de Dados'])}"
 
     def _gerar_pergunta(self, topico):
         """Gera pergunta GARANTIDA como diferente das anteriores.
