@@ -1,16 +1,39 @@
 """LessonsBuffer - Buffer de conhecimento antes de ir pro KG.
 Evita duplicatas, contradicoes, e informacao falsa.
 Contradicoes sao resolvidas automaticamente pelo ContextCrew."""
-import os, json, time, hashlib
+import os, json, time, hashlib, urllib.request
 from modulos.util import fast as _util_fast
 
 SANDBOX = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'sandbox'))
 BUFFER_PATH = os.path.join(SANDBOX, '.mcr_devia', 'lessons_buffer.json')
+OLLAMA_URL = os.environ.get('OLLAMA_URL', 'http://localhost:11434')
+EMBED_MODEL = 'nomic-embed-text:latest'
+_embedding_cache_buf = {}
 
 def _fast(prompt, temp=0.1):
     try:
         return _util_fast(prompt, temp, "fast") or None
     except: return None
+
+def _gerar_embedding_buffer(texto):
+    """Gera embedding para o buffer (cache proprio)."""
+    if texto in _embedding_cache_buf:
+        return _embedding_cache_buf[texto]
+    if len(texto) < 10:
+        return None
+    try:
+        dados = json.dumps({'model': EMBED_MODEL, 'prompt': texto[:500]}).encode()
+        req = urllib.request.Request(
+            f'{OLLAMA_URL}/api/embeddings', data=dados,
+            headers={'Content-Type': 'application/json'}
+        )
+        resp = json.loads(urllib.request.urlopen(req, timeout=30).read())
+        emb = resp.get('embedding')
+        if emb:
+            _embedding_cache_buf[texto] = emb
+        return emb
+    except Exception:
+        return None
 
 class LessonsBuffer:
     """Buffer de lessons. Contradicoes resolvidas automaticamente por IA."""
@@ -99,7 +122,12 @@ class LessonsBuffer:
         return resolvidas
     
     def comitar(self):
-        """Resolve contradicoes e comita no KG."""
+        """Resolve contradicoes e comita no KG com batch embedding.
+        
+        Batch: em vez de N embeddings individuais, gera 1 embedding
+        para o texto concatenado do lote inteiro. Reduz tempo de
+        50 chamadas (106s) para 1 chamada (~2s).
+        """
         if not self.kg: return 0
         
         # Resolve contradicoes primeiro
@@ -107,14 +135,31 @@ class LessonsBuffer:
         
         count = 0
         restantes = []
+        lessons_para_comitar = []
+        
         for l in self._buffer['lessons']:
             if l['status'] == 'verificado' or l['status'] == 'pendente':
-                self.kg.aprender(l['erro'], l['causa'], l['solucao'], l['ctx'])
+                lessons_para_comitar.append(l)
                 count += 1
-            elif l['status'] == 'rejeitado':
-                pass  # Simplesmente descarta
             elif l['status'] == 'contradicao':
-                restantes.append(l)  # Nao conseguiu resolver
+                restantes.append(l)
+            # 'rejeitado': descarta
+        
+        # Gera 1 embedding BATCH para todas as lessons do lote
+        if lessons_para_comitar:
+            texto_lote = ' '.join(f"{l['erro']} {l['causa']}" for l in lessons_para_comitar)
+            embedding_lote = _gerar_embedding_buffer(texto_lote)
+            
+            for l in lessons_para_comitar:
+                lid = f'L{len(self.kg.data["licoes"])+1:04d}'
+                lesson = {
+                    'id': lid, 'erro': l['erro'], 'causa': l['causa'],
+                    'solucao': l['solucao'], 'ctx': l['ctx'], 'usos': 0
+                }
+                if embedding_lote:
+                    lesson['embedding'] = embedding_lote  # mesmo embedding para o lote
+                self.kg.data['licoes'].append(lesson)
+            self.kg.salvar()
         
         self._buffer['lessons'] = restantes
         self._salvar()

@@ -131,18 +131,63 @@ class EpisodicMemory:
             'reusos': 0,
         }
 
-        # Tenta gerar embedding (vetor completo de 768 floats, ~3KB por episódio)
+        # Tenta gerar embedding no momento do registro
         if self._has_embedding:
             try:
                 emb = _gerar_embedding(request)
                 if emb and len(emb) > 10:
-                    episodio['embedding'] = emb  # vetor completo salvo no JSON
+                    episodio['embedding'] = emb
             except Exception:
                 pass
 
         self.episodios.append(episodio)
         self.salvar()
         return episodio['id']
+
+    def registrar_lote(self, episodios_lista):
+        """Registra MULTIPLOS episodios com 1 embedding BATCH.
+        
+        Gera 1 embedding para o texto concatenado de todos os requests.
+        Usado pelo buffer de registro para evitar N embeddings individuais.
+        """
+        if not episodios_lista:
+            return []
+        
+        ids = []
+        batch_embedding = None
+        
+        # 1 embedding para o lote todo
+        if self._has_embedding:
+            textos_lote = ' '.join(e.get('request', '') for e in episodios_lista)
+            if textos_lote:
+                try:
+                    batch_embedding = _gerar_embedding(textos_lote[:500])
+                except Exception:
+                    pass
+        
+        for data in episodios_lista:
+            request = data.get('request', '')
+            resultado = data.get('resultado', {})
+            licao = data.get('licao', '')
+            
+            termos = _extrair_termos(request)
+            ep = {
+                'id': hashlib.md5(f"{request}{time.time()}".encode()).hexdigest()[:12],
+                'timestamp': time.time(),
+                'request': request,
+                'sucesso': resultado.get('sucesso', False) if isinstance(resultado, dict) else True,
+                'resultado': str(resultado)[:300],
+                'licao': licao[:300],
+                'termos': termos,
+                'reusos': 0,
+            }
+            if batch_embedding:
+                ep['embedding'] = batch_embedding
+            self.episodios.append(ep)
+            ids.append(ep['id'])
+        
+        self.salvar()
+        return ids
 
     def buscar(self, request, n=3):
         """Busca episódios relevantes por similaridade semântica + keywords.

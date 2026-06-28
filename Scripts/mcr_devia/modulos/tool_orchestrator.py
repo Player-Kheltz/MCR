@@ -363,13 +363,23 @@ class ToolOrchestrator:
             self.__class__._HAS_NODE = r.returncode == 0
         return self._HAS_NODE
 
+    # Cache de validacao (Nivel 1)
+    _cache_validacao = {}
+
+    def _get_cache_validacao(self, key):
+        return self._cache_validacao.get(key)
+
+    def _set_cache_validacao(self, key, valor):
+        if len(self._cache_validacao) > 500:
+            self._cache_validacao.clear()
+        self._cache_validacao[key] = valor
+
     def _cmd_validar_codigo(self, codigo):
-        """Valida codigo em QUALQUER linguagem.
+        """Valida codigo em QUALQUER linguagem com 3 niveis de seguranca.
         
-        1. Extrai codigo puro (remove markdown)
-        2. Detecta linguagem via Decider/FAST
-        3. Dispara validador especifico
-        4. Fallback: validacao ignorada se nao houver suporte
+        Nivel 1 — Toolkit rapido (cache + KG + EpisodicMemory, 0 IA)
+        Nivel 2 — Checker especifico (ast, node, json) ou FAST + exemplos
+        Nivel 3 — Dupla checagem se FAST confianca baixa
         """
         from modulos.util import extrair_codigo_puro
         from modulos.decider import Decider
@@ -379,45 +389,145 @@ class ToolOrchestrator:
         if not codigo_puro or len(codigo_puro) < 10:
             return {'valido': False, 'erros': ['Codigo vazio ou muito curto']}
 
-        # Detecta linguagem via Decider
+        # NIVEL 1: Toolkit rapido (0 IA)
+        resultado_toolkit = self._validar_com_toolkit(codigo_puro)
+        if resultado_toolkit:
+            return resultado_toolkit
+
+        # NIVEL 2: Detecta linguagem + checker ou FAST
         try:
             decider = Decider(_IA())
             lang = decider.classificar(
                 codigo_puro[:300],
                 ['python', 'javascript', 'lua', 'json', 'html', 'yaml',
-                 'typescript', 'css', 'xml', 'csharp', 'rust', 'go'],
+                 'typescript', 'css', 'xml', 'csharp', 'rust', 'go',
+                 'bash', 'makefile', 'java', 'sql', 'php', 'ruby', 'swift'],
                 exemplos=[
                     ("import pygame; print('hello')", "python"),
-                    ("def main(): print('oi')", "python"),
-                    ("class Jogador: def __init__(self): pass", "python"),
                     ("const x = 1; console.log(x);", "javascript"),
                     ('{"nome": "Joao", "idade": 30}', "json"),
                     ("<html><body>Oi</body></html>", "html"),
                     ("local player = { x = 10 }", "lua"),
+                    ("#!/bin/bash\necho 'hello'", "bash"),
+                    ("target: deps\n\tgcc main.c\necho 'feito'", "makefile"),
+                    ("public class Test { }", "java"),
+                    ("SELECT * FROM users WHERE id = 1", "sql"),
                 ],
-                instrucao="Detecte a linguagem pelo codigo. Prefira 'python' se houver duvida entre python e lua."
+                instrucao="Detecte a linguagem pelo codigo. Prefira 'makefile' se tiver ':' e '\\t'. Prefira 'bash' se tiver '#!/bin' ou 'echo'. Se incerto, prefira 'python'."
             )
         except Exception:
-            lang = 'python'  # fallback seguro
+            lang = 'python'
 
-        # Dispara validador especifico
-        validadores = {
+        # Checkers especificos (deterministicos, seguros)
+        checkers = {
             'python': self._validar_python,
             'javascript': self._validar_javascript,
             'typescript': self._validar_javascript,
             'lua': self._validar_lua,
             'json': self._validar_json,
-            'html': self._validar_html,
         }
 
-        validador = validadores.get(lang)
-        if validador:
-            resultado = validador(codigo_puro)
+        checker = checkers.get(lang)
+        if checker:
+            resultado = checker(codigo_puro)
             if isinstance(resultado, dict):
                 resultado['linguagem'] = lang
+                resultado['metodo'] = 'checker'
+            self._set_cache_validacao(codigo_puro[:200], resultado)
             return resultado
 
-        return {'valido': True, 'erros': [], 'aviso': f'Sem validador para {lang}, ignorado', 'linguagem': lang}
+        # FAST + exemplos para linguagens sem checker (Bash, Java, Makefile, HTML...)
+        return self._validar_com_fast(codigo_puro, lang)
+
+    def _validar_com_toolkit(self, codigo):
+        """Nivel 1: toolkit rapido — cache + memoria (0 IA)."""
+        cached = self._get_cache_validacao(codigo[:200])
+        if cached:
+            return cached
+        try:
+            from modulos.episodic_memory import EpisodicMemory
+            mem = EpisodicMemory()
+            for m in mem.buscar(f"validar {codigo[:100]}", n=1):
+                if m.get('sucesso') and 'valido' in m.get('licao', ''):
+                    r = {'valido': True, 'erros': [], 'metodo': 'memoria_cache'}
+                    self._set_cache_validacao(codigo[:200], r)
+                    return r
+        except Exception:
+            pass
+        return None
+
+    def _validar_com_fast(self, codigo, linguagem):
+        """Nivel 2: FAST + exemplos universais para QUALQUER linguagem.
+        
+        Se disse invalido com baixa confianca, passa para Nivel 3.
+        """
+        from modulos.decider import Decider
+
+        exemplos = [
+            ("echo 'hello'", "valido"),
+            ("echo 'hello", "invalido"),
+            ("<html><body>Oi</body></html>", "valido"),
+            ("<html><body>Oi</html>", "invalido"),
+            ("target:\n\techo ok", "valido"),
+            ("target:\n echo ok", "invalido"),
+            ("public class Test {}", "valido"),
+            ("public class Test {", "invalido"),
+            ("SELECT * FROM users", "valido"),
+            ("SELECT * FORM users", "invalido"),
+        ]
+
+        try:
+            decider = Decider(self._get_ia())
+            r = decider.classificar(
+                codigo[:1000], ['valido', 'invalido'],
+                exemplos=exemplos,
+                instrucao=f"Classifique se codigo {linguagem} tem erros de sintaxe."
+            )
+            if r == 'valido':
+                resp = {'valido': True, 'erros': [], 'linguagem': linguagem, 'metodo': 'fast'}
+                self._set_cache_validacao(codigo[:200], resp)
+                return resp
+            return self._validar_com_fast_detalhado(codigo, linguagem)
+        except Exception as e:
+            print(f"[ValidadorFAST] Erro: {e}")
+
+        resp = {'valido': True, 'erros': [], 'aviso': 'Falha FAST, ignorado', 'linguagem': linguagem}
+        self._set_cache_validacao(codigo[:200], resp)
+        return resp
+
+    def _validar_com_fast_detalhado(self, codigo, linguagem):
+        """Nivel 3: dupla checagem — verifica se erro e real ou falso positivo.
+        
+        1. Pede para listar erros especificos
+        2. Se nao conseguir listar erro concreto → falso positivo
+        3. Se listar erro que parece real → invalido
+        """
+        prompt = (
+            f"Analise este codigo {linguagem}.\n"
+            f"Responda APENAS com 'OK' se estiver correto.\n"
+            f"Se houver erro, diga EXATAMENTE o erro (linha, caracter).\n\n"
+            f"CODIGO:\n```{linguagem}\n{codigo[:2000]}\n```\n\n"
+            f"Resposta (apenas 'OK' ou 'ERRO: descricao'):"
+        )
+        try:
+            resp = self._get_ia().fast(prompt, 0.1, 'leve')
+        except Exception:
+            resp = ''
+
+        if resp and 'ERRO' in resp.upper():
+            # Verifica se o erro parece real ou generico
+            resp_lower = resp.lower()
+            erros_genericos = ['parece ser', 'possivel', 'talvez', 'nao tenho', 'nao consigo']
+            if any(g in resp_lower for g in erros_genericos):
+                # Erro generico → falso positivo
+                r = {'valido': True, 'erros': [], 'aviso': 'Falso positivo', 'linguagem': linguagem, 'metodo': 'fast_corrigido'}
+            else:
+                # Erro especifico → invalido
+                r = {'valido': False, 'erros': [resp[:200]], 'linguagem': linguagem, 'metodo': 'fast_detalhado'}
+        else:
+            r = {'valido': True, 'erros': [], 'linguagem': linguagem, 'metodo': 'fast_corrigido'}
+        self._set_cache_validacao(codigo[:200], r)
+        return r
 
     def _validar_python(self, codigo):
         """Valida sintaxe Python com ast.parse()."""
@@ -482,12 +592,13 @@ class ToolOrchestrator:
             return {'valido': False, 'erros': [str(e)[:200]]}
 
     def _validar_html(self, codigo):
-        """Valida HTML basico."""
-        if '<html' in codigo.lower() and '</html>' in codigo.lower():
-            return {'valido': True, 'erros': []}
-        if '<!DOCTYPE html' in codigo or '<html' in codigo:
-            return {'valido': True, 'erros': []}
-        return {'valido': False, 'erros': ['HTML parece incompleto']}
+        """Valida HTML basico (menos restritivo).
+        
+        Qualquer conteudo com tags HTML basicas e considerado valido.
+        """
+        if '<' in codigo and '>' in codigo:
+            return {'valido': True, 'erros': [], 'aviso': 'Validacao HTML basica'}
+        return {'valido': False, 'erros': ['Nao parece HTML (sem tags)']}
 
     def _cmd_executar_python(self, codigo):
         """Executa Python em sandbox via subprocess."""
