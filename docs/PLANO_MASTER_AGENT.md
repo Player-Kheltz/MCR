@@ -3099,3 +3099,281 @@ assert len(clusters) <= 3
 avaliacao = agent.autoavaliar("criar um jogo em Python")
 assert avaliacao['acao'] in ('executar', 'executar_com_cautela', 'estudar_antes')
 ```
+
+---
+
+## Apêndice E — Context Infinity como Sistema Nervoso Central
+
+> **Data:** 2026-06-28
+> **Filosofia:** Context Infinity não tem limite de tokens. É um **cache de sessão vivo**
+> que absorve TUDO o que acontece. Quando um passo precisa de contexto, ele **pesca**
+> exatamente o que precisa — não carrega tudo, não perde nada.
+>
+> **Mudança de paradigma:** O antigo `OrquestradorContexto` (janela 8k com evicção)
+> é substituído pelo `SessionCache` (memória RAM, sem limite, acumula tudo).
+
+### Arquitetura Antiga vs Nova
+
+| Aspecto | ANTES (`OrquestradorContexto`) | DEPOIS (`SessionCache`) |
+|---------|-------------------------------|------------------------|
+| Modelo mental | "Janela de 8k que lota e evicta" | "Cache que absorve tudo, pesca sob demanda" |
+| Limite | `ctx_max` (8k tokens físicos) | **Nenhum** (memória RAM, ~100MB+) |
+| Quando lota | Remove fragmento (perde dados) | **Nunca lota** — acumula |
+| Resumo removido | 3 linhas no KG (primitivo) | **Não existe** — nada é removido |
+| Como o LLM usa | Contexto montado inteiro | Só o que **pesca** no momento |
+| Autoaperfeiçoamento | Não existe | Loop de Perfeição: itera sobre si |
+
+### Os 3 Novos Componentes
+
+#### E1 — `SessionCache` (o cérebro que nunca esquece)
+
+Substitui `OrquestradorContexto`. Remove `ctx_max`. Adiciona `absorver()` e `pescar()`.
+
+```python
+class SessionCache:
+    """Cache de sessao que ABSORVE tudo sem limite.
+    
+    - Nao tem ctx_max (guarda em RAM ate o fim da execucao)
+    - Cada passo ESCREVE automaticamente via absorver()
+    - pescar() retorna SO o relevante para o prompt do LLM
+    - Suporta tags, tipos, busca textual e prioridade
+    """
+    
+    def __init__(self):
+        self.fragmentos: Dict[str, FragmentoContexto] = {}
+        self.indice: Dict[str, List[str]] = {}
+        self.historico: List[dict] = []
+    
+    def absorver(self, id, conteudo, tipo="texto", tags=None, origem=""):
+        """Absorve um fragmento. NUNCA remove, nunca perde.
+        
+        Se o id ja existe, atualiza o conteudo e aumenta prioridade
+        (o conhecimento foi refinado).
+        """
+        if id in self.fragmentos:
+            self.fragmentos[id].conteudo = conteudo
+            self.fragmentos[id].prioridade = min(100, self.fragmentos[id].prioridade + 5)
+            self.fragmentos[id].ultimo_acesso = time.time()
+            return
+        frag = FragmentoContexto(id, conteudo, origem, 
+                                 prioridade=self._calcular_prioridade(tipo, tags),
+                                 tipo=tipo)
+        self.fragmentos[id] = frag
+        self._indexar(frag)
+        self.historico.append({'ts': time.time(), 'acao': 'absorver', 'id': id, 'tipo': tipo})
+    
+    def pescar(self, pergunta="", tipos=None, tags=None, n=3, max_tokens=800):
+        """Pesca fragmentos relevantes. Retorna SO o necessario.
+        
+        Args:
+            pergunta: Texto da consulta (para match textual)
+            tipos: Filtrar por tipo ('codigo', 'explicacao', 'resultado')
+            tags: Filtrar por tags (['python', 'pygame', 'entities'])
+            n: Maximo de fragmentos
+            max_tokens: Limite de tokens para o prompt (opcional)
+        """
+        candidatos = list(self.fragmentos.values())
+        
+        # Filtro por tipo
+        if tipos:
+            candidatos = [f for f in candidatos if f.tipo in tipos]
+        
+        # Filtro por tags (busca nas tags salvas)
+        if tags:
+            candidatos = [f for f in candidatos if f._tags and any(t in f._tags for t in tags)]
+        
+        # Score por pergunta
+        if pergunta:
+            termos = set(pergunta.lower().split())
+            scores = []
+            for frag in candidatos:
+                score = sum(1 for t in termos 
+                          if len(t) > 3 and t in frag.conteudo.lower())
+                if score > 0:
+                    score += frag.prioridade / 10
+                    score += frag.acessos / 100
+                    scores.append((score, frag))
+                    frag.registrar_acesso()
+            scores.sort(key=lambda x: -x[0])
+            candidatos = [s[1] for s in scores]
+        
+        # Limite por tokens (opcional — para caber no prompt)
+        if max_tokens:
+            resultado = []
+            tokens = 0
+            for frag in candidatos:
+                if tokens + frag.tokens <= max_tokens:
+                    resultado.append(frag)
+                    tokens += frag.tokens
+            return resultado
+        
+        return candidatos[:n]
+    
+    def _calcular_prioridade(self, tipo, tags):
+        """Calcula prioridade baseado no tipo e tags."""
+        prioridades_por_tipo = {
+            'request': 100, 'plano': 90, 'codigo': 80,
+            'resultado': 70, 'explicacao': 60, 'contexto': 50,
+            'melhoria': 75, 'log': 30, 'debug': 20,
+        }
+        return prioridades_por_tipo.get(tipo, 50)
+    
+    def _indexar(self, frag):
+        """Indexa termos do fragmento para busca rapida."""
+        termos = set(frag.conteudo.lower().split()[:50])
+        for termo in termos:
+            if len(termo) > 3:
+                if termo not in self.indice:
+                    self.indice[termo] = []
+                self.indice[termo].append(frag.id)
+    
+    def reconstruir(self, tags=None, tipos=None):
+        """Reconstroi o estado completo da sessao.
+        
+        Permite 'voltar no tempo' e reconstruir qualquer parte
+        do que foi feito, porque TUDO foi absorvido.
+        """
+        filtrados = self.pescar(tags=tags, tipos=tipos, n=100, max_tokens=None)
+        return '\n\n'.join(f"{f.tipo.upper()}: {f.conteudo[:500]}" for f in filtrados)
+```
+
+#### E2 — Integração com MasterAgent (cada passo escreve)
+
+No `executar()` do MasterAgent:
+
+```python
+def executar(self, request, task_type=''):
+    # Inicia SessionCache para esta sessao
+    self.ctx = SessionCache()
+    
+    # === ABSORVE request original ===
+    self.ctx.absorver('request', request, 'request', tags=['request', task_type], origem='usuario')
+    
+    # === PERCEBER ===
+    memorias = self.memoria.buscar(request, 3)
+    self.ctx.absorver('memorias', str(memorias), 'contexto', tags=['memoria'], origem='episodic_memory')
+    
+    # === PLANEJAR ===
+    plano = self.planner.planejar(request, task_type)
+    self.ctx.absorver('plano', json.dumps([{'id':p['id'],'acao':p['acao']} for p in plano]), 
+                      'plano', tags=['plano'], origem='planner')
+    
+    # === EXECUTAR (cada passo pesca + absorve) ===
+    for subtarefa in plano:
+        # PESCA contexto relevante para ESTA subtarefa
+        ctx_passo = self.ctx.pescar(
+            pergunta=subtarefa['descricao'],
+            tipos=['codigo', 'request', 'plano', 'resultado'],
+            max_tokens=600  # prompt pequeno e focado
+        )
+        resultado = self._executar_subtarefa(subtarefa, contexto_extra=str(ctx_passo))
+        
+        # ABSORVE resultado deste passo
+        self.ctx.absorver(
+            f'passo_{subtarefa["id"]}',
+            str(resultado.get('resultado', ''))[:1000],
+            tipo='resultado',
+            tags=[subtarefa['acao'], task_type, 'sucesso' if resultado.get('sucesso') else 'falha'],
+            origem=f'executor:{subtarefa["acao"]}'
+        )
+```
+
+#### E3 — Loop de Perfeição
+
+```python
+class LoopDePerfeicao:
+    """Itera sobre o proprio resultado ate atingir a perfeicao.
+    
+    Usa SessionCache como guia:
+    1. Pesca o estado atual do projeto
+    2. Pede ao MasterAgent para melhorar
+    3. Absorve a melhoria
+    4. Repete ate compilar sem erros
+    """
+    
+    def __init__(self, agent):
+        self.agent = agent
+        self.max_ciclos = 10
+    
+    def executar(self, request_inicial):
+        # Primeira execucao
+        resultado = self.agent.executar(request_inicial)
+        self.agent.ctx.absorver('projeto_completo', str(resultado), 
+                                'resultado', tags=['projeto_completo'])
+        
+        ciclo = 0
+        while ciclo < self.max_ciclos:
+            # Pesca estado atual
+            projeto = self.agent.ctx.pescar(tags=['projeto_completo'], n=1)
+            falhas = self.agent.ctx.pescar(tags=['falha'], n=3)
+            
+            if not falhas:
+                print(f"[Perfeicao] Projeto OK no ciclo {ciclo}!")
+                break
+            
+            # Pede melhoria
+            prompt = (
+                f"Projeto atual:\n{projeto}\n"
+                f"Problemas:\n{falhas}\n"
+                f"Corrija os problemas e melhore. Ciclo {ciclo+1}/{self.max_ciclos}."
+            )
+            melhoria = self.agent.executar(prompt)
+            
+            # Absorve
+            self.agent.ctx.absorver(f'melhoria_{ciclo}', str(melhoria),
+                                    'melhoria', tags=['melhoria', f'ciclo_{ciclo}'])
+            
+            ciclo += 1
+        
+        return resultado
+```
+
+### Modificações nos Arquivos
+
+| Arquivo | O quê | +/- | Risco |
+|---------|-------|-----|-------|
+| `context_infinity.py` | Refatorar `OrquestradorContexto` p/ `SessionCache` | +120 | Alto |
+| `modulos/master_agent.py` | Integrar `SessionCache` no `executar()` | +60 | Médio |
+| `modulos/master_agent.py` | Novo método `_loop_perfeicao()` | +50 | Médio |
+| **Total** | | **~+230** | |
+
+### Compatibilidade Retroativa
+
+O `OrquestradorContexto` antigo é mantido para o `kernel.py` (não quebrar nada).
+O `SessionCache` é um NOVO componente que coexiste.
+
+```python
+# kernel.py continua usando OrquestradorContexto (não muda)
+# master_agent.py usa SessionCache (novo)
+```
+
+### Testes
+
+```python
+# E1: SessionCache absorve sem limite
+cache = SessionCache()
+for i in range(1000):
+    cache.absorver(f'f_{i}', f'conteudo {i}', 'texto')
+assert len(cache.fragmentos) == 1000  # nunca perde
+assert len(cache.historico) == 1000   # tudo registrado
+
+# E2: Pesca por tipo
+cache.absorver('codigo_1', 'print("hello")', 'codigo', tags=['python'])
+r = cache.pescar(tipos=['codigo'])
+assert len(r) >= 1
+
+# E3: Pesca por pergunta
+cache.absorver('explicacao_1', 'Python é uma linguagem de programação', 'explicacao')
+r = cache.pescar(pergunta='python linguagem')
+assert len(r) >= 1
+
+# E4: Reconstruir estado
+estado = cache.reconstruir(tags=['python'])
+assert len(estado) > 0
+
+# E5: Integração MasterAgent
+agent = MasterAgent()
+resultado = agent.executar("Cria um script python que imprime hello")
+assert hasattr(agent, 'ctx')
+assert 'plano' in agent.ctx.fragmentos
+```

@@ -48,7 +48,7 @@ class FragmentoContexto:
     """Um fragmento de informacao no contexto ativo."""
     def __init__(self, id: str, conteudo: str, origem: str = "",
                  prioridade: int = 0, tipo: str = "texto",
-                 tokens_estimados: int = 0):
+                 tokens_estimados: int = 0, tags: list = None):
         self.id = id
         self.conteudo = conteudo
         self.origem = origem
@@ -59,12 +59,12 @@ class FragmentoContexto:
         self.criado_em = time.time()
         self.ultimo_acesso = time.time()
         self.resumo = ""  # Resumo salvo no KG se removido
-    
+        self._tags = tags or []  # Tags para busca (nova)
+     
     def registrar_acesso(self):
         """Registra que este fragmento foi acessado."""
         self.acessos += 1
         self.ultimo_acesso = time.time()
-        # Aumenta prioridade com uso
         self.prioridade = min(100, self.prioridade + 2)
 
 
@@ -328,6 +328,155 @@ class OrquestradorContexto:
                 for f in sorted(self.fragmentos.values(),
                                key=lambda x: -x.prioridade)[:10]
             ]
+        }
+
+
+# ============================================================
+# SESSION CACHE — Novo: sem limite, absorve tudo, pesca sob demanda
+# ============================================================
+
+class SessionCache:
+    """Cache de sessao que ABSORVE tudo sem limite.
+    
+    Diferenca do OrquestradorContexto:
+    - Nao tem ctx_max (guarda em RAM ate o fim da execucao)
+    - Nunca remove fragmentos — acumula infinitamente
+    - pescar() retorna SO o relevante para o prompt do LLM
+    - Suporta tags, tipos, busca textual e reconstrucao de estado
+    - Cada passo do MasterAgent escreve automaticamente
+    
+    Uso:
+        cache = SessionCache()
+        cache.absorver('request', 'Cria um jogo', 'request', tags=['projeto'])
+        cache.absorver('codigo_1', 'print("hello")', 'codigo', tags=['python'])
+        relevantes = cache.pescar(pergunta='cria jogo', tipos=['request'], max_tokens=500)
+        estado = cache.reconstruir()  # volta no tempo
+    """
+    
+    def __init__(self):
+        self.fragmentos: Dict[str, FragmentoContexto] = {}
+        self.indice: Dict[str, List[str]] = {}
+        self.historico: List[dict] = []
+    
+    def _calcular_prioridade(self, tipo, tags):
+        """Calcula prioridade baseado no tipo e tags."""
+        prioridades = {
+            'request': 100, 'plano': 90, 'codigo': 80,
+            'resultado': 70, 'explicacao': 60, 'contexto': 50,
+            'melhoria': 75, 'log': 30, 'debug': 20,
+        }
+        return prioridades.get(tipo, 50)
+    
+    def _indexar(self, frag):
+        """Indexa termos do fragmento para busca rapida."""
+        termos = set(frag.conteudo.lower().split()[:50])
+        for termo in termos:
+            if len(termo) > 3:
+                if termo not in self.indice:
+                    self.indice[termo] = []
+                self.indice[termo].append(frag.id)
+    
+    def absorver(self, id, conteudo, tipo="texto", tags=None, origem=""):
+        """Absorve um fragmento. NUNCA remove, nunca perde.
+        
+        Se o id ja existe, atualiza o conteudo e aumenta prioridade
+        (significa que o conhecimento foi refinado).
+        """
+        if id in self.fragmentos:
+            frag = self.fragmentos[id]
+            frag.conteudo = conteudo
+            frag.prioridade = min(100, frag.prioridade + 5)
+            frag.ultimo_acesso = time.time()
+            if tags:
+                frag._tags = list(set(frag._tags + tags))
+            self.historico.append({'ts': time.time(), 'acao': 'atualizar', 'id': id})
+            return
+        
+        prioridade = self._calcular_prioridade(tipo, tags)
+        frag = FragmentoContexto(id, conteudo, origem, prioridade, tipo,
+                                 tags=tags or [])
+        self.fragmentos[id] = frag
+        self._indexar(frag)
+        self.historico.append({'ts': time.time(), 'acao': 'absorver', 'id': id, 'tipo': tipo})
+    
+    def pescar(self, pergunta="", tipos=None, tags=None, n=3, max_tokens=800):
+        """Pesca fragmentos relevantes. Retorna SO o necessario para o prompt.
+        
+        Args:
+            pergunta: Texto da consulta (para match textual)
+            tipos: Filtrar por tipo ('codigo', 'explicacao', 'resultado')
+            tags: Filtrar por tags (['python', 'pygame', 'entities'])
+            n: Maximo de fragmentos
+            max_tokens: Limite de tokens para o prompt (opcional)
+        Returns:
+            Lista de FragmentoContexto mais relevantes
+        """
+        candidatos = list(self.fragmentos.values())
+        
+        # Filtro por tipo
+        if tipos:
+            candidatos = [f for f in candidatos if f.tipo in tipos]
+        
+        # Filtro por tags
+        if tags:
+            candidatos = [f for f in candidatos 
+                         if f._tags and any(t in f._tags for t in tags)]
+        
+        # Score por pergunta (match textual)
+        if pergunta and candidatos:
+            termos = set(pergunta.lower().split())
+            scores = []
+            for frag in candidatos:
+                score = sum(1 for t in termos 
+                          if len(t) > 3 and t in frag.conteudo.lower())
+                if score > 0:
+                    score += frag.prioridade / 10
+                    score += frag.acessos / 100
+                    scores.append((score, frag))
+                    frag.registrar_acesso()
+            scores.sort(key=lambda x: -x[0])
+            candidatos = [s[1] for s in scores]
+        
+        # Se tem pergunta mas ninguem matched, retorna os mais recentes
+        if pergunta and not candidatos:
+            candidatos = sorted(self.fragmentos.values(), 
+                               key=lambda f: f.ultimo_acesso, reverse=True)[:n]
+        
+        # Limite por tokens (opcional)
+        if max_tokens and candidatos:
+            resultado = []
+            tokens = 0
+            for frag in candidatos:
+                if tokens + frag.tokens <= max_tokens:
+                    resultado.append(frag)
+                    tokens += frag.tokens
+            return resultado
+        
+        return candidatos[:n]
+    
+    def reconstruir(self, tags=None, tipos=None, max_chars=3000):
+        """Reconstroi o estado completo da sessao.
+        
+        Permite 'voltar no tempo' e reconstruir qualquer parte
+        do que foi feito, porque TUDO foi absorvido.
+        """
+        filtrados = self.pescar(tags=tags, tipos=tipos, n=50, max_tokens=None)
+        partes = []
+        chars = 0
+        for f in filtrados:
+            trecho = f"{f.tipo.upper()}: {f.conteudo[:500]}"
+            if chars + len(trecho) <= max_chars:
+                partes.append(trecho)
+                chars += len(trecho)
+        return '\n\n'.join(partes) if partes else "(vazio)"
+    
+    def metricas(self):
+        """Retorna metricas do cache."""
+        return {
+            'fragmentos': len(self.fragmentos),
+            'termos_indexados': len(self.indice),
+            'eventos_historico': len(self.historico),
+            'tokens_total': sum(f.tokens for f in self.fragmentos.values()),
         }
 
 

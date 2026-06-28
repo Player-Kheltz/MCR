@@ -27,6 +27,7 @@ from modulos.tool_orchestrator import ToolOrchestrator
 from modulos.sandbox_executor import SandboxExecutor
 from modulos.ia import IA
 from modulos.kg import KnowledgeGraph
+from context_infinity import SessionCache
 
 
 class MasterAgent:
@@ -109,6 +110,10 @@ class MasterAgent:
         t0 = time.time()
         self._passos = []
 
+        # === CONTEXT INFINITY (SessionCache) ===
+        self.ctx = SessionCache()
+        self.ctx.absorver('request', request, 'request', tags=['request', task_type or 'geral'], origem='usuario')
+
         self._log('PERCEBER', f'Request: {request[:100]}')
 
         # === METACOGNICAO (AGI) ===
@@ -124,6 +129,7 @@ class MasterAgent:
         memorias = self.memoria.buscar(request, 3)
         if memorias:
             self._log('PERCEBER', f'Encontradas {len(memorias)} experiencias similares')
+            self.ctx.absorver('memorias', str(memorias), 'contexto', tags=['memoria'], origem='episodic_memory')
             for m in memorias:
                 status = 'OK' if m.get('sucesso') else 'FALHA'
                 self._log('PERCEBER', f"  -> {m['request'][:60]} ({status})")
@@ -132,6 +138,7 @@ class MasterAgent:
         lessons = self.kg.buscar(request, max_r=3)
         if lessons:
             self._log('PERCEBER', f'Encontradas {len(lessons)} licoes no KG')
+            self.ctx.absorver('kg_lessons', str(lessons[:2]), 'contexto', tags=['kg'], origem='kg')
 
         # === 1.5 PAUSE-AND-ASK (projetos grandes) ===
         # Usa Decider para classificar o porte do projeto
@@ -184,6 +191,8 @@ class MasterAgent:
         self._log('PLANEJAR', 'Criando plano de execucao...')
         plano = self.planner.planejar(request, task_type)
         self._log('PLANEJAR', f'Plano: {len(plano)} subtarefas')
+        self.ctx.absorver('plano', json.dumps([{'id': p['id'], 'acao': p['acao'], 'desc': p['descricao'][:50]} for p in plano]),
+                          'plano', tags=['plano', task_type or 'geral'], origem='planner')
 
         for p in plano:
             self._log('PLANEJAR', f'  {p["id"]}. {p["acao"]} - {p["descricao"][:60]}')
@@ -206,17 +215,41 @@ class MasterAgent:
                 resultados[subtarefa['id']] = {'sucesso': False, 'erro': 'Dependencias nao satisfeitas'}
                 continue
 
+            # PESCA contexto relevante do SessionCache para esta subtarefa
+            ctx_passo = self.ctx.pescar(
+                pergunta=subtarefa['descricao'],
+                tipos=['codigo', 'request', 'plano', 'resultado', 'contexto'],
+                max_tokens=500
+            )
+            ctx_passo_str = str([c.conteudo[:200] for c in ctx_passo]) if ctx_passo else ''
+
             # Herdar resultado do passo que gerou codigo (nao o de validacao)
             codigo_anterior = artefatos.get('codigo_gerado')
 
-            # Executar
-            resultado = self._executar_subtarefa(subtarefa, artefatos=artefatos, codigo_anterior=codigo_anterior)
+            # Executar com contexto enriquecido do SessionCache
+            contexto_extra_passo = ctx_passo_str if ctx_passo_str else ''
+            
+            resultado = self._executar_subtarefa(subtarefa, artefatos=artefatos, 
+                                                  contexto_extra=contexto_extra_passo,
+                                                  codigo_anterior=codigo_anterior)
             resultados[subtarefa['id']] = resultado
+
+            # ABSORVE resultado no SessionCache
+            acao_atual = subtarefa.get('acao', '')
+            res = resultado.get('resultado', '')
+            if isinstance(res, str) and len(res) > 20:
+                tags_resultado = [acao_atual, task_type or 'geral']
+                tags_resultado.append('sucesso' if resultado.get('sucesso') else 'falha')
+                self.ctx.absorver(
+                    f'passo_{subtarefa["id"]}_{acao_atual}',
+                    res[:1000],
+                    tipo='codigo' if 'gerar_' in acao_atual else 'resultado',
+                    tags=tags_resultado,
+                    origem=f'executor:{acao_atual}'
+                )
 
             # Se gerou codigo, armazena como artefato
             if resultado.get('sucesso'):
-                acao_atual = subtarefa.get('acao', '')
-                res = resultado.get('resultado', '')
                 if isinstance(res, str) and len(res) > 50:
                     if 'gerar_modulo' in acao_atual:
                         nome_mod = acao_atual.replace('gerar_modulo_', '')
@@ -233,7 +266,8 @@ class MasterAgent:
                     max_resultados=3
                 )
                 if contexto_web:
-                    # Tenta novamente com contexto da web
+                    self.ctx.absorver(f'web_search_{subtarefa["id"]}', contexto_web[:500],
+                                      'contexto', tags=['web', 'ajuda'], origem='web_search')
                     resultado_retry = self._executar_subtarefa(subtarefa, artefatos=artefatos, contexto_extra=contexto_web, codigo_anterior=codigo_anterior)
                     if resultado_retry.get('sucesso'):
                         resultados[subtarefa['id']] = resultado_retry
