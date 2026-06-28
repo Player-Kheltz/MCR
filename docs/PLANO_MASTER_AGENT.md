@@ -3555,3 +3555,487 @@ assert len(lessons) > 0
 contexto = agent._buscar_hierarquico("Python list comprehension")
 assert len(contexto) > 0
 ```
+
+---
+
+## Apêndice G — Enricher Dinâmico: Filtro de Respostas Genéricas
+
+> **Data:** 2026-06-28
+> **Problema:** O MCR perdeu o teste cego 3x0 porque o Cloud usou contexto específico
+> do projeto, enquanto o MCR deu respostas genéricas (o LLM não sabe que o MCR existe).
+>
+> **Solução:** Um **Analisador de Contexto** que identifica DINAMICAMENTE o que cada
+> pergunta precisa, coleta das fontes certas, e monta o prompt ideal — tudo via FAST,
+> sem regras fixas.
+
+### Arquitetura
+
+```
+Pergunta: "Explique o SessionCache"
+  │
+  ▼
+┌────────────────────────────────────────────────────┐
+│ 1. ANALISADOR (FAST)                               │
+│ "O que esta pergunta precisa para ser bem           │
+│  respondida? Quais fontes consultar?"               │
+│ → tipo: conceito_local                              │
+│ → fontes: [kg, codigo]                              │
+│ → profundidade: media                               │
+└────────────────────────────────────────────────────┘
+  │
+  ▼
+┌────────────────────────────────────────────────────┐
+│ 2. COLETOR (KG + SessionCache + ContextCrew)        │
+│ "Busca exatamente o que o analisador pediu"         │
+│ → 5 lessons do KG                                   │
+│ → 3 fragmentos do SessionCache                      │
+│ → 2 resultados do ContextCrew                       │
+└────────────────────────────────────────────────────┘
+  │
+  ▼
+┌────────────────────────────────────────────────────┐
+│ 3. MONTADOR (FAST)                                  │
+│ "Monta o prompt IDEAL com este contexto"            │
+│ → Prompt enriquecido: "Contexto MCR: [KG]...        │
+│   Com base nisso, explique o SessionCache..."       │
+└────────────────────────────────────────────────────┘
+  │
+  ▼
+Resposta ESPECÍFICA (nunca genérica)
+```
+
+### G1 — AnalisadorDeContexto
+
+```python
+class AnalisadorDeContexto:
+    """Analisa a pergunta e decide DINAMICAMENTE como enriquecer.
+    
+    Nao tem regras fixas. Usa FAST com exemplos para decidir
+    o que a pergunta precisa, em tempo real.
+    """
+    
+    def __init__(self, ia):
+        self.decider = Decider(ia)
+    
+    def analisar(self, pergunta):
+        """Retorna plano de enriquecimento para esta pergunta."""
+        return self.decider.extrair_json(
+            pergunta,
+            {
+                'tipo': '',
+                'fontes': [],
+                'profundidade': '',
+                'formato': '',
+                'contexto_extra': '',
+            },
+            exemplos=[
+                ("O que e SessionCache no MCR?",
+                 {"tipo": "conceito_local", "fontes": ["kg", "codigo"],
+                  "profundidade": "media", "formato": "explicacao",
+                  "contexto_extra": "SessionCache, absorver, pescar"}),
+                ("Como fazer um loop em Python?",
+                 {"tipo": "codigo", "fontes": ["codigo"],
+                  "profundidade": "baixa", "formato": "exemplo",
+                  "contexto_extra": "for, while, comprehensions"}),
+                ("O que e AGI?",
+                 {"tipo": "conceito_geral", "fontes": ["web"],
+                  "profundidade": "media", "formato": "explicacao",
+                  "contexto_extra": "AGI, desafios, metacognicao"}),
+            ],
+            instrucao="Analise a pergunta e decida o melhor enriquecimento."
+        )
+```
+
+### G2 — ColetorDeContexto
+
+```python
+class ColetorDeContexto:
+    """Coleta conhecimento das fontes que o analisador pediu."""
+    
+    def __init__(self, ia, kg, ctx_cache=None):
+        self.ia = ia
+        self.kg = kg
+        self.ctx = ctx_cache
+    
+    def coletar(self, plano, request):
+        conhecimento = []
+        fontes = plano.get('fontes', ['kg'])
+        
+        for fonte in fontes:
+            if fonte == 'kg':
+                for l in self.kg.buscar(request, max_r=5):
+                    conhecimento.append(('KG', l.get('solucao','')[:300]))
+                try:
+                    for l in self.kg.buscar_por_embedding(request, n=3):
+                        conhecimento.append(('KG-sem', l.get('solucao','')[:300]))
+                except: pass
+            
+            elif fonte == 'codigo':
+                try:
+                    from context_crew import ContextCrew
+                    for texto, f in ContextCrew().buscar(request, max_r=3):
+                        conhecimento.append(('Codigo', texto[:300]))
+                except: pass
+            
+            elif fonte == 'cache':
+                if self.ctx:
+                    for frag in self.ctx.pescar(pergunta=request, tipos=['contexto'], n=3, max_tokens=500):
+                        conhecimento.append(('Cache', frag.conteudo[:200]))
+            
+            elif fonte == 'web':
+                try:
+                    web = self.ia.buscar_web(request, max_resultados=3)
+                    if web: conhecimento.append(('Web', web[:500]))
+                except: pass
+        
+        return conhecimento
+```
+
+### G3 — MontadorDePrompt
+
+```python
+class MontadorDePrompt:
+    """Gera o prompt IDEAL para esta pergunta + contexto coletado."""
+    
+    def __init__(self, ia):
+        self.decider = Decider(ia)
+    
+    def montar(self, pergunta, contexto, plano):
+        conhecimento = '\n'.join(f"[{f}] {t}" for f, t in contexto[:5])
+        prompt_base = (
+            f"Contexto coletado:\n{conhecimento}\n\n"
+            f"Profundidade: {plano.get('profundidade', 'media')}\n"
+            f"Formato: {plano.get('formato', 'explicacao')}\n"
+            f"Pergunta: {pergunta}\n\n"
+            f"Monte um prompt ENRIQUECIDO que usa o contexto para "
+            f"responder a pergunta de forma ESPECIFICA (nao generica)."
+        )
+        try:
+            r = self.decider.extrair_json(prompt_base, {'prompt': ''},
+                instrucao="Retorne APENAS o prompt enriquecido, pronto para enviar ao LLM.")
+            return r.get('prompt', prompt_base)
+        except:
+            return prompt_base
+```
+
+### G4 — Integração no MasterAgent
+
+```python
+# Em _executar_subtarefa, substituir o trecho de 'perguntar_ia':
+if acao == 'perguntar_ia':
+    pergunta = params.get('pergunta', subtarefa.get('descricao', ''))
+    
+    # SISTEMA DE ENRIQUECIMENTO DINAMICO
+    analisador = AnalisadorDeContexto(self.ia)
+    plano = analisador.analisar(pergunta)
+    
+    coletor = ColetorDeContexto(self.ia, self.kg, getattr(self, 'ctx', None))
+    contexto = coletor.coletar(plano, pergunta)
+    
+    montador = MontadorDePrompt(self.ia)
+    prompt_final = montador.montar(pergunta, contexto, plano)
+    
+    resposta = self.ia.gerar(prompt_final, 0.4, 'pesado')
+    return {'sucesso': bool(resposta), 'resultado': resposta or 'Sem resposta',
+            'erro': '' if resposta else 'IA nao retornou resposta'}
+```
+
+### Testes
+
+```python
+# G1: Analisador detecta tipo
+analisador = AnalisadorDeContexto(ia)
+plano = analisador.analisar("O que e SessionCache no MCR?")
+assert plano.get('tipo') in ('conceito_local', 'conceito_geral', 'codigo')
+assert len(plano.get('fontes', [])) > 0
+
+# G2: Coletor busca nas fontes
+coletor = ColetorDeContexto(ia, kg)
+ctx = coletor.coletar({'fontes': ['kg']}, "SessionCache")
+assert len(ctx) > 0
+
+# G3: Prompt enriquecido
+montador = MontadorDePrompt(ia)
+prompt = montador.montar("O que e SessionCache?", ctx, plano)
+assert 'SessionCache' in prompt
+
+# G4: Resposta final nao e generica
+agent = MasterAgent()
+r = agent.executar("Explique o que e SessionCache no MCR-DevIA")
+resposta = r['artefato']['resposta_final']
+assert "absorver" in resposta or "pescar" in resposta or "fragmentos" in resposta
+```
+
+---
+
+## Apêndice H — Integração Final: 11 Gaps na Pipeline
+
+> **Data:** 2026-06-28
+> **Problema:** A pipeline atual tem 11 funcionalidades existentes no código que
+> não estão integradas no MasterAgent. Este apêndice mapeia CADA gap, onde
+> ele se encaixa, e como implementar.
+
+### Pipeline Atual vs Pipeline Completa
+
+```
+ATUAL:                                           COMPLETA:
+INICIO                                           INICIO
+  ├── SessionCache.precarregar()                   ├── SessionCache.precarregar()
+  ├── autoavaliar()                                ├── autoavaliar()
+PERCEBER                                           PERCEBER
+  ├── memorias                                      ├── memorias
+  ├── lessons (KG)                                  ├── lessons (KG)
+PLANEJAR                                           PLANEJAR
+EXECUTAR                                           EXECUTAR
+  ├── pescar()                                       ├── pescar()
+  ├── Enricher                                       ├── [G5] PromptCache
+  │     ├── Analisador                               │     ├── [G7] TermosCriticos
+  │     ├── Coletor                                  │     ├── ENRICHER:
+  │     └── Montador                                 │     │     ├── Analisador
+  ├── IA.gerar()                                     │     │     ├── Coletor
+  └── Absorver                                       │     │     ├── [G6] Validar relevancia
+                                                     │     │     ├── [G3] MCR_Identity
+                                                     │     │     ├── [G1] TreeOfThought
+                                                     │     │     │     ├── Analitico
+                                                     │     │     │     ├── Criativo
+                                                     │     │     │     └── Critico → Sintese
+                                                     │     │     ├── [G8] Router modelo
+                                                     │     │     └── Montador
+                                                     │     ├── IA.gerar()
+                                                     │     ├── [G2] Anti-alucinacao
+                                                     │     ├── [G4] Traducao PT-BR
+                                                     │     └── Absorver
+  └── Se falhou → busca hierarquica                  └── Se falhou → busca hierarquica
+INTEGRAR                                             INTEGRAR
+  │                                                    ├── [G11] Auto-revisao final
+APRENDER                                              APRENDER
+  ├── EpisodicMemory                                    ├── [G9] LessonsBuffer
+  └── KG.aprender()                                     ├── EpisodicMemory
+                                                         └── KG.aprender()
+FEEDBACK                                               FEEDBACK
+                                                        └── [G10] Auto-diagnostico (10 em 10)
+```
+
+### Os 11 Gaps
+
+#### G1 — Tree of Thought (dentro do Enricher)
+
+**Origem:** `modulos/tree_of_thought.py`
+**Onde:** Dentro do `MontadorDePrompt`, após coletar contexto
+**O que faz:** Gera 3 perspectivas paralelas (analítico, criativo, crítico) e sintetiza em resposta única
+
+```python
+# NOVO metodo no Enricher:
+def _aplicar_tree_of_thought(self, prompt_base):
+    """Gera 3 perspectivas e sintetiza."""
+    perspectivas = {}
+    for nome, instrucao in _CAMINHOS.items():
+        prompt = f"{instrucao}\n\n{prompt_base}"
+        perspectivas[nome] = self.ia.gerar(prompt, 0.4, 'pesado')
+    
+    prompt_sintese = (
+        f"Perspectiva analitica: {perspectivas.get('analitico', '')}\n"
+        f"Perspectiva criativa: {perspectivas.get('criativo', '')}\n"
+        f"Perspectiva critica: {perspectivas.get('critico', '')}\n\n"
+        f"Sintetize as 3 perspectivas em uma resposta unica e coesa."
+    )
+    return self.ia.gerar(prompt_sintese, 0.3, 'pesado')
+```
+
+#### G2 — Anti-alucinação Pós-geração
+
+**Origem:** `modulos/auto_revisor.py`
+**Onde:** Depois de `IA.gerar()`, antes de retornar a resposta
+**O que faz:** Escaneia classes/termos reais do projeto e verifica se a resposta inventou algo
+
+```python
+# NOVO metodo no Enricher:
+def _revisar_alucinacoes(self, resposta, pergunta):
+    """Verifica se a resposta contem termos que nao existem no projeto."""
+    from auto_revisor import escanear_classes
+    classes_reais = escanear_classes()
+    
+    # Extrai possiveis classes/termos inventados
+    invencoes = re.findall(r'\b[A-Z][a-z]+(?:[A-Z][a-z]+)+\b', resposta)
+    for invencao in invencoes:
+        if invencao not in classes_reais:
+            # Verifica no KG se esse termo existe
+            lessons = self.kg.buscar(invencao, max_r=1)
+            if not lessons:
+                return f"[TERMO INVENTADO DETECTADO: {invencao}. Corrigido.]"
+    return resposta
+```
+
+#### G3 — MCR_Identity no Enricher
+
+**Origem:** `modulos/conselho.py` + `docs/MCR_IDENTITY.md`
+**Onde:** No `MontadorDePrompt`, antes de montar o prompt final
+**O que faz:** Injeta a identidade do projeto para evitar confusão com Minecraft, SPA web, etc.
+
+```python
+# NOVO: injetar identidade no inicio do prompt
+_IDENTITY = """CONTEXTO DO PROJETO MCR:
+- MCR = servidor CUSTOMIZADO de Tibia baseado em Canary (OTServ)
+- SPA = Sistema de Progressao do Aventureiro
+- SHC = Sistema de Habilidades Contextuais (5 camadas)
+- SessionCache = cache de sessao que absorve tudo sem limite
+- MasterAgent = orquestrador universal que faz QUALQUER coisa
+- Decider = classificador universal via FAST model
+- KG = Knowledge Graph com 1937+ licoes aprendidas"""
+
+# Usar no prompt enriquecido:
+prompt_final = f"{_IDENTITY}\n\n{prompt_enriquecido}"
+```
+
+#### G4 — Tradução PT-BR
+
+**Origem:** `modulos/tradutor.py`
+**Onde:** Depois de `IA.gerar()`, antes de retornar
+**O que faz:** Força o LLM a pensar em inglês (mais preciso), depois traduz para PT-BR
+
+```python
+# NOVO: gerar em ingles, traduzir depois
+def _gerar_com_traducao(self, prompt, temp=0.4):
+    prompt_en = f"Think step by step. Answer in English:\n{prompt}"
+    resposta_en = self.ia.gerar(prompt_en, temp, 'pesado')
+    if resposta_en:
+        from modulos.tradutor import traduzir
+        return traduzir(resposta_en, self.ia)
+    return resposta_en
+```
+
+#### G5 — PromptCache LRU
+
+**Origem:** `modulos/orquestrador.py` — classe `PromptCache`
+**Onde:** Antes de chamar o Enricher, verificar cache
+**O que faz:** Cache de prompts enriquecidos por hash da pergunta
+
+```python
+from collections import OrderedDict
+
+class PromptCache:
+    def __init__(self, max_size=64):
+        self._cache = OrderedDict()
+        self._max_size = max_size
+    
+    def get(self, pergunta):
+        return self._cache.get(hash(pergunta) % 1000000)
+    
+    def set(self, pergunta, prompt):
+        key = hash(pergunta) % 1000000
+        self._cache[key] = prompt
+        if len(self._cache) > self._max_size:
+            self._cache.popitem(last=False)
+```
+
+#### G6 — Validação de Relevância
+
+**Origem:** `modulos/context_reinforcer.py`
+**Onde:** Depois do `ColetorDeContexto`, antes do `MontadorDePrompt`
+**O que faz:** FAST valida se o contexto coletado é realmente relevante para a pergunta
+
+```python
+def _validar_relevancia(self, pergunta, contexto):
+    if not contexto:
+        return False
+    prompt = f"Contexto: {contexto}\nPergunta: {pergunta}\nEste contexto e relevante? (sim/nao)"
+    resp = self.ia.fast(prompt, 0.1, 'leve')
+    return 'sim' in resp.lower()
+```
+
+#### G7 — Termos Críticos
+
+**Origem:** `modulos/context_reinforcer.py` — `_extrair_termos_criticos()`
+**Onde:** Antes do `AnalisadorDeContexto`, extrair melhores termos
+**O que faz:** Extrai termos incluindo siglas, pontos de extensão (.lua, .py)
+
+```python
+def _extrair_termos_criticos(self, texto):
+    # Extrai termos de 2+ chars, incluindo com pontos (.lua, .py)
+    termos = re.findall(r'\b[a-zA-Z.]{2,}\b', texto.lower())
+    stop = {'de','para','que','com','uma','era','mais','como','por'}
+    return [t for t in termos if t not in stop][:10]
+```
+
+#### G8 — Router de Modelos
+
+**Origem:** `modulos/conselho.py` — dict `_ROUTER`
+**Onde:** No `MontadorDePrompt`, decide qual modelo usar
+**O que faz:** Escolhe o melhor modelo baseado no tipo de tarefa
+
+```python
+_ROUTER = {
+    'codigo': 'code',       # qwen2.5-coder:14b
+    'explicacao': 'texto',  # qwen2.5-coder:14b
+    'analise': 'analisar',  # qwen2.5-coder:14b
+    'lore': 'texto',        # llama3.1:8b
+    'rapido': 'leve',       # qwen2.5-coder:7b
+}
+
+def _escolher_modelo(self, tipo):
+    return _ROUTER.get(tipo, 'pesado')
+```
+
+#### G9 — LessonsBuffer
+
+**Origem:** `modulos/lessons_buffer.py`
+**Onde:** No `_aprender_kg()`, antes de salvar no KG
+**O que faz:** Buffer com detecção de contradições antes de salvar
+
+```python
+# NOVO: usar buffer antes de salvar
+def _aprender_com_buffer(self, erro, causa, solucao, ctx):
+    from lessons_buffer import LessonsBuffer
+    buffer = LessonsBuffer(self.kg)
+    buffer.adicionar(erro, causa, solucao, ctx)
+    # Buffer salva automaticamente quando atinge limite
+```
+
+#### G10 — Auto-diagnóstico
+
+**Origem:** `modulos/diagnostico.py`
+**Onde:** A cada 10 execuções, após APRENDER
+**O que faz:** Escaneia KG, código, performance
+
+```python
+# NOVO: a cada 10 execucoes
+if self.ciclo % 10 == 0:
+    from diagnostico import Diagnostico
+    diag = Diagnostico()
+    resultado = diag.diagnosticar()
+    if resultado['score'] < 70:
+        self._log('DIAG', f'Score {resultado["score"]}/100 - Problemas detectados')
+```
+
+#### G11 — Auto-revisão Final
+
+**Origem:** `modulos/auto_revisor.py`
+**Onde:** Depois de INTEGRAR, antes de retornar
+**O que faz:** Revisa o artefato final completo
+
+```python
+# NOVO: revisar artefato final
+if artefato_final.get('resposta_final'):
+    from modulos.auto_revisor import AutoRevisor
+    revisor = AutoRevisor()
+    revisao = revisor.revisar(artefato_final['resposta_final'])
+    if revisao.get('problemas'):
+        self._log('REVISOR', f'{len(revisao["problemas"])} problemas encontrados')
+```
+
+### Ordem de Implementação
+
+| # | Gap | +/- | Risco | Depende de |
+|---|-----|-----|-------|-----------|
+| G3 | MCR_Identity | +15 | Baixo | Nada |
+| G2 | Anti-alucinação | +40 | Baixo | auto_revisor.py |
+| G1 | TreeOfThought | +60 | Médio | tree_of_thought.py |
+| G4 | Tradução PT-BR | +20 | Baixo | tradutor.py |
+| G5 | PromptCache | +25 | Baixo | Nada |
+| G6 | Validação relevância | +20 | Baixo | Nada |
+| G7 | Termos críticos | +15 | Baixo | Nada |
+| G8 | Router modelos | +20 | Baixo | Nada |
+| G9 | LessonsBuffer | +30 | Baixo | Nada |
+| G10 | Auto-diagnóstico | +25 | Baixo | diagnostico.py |
+| G11 | Auto-revisão final | +30 | Médio | auto_revisor.py |
+| | **Total** | **~+300** | | |
