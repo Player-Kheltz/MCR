@@ -3377,3 +3377,181 @@ resultado = agent.executar("Cria um script python que imprime hello")
 assert hasattr(agent, 'ctx')
 assert 'plano' in agent.ctx.fragmentos
 ```
+
+---
+
+## Apêndice F — Sistema de Sabedoria: KG + SessionCache + Busca Hierárquica
+
+> **Data:** 2026-06-28
+> **Problema:** No teste cego, o MCR perdeu porque não sabia sobre si mesmo.
+> O SessionCache começava vazio, o KG não era consultado durante a execução,
+> e a busca era plana (só web search quando falhava).
+>
+> **Solução:** 3 correções que tornam o MCR verdadeiramente "sábio":
+> 1. Pré-carregar o SessionCache com conhecimento do KG antes de executar
+> 2. Usar o KG como fonte principal de sabedoria durante toda a execução
+> 3. Busca hierárquica 3 níveis (Local → WebLearn → Web)
+
+### F1 — Pré-Preenchimento do SessionCache
+
+**Arquivo:** `context_infinity.py` — NOVO método `SessionCache.precarregar()`
+
+```python
+def precarregar(self, kg=None, request="", memorias=None):
+    """Preenche o cache com conhecimento relevante ANTES da execucao.
+    
+    1. Lessons do KG (keyword match) — ate 5
+    2. Lessons do KG (embedding semantico) — ate 5
+    3. Episodios similares da memoria — ate 3
+    4. ContextCrew (docs, codigo fonte) — ate 3
+    """
+    if kg:
+        for l in kg.buscar(request, max_r=10)[:5]:
+            self.absorver(f'kg_{l["id"]}', f"{l.get('erro','')}: {l.get('solucao','')}",
+                          'contexto', tags=['kg', l.get('ctx','')], origem='kg_preload')
+        try:
+            for l in kg.buscar_por_embedding(request, n=5):
+                if f'kg_{l["id"]}' not in self.fragmentos:
+                    self.absorver(f'kg_{l["id"]}', f"{l.get('erro','')}: {l.get('solucao','')}",
+                                  'contexto', tags=['kg', 'embedding'], origem='kg_embedding')
+        except: pass
+    
+    if memorias:
+        for i, m in enumerate(memorias[:3]):
+            self.absorver(f'memoria_{i}', str(m.get('licao', '')), 'contexto',
+                          tags=['memoria'], origem='memoria_preload')
+    
+    try:
+        from context_crew import ContextCrew
+        crew = ContextCrew()
+        ctx = crew.buscar(request, max_r=3)
+        if ctx:
+            self.absorver('context_crew', str(ctx), 'contexto',
+                          tags=['contextcrew'], origem='crew_preload')
+    except: pass
+```
+
+**No `MasterAgent.executar()`:**
+```python
+self.ctx = SessionCache()
+self.ctx.precarregar(kg=self.kg, request=request, 
+                     memorias=self.memoria.buscar(request, 3))
+```
+
+### F2 — KG como Fonte Principal de Sabedoria
+
+**Arquivo:** `modulos/master_agent.py` — NOVO método `_buscar_sabedoria()`
+
+```python
+def _buscar_sabedoria(self, request, max_lessons=5):
+    """Busca conhecimento no KG como fonte principal de sabedoria.
+    
+    Usa TANTO keyword (rapido, preciso) QUANTO embedding (semantico)
+    para maxima cobertura do conhecimento disponivel.
+    """
+    lessons = []
+    seen_ids = set()
+    
+    for l in self.kg.buscar(request, max_r=max_lessons):
+        lid = l.get('id', '')
+        if lid not in seen_ids:
+            lessons.append(l)
+            seen_ids.add(lid)
+    
+    try:
+        if hasattr(self.kg, 'buscar_por_embedding'):
+            for l in self.kg.buscar_por_embedding(request, n=max_lessons):
+                lid = l.get('id', '')
+                if lid not in seen_ids:
+                    lessons.append(l)
+                    seen_ids.add(lid)
+    except: pass
+    
+    return lessons
+```
+
+### F3 — Busca Hierárquica 3 Níveis
+
+**Arquivo:** `modulos/master_agent.py` — NOVO método `_buscar_hierarquico()`
+
+```python
+def _buscar_hierarquico(self, pergunta):
+    """Busca em 3 niveis ate encontrar resposta satisfatoria.
+    
+    Nivel 1 — LOCAL: SessionCache → KG → EpisodicMemory → ContextCrew
+    Nivel 2 — WEBLEARN: pesquisas web anteriores (cache local)
+    Nivel 3 — WEB: DuckDuckGo ao vivo + Wikipedia fallback
+    """
+    resultados = []
+    
+    # NIVEL 1: LOCAL
+    cache = self.ctx.pescar(pergunta=pergunta, tipos=['contexto','codigo'],
+                             max_tokens=1000, n=5) if hasattr(self, 'ctx') else []
+    for c in cache:
+        resultados.append(c.conteudo[:300])
+    if len(resultados) >= 3: return resultados[:3]
+    
+    for l in self._buscar_sabedoria(pergunta, 3):
+        sol = l.get('solucao', '')[:300]
+        if sol not in resultados: resultados.append(sol)
+    if len(resultados) >= 3: return resultados[:3]
+    
+    try:
+        from context_crew import ContextCrew
+        for texto, fonte in ContextCrew().buscar(pergunta, max_r=2):
+            if texto not in resultados: resultados.append(texto)
+    except: pass
+    if len(resultados) >= 3: return resultados[:3]
+    
+    # NIVEL 2: WEBLEARN (cache de pesquisas anteriores)
+    wl_dir = os.path.join(BASE, 'sandbox', '.mcr_devia', 'weblearn')
+    if os.path.exists(wl_dir):
+        termos = set(pergunta.lower().split())
+        for f in sorted(os.listdir(wl_dir))[:10]:
+            if not f.endswith('.json'): continue
+            try:
+                with open(os.path.join(wl_dir, f), 'r', encoding='utf-8') as fh:
+                    item = json.load(fh)
+                txt = str(item.get('texto', ''))
+                if any(t in txt.lower() for t in termos if len(t) > 3):
+                    resultados.append(txt[:300])
+                    if len(resultados) >= 3: return resultados[:3]
+            except: pass
+    
+    # NIVEL 3: WEB AO VIVO
+    try:
+        web = self.ia.buscar_web(pergunta, max_resultados=3)
+        if web: resultados.append(web[:500])
+    except: pass
+    
+    return resultados[:3]
+```
+
+### Resumo das Mudanças
+
+| Arquivo | O quê | +/- |
+|---------|-------|-----|
+| `context_infinity.py` | `SessionCache.precarregar()` | +35 |
+| `modulos/master_agent.py` | `_buscar_sabedoria()` | +20 |
+| `modulos/master_agent.py` | `_buscar_hierarquico()` | +55 |
+| `modulos/master_agent.py` | Chamar `precarregar()` no `executar()` | +5 |
+| **Total** | | **~+115** |
+
+### Testes
+
+```python
+# F1: SessionCache pre-carregado
+cache = SessionCache()
+cache.precarregar(kg=kg, request="session cache")
+n = cache.metricas()['fragmentos']
+assert n > 0, f"Precarregamento gerou 0 fragmentos (kg={kg})"
+
+# F2: Busca sabedoria
+agent = MasterAgent()
+lessons = agent._buscar_sabedoria("O que e o SessionCache?")
+assert len(lessons) > 0
+
+# F3: Busca hierarquica
+contexto = agent._buscar_hierarquico("Python list comprehension")
+assert len(contexto) > 0
+```

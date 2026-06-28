@@ -75,6 +75,113 @@ class MasterAgent:
             'acao': 'estudar_antes'
         }
 
+    def _buscar_sabedoria(self, request, max_lessons=5):
+        """Busca conhecimento no KG como fonte principal de sabedoria.
+        
+        Usa TANTO keyword (rapido, preciso) QUANTO embedding (semantico)
+        para maxima cobertura do conhecimento disponivel.
+        """
+        lessons = []
+        seen_ids = set()
+        
+        # Keyword match
+        try:
+            for l in self.kg.buscar(request, max_r=max_lessons):
+                lid = l.get('id', '')
+                if lid not in seen_ids:
+                    lessons.append(l)
+                    seen_ids.add(lid)
+        except Exception:
+            pass
+        
+        # Embedding match (semantico)
+        try:
+            if hasattr(self.kg, 'buscar_por_embedding'):
+                for l in self.kg.buscar_por_embedding(request, n=max_lessons):
+                    lid = l.get('id', '')
+                    if lid not in seen_ids:
+                        lessons.append(l)
+                        seen_ids.add(lid)
+        except Exception:
+            pass
+        
+        return lessons
+
+    def _buscar_hierarquico(self, pergunta):
+        """Busca em 3 niveis ate encontrar resposta satisfatoria.
+        
+        Nivel 1 — LOCAL: SessionCache → KG → ContextCrew
+        Nivel 2 — WEBLEARN: pesquisas web anteriores (cache local)
+        Nivel 3 — WEB: DuckDuckGo ao vivo + Wikipedia fallback
+        """
+        resultados = []
+        seen_textos = set()
+        
+        def _add(texto, limite=300):
+            t = str(texto)[:limite]
+            if t and t not in seen_textos:
+                seen_textos.add(t)
+                resultados.append(t)
+        
+        # NIVEL 1: LOCAL — SessionCache
+        try:
+            if hasattr(self, 'ctx'):
+                cache = self.ctx.pescar(pergunta=pergunta, tipos=['contexto', 'codigo'],
+                                         max_tokens=1000, n=5)
+                for c in cache:
+                    _add(c.conteudo)
+        except Exception:
+            pass
+        if len(resultados) >= 3:
+            return resultados[:3]
+        
+        # NIVEL 1: LOCAL — KG sabedoria
+        for l in self._buscar_sabedoria(pergunta, 3):
+            _add(l.get('solucao', ''))
+        if len(resultados) >= 3:
+            return resultados[:3]
+        
+        # NIVEL 1: LOCAL — ContextCrew
+        try:
+            from context_crew import ContextCrew
+            for texto, fonte in ContextCrew().buscar(pergunta, max_r=2):
+                _add(texto)
+        except Exception:
+            pass
+        if len(resultados) >= 3:
+            return resultados[:3]
+        
+        # NIVEL 2: WEBLEARN (cache local de pesquisas anteriores)
+        try:
+            wl_dir = os.path.join(BASE, 'sandbox', '.mcr_devia', 'weblearn')
+            if os.path.exists(wl_dir):
+                termos = set(pergunta.lower().split())
+                for f in sorted(os.listdir(wl_dir))[:10]:
+                    if not f.endswith('.json') or f.startswith('.'):
+                        continue
+                    try:
+                        with open(os.path.join(wl_dir, f), 'r', encoding='utf-8') as fh:
+                            item = json.load(fh)
+                        txt = str(item.get('texto', '')) or str(item.get('conteudo', ''))
+                        if any(t in txt.lower() for t in termos if len(t) > 3):
+                            _add(txt)
+                            if len(resultados) >= 3:
+                                return resultados[:3]
+                    except Exception:
+                        pass
+        except Exception:
+            pass
+        
+        # NIVEL 3: WEB AO VIVO
+        try:
+            web = self.ia.buscar_web(pergunta, max_resultados=3)
+            if web:
+                _add(web, 500)
+        except Exception:
+            pass
+        
+        return resultados[:3] if resultados else []
+
     def _feedback(self, request, tipo_porte, plano, resultados):
         """Feedback do resultado para ajustar decisoes futuras.
         
@@ -112,6 +219,14 @@ class MasterAgent:
 
         # === CONTEXT INFINITY (SessionCache) ===
         self.ctx = SessionCache()
+        # PRÉ-CARREGA conhecimento relevante ANTES de qualquer passo
+        try:
+            n_pre = self.ctx.precarregar(kg=self.kg, request=request,
+                                          memorias=self.memoria.buscar(request, 3))
+            if n_pre > 0:
+                self._log('SABEDORIA', f'Pre-carregados {n_pre} fragmentos do KG/memoria')
+        except Exception as e:
+            self._log('SABEDORIA', f'Pre-carregamento: {e}')
         self.ctx.absorver('request', request, 'request', tags=['request', task_type or 'geral'], origem='usuario')
 
         self._log('PERCEBER', f'Request: {request[:100]}')
@@ -257,25 +372,27 @@ class MasterAgent:
                     elif acao_atual == 'gerar_codigo':
                         artefatos['codigo_gerado'] = res
 
-            # Se falhou, tenta web search para contexto extra
+            # Se falhou, tenta busca HIERARQUICA (local → weblearn → web)
             if not resultado.get('sucesso') and resultado.get('erro'):
-                self._log('EXECUTAR', f'  -> Falhou: {str(resultado.get("erro",""))[:80]}. Buscando contexto web...')
-                contexto_web = self.ia.buscar_web(
+                self._log('EXECUTAR', f'  -> Falhou: {str(resultado.get("erro",""))[:80]}. Busca hierarquica...')
+                contexto_ajuda = self._buscar_hierarquico(
                     f"Como resolver: {subtarefa.get('descricao', request)}. "
-                    f"Erro: {resultado.get('erro', '')}",
-                    max_resultados=3
+                    f"Erro: {resultado.get('erro', '')}"
                 )
-                if contexto_web:
-                    self.ctx.absorver(f'web_search_{subtarefa["id"]}', contexto_web[:500],
-                                      'contexto', tags=['web', 'ajuda'], origem='web_search')
-                    resultado_retry = self._executar_subtarefa(subtarefa, artefatos=artefatos, contexto_extra=contexto_web, codigo_anterior=codigo_anterior)
+                if contexto_ajuda:
+                    contexto_ajuda_str = '\n'.join(str(c) for c in contexto_ajuda)
+                    self.ctx.absorver(f'ajuda_{subtarefa["id"]}', contexto_ajuda_str[:500],
+                                      'contexto', tags=['ajuda'], origem='busca_hierarquica')
+                    resultado_retry = self._executar_subtarefa(subtarefa, artefatos=artefatos,
+                                       contexto_extra=contexto_ajuda_str, codigo_anterior=codigo_anterior)
                     if resultado_retry.get('sucesso'):
                         resultados[subtarefa['id']] = resultado_retry
-                        self._log('EXECUTAR', f'  -> Web search ajudou a resolver!')
+                        origem = 'cache' if len(contexto_ajuda) < 3 else 'web'
+                        self._log('EXECUTAR', f'  -> Busca hierarquica ({origem}) ajudou!')
                     else:
-                        self._log('EXECUTAR', f'  -> Web search nao foi suficiente')
+                        self._log('EXECUTAR', f'  -> Busca hierarquica nao foi suficiente')
                 else:
-                    self._log('EXECUTAR', f'  -> Web search nao disponivel/sem resultados')
+                    self._log('EXECUTAR', f'  -> Nada encontrado na busca hierarquica')
 
         # === 4. INTEGRAR ===
         self._log('INTEGRAR', 'Integrando resultados...')

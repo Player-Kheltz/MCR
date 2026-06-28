@@ -454,6 +454,75 @@ class SessionCache:
         
         return candidatos[:n]
     
+    def precarregar(self, kg=None, request="", memorias=None):
+        """Preenche o cache com conhecimento relevante ANTES da execucao.
+        
+        1. Lessons do KG (keyword match) — ate 5
+        2. Lessons do KG (embedding semantico) — ate 5
+        3. Episodios similares da memoria — ate 3
+        4. ContextCrew (docs, codigo fonte) — ate 3
+        
+        Chame ANTES de executar qualquer tarefa para que o cache
+        ja tenha contexto sobre o dominio do problema.
+        """
+        if not request:
+            return 0
+        
+        count = 0
+        
+        # 1. KG keyword
+        if kg:
+            try:
+                for l in kg.buscar(request, max_r=10)[:5]:
+                    lid = l.get('id', '')
+                    if f'kg_{lid}' not in self.fragmentos:
+                        self.absorver(f'kg_{lid}', 
+                            f"{l.get('erro','')}: {l.get('solucao','')}",
+                            'contexto', tags=['kg', l.get('ctx','')], origem='kg_preload')
+                        count += 1
+            except Exception:
+                pass
+            
+            # 2. KG embedding
+            try:
+                if hasattr(kg, 'buscar_por_embedding'):
+                    for l in kg.buscar_por_embedding(request, n=5):
+                        lid = l.get('id', '')
+                        if f'kg_{lid}' not in self.fragmentos:
+                            self.absorver(f'kg_{lid}',
+                                f"{l.get('erro','')}: {l.get('solucao','')}",
+                                'contexto', tags=['kg', 'embedding'], origem='kg_embedding')
+                            count += 1
+            except Exception:
+                pass
+        
+        # 3. Memorias
+        if memorias:
+            try:
+                for i, m in enumerate(memorias[:3]):
+                    licao = str(m.get('licao', '')) if isinstance(m, dict) else str(m)
+                    if licao:
+                        self.absorver(f'memoria_{i}', licao, 'contexto',
+                                      tags=['memoria'], origem='memoria_preload')
+                        count += 1
+            except Exception:
+                pass
+        
+        # 4. ContextCrew
+        try:
+            from context_crew import ContextCrew
+            crew = ContextCrew()
+            ctx = crew.buscar(request, max_r=3)
+            if ctx:
+                textos = [t[0] if isinstance(t, tuple) else str(t) for t in ctx]
+                self.absorver('context_crew', '\n'.join(textos), 'contexto',
+                              tags=['contextcrew'], origem='crew_preload')
+                count += 1
+        except Exception:
+            pass
+        
+        return count
+
     def reconstruir(self, tags=None, tipos=None, max_chars=3000):
         """Reconstroi o estado completo da sessao.
         
