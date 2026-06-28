@@ -1,0 +1,26 @@
+{
+  "pid": 17380,
+  "started_at": null,
+  "stage": "Orquestrador:conselho_analista",
+  "stage_started_at": 1782684891.4968686,
+  "substage": "validando",
+  "substage_index": 6,
+  "substage_total": 0,
+  "progress": 0.0,
+  "elapsed": -0.0,
+  "eta": null,
+  "question_current": 0,
+  "question_total": 0,
+  "stages_history": [
+    {
+      "stage": "Orquestrador:conselho_critico",
+      "substage": "iniciando",
+      "elapsed": 0.0
+    }
+  ],
+  "last_updated": "2026-06-28T19:15:11",
+  "status": "idle",
+  "error": null,
+  "pipeline": "",
+  "stage_elapsed": 20.1
+}

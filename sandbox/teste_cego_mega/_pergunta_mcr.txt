@@ -1,1 +1,0 @@
-Analise o arquivo modulos/mente.py do MCR-DevIA. Explique o fluxo completo da funcao think() e learn(). Depois crie uma MELHORIA: um novo metodo chamado 'reconsiderar()' que permita a Mente mudar de ideia quando receber informacoes conflitantes. O metodo deve comparar a perspectiva anterior com a nova e decidir qual manter baseado em scores. Escreva o codigo COMPLETO.

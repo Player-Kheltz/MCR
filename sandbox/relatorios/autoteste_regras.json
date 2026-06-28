@@ -1,0 +1,86 @@
+{
+  "versao": "1.0",
+  "descricao": "Regras canonicas do Auto-Teste Definitivo do MCR-DevIA",
+  "categorias": {
+    "logica": {
+      "nome": "Lógica",
+      "habilidade": "Raciocínio matemático multi-etapas",
+      "dificuldade_padrao": "media",
+      "exemplo": "Resolva 2x+5=3x-7 mostrando os passos"
+    },
+    "codigo": {
+      "nome": "Código",
+      "habilidade": "Algoritmos, edge cases, boas práticas",
+      "dificuldade_padrao": "media",
+      "exemplo": "Função Python que valide senhas com regras"
+    },
+    "literatura": {
+      "nome": "Literatura",
+      "habilidade": "Criatividade, estilo, vocabulário",
+      "dificuldade_padrao": "facil",
+      "exemplo": "Crie um haikai sobre inteligencia artificial"
+    },
+    "explicacao": {
+      "nome": "Explicação",
+      "habilidade": "Clareza, analogias, didática",
+      "dificuldade_padrao": "facil",
+      "exemplo": "Explique buraco de minhoca para adolescente"
+    },
+    "analise": {
+      "nome": "Análise",
+      "habilidade": "Debug, detectar erros, criticar código",
+      "dificuldade_padrao": "dificil",
+      "exemplo": "Encontre bugs neste código"
+    },
+    "pesquisa": {
+      "nome": "Pesquisa",
+      "habilidade": "Síntese de informação, precisão factual",
+      "dificuldade_padrao": "media",
+      "exemplo": "O que é efeito Dunning-Kruger?"
+    },
+    "traducao": {
+      "nome": "Tradução",
+      "habilidade": "Qualidade linguística PT-BR",
+      "dificuldade_padrao": "facil",
+      "exemplo": "Traduza texto técnico para PT-BR"
+    },
+    "critica": {
+      "nome": "Análise Crítica",
+      "habilidade": "Comparar teorias, identificar falhas",
+      "dificuldade_padrao": "dificil",
+      "exemplo": "Compare Darwin vs Lamarck"
+    }
+  },
+  "regras_gerador": {
+    "max_perguntas_por_ciclo": 5,
+    "min_codigo_por_ciclo": 1,
+    "min_literatura_por_ciclo": 1,
+    "nunca_repetir_perguntas": true,
+    "priorizar_gaps_maiores_que": 2,
+    "dificuldade_progressiva": true,
+    "max_tentativas_gerador": 3,
+    "min_categorias_diferentes": 3,
+    "max_similaridade": 0.7,
+    "variar_dominios": true,
+    "termos_proibidos": ["SPA", "SHC", "Eridanus", "MCR", "dominios", "Canary", "OTClient", "OTServ", "Tibia"]
+  },
+  "formato_auto_critica": {
+    "nota": "0-10",
+    "acertos": "lista do que acertou",
+    "faltou": "lista do que faltou",
+    "erros": "lista de erros se houver",
+    "melhoraria": "sugestoes de melhoria",
+    "confianca": "baixa|media|alta"
+  },
+  "formato_avaliacao_cloud": {
+    "nota": "0-10",
+    "acertos_reais": "lista",
+    "erros_reais": "lista",
+    "observacoes": "texto livre"
+  },
+  "limites_gap": {
+    "preciso": 1,
+    "desvio_moderado": 3,
+    "ponto_cego": 3
+  }
+}

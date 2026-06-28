@@ -1,0 +1,78 @@
+{
+  "data": "2026-06-28 20:04:23",
+  "n_cenarios": 10,
+  "semente": 42,
+  "total_ok": 4,
+  "resultados": [
+    {
+      "id": 4,
+      "contexto": "api",
+      "linguagem": "python",
+      "sucesso": true,
+      "request": "Crie um script em Python para automatizar a coleta de dados de uma API RESTful e salvar os resultado"
+    },
+    {
+      "id": 1,
+      "contexto": "outro",
+      "linguagem": "?",
+      "sucesso": false,
+      "request": "Crie um script em Bash que monitora a utilização da CPU e gera um relatório diário"
+    },
+    {
+      "id": 9,
+      "contexto": "testes",
+      "linguagem": "typescript",
+      "sucesso": false,
+      "request": "crie Makefile com targets para build, test e deploy do projeto web"
+    },
+    {
+      "id": 8,
+      "contexto": "outro",
+      "linguagem": "?",
+      "sucesso": false,
+      "request": "Implemente um sistema de monitoramento de recursos em tempo real para uma aplicação web. Mostre a re"
+    },
+    {
+      "id": 17,
+      "contexto": "outro",
+      "linguagem": "?",
+      "sucesso": true,
+      "request": "crie um bot Telegram que responda a comandos específicos e envie mensagens programadas"
+    },
+    {
+      "id": 3,
+      "contexto": "outro",
+      "linguagem": "?",
+      "sucesso": false,
+      "request": "Cria aplicativo mobile de gerenciamento financeiro com funcionalidades de orçamento e investimentos."
+    },
+    {
+      "id": 12,
+      "contexto": "outro",
+      "linguagem": "javascript",
+      "sucesso": false,
+      "request": "Crie um sistema de notificações personalizadas para aplicativos móveis usando React Native e Firebas"
+    },
+    {
+      "id": 2,
+      "contexto": "jogo",
+      "linguagem": "javascript",
+      "sucesso": false,
+      "request": "Crie um simulador de jogos de tabuleiro online usando React e Socket.IO. Salve em projects/"
+    },
+    {
+      "id": 11,
+      "contexto": "outro",
+      "linguagem": "python",
+      "sucesso": true,
+      "request": "Crie um script em Python para monitorar a disponibilidade de servidores web em uma lista de URLs."
+    },
+    {
+      "id": 18,
+      "contexto": "outro",
+      "linguagem": "python",
+      "sucesso": true,
+      "request": "crie script em Python que monitore alterações em um diretório e envie notificações por email quando "
+    }
+  ]
+}

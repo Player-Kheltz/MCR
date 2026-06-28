@@ -1,1 +1,1 @@
-{"cmd": "ensinar", "args": ["14b nao vale upgrade para analise de codigo vs deepseek7b", "deepseek-r1:7b detectou SQL injection e foi mais rapido que qwen14b. qwen14b teve falso positivo.", "Manter deepseek-r1:7b para analisar/review. qwen14b para pesado (geracao de respostas).", "modelos"]}
+{"cmd": "master", "args": ["Explique o que e o SessionCache no MCR-DevIA e como ele difere de uma cache tradicional"]}

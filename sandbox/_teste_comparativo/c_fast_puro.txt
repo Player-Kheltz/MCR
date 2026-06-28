@@ -1,0 +1,15 @@
+TEMPO: 6.3s
+
+O SessionCache é um componente chave do MCR-DevIA (Médico Computacional em Ribeirão Preto - Desenvolvimento da Inteligência Artificial), que é um sistema de diagnóstico assistido por inteligência artificial desenvolvido pela Faculdade de Medicina da Universidade de Ribeirão Preto, no Brasil.
+
+O SessionCache é uma estrutura de dados usada para armazenar temporariamente informações relevantes durante a sessão de diagnóstico do usuário. Essas informações podem incluir dados do paciente, resultados de exames, imagens médicas e outros dados pertinentes que são necessários para o processo de diagnóstico.
+
+O SessionCache é diferente de uma cache tradicional em vários aspectos:
+
+1. **Escopo**: A Cache tradicional armazena dados temporariamente para melhorar a eficiência das operações de acesso a dados, como ler e escrever arquivos ou acessar bancos de dados. Por outro lado, o SessionCache é específico para a sessão de diagnóstico do usuário e é usado para armazenar informações relevantes apenas durante essa sessão.
+
+2. **Tempo de vida**: A Cache tradicional geralmente tem um tempo de vida definido após o qual os dados são removidos automaticamente. Por outro lado, o SessionCache só é removido quando a sessão do usuário termina.
+
+3. **Conteúdo**: A Cache tradicional pode armazenar qualquer tipo de dado, desde arquivos binários até strings e números. O SessionCache, por outro lado, é projetado para armazenar dados específicos relacionados ao diagnóstico médico, como informações demográficas do paciente, resultados de exames, imagens médicas e outros dados relevantes.
+
+Em resumo, enquanto a Cache tradicional é uma estrutura de dados genérica usada para melhorar a eficiência das operações de acesso a dados, o SessionCache é uma estrutura de dados específica usada no MCR-DevIA para armazenar temporariamente informações relevantes durante a sessão de diagnóstico do usuário.

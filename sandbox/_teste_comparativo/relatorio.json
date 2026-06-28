@@ -1,0 +1,25 @@
+{
+  "pergunta": "Explique o que e o SessionCache no MCR-DevIA e como ele difere de uma cache tradicional",
+  "metricas": {
+    "A (14b puro)": {
+      "tempo": 21.2,
+      "tamanho": 2127,
+      "termos_mcr": 5,
+      "generico": 2
+    },
+    "B (FAST + ContextTools)": {
+      "tempo": 13.6,
+      "tamanho": 3397,
+      "termos_mcr": 11,
+      "generico": 1
+    },
+    "C (FAST puro)": {
+      "tempo": 6.3,
+      "tamanho": 1892,
+      "termos_mcr": 4,
+      "generico": 2
+    }
+  },
+  "tempo_proporcao_b_vs_a": 0.64,
+  "tempo_proporcao_c_vs_a": 0.3
+}
