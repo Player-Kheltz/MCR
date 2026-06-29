@@ -29,7 +29,7 @@ def execute(kg, ia, args, ctx_crew=None):
                 "arquivo": arquivo,
                 "descricao": descricao,
                 "linhas": linhas,
-                "conteudo": conteudo[:500],
+                "conteudo": conteudo,
             }, consulta=f"revisar {arquivo}", temp=0.1)
             if r:
                 resp = r
@@ -40,13 +40,13 @@ def execute(kg, ia, args, ctx_crew=None):
         
         # Fallback: prompt direto
         if not resp:
-            prompt = f'Arquivo: {arquivo}\nMudanca: {descricao}\nCodigo atual ({linhas} linhas):\n{conteudo[:500]}\nRisco ALTO, MEDIO ou BAIXO? Responda so o nivel.'
+            prompt = f'Arquivo: {arquivo}\nMudanca: {descricao}\nCodigo atual ({linhas} linhas):\n{conteudo}\nRisco ALTO, MEDIO ou BAIXO? Responda so o nivel.'
             resp = fast(prompt)
         
         if resp and 'ALTO' not in resp:
-            print(f'[Revisor] APROVADO (risco {resp[:30]})')
+            print(f'[Revisor] APROVADO (risco {resp})')
         else:
-            print(f'[Revisor] REJEITADO - risco ALTO detectado: {resp[:80] if resp else "sem resposta"}')
+            print(f'[Revisor] REJEITADO - risco ALTO detectado: {resp if resp else "sem resposta"}')
     else:
         print(f'[Revisor] Arquivo nao encontrado: {arquivo}')
     return True

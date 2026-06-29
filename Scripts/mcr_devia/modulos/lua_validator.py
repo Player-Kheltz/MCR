@@ -92,7 +92,7 @@ class LuaValidator:
             resultado['sintaxe'] = self._verificar_sintaxe(codigo)
             if 'error' in resultado['sintaxe'].lower() or 'syntax' in resultado['sintaxe'].lower():
                 resultado['valido'] = False
-                resultado['erros'].append('Erro de sintaxe Lua: %s' % resultado['sintaxe'][:100])
+                resultado['erros'].append('Erro de sintaxe Lua: %s' % resultado['sintaxe'])
         
         # 5. Validacoes adicionais
         self._validacoes_extras(codigo, resultado)
@@ -115,7 +115,7 @@ class LuaValidator:
                 resultado['sql_injection'].append({
                     'tipo': descricao,
                     'ocorrencias': len(matches),
-                    'exemplo': matches[0][:100] if isinstance(matches[0], str) else str(matches[0])[:100],
+                    'exemplo': matches[0] if isinstance(matches[0], str) else str(matches[0]),
                 })
                 resultado['erros'].append('SQL injection detectado: %s' % descricao)
     
@@ -149,8 +149,8 @@ class LuaValidator:
                 os.unlink(tmp)
                 if r.returncode == 0:
                     return 'OK'
-                return r.stderr[:200] or r.stdout[:200]
-            except:
+                return r.stderr or r.stdout
+            except Exception:
                 return 'luac check failed'
         return 'luac nao disponivel'
     
@@ -165,7 +165,7 @@ class LuaValidator:
         # Verificar encoding (apenas bytes invalidos, nao UTF-8 valido)
         try:
             codigo.encode('latin1').decode('utf-8')
-        except:
+        except Exception:
             pass  # UTF-8 valido
         
         # Verificar tamanho de funcoes
@@ -176,7 +176,7 @@ class LuaValidator:
             conteudo = codigo[pos:]
             # Aproximação: conta end's
             count_end = 0
-            for i, linha in enumerate(conteudo.split('\n')[:100]):
+            for i, linha in enumerate(conteudo.split('\n')):
                 if linha.strip().startswith('end'):
                     count_end += 1
                 if count_end >= 2:
@@ -201,7 +201,7 @@ class LuaValidator:
             r = subprocess.run(['where', 'luac'], capture_output=True, text=True, timeout=10)
             if r.returncode == 0 and r.stdout.strip():
                 return r.stdout.strip().split('\n')[0].strip()
-        except:
+        except Exception:
             pass
         
         return None

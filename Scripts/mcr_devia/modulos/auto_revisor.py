@@ -45,7 +45,7 @@ def escanear_classes(diretorio_base=None):
         for linha in (r2.stdout or '').split('\n'):
             if 'class ' in linha:
                 classes.add(linha.replace('class ', '').strip())
-    except:
+    except Exception:
         pass
     
     # Classes built-in comuns que sao validas
@@ -158,11 +158,11 @@ class AutoRevisor:
             if not self._heuristico(c, texto_resposta):
                 pos = texto_resposta.find(c)
                 ctx = texto_resposta[max(0,pos-40):pos+len(c)+40].replace('\n', ' ')
-                alucinacoes.append((c, ctx[:100]))
+                alucinacoes.append((c, ctx))
         
         sugestao = ""
         if alucinacoes:
-            classes_str = ', '.join(a[0] for a in alucinacoes[:5])
+            classes_str = ', '.join(a[0] for a in alucinacoes)
             sugestao = f"Classes suspeitas encontradas: {classes_str}. Verifique se existem no projeto."
         
         resultado = {
@@ -183,7 +183,7 @@ class AutoRevisor:
                     resultado['generica'] = True
                     resultado['sugestao'] += ' | Resposta parece generica. Enricher poderia ter enriquecido.'
                     print(f'  [Auto-Revisor] Resposta GENERICA detectada (Enricher disponivel)')
-            except:
+            except Exception:
                 pass
         
         # Registra no KG se tiver acesso
@@ -195,8 +195,47 @@ class AutoRevisor:
                     f"classes={classes_str}, total={resultado['total']}",
                     "auto_revisor"
                 )
-            except:
+            except Exception:
                 pass
+        
+        # ===== PATTERN ENGINE CHECKS (eixo + entropia + n-grama) =====
+        try:
+            from modulos.pattern_engine import PatternEngine
+            _pe = PatternEngine()
+            _tokens = _pe.tokenizar(texto_resposta, 'texto')
+            _padroes = _pe.extrair_padroes(_tokens)
+            _eixo = _pe.eixo_nirvana_caos(_tokens)
+            
+            # Eixo check
+            resultado['eixo'] = round(_eixo, 3)
+            if _eixo < 0.4:
+                resultado['sugestao'] += f' | Eixo baixo ({_eixo:.2f}) — resposta caotica'
+                resultado['total'] += 1
+                alucinacoes.append(('EIXO_CAOS', f'eixo={_eixo:.2f}'))
+            
+            # Entropia check
+            _entropia = _padroes.get('entropia', 0.5)
+            resultado['entropia'] = round(_entropia, 3)
+            if _entropia > 0.8:
+                resultado['sugestao'] += f' | Entropia alta ({_entropia:.2f}) — resposta aleatoria'
+                resultado['total'] += 1
+                alucinacoes.append(('ENTROPIA_ALTA', f'entropia={_entropia:.2f}'))
+            
+            # N-grama repeticao check
+            _n_gramas = _padroes.get('n_gramas', {})
+            _trigramas = list(_n_gramas.get(3, {}).keys()) if isinstance(_n_gramas, dict) else []
+            if _trigramas and len(texto_resposta) > 200:
+                # Conta repeticoes de trigramas
+                from collections import Counter
+                palavras = re.findall(r'\w+', texto_resposta.lower())
+                trigramas = [' '.join(palavras[i:i+3]) for i in range(len(palavras)-2)]
+                repeticoes = sum(1 for _, count in Counter(trigramas).items() if count > 2)
+                if repeticoes > len(trigramas) * 0.1:  # mais de 10% de repeticoes
+                    resultado['sugestao'] += f' | {repeticoes} trigramas repetidos — resposta em loop'
+                    resultado['total'] += 1
+                    alucinacoes.append(('LOOP_NGRAMA', f'{repeticoes} trigramas repetidos'))
+        except Exception:
+            pass
         
         return resultado
     
@@ -275,7 +314,7 @@ class AutoRevisor:
                     if tl in texto_kg:
                         existe = True
                         break
-            except:
+            except Exception:
                 pass
             if not existe:
                 suspeitos.append(termo)
@@ -299,7 +338,7 @@ if __name__ == "__main__":
     # Teste
     escanear_classes()
     print(f"Classes reais encontradas: {len(_CLASSES_REAIS)}")
-    print(f"Exemplos: {list(_CLASSES_REAIS)[:10]}")
+    print(f"Exemplos: {list(_CLASSES_REAIS)}")
     
     revisor = AutoRevisor()
     teste = "A classe DataLoader faz a carga e DataProcessor transforma. DataLake e StreamSimulator sao reais."

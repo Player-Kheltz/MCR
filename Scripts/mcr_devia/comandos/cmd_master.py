@@ -36,7 +36,7 @@ def executar(kg, ia, args):
 
     print(f"\n{'='*60}")
     print(f"  MASTER AGENT")
-    print(f"  Request: {request[:80]}{'...' if len(request) > 80 else ''}")
+    print(f"  Request: {request}{'...' if len(request) > 80 else ''}")
     if task_type:
         print(f"  Tipo: {task_type}")
     print(f"{'='*60}\n")
@@ -56,8 +56,8 @@ def executar(kg, ia, args):
 
     if resposta_final:
         # Trunca se muito longa (print completo vai pra .mcr_resposta.txt)
-        max_print = 2000
-        print(resposta_final[:max_print])
+        max_print = 5000
+        print(resposta_final)
         if len(resposta_final) > max_print:
             print(f"\n... [resposta truncada, {len(resposta_final)} chars total]")
 

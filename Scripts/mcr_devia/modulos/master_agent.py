@@ -14,8 +14,17 @@ Uso:
     resultado = agent.executar("Cria um jogo de plataforma em Python com 3 fases")
     # -> Projeto completo com codigo e instrucoes
 """
-import os, sys, json, time
+import os, sys, json, time, re, random, hashlib
+from modulos.conselho import tree_of_thought  # EMERGIR V2: 3 perspectivas + sintese
+from context_crew import ContextCrew  # EMERGIR V3: enriquecimento de topicos
+import re as _re  # EMERGIR V3: verificador de alucinacoes
 from typing import Dict, List, Optional
+
+# SSE — Dashboard de pensamento em tempo real (opcional, nao quebra se nao existir)
+try:
+    from modulos.sse_server import emit
+except ImportError:
+    emit = lambda *a, **kw: None  # noop se o SSE nao estiver rodando
 
 # Caminhos
 BASE = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
@@ -29,6 +38,9 @@ from modulos.ia import IA
 from modulos.kg import KnowledgeGraph
 from context_infinity import SessionCache
 from modulos.enricher import Enricher  # atalho para Conselho (fundido)
+from modulos.emergir import EmergirEngine  # EMERGIR V4
+from modulos.self_study import SelfStudyEngine  # Self-Study
+from modulos.task_executor import TaskExecutor  # Execucao de subtarefas
 
 
 class MasterAgent:
@@ -44,6 +56,26 @@ class MasterAgent:
         self._passos = []
         self._execution_count = 0  # G10: contador para auto-diagnostico
         self._buffer_episodios = []  # J2: buffer para registro em lote
+        self._identity_base_cache = None  # lazy load docs/AGENT_IDENTITY.md
+        self._combinacoes_feitas = set()  # fingerprints de combinacoes emergentes ja tentadas
+        # Motores especializados (modularizacao)
+        self.emergir = EmergirEngine(
+            ia=self.ia, kg=self.kg,
+            log_callback=self._log,
+            execution_count_getter=lambda: getattr(self, '_execution_count', 0),
+        )
+        self.self_study = SelfStudyEngine(
+            ia=self.ia, kg=self.kg,
+            log_callback=self._log,
+            execution_count_getter=lambda: getattr(self, '_execution_count', 0),
+        )
+        self.task_executor = TaskExecutor(
+            ia=self.ia, tools=self.tools, sandbox=self.sandbox,
+            ask_user_callback=self._ask_user,
+            log_callback=self._log,
+            identity_base_callback=self._get_identity_base,
+            identity_tarefa_callback=self._buscar_identity_tarefa,
+        )
 
     def autoavaliar(self, request):
         """Autoavaliacao: o sistema sabe o que sabe e o que nao sabe.
@@ -110,6 +142,164 @@ class MasterAgent:
         
         return lessons
 
+    def _get_identity_base(self):
+        """Carrega docs/AGENT_IDENTITY.md (1 vez, lazy).
+        
+        Retorna string com identidade base do MasterAgent,
+        ou '' se o arquivo nao existir.
+        """
+        if self._identity_base_cache is None:
+            path = os.path.join(BASE, 'docs', 'AGENT_IDENTITY.md')
+            try:
+                if os.path.exists(path):
+                    with open(path, 'r', encoding='utf-8') as f:
+                        self._identity_base_cache = f.read().strip()
+                else:
+                    self._identity_base_cache = ''
+            except Exception:
+                self._identity_base_cache = ''
+        return self._identity_base_cache
+
+    def _buscar_identity_tarefa(self, task_type, request=''):
+        """Busca identidade pra tarefa: SessionCache L1 → V12 KG L2 → FAST L3 → auto-cache.
+        
+        Args:
+            task_type: Tipo da tarefa (ex: 'pesquisa_web', 'criar_codigo')
+            request: Request original (contexto pro FAST fallback)
+        
+        Returns:
+            str: Texto da identidade (vazio '' se nada funcionar)
+        """
+        if not task_type:
+            return ''
+        
+        # ============================================================
+        # L1: SessionCache (memoria da execucao atual, 0ms)
+        # ============================================================
+        ctx = getattr(self, 'ctx', None)
+        if ctx is not None:
+            try:
+                cache = ctx.pescar(
+                    pergunta=task_type,
+                    tipos=['identity'],
+                    max_tokens=500,
+                    n=1
+                )
+                if cache and len(cache[0].conteudo) > 20:
+                    self._log('IDENTITY', f'L1 (SessionCache): {task_type}')
+                    return cache[0].conteudo
+            except Exception:
+                pass
+        
+        # ============================================================
+        # L2: KG — V12 lookup filtrado por ctx='identity_tarefa'
+        # ============================================================
+        try:
+            lessons = self.kg.buscar(task_type, max_r=5)
+            melhor = None
+            melhor_score = 0
+            palavras = set(re.findall(r'\w+', task_type.lower()))
+            
+            for l in lessons:
+                if l.get('ctx') != 'identity_tarefa':
+                    continue
+                score = sum(1 for p in palavras 
+                           if p in l.get('erro', '').lower() and len(p) >= 3)
+                if score > melhor_score:
+                    melhor_score = score
+                    melhor = l
+            
+            if melhor and palavras:
+                confidence = melhor_score / max(len(palavras), 1)
+                if confidence >= 0.7:
+                    self._log('IDENTITY', f'L2 (V12 KG): {task_type} '
+                              f'(confidence={confidence:.0%})')
+                    # Cacheia em SessionCache pra L1 pegar depois
+                    if ctx is not None:
+                        try:
+                            ctx.absorver(
+                                f'identity_{task_type}',
+                                melhor['solucao'],
+                                tipo='identity',
+                                tags=['identity', task_type],
+                                origem='v12_kg'
+                            )
+                        except Exception:
+                            pass
+                    return melhor['solucao']
+        except Exception:
+            pass
+        
+        # ============================================================
+        # L3: FAST — gera identity sob demanda via Decider.extrair_json
+        # ============================================================
+        try:
+            from modulos.decider import Decider
+            decider = Decider(self.ia)
+            
+            exemplos = [
+                ("pesquisa_web", {
+                    "identity": (
+                        "Seu papel: relator de pesquisa.\n"
+                        "Contexto web REAL foi fornecido.\n"
+                        "USE os dados do contexto. NAO crie codigo.\n"
+                        "Responda em PT-BR com relatorio conciso."
+                    )
+                }),
+                ("criar_codigo", {
+                    "identity": (
+                        "Seu papel: gerador de codigo.\n"
+                        "Crie codigo funcional e bem estruturado.\n"
+                        "Responda APENAS com o codigo, sem explicacoes.\n"
+                        "Comentarios em portugues."
+                    )
+                }),
+            ]
+            
+            dados = decider.extrair_json(
+                texto=f"task_type: {task_type}\nrequest: {request}",
+                esquema_exemplo={"identity": ""},
+                instrucao=(
+                    "Gere uma identidade/instrucao de papel para o modelo de IA "
+                    "baseado no tipo de tarefa. A identity deve ter 2-5 linhas "
+                    "dizendo claramente o que o modelo DEVE fazer e NAO DEVE fazer."
+                ),
+                exemplos=exemplos
+            )
+            
+            identity = dados.get('identity', '').strip()
+            if identity and len(identity) > 20:
+                # AUTO-CACHE: salva no KG pra V12 pegar na proxima
+                try:
+                    self.kg.aprender(
+                        erro=task_type,
+                        causa=f'Identity gerada via FAST para tarefa {task_type}',
+                        solucao=identity,
+                        ctx='identity_tarefa'
+                    )
+                    self._log('IDENTITY', f'L3 (FAST): {task_type} — cacheado no KG')
+                except Exception:
+                    pass
+                
+                # Cacheia em SessionCache tambem
+                if ctx is not None:
+                    try:
+                        ctx.absorver(
+                            f'identity_{task_type}',
+                            identity,
+                            tipo='identity',
+                            tags=['identity', task_type],
+                            origem='fast'
+                        )
+                    except Exception:
+                        pass
+                
+                return identity
+        except Exception as e:
+            self._log('IDENTITY', f'L3 (FAST) falhou: {e}')
+        
+        return ''
+
     def _buscar_hierarquico(self, pergunta):
         """Busca em 3 niveis ate encontrar resposta satisfatoria.
         
@@ -121,7 +311,7 @@ class MasterAgent:
         seen_textos = set()
         
         def _add(texto, limite=300):
-            t = str(texto)[:limite]
+            t = str(texto)
             if t and t not in seen_textos:
                 seen_textos.add(t)
                 resultados.append(t)
@@ -136,13 +326,13 @@ class MasterAgent:
         except Exception:
             pass
         if len(resultados) >= 3:
-            return resultados[:3]
+            return resultados
         
         # NIVEL 1: LOCAL — KG sabedoria
         for l in self._buscar_sabedoria(pergunta, 3):
             _add(l.get('solucao', ''))
         if len(resultados) >= 3:
-            return resultados[:3]
+            return resultados
         
         # NIVEL 1: LOCAL — ContextCrew
         try:
@@ -152,14 +342,14 @@ class MasterAgent:
         except Exception:
             pass
         if len(resultados) >= 3:
-            return resultados[:3]
+            return resultados
         
         # NIVEL 2: WEBLEARN (cache local de pesquisas anteriores)
         try:
             wl_dir = os.path.join(BASE, 'sandbox', '.mcr_devia', 'weblearn')
             if os.path.exists(wl_dir):
                 termos = set(pergunta.lower().split())
-                for f in sorted(os.listdir(wl_dir))[:10]:
+                for f in sorted(os.listdir(wl_dir)):
                     if not f.endswith('.json') or f.startswith('.'):
                         continue
                     try:
@@ -169,7 +359,7 @@ class MasterAgent:
                         if any(t in txt.lower() for t in termos if len(t) > 3):
                             _add(txt)
                             if len(resultados) >= 3:
-                                return resultados[:3]
+                                return resultados
                     except Exception:
                         pass
         except Exception:
@@ -183,7 +373,7 @@ class MasterAgent:
         except Exception:
             pass
         
-        return resultados[:3] if resultados else []
+        return resultados if resultados else []
 
     def _feedback(self, request, tipo_porte, plano, resultados):
         """Feedback do resultado para ajustar decisoes futuras.
@@ -198,12 +388,12 @@ class MasterAgent:
         n_total = len(plano)
         if n_total > 0 and n_ok < n_total * 0.5:
             licao = (f"FRACASSO: {n_ok}/{n_total} subtarefas para "
-                     f"'{request[:60]}'. Tipo classificado como "
+                     f"'{request}'. Tipo classificado como "
                      f"'{tipo_porte}' parece incorreto.")
             self.kg.aprender(
-                erro=f"Feedback: {request[:60]}",
+                erro=f"Feedback: {request}",
                 causa=f"tipo={tipo_porte} | sucesso={n_ok}/{n_total}",
-                solucao=licao[:300],
+                solucao=licao,
                 ctx='feedback_fracasso'
             )
 
@@ -232,7 +422,7 @@ class MasterAgent:
             self._log('SABEDORIA', f'Pre-carregamento: {e}')
         self.ctx.absorver('request', request, 'request', tags=['request', task_type or 'geral'], origem='usuario')
 
-        self._log('PERCEBER', f'Request: {request[:100]}')
+        self._log('PERCEBER', f'Request: {request}')
 
         # === METACOGNICAO (AGI) ===
         try:
@@ -250,13 +440,13 @@ class MasterAgent:
             self.ctx.absorver('memorias', str(memorias), 'contexto', tags=['memoria'], origem='episodic_memory')
             for m in memorias:
                 status = 'OK' if m.get('sucesso') else 'FALHA'
-                self._log('PERCEBER', f"  -> {m['request'][:60]} ({status})")
+                self._log('PERCEBER', f"  -> {m['request']} ({status})")
 
         # Buscar conhecimento relevante
         lessons = self.kg.buscar(request, max_r=3)
         if lessons:
             self._log('PERCEBER', f'Encontradas {len(lessons)} licoes no KG')
-            self.ctx.absorver('kg_lessons', str(lessons[:2]), 'contexto', tags=['kg'], origem='kg')
+            self.ctx.absorver('kg_lessons', str(lessons), 'contexto', tags=['kg'], origem='kg')
 
         # === 1.5 PAUSE-AND-ASK (projetos grandes) ===
         # Usa Decider para classificar o porte do projeto
@@ -281,6 +471,7 @@ class MasterAgent:
             projeto_grande = tipo_porte == 'projeto'
             request_ambiguo = projeto_grande and len(request) < 60
         except Exception:
+            pass
             # Fallback: regex
             projeto_grande = any(p in request.lower() for p in ['jogo', 'game', 'projeto', 'site'])
             request_ambiguo = len(request) < 60 and projeto_grande
@@ -309,11 +500,11 @@ class MasterAgent:
         self._log('PLANEJAR', 'Criando plano de execucao...')
         plano = self.planner.planejar(request, task_type)
         self._log('PLANEJAR', f'Plano: {len(plano)} subtarefas')
-        self.ctx.absorver('plano', json.dumps([{'id': p['id'], 'acao': p['acao'], 'desc': p['descricao'][:50]} for p in plano]),
+        self.ctx.absorver('plano', json.dumps([{'id': p['id'], 'acao': p['acao'], 'desc': p['descricao']} for p in plano]),
                           'plano', tags=['plano', task_type or 'geral'], origem='planner')
 
         for p in plano:
-            self._log('PLANEJAR', f'  {p["id"]}. {p["acao"]} - {p["descricao"][:60]}')
+            self._log('PLANEJAR', f'  {p["id"]}. {p["acao"]} - {p["descricao"]}')
 
         # === 3. EXECUTAR ===
         self._log('EXECUTAR', f'Iniciando execucao de {len(plano)} subtarefas...')
@@ -334,12 +525,15 @@ class MasterAgent:
                 continue
 
             # PESCA contexto relevante do SessionCache para esta subtarefa
+            # Usa params['pergunta'] se disponivel (contem o request original),
+            # senao usa a descricao do template
+            ctx_query = subtarefa.get('params', {}).get('pergunta') or subtarefa.get('params', {}).get('consulta') or subtarefa['descricao']
             ctx_passo = self.ctx.pescar(
-                pergunta=subtarefa['descricao'],
+                pergunta=ctx_query,
                 tipos=['codigo', 'request', 'plano', 'resultado', 'contexto'],
                 max_tokens=500
             )
-            ctx_passo_str = str([c.conteudo[:200] for c in ctx_passo]) if ctx_passo else ''
+            ctx_passo_str = str([c.conteudo for c in ctx_passo]) if ctx_passo else ''
 
             # Herdar resultado do passo que gerou codigo (nao o de validacao)
             codigo_anterior = artefatos.get('codigo_gerado')
@@ -360,7 +554,7 @@ class MasterAgent:
                 tags_resultado.append('sucesso' if resultado.get('sucesso') else 'falha')
                 self.ctx.absorver(
                     f'passo_{subtarefa["id"]}_{acao_atual}',
-                    res[:1000],
+                    res,
                     tipo='codigo' if 'gerar_' in acao_atual else 'resultado',
                     tags=tags_resultado,
                     origem=f'executor:{acao_atual}'
@@ -368,7 +562,13 @@ class MasterAgent:
 
             # Se gerou codigo, armazena como artefato
             if resultado.get('sucesso'):
-                if isinstance(res, str) and len(res) > 50:
+                if isinstance(res, dict) and res.get('codigo'):
+                    # NPCGenerator/gerar_npc retorna dict com campo 'codigo'
+                    artefatos['codigo_gerado'] = res['codigo']
+                    for k in ['arquivo', 'nome', 'tipo']:
+                        if k in res:
+                            artefatos[f'npc_{k}'] = res[k]
+                elif isinstance(res, str) and len(res) > 50:
                     if 'gerar_modulo' in acao_atual:
                         nome_mod = acao_atual.replace('gerar_modulo_', '')
                         artefatos[f'modulo_{nome_mod}'] = res
@@ -377,14 +577,14 @@ class MasterAgent:
 
             # Se falhou, tenta busca HIERARQUICA (local → weblearn → web)
             if not resultado.get('sucesso') and resultado.get('erro'):
-                self._log('EXECUTAR', f'  -> Falhou: {str(resultado.get("erro",""))[:80]}. Busca hierarquica...')
+                self._log('EXECUTAR', f'  -> Falhou: {str(resultado.get("erro",""))}. Busca hierarquica...')
                 contexto_ajuda = self._buscar_hierarquico(
                     f"Como resolver: {subtarefa.get('descricao', request)}. "
                     f"Erro: {resultado.get('erro', '')}"
                 )
                 if contexto_ajuda:
                     contexto_ajuda_str = '\n'.join(str(c) for c in contexto_ajuda)
-                    self.ctx.absorver(f'ajuda_{subtarefa["id"]}', contexto_ajuda_str[:500],
+                    self.ctx.absorver(f'ajuda_{subtarefa["id"]}', contexto_ajuda_str,
                                       'contexto', tags=['ajuda'], origem='busca_hierarquica')
                     resultado_retry = self._executar_subtarefa(subtarefa, artefatos=artefatos,
                                        contexto_extra=contexto_ajuda_str, codigo_anterior=codigo_anterior)
@@ -438,7 +638,7 @@ class MasterAgent:
             except Exception:
                 pass
 
-        self._log('APRENDER', f'Licao registrada: {licao[:80]}')
+        self._log('APRENDER', f'Licao registrada: {licao}')
         self._log('FIM', f'Concluido em {tempo_total:.1f}s - '
                   f'{resultado_final["n_sucesso"]}/{len(plano)} subtarefas OK')
 
@@ -457,234 +657,302 @@ class MasterAgent:
         # === 9. FLUSH de buffers pendentes ===
         self._flush_episodios()
 
+        # === 10. EMERGIR — reconhecimento automatico de padroes emergentes ===
+        try:
+            self._processar_emergencia()
+        except Exception as e:
+            self._log('EMERGIR', f'Erro: {e}')
+        
+        # === 11. SELF-STUDY — auto-conhecimento a cada 10 execucoes ===
+        if getattr(self, '_execution_count', 0) % 10 == 0 and self._execution_count > 0:
+            try:
+                self._self_study()
+            except Exception as e:
+                self._log('SELF', f'Erro no auto-conhecimento: {e}')
+        
+        # === 12. AUTO-MELHORIA — loop AGI a cada 20 execucoes ===
+        if getattr(self, '_execution_count', 0) % 20 == 0 and self._execution_count > 0:
+            try:
+                self._auto_melhorar()
+            except Exception as e:
+                self._log('AUTO', f'Erro na auto-melhoria: {e}')
+
         return resultado_final
 
-    def _executar_subtarefa(self, subtarefa, artefatos=None, contexto_extra='', codigo_anterior=None):
-        """Executa uma subtarefa do plano.
+    # ============================================================
+    # EMERGIR — RECONHECIMENTO AUTOMATICO DE PADROES EMERGENTES
+    # ============================================================
+    # Maquina reconhece padroes → padroes existem em TUDO →
+    # as vezes X+Y = Z (nao XY). Z e aprendido.
+    # ============================================================
+
+    # ============================================================
+    # DELEGACAO: EMERGIR + SELF-STUDY (implementados em modulos/)
+    # ============================================================
+
+    def _processar_emergencia(self):
+        """Delega para EmergirEngine.processar() (modulos/emergir.py)."""
+        return self.emergir.processar()
+
+    def _amostrar_topicos_distantes(self, n=3):
+        return self.emergir.amostrar_topicos(n)
+
+    def _gerar_fingerprint_combinacao(self, topicos):
+        return self.emergir.gerar_fingerprint(topicos)
+
+    def _gerar_pergunta_emergente(self, topicos):
+        return self.emergir.gerar_pergunta(topicos)
+
+    def _autoavaliar_padrao_novo(self, pergunta, resposta, topicos):
+        return self.emergir.autoavaliar(pergunta, resposta, topicos)
+
+    def _expandir_z_com_visao_critica(self, z_cru, pergunta, contexto_anterior):
+        return self.emergir._expandir_z(z_cru, pergunta, contexto_anterior)
+
+    def _gerar_emergencia_fragmentada(self, pergunta, topicos, ctx_enriquecido=""):
+        return self.emergir.gerar_fragmentado(pergunta, topicos, ctx_enriquecido)
+
+    def _verificar_alucinacao_siglas(self, texto):
+        return self.emergir.verificar_alucinacao(texto)
+
+    # ============================================================
+    # SELF-STUDY (implementado em modulos/self_study.py)
+    # ============================================================
+
+    def _self_study(self):
+        """Delega para SelfStudyEngine.executar() (modulos/self_study.py)."""
+        return self.self_study.executar()
+
+    def _escanear_projeto(self, max_arquivos=60):
+        return self.self_study.escanear_projeto(max_arquivos)
+
+    def _extrair_metricas(self, arquivos):
+        return self.self_study.extrair_metricas(arquivos)
+
+    def _gerar_auto_insight(self, metricas):
+        return self.self_study.gerar_auto_insight(metricas)
+
+    # ============================================================
+    # AUTO-MELHORIA AUTONOMA — Loop AGI completo
+    # ============================================================
+
+    def _decidir_melhoria(self):
+        """Usa IA para decidir QUAL melhoria fazer baseado em dados reais.
         
-        Args:
-            subtarefa: Dict com acao, params, ferramenta
-            artefatos: Dict de artefatos acumulados (modifica in-place)
-            contexto_extra: Contexto adicional da web (opcional)
-            codigo_anterior: Codigo gerado em passo anterior (para validar/salvar)
+        Consulta Self-Study + anti-patterns + metricas.
+        Retorna dict com {arquivo, acao, tipo, prioridade} ou None se nada a fazer.
         """
-        if artefatos is None:
-            artefatos = {}
-        acao = subtarefa.get('acao', '')
-        params = subtarefa.get('params', {})
-        ferramenta = subtarefa.get('ferramenta', '')
-
-        # Ajusta params para ferramentas que precisam do codigo gerado anteriormente
-        if ferramenta == 'validar_python' and 'codigo' not in params and codigo_anterior:
-            params['codigo'] = codigo_anterior
+        import re as _re
         
-        if ferramenta == 'escrever_artefato' and 'codigo' not in params and codigo_anterior:
-            params['codigo'] = codigo_anterior
-            if 'caminho' not in params:
-                params['caminho'] = os.path.join(BASE, 'sandbox', 'artefato_gerado.py')
-
-        # ============================================================
-        # ACOES ESPECIAIS (precisam de logica extra + artefatos)
-        # ============================================================
-
-        if acao == 'perguntar_usuario':
-            pergunta = params.get('pergunta', 'Posso prosseguir?')
-            resp = self._ask_user(pergunta)
-            return {'sucesso': True, 'resultado': f"Usuario: {resp}"}
-
-        if acao == 'criar_estrutura_pastas':
-            caminho = params.get('caminho', '')
-            if caminho:
-                for sub in ['src', 'assets', 'runs']:
-                    sub_path = os.path.join(caminho, sub)
-                    self.tools.executar('criar_diretorio', {'caminho': sub_path})
-                artefatos['projeto_path'] = caminho
-                return {'sucesso': True, 'resultado': f"Estrutura criada em {caminho}"}
-            return {'sucesso': False, 'erro': 'Caminho nao especificado'}
-
-        if acao == 'validar_codigo':
-            # Valida QUALQUER linguagem usando _cmd_validar_codigo (tool_orchestrator)
-            modulos = {k: v for k, v in artefatos.items() if k.startswith('modulo_') and not k.endswith('_puro')}
-            erros = []
-            if modulos:
-                # projeto_jogo: valida CADA modulo individualmente
-                for nome_mod, codigo in modulos.items():
-                    if codigo and len(codigo) > 20:
-                        r = self.tools.executar('validar_codigo', {'codigo': codigo[:5000]})
-                        if r.get('sucesso'):
-                            res = r['resultado']
-                            if not res.get('valido', True):
-                                erros.append(f"{nome_mod}: {res.get('erros', ['erro'])}")
-            elif codigo_anterior:
-                # criar_codigo: valida o codigo unico
-                r = self.tools.executar('validar_codigo', {'codigo': codigo_anterior[:5000]})
-                if r.get('sucesso'):
-                    res = r['resultado']
-                    if not res.get('valido', True):
-                        erros.append(f"codigo: {res.get('erros', ['erro'])}")
-                    else:
-                        return {'sucesso': True, 'resultado': f"Validacao OK ({res.get('linguagem', '?')})"}
-            if erros:
-                # K1: Auto-Repair — tenta corrigir o codigo com erro
-                try:
-                    from modulos.auto_repair import AutoRepair
-                    reparador = AutoRepair(self.ia)
-                    codigo_fonte = codigo_anterior or (list(modulos.values())[0] if modulos else '')
-                    if codigo_fonte and len(codigo_fonte) > 50:
-                        codigo_reparado, reparado = reparador.reparar_e_validar(
-                            codigo_fonte, erros, 'python', self.tools
-                        )
-                        if reparado:
-                            self._log('REPAIR', 'Codigo reparado automaticamente')
-                            return {'sucesso': True, 'resultado': codigo_reparado, 'reparado': True}
-                except Exception as ex:
-                    print(f"[AutoRepair] Erro: {ex}")
-                return {'sucesso': False, 'erro': f"Erros em: {', '.join(erros[:3])}"}
-            return {'sucesso': True, 'resultado': f"Validados {len(modulos) if modulos else 1} modulo(s) sem erros"}
-
-        if acao == 'extrair_codigo':
-            modulos = {k: v for k, v in artefatos.items() if k.startswith('modulo_') and not k.endswith('_puro')}
-            projeto_path = artefatos.get('projeto_path', os.path.join(BASE, 'sandbox'))
-            src_path = os.path.join(projeto_path, 'src')
-            os.makedirs(src_path, exist_ok=True)
-            salvos = []
-            for nome_mod, codigo_bruto in modulos.items():
-                r = self.tools.executar('extrair_codigo', {'conteudo': codigo_bruto})
-                if r.get('sucesso'):
-                    codigo_puro = r['resultado']
-                    artefatos[nome_mod] = codigo_puro
-                    # Nome do arquivo sem prefixo 'modulo_'
-                    nome_arquivo = nome_mod.replace('modulo_', '')
-                    # Detecta extensao pelo conteudo do codigo
-                    amostra = codigo_puro[:200]
-                    if 'const ' in amostra or 'require(' in amostra or 'var ' in amostra \
-                       or 'import React' in amostra or 'function ' in amostra:
-                        ext = '.js'
-                    elif 'local ' in amostra or 'function ' in amostra:
-                        ext = '.lua'
-                    else:
-                        ext = '.py'
-                    caminho_arquivo = os.path.join(src_path, f"{nome_arquivo}{ext}")
-                    try:
-                        with open(caminho_arquivo, 'w', encoding='utf-8') as f_:
-                            f_.write(codigo_puro)
-                        salvos.append(f"{nome_arquivo}{ext}")
-                    except Exception as e_:
-                        print(f"[MasterAgent] Erro ao salvar {caminho_arquivo}: {e_}")
-            return {'sucesso': True, 'resultado': f"Extraidos e salvos {len(salvos)} modulos: {', '.join(salvos)}"}
-
-        if acao == 'testar_execucao':
-            projeto_path = artefatos.get('projeto_path', '')
-            if not projeto_path:
-                return {'sucesso': False, 'erro': 'projeto_path nao definido'}
-            src_path = os.path.join(projeto_path, 'src')
-            if os.path.exists(src_path):
-                arquivos = os.listdir(src_path)
-                # So executa teste se for Python (JS/Lua precisam de runtime especifico)
-                main_file = None
-                for f in arquivos:
-                    if f.startswith('main.'):
-                        main_file = os.path.join(src_path, f)
-                        break
-                if main_file and os.path.exists(main_file):
-                    if not main_file.endswith('.py'):
-                        return {'sucesso': True, 'resultado': f'Teste ignorado ({os.path.splitext(main_file)[1]} nao executavel localmente)'}
-                    with open(main_file, 'r') as f:
-                        codigo = f.read()
-                    return self.sandbox.executar_python(codigo)
-                return {'sucesso': False, 'erro': f'main.* nao encontrado em {src_path}'}
-            return {'sucesso': False, 'erro': f'Pasta src/ nao encontrada em {projeto_path}'}
-
-        if acao == 'relatorio_final':
-            projeto_path = artefatos.get('projeto_path', os.path.join(BASE, 'sandbox'))
-            relatorio = f"Projeto criado!\nLocal: {projeto_path}\nEstrutura:\n"
-            if os.path.exists(projeto_path):
-                for root, dirs, files in os.walk(projeto_path):
-                    nivel = root.replace(projeto_path, '').count(os.sep)
-                    relatorio += f"{'  ' * nivel}{os.path.basename(root)}/\n"
-                    for fname in sorted(files):
-                        relatorio += f"{'  ' * (nivel + 1)}{fname}\n"
-            return {'sucesso': True, 'resultado': relatorio}
-
-        # ============================================================
-        # FERRAMENTAS REGISTRADAS
-        # ============================================================
-
-        # Se tem ferramenta especifica, usa
-        if ferramenta and ferramenta != 'perguntar_ia':
-            resultado = self.tools.executar(ferramenta, params)
+        # 1. Coleta dados atuais
+        arquivos = self.self_study.escanear_projeto(max_arquivos=30)
+        metricas = self.self_study.extrair_metricas(arquivos)
+        anti = self.self_study._analisar_anti_patterns(arquivos)
+        
+        # 2. IA decide
+        prompt = (
+            f"[SISTEMA]\nVoce e um ARQUITETO DE SOFTWARE revisando codigo.\n"
+            f"[METRICAS]\nTotal arquivos: {metricas['total_arquivos']}\n"
+            f"Total linhas: {metricas['total_linhas']}\n"
+            f"Total funcoes: {metricas['total_funcoes']}\n\n"
+            f"[PROBLEMAS ENCONTRADOS]\n"
+        )
+        for k, v in sorted(anti.items(), key=lambda x: -len(x[1])):
+            prompt += f"- {k}: {len(v)} ocorrencias\n"
+            for o in v:
+                prompt += f"  {o['arquivo']}:L{o['linha']} {o['codigo']}\n"
+        
+        prompt += (
+            f"\n[PERGUNTA]\nQual a UNICA melhoria mais importante de fazer agora?\n"
+            f"Responda EXATAMENTE neste formato:\n"
+            f"ARQUIVO: nome_do_arquivo.py\n"
+            f"ACAO: descricao da mudanca em 1 linha\n"
+            f"TIPO: except|import|refatorar\n"
+            f"PRIORIDADE: alta|media\n"
+        )
+        
+        decisao = self.ia.gerar(prompt, 0.3, 'leve') or ""
+        
+        # 3. Parseia a decisao
+        resultado = {}
+        for linha in decisao.split('\n'):
+            m = _re.match(r'(ARQUIVO|ACAO|TIPO|PRIORIDADE):\s*(.*)', linha.strip())
+            if m:
+                resultado[m.group(1).lower()] = m.group(2).strip()
+        
+        if resultado.get('arquivo'):
             return resultado
+        return None
 
-        # Se e pergunta, usa IA com ENRIQUECIMENTO DINAMICO
-        if acao == 'perguntar_ia':
-            pergunta = params.get('pergunta', subtarefa.get('descricao', ''))
-            if contexto_extra:
-                pergunta = f"Contexto adicional:\n{contexto_extra}\n\nPergunta:\n{pergunta}"
+    def _gerar_e_aplicar(self, decisao):
+        """Gera codigo via IA + aplica + valida (sintaxe E semantica). 
+        Mantem .autobak ate o proximo ciclo bem-sucedido.
+        """
+        import shutil, re as _re
+        
+        arquivo = decisao.get('arquivo', '')
+        acao = decisao.get('acao', '')
+        
+        caminhos_possiveis = [
+            os.path.join(BASE, 'Scripts', 'mcr_devia', 'modulos', arquivo),
+            os.path.join(BASE, 'Scripts', 'mcr_devia', arquivo),
+            os.path.join(BASE, 'Scripts', 'mcr_devia', 'comandos', arquivo),
+        ]
+        caminho = None
+        for c in caminhos_possiveis:
+            if os.path.exists(c):
+                caminho = c
+                break
+        if not caminho:
+            return False
+        
+        try:
+            with open(caminho, 'r', encoding='utf-8') as f:
+                conteudo_original = f.read()
+        except:
+            return False
+        
+        # Backup ANTES de qualquer modificacao
+        shutil.copy2(caminho, caminho + '.autobak')
+        
+        # Gera correcao DIRETA via IA
+        prompt_correcao = (
+            f"[SISTEMA]\nVoce e um reparador de codigo. Gere APENAS a correcao, "
+            f"sem explicacoes, sem markdown.\n\n"
+            f"[ARQUIVO]\n{arquivo}\n[ACAO]\n{acao}\n\n"
+            f"[CODIGO ATUAL]\n{conteudo_original}\n\n"
+            f"[INSTRUCAO]\nGere o ARQUIVO COMPLETO corrigido.\n"
+            f"PRESERVE todos os metodos e classes existentes.\n"
+            f"NAO remova nada — apenas corrija o problema indicado.\n"
+            f"Preserve a indentacao original. Responda APENAS com o codigo."
+        )
+        codigo_novo = self.ia.gerar(prompt_correcao, 0.3, 'analisar') or ''
+        
+        if not codigo_novo or len(codigo_novo) < 50:
+            shutil.copy2(caminho + '.autobak', caminho)
+            return False
+        
+        # Extrai codigo puro (remove markdown ``` se houver)
+        m = _re.search(r'```(?:python)?\s*\n(.*?)```', codigo_novo, _re.DOTALL)
+        if m:
+            codigo_novo = m.group(1).strip()
+        
+        # Validacao 1: SINTAXE
+        try:
+            compile(codigo_novo, caminho, 'exec')
+        except SyntaxError as e:
+            self._log('AUTO', f'Erro de sintaxe na correcao: {e}')
+            shutil.copy2(caminho + '.autobak', caminho)
+            return False
+        
+        # Validacao 2: SEMANTICA (metodos essenciais)
+        metodos_essenciais = []
+        if arquivo == 'diagnostic_engine.py':
+            metodos_essenciais = ['diagnosticar', 'remediar', 'executar',
+                                  'check_compilacao', 'check_io_manual', 'gerar_relatorio']
+        elif arquivo == 'master_agent.py':
+            metodos_essenciais = ['executar', '_auto_melhorar', '_processar_emergencia',
+                                  '_executar_subtarefa', '_log']
+        elif arquivo == 'self_study.py':
+            metodos_essenciais = ['executar', 'escanear_projeto', '_analisar_anti_patterns']
+        
+        for metodo in metodos_essenciais:
+            if f'def {metodo}' not in codigo_novo:
+                self._log('AUTO', f'Metodo essencial {metodo} ausente apos correcao! Revertendo.')
+                shutil.copy2(caminho + '.autobak', caminho)
+                return False
+        
+        # Validacao 3: TAMANHO minimo (nao perdeu metades do arquivo)
+        if len(codigo_novo) < len(conteudo_original) * 0.5:
+            self._log('AUTO', f'Arquivo encolheu demais! {len(codigo_novo)} vs {len(conteudo_original)}. Revertendo.')
+            shutil.copy2(caminho + '.autobak', caminho)
+            return False
+        
+        # Validacao 4: PATTERN GATEKEEPER (fingerprint + eixo)
+        try:
+            from modulos.util import reparar_com_validacao
+            codigo_final = reparar_com_validacao(
+                conteudo_original, lambda c: codigo_novo, similaridade_min=0.7)
+            if codigo_final == conteudo_original:
+                self._log('AUTO', 'Gatekeeper rejeitou: similaridade ou eixo comprometido.')
+                shutil.copy2(caminho + '.autobak', caminho)
+                return False
+        except Exception:
+            codigo_final = codigo_novo  # fallback: prossegue sem gatekeeper
+        
+        # Escreve codigo validado
+        with open(caminho, 'w', encoding='utf-8') as f:
+            f.write(codigo_final)
+        
+        # Mantem .autobak ate proximo ciclo (NUNCA remove)
+        return True
+
+    def _auto_melhorar(self):
+        """Pipeline completa de auto-melhoria: escanear -> decidir -> gerar -> aplicar -> validar -> aprender.
+        
+        Chamado automaticamente a cada 20 execucoes ou manualmente via comando.
+        """
+        from modulos.sse_server import emit
+        from modulos.progress_tracker import salvar_checkpoint, registrar_erro
+        
+        t0 = time.time()
+        salvar_checkpoint('auto_melhorar', 0.01)
+        emit('stage', {'name': 'auto_melhorar', 'label': 'Auto-melhoria...', 'progress': 0.01})
+        emit('narrator', 'Iniciando ciclo autonomo de auto-melhoria...')
+        
+        try:
+            # 1. DECIDIR
+            emit('narrator', 'Analisando codigo para decidir melhoria...')
+            decisao = self._decidir_melhoria()
+            if not decisao or not decisao.get('arquivo'):
+                emit('narrator', 'Nenhuma melhoria necessaria no momento.')
+                return
             
-            # SISTEMA DE ENRIQUECIMENTO DINAMICO (evita respostas genericas)
+            emit('narrator', f"Decisao: {decisao['arquivo']} - {decisao.get('acao','')}")
+            salvar_checkpoint('decidir', 0.3, arquivo=decisao['arquivo'])
+            
+            # 2. GERAR E APLICAR
+            emit('narrator', f'Gerando e aplicando correcao em {decisao["arquivo"]}...')
+            sucesso = self._gerar_e_aplicar(decisao)
+            
+            if sucesso:
+                emit('narrator', f'Correcao aplicada com sucesso em {decisao["arquivo"]}!')
+                salvar_checkpoint('aplicar', 0.7)
+            else:
+                emit('narrator', f'Falha ao aplicar correcao em {decisao["arquivo"]}. Revertido.')
+                salvar_checkpoint('falha', 0.7)
+            
+            # 3. APRENDER
             try:
-                enricher = Enricher(self.ia, self.kg, getattr(self, 'ctx', None))
-                prompt_enriquecido = enricher.enriquecer(pergunta)
-                if prompt_enriquecido and prompt_enriquecido != pergunta:
-                    self._log('ENRICHER', 'Prompt enriquecido com contexto externo')
-                    pergunta = prompt_enriquecido
-            except Exception as e:
-                print(f"[MasterAgent] Enricher error: {e}")
+                self.kg.aprender(
+                    erro=f'auto-melhoria: {decisao.get("arquivo","")}',
+                    causa=decisao.get('acao', ''),
+                    solucao=f'Sucesso: {sucesso} | Tipo: {decisao.get("tipo","")}',
+                    ctx='auto_melhoria'
+                )
+            except:
+                pass
             
-            resposta = self.ia.gerar(pergunta, 0.4, 'pesado')
-            return {
-                'sucesso': bool(resposta),
-                'resultado': resposta or 'Sem resposta',
-                'erro': '' if resposta else 'IA nao retornou resposta',
-            }
+            salvar_checkpoint('fim', 1.0)
+            emit('narrator', f'Auto-melhoria concluida em {round(time.time()-t0, 1)}s')
+        
+        except Exception as e:
+            import traceback
+            registrar_erro(str(e), type(e).__name__, trace=traceback.format_exc())
+            emit('error', {'msg': f'Auto-melhoria: {e}'})
+            raise
 
-        # Fallback: IA generica
-        descricao = subtarefa.get('descricao', str(params))
-        if contexto_extra:
-            descricao = f"Contexto adicional:\n{contexto_extra}\n\n{descricao}"
-        resposta = self.ia.gerar(descricao, 0.4, 'code')
-        return {
-            'sucesso': bool(resposta),
-            'resultado': resposta or 'Sem resposta',
-            'erro': '' if resposta else 'IA nao retornou resposta',
-        }
+    def _executar_subtarefa(self, subtarefa, artefatos=None, contexto_extra='', codigo_anterior=None):
+        """Delega para TaskExecutor (modulos/task_executor.py)."""
+        return self.task_executor.executar_subtarefa(subtarefa, artefatos, contexto_extra, codigo_anterior)
 
     def _integrar(self, request, plano, resultados):
-        """Junta todos os resultados parciais num artefato coeso."""
-        partes = []
-
-        for p in plano:
-            r = resultados.get(p['id'], {})
-            if r.get('sucesso') and r.get('resultado'):
-                partes.append({
-                    'passo': p['id'],
-                    'acao': p['acao'],
-                    'descricao': p.get('descricao', ''),
-                    'conteudo': r['resultado'],
-                })
-
-        if not partes:
-            # Se nada funcionou, tenta IA direta
-            resposta = self.ia.gerar(
-                f"Responda da melhor forma possivel: {request}",
-                0.4, 'pesado'
-            )
-            return {'resposta_final': resposta or 'Nao foi possivel completar a tarefa'}
-
-        # Se so tem 1 parte, retorna direto
-        if len(partes) == 1:
-            return {'resposta_final': partes[0]['conteudo']}
-
-        # Multiplas partes - compila em artefato
-        compilado = []
-        for p in partes:
-            compilado.append(f"### Passo {p['passo']}: {p['descricao']}\n{p['conteudo']}")
-
-        return {'resposta_final': '\n\n'.join(compilado), 'partes': partes}
+        """Delega para TaskExecutor (modulos/task_executor.py)."""
+        return self.task_executor.integrar(request, plano, resultados)
 
     def _registrar_episodio(self, request, resultado, licao):
         """J2: acumula episodio no buffer. Faz flush ao atingir 10."""
-        req_str = request[:100] if isinstance(request, str) else str(request)[:100]
+        req_str = request if isinstance(request, str) else str(request)
         self._buffer_episodios.append({
             'request': req_str,
             'resultado': resultado,  # pode ser dict (registrar_lote aceita)
@@ -709,16 +977,51 @@ class MasterAgent:
         self._buffer_episodios = []
 
     def _extrair_licao(self, request, plano, resultados):
-        """Extrai licao aprendida do processo."""
+        """Extrai licao aprendida do processo, estruturada em 3 blocos.
+        
+        Formato:
+        Contexto: <request>
+        Resultado: <n_ok/n_total> subtarefas OK, <tempo>s
+        Falhas: <acoes>: <erro>
+        Causa provavel: <analise>
+        Licao: <recomendacao>
+        """
         n_sucesso = sum(1 for r in resultados.values() if r.get('sucesso'))
         n_total = len(plano)
-        falhas = [p for p in plano if not resultados.get(p['id'], {}).get('sucesso')]
-
+        falhas = [(p, resultados.get(p['id'], {})) for p in plano 
+                  if not resultados.get(p['id'], {}).get('sucesso')]
+        
+        linhas = []
+        linhas.append(f"Contexto: {request}")
+        
         if not falhas:
-            return f"Tarefa concluida com sucesso em {n_sucesso}/{n_total} passos"
+            linhas.append(f"Resultado: {n_sucesso}/{n_total} subtarefas OK")
+            linhas.append(f"Licao: Plano funcionou integralmente. Reutilizar template.")
         else:
-            acoes_falhas = ', '.join(f['acao'] for f in falhas[:3])
-            return f"Tarefa parcial ({n_sucesso}/{n_total}). Falhas em: {acoes_falhas}"
+            # Coleta erros das falhas
+            erros_detalhes = []
+            for p, r in falhas:
+                erro_msg = str(r.get('erro', 'erro desconhecido'))
+                erros_detalhes.append(f"{p['acao']}: {erro_msg}")
+            linhas.append(f"Resultado: {n_sucesso}/{n_total} subtarefas")
+            linhas.append(f"Falhas: {'; '.join(erros_detalhes)}")
+            
+            # Causa provavel
+            acoes_falhas = [p['acao'] for p, _ in falhas]
+            if any('depend' in str(r.get('erro', '')).lower() for _, r in falhas):
+                linhas.append("Causa provavel: dependencia entre passos nao satisfeita")
+            elif any('ferramenta' in str(r.get('erro', '')).lower() for _, r in falhas):
+                linhas.append("Causa provavel: ferramenta nao encontrada ou parametro errado")
+            elif any('valid' in a for a in acoes_falhas):
+                linhas.append("Causa provavel: codigo gerado continha erros de sintaxe")
+            elif any('web' in a or 'web' in str(r).lower() for a, r in [(p['acao'], resultados.get(p['id'], {})) for p, _ in falhas]):
+                linhas.append("Causa provavel: busca web falhou (fonte indisponivel ou consulta inadequada)")
+            else:
+                linhas.append("Causa provavel: falha generica na execucao")
+            
+            linhas.append(f"Licao: {n_sucesso}/{n_total} passos OK. Revisar {'; '.join(acoes_falhas)}")
+        
+        return '\n'.join(linhas)
 
     def _aprender_kg(self, request, resultado, licao, task_type=''):
         """Registra aprendizado no Knowledge Graph como DATASET estruturado.
@@ -726,14 +1029,14 @@ class MasterAgent:
         [G9] Usa LessonsBuffer para detectar contradicoes antes de salvar.
         """
         try:
-            erro = request[:80]
+            erro = request
             tt = resultado.get('task_type', task_type) or 'geral'
             n_ok = resultado.get('n_sucesso', 0)
             n_total = resultado.get('n_subtarefas', 0)
             tempo = resultado.get('tempo', 0)
             causa = (f"tipo={tt} | subtarefas={n_ok}/{n_total} | "
-                     f"tempo={tempo}s | request={request[:50]}")
-            solucao = licao[:500]
+                     f"tempo={tempo}s | request={request}")
+            solucao = licao
             ctx = f'exec_{tt}'
             
             # G9 + J1: LessonsBuffer com batch embedding
@@ -794,7 +1097,7 @@ class MasterAgent:
             'tempo': time.strftime('%H:%M:%S'),
         }
         self._passos.append(entry)
-        print(f'[{entry["tempo"]}] {etapa}: {mensagem}')
+        print(f'[{entry["tempo"]}] {etapa}: {mensagem}', flush=True)
 
     def metricas(self):
         """Retorna metricas gerais do agente."""

@@ -12,7 +12,8 @@ CICLO DE APRENDIZADO:
 4. Score e atualizado na memoria
 5. Proxima vez, membro prioriza o que teve alto score
 """
-import os, json, time, re
+import os, json, time
+from modulos.util import safe_ler_linhas, safe_escrever_arquivo, re
 
 BASE = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
 MEMORIA_DIR = os.path.join(BASE, 'sandbox', '.mcr_devia', 'conselho_memoria')
@@ -27,8 +28,7 @@ def _init_membro(nome):
     os.makedirs(MEMORIA_DIR, exist_ok=True)
     path = os.path.join(MEMORIA_DIR, f'{nome}.jsonl')
     if not os.path.exists(path):
-        with open(path, 'w', encoding='utf-8') as f:
-            f.write('')
+        safe_escrever_arquivo(path, '')
     return path
 
 def carregar(nome, max_entradas=20):
@@ -37,15 +37,14 @@ def carregar(nome, max_entradas=20):
     path = _init_membro(nome)
     entradas = []
     try:
-        with open(path, 'r', encoding='utf-8') as f:
-            for linha in f:
+        for linha in safe_ler_linhas(path):
                 linha = linha.strip()
                 if linha:
                     try:
                         entradas.append(json.loads(linha))
-                    except:
+                    except Exception:
                         pass
-    except:
+    except Exception:
         pass
     return entradas[-max_entradas:]
 
@@ -54,17 +53,17 @@ def salvar(nome, tarefa, observacao, padrao="", categoria="geral", score=50):
     path = _init_membro(nome)
     entrada = {
         "ts": time.time(),
-        "tarefa": tarefa[:100],
-        "observacao": observacao[:500],
-        "padrao": padrao[:200],
-        "categoria": categoria[:50],
+        "tarefa": tarefa,
+        "observacao": observacao,
+        "padrao": padrao,
+        "categoria": categoria,
         "score": min(100, max(0, score)),  # 0-100
     }
     try:
         with open(path, 'a', encoding='utf-8') as f:
             f.write(json.dumps(entrada, ensure_ascii=False) + '\n')
         return True
-    except:
+    except Exception:
         return False
 
 def avaliar(nome, tarefa, score, justificativa=""):
@@ -72,16 +71,15 @@ def avaliar(nome, tarefa, score, justificativa=""):
     Chamado apos a resposta final ser avaliada."""
     path = _init_membro(nome)
     try:
-        with open(path, 'r', encoding='utf-8') as f:
-            entradas = [json.loads(l) for l in f if l.strip()]
+        entradas = [json.loads(l) for l in safe_ler_linhas(path) if l.strip()]
         if entradas:
             entradas[-1]['score'] = min(100, max(0, score))
-            entradas[-1]['feedback'] = justificativa[:200]
+            entradas[-1]['feedback'] = justificativa
             with open(path, 'w', encoding='utf-8') as f:
                 for e in entradas:
                     f.write(json.dumps(e, ensure_ascii=False) + '\n')
-            return True
-    except:
+        return True
+    except Exception:
         pass
     return False
 
@@ -95,7 +93,7 @@ def carregar_melhores(nome, max_entradas=5, score_minimo=60):
         boas = entradas[-max_entradas:]  # fallback: ultimas
     # Ordena por score (melhores primeiro)
     boas.sort(key=lambda e: -e.get('score', 50))
-    return boas[:max_entradas]
+    return boas
 
 def resumo_para_prompt(nome, max_entradas=5):
     """Gera resumo priorizando memorias de ALTO SCORE.
@@ -107,12 +105,12 @@ def resumo_para_prompt(nome, max_entradas=5):
     linhas = [f"[MEMORIA DO {nome.upper()}]"]
     for e in entradas:
         score = e.get('score', 50)
-        obs = e.get('observacao', '')[:150]
+        obs = e.get('observacao', '')
         padrao = e.get('padrao', '')
         cat = e.get('categoria', '')
         linha = f"- (score:{score}) {obs}"
         if padrao:
-            linha += f" | {padrao[:100]}"
+            linha += f" | {padrao}"
         if cat:
             linha += f" [{cat}]"
         linhas.append(linha)

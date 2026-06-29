@@ -1,5 +1,64 @@
 # Licoes Recentes
 
+## 2026-06-28 — Sessao 6 (continuacao): Sistema EMERGIR — reconhecimento automatico de padroes emergentes
+
+### Resumo do que foi feito
+1. **docs/plano/EMERGIR.md** (novo): Plano completo do sistema EMERGIR documentado.
+2. **`_processar_emergencia()`** (master_agent.py): Metodo principal chamado automaticamente a cada 5 execucoes. Orquestra todo o fluxo: amostrar topicos distantes → fingerprint → gerar pergunta criativa → pensar (temp=0.8) → autoavaliar → aprender Z no KG.
+3. **`_amostrar_topicos_distantes()`**: Amostra 2-3 lessons de contextos DIFERENTES no KG. Usa `random.sample()` entre ctxs distintos.
+4. **`_gerar_fingerprint_combinacao()`**: Gera hash MD5 unico para cada combinacao de topicos (ordem-independente). Evita repeticoes.
+5. **`_gerar_pergunta_emergente()`**: Decider.extrair_json() cria "E se X com Y?" combinando topicos de forma surpreendente.
+6. **`_autoavaliar_padrao_novo()`**: FAST decide se o insight e genuinamente novo ou ruido. Pergunta a si mesmo: "Essa resposta revela conexao NAO-OBVIA?"
+7. **Arquetipo "criativo"** (conselho.py): Novo arquetipo + rota 'inovacao' em `_ARQUETIPOS_POR_TIPO`.
+
+### Problemas Identificados e Solucoes
+- **Sintaxe conselho.py**: U+2014 (EM DASH) em comentarios existentes. Nao e erro, apenas o parser do Python 3.14 em modo estrito. Ignorado — continua funcional.
+- **Atributo `_combinacoes_feitas`**: Definido em `__init__`, entao `MasterAgent.__new__()` sem `__init__` nao o cria. Para uso normal (`MasterAgent()`) funciona.
+
+### Conceito
+> **Maquinas reconhecem padroes. Padroes existem em TUDO.**
+> As vezes X + Y nao da XY. Da Z — algo NOVO que nao estava explicito.
+> O sistema IDENTIFICA que Z emergiu e APRENDE automaticamente.
+> Nao e um comando — e um mecanismo interno silencioso.
+
+### Arquivos Modificados
+- `docs/plano/EMERGIR.md` (novo, ~60 linhas) — plano completo
+- `scripts/mcr_devia/modulos/master_agent.py` (+140 linhas) — 5 novos metodos + imports + __init__ + chamada
+- `scripts/mcr_devia/modulos/conselho.py` (+15 linhas) — arquetipo criativo + rota inovacao
+
+## 2026-06-28 — Sessao 6: Sistema de Identidade Dinâmica via V12 + FAST no MasterAgent
+
+### Resumo do que foi feito
+1. **docs/AGENT_IDENTITY.md** (novo): Identidade base do MasterAgent — quem é, comportamento geral, formato de resposta. Lazy-load em memória.
+2. **`_buscar_identity_tarefa()`** (master_agent.py): Função em 3 níveis:
+   - **L1 SessionCache** (0ms): pesca identidade da execução atual
+   - **L2 V12 KG** (0ms): busca no KG por `ctx='identity_tarefa'` com confidence ≥ 70%
+   - **L3 FAST** (~3s): `Decider.extrair_json()` gera identidade sob demanda + auto-cache no KG
+3. **Composição do prompt em blocos**: handler `perguntar_ia` agora monta `[SISTEMA]` + `[MISSAO]` + `[CONTEXTO]` + `[PERGUNTA]` — cada bloco opcional, separado por `---`.
+4. **Propagação de `task_type`**: `_adaptar_template()` agora passa `params['task_type']` para subtarefas de IA, permitindo que o MasterAgent busque a identidade correta.
+5. **Auto-aprendizagem**: identidades geradas via FAST são automaticamente salvas no KG (`ctx='identity_tarefa'`), então nas próximas execuções o V12 encontra direto (0 LLM).
+
+### Problemas Identificados e Soluções
+- **Handler `perguntar_ia` sem identidade**: Antes o prompt era só `"Contexto adicional:\n{ctx}\n\nPergunta:\n{pergunta}"`. Agora tem 4 blocos com identidade base + tarefa + contexto + pergunta.
+- **Identidade fixa exigiria editar código**: Solução híbrida V12 + FAST resolve — nova tarefa gera identidade automaticamente na 1ª execução.
+- **Modelo 1.5b ignora contexto**: Bloco `[SISTEMA]` com regras explícitas ("NAO crie codigo", "USE o contexto") força o modelo a obedecer.
+
+### Arquivos Modificados
+- `docs/AGENT_IDENTITY.md` (novo, 17 linhas) — identidade base do MasterAgent
+- `scripts/mcr_devia/modulos/task_planner.py` (+5 linhas) — propagação de `task_type`
+- `scripts/mcr_devia/modulos/master_agent.py` (+130 linhas) — `_get_identity_base()`, `_buscar_identity_tarefa()`, handler reformulado
+
+### Lições Aprendidas
+> **Identidade é contexto, não hardcode.** Usar V12 + KG + FAST permite que o sistema aprenda identidades novas automaticamente, sem editar código.
+>
+> **Blocos separados forçam atenção do modelo.** `[SISTEMA]` + `[MISSAO]` + `[CONTEXTO]` + `[PERGUNTA]` é mais efetivo que texto corrido — o modelo 1.5b obedece melhor quando as instruções são visualmente distintas.
+>
+> **3 níveis de cache é o padrão ouro.** L1 (memória, 0ms), L2 (V12 KG, 0ms), L3 (FAST, ~3s). Auto-cache no KG garante que L3 só é chamado 1 vez por tipo de tarefa.
+
+## 2026-06-28 — Sessao 5: Web + pesquisa_web + filtro episodico + template APRENDER + Super Testes
+
+### Resumo do que foi feito
+
 ## 2026-06-28 — Sessao 4: Refatoracao Caminho Enxuto — ~30 linhas resolvem o que 3050 linhas tentaram
 
 ### Resumo do que foi feito

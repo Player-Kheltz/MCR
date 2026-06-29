@@ -45,12 +45,12 @@ def execute(kg, ia, args, ctx_crew=None):
         "role": "cloud",
         "ts": time.time(),
         "ts_iso": datetime.now().isoformat(),
-        "msg": decisao[:500],
+        "msg": decisao,
     }
     if alternativas:
         entrada["alternativas_consideradas"] = alternativas
     if duvidas:
-        entrada["duvidas"] = duvidas[:300]
+        entrada["duvidas"] = duvidas
     
     # Salva no .mcr_conversa.jsonl
     BASE = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
@@ -63,7 +63,7 @@ def execute(kg, ia, args, ctx_crew=None):
         if alternativas:
             print(f'[Pensar] Alternativas: {len(alternativas)}')
         if duvidas:
-            print(f'[Pensar] Duvidas: {duvidas[:80]}...')
+            print(f'[Pensar] Duvidas: {duvidas}...')
     except Exception as e:
         print(f'[Pensar] ERRO: {e}')
     

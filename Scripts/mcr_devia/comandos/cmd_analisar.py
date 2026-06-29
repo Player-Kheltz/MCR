@@ -50,7 +50,7 @@ def execute(kg, ia, args, ctx_crew=None):
     eh_texto = ext in ['.xml', '.json', '.csv', '.txt', '.md', '.ini', '.cfg', '.yaml', '.yml', '.toml']
     
     if not eh_codigo and not eh_texto:
-        eh_codigo = bool(re.search(r'(def |class |function |local |int |void |#include|import |from )', codigo[:1000]))
+        eh_codigo = bool(re.search(r'(def |class |function |local |int |void |#include|import |from )', codigo))
         eh_texto = not eh_codigo
     
     # Pre-analise de estrutura (igual ao original para garantir qualidade)
@@ -97,12 +97,12 @@ def execute(kg, ia, args, ctx_crew=None):
         if ext == '.xml':
             tags = set(re.findall(r'<(\w+)[\s>]', codigo))
             attrs = set(re.findall(r'(\w+)=[\'"]', codigo))
-            ctx_estrutura.append(f"Tags: {', '.join(sorted(tags)[:10])}")
-            ctx_estrutura.append(f"Atributos: {', '.join(sorted(attrs)[:15])}")
+            ctx_estrutura.append(f"Tags: {', '.join(sorted(tags))}")
+            ctx_estrutura.append(f"Atributos: {', '.join(sorted(attrs))}")
         ctx_estrutura.append(f"\n=== CONTEUDO ({len(linhas)} linhas) ===")
-        ctx_estrutura.extend(f"  {i:4d}| {line.rstrip()}" for i, line in enumerate(linhas[:80], 1))
+        ctx_estrutura.extend(f"  {i:4d}| {line.rstrip()}" for i, line in enumerate(linhas, 1))
     
-    ctx_str = '\n'.join(ctx_estrutura[:100])
+    ctx_str = '\n'.join(ctx_estrutura)
     
     # Usar Orquestrador para gerar o prompt de analise
     from modulos.orquestrador import Orquestrador
@@ -113,7 +113,7 @@ def execute(kg, ia, args, ctx_crew=None):
         "extensao": ext,
         "tipo": "codigo" if eh_codigo else "texto",
         "descricao": desc_extra or f"Analise este arquivo e encontre problemas",
-        "estrutura": ctx_str[:2000],
+        "estrutura": ctx_str,
     }
     
     intencao = "analisar_codigo" if eh_codigo else "analisar_texto"
@@ -128,7 +128,7 @@ def execute(kg, ia, args, ctx_crew=None):
                 try:
                     kg.aprender(
                         f"{'Bug' if eh_codigo else 'Problema'} em {os.path.basename(path_real)}",
-                        "Analise", line.strip()[:100],
+                        "Analise", line.strip(),
                         "analisar_codigo" if eh_codigo else "analisar_texto"
                     )
                 except:

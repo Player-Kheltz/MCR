@@ -37,7 +37,7 @@ def _set_cache(key, valor):
     _cache[key] = {'valor': valor, 'ts': time.time()}
     # Poda simples: se cache crescer demais, limpa os mais antigos
     if len(_cache) > 500:
-        velhos = sorted(_cache.keys(), key=lambda k: _cache[k]['ts'])[:100]
+        velhos = sorted(_cache.keys(), key=lambda k: _cache[k]['ts'])
         for k in velhos:
             del _cache[k]
 
@@ -78,14 +78,14 @@ class Decider:
         prompt = ""
         if exemplos:
             prompt += "Exemplos:\n"
-            for ex_texto, ex_cat in exemplos[:6]:  # max 6 exemplos
+            for ex_texto, ex_cat in exemplos:  # max 6 exemplos
                 prompt += f"{ex_texto} -> {ex_cat}\n"
             prompt += "\n"
         if instrucao:
             prompt += f"{instrucao}\n"
         prompt += (
             f"Categorias: {', '.join(categorias)}\n"
-            f"Texto: {texto[:500]}\n"
+            f"Texto: {texto}\n"
             f"Categoria:"
         )
 
@@ -132,14 +132,14 @@ class Decider:
         prompt = ""
         if exemplos:
             prompt += "Exemplos:\n"
-            for ex_texto, ex_json in exemplos[:4]:
+            for ex_texto, ex_json in exemplos:
                 prompt += f'"{ex_texto}" -> {json.dumps(ex_json, ensure_ascii=False)}\n'
             prompt += "\n"
         if instrucao:
             prompt += f"{instrucao}\n"
         prompt += (
             f"Responda APENAS com JSON. Campos: {', '.join(campos)}\n"
-            f"Texto: {texto[:500]}\n"
+            f"Texto: {texto}\n"
             f"JSON:"
         )
 
@@ -157,6 +157,7 @@ class Decider:
             _set_cache(key, dados)
             return dados
         except Exception as e:
+            pass
             # Se falhou, tenta parse mais agressivo
             try:
                 resp_lower = resp.lower().strip()

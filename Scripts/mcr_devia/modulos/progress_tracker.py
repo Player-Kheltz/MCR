@@ -1,14 +1,21 @@
 """Progress Tracker Universal — Rastreamento em tempo real do pipeline MCR-DevIA.
-Singleton module: use `with tracker.stage("nome"):` para tracking automático.
+Checkpoint persistente: salva estado a cada fase para retomada apos crash.
 
 Fluxo:
   1. tracker.stage("CR") → escreve .mcr_progress.json com stage + progresso
   2. tracker.step() → incrementa substage
   3. Ao sair do context manager → marca como concluído
   4. Dashboard/CLI lê .mcr_progress.json para feedback em tempo real
+  
+  Checkpoint Recovery (NOVO):
+    1. iniciar_pipeline("self_study") inicia pipeline com checkpoint
+    2. checkpoint("scan", {...}) salva dados da fase
+    3. Se o processo morrer, detectar_crash() retorna onde parou
+    4. Pode retomar da ultima fase
 """
 import os, sys, json, time, threading, contextlib
 from datetime import datetime
+from modulos.util import safe_ler_arquivo, safe_escrever_arquivo
 
 BASE = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
 PROGRESS_PATH = os.path.join(BASE, 'sandbox', '.mcr_progress.json')
@@ -48,9 +55,8 @@ def _escrever():
             _state['stage_elapsed'] = round(time.time() - _state['stage_started_at'], 1)
         try:
             os.makedirs(os.path.dirname(PROGRESS_PATH), exist_ok=True)
-            with open(PROGRESS_PATH, 'w', encoding='utf-8') as f:
-                json.dump(_state, f, ensure_ascii=False, indent=2)
-        except:
+            safe_escrever_arquivo(PROGRESS_PATH, json.dumps(_state, ensure_ascii=False, indent=2))
+        except Exception:
             pass
 
 
@@ -242,9 +248,8 @@ def ler():
     """Lê o estado atual do .mcr_progress.json (para Dashboard/CLI)."""
     try:
         if os.path.exists(PROGRESS_PATH):
-            with open(PROGRESS_PATH, 'r', encoding='utf-8') as f:
-                return json.load(f)
-    except:
+            return json.loads(safe_ler_arquivo(PROGRESS_PATH))
+    except Exception:
         pass
     return {'status': 'not_found'}
 
@@ -256,7 +261,138 @@ def limpar():
     try:
         if os.path.exists(PROGRESS_PATH):
             os.remove(PROGRESS_PATH)
-    except:
+    except Exception:
         pass
     sys.stdout.write("\n")  # Nova linha após a última barra
     sys.stdout.flush()
+
+# ============================================================
+# CHECKPOINT PERSISTENTE — Retomada apos crash
+# ============================================================
+
+def iniciar_pipeline(pipeline_type):
+    """Inicia uma pipeline com checkpoint. Salva ID unico + dados iniciais."""
+    partes = [pipeline_type, datetime.now().strftime('%Y%m%d_%H%M%S'), str(os.getpid())]
+    pipeline_id = '_'.join(partes)
+    with _lock:
+        _state['pipeline'] = pipeline_type
+        _state['pipeline_id'] = pipeline_id
+        _state['pipeline_started_at'] = time.time()
+        _state['crashed_at'] = None
+        _state['checkpoint'] = {'phase': 'inicio', 'data': {}}
+        _state['error_info'] = None
+        _state['pid'] = os.getpid()
+        _state['status'] = 'running'
+    reportar('iniciando')
+    return pipeline_id
+
+
+def salvar_checkpoint(phase, progress=None, **extra_data):
+    """Salva checkpoint com dados especificos da fase.
+    
+    Args:
+        phase: Nome da fase (ex: 'scan', 'auto_repair', 'insight')
+        progress: Progresso 0.0-1.0 (opcional)
+        **extra_data: Dados para salvar (ex: files_done=[...], current_file='...')
+    """
+    with _lock:
+        _state['checkpoint'] = {'phase': phase, 'data': extra_data}
+        _state['crashed_at'] = None  # limpa marca de crash anterior
+        if progress is not None:
+            _state['progress'] = progress
+    reportar(phase, progress=progress)
+    _escrever()
+
+
+def registrar_erro(erro_msg, erro_type='Exception', arquivo=None, linha=None, trace=None):
+    """Registra informacoes do erro para diagnostico de crash."""
+    with _lock:
+        _state['error_info'] = {
+            'type': erro_type,
+            'msg': str(erro_msg),
+            'arquivo': arquivo,
+            'linha': linha,
+            'traceback': str(trace) if trace else None,
+        }
+        _state['crashed_at'] = time.time()
+        _state['status'] = 'error'
+    _escrever()
+
+
+def detectar_crash():
+    """Verifica se a execucao anterior crashou e retorna info para recovery.
+    
+    Returns:
+        dict com checkpoint, error_info, crashed_at se houve crash
+        None se nao houve crash ou pipeline completou com sucesso
+    """
+    try:
+        if not os.path.exists(PROGRESS_PATH):
+            return None
+        estado = json.loads(safe_ler_arquivo(PROGRESS_PATH))
+    except Exception:
+        return None
+    
+    # Verifica se a pipeline nao completou (crashed_at existe)
+    crashed_at = estado.get('crashed_at')
+    if not crashed_at:
+        return None  # nao crashou ou ja foi limpo
+    
+    # Verifica se o processo que iniciou ainda existe
+    pid = estado.get('pid')
+    if pid:
+        try:
+            import signal
+            os.kill(pid, 0)  # verifica se o processo existe
+            # Processo ainda existe — pode ser uma pipeline longa ainda rodando
+            return None
+        except (OSError, ImportError):
+            pass  # Processo nao existe — crash confirmado
+    
+    # Crash confirmado! Retorna dados para recovery
+    return {
+        'pipeline_id': estado.get('pipeline_id'),
+        'pipeline_type': estado.get('pipeline'),
+        'checkpoint': estado.get('checkpoint', {}),
+        'error_info': estado.get('error_info'),
+        'crashed_at': crashed_at,
+        'stages': estado.get('stages_history', []),
+    }
+
+
+def limpar_checkpoint():
+    """Remove checkpoint apos conclusao bem-sucedida."""
+    limpar()
+
+
+@contextlib.contextmanager
+def checkpoint_pipeline(pipeline_type):
+    """Context manager que inicia pipeline com checkpoint e limpa ao final.
+    
+    Uso:
+        with checkpoint_pipeline('self_study') as ctx:
+            ctx.checkpoint('scan', files_found=arquivos)
+            ...  # se der erro, checkpoint salva erro_info
+            ctx.checkpoint('fim', progress=1.0)
+    
+    Se o processo crashar, detectar_crash() retorna os dados do checkpoint.
+    """
+    pipeline_id = iniciar_pipeline(pipeline_type)
+    try:
+        yield _CheckpointCtx(pipeline_id)
+        concluir()
+        limpar_checkpoint()
+    except Exception as e:
+        registrar_erro(str(e), type(e).__name__)
+        # Re-raise a excecao para nao esconder erros
+        raise
+
+
+class _CheckpointCtx:
+    """Contexto interno para checkpoint pipeline."""
+    
+    def __init__(self, pipeline_id):
+        self.pipeline_id = pipeline_id
+    
+    def checkpoint(self, phase, progress=None, **data):
+        salvar_checkpoint(phase, progress, **data)

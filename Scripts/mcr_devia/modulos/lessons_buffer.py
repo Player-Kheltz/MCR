@@ -13,7 +13,7 @@ _embedding_cache_buf = {}
 def _fast(prompt, temp=0.1):
     try:
         return _util_fast(prompt, temp, "fast") or None
-    except: return None
+    except Exception: return None
 
 def _gerar_embedding_buffer(texto):
     """Gera embedding para o buffer (cache proprio)."""
@@ -22,7 +22,7 @@ def _gerar_embedding_buffer(texto):
     if len(texto) < 10:
         return None
     try:
-        dados = json.dumps({'model': EMBED_MODEL, 'prompt': texto[:500]}).encode()
+        dados = json.dumps({'model': EMBED_MODEL, 'prompt': texto}).encode()
         req = urllib.request.Request(
             f'{OLLAMA_URL}/api/embeddings', data=dados,
             headers={'Content-Type': 'application/json'}
@@ -47,7 +47,8 @@ class LessonsBuffer:
             try:
                 with open(BUFFER_PATH, 'r', encoding='utf-8') as f:
                     return json.load(f)
-            except: pass
+            except (FileNotFoundError, json.JSONDecodeError):
+                pass
         return {"lessons": [], "versao": 1}
     
     def _salvar(self):
@@ -57,13 +58,13 @@ class LessonsBuffer:
     
     def adicionar(self, erro, causa, solucao, ctx='conhecimento', fonte=''):
         for l in self._buffer['lessons']:
-            if l['erro'] == erro[:80] and l['ctx'] == ctx and l['solucao'] == solucao[:500]:
+            if l['erro'] == erro and l['ctx'] == ctx and l['solucao'] == solucao:
                 return  # Exatamente igual, ignorar
         
         self._buffer['lessons'].append({
             'id': f'B{len(self._buffer["lessons"])+1:04d}',
-            'erro': erro[:80], 'causa': causa[:200],
-            'solucao': solucao[:500], 'ctx': ctx, 'fonte': fonte[:100],
+            'erro': erro, 'causa': causa,
+            'solucao': solucao, 'ctx': ctx, 'fonte': fonte,
             'ts': time.time(), 'status': 'pendente',
         })
         self._buffer['versao'] += 1
@@ -101,8 +102,8 @@ class LessonsBuffer:
                     # IA decide qual é a verdade
                     decisao = _fast(
                         f'Duas fontes discordam sobre "{l1["erro"]}":\n'
-                        f'Fonte A: {l1["solucao"][:200]}\n'
-                        f'Fonte B: {l2["solucao"][:200]}\n\n'
+                        f'Fonte A: {l1["solucao"]}\n'
+                        f'Fonte B: {l2["solucao"]}\n\n'
                         f'Qual esta CORRETA? Responda apenas A ou B:',
                         0.1
                     ) or ''

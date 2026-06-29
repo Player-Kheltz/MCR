@@ -78,7 +78,7 @@ def execute(kg, ia, args, ctx_crew=None):
     arquivos_rank.sort(key=lambda x: -x[0])
     
     print(f'  [Conceito] {len(arquivos_rank)} arquivos encontrados. Top 5:')
-    for i, (peso, cnt, fpath, tam) in enumerate(arquivos_rank[:5]):
+    for i, (peso, cnt, fpath, tam) in enumerate(arquivos_rank):
         rel = os.path.relpath(fpath, BASE)
         print(f'    #{i+1} peso={peso:.1f} ocorr={cnt} tam={tam} {rel}')
     
@@ -87,21 +87,21 @@ def execute(kg, ia, args, ctx_crew=None):
     from modulos.util import _get_modelo
     orq = OrquestradorContexto(modelo=_get_modelo("leve")["modelo"])
     
-    for idx, (peso, cnt, fpath, tam) in enumerate(arquivos_rank[:6]):
+    for idx, (peso, cnt, fpath, tam) in enumerate(arquivos_rank):
         try:
             with open(fpath, 'r', encoding='utf-8', errors='ignore') as fp:
                 conteudo = fp.read(50000)
         except:
             continue
         if tam <= 3000:
-            snippet = conteudo[:tam]
+            snippet = conteudo
         else:
             meio = tam // 2
-            snippet = conteudo[:1500] + '\n...\n' + conteudo[meio:meio+1500]
+            snippet = conteudo + '\n...\n' + conteudo[meio:meio+1500]
         rel = os.path.relpath(fpath, BASE)
         tipo = "codigo" if fpath.endswith(EXT_CODIGO) else "texto"
         frag = FragmentoContexto(
-            id=f"conceito_{conceito[:10]}_{idx}",
+            id=f"conceito_{conceito}_{idx}",
             conteudo=f"--- {rel} ({tipo.upper()}) ---\n{snippet}",
             origem=rel, prioridade=max(10, 80 - idx * 10), tipo=tipo
         )
@@ -145,7 +145,7 @@ def execute(kg, ia, args, ctx_crew=None):
             r = _gerar_ac(prompt_ia, 0.3, "conceito")
     
     if r and len(r) > 30:
-        print(f'\n[Conceito] {r[:500]}')
+        print(f'\n[Conceito] {r}')
         kg.aprender(
             erro=f"O que e {conceito}?",
             causa=f"Analise de codigo fonte e documentacao do projeto MCR ({len(arquivos_rel)} arquivos encontrados)",

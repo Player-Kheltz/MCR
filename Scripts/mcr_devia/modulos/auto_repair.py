@@ -40,7 +40,7 @@ class AutoRepair:
         prompt = (
             f"Corrija o erro abaixo no codigo {linguagem}.\n"
             f"ERRO: {erros[0]}\n\n"
-            f"CODIGO:\n```{linguagem}\n{codigo[:4000]}\n```\n\n"
+            f"CODIGO:\n```{linguagem}\n{codigo}\n```\n\n"
             f"Responda APENAS com o codigo CORRIGIDO, sem explicacao. "
             f"CODIGO CORRIGIDO:"
         )

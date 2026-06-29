@@ -60,10 +60,10 @@ def execute(kg, ia, args, ctx_crew=None):
             a = e.get('args', [])
             r = e.get('resultado', '?')
             err = e.get('erro')
-            a_str = ' '.join(str(x)[:25] for x in a[:2])
+            a_str = ' '.join(str(x) for x in a)
             status = 'OK' if r else 'FALHA'
-            linha = f'  [{ts}] {cmd:15s} {a_str[:35]:35s} {status}'
-            if err: linha += f' ERRO: {err[:50]}'
+            linha = f'  [{ts}] {cmd:15s} {a_str:35s} {status}'
+            if err: linha += f' ERRO: {err}'
             print(linha)
         return True
     

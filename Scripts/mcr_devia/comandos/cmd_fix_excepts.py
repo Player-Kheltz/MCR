@@ -80,8 +80,8 @@ def execute(kg, ia, args, ctx_crew=None):
                 mod_lines = modified.split('\n')
                 for i, (ol, nl) in enumerate(zip(orig_lines, mod_lines)):
                     if ol != nl:
-                        print(f'    L{i+1}: - {ol[:60]}')
-                        print(f'           + {nl[:60]}')
+                        print(f'    L{i+1}: - {ol}')
+                        print(f'           + {nl}')
             
             if forcar:
                 # Backup

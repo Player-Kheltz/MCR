@@ -58,14 +58,14 @@ def execute(kg, ia, args, ctx_crew=None):
                     pass
             if erros_gerados:
                 exemplos_few_shot = f"Exemplo CORRETO:\n{saudavel}\n\n"
-                for e in erros_gerados[:3]:
+                for e in erros_gerados:
                     exemplos_few_shot += f"Exemplo ERRO:\n{e}\n\n"
         
         # Usar Orquestrador para gerar o prompt de review
         from modulos.orquestrador import Orquestrador
         orq = Orquestrador(kg=kg, ia=ia, ctx_crew=ctx_crew)
         
-        itens_lote = dados[:limite]
+        itens_lote = dados
         lote_json = '\n'.join(
             f"ITEM {i+1}: {json_rv.dumps(item, ensure_ascii=False)}"
             for i, item in enumerate(itens_lote)
@@ -75,8 +75,8 @@ def execute(kg, ia, args, ctx_crew=None):
             "arquivo": fname,
             "total_registros": len(dados),
             "limite": limite,
-            "few_shot": exemplos_few_shot[:1000],
-            "itens": lote_json[:3000],
+            "few_shot": exemplos_few_shot,
+            "itens": lote_json,
         }
         
         resultado = orq.executar("review", params, consulta=f"review {fname}", temp=0.1)
@@ -94,7 +94,7 @@ def execute(kg, ia, args, ctx_crew=None):
             padrao_item = re.search(rf'ITEM\s*{i+1}\s*:\s*(.*)', resp, re.IGNORECASE)
             status_item = padrao_item.group(1) if padrao_item else ""
             if "ERRO" in status_item.upper():
-                suspeitos.append((item_id, nome, status_item[:80]))
+                suspeitos.append((item_id, nome, status_item))
                 print(f'  [{len(suspeitos)}] ID {item_id}: {nome} -> ERRO')
             else:
                 print(f'  ID {item_id}: {nome} -> OK')

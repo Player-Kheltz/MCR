@@ -37,6 +37,8 @@ MODELOS = {
                    "main_gpu": 0, "num_gpu": 99},
     "leve":       {"modelo": "qwen2.5-coder:7b",  "ctx": 2048, "num_predict": 1024},
     "fast":       {"modelo": "qwen2.5-coder:7b",  "ctx": 4096, "num_predict": 2048},
+    # --- MENTE: 1.5b ultra-rapido para classificacao/deliberacao (System 1) ---
+    "ultra_leve": {"modelo": "qwen2.5-coder:1.5b", "ctx": 2048, "num_predict": 1024},
     # --- REVISAO E ANALISE (qwen14b substitui deepseek - mais preciso, menos falso positivo) ---
     "analisar":   {"modelo": "qwen2.5-coder:14b", "ctx": 4096, "num_predict": 4096,
                    "main_gpu": 0, "num_gpu": 99},
@@ -130,6 +132,48 @@ class IA:
             r = urllib.request.Request(OLLAMA_URL, data=d,
                 headers={'Content-Type': 'application/json'})
             return json.loads(urllib.request.urlopen(r, timeout=120).read()).get('response', '')
+        except Exception as e:
+            print(f"[Fix] ERRO: {e}")
+    
+    def gerar_stream(self, prompt, temp=0.7, tarefa="code", callback_token=None):
+        """Gera texto com STREAMING do Ollama. callback_token(chunk, acumulado) a cada token.
+        
+        Se callback_token=None, funciona identico a gerar() (sem stream, mais rapido).
+        O streaming so e ativado se houver callback. Ideal para dashboards em tempo real.
+        """
+        cfg = MODELOS.get(tarefa, MODELOS["code"])
+        try:
+            opts = {'temperature': temp, 'num_ctx': cfg["ctx"], 'num_predict': cfg.get("num_predict", 4096)}
+            for extra_key in ['raw', 'main_gpu', 'num_gpu']:
+                if extra_key in cfg:
+                    opts[extra_key] = cfg[extra_key]
+            
+            stream_mode = callback_token is not None
+            corpo = json.dumps({
+                'model': cfg["modelo"],
+                'prompt': prompt,
+                'stream': stream_mode,
+                'options': opts
+            }).encode()
+            
+            req = urllib.request.Request(OLLAMA_URL, data=corpo,
+                                         headers={'Content-Type': 'application/json'})
+            resp = urllib.request.urlopen(req, timeout=3600)  # 1 hora — nunca estoura
+            
+            # Sem callback: le tudo de uma vez (igual gerar())
+            if callback_token is None:
+                return json.loads(resp.read()).get('response', '')
+            
+            # Com callback: le token por token
+            full = ""
+            for linha in resp:
+                try:
+                    chunk = json.loads(linha).get('response', '')
+                    full += chunk
+                    callback_token(chunk, full)
+                except (json.JSONDecodeError, KeyError):
+                    pass
+            return full
         except Exception as e:
             print(f"[Fix] ERRO: {e}")
     
@@ -235,7 +279,7 @@ class IA:
         if len(todos) < 3:
             try:
                 import urllib.parse
-                termos = urllib.parse.quote(consulta.split('?')[0].strip()[:200])
+                termos = urllib.parse.quote(consulta.split('?')[0].strip())
                 url_wiki = f'https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch={termos}&format=json&srlimit={max_r}'
                 texto = self._fetch_url(url_wiki)
                 if texto and '[Erro]' not in texto:
@@ -265,10 +309,10 @@ class IA:
             content = resp.read()
             try:
                 return content.decode('utf-8')
-            except:
+            except Exception:
                 try:
                     return content.decode('latin-1')
-                except:
+                except Exception:
                     return content.decode('utf-8', errors='replace')
         except Exception as e:
             return f'[Erro] {e}'
@@ -280,31 +324,31 @@ class IA:
         
         # Monta resumo dos resultados
         blocos = []
-        for i, r in enumerate(resultados[:8], 1):
+        for i, r in enumerate(resultados, 1):
             blocos.append(f"[{i}] {r['titulo']}\n   {r['snippet']}")
         
         texto_resultados = '\n'.join(blocos)
         
         # Se for muito curto, retorna direto sem sumarizar
         if len(texto_resultados) < 200:
-            return texto_resultados[:4000] if texto_resultados else None
+            return texto_resultados if texto_resultados else None
         
         prompt = f"""Resuma os resultados de busca abaixo em português, de forma útil e concisa.
         Destaque apenas as informações relevantes para a pergunta. Ignore ruído.
         
-        PERGUNTA: {consulta[:300]}
+        PERGUNTA: {consulta}
         
         RESULTADOS:
-        {texto_resultados[:3000]}
+        {texto_resultados}
         
         RESUMO (português, máx 500 caracteres):"""
         
         try:
             resumo = self.fast(prompt, temp=0.3, tarefa="fast")
             if resumo:
-                return resumo[:4000]
+                return resumo
         except Exception as e:
             print(f"[RouterHibrido] Summarize error: {e}")
         
         # Fallback: retorna raw truncado
-        return texto_resultados[:4000] if texto_resultados else None
+        return texto_resultados if texto_resultados else None

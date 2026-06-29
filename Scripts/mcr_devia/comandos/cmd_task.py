@@ -37,7 +37,7 @@ def execute(kg, ia, args, ctx_crew=None):
             print(f'  - {nome}')
         if temporarios:
             print(f'\n  Sandbox ({len(temporarios)}): use "task <nome>" para executar')
-            for nome in sorted(temporarios)[:20]:
+            for nome in sorted(temporarios):
                 print(f'    - {nome}')
             if len(temporarios) > 20:
                 print(f'    ... mais {len(temporarios)-20}')
@@ -53,7 +53,7 @@ def execute(kg, ia, args, ctx_crew=None):
             r = subprocess.run([sys.executable, script_path] + sub_args,
                 capture_output=True, text=True, timeout=300)
             out = (r.stdout or '')[-1000:]
-            err = (r.stderr or '')[:500]
+            err = (r.stderr or '')
             if out:
                 print(out)
             if err:
@@ -87,7 +87,7 @@ def execute(kg, ia, args, ctx_crew=None):
                     # 3. Registra no log de reparo
                     log_path = os.path.join(_SANDBOX, '.mcr_auto_repair.log')
                     with open(log_path, 'a', encoding='utf-8') as lf:
-                        lf.write(f'[{__import__("datetime").datetime.now()}] {script_nome}: {erro_tipo} - {err[:100]}\n')
+                        lf.write(f'[{__import__("datetime").datetime.now()}] {script_nome}: {erro_tipo} - {err}\n')
                     print(f'  [Auto-reparo] Erro registrado em .mcr_auto_repair.log')
         except subprocess.TimeoutExpired:
             print(f'[Task] Task {script_nome} excedeu 300s')

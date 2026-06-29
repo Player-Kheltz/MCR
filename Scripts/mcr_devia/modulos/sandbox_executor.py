@@ -70,8 +70,8 @@ class SandboxExecutor:
             )
             resultado = {
                 'sucesso': r.returncode == 0,
-                'stdout': r.stdout[:5000],
-                'stderr': r.stderr[:2000],
+                'stdout': r.stdout,
+                'stderr': r.stderr,
                 'returncode': r.returncode,
                 'tempo': time.time(),
             }
@@ -125,10 +125,11 @@ class SandboxExecutor:
                     'sucesso': False,
                     'sintaxe_ok': False,
                     'estrutura_canary': tem_estrutura,
-                    'erro': r.stderr[:500],
+                    'erro': r.stderr,
                     'tempo': time.time(),
                 }
         except FileNotFoundError:
+            pass
             # luac nao instalado - fallback pra validacao basica
             resultado = self._validar_lua_basico(codigo, tem_estrutura)
         except Exception as e:

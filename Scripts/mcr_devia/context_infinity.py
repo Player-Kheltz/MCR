@@ -140,7 +140,7 @@ class OrquestradorContexto:
         """Insere fragmento e atualiza indice."""
         self.fragmentos[fragmento.id] = fragmento
         # Indexar termos
-        termos = set(fragmento.conteudo.lower().split()[:50])
+        termos = set(fragmento.conteudo.lower().split())
         for termo in termos:
             if len(termo) > 3:
                 if termo not in self.indice:
@@ -188,14 +188,14 @@ class OrquestradorContexto:
             # Cria resumo: primeiras e ultimas linhas
             linhas = fragmento.conteudo.split('\n')
             if len(linhas) > 6:
-                resumo = '\n'.join(linhas[:3] + ['...'] + linhas[-3:])
+                resumo = '\n'.join(linhas + ['...'] + linhas[-3:])
             else:
-                resumo = fragmento.conteudo[:200]
+                resumo = fragmento.conteudo
             fragmento.resumo = resumo
             # Registra no KG (se tiver acesso)
             try:
                 self.kg["licoes"].append({
-                    "id": f"CTX_{fragmento.id[:8]}",
+                    "id": f"CTX_{fragmento.id}",
                     "erro": f"Contexto removido: {fragmento.origem}",
                     "causa": f"Prioridade {fragmento.prioridade}, {fragmento.acessos} acessos",
                     "solucao": resumo,
@@ -232,7 +232,7 @@ class OrquestradorContexto:
                 resultados.append((score + frag.prioridade/10, frag))
         
         resultados.sort(key=lambda x: -x[0])
-        return [r[1] for r in resultados[:max_result]]
+        return [r[1] for r in resultados]
     
     # ----------------------------------------------------------
     # SUPERVISOR
@@ -295,7 +295,7 @@ class OrquestradorContexto:
                     lessons_relevantes.append((score, sol))
             # Ordenar por score decrescente, pegar as melhores
             lessons_relevantes.sort(key=lambda x: -x[0])
-            for score, sol in lessons_relevantes[:3]:
+            for score, sol in lessons_relevantes:
                 tk = len(sol) // 2
                 if tokens_usados + tk < self.ctx_max and score >= 2:
                     partes.append(f"[KG] {sol}")
@@ -326,7 +326,7 @@ class OrquestradorContexto:
                 {"id": f.id, "prio": f.prioridade, "tokens": f.tokens,
                  "acessos": f.acessos, "origem": f.origem}
                 for f in sorted(self.fragmentos.values(),
-                               key=lambda x: -x.prioridade)[:10]
+                               key=lambda x: -x.prioridade)
             ]
         }
 
@@ -369,7 +369,7 @@ class SessionCache:
     
     def _indexar(self, frag):
         """Indexa termos do fragmento para busca rapida."""
-        termos = set(frag.conteudo.lower().split()[:50])
+        termos = set(frag.conteudo.lower().split())
         for termo in termos:
             if len(termo) > 3:
                 if termo not in self.indice:
@@ -440,7 +440,7 @@ class SessionCache:
         # Se tem pergunta mas ninguem matched, retorna os mais recentes
         if pergunta and not candidatos:
             candidatos = sorted(self.fragmentos.values(), 
-                               key=lambda f: f.ultimo_acesso, reverse=True)[:n]
+                               key=lambda f: f.ultimo_acesso, reverse=True)
         
         # Limite por tokens (opcional)
         if max_tokens and candidatos:
@@ -452,7 +452,7 @@ class SessionCache:
                     tokens += frag.tokens
             return resultado
         
-        return candidatos[:n]
+        return candidatos
     
     def precarregar(self, kg=None, request="", memorias=None):
         """Preenche o cache com conhecimento relevante ANTES da execucao.
@@ -473,7 +473,7 @@ class SessionCache:
         # 1. KG keyword
         if kg:
             try:
-                for l in kg.buscar(request, max_r=10)[:5]:
+                for l in kg.buscar(request, max_r=10):
                     lid = l.get('id', '')
                     if f'kg_{lid}' not in self.fragmentos:
                         self.absorver(f'kg_{lid}', 
@@ -499,7 +499,7 @@ class SessionCache:
         # 3. Memorias
         if memorias:
             try:
-                for i, m in enumerate(memorias[:3]):
+                for i, m in enumerate(memorias):
                     licao = str(m.get('licao', '')) if isinstance(m, dict) else str(m)
                     if licao:
                         self.absorver(f'memoria_{i}', licao, 'contexto',
@@ -533,7 +533,7 @@ class SessionCache:
         partes = []
         chars = 0
         for f in filtrados:
-            trecho = f"{f.tipo.upper()}: {f.conteudo[:500]}"
+            trecho = f"{f.tipo.upper()}: {f.conteudo}"
             if chars + len(trecho) <= max_chars:
                 partes.append(trecho)
                 chars += len(trecho)
@@ -578,7 +578,7 @@ if __name__ == "__main__":
     
     # Contexto para uma pergunta
     print(f"\nContexto para 'O que e SHC?':")
-    print(ctx.montar_contexto_para_resposta("O que e SHC?")[:300])
+    print(ctx.montar_contexto_para_resposta("O que e SHC?"))
     
     # Supervisionar
     inc = ctx.supervisionar()
@@ -586,4 +586,4 @@ if __name__ == "__main__":
     
     # Stats
     stats = ctx.stats()
-    print(f"\nStats: {json.dumps(stats, indent=2)[:500]}")
+    print(f"\nStats: {json.dumps(stats, indent=2)}")

@@ -24,7 +24,7 @@ def execute(kg, ia, args, ctx_crew=None):
             with open(path, encoding='utf-8', errors='ignore') as f:
                 for linha in f:
                     if any(p in linha.lower() for p in ['error','fail','traceback','exception']):
-                        kg.aprender(f'bugfinder: {linha[:80]}', f'fonte: {os.path.basename(path)}', 'verificar log', 'bugfinder')
+                        kg.aprender(f'bugfinder: {linha}', f'fonte: {os.path.basename(path)}', 'verificar log', 'bugfinder')
                         encontrados += 1
     print(f'  {encontrados} erros registrados')
     return True

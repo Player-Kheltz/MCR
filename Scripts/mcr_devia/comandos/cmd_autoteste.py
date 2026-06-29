@@ -79,7 +79,7 @@ def _extrair_topicos_usados(historico, max_por_cat=3):
             palavras = [w for w in p.lower().split() if len(w) > 4]
             topicos = topicos_por_categoria.setdefault(cat, [])
             if len(topicos) < max_por_cat:
-                topicos.append(' '.join(palavras[:5]))
+                topicos.append(' '.join(palavras))
     return topicos_por_categoria
 
 
@@ -91,7 +91,7 @@ def _validar_diversidade(perguntas, categorias, historico):
     fp_novas = _gerar_fingerprint_perguntas(perguntas)
     for fp in fp_novas:
         if fp in fp_usadas:
-            return False, f"fingerprint repetido: {fp[:12]}"
+            return False, f"fingerprint repetido: {fp}"
     
     # 2. Nenhuma similar > 70% com perguntas usadas
     import difflib
@@ -100,7 +100,7 @@ def _validar_diversidade(perguntas, categorias, historico):
         for p_usada in usadas[-30:]:
             ratio = difflib.SequenceMatcher(None, p_nova.lower(), p_usada.lower()).ratio()
             if ratio > 0.7:
-                return False, f"similaridade {ratio:.0%} com pergunta anterior: {p_usada[:60]}"
+                return False, f"similaridade {ratio:.0%} com pergunta anterior: {p_usada}"
     
     # 3. Pelo menos 60% das categorias devem ser diferentes entre si
     cats_unicas = len(set(categorias))
@@ -135,7 +135,7 @@ def _gerar_perguntas(regras, historico):
     piores_notas = sorted(
         [(cat, sum(notas)/len(notas)) for cat, notas in notas_por_categoria.items()],
         key=lambda x: x[1]
-    )[:3] if notas_por_categoria else []
+    ) if notas_por_categoria else []
     
     # Categorias nao testadas ainda
     testadas = set()
@@ -173,13 +173,13 @@ def _gerar_perguntas(regras, historico):
         if historico.get('perguntas_usadas'):
             prompt += f"\nPerguntas de ciclos ANTERIORES (NAO repetir o assunto):\n"
             for p in historico['perguntas_usadas'][-15:]:
-                prompt += f"  - {p[:80]}\n"
+                prompt += f"  - {p}\n"
         
         # Adiciona topicos usados por categoria para evitar repeticoes
         if topicos_usados:
             prompt += f"\nTopicos JA COBERTOS (evitar repeticao de assunto):\n"
             for cat, topicos in topicos_usados.items():
-                prompt += f"  {cat}: {' | '.join(topicos[:3])}\n"
+                prompt += f"  {cat}: {' | '.join(topicos)}\n"
         
         # Dominios disponiveis por categoria
         prompt += "\nCategorias e dominios disponiveis:\n"
@@ -274,7 +274,7 @@ def _gerar_perguntas(regras, historico):
             break
     
     if len(selecionadas) < n_perguntas:
-        selecionadas = fallbacks[:n_perguntas]
+        selecionadas = fallbacks
     
     return {
         "perguntas": [s[0] for s in selecionadas],
@@ -292,7 +292,7 @@ def _gerar_auto_critica(pergunta, resposta_mcr):
     prompt = (
         f"Sua resposta para a pergunta abaixo foi:\n\n"
         f"PERGUNTA: {pergunta}\n\n"
-        f"SUA RESPOSTA:\n{resposta_mcr[:2000]}\n\n"
+        f"SUA RESPOSTA:\n{resposta_mcr}\n\n"
         "Auto-avalie sua resposta. Responda em JSON VALIDO (sem comentarios):\n"
         "{\n"
         '  "nota": <0-10>,\n'
@@ -333,8 +333,8 @@ def _gerar_auto_critica_batch(perguntas_respostas):
     for i, (pergunta, resposta) in enumerate(perguntas_respostas):
         blocos.append(
             f"--- PERGUNTA {i+1} ---\n"
-            f"Pergunta: {pergunta[:200]}\n"
-            f"Resposta: {resposta[:1500]}\n"
+            f"Pergunta: {pergunta}\n"
+            f"Resposta: {resposta}\n"
         )
     
     prompt = (
@@ -554,7 +554,7 @@ def _executar_ciclo(perguntas, categorias, modo_fast=False, paralelo=False):
                 testes.append({
                     "pergunta": pergunta,
                     "categoria": cat,
-                    "resposta_mcr": resposta_mcr[:3000],
+                    "resposta_mcr": resposta_mcr,
                     "auto_critica": None,  # Sera preenchido no batch
                     "cloud_nota": None,
                     "gap": None,
@@ -567,7 +567,7 @@ def _executar_ciclo(perguntas, categorias, modo_fast=False, paralelo=False):
         timeout = 120 if modo_fast else 180
         for i, (pergunta, cat) in enumerate(zip(perguntas, categorias)):
             _trk_report('AutoTeste', f'pergunta {i+1}/{n_perguntas}', i / n_perguntas, i+1)
-            print(f'\n[AutoTeste] Pergunta {i+1}/{n_perguntas}: {pergunta[:80]}...')
+            print(f'\n[AutoTeste] Pergunta {i+1}/{n_perguntas}: {pergunta}...')
             
             resposta, erro = _executar_pergunta(pergunta, modo_fast, timeout)
             
@@ -581,7 +581,7 @@ def _executar_ciclo(perguntas, categorias, modo_fast=False, paralelo=False):
             testes.append({
                 "pergunta": pergunta,
                 "categoria": cat,
-                "resposta_mcr": resposta_mcr[:3000],
+                "resposta_mcr": resposta_mcr,
                 "auto_critica": None,  # Sera preenchido no batch
                 "cloud_nota": None,
                 "gap": None,
@@ -625,7 +625,7 @@ def _gerar_relatorio(ciclo, testes):
     gaps = []
     for i, t in enumerate(testes):
         linhas.append(f"--- Pergunta {i+1}: {t['categoria']} ---")
-        linhas.append(f"  Pergunta: {t['pergunta'][:100]}")
+        linhas.append(f"  Pergunta: {t['pergunta']}")
         linhas.append(f"  Resposta MCR: {len(t['resposta_mcr'])} chars")
         erro = t.get('erro')
         if erro:
@@ -749,7 +749,7 @@ def execute(kg, ia, args, ctx_crew=None):
         for i, (p, c, d) in enumerate(zip(resultado.get('perguntas', []),
                                           resultado.get('categorias', []),
                                           resultado.get('dificuldades', []))):
-            print(f'  {i+1}. [{c}] ({d}) {p[:100]}')
+            print(f'  {i+1}. [{c}] ({d}) {p}')
         print(f'\nJustificativa: {resultado.get("justificativa", "")}')
         
         # Salva perguntas para o proximo ciclo

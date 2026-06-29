@@ -30,6 +30,11 @@ if "%1"=="" (
 
 if "%1"=="chat" python %DEVIA%\mcr_chat.py & goto :fim
 if "%1"=="vivo" start mcr_vivo.bat & goto :fim
+if "%1"=="dashboard" python %DEVIA%\kernel.py --dashboard & goto :fim
+if "%1"=="self-study" python %DEVIA%\kernel.py --self-study & goto :fim
+if "%1"=="auto-melhorar" python %DEVIA%\kernel.py --auto-melhorar & goto :fim
+if "%1"=="diagnosticar" python %DEVIA%\kernel.py --diagnosticar & goto :fim
+if "%1"=="pattern" python %DEVIA%\kernel.py --pattern %2 %3 %4 %5 & goto :fim
 if "%1"=="status" python %DEVIA%\mcr_devia.py status & goto :fim
 if "%1"=="lore" python %DEVIA%\mcr_devia.py lore %2 %3 & goto :fim
 if "%1"=="ensinar" python %DEVIA%\mcr_devia.py ensinar %2 %3 %4 %5 & goto :fim

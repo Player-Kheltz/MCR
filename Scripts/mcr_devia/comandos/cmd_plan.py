@@ -16,5 +16,5 @@ def execute(kg, ia, args, ctx_crew=None):
     """Planeja antes de executar: intencao -> plan -> intencao -> build.
     Uso: python mcr_devia.py plan <request>"""
     request = " ".join(args)
-    subprocess.run([sys.executable, os.path.join(_SANDBOX, 'builder_infinito.py'), f'PLAN: {request[:200]}'])
+    subprocess.run([sys.executable, os.path.join(_SANDBOX, 'builder_infinito.py'), f'PLAN: {request}'])
     return True

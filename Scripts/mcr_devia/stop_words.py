@@ -21,6 +21,27 @@ STOP_V12 = {
     'sou','e','ou','mas','se','ate','por','com','sem','sob','ate','desde',
 }
 
+# Stop words para memoria episodica (extração de termos)
+STOP_MEMORIA = {
+    'para', 'com', 'que', 'como', 'mais', 'mas', 'por', 'sao', 'esta',
+    'pode', 'ser', 'tem', 'seu', 'sua', 'entre', 'sobre', 'quando',
+    'onde', 'quem', 'qual', 'cada', 'todo', 'apos', 'isso', 'esse',
+    'num', 'sem', 'sob', 'ate', 'vai', 'era', 'foi', 'nos',
+    'dos', 'das', 'nas', 'numa', 'pelo', 'pela', 'aos', 'as',
+    'sao', 'estao', 'seja', 'sejam', 'tido', 'tendo', 'feito',
+    'forma', 'parte', 'tipo', 'exemplo', 'caso', 'coisa',
+    'gente', 'pessoa', 'dia', 'ano', 'mes', 'hora', 'minuto',
+    'ele', 'ela', 'eles', 'elas', 'voce', 'nos', 'meu', 'seu',
+    'tem', 'ter', 'ser', 'estar', 'foi', 'era', 'e', 'nao',
+    'mais', 'mas', 'muito', 'pouco', 'ja', 'ainda', 'tambem',
+    'ate', 'apos', 'antes', 'depois', 'sempre', 'nunca',
+    'aqui', 'ali', 'la', 'todo', 'tudo', 'todos', 'cada',
+    'algum', 'nenhum', 'outro', 'mesmo', 'assim', 'bem',
+    'mal', 'sim', 'nao', 'talvez', 'entao', 'apenas', 'so',
+    'quase', 'em', 'no', 'na', 'de', 'da', 'do', 'das', 'dos',
+    'um', 'uma', 'uns', 'umas', 'o', 'a', 'os', 'as',
+}
+
 # Stop words especificas para pipeline de busca (grep)
 STOP_BUSCA = {
     'como','para','que','com','mais','mas','por','dos','das','era','sao',

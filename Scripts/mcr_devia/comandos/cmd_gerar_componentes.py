@@ -27,7 +27,7 @@ def execute(kg, ia, args, ctx_crew=None):
     if componentes_existentes:
         print(f'  {len(componentes_existentes)} componentes ja existentes no KG')
         for c in componentes_existentes:
-            print(f'    - {c.get("erro","")}: {c.get("solucao","")[:80]}')
+            print(f'    - {c.get("erro","")}: {c.get("solucao","")}')
         print('  Reutilizando componentes existentes.')
         return True
     
@@ -63,7 +63,7 @@ def execute(kg, ia, args, ctx_crew=None):
     personagens = _gerar_tipo("componentes_personagens", "personagens")
     if personagens:
         kg.aprender(erro=f"Personagens para: {tema}", causa=f"Pre-gerado por orquestrador",
-                    solucao=personagens[:500], ctx="componente_historia")
+                    solucao=personagens, ctx="componente_historia")
         print(f'    Personagens salvos no KG')
     
     # 3. Locais
@@ -71,7 +71,7 @@ def execute(kg, ia, args, ctx_crew=None):
     locais = _gerar_tipo("componentes_locais", "locais")
     if locais:
         kg.aprender(erro=f"Locais para: {tema}", causa=f"Pre-gerado por orquestrador",
-                    solucao=locais[:500], ctx="componente_historia")
+                    solucao=locais, ctx="componente_historia")
         print(f'    Locais salvos no KG')
     
     # 4. Artefatos/eventos
@@ -79,7 +79,7 @@ def execute(kg, ia, args, ctx_crew=None):
     artefatos = _gerar_tipo("componentes_artefatos", "artefatos")
     if artefatos:
         kg.aprender(erro=f"Artefatos para: {tema}", causa=f"Pre-gerado por orquestrador",
-                    solucao=artefatos[:500], ctx="componente_historia")
+                    solucao=artefatos, ctx="componente_historia")
         print(f'    Artefatos salvos no KG')
     
     print(f'[Componentes] Geracao concluida.')

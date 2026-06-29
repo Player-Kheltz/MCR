@@ -20,7 +20,7 @@ def execute(kg, ia, args, ctx_crew=None):
     args = [a for a in args if a not in ('--force', '-f')]
     alvo = args[0]
     descricao = " ".join(args[1:])
-    print(f'[Patch] Patch: {alvo} -> {descricao[:60]}...')
+    print(f'[Patch] Patch: {alvo} -> {descricao}...')
     
     # SAFETY: detecta intencao de CRIAR funcao (patch so substitui)
     palavras_criar = ['adicionar', 'criar', 'nova funcao', 'novo metodo', 'inserir', 'incluir']
@@ -92,7 +92,7 @@ def execute(kg, ia, args, ctx_crew=None):
     print(f'  [Patch] Funcoes encontradas: {[f["nome"] for f in funcoes]}')
     
     # V12 FASE 3: IA descobre QUAL funcao modificar (blank controlado)
-    prompt_funcs = "\n".join(f"  L{f['linha']}: def {f['nome']}(...) -> {f['codigo'][:80].strip()}" for f in funcoes)
+    prompt_funcs = "\n".join(f"  L{f['linha']}: def {f['nome']}(...) -> {f['codigo'].strip()}" for f in funcoes)
     # Prompt direto: IA responde APENAS o nome da funcao
     prompt_completo = (
         f"Arquivo: {os.path.basename(path)}\n"
@@ -101,8 +101,8 @@ def execute(kg, ia, args, ctx_crew=None):
         f"Responda APENAS o nome exato da funcao que deve ser modificada, sem explicacoes."
     )
     
-    resp = fast(prompt_completo[:2000]) or ""
-    print(f'  [Patch] Resposta IA: {resp[:200]}')
+    resp = fast(prompt_completo) or ""
+    print(f'  [Patch] Resposta IA: {resp}')
     
     # Extrai o nome da funcao da resposta
     func_alvo = None
@@ -151,7 +151,7 @@ def execute(kg, ia, args, ctx_crew=None):
     
     print(f'  [Patch] Funcao alvo: {func_alvo["nome"]} (L{linha_alvo})')
     print(f'  [Patch] Codigo atual ({len(func_alvo["codigo"].splitlines())} linhas):')
-    for l in func_alvo["codigo"].splitlines()[:5]:
+    for l in func_alvo["codigo"].splitlines():
         print(f'    {l}')
     
     # V12 FASE 4: IA gera codigo novo (chamada direta ao Ollama, sem KG/veracidade)
@@ -160,7 +160,7 @@ def execute(kg, ia, args, ctx_crew=None):
         f"{func_alvo['codigo']}\n\n"
         f"IMPORTANTE: Retorne APENAS o codigo da funcao. Nenhuma explicacao, nenhum texto antes ou depois, nenhum marcador de bloco. Apenas o codigo."
     )
-    novo_codigo = fast(prompt_code[:2000]) or ""
+    novo_codigo = fast(prompt_code) or ""
     novo_codigo = re.sub(r'```\w*\n?', '', novo_codigo).strip()
     # Remove linhas que nao comecam com def, espaco, tab ou } (protecao contra texto solto)
     linhas_code = []
@@ -176,7 +176,7 @@ def execute(kg, ia, args, ctx_crew=None):
         return
     
     print(f'  [Patch] Codigo novo gerado ({len(novo_codigo.splitlines())} linhas):')
-    for l in novo_codigo.splitlines()[:5]:
+    for l in novo_codigo.splitlines():
         print(f'    {l}')
     
     # CONFIRMACAO: exibe diff e exige --force
@@ -197,7 +197,7 @@ def execute(kg, ia, args, ctx_crew=None):
     print(f'  [Patch] Backup criado: {os.path.basename(backup_path)}')
     
     # Substitui as linhas
-    novas_linhas = linhas[:linha_orig] + [novo_codigo + '\n'] + linhas[fim_orig:]
+    novas_linhas = linhas + [novo_codigo + '\n'] + linhas[fim_orig:]
     
     # V12 FASE 6: Python valida compilacao
     try:

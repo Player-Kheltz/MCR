@@ -69,6 +69,10 @@ class ToolOrchestrator:
             desc="Busca conhecimento no Knowledge Graph",
             params={'texto': 'string'}, output='string')
 
+        self.registrar('aprender_kg', self._cmd_aprender_kg,
+            desc="Registra aprendizado no Knowledge Graph",
+            params={'erro': 'string', 'causa': 'string', 'solucao': 'string', 'ctx': 'string'}, output='string')
+
         self.registrar('buscar_web', self._cmd_buscar_web,
             desc="Pesquisa na web com IA",
             params={'consulta': 'string'}, output='string')
@@ -85,6 +89,25 @@ class ToolOrchestrator:
         self.registrar('gerar_codigo', self._cmd_gerar_codigo,
             desc="Gera codigo em qualquer linguagem via IA",
             params={'descricao': 'string', 'linguagem': 'string (opcional)'}, output='string')
+
+        # === FERRAMENTAS DE BLANK FILLER ===
+        self.registrar('gerar_esqueleto', self._cmd_gerar_esqueleto,
+            desc="Gera esqueleto com blanks para preenchimento via IA",
+            params={'contexto': 'string', 'tipo': 'string (opcional)'}, output='string')
+
+        self.registrar('preencher_blank', self._cmd_preencher_blank,
+            desc="Preenche um blank especifico em um esqueleto via IA",
+            params={'esqueleto': 'string', 'blank_id': 'string', 'contexto': 'string'}, output='string')
+
+        # === FERRAMENTA DE AUTO-DIAGNOSTICO ===
+        self.registrar('diagnosticar', self._cmd_diagnosticar,
+            desc="Roda diagnostico completo do sistema: compilacao, anti-patterns, IO manual",
+            params={}, output='dict')
+
+        # === FERRAMENTA #28 — PATTERN ENGINE ===
+        self.registrar('pattern_analyze', self._cmd_pattern_analyze,
+            desc="Analisa padroes em qualquer entrada: codigo, texto, logs, kg",
+            params={'entrada': 'string', 'dominio': 'string (opcional)'}, output='dict')
 
         self.registrar('escrever_artefato', self._cmd_escrever_artefato,
             desc="Escreve um artefato em arquivo",
@@ -132,6 +155,11 @@ class ToolOrchestrator:
         self.registrar('instalar_dependencias', self._cmd_instalar_deps,
             desc="Instala dependencias via pip",
             params={'requirements_path': 'string'}, output='string')
+
+        # === FERRAMENTAS CANARY ===
+        self.registrar('buscar_item_canary', self._cmd_buscar_item_canary,
+            desc="Busca item no items.xml do Canary por nome (fuzzy). Retorna id, nome, tipo, peso, ataque.",
+            params={'nome': 'string'}, output='dict')
 
     # ============================================================
     # API PUBLICA
@@ -191,9 +219,9 @@ class ToolOrchestrator:
         r = subprocess.run(
             comando, capture_output=True, text=True, timeout=30, shell=True
         )
-        saida = r.stdout[:5000]
+        saida = r.stdout
         if r.stderr:
-            saida += '\n[STDERR] ' + r.stderr[:1000]
+            saida += '\n[STDERR] ' + r.stderr
         return saida
 
     def _cmd_ler_arquivo(self, caminho):
@@ -201,7 +229,7 @@ class ToolOrchestrator:
         if not os.path.exists(caminho):
             return f'Arquivo nao encontrado: {caminho}'
         with open(caminho, 'r', encoding='utf-8') as f:
-            return f.read()[:8000]
+            return f.read()
 
     def _cmd_escrever_arquivo(self, caminho, conteudo):
         """Cria ou modifica um arquivo (thread-safe)."""
@@ -217,7 +245,7 @@ class ToolOrchestrator:
             return "Diretorio nao encontrado"
         itens = os.listdir(caminho)
         linhas = []
-        for i in sorted(itens)[:50]:
+        for i in sorted(itens):
             tipo = '[DIR]' if os.path.isdir(os.path.join(caminho, i)) else '[FILE]'
             linhas.append(f"{tipo} {i}")
         if len(itens) > 50:
@@ -242,7 +270,7 @@ class ToolOrchestrator:
             linhas = r.stdout.split('\n')
             # Filtra diretorios irrelevantes
             linhas = [l for l in linhas if 'sandbox' not in l and '__pycache__' not in l and '.git' not in l]
-            return '\n'.join(linhas[:50])
+            return '\n'.join(linhas)
         return "Nenhum resultado encontrado"
 
     def _cmd_buscar_kg(self, texto, max_r=5):
@@ -253,9 +281,21 @@ class ToolOrchestrator:
             lessons = kg.buscar(texto, max_r)
             if not lessons:
                 return "Nenhuma licao encontrada"
-            return '\n'.join(f"- {l.get('solucao', '')[:200]}" for l in lessons)
+            return '\n'.join(f"- {l.get('solucao', '')}" for l in lessons)
         except ImportError as e:
             return f"KG nao disponivel: {e}"
+    
+    def _cmd_aprender_kg(self, erro, causa, solucao, ctx='geral'):
+        """Registra aprendizado no Knowledge Graph."""
+        try:
+            from modulos.kg import KnowledgeGraph
+            kg = KnowledgeGraph()
+            kg.aprender(erro, causa, solucao, ctx)
+            return f"Lesson registrada: {erro}..."
+        except ImportError as e:
+            return f"KG nao disponivel: {e}"
+        except Exception as e:
+            return f"Erro ao registrar: {e}"
 
     def _cmd_buscar_web(self, consulta):
         """Busca na web usando Router Hibrido."""
@@ -276,7 +316,7 @@ class ToolOrchestrator:
             linhas = []
             for e in episodios:
                 status = '[OK]' if e.get('sucesso') else '[FALHA]'
-                linhas.append(f"{status} {e.get('request', '')[:60]} -> {e.get('licao', '')[:100]}")
+                linhas.append(f"{status} {e.get('request', '')} -> {e.get('licao', '')}")
             return '\n'.join(linhas)
         except ImportError as e:
             return f"Memoria nao disponivel: {e}"
@@ -301,6 +341,50 @@ class ToolOrchestrator:
         prompt = f"Crie o codigo em {linguagem}:\n{descricao}\n" if linguagem else f"Crie o codigo:\n{descricao}\n"
         prompt += "Codigo COMPLETO, sem placeholders, sem 'TODO', funcional."
         return ia.gerar(prompt, 0.4, "code") or "Falha ao gerar codigo"
+
+    def _cmd_gerar_esqueleto(self, contexto, tipo='texto'):
+        """Gera esqueleto com blanks via BlankFiller."""
+        try:
+            from modulos.blank_filler import BlankFiller
+            ia = self._get_ia()
+            bf = BlankFiller(ia)
+            return bf.gerar_esqueleto(contexto, tipo)
+        except Exception as e:
+            return f"Erro ao gerar esqueleto: {e}"
+
+    def _cmd_preencher_blank(self, esqueleto, blank_id, contexto):
+        """Preenche um blank especifico via BlankFiller."""
+        try:
+            from modulos.blank_filler import BlankFiller
+            ia = self._get_ia()
+            bf = BlankFiller(ia)
+            return bf.preencher_blank(esqueleto, blank_id, contexto)
+        except Exception as e:
+            return f"Erro ao preencher blank: {e}"
+
+    def _cmd_diagnosticar(self):
+        """Executa diagnostico completo do sistema."""
+        try:
+            from modulos.diagnostic_engine import DiagnosticEngine
+            ia = self._get_ia()
+            de = DiagnosticEngine(ia, self, None)
+            problemas = de.diagnosticar()
+            relatorio = de.gerar_relatorio(problemas)
+            return {'total': len(problemas), 'relatorio': relatorio, 'problemas': problemas}
+        except Exception as e:
+            return {'erro': str(e)}
+
+    # === FERRAMENTA #28 — PATTERN ENGINE ===
+    def _cmd_pattern_analyze(self, entrada, dominio='texto'):
+        """Analisa padroes em qualquer entrada: codigo, texto, logs, kg."""
+        try:
+            from modulos.pattern_engine import PatternEngine
+            from modulos.ia import IA
+            pe = PatternEngine(IA())
+            resultado = pe.analisar(entrada, dominio)
+            return resultado
+        except Exception as e:
+            return {'erro': str(e)}
 
     def _cmd_escrever_artefato(self, codigo, caminho):
         """Salva codigo em arquivo, extraindo de markdown se necessario."""
@@ -352,7 +436,34 @@ class ToolOrchestrator:
         )
         if r.returncode == 0:
             return "Dependencias instaladas com sucesso"
-        return f"Falha ao instalar: {r.stderr[:500]}"
+        return f"Falha ao instalar: {r.stderr}"
+
+    def _cmd_buscar_item_canary(self, nome):
+        """Busca item no items.xml do Canary por nome (fuzzy).
+        
+        Usa ItemDatabase (knowledge/item_database.py) para busca.
+        Retorna primeiro item encontrado ou mensagem de erro.
+        """
+        try:
+            sys.path.insert(0, os.path.join(BASE, 'Scripts', 'mcr_devia'))
+            from knowledge.item_database import ItemDatabase
+            db = ItemDatabase()
+            resultados = db.buscar_por_nome(nome, limite=5)
+            if resultados:
+                items = []
+                for item in resultados:
+                    items.append({
+                        'id': item.id,
+                        'nome': item.nome,
+                        'tipo': item.primarytype if hasattr(item, 'primarytype') else '',
+                        'peso': item.peso if hasattr(item, 'peso') else 0,
+                    })
+                return {'items': items, 'total': len(items)}
+            return {'items': [], 'total': 0, 'mensagem': f'Nenhum item encontrado para "{nome}"'}
+        except ImportError as e:
+            return {'erro': f'ItemDatabase nao disponivel: {e}'}
+        except Exception as e:
+            return {'erro': str(e)}
 
     # ============================================================
     # IMPLEMENTACOES - VALIDACAO
@@ -402,7 +513,7 @@ class ToolOrchestrator:
         try:
             decider = Decider(_IA())
             lang = decider.classificar(
-                codigo_puro[:300],
+                codigo_puro,
                 ['python', 'javascript', 'lua', 'json', 'html', 'yaml',
                  'typescript', 'css', 'xml', 'csharp', 'rust', 'go',
                  'bash', 'makefile', 'java', 'sql', 'php', 'ruby', 'swift'],
@@ -439,7 +550,7 @@ class ToolOrchestrator:
             if isinstance(resultado, dict):
                 resultado['linguagem'] = lang
                 resultado['metodo'] = 'checker'
-            self._set_cache_validacao(codigo_puro[:200], resultado)
+            self._set_cache_validacao(codigo_puro, resultado)
             return resultado
 
         # FAST + exemplos para linguagens sem checker (Bash, Java, Makefile, HTML...)
@@ -447,16 +558,16 @@ class ToolOrchestrator:
 
     def _validar_com_toolkit(self, codigo):
         """Nivel 1: toolkit rapido — cache + memoria (0 IA)."""
-        cached = self._get_cache_validacao(codigo[:200])
+        cached = self._get_cache_validacao(codigo)
         if cached:
             return cached
         try:
             from modulos.episodic_memory import EpisodicMemory
             mem = EpisodicMemory()
-            for m in mem.buscar(f"validar {codigo[:100]}", n=1):
+            for m in mem.buscar(f"validar {codigo}", n=1):
                 if m.get('sucesso') and 'valido' in m.get('licao', ''):
                     r = {'valido': True, 'erros': [], 'metodo': 'memoria_cache'}
-                    self._set_cache_validacao(codigo[:200], r)
+                    self._set_cache_validacao(codigo, r)
                     return r
         except Exception:
             pass
@@ -485,20 +596,20 @@ class ToolOrchestrator:
         try:
             decider = Decider(self._get_ia())
             r = decider.classificar(
-                codigo[:1000], ['valido', 'invalido'],
+                codigo, ['valido', 'invalido'],
                 exemplos=exemplos,
                 instrucao=f"Classifique se codigo {linguagem} tem erros de sintaxe."
             )
             if r == 'valido':
                 resp = {'valido': True, 'erros': [], 'linguagem': linguagem, 'metodo': 'fast'}
-                self._set_cache_validacao(codigo[:200], resp)
+                self._set_cache_validacao(codigo, resp)
                 return resp
             return self._validar_com_fast_detalhado(codigo, linguagem)
         except Exception as e:
             print(f"[ValidadorFAST] Erro: {e}")
 
         resp = {'valido': True, 'erros': [], 'aviso': 'Falha FAST, ignorado', 'linguagem': linguagem}
-        self._set_cache_validacao(codigo[:200], resp)
+        self._set_cache_validacao(codigo, resp)
         return resp
 
     def _validar_com_fast_detalhado(self, codigo, linguagem):
@@ -512,7 +623,7 @@ class ToolOrchestrator:
             f"Analise este codigo {linguagem}.\n"
             f"Responda APENAS com 'OK' se estiver correto.\n"
             f"Se houver erro, diga EXATAMENTE o erro (linha, caracter).\n\n"
-            f"CODIGO:\n```{linguagem}\n{codigo[:2000]}\n```\n\n"
+            f"CODIGO:\n```{linguagem}\n{codigo}\n```\n\n"
             f"Resposta (apenas 'OK' ou 'ERRO: descricao'):"
         )
         try:
@@ -529,10 +640,10 @@ class ToolOrchestrator:
                 r = {'valido': True, 'erros': [], 'aviso': 'Falso positivo', 'linguagem': linguagem, 'metodo': 'fast_corrigido'}
             else:
                 # Erro especifico → invalido
-                r = {'valido': False, 'erros': [resp[:200]], 'linguagem': linguagem, 'metodo': 'fast_detalhado'}
+                r = {'valido': False, 'erros': [resp], 'linguagem': linguagem, 'metodo': 'fast_detalhado'}
         else:
             r = {'valido': True, 'erros': [], 'linguagem': linguagem, 'metodo': 'fast_corrigido'}
-        self._set_cache_validacao(codigo[:200], r)
+        self._set_cache_validacao(codigo, r)
         return r
 
     def _validar_python(self, codigo):
@@ -552,7 +663,7 @@ class ToolOrchestrator:
             tmp = f.name
         try:
             r = subprocess.run(['node', '--check', tmp], capture_output=True, text=True, timeout=10)
-            return {'valido': r.returncode == 0, 'erros': [] if r.returncode == 0 else [r.stderr[:200]]}
+            return {'valido': r.returncode == 0, 'erros': [] if r.returncode == 0 else [r.stderr]}
         except Exception as e:
             return {'valido': True, 'erros': [], 'aviso': f'Erro ao validar JS: {e}'}
         finally:
@@ -595,7 +706,7 @@ class ToolOrchestrator:
             _json.loads(codigo)
             return {'valido': True, 'erros': []}
         except Exception as e:
-            return {'valido': False, 'erros': [str(e)[:200]]}
+            return {'valido': False, 'erros': [str(e)]}
 
     def _validar_html(self, codigo):
         """Valida HTML basico (menos restritivo).
@@ -615,8 +726,8 @@ class ToolOrchestrator:
             r = subprocess.run(['python', tmp], capture_output=True, text=True, timeout=15)
             os.unlink(tmp)
             return {
-                'stdout': r.stdout[:3000] if r.stdout else '',
-                'stderr': r.stderr[:1000] if r.stderr else '',
+                'stdout': r.stdout if r.stdout else '',
+                'stderr': r.stderr if r.stderr else '',
                 'returncode': r.returncode,
             }
         except subprocess.TimeoutExpired:
@@ -638,5 +749,5 @@ class ToolOrchestrator:
     def _cmd_analisar_codigo(self, codigo):
         """Analisa codigo com IA."""
         ia = self._get_ia()
-        prompt = f"Analise este codigo e aponte problemas, sugestoes e melhorias:\n\n{codigo[:4000]}"
+        prompt = f"Analise este codigo e aponte problemas, sugestoes e melhorias:\n\n{codigo}"
         return ia.gerar(prompt, 0.3, "analisar") or "Falha ao analisar"

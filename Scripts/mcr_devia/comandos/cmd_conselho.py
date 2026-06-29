@@ -41,9 +41,9 @@ def execute(kg, ia, args, ctx_crew=None):
                 'api rest', 'restful', 'cloud computing',
             ])
             if not alucinou and len(veredito) > 100:
-                kg.aprender(f"Pergunta: {pergunta[:80]}",
+                kg.aprender(f"Pergunta: {pergunta}",
                            f"Conselho V7 com {r.get('personalidades', 0)} personalidades",
-                           veredito[:500], 'conceito_projeto')
+                           veredito, 'conceito_projeto')
             else:
                 print(f'  [Conselho] Resposta NAO registrada no KG (deteccao de alucinacao ou muito curta)')
     except Exception as e:
@@ -52,8 +52,8 @@ def execute(kg, ia, args, ctx_crew=None):
         if kg:
             ctx = kg.buscar(pergunta, max_r=3)
             if ctx:
-                for l in ctx[:2]:
-                    print(l.get('solucao', '')[:300])
+                for l in ctx:
+                    print(l.get('solucao', ''))
                     return True
         print('Nao foi possivel responder.')
     

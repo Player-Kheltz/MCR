@@ -567,7 +567,7 @@ class ToolRegistry:
                 scores.append((score, tool))
         
         scores.sort(key=lambda x: -x[0])
-        return [t for _, t in scores[:10]]
+        return [t for _, t in scores]
     
     def buscar_por_categoria_e_tipo(self, categoria: str, texto: str) -> List[Tool]:
         """Filtra por categoria + relevancia textual."""
@@ -584,7 +584,7 @@ class ToolRegistry:
                 scores.append((score, tool))
         
         scores.sort(key=lambda x: -x[0])
-        return [t for _, t in scores[:5]]
+        return [t for _, t in scores]
     
     def categorias(self) -> Dict[str, int]:
         """Retorna todas as categorias com contagem."""
@@ -639,4 +639,4 @@ if __name__ == '__main__':
     
     print("\n--- Busca: 'analisar codigo' ---")
     for t in reg.buscar_por_palavras_chave("analisar codigo bug"):
-        print(f"  {t.nome} ({t.categoria}) - {t.descricao[:60]}")
+        print(f"  {t.nome} ({t.categoria}) - {t.descricao}")

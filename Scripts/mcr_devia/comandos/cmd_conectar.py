@@ -17,9 +17,23 @@ def execute(kg, ia, args, ctx_crew=None):
     print(f'[Conector] Buscando conexoes entre lessons...')
     import json, random
     kg_path = os.path.join(_SANDBOX, '.mcr_devia', 'knowledge.json')
-    if os.path.exists(kg_path):
+    kg_dir = os.path.join(_SANDBOX, '.mcr_devia', 'kg')
+    # Carrega lessons do multi-arquivo
+    if os.path.exists(kg_dir):
+        licoes = []
+        for fname in sorted(os.listdir(kg_dir)):
+            if not fname.endswith('.json') or fname == 'master.json': continue
+            try:
+                with open(os.path.join(kg_dir, fname), 'r', encoding='utf-8') as f:
+                    licoes.extend(json.load(f).get('licoes', []))
+            except: pass
+        kg_data = {'licoes': licoes}
+    elif os.path.exists(kg_path):
         with open(kg_path, encoding='utf-8') as f:
-            kg = json.load(f)
+            kg_data = json.load(f)
+    else:
+        print('  KG nao encontrado')
+        return
         lessons = kg.get('lessons', [])
         if len(lessons) >= 2:
             for _ in range(5):

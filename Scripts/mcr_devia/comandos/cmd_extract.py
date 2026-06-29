@@ -64,14 +64,14 @@ def execute(kg, ia, args, ctx_crew=None):
                 nome = item.get("name", "?")
                 
                 if "ERRO" in resp:
-                    suspeitos.append((item_id, nome, resp[:100]))
+                    suspeitos.append((item_id, nome, resp))
                     print(f'  [{len(suspeitos)}] ID {item_id}: {nome} -> ERRO')
                 else:
                     print(f'  ID {item_id}: {nome} -> OK')
             
             print(f'\n  Revisados: {min(len(dados), 20)} itens')
             print(f'  Suspeitos: {len(suspeitos)} itens')
-            for sid, snome, motivo in suspeitos[:5]:
+            for sid, snome, motivo in suspeitos:
                 print(f'    ID {sid}: {snome} - {motivo}')
         
         print(f'\n[Revisao] Concluida. Para aplicar: extract aplicar --force {path_revisar}')
@@ -229,7 +229,7 @@ def execute(kg, ia, args, ctx_crew=None):
         if isinstance(data, list):
             dados = data
         elif isinstance(data, dict):
-            chave_ident = [k for k in data.keys() if k != '_metadata'][:1]
+            chave_ident = [k for k in data.keys() if k != '_metadata']
             if chave_ident:
                 dados = [{chave_ident[0]: v} for v in data.values()]
             else:
@@ -269,8 +269,8 @@ def execute(kg, ia, args, ctx_crew=None):
             if nome and len(nome) > 1 and nome not in ('if','for','while','switch','catch','else'):
                 item = {'_linha': inicio, 'nome': nome, 'tipo': 'funcao', 'linguagem': lang}
                 # Extrai as primeiras 3 linhas do corpo
-                corpo_linhas = codigo[m.end():].split('\n')[:3]
-                item['corpo'] = ' '.join(l.strip() for l in corpo_linhas if l.strip())[:100]
+                corpo_linhas = codigo[m.end():].split('\n')
+                item['corpo'] = ' '.join(l.strip() for l in corpo_linhas if l.strip())
                 dados.append(item)
         
         # Extrai classes
@@ -301,7 +301,7 @@ def execute(kg, ia, args, ctx_crew=None):
         return
     
     # Salva dados extraidos
-    nome_base = desc.replace(' ','_')[:30]
+    nome_base = desc.replace(' ','_')
     ext_path = os.path.join(extract_dir, f'{nome_base}.json')
     with open(os.path.join(extract_dir, '_metadata.json'), 'w', encoding='utf-8') as f:
         json_xt.dump({'_tipo': formato, '_chave_id': chave_id, '_arquivo': path}, f)

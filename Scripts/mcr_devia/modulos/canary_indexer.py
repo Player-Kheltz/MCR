@@ -226,7 +226,7 @@ def _extrair_queries(conteudo: str) -> List[str]:
     ):
         query = m.group(1).strip()
         if query and len(query) > 10:
-            queries.append(query[:200])
+            queries.append(query)
     return queries
 
 
@@ -250,7 +250,7 @@ def _extrair_mensagens(conteudo: str) -> Dict[str, str]:
     """Extrai mensagens padrão (GREET, FAREWELL, etc)."""
     msgs = {}
     for m in re.finditer(r'setMessage\(MESSAGE_(\w+),\s*"([^"]+)"\)', conteudo):
-        msgs[m.group(1)] = m.group(2)[:100]
+        msgs[m.group(1)] = m.group(2)
     return msgs
 
 
@@ -298,7 +298,7 @@ class CanaryIndexer:
                 try:
                     with open(arquivo, 'r', encoding='utf-8', errors='replace') as f:
                         conteudo = f.read()
-                except:
+                except Exception:
                     continue
                 
                 info = self._analisar_npc(arquivo, conteudo)
@@ -348,7 +348,7 @@ class CanaryIndexer:
             'tem_onsellitem': 'onSellItem' in conteudo,
             'tem_storage': 'getStorageValue' in conteudo,
             'tem_db': 'db.' in conteudo,
-            'conteudo_resumido': conteudo[:3000],  # Para busca RAG
+            'conteudo_resumido': conteudo,  # Para busca RAG
         }
         return info
     
@@ -365,14 +365,14 @@ class CanaryIndexer:
                     if tabela not in tabelas:
                         tabelas[tabela] = {'exemplos': [], 'colunas': set()}
                     if query not in tabelas[tabela]['exemplos']:
-                        tabelas[tabela]['exemplos'].append(query[:150])
+                        tabelas[tabela]['exemplos'].append(query)
                     # Extrai colunas
                     for col in re.finditer(r'(\w+)\s*=', query):
                         tabelas[tabela]['colunas'].add(col.group(1).lower())
         self.schema = {
             'tabelas': {k: {
-                'exemplos': v['exemplos'][:5],
-                'colunas': sorted(v['colunas'])[:20]
+                'exemplos': v['exemplos'],
+                'colunas': sorted(v['colunas'])
             } for k, v in tabelas.items()}
         }
     
@@ -386,13 +386,13 @@ class CanaryIndexer:
                 try:
                     with open(arquivo, 'r', encoding='utf-8', errors='replace') as f:
                         conteudo = f.read()
-                except:
+                except Exception:
                     continue
                 nome = os.path.basename(arquivo).replace('.lua', '')
                 # Extrai funções definidas
                 funcoes = re.findall(r'(?:function\s+(\w+)[.(])', conteudo)
                 if funcoes:
-                    padroes[nome] = funcoes[:30]
+                    padroes[nome] = funcoes
         self.api_patterns = padroes
     
     def _tokenizar(self, texto: str) -> set:
@@ -454,7 +454,7 @@ class CanaryIndexer:
                     resultados.append({'score': score, **npc})
         
         resultados.sort(key=lambda x: x['score'], reverse=True)
-        return resultados[:limite]
+        return resultados
     
     def buscar_por_tipo(self, tipo: str) -> List[Dict]:
         """Retorna NPCs de um tipo específico."""
@@ -490,7 +490,7 @@ class CanaryIndexer:
             for n in self.npcs:
                 entry = dict(n)
                 if 'conteudo_resumido' in entry and len(entry['conteudo_resumido']) > 2000:
-                    entry['conteudo_resumido'] = entry['conteudo_resumido'][:2000]
+                    entry['conteudo_resumido'] = entry['conteudo_resumido']
                 npcs_save.append(entry)
             json.dump({'npcs': npcs_save, 'schema': self.schema, 'api': self.api_patterns}, 
                       f, ensure_ascii=False, indent=2)
@@ -536,5 +536,5 @@ if __name__ == '__main__':
     
     if est.get('tabelas_db'):
         print(f"\n--- Tabelas DB ({est['tabelas_db']}) ---")
-        for tbl in list(idx.schema.get('tabelas', {}).keys())[:10]:
+        for tbl in list(idx.schema.get('tabelas', {}).keys()):
             print(f"  - {tbl}")

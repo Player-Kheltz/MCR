@@ -19,7 +19,7 @@ def execute(kg, ia, args, ctx_crew=None):
     print(f'[Question] Pergunta: {pergunta}')
     try:
         resposta = input('> ')
-        print(f'[Question] Resposta recebida: {resposta[:100]}')
+        print(f'[Question] Resposta recebida: {resposta}')
     except Exception as e:
         print(f"[Fix] ERRO: {e}")
     return True

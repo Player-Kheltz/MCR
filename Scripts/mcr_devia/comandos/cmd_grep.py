@@ -63,7 +63,7 @@ def execute(kg, ia, args, ctx_crew=None):
                     if re_padrao.search(linha):
                         rel = os.path.relpath(fpath, BASE)
                         ctx = flgs['--ctx']
-                        txt = linha.strip()[:120]
+                        txt = linha.strip()
                         if ctx > 0:
                             # Show context lines
                             with open(fpath, 'r', encoding='utf-8', errors='replace') as f2:
@@ -72,7 +72,7 @@ def execute(kg, ia, args, ctx_crew=None):
                             fim = min(len(ctx_linhas), i + ctx + 1)
                             for j in range(inicio, fim):
                                 marc = '>' if j == i else ' '
-                                ln = ctx_linhas[j].rstrip()[:120]
+                                ln = ctx_linhas[j].rstrip()
                                 print(f'  {marc}L{j+1}: {ln}')
                         else:
                             print(f'  {rel}:L{i+1}: {txt}')

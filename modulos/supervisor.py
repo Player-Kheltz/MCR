@@ -237,6 +237,20 @@ class Supervisor:
                     break
         
         # ====================================================
+        # DETECTA SESSAO EM CACHE (resume automatico)
+        # ====================================================
+        try:
+            from modulos.session_cache import detectar_sessao_incompleta, resumir_sessao
+            _cache_info = detectar_sessao_incompleta()
+            if _cache_info and _cache_info.get('ultimo_passo', -1) >= 0:
+                _completados = len(_cache_info.get('passos_completados', {}))
+                _total = len(_cache_info.get('plano', []))
+                print(f'  [SessionCache] Sessao anterior INCOMPLETA: {_completados}/{_total} passos')
+                print(f'  [SessionCache] Pipeline vai retomar automaticamente do passo {_completados+1}')
+        except Exception:
+            pass
+        
+        # ====================================================
         # PIPELINE EXECUTOR MULTI-REQUEST (planejar → executar → montar → revisar)
         # ====================================================
         try:

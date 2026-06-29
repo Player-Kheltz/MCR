@@ -7,7 +7,8 @@ import os, json, re, time, hashlib, urllib.request, threading, concurrent.future
 
 BASE = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 SANDBOX = os.path.join(BASE, 'sandbox')
-KG_PATH = os.path.join(SANDBOX, '.mcr_devia', 'knowledge.json')
+KG_PATH = os.path.join(SANDBOX, '.mcr_devia', 'knowledge.json')  # master index
+KG_DIR = os.path.join(SANDBOX, '.mcr_devia', 'kg')  # ctx files
 CACHE_PATH = os.path.join(SANDBOX, '.mcr_devia', 'context_crew_cache.jsonl')
 DOCS_DIR = os.path.join(BASE, 'docs')
 SRC_DIR = os.path.join(BASE, 'Canary', 'src')
@@ -19,7 +20,8 @@ def _fast(prompt, temp=0.1):
     try:
         from modulos.util import fast as _util_fast
         return _util_fast(prompt, temp, "fast") or None
-    except: return None
+    except ImportError:
+        pass
 
 class ContextCrew:
     """Leitor universal de contexto. So le, nao edita. Respeita LGPD (sem dados pessoais)."""
@@ -33,7 +35,8 @@ class ContextCrew:
         try:
             with open(KG_PATH, 'r', encoding='utf-8') as f:
                 return json.load(f).get('versoes', 0)
-        except: return 0
+        except FileNotFoundError:
+            pass
     
     def _carregar_cache(self):
         if not os.path.exists(CACHE_PATH): return
@@ -44,62 +47,76 @@ class ContextCrew:
                         item = json.loads(line)
                         if item.get('v', 0) == self._versao_kg:
                             self._cache[item['h']] = item
-                    except: pass
-        except: pass
+                    except KeyError:
+                        pass
+                    except:
+                        pass
+        except Exception:
+            pass
     
     def _salvar_cache(self, h, pergunta, resultado, fonte, n_docs):
         try:
             with open(CACHE_PATH, 'a', encoding='utf-8') as f:
                 f.write(json.dumps({
-                    'h': h, 'ts': time.time(), 'p': pergunta[:100],
-                    'r': resultado[:300], 'n': n_docs, 'v': self._versao_kg, 'f': fonte
+                    'h': h, 'ts': time.time(), 'p': pergunta,
+                    'r': resultado, 'n': n_docs, 'v': self._versao_kg, 'f': fonte
                 }, ensure_ascii=False) + '\n')
-        except: pass
+        except Exception as e:
+            pass
     
     def _extrair_termos(self, texto, max_t=8):
         palavras = re.findall(r'\b[a-zA-Z]{3,}\b', texto.lower())
-        return list(dict.fromkeys(p for p in palavras if p not in _STOP))[:max_t]
+        return list(dict.fromkeys(p for p in palavras if p not in _STOP))
     
     def _hash(self, q):
-        return hashlib.md5(q.lower().encode()).hexdigest()[:12]
+        return hashlib.md5(q.lower().encode()).hexdigest()
     
     # === FONTES DE CONHECIMENTO ===
     
     def _buscar_kg(self, termos, max_r=5):
-        if not os.path.exists(KG_PATH): return []
+        """Busca no KG multi-arquivo: le de kg/ diretorio."""
+        if not os.path.exists(KG_DIR): return []
         try:
-            with open(KG_PATH, 'r', encoding='utf-8') as f:
-                data = json.load(f)
             resultados = []
-            for l in data.get('licoes', []):
-                if l.get('inactive'): continue
-                alvo = (l.get('erro','') + ' ' + l.get('solucao','') + ' ' + l.get('ctx','')).lower()
-                score = sum(1 for t in termos if t in alvo)
-                if score > 0:
-                    ctx = l.get('ctx', 'geral')
-                    peso = {'identidade':1.0,'conceito_codigo':0.9,'bugfix':0.8,'feature':0.75,
-                            'weblearn':0.5,'v12_genero':0.4}.get(ctx, 0.3)
-                    resultados.append((score * peso, l.get('solucao','')[:300], f'KG:{ctx}:{peso:.1f}'))
-            resultados.sort(key=lambda x: -x[0])
-            return [(r[1], r[2]) for r in resultados[:max_r]]
-        except: return []
+            for fname in sorted(os.listdir(KG_DIR)):
+                if not fname.endswith('.json') or fname == 'master.json':
+                    continue
+                try:
+                    with open(os.path.join(KG_DIR, fname), 'r', encoding='utf-8') as f:
+                        data = json.load(f)
+                except:
+                    continue
+                for l in data.get('licoes', []):
+                    if l.get('inactive'): continue
+                    alvo = (l.get('erro','') + ' ' + l.get('solucao','') + ' ' + l.get('ctx','')).lower()
+                    score = sum(1 for t in termos if t in alvo)
+                    if score > 0:
+                        ctx = l.get('ctx', 'geral')
+                        peso = {'identidade':1.0,'conceito_codigo':0.9,'bugfix':0.8,'feature':0.75,
+                                'weblearn':0.5,'v12_genero':0.4}.get(ctx, 0.3)
+                        resultados.append((score * peso, l.get('solucao',''), f'KG:{ctx}:{peso:.1f}'))
+                        resultados.sort(key=lambda x: -x[0])
+                        return [(r[1], r[2]) for r in resultados]
+        except Exception:
+            pass
     
     def _buscar_weblearn(self, termos, max_r=5):
         wl_dir = os.path.join(SANDBOX, '.mcr_devia', 'weblearn')
         if not os.path.exists(wl_dir): return []
         resultados = []
         try:
-            for f in sorted(os.listdir(wl_dir))[:30]:
+            for f in sorted(os.listdir(wl_dir)):
                 if not f.endswith('.json'): continue
                 with open(os.path.join(wl_dir, f), 'r', encoding='utf-8') as fh:
                     item = json.load(fh)
                 txt = (str(item.get('titulo','')) + ' ' + str(item.get('texto',''))).lower()
                 score = sum(1 for t in termos if t in txt)
                 if score > 0:
-                    resultados.append((score, item.get('texto','')[:300], 'WebLearn:0.5'))
-        except: pass
+                    resultados.append((score, item.get('texto',''), 'WebLearn:0.5'))
+        except TypeError:
+            pass
         resultados.sort(key=lambda x: -x[0])
-        return [(r[1], r[2]) for r in resultados[:max_r]]
+        return [(r[1], r[2]) for r in resultados]
     
     def _buscar_docs(self, termos, max_r=5):
         """Le arquivos .md de docs/ e extrai paragrafos relevantes."""
@@ -121,11 +138,13 @@ class ContextCrew:
                             score = sum(1 for t in termos if t in p_lower)
                             if score > 0:
                                 rel = os.path.relpath(fpath, BASE)
-                                resultados.append((score, p[:300], f'Docs:{rel}'))
-                    except: pass
-        except: pass
+                                resultados.append((score, p, f'Docs:{rel}'))
+                    except FileNotFoundError:
+                        pass
+        except Exception:
+            pass
         resultados.sort(key=lambda x: -x[0])
-        return [(r[1], r[2]) for r in resultados[:max_r]]
+        return [(r[1], r[2]) for r in resultados]
     
     def _buscar_codigo(self, termos, max_r=8):
         """Grep usando INDICE do Watchdog (cache em arquivo). Fallback: varredura."""
@@ -139,10 +158,10 @@ class ContextCrew:
                     indice = json.load(_f)
                 # Procura termos no indice
                 arquivos_para_ler = set()
-                for t in termos[:3]:
+                for t in termos:
                     for palavra, arquivos in indice.items():
                         if t.lower() in palavra.lower():
-                            for arq in arquivos[:3]:
+                            for arq in arquivos:
                                 if arq not in arquivos_para_ler:
                                     arquivos_para_ler.add(arq)
                 # Le apenas os arquivos encontrados
@@ -151,7 +170,7 @@ class ContextCrew:
                         if os.path.getsize(fpath) > 256000: continue
                         with open(fpath, 'r', encoding='utf-8', errors='replace') as fh:
                             lines = fh.readlines()
-                        for i, line in enumerate(lines[:100]):
+                        for i, line in enumerate(lines):
                             line_lower = line.lower()
                             score = sum(1 for t in termos if t in line_lower)
                             if score > 0 and len(line.strip()) > 20:
@@ -159,15 +178,15 @@ class ContextCrew:
                                 ctx_depois = ''.join(lines[i:min(len(lines),i+2)])
                                 trecho = ctx_antes + line + ctx_depois
                                 rel = os.path.relpath(fpath, BASE)
-                                resultados.append((score, trecho[:200], f'Code:{rel}:L{i+1}'))
+                                resultados.append((score, trecho, f'Code:{rel}:L{i+1}'))
                                 break
-                    except: pass
+                    except Exception:
+                        pass
                 if resultados:
                     resultados.sort(key=lambda x: -x[0])
-                    return [(r[1], r[2]) for r in resultados[:max_r]]
-            except:
+                    return [(r[1], r[2]) for r in resultados]
+            except Exception:
                 pass
-        
         # Fallback: varredura direta
         
         # Diretorios para INCLUIR na busca (apenas codigo FONTE relevante)
@@ -200,7 +219,7 @@ class ContextCrew:
                             if os.path.getsize(fpath) > 256000: continue  # Max 250KB
                             with open(fpath, 'r', encoding='utf-8', errors='replace') as fh:
                                 lines = fh.readlines()
-                            for i, line in enumerate(lines[:100]):
+                            for i, line in enumerate(lines):
                                 line_lower = line.lower()
                                 score = sum(1 for t in termos if t in line_lower)
                                 if score > 0 and len(line.strip()) > 20:
@@ -208,13 +227,16 @@ class ContextCrew:
                                     ctx_depois = ''.join(lines[i:min(len(lines),i+2)])
                                     trecho = ctx_antes + line + ctx_depois
                                     rel = os.path.relpath(fpath, BASE)
-                                    resultados.append((score, trecho[:200], f'Code:{rel}:L{i+1}'))
+                                    resultados.append((score, trecho, f'Code:{rel}:L{i+1}'))
                                     break
-                        except: pass
-            except: pass
+                        except Exception as e:
+                            pass
+        
+            except Exception:
+                pass
         
         resultados.sort(key=lambda x: -x[0])
-        return [(r[1], r[2]) for r in resultados[:max_r]]
+        return [(r[1], r[2]) for r in resultados]
     
     def _buscar_weblearn_cache(self, termos, max_r=5):
         """Le conteudos baixados da Web pelo weblearn para estudo.
@@ -223,36 +245,46 @@ class ContextCrew:
         if not os.path.exists(wl_dir): return []
         resultados = []
         try:
-            for f in sorted(os.listdir(wl_dir))[:20]:
+            for f in sorted(os.listdir(wl_dir)):
                 if not f.endswith('.json'): continue
                 with open(os.path.join(wl_dir, f), 'r', encoding='utf-8') as fh:
                     item = json.load(fh)
                 txt = (str(item.get('titulo','')) + ' ' + str(item.get('texto',''))).lower()
                 score = sum(1 for t in termos if t in txt)
                 if score > 0:
-                    resultados.append((score, item.get('texto','')[:300], 'WebLearn:' + f[:30]))
-        except: pass
+                    resultados.append((score, item.get('texto',''), 'WebLearn:' + f))
+        except ValueError:
+            pass
         resultados.sort(key=lambda x: -x[0])
-        return [(r[1], r[2]) for r in resultados[:max_r]]
+        return [(r[1], r[2]) for r in resultados]
     
     def _buscar_web(self, termos, max_r=3):
-        """WebFetch para buscar informacoes atualizadas (LGPD: sem dados pessoais)."""
+        """Busca na web usando DuckDuckGo via IA.buscar_web()."""
+        from modulos.ia import IA
         resultados = []
-        consulta = '+'.join(termos[:3])
-        urls = [
-            f'https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch={consulta}&format=json&srlimit={max_r}',
-        ]
-        for url in urls:
+        consulta = ' '.join(termos)
+        try:
+            ia = IA()
+            resultado = ia.buscar_web(consulta, max_resultados=max_r)
+            if resultado and len(resultado) > 20:
+                resultados.append((3, resultado, 'Web:IA'))
+        except Exception:
+            pass
+        # Fallback: Wikipedia API se DuckDuckGo falhar
+        if not resultados:
             try:
+                consulta_wiki = '+'.join(termos)
+                url = f'https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch={consulta_wiki}&format=json&srlimit={max_r}'
                 req = urllib.request.Request(url, headers={'User-Agent': 'MCR-DevIA/1.0'})
                 resp = urllib.request.urlopen(req, timeout=10)
                 data = json.loads(resp.read().decode('utf-8'))
-                for item in data.get('query', {}).get('search', [])[:max_r]:
+                for item in data.get('query', {}).get('search', []):
                     titulo = item.get('title', '')
                     snippet = re.sub(r'<[^>]+>', '', item.get('snippet', ''))
-                    resultados.append((2, f'{titulo}: {snippet[:200]}', f'Web:{titulo[:30]}'))
-            except: pass
-        return [(r[1], r[2]) for r in resultados[:max_r]]
+                    resultados.append((2, f'{titulo}: {snippet}', f'Web:{titulo}'))
+            except KeyError:
+                pass
+        return [(r[1], r[2]) for r in resultados]
     
     # === EXECUTAR ===
     
@@ -292,7 +324,7 @@ class ContextCrew:
         
         # AUTO-WEBLEARN: se 0 resultados, dispara aprendizado
         if not todas_fontes:
-            consulta = ' '.join(termos[:5])
+            consulta = ' '.join(termos)
             print(f'  [ContextCrew] Sem resultados — disparando WebLearn para: {consulta}')
             try:
                 import subprocess as _sp
@@ -312,7 +344,8 @@ class ContextCrew:
                             resultados = futuro2.result()
                             for texto, fonte in resultados:
                                 todas_fontes.append((fonte, texto))
-                        except: pass
+                        except Exception as e:
+                            pass
             except Exception as e:
                 print(f'  [ContextCrew] WebLearn ERRO: {e}')
         
@@ -326,3 +359,132 @@ class ContextCrew:
         self._salvar_cache(h, pergunta, contexto, 'multi', len(todas_fontes))
         
         return contexto
+    
+    def _heuristicas_quebra(self, texto):
+        """Tenta quebrar texto por pontuacao logica. Retorna lista de partes."""
+        # 1. Tenta quebrar por ? primeiro (perguntas multiplas)
+        partes = re.split(r'\?\s*', texto)
+        partes = [p.strip() + '?' for p in partes if len(p.strip()) > 15]
+        if len(partes) > 1:
+            return partes
+        
+        # 2. Tenta quebrar por conectores "e", "mas", "ou", "tambem"
+        partes = re.split(r'(?:,\s*(?:e|mas|ou)\s*|\s+e\s+tamb[ée]m\s+)', texto)
+        partes = [p.strip() for p in partes if len(p.strip()) > 20]
+        if len(partes) > 1:
+            return partes
+        
+        # 3. Tenta quebrar por "." seguido de maiuscula
+        partes = re.split(r'\.\s+(?=[A-Z])', texto)
+        partes = [p.strip() for p in partes if len(p.strip()) > 20]
+        if len(partes) > 1:
+            return partes
+        
+        # 4. Tenta quebrar por virgulas em texto longo
+        if len(texto) > 300:
+            partes = re.split(r',\s*', texto)
+            partes = [p.strip() for p in partes if len(p.strip()) > 30]
+            if len(partes) > 2:
+                return partes
+        
+        return [texto]
+    
+    def fragmentar_recursivo(self, texto, profundidade=0, max_depth=6):
+        """Fragmenta recursivamente até encontrar padroes brutos (baixa entropia).
+        
+        Um padrao bruto e definido por:
+        - Entropia < 0.4 (PatternEngine)
+        - Tokens < 100
+        - Tamanho < 500 chars
+        
+        Args:
+            texto: str, texto a fragmentar
+            profundidade: int, nivel atual de profundidade
+            max_depth: int, maximo de niveis
+        
+        Returns:
+            dict: {texto, entropia, tokens_count, bruto, filhos, profundidade}
+                  filhos = None se for bruto, senao lista de sub-arvores
+        """
+        from modulos.pattern_engine import PatternEngine
+        _pe = PatternEngine()
+        
+        # Mede entropia
+        tokens = _pe.tokenizar(texto, 'texto')
+        padroes = _pe.extrair_padroes(tokens)
+        entropia = padroes.get('entropia', 0.5)
+        tokens_count = len(tokens)
+        tamanho = len(texto)
+        
+        # Verifica se e padrao bruto
+        e_bruto = (entropia < 0.3 and tokens_count < 50) or profundidade >= max_depth
+        if e_bruto and tamanho < 50:
+            return {
+                'texto': texto,
+                'entropia': round(entropia, 3),
+                'tokens_count': tokens_count,
+                'bruto': True,
+                'profundidade': profundidade,
+                'filhos': None,
+            }
+        
+        # Tenta quebrar ANTES de decidir se e bruto
+        # (textos curtos podem conter multiplas perguntas)
+        partes = self._heuristicas_quebra(texto)
+        
+        if len(partes) <= 1:
+            # Nao conseguiu quebrar — trata como bruto
+            return {
+                'texto': texto,
+                'entropia': round(entropia, 3),
+                'tokens_count': tokens_count,
+                'bruto': True,
+                'profundidade': profundidade,
+                'filhos': None,
+            }
+        
+        print(f'  [Fragmentar] Depth {profundidade}: {len(partes)} partes (entropia {entropia:.3f})')
+        
+        filhos = []
+        for i, parte in enumerate(partes):
+            sub = self.fragmentar_recursivo(parte, profundidade + 1, max_depth)
+            sub['indice'] = i
+            filhos.append(sub)
+        
+        return {
+            'texto': texto,
+            'entropia': round(entropia, 3),
+            'tokens_count': tokens_count,
+            'bruto': False,
+            'profundidade': profundidade,
+            'filhos': filhos,
+        }
+    
+    def fragmentar(self, texto, max_depth=6):
+        """Interface publica: retorna arvore de fragmentacao recursiva.
+        
+        Returns:
+            dict: arvore completa com todos os niveis
+        """
+        return self.fragmentar_recursivo(texto, 0, max_depth)
+    
+    def extrair_folhas(self, arvore):
+        """Extrai todas as folhas (padroes brutos) de uma arvore de fragmentacao.
+        
+        Returns:
+            list[dict]: [{texto, entropia, profundidade, caminho}]
+        """
+        folhas = []
+        def _visitar(no, caminho=""):
+            if no.get('bruto') or not no.get('filhos'):
+                folhas.append({
+                    'texto': no['texto'],
+                    'entropia': no.get('entropia', 0.5),
+                    'profundidade': no.get('profundidade', 0),
+                    'caminho': caminho + str(no.get('indice', 0)),
+                })
+            else:
+                for f in (no.get('filhos') or []):
+                    _visitar(f, caminho + str(no.get('indice', 0)) + '.')
+        _visitar(arvore, '')
+        return folhas

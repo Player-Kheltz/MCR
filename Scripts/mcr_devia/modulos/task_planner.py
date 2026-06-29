@@ -46,6 +46,12 @@ PLANOS_CONHECIDOS = {
         {'acao': 'analisar_codigo', 'desc': 'Analisa codigo com IA'},
         {'acao': 'registrar_licao', 'desc': 'Registra licoes aprendidas'},
     ],
+    'pesquisa_web': [
+        {'acao': 'buscar_web', 'desc': 'Pesquisa na web topicos recentes'},
+        {'acao': 'perguntar_ia', 'desc': 'Sintetiza informacoes com IA'},
+        {'acao': 'salvar_resultado', 'desc': 'Salva relatorio em arquivo'},
+        {'acao': 'registrar_licao', 'desc': 'Aprende licao no KG'},
+    ],
     'projeto_jogo': [
         {'acao': 'perguntar_usuario', 'desc': 'Pergunta preferencias (engine, nome do projeto)'},
         {'acao': 'buscar_exemplos_similares', 'desc': 'Busca exemplos similares na memoria'},
@@ -69,14 +75,16 @@ _ACAO_PARA_FERRAMENTA = {
     'buscar_exemplos': 'buscar_kg',
     'buscar_licoes': 'buscar_kg',
     'buscar_contexto': 'buscar_kg',
+    'buscar_web': 'buscar_web',
     'gerar_npc': 'gerar_npc',
     'validar_npc': 'validar_lua',
     'validar_codigo': 'validar_codigo',
     'validar_projeto': 'executar_python',
-    'registrar_licao': 'buscar_kg',
+    'registrar_licao': 'aprender_kg',
     'perguntar_ia': 'perguntar_ia',
     'gerar_codigo': 'gerar_codigo',
     'salvar_arquivo': 'escrever_artefato',
+    'salvar_resultado': 'escrever_artefato',
     'buscar_exemplos_similares': 'buscar_memoria',
     'analisar_codigo': 'analisar_codigo',
     'criar_estrutura': 'gerar_codigo',
@@ -217,6 +225,10 @@ class TaskPlanner:
         plano = []
         for i, passo in enumerate(template):
             params = self._extrair_params(passo['acao'], request)
+            # Propaga task_type para subtarefas de IA (usado pelo MasterAgent
+            # para buscar identidade da tarefa via V12 + FAST)
+            if passo['acao'] in ('perguntar_ia', 'gerar_codigo', 'perguntar_usuario'):
+                params['task_type'] = task_type
             id_passo = i + 1
 
             # Descricao dinamica
@@ -278,6 +290,8 @@ class TaskPlanner:
                 ("Cria um jogo de plataforma em Python", "projeto_jogo"),
                 ("Cria um site em HTML", "criar_codigo"),
                 ("Cria um script python", "criar_codigo"),
+                ("Pesquise sobre as ultimas novidades do Canary OTServ", "pesquisa_web"),
+                ("Busca informacoes sobre Python na web", "pesquisa_web"),
                 ("O que e SPA no MCR?", "pergunta_simples"),
                 ("Como funciona um loop?", "pergunta_simples"),
                 ("Analisa este codigo", "analisar_codigo"),
@@ -296,6 +310,8 @@ class TaskPlanner:
 
         # Fallback: regex
         r = request.lower()
+        if any(p in r for p in ['pesqui', 'novidades', 'busca', 'pesquisa', 'pesquise']) or re.search(r'ultimas?\s*noticia', r):
+            return 'pesquisa_web'
         if any(p in r for p in ['cria', 'criar', 'faz', 'fazer', 'gera', 'gerar']):
             if any(p in r for p in ['npc', 'ferreiro', 'vendedor', 'loja', 'shop']):
                 return 'npc_shop'
@@ -364,7 +380,7 @@ class TaskPlanner:
         return [{
             'id': 1,
             'acao': 'perguntar_ia',
-            'descricao': f'Processar: {request[:100]}',
+            'descricao': f'Processar: {request}',
             'params': {'pergunta': request, 'tarefa': 'pesado'},
             'depende_de': [],
             'ferramenta': 'perguntar_ia',
@@ -378,7 +394,7 @@ class TaskPlanner:
         Cache global para evitar chamadas repetidas.
         """
         global _tech_stack_cache
-        cache_key = request[:100]
+        cache_key = request
         if cache_key in _tech_stack_cache:
             return _tech_stack_cache[cache_key]
 
@@ -481,7 +497,7 @@ class TaskPlanner:
         if acao == 'gerar_codigo':
             return {'descricao': request}
 
-        if acao in ('buscar_exemplos', 'buscar_contexto'):
+        if acao in ('buscar_exemplos', 'buscar_contexto', 'buscar_licoes'):
             return {'texto': request}
 
         if acao == 'buscar_exemplos_similares':
@@ -489,17 +505,35 @@ class TaskPlanner:
 
         if acao == 'analisar_codigo':
             return {'codigo': request}
+        
+        if acao == 'buscar_web':
+            return {'consulta': request}
+        
+        if acao == 'salvar_resultado':
+            nome_arquivo = 'pesquisa_web.txt'
+            m = re.search(r'salv\w*\s+em\s+(.+)', request)
+            if m:
+                nome_arquivo = m.group(1).strip()
+            if not nome_arquivo.startswith('sandbox'):
+                nome_arquivo = os.path.join('sandbox', 'output', 'relatorios', nome_arquivo)
+            return {'caminho': nome_arquivo}
 
         if acao == 'salvar_arquivo':
             caminho = None
-            for padrao in [r'sandbox[/\\][\w\.]+', r'[\w]+\.py', r'[\w]+\.lua', r'[\w]+\.txt']:
+            for padrao in [r'sandbox[/\\][\w\\/\.-]+', r'[\w]+\.py', r'[\w]+\.lua', r'[\w]+\.txt']:
                 m = re.search(padrao, request)
                 if m:
                     caminho = m.group(0)
                     break
             if caminho and not caminho.startswith('sandbox'):
                 caminho = os.path.join('sandbox', caminho)
+            if caminho:
+                caminho = os.path.join(BASE, caminho)
             return {'caminho': caminho or 'sandbox/artefato_gerado.py'}
+
+        if acao == 'registrar_licao':
+            return {'erro': f"Tarefa: {request}", 'causa': 'Executado pelo MasterAgent',
+                    'solucao': request, 'ctx': 'geral'}
 
         if acao == 'perguntar_usuario':
             stack = self._extrair_tech_stack(request)
@@ -513,7 +547,7 @@ class TaskPlanner:
             desc_modulo = stack.get('desc_modulos', {}).get(nome_modulo, nome_modulo)
             return {
                 'descricao': f"Crie o modulo {nome_modulo}{ext} do jogo em {stack.get('linguagem','?')}. "
-                            f"{desc_modulo}. Contexto: {request[:200]}",
+                            f"{desc_modulo}. Contexto: {request}",
                 'linguagem': stack.get('linguagem', 'python'),
             }
 

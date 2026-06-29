@@ -17,7 +17,7 @@ def _hash_file(path):
     """Hash SHA256 de um arquivo."""
     try:
         with open(path, 'rb') as f:
-            return hashlib.sha256(f.read()).hexdigest()[:16]
+            return hashlib.sha256(f.read()).hexdigest()
     except:
         return None
 
@@ -95,14 +95,14 @@ def execute(kg, ia, args, ctx_crew=None):
         
         # Se tem alteracoes e kg disponivel, registra
         if kg and alteracoes:
-            for a in alteracoes[:3]:  # So as 3 primeiras para nao poluir
+            for a in alteracoes:  # So as 3 primeiras para nao poluir
                 try:
                     with open(os.path.join(DEVIA_DIR, a), 'r', encoding='utf-8', errors='replace') as f:
                         content = f.read()
                     kg.aprender(
                         erro=f"Arquivo alterado: {a}",
                         causa=f"Detectado por verificar_mudancas em {time.strftime('%Y-%m-%d %H:%M')}",
-                        solucao=f"Arquivo foi modificado. Hash antigo: {manifest.get(a, '?')[:8]}...",
+                        solucao=f"Arquivo foi modificado. Hash antigo: {manifest.get(a, '?')}...",
                         ctx="mudanca"
                     )
                 except: pass

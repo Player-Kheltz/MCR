@@ -60,7 +60,7 @@ def executar(args):
     
     if args[0] == '--status':
         agent = AgentLoop()
-        return {'metricas': agent.obter_metricas(), 'historico': agent.historico[:5]}
+        return {'metricas': agent.obter_metricas(), 'historico': agent.historico}
     
     # Parse args
     descricao = args[0]

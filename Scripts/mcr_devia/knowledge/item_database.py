@@ -258,7 +258,7 @@ class ItemDatabase:
         # Ordenar por score e nome
         resultados.sort(key=lambda x: (-x[0], x[1].nome))
         
-        return [item for _, item in resultados[:limite]]
+        return [item for _, item in resultados]
     
     def buscar_por_categoria(self, categoria: str, limite: int = 50) -> List[Item]:
         """Busca itens por categoria (primarytype)."""
@@ -266,12 +266,12 @@ class ItemDatabase:
         
         # Match exato
         if categoria_lower in self._items_por_categoria:
-            return self._items_por_categoria[categoria_lower][:limite]
+            return self._items_por_categoria[categoria_lower]
         
         # Match parcial
         for cat, items in self._items_por_categoria.items():
             if categoria_lower in cat.lower():
-                return items[:limite]
+                return items
         
         return []
     
@@ -295,7 +295,7 @@ class ItemDatabase:
             items = self._items_por_categoria.get(cat, [])
             resultados.extend(items[:limite // len(config['categorias']) + 1])
         
-        return resultados[:limite]
+        return resultados
     
     def sugerir_itens_para_shop(self, profissao: str, n_itens: int = 9) -> List[Dict]:
         """Sugere itens para um NPC shop com base na profissao.
@@ -315,7 +315,7 @@ class ItemDatabase:
                       and i.peso > 0 or i.categoria != '']
         
         # Pegar os primeiros n_itens
-        selecionados = candidatos[:n_itens]
+        selecionados = candidatos
         
         resultado = []
         for item in selecionados:
@@ -423,18 +423,18 @@ if __name__ == '__main__':
     
     # Teste 2: Busca por nome
     print("\n2. Busca por 'espada':")
-    for i in db.buscar_por_nome('espada')[:5]:
+    for i in db.buscar_por_nome('espada'):
         print(f"   ID {i.id:5d}: {i.nome} ({i.categoria})")
     
     # Teste 3: Busca por categoria
     print("\n3. Itens 'sword weapons':")
-    for i in db.buscar_por_categoria('sword weapons')[:5]:
+    for i in db.buscar_por_categoria('sword weapons'):
         print(f"   ID {i.id:5d}: {i.nome}")
     
     # Teste 4: Sugerir para ferreiro
     print("\n4. Sugestoes para ferreiro:")
     sugestoes = db.sugerir_itens_para_shop('ferreiro', 9)
-    for s in sugestoes[:9]:
+    for s in sugestoes:
         print(f"   ID {s['id']:5d}: {s['nome']} (preco: {s['preco_sugerido']})")
     
     # Teste 5: Categorias disponiveis para armeiro

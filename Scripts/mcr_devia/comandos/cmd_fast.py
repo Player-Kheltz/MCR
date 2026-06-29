@@ -23,7 +23,7 @@ def execute(kg, ia, args, ctx_crew=None):
     try:
         resp = _util_fast(texto, 0.1, "fast")
         if resp:
-            print(f'[Fast] {resp[:500]}')
+            print(f'[Fast] {resp}')
         else:
             print('[Fast] Sem resposta')
     except Exception as e:

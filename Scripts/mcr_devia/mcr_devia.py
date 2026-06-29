@@ -686,7 +686,8 @@ class Supervisor:
         contexto = self.kg.buscar(texto_original)
         melhor_lesson = None
         melhor_score = 0
-        if contexto:
+        total_keywords = len(kwargs_v12)
+        if contexto and total_keywords > 0:
             for l in contexto:
                 sol = l.get("solucao", "").lower()
                 keywords = kwargs_v12
@@ -695,7 +696,21 @@ class Supervisor:
                     melhor_score = matches
                     melhor_lesson = l
             
-            if melhor_lesson and melhor_score >= 1:
+            # Confidence threshold: % das keywords do usuario que constam na lesson
+            confidence = melhor_score / total_keywords if total_keywords > 0 else 0
+            
+            # Staleness check: se lesson antiga + time_sensitive, pula V12
+            STALENESS_DAYS = 7
+            is_stale = False
+            if melhor_lesson and confidence >= 0.7:
+                lesson_ts = melhor_lesson.get("timestamp", 0)
+                lesson_age_dias = (time.time() - lesson_ts) / 86400 if lesson_ts > 0 else 0
+                is_stale = (melhor_lesson.get("time_sensitive", False) 
+                            and lesson_age_dias > STALENESS_DAYS)
+                if is_stale:
+                    print(f'  [V12] Lesson {melhor_lesson.get("id","?")} desatualizada ({lesson_age_dias:.0f}d). Pulando V12.')
+            
+            if melhor_lesson and confidence >= 0.7 and not is_stale:
                 # Busca lessons RELACIONADAS: usa titulo (erro) + ctx da top
                 termo_rel = f'{melhor_lesson.get("erro","")} {melhor_lesson.get("ctx","")}'
                 relacionadas = self.kg.buscar(termo_rel, max_r=3)
@@ -743,13 +758,27 @@ class Supervisor:
                     # V12 contexto agregado tambem no mid path
                     melhor_lesson = None
                     melhor_score = 0
-                    for l in contexto[:3]:
+                    total_keywords = len(kwargs_v12)
+                    for l in contexto:
                         sol = l.get("solucao", "").lower()
                         matches = sum(1 for t in kwargs_v12 if t in sol)
                         if matches > melhor_score:
                             melhor_score = matches
                             melhor_lesson = l
-                    if melhor_lesson and melhor_score >= 1:
+                    
+                    confidence = melhor_score / total_keywords if total_keywords > 0 else 0
+                    
+                    # Staleness check
+                    is_stale = False
+                    if melhor_lesson and confidence >= 0.7:
+                        lesson_ts = melhor_lesson.get("timestamp", 0)
+                        lesson_age_dias = (time.time() - lesson_ts) / 86400 if lesson_ts > 0 else 0
+                        is_stale = (melhor_lesson.get("time_sensitive", False) 
+                                    and lesson_age_dias > 7)
+                        if is_stale:
+                            print(f'  [V12] Mid path: lesson {melhor_lesson.get("id","?")} stale ({lesson_age_dias:.0f}d)')
+                    
+                    if melhor_lesson and confidence >= 0.7 and not is_stale:
                         termo_rel = f'{melhor_lesson.get("erro","")} {melhor_lesson.get("ctx","")}'
                         relacionadas = self.kg.buscar(termo_rel, max_r=2)
                         vistas = set()
@@ -1915,10 +1944,22 @@ def main():
         print(f'[Conector] Buscando conexoes entre lessons...')
         import json, random
         kg_path = os.path.join(SANDBOX, '.mcr_devia', 'knowledge.json')
-        if os.path.exists(kg_path):
+        kg_dir = os.path.join(SANDBOX, '.mcr_devia', 'kg')
+        if os.path.exists(kg_dir):
+            licoes = []
+            for fname in sorted(os.listdir(kg_dir)):
+                if not fname.endswith('.json') or fname == 'master.json': continue
+                try:
+                    with open(os.path.join(kg_dir, fname), 'r', encoding='utf-8') as f:
+                        licoes.extend(json.load(f).get('licoes', []))
+                except: pass
+            kg = {'licoes': licoes}
+        elif os.path.exists(kg_path):
             with open(kg_path, encoding='utf-8') as f:
                 kg = json.load(f)
-            lessons = kg.get('lessons', [])
+        else:
+            return
+        lessons = kg.get('licoes', [])
             if len(lessons) >= 2:
                 for _ in range(5):
                     l1, l2 = random.sample(lessons, 2)

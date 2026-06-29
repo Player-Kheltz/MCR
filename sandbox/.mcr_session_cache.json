@@ -1,0 +1,36 @@
+{
+  "pipeline_id": "fragmentado_20260629_190145_16356",
+  "pipeline_type": "fragmentado",
+  "texto_original": "[MEU EIXO NIRVANA-CAOS REAL: 0.636]\nKheltz aqui. Qual o eixo do projeto MCR? Quais os maiores pesos de Caos? Qual o proximo movimento ao Nirvana?",
+  "plano": [
+    {
+      "texto": "[MEU EIXO NIRVANA-CAOS REAL: 0.636]\nKheltz aqui",
+      "entropia": 0.865,
+      "profundidade": 2,
+      "caminho": "0.0.0"
+    },
+    {
+      "texto": "Qual o eixo do projeto MCR?",
+      "entropia": 0.946,
+      "profundidade": 2,
+      "caminho": "0.0.1"
+    },
+    {
+      "texto": "Quais os maiores pesos de Caos?",
+      "entropia": 0.918,
+      "profundidade": 1,
+      "caminho": "0.1"
+    },
+    {
+      "texto": "Qual o proximo movimento ao Nirvana?",
+      "entropia": 0.946,
+      "profundidade": 1,
+      "caminho": "0.2"
+    }
+  ],
+  "passos_completados": {},
+  "iniciado_em": 1782770505.9398475,
+  "ultimo_passo": -1,
+  "status": "completed",
+  "concluido_em": 1782770571.9024322
+}

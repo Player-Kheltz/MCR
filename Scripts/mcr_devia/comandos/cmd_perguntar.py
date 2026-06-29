@@ -8,7 +8,7 @@ _ID_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__
 try:
     if os.path.exists(_ID_PATH):
         with open(_ID_PATH, 'r', encoding='utf-8') as f:
-            _IDENTIDADE = f.read()[:500].strip()
+            _IDENTIDADE = f.read().strip()
 except:
     pass
 
@@ -54,7 +54,7 @@ def execute(kg, ia, args, ctx_crew=None):
                 pass
             print(f'\n{resposta}')
             if kg:
-                kg.aprender(texto[:80], f'perguntou: {texto[:100]}', resposta[:200], 'v12_genero')
+                kg.aprender(texto, f'perguntou: {texto}', resposta, 'v12_genero')
             return True
     except ImportError as e:
         print(f'[Perguntar] Supervisor indisponivel: {e}')

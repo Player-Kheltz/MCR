@@ -16,10 +16,10 @@ def _gerar(prompt, temp=0.4, tarefa="texto"):
     try:
         from modulos.util import gerar as _util_gerar
         return _util_gerar(prompt, temp, tarefa) or ""
-    except:
+    except Exception:
         return ""
 
-# Direcoes de pensamento (perspectivas)
+# Direcoes de pensamento (perspectivas) — Modo Normal (3) / Turbinado (5)
 _CAMINHOS = [
     {
         "nome": "analitico",
@@ -33,11 +33,19 @@ _CAMINHOS = [
         "nome": "critico",
         "instrucao": "Pense como um REVISOR. Analise contra-pontos, limitacoes, contextos diferentes e nuances. Evite generalizacoes."
     },
+    {
+        "nome": "filosofico",
+        "instrucao": "Pense como um FILOSOFO. Busque a essencia do problema. Qual o padrao universal? O que emerge quando isolamos as variaveis? Qual o eixo entre Nirvana e Caos? Nao se contente com a superficie."
+    },
+    {
+        "nome": "pragmatico",
+        "instrucao": "Pense como um PRAGMATICO. O que funciona na pratica? Qual a acao mais simples que resolve? Ignore teoria, foque no resultado concreto."
+    },
 ]
 
 
 class TreeOfThought:
-    """Arvore de Pensamento com 3 perspectivas paralelas + sintese."""
+    """Arvore de Pensamento com 3-5 perspectivas paralelas + sintese."""
     
     def __init__(self, orquestrador=None):
         self.orquestrador = orquestrador
@@ -70,19 +78,21 @@ class TreeOfThought:
         # Fallback: chamada direta
         return _gerar(prompt, 0.5, "texto") or ""
     
-    def pensar(self, pergunta: str, params_extra: dict = None) -> dict:
+    def pensar(self, pergunta: str, params_extra: dict = None, turbo: bool = False) -> dict:
         """Executa arvore de pensamento completa.
         
         Args:
             pergunta: Pergunta enriquecida (ja com CR + Enricher)
             params_extra: Params extras para repassar ao Orquestrador
+            turbo: Se True, usa 5 perspectivas (filosofico + pragmatico)
         
         Returns:
             dict: {resposta, perspectivas, tempo_total}
         """
         t0 = time.time()
-        perspectivas = [None] * len(_CAMINHOS)
-        erros = [None] * len(_CAMINHOS)
+        caminhos = _CAMINHOS if turbo else _CAMINHOS
+        perspectivas = [None] * len(caminhos)
+        erros = [None] * len(caminhos)
         
         def executar(i, cam):
             try:
@@ -93,14 +103,15 @@ class TreeOfThought:
                 erros[i] = str(e)
                 print(f'  [ToT] Perspectiva {cam["nome"]} ERRO: {e}')
         
-        # 3 perspectivas EM PARALELO
+        # Perspectivas EM PARALELO
         threads = []
-        for i, cam in enumerate(_CAMINHOS):
+        for i, cam in enumerate(caminhos):
             t = threading.Thread(target=executar, args=(i, cam), daemon=True)
             t.start()
             threads.append(t)
+        timeout = 60 if turbo else 45
         for t in threads:
-            t.join(timeout=45)  # timeout por thread
+            t.join(timeout=timeout)
         
         perspectivas_validas = []
         for i, p in enumerate(perspectivas):
@@ -133,7 +144,7 @@ class TreeOfThought:
         prompt_sintese = (
             "O projeto MCR e um servidor customizado de Tibia baseado em Canary (OTServ).\n"
             "Nao e Minecraft, nem D&D, nem qualquer outro sistema.\n\n"
-            "Voce recebeu 3 perspectivas diferentes sobre a mesma pergunta.\n"
+            f"Voce recebeu {len(perspectivas_validas)} perspectivas diferentes sobre a mesma pergunta.\n"
             "SINTETIZE em uma resposta unica, coesa e completa.\n"
             "INCORPORE o melhor de cada perspectiva.\n"
             "Estruture em paragrafos fluidos.\n"

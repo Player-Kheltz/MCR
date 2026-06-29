@@ -48,7 +48,7 @@ def execute(kg, ia, args, ctx_crew=None):
             break
     
     print(f'[Glob] \"{padrao}\" em {diretorio}: {len(resultados)} arquivos')
-    for r in resultados[:max_r]:
+    for r in resultados:
         print(f'  {r}')
     if len(resultados) > max_r:
         print(f'  ... mais {len(resultados) - max_r} (use --max N para ver mais)')

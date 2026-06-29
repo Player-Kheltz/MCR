@@ -29,7 +29,7 @@ def traduzir(texto, ia=None, temp=0.3, forcar=False):
         return texto
     
     # Cache: textos iguais retornam mesma traducao
-    chave = hash(texto[:200]) if len(texto) > 200 else hash(texto)
+    chave = hash(texto) if len(texto) > 200 else hash(texto)
     if not forcar and chave in _cache:
         return _cache[chave]
     
@@ -55,7 +55,7 @@ def traduzir(texto, ia=None, temp=0.3, forcar=False):
             "ao redor, deixando o codigo intacto\n"
         )
     
-    prompt += f"\nTexto:\n{texto[:6000]}\n\nTraducao para PT-BR:"
+    prompt += f"\nTexto:\n{texto}\n\nTraducao para PT-BR:"
     
     try:
         traducao = ia.gerar(prompt, temp=temp, tarefa="texto")
@@ -79,6 +79,6 @@ def traduzir_opinioes(opinioes, ia=None):
     """
     resultado = []
     for nome, opiniao in opinioes:
-        traduzida = traduzir(opiniao[:2000], ia=ia)
+        traduzida = traduzir(opiniao, ia=ia)
         resultado.append((nome, traduzida))
     return resultado

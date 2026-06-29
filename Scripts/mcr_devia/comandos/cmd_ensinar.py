@@ -22,5 +22,5 @@ def execute(kg, ia, args, ctx_crew=None):
     solucao = args[2]
     ctx = args[3] if len(args) > 3 else 'licao'
     kg.aprender(erro, causa, solucao, ctx)
-    print(f'  [APRENDIDO] "{erro[:60]}..."')
+    print(f'  [APRENDIDO] "{erro}..."')
     return True

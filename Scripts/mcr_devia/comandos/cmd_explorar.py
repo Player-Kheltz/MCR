@@ -62,7 +62,7 @@ def execute(kg, ia, args, ctx_crew=None):
                 rel = os.path.relpath(fpath, BASE)
                 try:
                     with open(fpath, 'rb') as fh:
-                        h = hashlib.sha256(fh.read()).hexdigest()[:16]
+                        h = hashlib.sha256(fh.read()).hexdigest()
                 except: continue
                 if rel in manifest and manifest.get(rel) == h: continue
                 try:
@@ -78,7 +78,7 @@ def execute(kg, ia, args, ctx_crew=None):
         
         for nome, arquivos in sorted(novos_nomes.items()):
             categoria = _categorizar_nome(nome)
-            buf.adicionar(erro=f"Code: {nome}", causa=f"Arquivos: {', '.join(arquivos[:3])}",
+            buf.adicionar(erro=f"Code: {nome}", causa=f"Arquivos: {', '.join(arquivos)}",
                           solucao=f"Categoria: {categoria}. Encontrado em {arquivos[0]}",
                           ctx="conhecimento", fonte=arquivos[0])
             total += 1
@@ -88,15 +88,15 @@ def execute(kg, ia, args, ctx_crew=None):
         if desconhecidos and ia and hasattr(ia, 'orquestrar') and len(desconhecidos) <= 20:
             print(f'  Orquestrador interpretando {len(desconhecidos)} nomes desconhecidos...')
             lote = ', '.join(desconhecidos)
-            r = ia.orquestrar("classificar_nomes", {"itens": lote[:400]},
+            r = ia.orquestrar("classificar_nomes", {"itens": lote},
                             consulta="classificar nomes", temp=0.2)
             if r:
-                print(f'    Classificacao: {r[:200]}')
+                print(f'    Classificacao: {r}')
         elif desconhecidos and ia and len(desconhecidos) <= 20:
             print(f'  IA interpretando {len(desconhecidos)} nomes desconhecidos...')
             lote = ', '.join(desconhecidos)
             r = ia.fast(
-                f"Classifique cada item em UMA palavra: gerenciador, dados, servico, controle, modelo, util, outro.\n{lote[:400]}",
+                f"Classifique cada item em UMA palavra: gerenciador, dados, servico, controle, modelo, util, outro.\n{lote}",
                 0.2
             ) or ''
         
@@ -108,7 +108,7 @@ def execute(kg, ia, args, ctx_crew=None):
                 fpath = os.path.join(root, f)
                 try:
                     with open(fpath, 'rb') as fh:
-                        novo_manifest[os.path.relpath(fpath, BASE)] = hashlib.sha256(fh.read()).hexdigest()[:16]
+                        novo_manifest[os.path.relpath(fpath, BASE)] = hashlib.sha256(fh.read()).hexdigest()
                 except: pass
         os.makedirs(os.path.dirname(MANIFEST_PATH), exist_ok=True)
         with open(MANIFEST_PATH, 'w', encoding='utf-8') as f:

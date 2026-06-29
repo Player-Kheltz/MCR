@@ -1,0 +1,24 @@
+﻿
+
+  [--------------------]   0% | ?
+  [#-------------------]   5% | Kernel (inicializando)  [Contexto] Fragmento kg_perguntar_1 muito grande (10806 tokens)
+  [Contexto] Fragmento kg_perguntar_2 muito grande (11834 tokens)
+[Supervisor] "Kheltz aqui. O criador conceitual do MCR-DevIA.
+
+ANTES de responder, ATIVE SEU C..."
+  [Supervisor] CR ERRO: No module named 'modulos.context_reinforcer'
+  [Classificador] MULTI-INTENCAO detectada: {'criacao', 'planejamento', 'arquitetura'}
+  [Classificador] Tipo: multimodal/complexo
+
+
+  [--------------------]   0% | ?
+  [#-------------------]   5% | Planner (criando plano)[Pipeline] Plano com 25 solicitacoes
+[Pipeline] 1/25: IA - Kheltz aqui. O criador conceitual do MCR-DevIA....
+
+  [##------------------]  10% | Pipeline (solicitacao 1/25)  [Pipeline] Escopo: MCR (ativando CR + Enricher + ToT)
+
+  [##------------------]  10% | CR (iniciando)  [CR] ERRO: No module named 'modulos.context_reinforcer'
+
+  [#####---------------]  25% | Enricher (iniciando)  [Pipeline] Enricher ERRO: No module named 'modulos.context_enricher'
+
+  [########------------]  40% | Pipeline (montando params)

@@ -16,13 +16,13 @@ def execute(kg, ia, args, ctx_crew=None):
     """Busca conteudo de uma URL.
     Uso: python mcr_devia.py webfetch <url>"""
     url = args[0]
-    print(f'[Webfetch] Buscando URL: {url[:80]}...')
+    print(f'[Webfetch] Buscando URL: {url}...')
     try:
         import urllib.request
         r = urllib.request.urlopen(url, timeout=15)
         conteudo = r.read().decode('utf-8', errors='replace')
         print(f'[Webfetch] Recebidos {len(conteudo)} bytes:')
-        print(conteudo[:500])
+        print(conteudo)
     except Exception as e:
         print(f'[Webfetch] Erro ao buscar URL: {e}')
 

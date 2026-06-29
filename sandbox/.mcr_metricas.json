@@ -1,12 +1,12 @@
 {
-  "total_calls": 353,
-  "erros": 1,
+  "total_calls": 419,
+  "erros": 3,
   "cache_hits": 0,
   "cache_misses": 0,
-  "tempo_medio": 39.1,
+  "tempo_medio": 41.6,
   "templates_usados": {
     "lore": 19,
-    "perguntar": 194,
+    "perguntar": 260,
     "analisar_codigo": 37,
     "conceito": 17,
     "planejamento_arquitetura": 26,
@@ -24,354 +24,354 @@
   },
   "ultimas": [
     {
-      "ts": 1782624382.2373054,
+      "ts": 1782760094.8011062,
       "intencao": "perguntar",
-      "tempo": 86.9,
+      "tempo": 35.2,
       "sucesso": true,
-      "tam": 4413
+      "tam": 1557
     },
     {
-      "ts": 1782624412.7039022,
+      "ts": 1782760133.795585,
       "intencao": "perguntar",
-      "tempo": 117.4,
+      "tempo": 39.0,
       "sucesso": true,
-      "tam": 3851
+      "tam": 479
     },
     {
-      "ts": 1782624544.6902144,
+      "ts": 1782760140.360987,
       "intencao": "perguntar",
-      "tempo": 68.8,
+      "tempo": 45.5,
       "sucesso": true,
-      "tam": 3807
+      "tam": 453
     },
     {
-      "ts": 1782624592.8370388,
-      "intencao": "perguntar",
-      "tempo": 116.9,
-      "sucesso": true,
-      "tam": 4414
-    },
-    {
-      "ts": 1782624780.366229,
-      "intencao": "perguntar",
-      "tempo": 51.4,
-      "sucesso": true,
-      "tam": 2328
-    },
-    {
-      "ts": 1782624814.7057705,
-      "intencao": "perguntar",
-      "tempo": 85.7,
-      "sucesso": true,
-      "tam": 2136
-    },
-    {
-      "ts": 1782624850.9905214,
-      "intencao": "perguntar",
-      "tempo": 122.0,
-      "sucesso": true,
-      "tam": 2692
-    },
-    {
-      "ts": 1782625017.0301518,
-      "intencao": "perguntar",
-      "tempo": 63.9,
-      "sucesso": true,
-      "tam": 3242
-    },
-    {
-      "ts": 1782625047.6733108,
-      "intencao": "perguntar",
-      "tempo": 94.5,
-      "sucesso": true,
-      "tam": 3111
-    },
-    {
-      "ts": 1782625084.9110272,
-      "intencao": "perguntar",
-      "tempo": 131.8,
-      "sucesso": true,
-      "tam": 3650
-    },
-    {
-      "ts": 1782625195.807724,
-      "intencao": "perguntar",
-      "tempo": 53.7,
-      "sucesso": true,
-      "tam": 2983
-    },
-    {
-      "ts": 1782625217.3143263,
-      "intencao": "perguntar",
-      "tempo": 75.1,
-      "sucesso": true,
-      "tam": 2244
-    },
-    {
-      "ts": 1782625264.5260766,
-      "intencao": "perguntar",
-      "tempo": 122.4,
-      "sucesso": true,
-      "tam": 5596
-    },
-    {
-      "ts": 1782625318.2229302,
-      "intencao": "perguntar",
-      "tempo": 39.1,
-      "sucesso": true,
-      "tam": 2006
-    },
-    {
-      "ts": 1782625435.5392587,
-      "intencao": "perguntar",
-      "tempo": 58.7,
-      "sucesso": true,
-      "tam": 3338
-    },
-    {
-      "ts": 1782625464.5454574,
-      "intencao": "perguntar",
-      "tempo": 87.7,
-      "sucesso": true,
-      "tam": 2874
-    },
-    {
-      "ts": 1782625493.2517138,
-      "intencao": "perguntar",
-      "tempo": 116.4,
-      "sucesso": true,
-      "tam": 2952
-    },
-    {
-      "ts": 1782625697.3584054,
+      "ts": 1782760144.3511915,
       "intencao": "perguntar",
       "tempo": 49.5,
       "sucesso": true,
-      "tam": 2555
+      "tam": 483
     },
     {
-      "ts": 1782625713.7252066,
+      "ts": 1782760190.3397212,
       "intencao": "perguntar",
-      "tempo": 65.8,
+      "tempo": 33.0,
       "sucesso": true,
-      "tam": 1804
+      "tam": 353
     },
     {
-      "ts": 1782625733.2493,
+      "ts": 1782760228.7325234,
       "intencao": "perguntar",
-      "tempo": 85.4,
+      "tempo": 38.4,
       "sucesso": true,
-      "tam": 2254
+      "tam": 453
     },
     {
-      "ts": 1782625838.6109605,
+      "ts": 1782760238.7267098,
       "intencao": "perguntar",
-      "tempo": 57.9,
+      "tempo": 48.4,
       "sucesso": true,
-      "tam": 2859
+      "tam": 489
     },
     {
-      "ts": 1782625889.8477745,
+      "ts": 1782760238.7655282,
       "intencao": "perguntar",
-      "tempo": 109.1,
+      "tempo": 48.4,
       "sucesso": true,
-      "tam": 238
+      "tam": 440
     },
     {
-      "ts": 1782625895.1237767,
+      "ts": 1782760289.2992048,
       "intencao": "perguntar",
-      "tempo": 114.4,
+      "tempo": 37.4,
       "sucesso": true,
-      "tam": 2856
+      "tam": 402
     },
     {
-      "ts": 1782626152.4369855,
+      "ts": 1782760315.215098,
       "intencao": "perguntar",
-      "tempo": 23.5,
+      "tempo": 25.9,
       "sucesso": true,
-      "tam": 477
+      "tam": 260
     },
     {
-      "ts": 1782626360.7632625,
+      "ts": 1782760348.905254,
       "intencao": "perguntar",
-      "tempo": 26.4,
+      "tempo": 33.7,
       "sucesso": true,
-      "tam": 573
+      "tam": 1106
     },
     {
-      "ts": 1782626490.5185266,
+      "ts": 1782760392.4228501,
+      "intencao": "perguntar",
+      "tempo": 43.5,
+      "sucesso": true,
+      "tam": 1835
+    },
+    {
+      "ts": 1782760533.9951372,
+      "intencao": "perguntar",
+      "tempo": 49.2,
+      "sucesso": true,
+      "tam": 3422
+    },
+    {
+      "ts": 1782760567.3103063,
+      "intencao": "perguntar",
+      "tempo": 21.5,
+      "sucesso": true,
+      "tam": 672
+    },
+    {
+      "ts": 1782760776.7509625,
+      "intencao": "perguntar",
+      "tempo": 43.7,
+      "sucesso": true,
+      "tam": 1684
+    },
+    {
+      "ts": 1782760789.762289,
       "intencao": "perguntar",
       "tempo": 56.7,
       "sucesso": true,
-      "tam": 3568
+      "tam": 2733
     },
     {
-      "ts": 1782626514.8657038,
+      "ts": 1782760803.6070712,
       "intencao": "perguntar",
-      "tempo": 81.1,
+      "tempo": 70.6,
       "sucesso": true,
-      "tam": 1318
+      "tam": 2651
     },
     {
-      "ts": 1782626542.237528,
+      "ts": 1782760852.4608831,
       "intencao": "perguntar",
-      "tempo": 108.5,
+      "tempo": 36.5,
       "sucesso": true,
-      "tam": 1991
+      "tam": 1734
     },
     {
-      "ts": 1782626680.5657861,
+      "ts": 1782760886.8034515,
       "intencao": "perguntar",
-      "tempo": 70.9,
+      "tempo": 34.3,
       "sucesso": true,
-      "tam": 4657
+      "tam": 124
     },
     {
-      "ts": 1782626722.592697,
+      "ts": 1782760917.3917482,
       "intencao": "perguntar",
-      "tempo": 113.0,
+      "tempo": 30.6,
       "sucesso": true,
-      "tam": 3373
+      "tam": 1201
     },
     {
-      "ts": 1782648313.1722443,
+      "ts": 1782760962.398225,
       "intencao": "perguntar",
-      "tempo": 42.4,
+      "tempo": 45.0,
       "sucesso": true,
-      "tam": 1559
+      "tam": 1774
     },
     {
-      "ts": 1782648551.4097233,
+      "ts": 1782760993.5980155,
       "intencao": "perguntar",
-      "tempo": 26.8,
+      "tempo": 31.2,
       "sucesso": true,
-      "tam": 540
+      "tam": 942
     },
     {
-      "ts": 1782648621.7868135,
+      "ts": 1782761027.7243142,
       "intencao": "perguntar",
-      "tempo": 64.1,
+      "tempo": 34.1,
       "sucesso": true,
-      "tam": 2557
+      "tam": 1552
     },
     {
-      "ts": 1782648658.7077138,
+      "ts": 1782761074.553906,
       "intencao": "perguntar",
-      "tempo": 29.0,
+      "tempo": 46.8,
       "sucesso": true,
-      "tam": 1797
+      "tam": 2616
     },
     {
-      "ts": 1782648704.325463,
+      "ts": 1782761082.9878411,
       "intencao": "perguntar",
-      "tempo": 34.6,
+      "tempo": 55.2,
       "sucesso": true,
-      "tam": 2972
+      "tam": 1431
     },
     {
-      "ts": 1782649502.3211758,
+      "ts": 1782761086.9193196,
       "intencao": "perguntar",
-      "tempo": 24.7,
+      "tempo": 59.2,
       "sucesso": true,
-      "tam": 1443
+      "tam": 467
     },
     {
-      "ts": 1782649533.446985,
+      "ts": 1782761129.3763747,
       "intencao": "perguntar",
-      "tempo": 24.1,
+      "tempo": 32.6,
       "sucesso": true,
-      "tam": 1626
+      "tam": 410
     },
     {
-      "ts": 1782649550.8775237,
+      "ts": 1782761170.0234208,
       "intencao": "perguntar",
-      "tempo": 17.4,
+      "tempo": 40.6,
       "sucesso": true,
-      "tam": 285
+      "tam": 2917
     },
     {
-      "ts": 1782649574.7047188,
+      "ts": 1782761173.223136,
       "intencao": "perguntar",
-      "tempo": 21.1,
+      "tempo": 43.8,
       "sucesso": true,
-      "tam": 586
+      "tam": 386
     },
     {
-      "ts": 1782649618.507834,
+      "ts": 1782761177.5861242,
+      "intencao": "perguntar",
+      "tempo": 48.2,
+      "sucesso": true,
+      "tam": 296
+    },
+    {
+      "ts": 1782761226.145599,
+      "intencao": "perguntar",
+      "tempo": 34.4,
+      "sucesso": true,
+      "tam": 565
+    },
+    {
+      "ts": 1782761262.0952523,
+      "intencao": "perguntar",
+      "tempo": 35.9,
+      "sucesso": true,
+      "tam": 742
+    },
+    {
+      "ts": 1782761291.5508196,
+      "intencao": "perguntar",
+      "tempo": 29.4,
+      "sucesso": true,
+      "tam": 394
+    },
+    {
+      "ts": 1782761322.113118,
+      "intencao": "perguntar",
+      "tempo": 30.6,
+      "sucesso": true,
+      "tam": 988
+    },
+    {
+      "ts": 1782761378.3205173,
       "intencao": "perguntar",
       "tempo": 36.7,
       "sucesso": true,
-      "tam": 2668
+      "tam": 362
     },
     {
-      "ts": 1782649776.0545814,
+      "ts": 1782761412.83849,
       "intencao": "perguntar",
-      "tempo": 27.8,
+      "tempo": 34.5,
       "sucesso": true,
-      "tam": 385
+      "tam": 1485
     },
     {
-      "ts": 1782649795.758078,
+      "ts": 1782761443.7451591,
       "intencao": "perguntar",
-      "tempo": 19.7,
+      "tempo": 30.9,
       "sucesso": true,
-      "tam": 194
+      "tam": 465
     },
     {
-      "ts": 1782649821.3862505,
+      "ts": 1782761478.057922,
       "intencao": "perguntar",
-      "tempo": 23.0,
+      "tempo": 34.3,
       "sucesso": true,
-      "tam": 824
+      "tam": 422
     },
     {
-      "ts": 1782649844.8321042,
+      "ts": 1782761513.0731676,
       "intencao": "perguntar",
-      "tempo": 23.0,
+      "tempo": 35.0,
       "sucesso": true,
-      "tam": 569
+      "tam": 250
     },
     {
-      "ts": 1782649874.1929884,
+      "ts": 1782761559.4547172,
       "intencao": "perguntar",
-      "tempo": 21.2,
+      "tempo": 46.4,
       "sucesso": true,
-      "tam": 1125
+      "tam": 2904
     },
     {
-      "ts": 1782649903.2866638,
+      "ts": 1782761588.5446217,
       "intencao": "perguntar",
-      "tempo": 21.0,
+      "tempo": 29.1,
       "sucesso": true,
-      "tam": 65
+      "tam": 629
     },
     {
-      "ts": 1782683429.6088228,
-      "intencao": "conselho_critico",
-      "tempo": 24.5,
+      "ts": 1782762353.3620791,
+      "intencao": "perguntar",
+      "tempo": 44.3,
       "sucesso": true,
-      "tam": 468
+      "tam": 3385
     },
     {
-      "ts": 1782683436.7640052,
-      "intencao": "conselho_analista",
-      "tempo": 31.6,
+      "ts": 1782763422.6400065,
+      "intencao": "perguntar",
+      "tempo": 42.6,
       "sucesso": true,
-      "tam": 203
+      "tam": 1482
     },
     {
-      "ts": 1782684901.5679927,
-      "intencao": "conselho_analista",
-      "tempo": 10.1,
+      "ts": 1782764112.83686,
+      "intencao": "perguntar",
+      "tempo": 66.4,
       "sucesso": true,
-      "tam": 344
+      "tam": 3092
     },
     {
-      "ts": 1782684917.992066,
-      "intencao": "conselho_critico",
-      "tempo": 26.5,
+      "ts": 1782764636.1439917,
+      "intencao": "perguntar",
+      "tempo": 117.7,
       "sucesso": true,
-      "tam": 345
+      "tam": 3141
+    },
+    {
+      "ts": 1782764666.5149393,
+      "intencao": "perguntar",
+      "tempo": 148.1,
+      "sucesso": true,
+      "tam": 2858
+    },
+    {
+      "ts": 1782764696.1380277,
+      "intencao": "perguntar",
+      "tempo": 177.7,
+      "sucesso": true,
+      "tam": 2694
+    },
+    {
+      "ts": 1782764745.1307495,
+      "intencao": "perguntar",
+      "tempo": 226.7,
+      "sucesso": false,
+      "tam": 35
+    },
+    {
+      "ts": 1782764750.2797823,
+      "intencao": "perguntar",
+      "tempo": 231.7,
+      "sucesso": false,
+      "tam": 35
+    },
+    {
+      "ts": 1782765553.1902554,
+      "intencao": "perguntar",
+      "tempo": 55.3,
+      "sucesso": true,
+      "tam": 940
     }
   ]
 }

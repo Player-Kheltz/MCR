@@ -44,7 +44,7 @@ class RequestPlanner:
                 'options': {'temperature': temp, 'num_ctx': 2048, 'num_predict': 512}}).encode()
             r = _ur.Request(OLLAMA, data=d, headers={'Content-Type': 'application/json'})
             return (json.loads(_ur.urlopen(r, timeout=30).read()).get('response') or "").strip()
-        except:
+        except Exception:
             return ""
     
     def criar_plano(self, texto: str) -> List[Dict[str, str]]:
@@ -84,10 +84,10 @@ class RequestPlanner:
             elif any(k in s_lower for k in ['processo', 'recursos', 'cpu', 'memoria', 'tasklist']):
                 tool = 'TASKLIST'
             
-            plano.append({'solicitacao': s[:300], 'tool': tool, 'params': {}})
+            plano.append({'solicitacao': s, 'tool': tool, 'params': {}})
         
         if not plano:
-            plano.append({'solicitacao': texto[:200], 'tool': 'IA', 'params': {}})
+            plano.append({'solicitacao': texto, 'tool': 'IA', 'params': {}})
         
         return plano
 
@@ -115,9 +115,9 @@ class FragmentManager:
                 f.write(json.dumps({
                     'ts': fragmento['ts'],
                     'role': f'fragmento_{indice}',
-                    'msg': f"[Fragmento {indice+1}/{indice+1} ({tool})]\n{resposta[:500]}"
+                    'msg': f"[Fragmento {indice+1}/{indice+1} ({tool})]\n{resposta}"
                 }, ensure_ascii=False) + '\n')
-        except:
+        except Exception:
             pass
     
     def obter_todos(self) -> List[Dict]:
@@ -205,16 +205,18 @@ class PipelineExecutor:
             return True
         return False
 
-    def executar(self, texto: str, skip_tot=False) -> Tuple[str, Dict]:
-        """Executa pipeline completo: planejar → executar → montar → revisar.
+    def executar(self, texto: str, skip_tot=False, turbo=False, fragmentar=False) -> Tuple[str, Dict]:
+        """Executa pipeline completo: planejar -> executar -> montar -> revisar.
         
         Args:
             texto: Pergunta/texto a processar
             skip_tot: Se True, pula Tree of Thought (modo rapido)
-        
-        Se task_planner estiver disponivel e a pergunta for complexa,
-        delega para TaskPlanner + ToolOrchestrator.
+            turbo: Se True, ativa Modo Offline Turbinado (5 ToT, KG expandido, sem internet)
+            fragmentar: Se True, ativa modo Bolo Desconstruido (fragmenta + processa + reconstroi)
         """
+        if fragmentar:
+            return self._executar_fragmentado(texto)
+        
         # Se tem TaskPlanner e a pergunta e complexa, usa plano avancado
         if self.task_planner and self._detectar_complexidade(texto):
             print(f'[Pipeline] Pergunta complexa detectada, usando TaskPlanner')
@@ -227,18 +229,20 @@ class PipelineExecutor:
                 if ferramenta and self.tool_orchestrator:
                     r = self.tool_orchestrator.executar(ferramenta, params)
                     if r.get('sucesso'):
-                        respostas.append(str(r['resultado'])[:1000])
+                        respostas.append(str(r['resultado']))
                 elif ferramenta == 'perguntar_ia' and self.ia:
                     pergunta = params.get('pergunta', sub.get('descricao', texto))
                     r = self.ia.gerar(pergunta, 0.4, 'pesado')
                     if r:
-                        respostas.append(r[:2000])
+                        respostas.append(r)
             if respostas:
                 resultado = '\n\n'.join(respostas)
-                return resultado[:10000], {'status': 'OK', 'plano': len(plano), 'sucesso': len(respostas)}
+                return resultado, {'status': 'OK', 'plano': len(plano), 'sucesso': len(respostas)}
             # Fallback: se TaskPlanner falhou, continua pipeline normal
         
         from modulos.progress_tracker import iniciar as _trk_iniciar, reportar as _trk_report, concluir as _trk_concluir, erro as _trk_erro, limpar as _trk_limpar
+        from modulos.session_cache import iniciar_sessao, salvar_passo, passo_ja_executado, concluir_sessao, resumir_sessao, obter_resposta_completa
+        
         _trk_limpar()  # Limpa estado anterior (do kernel)
         _trk_iniciar(pipeline='pipeline_executor')
         self._skip_tot = skip_tot
@@ -249,12 +253,29 @@ class PipelineExecutor:
         plano = self.planner.criar_plano(texto)
         print(f'[Pipeline] Plano com {len(plano)} solicitacoes')
         
-        # Passo 2: Executar cada solicitacao em sequencia
+        # Inicia sessao com cache (detecta resume automaticamente)
+        sessao = iniciar_sessao('pipeline', texto, plano)
+        
+        # Se for resume, carrega respostas ja salvas no FragmentManager
+        if not sessao.get('nova'):
+            print(f'[Pipeline] RESUMINDO sessao anterior — passo {sessao["ultimo_passo"]+1}/{sessao["total_passos"]}')
+            for idx_str, dados in sessao.get('passos_completados', {}).items():
+                idx = int(idx_str)
+                self.frag_manager.salvar(dados['resposta'], idx, dados['tool'])
+        
+        # Passo 2: Executar cada solicitacao em sequencia (pulando as ja executadas)
         for i, item in enumerate(plano):
-            print(f'[Pipeline] {i+1}/{len(plano)}: {item["tool"]} - {item["solicitacao"][:60]}...')
+            # Verifica se ja foi executado (resume)
+            resposta_cache = passo_ja_executado(i)
+            if resposta_cache:
+                print(f'[Pipeline] {i+1}/{len(plano)}: {item["tool"]} — {item["solicitacao"]}... [CACHE]')
+                continue  # Pula — ja foi executado na sessao anterior
+            
+            print(f'[Pipeline] {i+1}/{len(plano)}: {item["tool"]} - {item["solicitacao"]}...')
             _trk_report('Pipeline', f'solicitacao {i+1}/{len(plano)}', 0.1 + (0.6 * (i / len(plano))))
             resposta = self._executar_item(item, texto, indice=i)
             self.frag_manager.salvar(resposta, i, item['tool'])
+            salvar_passo(i, item['tool'], item['solicitacao'], resposta)
         
         # Passo 3: Montar resposta final
         fragmentos = self.frag_manager.obter_todos()
@@ -266,13 +287,188 @@ class PipelineExecutor:
         tempo_total = round(time.time() - t0, 1)
         print(f'[Pipeline] OK ({tempo_total}s) — {len(plano)} solicitacoes, {revisao["status"]}')
         
+        # Marca sessao como concluida
+        concluir_sessao()
         _trk_concluir()
         return resposta_final, revisao
+    
+    def _validar_resposta(self, pergunta, resposta, params):
+        """Valida resposta: agora apenas relata fatos. Sem aprovado/reprovado."""
+        if not resposta or len(resposta) < 20:
+            return resposta
+        
+        try:
+            from modulos.validation_pipeline import ValidationPipeline
+            from modulos.kg import KnowledgeGraph
+            from modulos.pattern_engine import PatternEngine
+            
+            _kg_v = self.kg or KnowledgeGraph()
+            _pe_v = PatternEngine()
+            _vp = ValidationPipeline(kg=_kg_v, pe=_pe_v, ia=self.ia)
+            
+            resultado = _vp.validar(pergunta, resposta)
+            
+            # Mostra relatorio de fatos
+            for estagio in resultado.get('estagios', []):
+                print(f'  [Validation] {estagio["nome"]}: {estagio["detalhes"]}')
+            
+            return resposta
+            
+        except Exception as e:
+            print(f'  [Validation] ERRO: {e}')
+        
+        return resposta
+    
+    def _executar_fragmentado(self, texto):
+        """Modo Bolo Desconstruido RECURSIVO: fragmenta por entropia, processa folhas, reconstroi bottom-up.
+        
+        Cada nivel de fragmentacao e guiado pela entropia (PatternEngine).
+        Folhas (padroes brutos) usam IA leve com prompt < 500 chars.
+        Reconstrucao bottom-up: folhas -> galhos -> raiz.
+        """
+        from modulos.session_cache import iniciar_sessao, salvar_passo, concluir_sessao
+        from modulos.progress_tracker import reportar as _trk_report
+        
+        t0 = __import__('time').time()
+        
+        # FASE 0: CONSULTA APRENDIZADOS PASSADOS (ciclo de aprendizado)
+        contexto_aprendizado = ""
+        if self.kg:
+            try:
+                from modulos.pattern_engine import PatternEngine
+                _pe_temp = PatternEngine()
+                _tokens = _pe_temp.tokenizar(texto, 'texto')
+                _fp = _pe_temp.fingerprint(_tokens)
+                # Busca no KG por aprendizado anterior com fingerprint similar
+                _lessons_passadas = self.kg.buscar(f"ciclo:", max_r=3)
+                for _l in _lessons_passadas:
+                    if _l.get('ctx') == 'ciclo_aprendizado':
+                        _sol = _l.get('solucao', '')
+                        if _sol:
+                            contexto_aprendizado = f"[APRENDIZADO ANTERIOR] Resposta similar encontrada no KG: {_sol}"
+                            print(f'  [Ciclo] Aprendizado anterior encontrado!')
+                            break
+            except Exception as _e:
+                print(f'  [Ciclo] Consulta: {_e}')
+        
+        if contexto_aprendizado:
+            texto = contexto_aprendizado + '\n\n[PERGUNTA ATUAL]\n' + texto
+            print(f'  [Ciclo] Contexto de aprendizado injetado')
+        
+        # FASE 0.5: CALCULA EIXO REAL DO CODIGO FONTE (nao inventado pelo modelo)
+        eixo_real_str = ""
+        try:
+            from modulos.pattern_engine import PatternEngine as _PEr
+            _pe_r = _PEr()
+            _tokens_totais = []
+            _modulos_dir = os.path.join(BASE, 'Scripts', 'mcr_devia', 'modulos')
+            for _f in sorted(os.listdir(_modulos_dir)):
+                if _f.endswith('.py') and not _f.startswith('_'):
+                    _fp = os.path.join(_modulos_dir, _f)
+                    try:
+                        with open(_fp, 'r', encoding='utf-8', errors='replace') as _fh:
+                            _codigo = _fh.read()
+                        _tokens_totais.extend(_pe_r.tokenizar(_codigo, 'codigo'))
+                    except:
+                        pass
+            if _tokens_totais:
+                _eixo_real = _pe_r.eixo_nirvana_caos(_tokens_totais)
+                eixo_real_str = f"[MEU EIXO NIRVANA-CAOS REAL: {_eixo_real:.3f}]\n"
+                print(f'  [Eixo] Eixo real calculado: {_eixo_real:.3f}')
+                texto = eixo_real_str + texto
+        except Exception as _eixo_err:
+            print(f'  [Eixo] Erro: {_eixo_err}')
+        
+        # 1. Fragmentacao RECURSIVA por entropia
+        print(f'[Pipeline] Decompondo recursivamente por entropia...')
+        arvore = None
+        try:
+            if hasattr(self.ctx_crew, 'fragmentar'):
+                arvore = self.ctx_crew.fragmentar(texto)
+                folhas = self.ctx_crew.extrair_folhas(arvore)
+                print(f'[Pipeline] Arvore: {len(folhas)} folhas (padroes brutos) em {arvore.get("profundidade", 0)} niveis')
+            else:
+                arvore = {'texto': texto, 'bruto': True, 'profundidade': 0, 'filhos': None}
+                folhas = [{'texto': texto, 'entropia': 0.5, 'profundidade': 0}]
+        except Exception as e:
+            print(f'[Pipeline] Decomposicao: {e}')
+            arvore = {'texto': texto, 'bruto': True, 'profundidade': 0, 'filhos': None}
+            folhas = [{'texto': texto, 'entropia': 0.5, 'profundidade': 0}]
+        
+        _trk_report('Reconstructor', f'decomp: {len(folhas)} folhas', 0.1)
+        
+        # 2. Inicia sessao cache
+        iniciar_sessao('fragmentado', texto, folhas)
+        
+        # 3. Reconstrucao BOTTOM-UP (processa arvore inteira)
+        print(f'[Pipeline] Reconstrucao bottom-up...')
+        _trk_report('Reconstructor', 'reconstruindo', 0.5)
+        
+        from modulos.reconstructor import Reconstructor
+        recon = Reconstructor(kg=self.kg, ia=self.ia, pe=getattr(self, '_pe', None), tools=self.tool_orchestrator)
+        resultado = recon.reconstruir(arvore, texto)
+        
+        resposta_final = resultado.get('resposta_final', '')
+        tempo_total = round(__import__('time').time() - t0, 1)
+        
+        folhas_count = resultado.get('folhas_processadas', 0)
+        niveis = resultado.get('niveis', 0)
+        eixo = resultado.get('eixo_final', 0.5)
+        
+        print(f'[Pipeline] Decomp Recursiva OK ({tempo_total}s) - {folhas_count} folhas, {niveis} niveis, {len(resposta_final)} chars, eixo {eixo:.3f}')
+        
+        # FASE 5: REGISTRO AUTOMATICO NO KG (hash curto, sem poluir)
+        if resposta_final and self.kg and len(resposta_final) > 50:
+            try:
+                from modulos.pattern_engine import PatternEngine
+                _pe_reg = PatternEngine()
+                _fp_pergunta = _pe_reg.fingerprint(_pe_reg.tokenizar(texto, 'texto'))
+                _fp_resposta = _pe_reg.fingerprint(_pe_reg.tokenizar(resposta_final, 'texto'))
+                _hash = hashlib.md5(str(_fp_pergunta).encode()).hexdigest()
+                
+                self.kg.aprender(
+                    erro=f'ciclo_hash:{_hash}',
+                    causa=f'folhas={folhas_count}',
+                    solucao=f'{len(resposta_final)} chars',
+                    ctx='ciclo_aprendizado'
+                )
+                print(f'  [Ciclo] Aprendizado registrado: {_fp_str}')
+                
+                # Tambem registra na memoria episodica
+                try:
+                    from modulos.episodic_memory import EpisodicMemory
+                    _mem = EpisodicMemory()
+                    _mem.registrar(texto, resposta_final, f'ciclo: eixo={eixo:.2f}')
+                except Exception:
+                    pass
+            except Exception as _reg_err:
+                print(f'  [Ciclo] Registro: {_reg_err}')
+        
+        concluir_sessao()
+        
+        return resposta_final, {
+            'status': 'OK' if resposta_final else 'FALHA',
+            'folhas': folhas_count,
+            'niveis': niveis,
+            'tamanho': len(resposta_final),
+            'eixo_final': eixo,
+        }
+    
+    def _executar_ia_fragmento(self, prompt, frag):
+        """Executa um fragmento via IA leve. Prompt < 2K chars."""
+        if self.ia:
+            try:
+                return self.ia.gerar(prompt, 0.3, 'leve') or "[IA] Sem resposta"
+            except Exception:
+                pass
+        # Fallback
+        from modulos.util import gerar as _gerar_g
+        return _gerar_g(prompt, 0.3, "leve") or "[IA] Sem resposta"
     
     def _executar_item(self, item: Dict, texto_original: str, indice: int = 0) -> str:
         """Executa um item do plano."""
         tool = item.get('tool', 'IA')
-        solicitacao = item.get('solicitacao', '')[:300]
+        solicitacao = item.get('solicitacao', '')
         
         if tool == 'PYTHON':
             return self._executar_python(solicitacao, texto_original)
@@ -306,7 +502,8 @@ class PipelineExecutor:
                 diff = int((alvo_dt - agora).total_seconds())
                 if diff > 0:
                     resultados.append(f"Faltam {diff} segundos ({diff//60} min, {diff//3600} h)")
-            except: pass
+            except Exception:
+                pass
         
         # Matematica
         for m in re.finditer(r'(\d+)\s*[\*x]\s*(\d+)', solicitacao):
@@ -322,7 +519,7 @@ class PipelineExecutor:
         
         if resultados:
             return '\n'.join(resultados)
-        return f"[PYTHON] Nao foi possivel processar: {solicitacao[:80]}"
+        return f"[PYTHON] Nao foi possivel processar: {solicitacao}"
     
     def _executar_tasklist(self) -> str:
         """Executa tasklist do Windows."""
@@ -334,7 +531,7 @@ class PipelineExecutor:
             if r.stdout:
                 linhas = [l for l in r.stdout.split('\n') if l.strip() and not l.startswith('=')]
                 return f"Processos ativos: {len(linhas)}"
-        except:
+        except Exception:
             pass
         return "Não foi possível verificar os processos."
     
@@ -347,7 +544,7 @@ class PipelineExecutor:
         # Verifica skip_tot: atributo do objeto OU env var (para subprocessos)
         skip_tot = getattr(self, '_skip_tot', False) or os.environ.get('MCR_SKIP_TOT') == '1'
         if not self.orquestrador:
-            return f"[IA] Orquestrador indisponivel para: {solicitacao[:80]}"
+            return f"[IA] Orquestrador indisponivel para: {solicitacao}"
         
         # DETECCAO DE ESCOPO: pergunta e sobre MCR ou conhecimento geral?
         termos_mcr = ['mcr', 'projeto mcr', 'tibia', 'canary', 'otserv', 'otclient',
@@ -356,6 +553,30 @@ class PipelineExecutor:
                      'progressao', 'aventureiro', 'habilidades contextuais']
         s_lower = solicitacao.lower()
         e_pergunta_geral = not any(t in s_lower for t in termos_mcr)
+        
+        # KG FORCE V2: SEMPRE injeta contexto + OBRIGACAO de uso
+        try:
+            from modulos.kg import KnowledgeGraph
+            _kg_local = self.kg or KnowledgeGraph()
+            _buscar = _kg_local.buscar_expandido if hasattr(_kg_local, 'buscar_expandido') else _kg_local.buscar
+            _lessons = _buscar(solicitacao, max_r=5)
+            if _lessons:
+                _ctx_kg = '\n'.join([f'- {l.get("erro","")}: {l.get("solucao","")}' for l in _lessons])
+                solicitacao = (
+                    "[FATOS DO KG — VOCE DEVE USAR ESTES DADOS NA RESPOSTA]\n"
+                    + _ctx_kg +
+                    "\n[/KG]\n\n"
+                    "[REGRA ABSOLUTA]\n"
+                    "- SUA RESPOSTA DEVE CITAR ARQUIVOS E LINHAS ESPECIFICAS DO CODIGO\n"
+                    "- SUA RESPOSTA DEVE USAR PELO MENOS 2 FATOS DO KG ACIMA\n"
+                    "- NAO seja generico — se poderia ser sobre QUALQUER projeto, esta ERRADA\n"
+                    "- NAO trate metrica continua como dicotomia (eixo NAO e ordem vs caos)\n"
+                    "- PatternEngine NAO guia nem aconselha — ele ANALISA, TOKENIZA, CALCULA\n\n"
+                    "[PERGUNTA]\n" + solicitacao
+                )
+                print(f'  [Pipeline] KG Force V2 injetado: {len(_lessons)} lessons + regras')
+        except Exception as _kg_err:
+            print(f'  [Pipeline] KG Force: {_kg_err}')
         
         if e_pergunta_geral:
             print(f'  [Pipeline] Escopo: CONHECIMENTO GERAL (pulando CR + Enricher + MCR context)')
@@ -377,7 +598,7 @@ class PipelineExecutor:
             try:
                 from modulos.util import gerar as _gerar_g
                 return _gerar_g(solicitacao, 0.4, "pesado") or "[IA] Sem resposta"
-            except:
+            except Exception:
                 pass
             return "[IA] Nao foi possivel responder"
         
@@ -399,9 +620,9 @@ class PipelineExecutor:
             cr_termos = cr_result.get('termos', [])
             if cr_result.get('instrucao'):
                 cr_instrucao = cr_result['instrucao']
-                print(f'  [Pipeline] CR instrucao: {cr_instrucao[:120].strip()}')
+                print(f'  [Pipeline] CR instrucao: {cr_instrucao.strip()}')
             if cr_result.get('contexto') and cr_result.get('valido'):
-                cr_contexto = f"\n[CONTEXTO VALIDADO]\n{cr_result['contexto'][:600]}\n[/CONTEXTO]\n"
+                cr_contexto = f"\n[CONTEXTO VALIDADO]\n{cr_result['contexto']}\n[/CONTEXTO]\n"
                 print(f'  [Pipeline] CR contexto valido ({len(cr_contexto)} chars)')
             elif cr_result.get('aprendeu'):
                 print(f'  [Pipeline] CR: weblearn disparado, contexto pode ser fraco')
@@ -453,7 +674,7 @@ class PipelineExecutor:
                     ctx_infinity = '\n'.join([
                         l.get('msg', '') for l in linhas[-15:]
                     ])
-        except:
+        except Exception:
             pass
         
         _trk_report('Pipeline', 'montando params', 0.4)
@@ -465,7 +686,7 @@ class PipelineExecutor:
                 'identidade': self.identidade,
             }
             if ctx_infinity:
-                params['ctx_infinity'] = ctx_infinity[:2000]
+                params['ctx_infinity'] = ctx_infinity
             if cr_instrucao:
                 params['instrucao_contexto'] = cr_instrucao
             if cr_contexto:
@@ -476,7 +697,7 @@ class PipelineExecutor:
                 from modulos.tree_of_thought import TreeOfThought
                 _trk_report('ToT', '3 perspectivas paralelas', 0.55)
                 tot = TreeOfThought(orquestrador=self.orquestrador)
-                tot_result = tot.pensar(solicitacao_mod, params)
+                tot_result = tot.pensar(solicitacao_mod, params, turbo=getattr(self, "_turbo", False))
                 
                 if tot_result.get('resposta') and not tot_result.get('erro'):
                     resposta = tot_result['resposta']
@@ -486,7 +707,7 @@ class PipelineExecutor:
                     if contexto_enriquecido and resposta:
                         palavras_import = re.findall(r'\b[a-zA-Z]+/[a-zA-Z/]+\b|(?<=  )[a-zA-Z_]+\.\w+', contexto_enriquecido)
                         if palavras_import:
-                            encontradas = sum(1 for p in palavras_import[:10] if p.lower() in resposta.lower())
+                            encontradas = sum(1 for p in palavras_import if p.lower() in resposta.lower())
                             if encontradas < 2:
                                 print(f'  [Pipeline] ToT resposta nao usou enriquecimento. Fallback para Orquestrador direto.')
                                 _trk_report('ToT', 'fallback Orquestrador', 0.6)
@@ -494,6 +715,8 @@ class PipelineExecutor:
                                 if resultado and resultado.get('sucesso'):
                                     resposta = resultado['resposta']
                     
+                    # VALIDATION PIPELINE + SELF-CORRECT
+                    resposta = self._validar_resposta(solicitacao_mod, resposta, params)
                     return resposta
                 
                 print(f'  [Pipeline] ToT falhou. Usando Orquestrador direto.')
@@ -504,7 +727,9 @@ class PipelineExecutor:
             _trk_report('Orquestrador', 'gerando resposta', 0.65)
             resultado = self.orquestrador.executar('perguntar', params, consulta=solicitacao_mod, temp=0.4)
             if resultado and resultado.get('sucesso'):
-                return resultado['resposta']
+                resposta = resultado['resposta']
+                resposta = self._validar_resposta(solicitacao_mod, resposta, params)
+                return resposta
         except Exception as e:
             print(f'[Pipeline] ERRO ToT: {e}')
             # Fallback: Orquestrador direto
@@ -512,8 +737,8 @@ class PipelineExecutor:
                 resultado = self.orquestrador.executar('perguntar', params, consulta=solicitacao_mod, temp=0.4)
                 if resultado and resultado.get('sucesso'):
                     return resultado['resposta']
-            except:
+            except Exception:
                 pass
         
         _trk_report('Pipeline', 'resposta obtida', 0.95)
-        return f"[IA] Nao foi possivel responder: {solicitacao[:80]}"
+        return f"[IA] Nao foi possivel responder: {solicitacao}"

@@ -11,6 +11,7 @@ Uso:
 """
 import os, json, time, re, hashlib, math
 import urllib.request
+from stop_words import STOP_MEMORIA as STOP_WORDS
 
 # Path da memória (mesmo diretório do KG)
 BASE = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
@@ -24,14 +25,7 @@ EMBED_MODEL = 'nomic-embed-text:latest'
 # Cache de embeddings para evitar chamadas repetidas
 _embedding_cache = {}
 
-# Stop words para extração de termos
-STOP_WORDS = {
-    'para', 'com', 'que', 'como', 'mais', 'mas', 'por', 'sao', 'esta',
-    'pode', 'ser', 'tem', 'seu', 'sua', 'entre', 'sobre', 'quando',
-    'onde', 'quem', 'qual', 'cada', 'todo', 'apos', 'isso', 'esse',
-    'num', 'sem', 'sob', 'ate', 'sao', 'vai', 'era', 'foi', 'nos',
-    'dos', 'das', 'nos', 'nas', 'numa', 'pelo', 'pela', 'aos', 'as',
-}
+# STOP_WORDS importado de stop_words.py como STOP_MEMORIA (fonte unica)
 
 
 def _cosine_similaridade(a, b):
@@ -52,7 +46,7 @@ def _gerar_embedding(texto):
     try:
         dados = json.dumps({
             'model': EMBED_MODEL,
-            'prompt': texto[:500],  # limita tamanho
+            'prompt': texto,  # limita tamanho
         }).encode()
         req = urllib.request.Request(
             f'{OLLAMA_URL}/embeddings',
@@ -73,7 +67,7 @@ def _gerar_embedding(texto):
 def _extrair_termos(texto):
     """Extrai termos relevantes para busca (4+ chars, sem stop words)."""
     palavras = re.findall(r'\b[a-zA-Z]{4,}\b', texto.lower())
-    return list(set(p for p in palavras if p not in STOP_WORDS))[:15]
+    return list(set(p for p in palavras if p not in STOP_WORDS))
 
 
 class EpisodicMemory:
@@ -121,12 +115,12 @@ class EpisodicMemory:
         termos = _extrair_termos(request)
 
         episodio = {
-            'id': hashlib.md5(f"{request}{time.time()}".encode()).hexdigest()[:12],
+            'id': hashlib.md5(f"{request}{time.time()}".encode()).hexdigest(),
             'timestamp': time.time(),
             'request': request,
             'sucesso': resultado.get('sucesso', False) if isinstance(resultado, dict) else True,
-            'resultado': str(resultado)[:300],
-            'licao': licao[:300],
+            'resultado': str(resultado),
+            'licao': licao,
             'termos': termos,
             'reusos': 0,
         }
@@ -161,7 +155,7 @@ class EpisodicMemory:
             textos_lote = ' '.join(e.get('request', '') for e in episodios_lista)
             if textos_lote:
                 try:
-                    batch_embedding = _gerar_embedding(textos_lote[:500])
+                    batch_embedding = _gerar_embedding(textos_lote)
                 except Exception:
                     pass
         
@@ -172,12 +166,12 @@ class EpisodicMemory:
             
             termos = _extrair_termos(request)
             ep = {
-                'id': hashlib.md5(f"{request}{time.time()}".encode()).hexdigest()[:12],
+                'id': hashlib.md5(f"{request}{time.time()}".encode()).hexdigest(),
                 'timestamp': time.time(),
                 'request': request,
                 'sucesso': resultado.get('sucesso', False) if isinstance(resultado, dict) else True,
-                'resultado': str(resultado)[:300],
-                'licao': licao[:300],
+                'resultado': str(resultado),
+                'licao': licao,
                 'termos': termos,
                 'reusos': 0,
             }
@@ -215,6 +209,12 @@ class EpisodicMemory:
         scores = []
 
         for ep in self.episodios:
+            # --- Filtro de QUALIDADE: descarta episodios sem conteudo util ---
+            resultado_str = str(ep.get('resultado', ''))
+            licao_str = str(ep.get('licao', ''))
+            if len(resultado_str) < 80 and len(licao_str) < 80:
+                continue  # muito curto, provavelmente lixo
+
             # --- Filtro principal: KEYWORDS (pelo menos 1 match) ---
             match = sum(1 for t in termos_request if t in ep.get('termos', []))
             if match == 0:
@@ -239,9 +239,13 @@ class EpisodicMemory:
             peso_recente = max(0.3, 1.0 - dias * 0.02)
             peso_sucesso = 1.3 if ep.get('sucesso', False) else 0.7
             score *= peso_recente * peso_sucesso
+            
+            # --- Penalidade para lessons nunca reusadas (menos confiáveis) ---
+            if ep.get('reusos', 0) == 0:
+                score *= 0.8
 
             # Threshold mínimo
-            if score < 0.15:
+            if score < 0.30:
                 continue
 
             scores.append((score, ep))
@@ -252,10 +256,10 @@ class EpisodicMemory:
         scores.sort(key=lambda x: -x[0])
 
         # Marca como reusado
-        for _, ep in scores[:n]:
+        for _, ep in scores:
             ep['reusos'] = ep.get('reusos', 0) + 1
 
-        return [s[1] for s in scores[:n]]
+        return [s[1] for s in scores]
 
     def taxa_sucesso_para(self, acao, request=''):
         """Retorna taxa de sucesso historica para uma acao.
@@ -286,7 +290,7 @@ class EpisodicMemory:
                     taxa = self.taxa_sucesso_para(acao, request)
                     if taxa > 0.7:
                         ep['_score_reforco'] = ep.get('_score_reforco', 0) + taxa
-        return resultados[:n]
+        return resultados
 
     def clusterizar(self, n_clusters=5):
         """Agrupa episodios por similaridade semantica (K-means).
@@ -309,11 +313,11 @@ class EpisodicMemory:
             for emb, ep in zip(embeddings, episodios):
                 dists = [sum((a-b)**2 for a,b in zip(emb, c))**0.5 for c in centroides]
                 cid = dists.index(min(dists))
-                clusters[cid].append(ep['request'][:60])
+                clusters[cid].append(ep['request'])
             # Update
             for cid in clusters:
                 if clusters[cid]:
-                    eps_no_cluster = [e for e in episodios if e['request'][:60] in clusters[cid]]
+                    eps_no_cluster = [e for e in episodios if e['request'] in clusters[cid]]
                     if eps_no_cluster:
                         centroides[cid] = [sum(vals)/len(vals) for vals in
                                            zip(*[e['embedding'] for e in eps_no_cluster])]
@@ -339,5 +343,5 @@ class EpisodicMemory:
             'taxa_sucesso': f'{sucessos / total * 100:.0f}%' if total > 0 else '0%',
             'com_embedding': self._has_embedding,
             'cache_embeddings': len(_embedding_cache),
-            'mais_reutilizada': mais_reusada.get('request', '')[:80] if total > 0 else '',
+            'mais_reutilizada': mais_reusada.get('request', '') if total > 0 else '',
         }

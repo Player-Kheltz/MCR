@@ -142,6 +142,16 @@ class MCRKernel:
         if self._inicializado:
             return
         
+        # 0. Auto-cleanup: temp/ > 24h e output/ relatorios temporarios
+        self._auto_cleanup()
+        
+        # 0.5. Truncation Fixer: remove [:N] do codigo ativo
+        try:
+            from modulos.truncation_fixer import executar as _fix_truncation
+            _fix_truncation()
+        except Exception as _trunc_err:
+            print(f'[Kernel] TruncationFixer: {_trunc_err}')
+        
         # 1. Carrega modulos
         self._carregar_modulos()
         
@@ -167,9 +177,10 @@ class MCRKernel:
         try:
             from context_infinity import OrquestradorContexto
             from modulos.util import _get_modelo
-            kg_path = os.path.join(SANDBOX, '.mcr_devia', 'knowledge.json')
-            cfg_modelo = _get_modelo("leve")  # usa router padronizado
-            if os.path.exists(kg_path):
+            kg_path = os.path.join(SANDBOX, '.mcr_devia', 'knowledge.json')  # master
+            kg_dir = os.path.join(SANDBOX, '.mcr_devia', 'kg')  # ctx files
+            cfg_modelo = _get_modelo("leve")
+            if os.path.exists(kg_dir):
                 self.orquestrador_ctx = OrquestradorContexto(
                     modelo=cfg_modelo["modelo"], kg_path=kg_path)
             else:
@@ -201,8 +212,8 @@ class MCRKernel:
                             nome, instancia = mod.init_module(self.contexto)
                             self.modulos[nome] = instancia
                             self.contexto[nome] = instancia
-                    except: pass
-        
+                    except ImportError:
+                        pass
         # Fallback: importa direto do mcr_devia.py (compatibilidade)
         if 'kg' not in self.modulos:
             try:
@@ -216,6 +227,43 @@ class MCRKernel:
                 self.contexto['ia'] = ia
             except ImportError:
                 print('[Kernel] AVISO: mcr_devia.py nao encontrado, modo limitado')
+    
+    def _auto_cleanup(self):
+        """Limpa temp/ > 24h e relatorios temporarios em output/."""
+        import shutil
+        agora = time.time()
+        dias_seg = 86400
+        removidos = 0
+        
+        # temp/
+        temp_dir = os.path.join(SANDBOX, 'temp')
+        if os.path.isdir(temp_dir):
+            for nome in os.listdir(temp_dir):
+                fpath = os.path.join(temp_dir, nome)
+                try:
+                    if os.path.isfile(fpath) and (agora - os.path.getmtime(fpath)) > dias_seg:
+                        os.remove(fpath)
+                        removidos += 1
+                    elif os.path.isdir(fpath) and (agora - os.path.getmtime(os.path.dirname(fpath))) > dias_seg:
+                        shutil.rmtree(fpath, ignore_errors=True)
+                        removidos += 1
+                except:
+                    pass
+        
+        # output/relatorios temporarios (> 7 dias)
+        rel_dir = os.path.join(SANDBOX, 'output', 'relatorios')
+        if os.path.isdir(rel_dir):
+            for nome in os.listdir(rel_dir):
+                fpath = os.path.join(rel_dir, nome)
+                try:
+                    if os.path.isfile(fpath) and (agora - os.path.getmtime(fpath)) > dias_seg * 7:
+                        os.remove(fpath)
+                        removidos += 1
+                except:
+                    pass
+        
+        if removidos:
+            print(f'[Kernel] Auto-cleanup: {removidos} arquivos removidos')
     
     def _carregar_modulo_file(self, fpath):
         """Carrega um arquivo .py como modulo."""
@@ -236,7 +284,7 @@ class MCRKernel:
             return
         cmd = kw.get('cmd', '')
         args = kw.get('args', [])
-        consulta = f"{cmd} {' '.join(args)}"[:100]
+        consulta = f"{cmd} {' '.join(args)}"
         # Busca lessons relevantes no KG e adiciona como fragmentos
         lessons = kg.buscar(consulta, max_r=3)
         for i, l in enumerate(lessons):
@@ -277,7 +325,7 @@ class MCRKernel:
         kg = ctx.get('kg')
         if kg and 'cmd' in kw:
             kg.aprender(f"Comando executado: {kw['cmd']}", 
-                       f"args: {str(kw.get('args',[]))[:100]}",
+                       f"args: {str(kw.get('args',[]))}",
                        f"resultado: {kw.get('resultado', 'ok')}", 'runtime')
     
     def executar(self, cmd, args):
@@ -292,12 +340,14 @@ class MCRKernel:
             _rp = os.path.join(os.path.dirname(__file__), '..', '..', 'sandbox', '.mcr_result.json')
             with open(_rp, 'w', encoding='utf-8') as _f:
                 _j.dump({'cmd':cmd,'status':'processando','ts':time.time()}, _f, ensure_ascii=False)
-            # Progress tracker
+        except Exception:
+            pass
+        # Progress tracker
             try:
                 from modulos.progress_tracker import reportar as _trk_report2
                 _trk_report2('Kernel', f'executando {cmd}', 0.1)
-            except: pass
-        except: pass
+            except Exception:
+                pass
         
         try:
             # 1. Tenta comando carregado
@@ -398,7 +448,7 @@ def main_kernel():
     try:
         from modulos.progress_tracker import limpar as _trk_limpar
         _trk_limpar()
-    except:
+    except ImportError:
         pass
     
     # Inicia tracker para esta execucao
@@ -407,7 +457,7 @@ def main_kernel():
             from modulos.progress_tracker import iniciar as _trk_iniciar, reportar as _trk_report
             _trk_iniciar(pipeline='kernel_json')
             _trk_report('Kernel', 'inicializando', 0.05)
-        except:
+        except Exception as e:
             pass
     
     # ============================================================
@@ -442,11 +492,58 @@ def main_kernel():
     elif cmd == "--serve":
         from modulos.serve import Serve
         Serve(k).loop()
-    elif cmd == "--dashboard":
-        print('[Kernel] Iniciando Dashboard em http://localhost:8765')
+    elif cmd == "--self-study":
+        print('[Kernel] Iniciando Self-Study...')
         sys.stdout.flush()
-        from modulos.dashboard import Dashboard
-        Dashboard(k).iniciar()
+        from modulos.master_agent import MasterAgent
+        ma = MasterAgent()
+        ma._execution_count = 10  # força o gatilho
+        ma._self_study()
+        print('[Kernel] Self-Study concluido.')
+    elif cmd == "--auto-melhorar":
+        print('[Kernel] Iniciando Auto-Melhoria...')
+        sys.stdout.flush()
+        from modulos.master_agent import MasterAgent
+        ma = MasterAgent()
+        ma._execution_count = 20
+        ma._auto_melhorar()
+        print('[Kernel] Auto-Melhoria concluida.')
+    elif cmd == "--diagnosticar":
+        print('[Kernel] Iniciando Diagnostico...')
+        sys.stdout.flush()
+        from modulos.diagnostic_engine import DiagnosticEngine
+        from modulos.ia import IA
+        de = DiagnosticEngine(IA(), None, None)
+        problemas = de.diagnosticar()
+        print(de.gerar_relatorio(problemas))
+    elif cmd == "--pattern":
+        args_texto = ' '.join(args) if args else ''
+        if not args_texto:
+            print('[Kernel] Uso: --pattern <texto>')
+            sys.stdout.flush()
+        else:
+            print('[Kernel] Analisando padroes...')
+            sys.stdout.flush()
+            from modulos.pattern_engine import PatternEngine
+            from modulos.ia import IA
+            pe = PatternEngine(IA())
+            resultado = pe.analisar(args_texto, 'texto')
+            print(f'Dominio: {resultado["dominio"]}')
+            print(f'Eixo Nirvana-Caos: {resultado["eixo_nirvana_caos"]}')
+            print(f'Tokens: {resultado["tokens"]}')
+            print(f'Sugestao: {resultado["sugestao"]}')
+    elif cmd in ("--dashboard", "--sse"):
+        print('[Kernel] Iniciando SSE Server em http://localhost:8765')
+        print('[Kernel] Dashboard: http://localhost:8765/thought_dashboard.html')
+        sys.stdout.flush()
+        from modulos.sse_server import iniciar_sse
+        iniciar_sse(8765)
+        # Mantem o processo vivo
+        try:
+            while True:
+                time.sleep(60)
+        except KeyboardInterrupt:
+            print('\n[Kernel] SSE Server encerrado.')
     else:
         resultado = k.executar(cmd, args)
         if not resultado:

@@ -74,11 +74,11 @@ class AgentLoop:
         if lessons_kg:
             self._log('THINK', 'Encontradas %d lessons no KG' % len(lessons_kg))
             for l in lessons_kg:
-                self._log('THINK', '  Lesson: %s' % l.get('solucao', '')[:80])
+                self._log('THINK', '  Lesson: %s' % l.get('solucao', ''))
         
         # 4. Analisar exemplos
         inspiracao = self._analisar_exemplos(exemplos, tipo)
-        self._log('THINK', 'Inspiracao: %s' % inspiracao[:100])
+        self._log('THINK', 'Inspiracao: %s' % inspiracao)
         
         # === ACT + OBSERVE (LOOP) ===
         tentativas = 0
@@ -112,7 +112,7 @@ class AgentLoop:
             else:
                 # Analisar erros e corrigir
                 erros = validacao.get('erros', []) + [s['tipo'] for s in validacao.get('sql_injection', [])]
-                self._log('OBSERVE', 'Falhou: %s' % '; '.join(erros[:3]))
+                self._log('OBSERVE', 'Falhou: %s' % '; '.join(erros))
                 
                 # Se tem SQL injection, tentar limpar
                 if validacao.get('sql_injection'):
@@ -156,7 +156,7 @@ class AgentLoop:
         
         # Extrair padroes dos exemplos
         info = []
-        for ex in exemplos[:2]:
+        for ex in exemplos:
             nome = ex.get('nome', 'unknown')
             t = ex.get('tipo', '?')
             n_itens = len(ex.get('itens_shop', []))
@@ -210,7 +210,7 @@ class AgentLoop:
             erros = resultado.get('validacao', {}).get('erros', [])
             
             lesson_erro = 'Geracao NPC %s (%s): %s' % (nome_npc, tipo, status)
-            lesson_causa = descricao[:100]
+            lesson_causa = descricao
             lesson_solucao = 'NPC %s gerado com %d erros, %d avisos. Arquivo: %s' % (
                 nome_npc,
                 len(resultado.get('validacao', {}).get('erros', [])),
@@ -218,7 +218,7 @@ class AgentLoop:
                 resultado.get('arquivo', '')
             )
             if erros:
-                lesson_solucao += ' | Erros: ' + '; '.join(erros[:3])
+                lesson_solucao += ' | Erros: ' + '; '.join(erros)
             
             self.kg.data['licoes'].append({
                 'id': 'NPC_%s' % nome_npc.replace(' ', '_'),
@@ -228,7 +228,7 @@ class AgentLoop:
                 'ctx': 'gerar_npc',
             })
             self.kg.salvar()
-            self._log('LEARN', 'Registrado no KG: %s' % lesson_erro[:60])
+            self._log('LEARN', 'Registrado no KG: %s' % lesson_erro)
         
         self.historico.append(aprendizagem)
         self._salvar_historico()
@@ -239,7 +239,7 @@ class AgentLoop:
             try:
                 with open(HISTORICO_PATH, 'r', encoding='utf-8') as f:
                     return json.load(f)
-            except:
+            except Exception:
                 pass
         return []
     

@@ -1,25 +1,25 @@
 {
-  "ts": "2026-06-28 19:43:45",
+  "ts": "2026-06-28 21:15:54",
   "resultados": {
-    "sessioncache_absorver_100": 0.003,
+    "sessioncache_absorver_100": 0.001,
     "sessioncache_absorver_1000": 0.005,
     "sessioncache_absorver_5000": 0.027,
     "sessioncache_absorver_10000": 0.06,
-    "sessioncache_pescar_100x": 2.795,
+    "sessioncache_pescar_100x": 2.796,
     "sessioncache_reconstruir": 0.0,
-    "decider_8_classificacoes_1a_vez": 18.257,
+    "decider_8_classificacoes_1a_vez": 18.194,
     "decider_8_classificacoes_cache": 0.0,
-    "kg_aprender_50": 105.86,
-    "kg_buscar_keyword_20x": 0.001,
-    "kg_buscar_embedding_5x": 10.292,
-    "tools_validar_10_linguagens": 19.782,
-    "mem_registrar_10": 22.498,
-    "mem_buscar_10x": 2.113,
+    "kg_aprender_50": 108.817,
+    "kg_buscar_keyword_20x": 0.003,
+    "kg_buscar_embedding_5x": 10.375,
+    "tools_validar_10_linguagens": 85.029,
+    "mem_registrar_10": 22.821,
+    "mem_buscar_10x": 2.111,
     "mem_taxa_sucesso": 0.0,
-    "mem_clusterizar_5": 0.155,
-    "planner_5_requests": 28.17,
-    "masteragent_script_simples": 36.194,
-    "concorrencia_2_threads": 28.032
+    "mem_clusterizar_5": 0.226,
+    "planner_5_requests": 28.291,
+    "masteragent_script_simples": 46.401,
+    "concorrencia_2_threads": 44.536
   },
   "metricas_sessioncache": {
     "fragmentos": 16100,
@@ -27,5 +27,5 @@
     "eventos_historico": 16100,
     "tokens_total": 2117720
   },
-  "tempo_total": 274.244
+  "tempo_total": 369.693
 }

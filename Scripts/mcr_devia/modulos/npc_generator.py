@@ -438,7 +438,7 @@ class NPCGenerator:
                 for ex in exemplos:
                     shop_items = ex.get('itens_shop', []) or ex.get('itens', [])
                     if shop_items:
-                        for i, item in enumerate(shop_items[:3]):
+                        for i, item in enumerate(shop_items):
                             placeholders[f'item{i+1}_nome'] = item.get('nome', 'item')
                             placeholders[f'item{i+1}_id'] = item.get('client_id', 3003)
                             preco = item.get('sell') or item.get('buy') or item.get('preco', 50)
@@ -556,5 +556,5 @@ if __name__ == '__main__':
             print('Nome:', resultado['nome'])
             print('Arquivo:', resultado['arquivo'])
             print('Codigo (%d linhas):' % len(resultado['codigo'].split('\n')))
-            print(resultado['codigo'][:500] + '...')
+            print(resultado['codigo'] + '...')
         print()

@@ -19,9 +19,9 @@ def execute(kg, ia, args, ctx_crew=None):
     print(f'  Compilacoes: {m["compilacoes"]}')
     print(f'  Usos: {m["usos"]}')
     # Mostra primeiras licoes
-    for l in kg.data['licoes'][:5]:
+    for l in kg.data['licoes']:
         lid = l.get('id','?')
-        err = l.get('erro','?')[:40]
+        err = l.get('erro','?')
         usos = l.get('usos',0)
         print(f'  {lid}: {err}... [{usos}x]')
     print(f'  Versoes: {kg.data.get("versoes",0)}')

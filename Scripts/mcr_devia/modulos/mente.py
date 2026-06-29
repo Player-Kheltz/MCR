@@ -1,21 +1,22 @@
 """Mente do MCR-DevIA — Pensamento antes da acao.
-OTIMIZADO: batch (1 chamada), cache (reuso), modelo leve (1.5b).
+OTIMIZADO: batch (1 chamada), cache (reuso), modelo ultra_leve (1.5b).
 
 Cache: deliberacoes sao reusadas por 5 min para mesma categoria.
 Batch: todos os membros em UMA unica chamada IA.
-Leve: qwen2.5-coder:1.5b para perspectivas, sem perder qualidade.
+Ultra-leve: 1.5b para perspectivas rapidas (System 1).
 
 Analogia humana:
-- MENTE = Conselho + memorias + deliberacao + cache
-- CORPO = Orquestrador + templates + execucao
+- MENTE = Conselho + memorias + deliberacao + cache (System 1 - rapido)
+- CORPO = Orquestrador + templates + execucao (System 2 - lento/profundo)
 """
-import os, json, time, urllib.request
+import os, json, time
 from functools import lru_cache
 
 from modulos import memoria_conselho as _memoria
+from modulos.ia import IA
 
-OLLAMA_URL = os.environ.get('OLLAMA_URL', 'http://localhost:11434/api/generate')
-_MODELO_MENTE = "qwen2.5-coder:1.5b"  # Modelo leve e RAPIDO para perspectivas
+# Usa router de modelos de ia.py (categoria "ultra_leve" = 1.5b)
+_ia_mente = IA()
 
 # Cache: (tipo, subtipo) -> (timestamp, mente_contexto)
 _CACHE_MENTE = {}
@@ -58,17 +59,10 @@ def _get_membros(tipo, subtipo):
     return _MEMBROS_PADRAO
 
 def _llm_leve(prompt, temp=0.2):
-    """Chamada ultra-rapida ao modelo leve 1.5b."""
+    """Chamada ultra-rapida ao modelo 1.5b via router (ia.py)."""
     try:
-        d = json.dumps({
-            "model": _MODELO_MENTE, "prompt": prompt, "stream": False,
-            "options": {"temperature": temp, "num_ctx": 2048, "num_predict": 1024}
-        }).encode()
-        r = urllib.request.Request(OLLAMA_URL, data=d,
-            headers={"Content-Type": "application/json"})
-        resp = json.loads(urllib.request.urlopen(r, timeout=30).read())
-        return (resp.get("response") or "").strip()
-    except:
+        return _ia_mente.fast(prompt, temp, "ultra_leve") or ""
+    except Exception:
         return ""
 
 def think(pergunta, tipo="desconhecido", subtipo="geral", kg=None, ia=None, ctx_crew=None):
@@ -92,8 +86,8 @@ def think(pergunta, tipo="desconhecido", subtipo="geral", kg=None, ia=None, ctx_
             # Usa _llm_leve (1.5b, 1-2s) para verificar se a deliberacao cacheada
             # ainda faz sentido para a nova pergunta
             prompt_revisao = (
-                f"Cache de deliberacao do conselho:\n{ctx_cache[:500]}\n\n"
-                f"Nova pergunta: {pergunta[:300]}\n\n"
+                f"Cache de deliberacao do conselho:\n{ctx_cache}\n\n"
+                f"Nova pergunta: {pergunta}\n\n"
                 f"Esta deliberacao e relevante para esta pergunta?\n"
                 f"Responda apenas: SIM ou NAO"
             )
@@ -125,13 +119,13 @@ def think(pergunta, tipo="desconhecido", subtipo="geral", kg=None, ia=None, ctx_
         if enr.get('valido') and enr.get('conteudo'):
             contexto_enriquecido = enr['conteudo']
             print(f'  [Mente] Enricher OK: {enr["tipo"]}')
-    except:
+    except Exception:
         pass
     
     prompt_batch = (
         f"Conselho do MCR-DevIA discutindo a pergunta abaixo.\n"
         f"Cada membro tem sua memoria pessoal (score alto = aprendeu muito).\n\n"
-        f"PERGUNTA: {pergunta[:400]}\n\n"
+        f"PERGUNTA: {pergunta}\n\n"
         + (f"DADOS ADICIONAIS:\n{contexto_enriquecido}\n\n" if contexto_enriquecido else "")
         + f"{chr(10).join(blocos_memoria)}\n\n"
         f"Com base na MEMORIA de cada um, qual a perspectiva de CADA membro?\n"
@@ -147,12 +141,12 @@ def think(pergunta, tipo="desconhecido", subtipo="geral", kg=None, ia=None, ctx_
         print(f'  [Mente] Sem resposta do modelo leve')
         return ""
     
-    mente_contexto = f"[MENTE - DELIBERACAO]\n{resposta[:3000]}"
+    mente_contexto = f"[MENTE - DELIBERACAO]\n{resposta}"
     
     # Salva nas memorias individuais (com score inicial 50)
     for nome in membros:
-        _memoria.salvar(nome, pergunta[:100], resposta[:200],
-                      padrao=f"batch: {pergunta[:50]}", categoria=tipo, score=50)
+        _memoria.salvar(nome, pergunta, resposta,
+                      padrao=f"batch: {pergunta}", categoria=tipo, score=50)
     
     # Atualiza cache (LRU simples)
     _CACHE_MENTE[cache_key] = (agora, mente_contexto)
@@ -200,7 +194,7 @@ def learn(pergunta, tipo, subtipo, resposta, kg=None):
         for b in blocos:
             try:
                 compile(b.strip(), '<test>', 'exec')
-            except:
+            except Exception:
                 erros += 1
         if erros == 0 and blocos:
             score += 10
@@ -217,14 +211,14 @@ def learn(pergunta, tipo, subtipo, resposta, kg=None):
     
     # Atualiza score da ULTIMA entrada de cada membro (feedback loop)
     for nome in membros:
-        _memoria.avaliar(nome, pergunta[:100], score, 
+        _memoria.avaliar(nome, pergunta, score, 
                         f"autoavaliacao: score={score}, codigo={linhas_codigo if resposta else 0}")
     
     if kg:
         try:
-            kg.aprender(f"mente: {pergunta[:80]}",
+            kg.aprender(f"mente: {pergunta}",
                        f"tipo={tipo}, subtipo={subtipo}",
                        f"membros={membros}, score={score}, size={len(resposta or '')}",
                        f"mente_{tipo}")
-        except:
+        except Exception:
             pass
