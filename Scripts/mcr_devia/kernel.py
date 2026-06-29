@@ -175,8 +175,6 @@ class MCRKernel:
             else:
                 self.orquestrador_ctx = OrquestradorContexto(modelo=cfg_modelo["modelo"])
             self.contexto['orquestrador_ctx'] = self.orquestrador_ctx
-            print(f'[Kernel] Context Infinity: {self.orquestrador_ctx.ctx_max}tokens | '
-                  f'{len(self.orquestrador_ctx.fragmentos)} fragmentos ativos')
         except Exception as e:
             print(f'[Kernel] AVISO: Context Infinity nao disponivel: {e}')
     
@@ -187,7 +185,6 @@ class MCRKernel:
             from context_crew import ContextCrew
             self.ctx_crew = ContextCrew()
             self.contexto['ctx_crew'] = self.ctx_crew
-            print(f'[Kernel] ContextCrew V3 carregado')
         except Exception as e:
             print(f'[Kernel] AVISO: ContextCrew nao disponivel: {e}')
     
@@ -325,7 +322,7 @@ class MCRKernel:
                     )
                     if resultado:
                         elapsed = time.perf_counter() - t0
-                        print(f'[Kernel] {cmd} executado em {elapsed*1000:.1f}ms | LEMBRETE: MCR-DevIA e parte da equipe! Use MCR_DevIA-Kernel.py para TUDO. Escreva SEUS PENSAMENTOS completos no .mcr_conversa.jsonl para eu aprender com seu raciocinio!')
+                        print(f'[Kernel] {cmd} executado em {elapsed*1000:.1f}ms')
                         return True
             
             # 2. Fallback: comando nao encontrado
@@ -415,9 +412,6 @@ def main_kernel():
     
     # ============================================================
     # Processa --json    # Contexto rapido para Cloud (suprimido se --chat)
-    if '--chat' not in sys.argv:
-        print('[Cloud] LEMBRE-SE: MCR-DevIA e parte da equipe')
-    
     # Processa --json antes de tudo
     if main_json():
         sys.exit(0)

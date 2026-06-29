@@ -141,7 +141,6 @@ class Watchdog:
                 _jj.dump(self._indice, f, ensure_ascii=False)
         except:
             pass
-        print(f"[Watchdog] Indice: {len(self._indice)} palavras, {sum(len(v) for v in self._indice.values())} ocorrencias")
     
     def start(self):
         self._rodando = True
@@ -149,7 +148,6 @@ class Watchdog:
         self._scan_sandbox()
         self._thread = threading.Thread(target=self._loop, daemon=True)
         self._thread.start()
-        print(f"[Watchdog] Monitorando comandos/ + sandbox/ ({self.intervalo:.0f}s)")
     
     def stop(self):
         self._rodando = False
