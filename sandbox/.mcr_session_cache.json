@@ -1,36 +1,23 @@
 {
-  "pipeline_id": "fragmentado_20260629_190145_16356",
-  "pipeline_type": "fragmentado",
-  "texto_original": "[MEU EIXO NIRVANA-CAOS REAL: 0.636]\nKheltz aqui. Qual o eixo do projeto MCR? Quais os maiores pesos de Caos? Qual o proximo movimento ao Nirvana?",
+  "pipeline_id": "super_test_20260629_191043_8780",
+  "pipeline_type": "super_test",
+  "texto_original": "Pergunta de teste",
   "plano": [
     {
-      "texto": "[MEU EIXO NIRVANA-CAOS REAL: 0.636]\nKheltz aqui",
-      "entropia": 0.865,
-      "profundidade": 2,
-      "caminho": "0.0.0"
-    },
-    {
-      "texto": "Qual o eixo do projeto MCR?",
-      "entropia": 0.946,
-      "profundidade": 2,
-      "caminho": "0.0.1"
-    },
-    {
-      "texto": "Quais os maiores pesos de Caos?",
-      "entropia": 0.918,
-      "profundidade": 1,
-      "caminho": "0.1"
-    },
-    {
-      "texto": "Qual o proximo movimento ao Nirvana?",
-      "entropia": 0.946,
-      "profundidade": 1,
-      "caminho": "0.2"
+      "tool": "IA",
+      "solicitacao": "teste"
     }
   ],
-  "passos_completados": {},
-  "iniciado_em": 1782770505.9398475,
-  "ultimo_passo": -1,
+  "passos_completados": {
+    "0": {
+      "resposta": "Resposta de teste do super test",
+      "tool": "IA",
+      "solicitacao": "teste",
+      "ts": 1782771043.0008335
+    }
+  },
+  "iniciado_em": 1782771043.0002704,
+  "ultimo_passo": 0,
   "status": "completed",
-  "concluido_em": 1782770571.9024322
+  "concluido_em": 1782771043.0012746
 }

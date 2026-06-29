@@ -1,0 +1,41 @@
+{
+  "pid": 16276,
+  "started_at": null,
+  "stage": "fim",
+  "stage_started_at": 1782771331.1635623,
+  "substage": "",
+  "substage_index": 0,
+  "substage_total": 0,
+  "progress": 1.0,
+  "elapsed": -0.0,
+  "eta": null,
+  "question_current": 0,
+  "question_total": 0,
+  "stages_history": [
+    {
+      "stage": "inicio",
+      "substage": "",
+      "elapsed": 6.5
+    },
+    {
+      "stage": "pergunta",
+      "substage": "",
+      "elapsed": 176.6
+    },
+    {
+      "stage": "fragmentado",
+      "substage": "",
+      "elapsed": 11.3
+    }
+  ],
+  "last_updated": "2026-06-29T19:15:31",
+  "status": "idle",
+  "error": null,
+  "pipeline": "",
+  "checkpoint": {
+    "phase": "fim",
+    "data": {}
+  },
+  "crashed_at": null,
+  "stage_elapsed": 0.0
+}

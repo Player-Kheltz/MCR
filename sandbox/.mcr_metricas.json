@@ -1,5 +1,5 @@
 {
-  "total_calls": 419,
+  "total_calls": 421,
   "erros": 3,
   "cache_hits": 0,
   "cache_misses": 0,
@@ -15,28 +15,14 @@
     "analisar_bug": 3,
     "mega_teste": 20,
     "analisar_texto": 3,
-    "conselho_critico": 5,
+    "conselho_critico": 6,
     "conselho_revisor_codigo": 1,
     "conselho_arquiteto": 1,
-    "conselho_analista": 5,
+    "conselho_analista": 6,
     "analise_melhoria": 3,
     "conselho_estrategista": 2
   },
   "ultimas": [
-    {
-      "ts": 1782760094.8011062,
-      "intencao": "perguntar",
-      "tempo": 35.2,
-      "sucesso": true,
-      "tam": 1557
-    },
-    {
-      "ts": 1782760133.795585,
-      "intencao": "perguntar",
-      "tempo": 39.0,
-      "sucesso": true,
-      "tam": 479
-    },
     {
       "ts": 1782760140.360987,
       "intencao": "perguntar",
@@ -372,6 +358,20 @@
       "tempo": 55.3,
       "sucesso": true,
       "tam": 940
+    },
+    {
+      "ts": 1782771384.2476969,
+      "intencao": "conselho_analista",
+      "tempo": 33.6,
+      "sucesso": true,
+      "tam": 1683
+    },
+    {
+      "ts": 1782771396.0723982,
+      "intencao": "conselho_critico",
+      "tempo": 45.5,
+      "sucesso": true,
+      "tam": 304
     }
   ]
 }

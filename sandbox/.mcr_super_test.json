@@ -1,0 +1,62 @@
+{
+  "f1_fundacao": {
+    "truncamentos_residuais": 110,
+    "truncamentos_ok": false,
+    "eixo_codigo": 0.636,
+    "fingerprint_len": 64,
+    "entropia": 0.505,
+    "tokens": 99194,
+    "lessons_total": 379,
+    "lessons_ativas": 99,
+    "lessons_inativas": 280,
+    "ctxs_distintos": 33
+  },
+  "f2_aprendizado": {
+    "aprender_ok": true,
+    "buscar_keyword": 1,
+    "buscar_keyword_ok": true,
+    "buscar_expandido": 52,
+    "buscar_expandido_ok": true,
+    "buscar_embedding": 278,
+    "buscar_embedding_ok": true
+  },
+  "f3_consciencia": {
+    "emergir_erro": "cannot import name 'Emergir' from 'modulos.emergir' (E:\\Projeto MCR\\Scripts\\mcr_devia\\modulos\\..\\modulos\\emergir.py)",
+    "conselho_erro": "Conselho.deliberar() got an unexpected keyword argument 'tipo'",
+    "tot_disponiveis": 5,
+    "self_study_erro": "cannot import name 'SelfStudy' from 'modulos.self_study' (E:\\Projeto MCR\\Scripts\\mcr_devia\\modulos\\..\\modulos\\self_study.py)"
+  },
+  "f4_resposta": {
+    "fragmentos": 1,
+    "fragmentos_ok": true,
+    "profundidade": 0,
+    "reconstructor_chars": 1043,
+    "reconstructor_folhas": 1,
+    "reconstructor_eixo": 0.345175,
+    "reconstructor_ok": true,
+    "plano_metafora": true,
+    "plano_passos": 5,
+    "plano_ok": true
+  },
+  "f5_validacao": {
+    "validation_estagios": 7,
+    "validation_ok": true,
+    "auto_revisor_alucinacoes": 2,
+    "auto_revisor_eixo": 0.319,
+    "auto_revisor_entropia": 0.908,
+    "session_cache_ok": true
+  },
+  "f6_relatorio": {
+    "nota_geral": 7.0,
+    "eixo_geral": 0.636,
+    "lessons_ativas": 99,
+    "total_estagios_validacao": 7,
+    "recomendacoes": [
+      "Corrigir 110 truncamentos residuais",
+      "EMERGIR precisa de mais dados no KG para detectar padroes"
+    ],
+    "pesos_avaliados": 14
+  },
+  "timestamp": "2026-06-29T19:09:14.531132",
+  "tempo_total": 88.5
+}
