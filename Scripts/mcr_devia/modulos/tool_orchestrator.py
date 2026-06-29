@@ -403,7 +403,9 @@ class ToolOrchestrator:
                  'typescript', 'css', 'xml', 'csharp', 'rust', 'go',
                  'bash', 'makefile', 'java', 'sql', 'php', 'ruby', 'swift'],
                 exemplos=[
+                    ("def main(): print('oi')", "python"),
                     ("import pygame; print('hello')", "python"),
+                    ("class Jogador: def __init__(self): pass", "python"),
                     ("const x = 1; console.log(x);", "javascript"),
                     ('{"nome": "Joao", "idade": 30}', "json"),
                     ("<html><body>Oi</body></html>", "html"),
@@ -413,7 +415,7 @@ class ToolOrchestrator:
                     ("public class Test { }", "java"),
                     ("SELECT * FROM users WHERE id = 1", "sql"),
                 ],
-                instrucao="Detecte a linguagem pelo codigo. Prefira 'makefile' se tiver ':' e '\\t'. Prefira 'bash' se tiver '#!/bin' ou 'echo'. Se incerto, prefira 'python'."
+                instrucao="Detecte a linguagem pelo codigo. Prefira 'python' se houver duvida entre python e lua. Prefira 'makefile' se tiver ':' e '\\t'. Prefira 'bash' se tiver '#!/bin'."
             )
         except Exception:
             lang = 'python'

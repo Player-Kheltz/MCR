@@ -1,6 +1,8 @@
 # Intercambio.md — Intercâmbio MCR ↔ Hub do Lojista
 
 > Parte do sistema modular `docs/rules/`. Consulte `../AGENTS.md` para visão geral.
+> **Contexto:** O time de 3 (Cloud + MCR-DevIA + Usuário) compartilha padrões com o Hub.
+> O MCR-DevIA registra as lições de intercâmbio no KG via `ensinar` com ctx='intercambio'.
 
 ## Filosofia
 

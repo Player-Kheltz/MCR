@@ -28,7 +28,7 @@ from modulos.sandbox_executor import SandboxExecutor
 from modulos.ia import IA
 from modulos.kg import KnowledgeGraph
 from context_infinity import SessionCache
-from modulos.enricher import Enricher
+from modulos.enricher import Enricher  # atalho para Conselho (fundido)
 
 
 class MasterAgent:

@@ -1,81 +1,105 @@
 # Workflow.md — Fluxo de Trabalho MCR
 
 > Parte do sistema modular `docs/rules/`. Consulte `../AGENTS.md` para visão geral.
+> **📌 Fluxo da equipe (quem faz o quê):** `docs/rules/equipe.md`
 
-## Central de Comandos: `auto.py`
+---
 
-| Comando | Descrição |
-|---|---|
-| `compile --client / --server / --both` | Compila OTClient e/ou Canary |
-| `status` | Git status + diffs + pendências |
-| `verify` | Status + doc-sync + pergunta commit |
-| `commit "mensagem"` | Git commit com mensagem |
-| `sync` | Regenera CATALOG.md |
-| `session` | Mostra session.json |
-| `server start / stop / restart` | Controla Canary.exe |
-| `up` | Sobe tudo (server + bridge + watchdog) |
-| `doctor` | Diagnóstico e sugestões |
+## Antes de Tudo: Team Check-in
 
-## Operações em Massa → Script Python
+> **Sempre que iniciar uma tarefa, os 3 estão presentes:**
+> - Cloud (orquestrador)
+> - MCR-DevIA (executor)
+> - Usuário (direção)
 
-Toda alteração repetitiva em 3+ arquivos DEVE ser feita por script Python:
-1. Crie o script em `docs/Localizador Projeto MCR/Server (CodigoFonte)/`
-2. Execute com `--dry-run` e revise o log
-3. O assistente REVISA e AUTORIZA sozinho — só reporta ao usuário se for alteração crítica
-4. Apenas execute para valer após auto-autorização
+```bash
+# Checklist obrigatório (início de sessão)
+python scripts/mcr_devia/MCR_DevIA-Kernel.py status   # capacidade atual
+# Leia AGENTS.md (raiz) e docs/rules/licoes.md
+```
 
-## Docs Antes de Código
+---
 
-Antes de qualquer alteração estrutural, leia `docs/CATALOG.md` para identificar os docs relevantes. Se os docs estiverem desatualizados, atualize-os primeiro.
+## 📡 COMUNICAÇÃO: JSON IPC (NUNCA shell com aspas)
 
-## Alinhe Design Antes de Codificar
+```python
+import json, subprocess
+cmd = {"cmd": "perguntar", "args": ["pergunta"]}
+with open("sandbox/.mcr_cmd.json", "w", encoding="utf-8") as f:
+    json.dump(cmd, f, ensure_ascii=False)
+r = subprocess.run(["python", "scripts/mcr_devia/MCR_DevIA-Kernel.py",
+    "--json", "sandbox/.mcr_cmd.json"], capture_output=True, text=True, timeout=300)
+resposta = r.stdout  # COMPLETO, sem truncamento
+```
 
-Para funcionalidades novas:
-1. Entenda o requisito
-2. Leia os docs relevantes (via CATALOG.md)
-3. Proponha abordagem
-4. Receba feedback
-5. Implemente
+## 🧠 FLUXO MENTE-CORPO (toda execução)
 
-## Validação Antes de Subir
+```
+USUÁRIO → perguntar("algo")
+    ↓
+[1] KG PRE-CHECK: se < 2 lessons → weblearn pesquisa
+[2] MENTE.think(): conselho delibera com memória pessoal
+[3] ORQUESTRADOR: template universal + fragmentação
+[4] AUTO-REVISOR: heurística verifica classes suspeitas
+[5] AUTO-WEB: se resposta errada → weblearn + regenera
+[6] MENTE.learn(): autoavalia qualidade + atualiza scores
+[7] AUTO-REVIEW: 20% chance → analisa código fonte
+    ↓
+RESPOSTA ← Completa, verificada, aprendizado registrado
+```
 
-Sempre que alterar código:
-1. Compile os projetos afetados
-2. Verifique funcionamento
-3. Só então atualize docs para refletir o que realmente foi feito
-4. Rode `scripts/doc-sync.py` se criou/alterou docs
-5. Commit
+## Durante o Desenvolvimento
 
-Nunca gere falsas informações ou reescritas desnecessárias nos docs.
+### Regra: MCR-DevIA é o executor padrão
 
-## Commits Pequenos e Descritivos
+| Tarefa | Quem executa | Se falhar |
+|--------|-------------|-----------|
+| Criar arquivo | `MCR: write` (JSON IPC) | Cloud faz manual |
+| Editar código | `MCR: edit` (JSON IPC) | Cloud `edit` manual |
+| Analisar código | `MCR: analisar` | Cloud analisa |
+| Buscar em arquivos | `MCR: grep`/`glob` | Cloud tool |
+| Perguntar/Explicar | `MCR: perguntar` (JSON IPC) | Cloud explica |
+| Aprender da web | `MCR: weblearn` (pesquisa + KG) | Cloud websearch |
+| Auto-revisão | `Auto-Revisor` (heurística, pós-resposta) | Automático |
+| Registro no KG | `MCR: ensinar` | **NUNCA pular** |
+
+### ⚠️ ARMADILHAS (NUNCA FAZER)
+
+| Armadilha | Consequência | Solução |
+|-----------|-------------|---------|
+| Shell com aspas | Erro de parsing | Use JSON IPC |
+| `resposta[:2000]` | Truncamento | Use resposta COMPLETA |
+| FAST como validador | Aceita tudo ("A") | Use heurística |
+| Lista fixa de classes | Falso positivo | Contexto determina |
+| Template específico | Roteamento errado | Use `perguntar` universal |
+| Cache sem revisão | Resposta desatualizada | FAST verifica antes |
+| V12 como fallback | Resposta genérica | Use Orquestrador + Mente |
+  → Cloud propõe abordagem
+  → MCR-DevIA opina (perguntar "o que voce acha?")
+  → Time decide
+  → MCR-DevIA executa (build/patch)
+  → Cloud verifica
+  → MCR-DevIA registra no KG (ensinar)
+```
+
+---
+
+## Commits
 
 ```
 git add <arquivos>
-git commit -m "tipo(escopo): descrição"
-git push origin main
+git commit -m "tipo(escopo): descricao"
 ```
 
-- Uma alteração de cada vez por commit
+- Uma alteração por commit
 - Não misture correções
-- Se houver alteração de comportamento, atualize o(s) doc(s) correspondente(s) no mesmo commit
+- Se alterar comportamento, atualize docs no mesmo commit
 
-## Delegue Exploração Pesada
-
-Para tarefas que exijam ler 3+ arquivos grandes, grep em 5+ diretórios ou explorar código desconhecido, DELEGUE para um task agent (`subagent_type: explore`). Mantenha o contexto principal enxuto.
+---
 
 ## Limpeza de Processos — REGRA ABSOLUTA
 
-### ⚠️ Problema
-Processos do servidor (`canary-sln.exe`) e bridge (`python.exe`) ficam rodando em segundo
-plano entre sessões SEM o assistente ou o usuário saberem. Isso já causou:
-- Crash do OpenCode/Bun por acúmulo de memória
-- Servidor rodando por 1h+ sem necessidade
-- Bridge consumindo recursos do modelo Ollama
-- Portas 7171-7173 ocupadas (bloqueia restart limpo)
-- Usuário logar no OTClient por engano (servidor ainda vivo)
-
-### ✅ Checklist Obrigatório
+### Checklist Obrigatório
 
 **No INÍCIO de toda resposta (antes de QUALQUER outra ação):**
 ```python
@@ -92,16 +116,12 @@ for f in [".bridge_pid", ".watchdog_pid"]:
 3. Remover arquivos PID órfãos
 
 ### Regra de Ouro
-> Se o assistente iniciou um processo, ele DEVE matá-lo antes de encerrar.
-> Se o assistente encontrou um processo rodando, ele DEVE matá-lo ao terminar.
-> O servidor e bridge SÓ devem rodar quando explicitamente solicitado pelo usuário
-> para TESTE. Fora isso, TUDO desligado.
+> Se alguém do time iniciou um processo, DEVE matá-lo antes de encerrar.
+> O servidor e bridge SÓ rodam quando explicitamente solicitado pelo usuário para TESTE.
 
-### Uso durante a sessão
-- `auto.py server stop` para limpar
-- `server_manager.py kill` como alternativa
-- NUNCA usar `Start-Process` do PowerShell (sempre Python `subprocess.Popen` com PID tracking)
+---
 
 ## Troubleshooting
 
-Problemas comuns (LOS, encoding, compilação, bridge) estão em `docs/TROUBLESHOOTING.md`. Consulte antes de investigar do zero.
+Problemas comuns estão em `docs/TROUBLESHOOTING.md`.
+Antes de investigar do zero, pergunte ao MCR-DevIA: `perguntar "ja viu este erro X?"`. O KG pode ter a solução.

@@ -9,7 +9,7 @@ Preservar o contexto entre conversas, mesmo que o usuário feche a janela aciden
 ## O Sistema
 
 - Estado salvo em `docs/MCR - Instruções/DevLog/.session_checkpoint.json`
-- `scripts/checkpoint.py` gerencia o arquivo (save/load/clear/recover)
+- `Scripts/checkpoint.py` gerencia o arquivo (save/load/clear/recover)
 - `auto.py checkpoint` delega para `checkpoint.py`
 
 ## Regras

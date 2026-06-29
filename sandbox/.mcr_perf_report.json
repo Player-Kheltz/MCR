@@ -1,23 +1,23 @@
 {
-  "ts": "2026-06-28 19:36:18",
+  "ts": "2026-06-28 20:55:24",
   "resultados": {
-    "decider_MCR (local)": 5.332,
-    "decider_Web (cloud)": 2.234,
+    "decider_MCR (local)": 2.187,
+    "decider_Web (cloud)": 2.195,
     "decider_Repetido (cache)": 0.0,
-    "decider_extrair_json": 2.386,
+    "decider_extrair_json": 2.398,
     "kg_buscar_keyword": 0.0,
-    "kg_buscar_embedding": 3.751,
-    "kg_aprender": 2.0774,
-    "mem_buscar": 2.0608,
+    "kg_buscar_embedding": 3.563,
+    "kg_aprender": 2.1111,
+    "mem_buscar": 2.0519,
     "mem_taxa_sucesso": 0.0,
-    "mem_buscar_reforco": 0.0012,
-    "mem_clusterizar": 0.067,
+    "mem_buscar_reforco": 0.0016,
+    "mem_clusterizar": 0.096,
     "tools_listar": 0.0,
-    "tools_validar_python": 4.342,
-    "tools_validar_json": 2.211,
-    "tools_validar_js": 2.917,
-    "planner_criar_codigo": 4.762,
-    "planner_projeto_jogo": 7.113
+    "tools_validar_python": 8.455,
+    "tools_validar_json": 9.943,
+    "tools_validar_js": 9.986,
+    "planner_criar_codigo": 4.773,
+    "planner_projeto_jogo": 7.103
   },
-  "total_geral": 39.254
+  "total_geral": 54.864
 }

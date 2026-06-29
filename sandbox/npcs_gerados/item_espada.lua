@@ -1,2 +1,0 @@
--- Item gerado pelo MCR Crew v10
--- NOME: Espada Longa | ID: 1234 | TIPO: weapon | ATRIBUTOS: atk:25, def:5, peso:40
