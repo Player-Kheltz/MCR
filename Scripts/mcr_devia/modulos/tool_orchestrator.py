@@ -11,12 +11,15 @@ Uso:
     lista = tools.listar()
     resultado = tools.executar('gerar_npc', {'descricao': 'ferreiro', 'tipo': 'shop'})
 """
-import os, sys, json, subprocess, tempfile, ast, importlib, urllib.request, re
+import os, sys, json, subprocess, tempfile, ast, importlib, urllib.request, re, threading
 from typing import Dict, Any, Callable, Optional
 
 # Paths
 BASE = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
 SANDBOX = os.path.join(BASE, 'sandbox')
+
+# Lock de escrita para concorrencia (J3)
+_write_lock = threading.Lock()
 
 
 class ToolOrchestrator:
@@ -201,10 +204,11 @@ class ToolOrchestrator:
             return f.read()[:8000]
 
     def _cmd_escrever_arquivo(self, caminho, conteudo):
-        """Cria ou modifica um arquivo."""
-        os.makedirs(os.path.dirname(caminho), exist_ok=True)
-        with open(caminho, 'w', encoding='utf-8') as f:
-            f.write(conteudo)
+        """Cria ou modifica um arquivo (thread-safe)."""
+        with _write_lock:
+            os.makedirs(os.path.dirname(caminho), exist_ok=True)
+            with open(caminho, 'w', encoding='utf-8') as f:
+                f.write(conteudo)
         return f"Arquivo salvo: {caminho} ({len(conteudo)} chars)"
 
     def _cmd_listar_dir(self, caminho):

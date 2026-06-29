@@ -43,6 +43,7 @@ class MasterAgent:
         self.sandbox = SandboxExecutor()
         self._passos = []
         self._execution_count = 0  # G10: contador para auto-diagnostico
+        self._buffer_episodios = []  # J2: buffer para registro em lote
 
     def autoavaliar(self, request):
         """Autoavaliacao: o sistema sabe o que sabe e o que nao sabe.
@@ -420,7 +421,7 @@ class MasterAgent:
 
         # === 5. APRENDER ===
         licao = self._extrair_licao(request, plano, resultados)
-        self.memoria.registrar(request, resultado_final, licao)
+        self._registrar_episodio(request, resultado_final, licao)
         self._aprender_kg(request, resultado_final, licao, task_type=task_type)
 
         # === 6. FEEDBACK (Backpropagation) ===
@@ -452,6 +453,9 @@ class MasterAgent:
                 self._log('DIAG', f'Auto-diagnostico: score {score}/100')
             except Exception:
                 pass
+
+        # === 9. FLUSH de buffers pendentes ===
+        self._flush_episodios()
 
         return resultado_final
 
@@ -664,6 +668,32 @@ class MasterAgent:
 
         return {'resposta_final': '\n\n'.join(compilado), 'partes': partes}
 
+    def _registrar_episodio(self, request, resultado, licao):
+        """J2: acumula episodio no buffer. Faz flush ao atingir 10."""
+        req_str = request[:100] if isinstance(request, str) else str(request)[:100]
+        self._buffer_episodios.append({
+            'request': req_str,
+            'resultado': resultado,  # pode ser dict (registrar_lote aceita)
+            'licao': licao,
+        })
+        if len(self._buffer_episodios) >= 10:
+            self._flush_episodios()
+
+    def _flush_episodios(self):
+        """J2: registra lote com 1 embedding batch."""
+        if not self._buffer_episodios:
+            return
+        try:
+            self.memoria.registrar_lote(self._buffer_episodios)
+        except Exception as e:
+            print(f"[EpisodioBuffer] Erro ao registrar lote: {e}")
+            for ep in self._buffer_episodios:
+                try:
+                    self.memoria.registrar(ep['request'], ep['resultado'], ep['licao'])
+                except Exception:
+                    pass
+        self._buffer_episodios = []
+
     def _extrair_licao(self, request, plano, resultados):
         """Extrai licao aprendida do processo."""
         n_sucesso = sum(1 for r in resultados.values() if r.get('sucesso'))
@@ -692,11 +722,12 @@ class MasterAgent:
             solucao = licao[:500]
             ctx = f'exec_{tt}'
             
-            # G9: Tenta usar LessonsBuffer (detecta contradicoes)
+            # G9 + J1: LessonsBuffer com batch embedding
             try:
                 from modulos.lessons_buffer import LessonsBuffer
                 buffer = LessonsBuffer(self.kg)
                 buffer.adicionar(erro, causa, solucao, ctx)
+                buffer.comitar()  # batch embedding + flush para KG
             except Exception:
                 # Fallback: salva direto no KG
                 self.kg.aprender(erro, causa, solucao, ctx)
