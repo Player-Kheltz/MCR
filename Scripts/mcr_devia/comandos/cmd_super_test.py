@@ -347,7 +347,7 @@ def _fase4_resposta(kg, ia, ctx_crew):
     print(f'{"="*60}')
     m = {}
     
-    pergunta_teste = 'O que e o padrao universal do PatternEngine?'
+    pergunta_teste = 'Explique o padrao universal do PatternEngine: o que e tokenizacao, como funciona o fingerprint de 64 dimensoes, o que o eixo Nirvana-Caos mede, e como o Conselho usa esses padroes para deliberar?'
     
     # 4.1 ContextCrew.fragmentar_recursivo()
     print('\n[4.1] ContextCrew.fragmentar_recursivo()...')

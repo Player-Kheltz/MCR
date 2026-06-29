@@ -259,6 +259,7 @@ class KnowledgeGraph:
         scores = []
         for l in licoes:
             if 'embedding' not in l: continue
+            if l.get('inactive', False): continue
             if not incluir_benchmark and l.get('tipo') == 'benchmark': continue
             score = _cosine_similaridade(emb, l['embedding'])
             if score > 0: scores.append((score, l))

@@ -34,6 +34,9 @@ def escanear(diretorio, recursivo=True):
         for f in files:
             if not f.endswith('.py'):
                 continue
+            # Pula mcr_devia.py (legado de 2854 linhas, quebra sintaxe ao corrigir)
+            if f == 'mcr_devia.py':
+                continue
             fpath = os.path.join(root, f)
             try:
                 with open(fpath, 'r', encoding='utf-8', errors='replace') as fh:

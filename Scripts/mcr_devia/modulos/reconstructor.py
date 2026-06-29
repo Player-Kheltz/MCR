@@ -11,6 +11,41 @@ import os, sys, json, time, re
 BASE = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
 
 
+# Pesos de contexto do KG (maior = mais confiavel para o Weaver)
+_CTX_PRIORIDADE = {
+    'conceito': 100,
+    '10_10': 90,
+    'sinal_puro': 85,
+    'ciclo_aprendizado': 80,
+    'veritas': 75,
+    'veritas_v2': 75,
+    'teste_10_10': 75,
+    'gatekeeper': 70,
+    'fragmentado': 70,
+    'decomp_recursiva': 70,
+    'fase2_turbo': 65,
+    'infra': 60,
+    'arquitetura': 60,
+    'planejamento': 55,
+    'pipeline_completa': 55,
+    'refatoracao': 50,
+    'correcoes_externas': 50,
+    'sabedoria': 50,
+    'auto_revisor': 45,
+    'dashboard_sse': 45,
+    'limpeza_legado': 40,
+    'mente_multimodal': 40,
+    'anti_hardcoded': 35,
+    'emergir_v4': 35,
+    'sessao_completa': 30,
+    'emergente': 10,  # baixa prioridade - lessons especulativas
+    'runtime': 0,     # inativo
+    'stress_test': 0,  # inativo
+    'auto_repair': 0,  # inativo
+    'geral': 50,       # medio
+}
+
+
 class Reconstructor:
     """Reconstroi resposta final BOTTOM-UP com Context Weaver."""
     
@@ -141,11 +176,15 @@ class Reconstructor:
             return contexto
         
         try:
-            # FONTE 1: KG PRINCIPAL (1 lesson do ctx mais relevante)
-            # Primeiro descobre qual ctx e mais relevante
-            lessons_brutas = self.kg.buscar(termos, max_r=5)
+            # FONTE 1: KG PRINCIPAL (1 lesson com prioridade de ctx)
+            lessons_brutas = self.kg.buscar(termos, max_r=10)
             if lessons_brutas:
-                # Pega a melhor e descobre o ctx dela
+                # Pontua cada lesson: keyword_score * ctx_priority
+                lessons_brutas.sort(key=lambda l: (
+                    _CTX_PRIORIDADE.get(l.get('ctx', 'geral'), 50),
+                    len(l.get('solucao', ''))
+                ), reverse=True)
+                
                 melhor = lessons_brutas[0]
                 ctx_melhor = melhor.get('ctx', 'geral')
                 err = melhor.get('erro', '')
@@ -179,16 +218,19 @@ class Reconstructor:
                 except Exception:
                     pass
             
-            # Se nao achou nada, fallback: embedding
+            # Se nao achou nada, fallback: embedding (filtrado por prioridade)
             if not contexto['principal'] and hasattr(self.kg, 'buscar_por_embedding'):
-                lessons_emb = self.kg.buscar_por_embedding(termos, n=1)
+                lessons_emb = self.kg.buscar_por_embedding(termos, n=5)
                 if lessons_emb:
-                    l = lessons_emb[0]
-                    err = l.get('erro', '')
-                    sol = l.get('solucao', '')
+                    # Ordena por prioridade de ctx
+                    lessons_emb.sort(key=lambda l: _CTX_PRIORIDADE.get(l.get('ctx', 'geral'), 0), reverse=True)
+                    melhor_emb = lessons_emb[0]
+                    err = melhor_emb.get('erro', '')
+                    sol = melhor_emb.get('solucao', '')
                     if err and sol:
-                        contexto['principal'] = f"[{l.get('ctx','?')}] {err}: {sol}"
-                        print(f'  [Weaver] Fallback embedding: {err}...')
+                        ctx_emb = melhor_emb.get('ctx', '?')
+                        contexto['principal'] = f"[{ctx_emb}] {err}: {sol}"
+                        print(f'  [Weaver] Fallback embedding: {ctx_emb}/{err}...')
         
         except Exception as e:
             print(f'  [Weaver] ERRO: {e}')
@@ -240,8 +282,15 @@ class Reconstructor:
             "Responda em PT-BR.\n"
         )
         instrucao = (
-            "Responda como se voce fosse o proprio MCR-DevIA. Use os FATOS, CODIGO e CONTEXTO acima.\n"
+            "Responda como se voce fosse o proprio MCR-DevIA. Use SOMENTE os FATOS, CODIGO e CONTEXTO acima.\n"
+            + "Sua resposta deve ter esta ESTRUTURA:\n"
+            + "1) Resposta DIRETA a pergunta (uma frase).\n"
+            + "2) Explicacao com os dados fornecidos.\n"
+            + "3) Conclusao (se aplicavel).\n"
             + ("CITE o arquivo:linha ESPECIFICO (ex: pattern_engine.py:L309-L310).\n" if contexto['codigo'] else "")
+            + "NAO divague. NAO adicione informacao alem do necessario.\n"
+            + "NAO use palavras vagas como: interessante, importante, significativo, essencial, crucial, fundamental.\n"
+            + "Se o fato nao estiver nos FATOS DO KG, NAO mencione.\n"
             + "Seja preciso. Nao invente. Use SOMENTE os dados fornecidos."
         )
         
@@ -278,32 +327,73 @@ class Reconstructor:
         return ""
     
     def _combinar_filhos(self, no):
-        """Combina filhos: remove duplicatas, depois concatena.
+        """Combina filhos: funde respostas em texto unico e fluido.
         
-        Usa SequenceMatcher para detectar se dois fragmentos
-        estao dizendo a mesma coisa — se sim, remove a repeticao.
+        Em vez de concatenar, detecta padroes de numeracao (1), 2), 3))
+        em cada fragmento e os mescla em UMA lista unica.
+        Remove repeticoes e duplicatas.
         """
+        import re as _re
+        
         filhos = no.get('filhos') or []
         resultados = [f.get('_resultado', '') for f in filhos if f.get('_resultado')]
         if not resultados:
             return no.get('texto', '')
         
-        # Remove duplicatas: se similaridade > 0.6, um deles e repeticao
-        if len(resultados) >= 2:
+        if len(resultados) == 1:
+            return resultados[0]
+        
+        # 1. Extrai paragrafos/numeracao de cada resultado
+        # Cada fragmento pode ter: "1) Resposta... 2) Explicacao... 3) Conclusao..."
+        # Ou texto livre sem numeracao
+        paragrafos = []
+        for r in resultados:
+            # Tenta quebrar por numeracao: 1) 2) 3) ou 1. 2. 3.
+            partes = _re.split(r'\n(?=\d[\)\.]\s*)', r)
+            if len(partes) <= 1:
+                # Tenta quebrar por paragrafos
+                partes = _re.split(r'\n\s*\n', r)
+            if len(partes) <= 1:
+                # Texto unico
+                partes = [r.strip()]
+            
+            for p in partes:
+                p = p.strip()
+                if p and len(p) > 10:
+                    # Remove numeracao do inicio (ex: "1) ", "2. ")
+                    p_sem_num = _re.sub(r'^\d[\)\.]\s*', '', p).strip()
+                    if p_sem_num:
+                        paragrafos.append(p_sem_num)
+        
+        # 2. Remove paragrafos duplicados (similaridade > 0.7)
+        if len(paragrafos) >= 2:
             from difflib import SequenceMatcher
-            filtrados = [resultados[0]]
-            for r in resultados[1:]:
+            unicos = [paragrafos[0]]
+            for p in paragrafos[1:]:
                 eh_repetido = False
-                for existente in filtrados:
-                    sim = SequenceMatcher(None, r, existente).ratio()
-                    if sim > 0.6:
+                for existente in unicos:
+                    # Compara primeiros 80 chars
+                    sim = SequenceMatcher(None, p, existente).ratio()
+                    if sim > 0.7:
                         eh_repetido = True
                         break
                 if not eh_repetido:
-                    filtrados.append(r)
-            resultados = filtrados
+                    unicos.append(p)
+            paragrafos = unicos
         
-        return '\n'.join(resultados)
+        # 3. Monta texto unico fluido
+        if not paragrafos:
+            return '\n'.join(resultados)
+        
+        if len(paragrafos) <= 3:
+            return '\n'.join(paragrafos)
+        
+        # 4+ paragrafos: estrutura com introducao
+        texto = paragrafos[0] + '\n\n'
+        for i, p in enumerate(paragrafos[1:], 1):
+            texto += f'{i}. {p}\n\n'
+        
+        return texto.strip()
     
     def _calcular_eixo(self, texto):
         if not texto or not self.pe:

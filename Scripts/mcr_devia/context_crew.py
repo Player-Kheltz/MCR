@@ -368,19 +368,44 @@ class ContextCrew:
         if len(partes) > 1:
             return partes
         
-        # 2. Tenta quebrar por conectores "e", "mas", "ou", "tambem"
+        # 2. Tenta quebrar por ": o que", ": como", ": qual" (sub-perguntas apos dois-pontos)
+        # "Explique X: o que e A, como funciona B, o que C mede, e como D" 
+        # -> ["Explique X", "o que e A", "como funciona B", "o que C mede", "e como D"]
+        if ': ' in texto:
+            antes, depois = texto.split(': ', 1)
+            # Depois dos dois-pontos, tenta quebrar por virgula onde cada parte
+            # comeca com palavra interrogativa
+            sub_partes = re.split(r'(?=,\s*(?:o que|como|qual|quais|onde|quando|por que))', depois)
+            sub_partes = [p.strip().lstrip(',').strip() for p in sub_partes if len(p.strip()) > 10]
+            resultado = [antes.strip()]
+            if antes.strip():
+                resultado = [antes.strip()]
+            else:
+                resultado = []
+            resultado.extend(sub_partes)
+            resultado = [p for p in resultado if len(p) > 15]
+            if len(resultado) > 2:
+                return resultado
+            # Fallback: se nao quebrou por virgula, retorna 2 partes (antes + depois)
+            if antes.strip() and depois.strip():
+                resultado2 = [antes.strip(), depois.strip()]
+                resultado2 = [p for p in resultado2 if len(p) > 20]
+                if len(resultado2) > 1:
+                    return resultado2
+        
+        # 3. Tenta quebrar por conectores "e", "mas", "ou", "tambem"
         partes = re.split(r'(?:,\s*(?:e|mas|ou)\s*|\s+e\s+tamb[ée]m\s+)', texto)
         partes = [p.strip() for p in partes if len(p.strip()) > 20]
         if len(partes) > 1:
             return partes
         
-        # 3. Tenta quebrar por "." seguido de maiuscula
+        # 4. Tenta quebrar por "." seguido de maiuscula
         partes = re.split(r'\.\s+(?=[A-Z])', texto)
         partes = [p.strip() for p in partes if len(p.strip()) > 20]
         if len(partes) > 1:
             return partes
         
-        # 4. Tenta quebrar por virgulas em texto longo
+        # 5. Tenta quebrar por virgulas em texto longo
         if len(texto) > 300:
             partes = re.split(r',\s*', texto)
             partes = [p.strip() for p in partes if len(p.strip()) > 30]
