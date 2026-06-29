@@ -525,6 +525,20 @@ class MasterAgent:
                     else:
                         return {'sucesso': True, 'resultado': f"Validacao OK ({res.get('linguagem', '?')})"}
             if erros:
+                # K1: Auto-Repair — tenta corrigir o codigo com erro
+                try:
+                    from modulos.auto_repair import AutoRepair
+                    reparador = AutoRepair(self.ia)
+                    codigo_fonte = codigo_anterior or (list(modulos.values())[0] if modulos else '')
+                    if codigo_fonte and len(codigo_fonte) > 50:
+                        codigo_reparado, reparado = reparador.reparar_e_validar(
+                            codigo_fonte, erros, 'python', self.tools
+                        )
+                        if reparado:
+                            self._log('REPAIR', 'Codigo reparado automaticamente')
+                            return {'sucesso': True, 'resultado': codigo_reparado, 'reparado': True}
+                except Exception as ex:
+                    print(f"[AutoRepair] Erro: {ex}")
                 return {'sucesso': False, 'erro': f"Erros em: {', '.join(erros[:3])}"}
             return {'sucesso': True, 'resultado': f"Validados {len(modulos) if modulos else 1} modulo(s) sem erros"}
 

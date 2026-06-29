@@ -4304,3 +4304,75 @@ def _cmd_escrever_arquivo(self, caminho, conteudo):
 | J2 | Buffer episódios | `master_agent.py` | +20 | 22s (10 registros) | ~3s | **86%** |
 | J3 | Lock escrita | `tool_orchestrator.py` | +5 | T1=3/4 T2=4/4 | **4/4 ambos** | **100%** |
 | | **Total** | | **+40** | **Stress: 370s** | **~250s** | **32%** |
+
+---
+
+## Apêndice K — Auto-Repair + Geração Consciente de Código
+
+> **Data:** 2026-06-28
+> **Problema:** 1) LLM gera código com erro de sintaxe → validador detecta → falha.
+> 2) LLM gera código com libs não instaladas → execução falha.
+>
+> **Solução:** 
+> 1. Auto-Repair: quando validador detecta erro, REPARA o código automaticamente
+> 2. Geração Consciente: verifica ambiente, gera código que RODA, fallback educado
+
+### K1 — Auto-Repair (reparo único)
+
+**Conceito:** Validador detectou erro → tem linha, descrição → pode corrigir.
+Não precisa de loop — o LLM sabe o erro, ele corrige de uma vez.
+
+```python
+class AutoRepair:
+    """Corrige código com erro baseado na mensagem do validador.
+    
+    Dados:
+    - Código com erro
+    - Mensagem do validador (linha X: descrição)
+    - Linguagem
+    
+    Saída:
+    - Código corrigido (uma tentativa — com o erro apontado, não tem desculpa)
+    """
+    
+    def reparar(self, codigo, erros, linguagem):
+        prompt = (
+            f"Corrija o erro abaixo no codigo {linguagem}.\n"
+            f"ERRO: {erros[0]}\n\n"
+            f"CODIGO:\n```{linguagem}\n{codigo[:4000]}\n```\n\n"
+            f"CODIGO CORRIGIDO (apenas o codigo):"
+        )
+        codigo_corrigido = ia.fast(prompt, 0.2, 'leve')
+        from modulos.util import extrair_codigo_puro
+        return extrair_codigo_puro(codigo_corrigido) or codigo_corrigido
+```
+
+### K2 — Geração Consciente (qualidade máxima + fallback educado)
+
+**Conceito:** Gera o MELHOR código (FastAPI, Pygame, etc.). Se não tiver a lib,
+NÃO gera código inferior — avisa o usuário com instruções.
+
+```python
+def _gerar_codigo_consciente(self, descricao, linguagem="python"):
+    """Gera o MELHOR código. Se lib não disponível, fallback consciente."""
+    
+    # Gera código com a melhor lib (FastAPI, Pygame, etc.)
+    codigo = ia.gerar(f"{descricao}\nCódigo COMPLETO, funcional:", 0.4, 'code')
+    
+    # Detecta dependências
+    imports = re.findall(r'^import (\w+)|^from (\w+)', codigo, re.MULTILINE)
+    imports = [i[0] or i[1] for i in imports if any(i)]
+    
+    # Verifica o que está instalado
+    faltando = [mod for mod in imports if not _modulo_instalado(mod)]
+    
+    if faltando:
+        return {
+            'codigo': codigo,
+            'valido': True,
+            'aviso': f"Código gerado. Dependências: pip install {' '.join(faltando)}",
+            'testavel': False,
+        }
+    
+    return {'codigo': codigo, 'valido': True, 'testavel': True}
+```
