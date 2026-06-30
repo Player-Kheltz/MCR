@@ -1,5 +1,0 @@
-  [KG Purge] 0 lessons marcadas como inativas
-[SUPERVISOR] "Esta solucao se conecta com outras areas? Busque similaridades:
-  [KG Purge] 0 l..."
-  [Classificador] Tipo: desconhecido/geral
-Sim, esta soluÃ§Ã£o se conecta com outras Ã¡reas do projeto MCR. A palavra "espada" e do genero feminino em portuguÃªs sÃ£o frequentemente relacionadas ao mundo de habilidades e progressÃ£o no jogo, como na classe de "Espadachinhos" ou "Guerreiros". AlÃ©m disso, a identidade propria dos dominios (Fogo, Gelo, Terra, Energia) pode ser usada para criar personagens que se relacionem com esses elementos.

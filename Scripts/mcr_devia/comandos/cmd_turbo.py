@@ -58,7 +58,14 @@ def execute(kg, ia, args, ctx_crew=None):
         
         # Usa pipeline_executor com flag turbo
         from modulos.pipeline_executor import PipelineExecutor
-        pipe = PipelineExecutor(kg=kg, ia=ia, ctx_crew=ctx_crew, orquestrador=orq)
+        from modulos.task_planner import TaskPlanner
+        from modulos.tool_orchestrator import ToolOrchestrator
+        _tools = ToolOrchestrator()
+        _planner = TaskPlanner(ia=ia, tool_orchestrator=_tools)
+        pipe = PipelineExecutor(
+            kg=kg, ia=ia, ctx_crew=ctx_crew, orquestrador=orq,
+            task_planner=_planner, tool_orchestrator=_tools
+        )
         # Detecta fragmentar e passa para o pipeline
         if fragmentar:
             print(f'[Turbo] Modo Fragmentado ativado — pergunta sera desconstruida')

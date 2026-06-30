@@ -1,1 +1,0 @@
-A diferença entre SHC e SPA está na estrutura de habilidades implementada por cada sistema, com o SHC apresentando uma abordagem mais complexa e detalhada das habilidades dos jogadores, enquanto o SPA se concentra no avanço do nível e progressão geral do jogador.

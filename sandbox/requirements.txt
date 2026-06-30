@@ -1,7 +1,0 @@
-# Dependencias do MCR-DevIA
-# Projeto 100% local, sem dependencias externas obrigatorias
-# Opcionais:
-pytest>=7.0.0          # Testes (sandbox/_test_*.py)
-# ddgs                  # Busca web alternativa (opcional, pip install ddgs)
-# duckduckgo_search     # Busca web alternativa (opcional)
-# pygame                # Para geracao de jogos Python (opcional)

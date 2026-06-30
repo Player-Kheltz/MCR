@@ -1,8 +1,0 @@
-Terreno: construtores
-Construtor do objeto deve corresponder ao tipo do arquivo. Item() e para item, NPC() e para npc
-
-npc_bom.lua: tipo=npc, APIs=setSaudacao
-monster_bom.lua: tipo=monster, APIs=setAttack,setHealth
-item_bom.lua: tipo=item, APIs=setAttribute
-npc_ruim.lua: tipo=item, APIs=setSaudacao
-monster_confuso.lua: tipo=monster, APIs=setAttack,setAttribute

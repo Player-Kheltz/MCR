@@ -1,8 +1,0 @@
-<OTUI>
-  <Window name="JanelaPrincipal" title="Titulo">
-    <Panel name="main" width="300" height="200">
-      <Label text="Bem-vindo" x="10" y="10" width="280" height="30"/>
-      <Button text="Entrar" x="10" y="160" width="100" height="30"/>
-    </Panel>
-  </Window>
-</OTUI>

@@ -1,9 +1,0 @@
-  [KG Purge] 0 lessons marcadas como inativas
-[SUPERVISOR] "Critique esta proposta e sugira melhorias:
-  [KG Purge] 0 lessons marcadas como ..."
-  [Classificador] Tipo: opiniao/conselho
-  [Gatekeeper] Entrada com 2 fragmentos.
-  [ContextCrew] Analisador: fontes=['kg', 'docs'] termos=[Purge, SUPERVISOR]
-  [ContextCrew] Pesquisador: 14 resultados brutos
-  [ContextCrew] Filtrador: 13 resultados apos filtro
-  [ContextCrew] Compactador: 1401 tokens finais

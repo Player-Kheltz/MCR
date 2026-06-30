@@ -1,1 +1,0 @@
-O SPA (Server Progress and Abilities) no projeto MCR (Minecraft C++ Reloaded) é um sistema de gerenciamento de habilidades e progresso dos jogadores em um servidor baseado em Canary (OTServ). Este sistema permite que os jogadores adquiram experiência, aumentem seus níveis e aprimorem suas habilidades conforme interagem com o jogo.

@@ -1,7 +1,0 @@
--- Monster: Lorde das Chamas (via IA local)
-local mon = Monster("Lorde das Chamas")
-mon:setHealth(3500)
-mon:setAttack(120)
-mon:setDefense(50)
-mon:addLoot(6501, 0.9)
-print("Monster Lorde das Chamas carregado.")

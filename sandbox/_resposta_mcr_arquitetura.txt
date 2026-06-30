@@ -1,8 +1,0 @@
-PERGUNTA: Projete a arquitetura de um sistema de IA distribuido globalmente: 5 data centers em 3 continentes, 10.000 requisicoes por segundo, latencia maxima de 200ms, modelos 7B/13B/70B, tolerancia a falhas, custo otimizado. Cite tecnologias REAIS (Redis, Kubernetes, AWS, GCP, etc).
-TEMPO: 142s
-HONORARIOS: ['Arquitetura:\n\n1. **Data Centers**: 5 data centers em 3 continentes (2 nos EUA', '1 na Europa e 2 na Ásia).\n\n2. **Infraestrutura de Computação**:\n   - **AWS EC2**: Para hospedar máquinas virtuais.\n   - **Google Cloud Platform (GCP)**: Para hospedar máquinas virtuais.\n   - **Microsoft Azure**: Para hospedar máquinas virtuais.\n\n3. **Rede e Conexão Global**:\n   - **Cloudflare**: Para gerenciamento de DNS']
-TOOLKIT: Conselho V8, ContextCrew, Auto-revisao
-==================================================
-**Expandida e Específica:**
-
-Na cidade de São João, localizada na região sul do Brasil, um idoso de nome Luiz Henrique está parado na rua Santa Catarina, aguardando o passageiro que chegará às 15 horas. Ele é conhecido por suas coleções de rostos de álbumes de música, especialmente os álbuns de David Bowie, e sua coleção de tintas de chuveirinho que ele utiliza para pintar suas casas antigas, refletindo seu amanhecer e a nostalgia por tempos anteriores.

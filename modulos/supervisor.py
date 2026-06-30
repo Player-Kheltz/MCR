@@ -37,6 +37,40 @@ class Supervisor:
         self.orquestrador = orquestrador
         self.identidade = identidade  # Identidade do projeto (injetada externamente)
     
+    _KEYWORD_MAP = [
+        (r"cri(a|r|e|ar)\s+(um|uma|o|a)?\s*(npc|personagem)", "CRIAR_NPC", 90),
+        (r"(npc|personagem|vendedor|trader|shop)", "CRIAR_NPC", 50),
+        (r"cri(a|r|e|ar)\s+(um|uma|o|a)?\s*(habilidade|skill|poder)", "CRIAR_HABILIDADE", 90),
+        (r"(habilidade|skill|dominio|spa)", "CRIAR_HABILIDADE", 40),
+        (r"cri(a|r|e|ar)\s+(um|uma|o|a)?\s*(arquivo|script|modulo|classe)", "CRIAR_CODIGO", 80),
+        (r"(criar|fazer|gerar|produzir|implementar|desenvolver)", "CRIAR_CODIGO", 70),
+        (r"(alterar|modificar|editar|mudar|atualizar|corrigir)", "EDITAR", 80),
+        (r"(deletar|remover|apagar|excluir)", "DELETAR", 90),
+        (r"(o que e|o que é|explique|como funciona|me fale sobre)", "PERGUNTA", 80),
+        (r"(cpu|memoria|ram|disco|processo|sistema)", "SISTEMA", 80),
+        (r"(teste|testando)", "TESTE", 90),
+        (r"(ajuda|help|comandos|o que voce faz)", "AJUDA", 90),
+    ]
+    
+    def classificar_keyword(self, texto):
+        """Classifica intencao usando keywords (0 LLM, <1ms).
+        
+        Usado como fallback rapido ANTES de chamar o FAST.
+        De mcr_dev/router.py — resgatado e integrado.
+        """
+        msg = texto.lower().strip()
+        best_intent = "CHAT"
+        best_score = 0
+        
+        import re
+        for pattern, intent, priority in self._KEYWORD_MAP:
+            if re.search(pattern, msg):
+                if priority > best_score:
+                    best_score = priority
+                    best_intent = intent
+        
+        return best_intent if best_score >= 40 else None
+    
     def classificar(self, texto):
         """Classifica intencao. Detecta prompts MULTI-intencao (3+ topicos)."""
         t = texto.lower()
@@ -255,9 +289,14 @@ class Supervisor:
         # ====================================================
         try:
             from modulos.pipeline_executor import PipelineExecutor
+            from modulos.tool_orchestrator import ToolOrchestrator as _TO
+            from modulos.task_planner import TaskPlanner as _TP
+            _tools = _TO()
+            _planner = _TP(ia=self.ia, tool_orchestrator=_tools)
             _pipe = PipelineExecutor(
                 kg=self.kg, ia=self.ia, ctx_crew=self.ctx_crew,
-                orquestrador=self.orquestrador, identidade=self.identidade
+                orquestrador=self.orquestrador, identidade=self.identidade,
+                task_planner=_planner, tool_orchestrator=_tools
             )
             _resposta, _revisao = _pipe.executar(texto)
             if _resposta and _revisao['status'] == 'OK':
