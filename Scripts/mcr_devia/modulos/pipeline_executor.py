@@ -593,6 +593,10 @@ class PipelineExecutor:
             if nivel == 'pi':
                 # Pi Engine: Markov extrapolation (0 IA, 0 KG)
                 resposta = _pi.continuar_padrao(texto)
+                # Se nao adicionou conteudo, pula direto pro proximo nivel
+                if resposta == texto or len(resposta) - len(texto) < 10:
+                    print(f'  [Qualidade] Pi Engine sem predicão - subindo nivel')
+                    continue
                 
             elif nivel == 'kg':
                 # KG Weaver: fingerprint + lessons
@@ -642,7 +646,8 @@ class PipelineExecutor:
                 nota = validacao.get('nota_geral', 0)
                 print(f'  [Qualidade] Nivel {nivel}: {len(resposta)} chars, nota {nota}')
                 
-                if nota >= 8.0 or nivel == niveis[-1]:
+                # Pi precisa nota >= 9 E conteudo novo. Demais niveis: nota >= 8
+                if (nivel == 'pi' and nota >= 9.0 and len(resposta) > len(texto) * 1.5) or (nivel != 'pi' and nota >= 8.0) or nivel == niveis[-1]:
                     # Aprovado ou ultimo nivel
                     tempo_total = round(_time.time() - t0, 1)
                     print(f'[Pipeline] OK ({tempo_total}s) nivel={nivel}, nota={nota}, {len(resposta)} chars')

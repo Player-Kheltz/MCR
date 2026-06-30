@@ -3123,7 +3123,8 @@
       ],
       "tipo": "dominio",
       "timestamp": 1782698552.0449412,
-      "time_sensitive": false
+      "time_sensitive": false,
+      "_sim": 0.9170308528330009
     },
     {
       "id": "L0137",
@@ -3904,7 +3905,8 @@
       ],
       "tipo": "dominio",
       "timestamp": 1782698552.0449412,
-      "time_sensitive": false
+      "time_sensitive": false,
+      "_sim": 0.8656920770423566
     },
     {
       "id": "L0153",
@@ -4685,7 +4687,8 @@
       ],
       "tipo": "dominio",
       "timestamp": 1782698552.0449412,
-      "time_sensitive": false
+      "time_sensitive": false,
+      "_sim": 0.8368794449820486
     }
   ]
 }

@@ -181,6 +181,14 @@ class Reconstructor:
             # (KG como memoria de trabalho: encontra o padrao mais parecido)
             lessons_brutas = self.kg.buscar(termos, max_r=15)
             if lessons_brutas and self.pe:
+                # Filtra lessons inativas (runtime, stress_test, etc)
+                lessons_brutas = [l for l in lessons_brutas if not l.get('inactive', False)]
+                if not lessons_brutas:
+                    # Se so tem inativas, tenta buscar expandido
+                    if hasattr(self.kg, 'buscar_expandido'):
+                        lessons_brutas = self.kg.buscar_expandido(termos, max_r=10)
+                        lessons_brutas = [l for l in lessons_brutas if not l.get('inactive', False)]
+                
                 # Calcula fingerprint da pergunta
                 fp_pergunta = self.pe.fingerprint(self.pe.tokenizar(termos, 'texto'))
                 
