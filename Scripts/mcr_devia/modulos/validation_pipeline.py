@@ -23,6 +23,7 @@ _NOMES_ESTAGIOS = {
     'v5': 'AlucinacaoChecker',
     'v6': 'TruncationChecker',
     'v7': 'Especificidade',
+    'v8': 'Completude',
 }
 
 
@@ -50,6 +51,7 @@ class ValidationPipeline:
         estagios.append(self._v5_alucinacao_checker(resposta))
         estagios.append(self._v6_truncation_checker(resposta))
         estagios.append(self._v7_especificidade(pergunta, resposta, contexto_kg))
+        estagios.append(self._v8_completude(pergunta, resposta))
         
         self.resultados = {
             'estagios': estagios,
@@ -196,6 +198,61 @@ class ValidationPipeline:
             detalhes.append('Sem referencias a codigo fonte')
         
         return {'nome': nome, 'status': 'INFO', 'detalhes': ' | '.join(detalhes)}
+    
+    def _v8_completude(self, pergunta, resposta):
+        """V8 - Completude: resposta esta COMPLETA, precisa CONTINUAR, ou deve REFAZER?
+        
+        Usado no modo token-a-bloco para decidir o proximo passo.
+        Retorna: COMPLETO (resposta finalizada)
+                 CONTINUAR (falta conteudo)
+                 REFAZER (ultimo bloco com problemas)
+        """
+        nome = _NOMES_ESTAGIOS.get('v8', 'Completude')
+        
+        if not resposta or len(resposta) < 20:
+            return {'nome': nome, 'status': 'INFO', 'detalhes': 'CONTINUAR', 'decisao': 'CONTINUAR'}
+        
+        # Heuristica 1: termina com pontuacao final?
+        if resposta.strip() and resposta.strip()[-1] not in '.!?)]}\'"':
+            return {'nome': nome, 'status': 'INFO', 'detalhes': 'CONTINUAR (sem pontuacao final)', 'decisao': 'CONTINUAR'}
+        
+        # Heuristica 2: tem reticencias no final (cortado)?
+        if resposta.strip().endswith('...') or resposta.strip().endswith('…'):
+            return {'nome': nome, 'status': 'INFO', 'detalhes': 'CONTINUAR (reticencias)', 'decisao': 'CONTINUAR'}
+        
+        # Heuristica 3: parece uma frase incompleta?
+        ultima_frase = resposta.strip()
+        if '.' in resposta:
+            ultima_frase = resposta.strip().rsplit('.', 1)[-1]
+        if len(ultima_frase) < 15 and '?' not in ultima_frase:
+            return {'nome': nome, 'status': 'INFO', 'detalhes': 'CONTINUAR (frase curta)', 'decisao': 'CONTINUAR'}
+        
+        # Se tem IA, pergunta se a pergunta foi totalmente respondida
+        if self.ia:
+            try:
+                prompt = (
+                    "[SISTEMA]\nA pergunta abaixo foi COMPLETAMENTE respondida?\n"
+                    "Responda APENAS: COMPLETO, CONTINUAR ou REFAZER\n\n"
+                    f"[PERGUNTA]\n{pergunta}\n\n"
+                    f"[RESPOSTA ATUAL]\n{resposta}\n\n"
+                    "[A resposta cobre todos os aspectos da pergunta? FALTA algo?]\n"
+                    "[DECISAO]:"
+                )
+                decisao = self.ia.fast(prompt, 0.2, 'leve') or ''
+                decisao = decisao.strip().upper()
+                if 'COMPLETO' in decisao:
+                    return {'nome': nome, 'status': 'INFO', 'detalhes': 'COMPLETO', 'decisao': 'COMPLETO'}
+                elif 'REFAZER' in decisao:
+                    return {'nome': nome, 'status': 'INFO', 'detalhes': 'REFAZER', 'decisao': 'REFAZER'}
+                else:
+                    return {'nome': nome, 'status': 'INFO', 'detalhes': 'CONTINUAR', 'decisao': 'CONTINUAR'}
+            except Exception:
+                pass
+        
+        # Fallback: se tem mais de 200 chars, considera completo
+        if len(resposta) > 200:
+            return {'nome': nome, 'status': 'INFO', 'detalhes': 'COMPLETO (fallback)', 'decisao': 'COMPLETO'}
+        return {'nome': nome, 'status': 'INFO', 'detalhes': 'CONTINUAR (fallback)', 'decisao': 'CONTINUAR'}
 
 
 def validar_resposta(pergunta, resposta, kg=None, pe=None, ia=None, contexto_kg=""):

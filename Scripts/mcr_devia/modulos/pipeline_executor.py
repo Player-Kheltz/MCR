@@ -205,7 +205,7 @@ class PipelineExecutor:
             return True
         return False
 
-    def executar(self, texto: str, skip_tot=False, turbo=False, fragmentar=False) -> Tuple[str, Dict]:
+    def executar(self, texto: str, skip_tot=False, turbo=False, fragmentar=False, token_a_bloco=False) -> Tuple[str, Dict]:
         """Executa pipeline completo: planejar -> executar -> montar -> revisar.
         
         Args:
@@ -213,7 +213,11 @@ class PipelineExecutor:
             skip_tot: Se True, pula Tree of Thought (modo rapido)
             turbo: Se True, ativa Modo Offline Turbinado (5 ToT, KG expandido, sem internet)
             fragmentar: Se True, ativa modo Bolo Desconstruido (fragmenta + processa + reconstroi)
+            token_a_bloco: Se True, ativa modo token-a-bloco (gera um bloco por vez, valida, repete)
         """
+        if token_a_bloco:
+            return self._executar_token_a_bloco(texto)
+        
         if fragmentar:
             return self._executar_fragmentado(texto)
         
@@ -452,6 +456,76 @@ class PipelineExecutor:
             'niveis': niveis,
             'tamanho': len(resposta_final),
             'eixo_final': eixo,
+        }
+    
+    def _executar_token_a_bloco(self, texto):
+        """Modo token-a-bloco: gera UM bloco por vez, valida, repete.
+        
+        Mesmo pipeline (Weaver + Reconstructor + 7b), mas em loop.
+        Cada iteracao gera UM paragrafo, valida se pode continuar,
+        e repete ate a resposta estar completa.
+        Nao cria nada novo — so usa o que ja existe em loop.
+        """
+        from modulos.progress_tracker import reportar as _trk_report
+        from modulos.reconstructor import Reconstructor
+        from modulos.pattern_engine import PatternEngine
+        from modulos.validation_pipeline import ValidationPipeline
+        from modulos.kg import KnowledgeGraph
+        import time as _time
+        
+        t0 = _time.time()
+        print(f'[Pipeline] Modo token-a-bloco ativado')
+        
+        # Prepara componentes (ja existentes)
+        _kg_v = self.kg or KnowledgeGraph()
+        _pe_v = PatternEngine()
+        _recon = Reconstructor(kg=_kg_v, ia=self.ia, pe=_pe_v)
+        _vp = ValidationPipeline(kg=_kg_v, pe=_pe_v, ia=self.ia)
+        
+        resposta = ""
+        MAX_BLOCOS = 15
+        
+        for ciclo in range(MAX_BLOCOS):
+            print(f'  [Token-a-bloco] Ciclo {ciclo+1}/{MAX_BLOCOS}')
+            _trk_report('TokenABloco', f'ciclo {ciclo+1}', ciclo/MAX_BLOCOS)
+            
+            # 1. Gera proximo bloco
+            bloco = _recon.gerar_proximo_bloco(texto, resposta)
+            if not bloco or len(bloco) < 10:
+                print(f'  [Token-a-bloco] Bloco vazio — finalizando')
+                break
+            
+            print(f'  [Token-a-bloco] Bloco gerado: {len(bloco)} chars')
+            
+            # 2. Valida completude
+            tentativa = resposta + bloco
+            validacao = _vp.validar(texto, tentativa)
+            
+            # 3. Extrai decisao do V8
+            decisao = 'CONTINUAR'
+            for estagio in validacao.get('estagios', []):
+                if estagio.get('nome') == 'Completude':
+                    decisao = estagio.get('decisao', 'CONTINUAR')
+                    break
+            
+            if decisao == 'REFAZER':
+                print(f'  [Token-a-bloco] Rejeitado — tentando de novo')
+                continue
+            
+            resposta = tentativa
+            print(f'  [Token-a-bloco] Aceito ({len(resposta)} chars total, decisao={decisao})')
+            
+            if decisao == 'COMPLETO':
+                print(f'  [Token-a-bloco] Resposta completa — {ciclo+1} ciclos')
+                break
+        
+        tempo_total = round(_time.time() - t0, 1)
+        print(f'[Pipeline] Token-a-bloco OK ({tempo_total}s) — {len(resposta)} chars, {ciclo+1} ciclos')
+        
+        return resposta, {
+            'status': 'OK' if resposta else 'FALHA',
+            'tamanho': len(resposta),
+            'ciclos': ciclo + 1,
         }
     
     def _executar_ia_fragmento(self, prompt, frag):

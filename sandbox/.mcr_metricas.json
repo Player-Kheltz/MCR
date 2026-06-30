@@ -1,9 +1,9 @@
 {
-  "total_calls": 421,
+  "total_calls": 426,
   "erros": 3,
   "cache_hits": 0,
   "cache_misses": 0,
-  "tempo_medio": 41.6,
+  "tempo_medio": 41.8,
   "templates_usados": {
     "lore": 19,
     "perguntar": 260,
@@ -15,49 +15,15 @@
     "analisar_bug": 3,
     "mega_teste": 20,
     "analisar_texto": 3,
-    "conselho_critico": 6,
+    "conselho_critico": 7,
     "conselho_revisor_codigo": 1,
-    "conselho_arquiteto": 1,
-    "conselho_analista": 6,
+    "conselho_arquiteto": 2,
+    "conselho_analista": 7,
     "analise_melhoria": 3,
-    "conselho_estrategista": 2
+    "conselho_estrategista": 3,
+    "conselho_contador_historias": 1
   },
   "ultimas": [
-    {
-      "ts": 1782760140.360987,
-      "intencao": "perguntar",
-      "tempo": 45.5,
-      "sucesso": true,
-      "tam": 453
-    },
-    {
-      "ts": 1782760144.3511915,
-      "intencao": "perguntar",
-      "tempo": 49.5,
-      "sucesso": true,
-      "tam": 483
-    },
-    {
-      "ts": 1782760190.3397212,
-      "intencao": "perguntar",
-      "tempo": 33.0,
-      "sucesso": true,
-      "tam": 353
-    },
-    {
-      "ts": 1782760228.7325234,
-      "intencao": "perguntar",
-      "tempo": 38.4,
-      "sucesso": true,
-      "tam": 453
-    },
-    {
-      "ts": 1782760238.7267098,
-      "intencao": "perguntar",
-      "tempo": 48.4,
-      "sucesso": true,
-      "tam": 489
-    },
     {
       "ts": 1782760238.7655282,
       "intencao": "perguntar",
@@ -372,6 +338,41 @@
       "tempo": 45.5,
       "sucesso": true,
       "tam": 304
+    },
+    {
+      "ts": 1782780266.045768,
+      "intencao": "conselho_analista",
+      "tempo": 31.1,
+      "sucesso": true,
+      "tam": 406
+    },
+    {
+      "ts": 1782780275.9713378,
+      "intencao": "conselho_critico",
+      "tempo": 41.0,
+      "sucesso": true,
+      "tam": 305
+    },
+    {
+      "ts": 1782780278.7620635,
+      "intencao": "conselho_arquiteto",
+      "tempo": 43.8,
+      "sucesso": true,
+      "tam": 455
+    },
+    {
+      "ts": 1782780310.2900765,
+      "intencao": "conselho_contador_historias",
+      "tempo": 75.3,
+      "sucesso": true,
+      "tam": 2232
+    },
+    {
+      "ts": 1782780335.2631,
+      "intencao": "conselho_estrategista",
+      "tempo": 100.3,
+      "sucesso": true,
+      "tam": 459
     }
   ]
 }
