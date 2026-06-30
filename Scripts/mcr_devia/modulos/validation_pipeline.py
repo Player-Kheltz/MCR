@@ -55,8 +55,76 @@ class ValidationPipeline:
         
         self.resultados = {
             'estagios': estagios,
+            'nota_geral': self._calcular_nota(estagios),
         }
         return self.resultados
+    
+    def _calcular_nota(self, estagios):
+        """Calcula nota geral 0-10 baseada nos estagios.
+        
+        Cada estagio contribui com uma pontuacao baseada em heuristicas:
+        - V1: similaridade com KG (0-2 pontos)
+        - V2: termos confirmados (0-2 pontos)
+        - V3: arquivos citados (0-1 ponto)
+        - V4: coerencia (0-1 ponto)
+        - V5: alucinacoes (0-1 ponto)
+        - V6: completude textual (0-1 ponto)
+        - V7: especificidade MCR (0-1 ponto)
+        - V8: decisao de completude (0-1 ponto)
+        """
+        nota = 5.0  # nota base neutra
+        
+        for e in estagios:
+            nome = e.get('nome', '')
+            detalhes = e.get('detalhes', '')
+            
+            if nome == 'PatternChecker':
+                # Extrai similaridade
+                import re as _re
+                m = _re.search(r'[\d.]+', detalhes)
+                if m:
+                    sim = float(m.group())
+                    nota += sim * 2  # 0 a 2 pontos
+                    if sim > 0.8:
+                        nota += 0.5
+            
+            elif nome == 'FactChecker':
+                m = _re.search(r'(\d+)\s*termos', detalhes)
+                if m:
+                    n_termos = int(m.group(1))
+                    nota += min(n_termos / 5, 2)  # 0 a 2 pontos
+            
+            elif nome == 'CodeChecker':
+                if 'confirmados' in detalhes:
+                    nota += 1  # 1 ponto se tem arquivos confirmados
+            
+            elif nome == 'ConselhoChecker':
+                if 'coerente' in detalhes.lower() or 'aprovado' in detalhes.upper():
+                    nota += 1
+            
+            elif nome == 'AlucinacaoChecker':
+                if 'nenhum' in detalhes.lower():
+                    nota += 1  # sem alucinacoes = +1
+            
+            elif nome == 'TruncationChecker':
+                if 'completa' in detalhes.lower():
+                    nota += 1
+            
+            elif nome == 'Especificidade':
+                m = _re.search(r'(\d+)\s*arquivos', detalhes)
+                if m:
+                    nota += 0.5
+                if 'arquivos:linhas' in detalhes:
+                    nota += 0.5
+            
+            elif nome == 'Completude':
+                decisao = e.get('decisao', '')
+                if decisao == 'COMPLETO':
+                    nota += 1
+                elif decisao == 'CONTINUAR':
+                    nota -= 0.5
+        
+        return round(max(0, min(10, nota)), 1)
     
     def _v1_pattern_checker(self, pergunta, resposta):
         """V1 - PatternChecker: similaridade entre resposta e KG. Apenas relata."""

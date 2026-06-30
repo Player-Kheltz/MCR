@@ -205,16 +205,21 @@ class PipelineExecutor:
             return True
         return False
 
-    def executar(self, texto: str, skip_tot=False, turbo=False, fragmentar=False, token_a_bloco=True) -> Tuple[str, Dict]:
+    def executar(self, texto: str, skip_tot=False, turbo=False, fragmentar=False, token_a_bloco=True, modo_ia="auto") -> Tuple[str, Dict]:
         """Executa pipeline completo: planejar -> executar -> montar -> revisar.
         
         Args:
             texto: Pergunta/texto a processar
             skip_tot: Se True, pula Tree of Thought (modo rapido)
-            turbo: Se True, ativa Modo Offline Turbinado (5 ToT, KG expandido, sem internet)
-            fragmentar: Se True, ativa modo Bolo Desconstruido (fragmenta + processa + reconstroi)
-            token_a_bloco: Se True (padrao), ativa modo LLM caseiro (um bloco por vez, valida, repete)
+            turbo: Se True, ativa Modo Offline Turbinado
+            fragmentar: Se True, ativa modo Bolo Desconstruido
+            token_a_bloco: Se True (padrao), modo LLM caseiro
+            modo_ia: "zero" (0 IA), "kg" (+KG), "conselho" (+Conselho), "maximo" (+LLM 7b), "auto" (decide)
         """
+        # Quality Loop: tenta com menos IA, sobe se qualidade insuficiente
+        if modo_ia != "maximo":
+            return self._executar_com_qualidade(texto, modo_ia)
+        
         if token_a_bloco:
             return self._executar_token_a_bloco(texto)
         
@@ -528,6 +533,145 @@ class PipelineExecutor:
             'ciclos': ciclo + 1,
         }
     
+
+    def _executar_com_qualidade(self, texto, modo_ia="auto"):
+        """Quality Loop: tenta com menos IA, sobe de nivel se qualidade insuficiente.
+        
+        Niveis:
+          0 - Pi Engine (Markov + PatternEngine, 0 IA, 0 KG)
+          1 - +KG Weaver (fingerprint + lessons, 0 IA)
+          2 - +Conselho votado (score historico, 0 IA)
+          3 - +LLM 7b (fallback final)
+        
+        Cada nivel gera uma resposta, o Validation Pipeline da uma nota 0-10.
+        Se nota >= 8, entrega. Se nao, sobe de nivel com feedback.
+        """
+        from modulos.progress_tracker import reportar as _trk_report
+        from modulos.validation_pipeline import ValidationPipeline
+        from modulos.pattern_engine import PatternEngine
+        from modulos.kg import KnowledgeGraph
+        from modulos.pi_engine import PiEngine
+        import time as _time
+        
+        t0 = _time.time()
+        _kg_v = self.kg or KnowledgeGraph()
+        _pe_v = PatternEngine()
+        _pi = PiEngine(pe=_pe_v, kg=_kg_v)
+        _vp = ValidationPipeline(kg=_kg_v, pe=_pe_v, ia=self.ia)
+        
+        # Decide niveis a tentar baseado no modo_ia
+        if modo_ia == "zero":
+            niveis = ['pi']
+        elif modo_ia == "kg":
+            niveis = ['pi', 'kg']
+        elif modo_ia == "conselho":
+            niveis = ['pi', 'kg', 'conselho']
+        elif modo_ia == "auto":
+            # Decide baseado na entropia
+            entropia = _pi.avaliar_entropia(texto)
+            if entropia < 0.4:
+                niveis = ['pi']
+            elif entropia < 0.65:
+                niveis = ['pi', 'kg']
+            elif entropia < 0.85:
+                niveis = ['pi', 'kg', 'conselho']
+            else:
+                niveis = ['pi', 'kg', 'conselho', 'llm']
+            print(f'  [Qualidade] Entropia {entropia:.2f} -> niveis: {niveis}')
+        else:
+            niveis = ['pi', 'kg', 'conselho', 'llm']
+        
+        resposta = ""
+        feedback = ""
+        nivel_atual = ""
+        
+        for nivel in niveis:
+            nivel_atual = nivel
+            print(f'  [Qualidade] Tentando nivel: {nivel}')
+            _trk_report('Qualidade', nivel, niveis.index(nivel)/len(niveis))
+            
+            if nivel == 'pi':
+                # Pi Engine: Markov extrapolation (0 IA, 0 KG)
+                resposta = _pi.continuar_padrao(texto)
+                
+            elif nivel == 'kg':
+                # KG Weaver: fingerprint + lessons
+                from modulos.reconstructor import Reconstructor
+                _recon = Reconstructor(kg=_kg_v, ia=self.ia, pe=_pe_v, tools=self.tool_orchestrator)
+                catalogo = _recon._catalogar(texto)
+                contexto = _recon._tecer_contexto(catalogo)
+                
+                if contexto.get('principal'):
+                    resposta = contexto['principal']
+                if contexto.get('codigo'):
+                    resposta += '\n' + contexto['codigo']
+                if not resposta:
+                    continue  # Tenta proximo nivel
+                
+            elif nivel == 'conselho':
+                # Conselho votado + BlankFiller (0 IA)
+                from modulos.blank_filler import BlankFiller
+                _bf = BlankFiller()
+                resposta = _bf.preencher_tudo(texto, modo='cadeia')
+                if not resposta or len(resposta) < 30:
+                    continue
+                
+            elif nivel == 'llm':
+                # LLM 7b fallback (ultimo recurso)
+                if hasattr(self, '_executar_token_a_bloco'):
+                    from modulos.reconstructor import Reconstructor
+                    _recon2 = Reconstructor(kg=_kg_v, ia=self.ia, pe=_pe_v)
+                    
+                    # Gera via token-a-bloco
+                    resposta = ""
+                    for ciclo in range(10):
+                        bloco = _recon2.gerar_proximo_bloco(texto, resposta)
+                        if not bloco or len(bloco) < 10:
+                            break
+                        resposta += " " + bloco
+                    
+                    if not resposta:
+                        # Fallback: chamada direta 7b
+                        if self.ia:
+                            prompt = f"[PERGUNTA]\n{texto}\n\n[RESPOSTA]:"
+                            resposta = self.ia.gerar(prompt, 0.3, 'pesado') or ""
+            
+            # Valida a resposta
+            if resposta and len(resposta) > 20:
+                validacao = _vp.validar(texto, resposta)
+                nota = validacao.get('nota_geral', 0)
+                print(f'  [Qualidade] Nivel {nivel}: {len(resposta)} chars, nota {nota}')
+                
+                if nota >= 8.0 or nivel == niveis[-1]:
+                    # Aprovado ou ultimo nivel
+                    tempo_total = round(_time.time() - t0, 1)
+                    print(f'[Pipeline] OK ({tempo_total}s) nivel={nivel}, nota={nota}, {len(resposta)} chars')
+                    
+                    # Aprende no KG
+                    try:
+                        _kg_v.aprender(
+                            erro=f'resposta_{nivel}: {texto}',
+                            causa=f'nivel={nivel}, nota={nota}',
+                            solucao=f'{resposta}',
+                            ctx=f'resposta_{nivel}'
+                        )
+                    except Exception:
+                        pass
+                    
+                    return resposta, {
+                        'status': 'OK', 'tamanho': len(resposta),
+                        'nivel': nivel, 'nota': nota, 'tempo': tempo_total
+                    }
+                else:
+                    feedback = f'Nota {nota} insuficiente. Subindo nivel...'
+                    print(f'  [Qualidade] {feedback}')
+        
+        # Se chegou aqui, todos os niveis falharam
+        tempo_total = round(_time.time() - t0, 1)
+        return resposta or "Nao foi possivel gerar resposta.", {
+            'status': 'FALHA', 'tamanho': len(resposta or ''),
+            'nivel': nivel_atual, 'tempo': tempo_total
+        }
     def _executar_ia_fragmento(self, prompt, frag):
         """Executa um fragmento via IA leve. Prompt < 2K chars."""
         if self.ia:
