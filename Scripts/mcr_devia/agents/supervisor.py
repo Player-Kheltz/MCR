@@ -289,9 +289,14 @@ class Supervisor:
         # ====================================================
         try:
             from modulos.pipeline_executor import PipelineExecutor
+            from modulos.tool_orchestrator import ToolOrchestrator as _TO
+            from modulos.task_planner import TaskPlanner as _TP
+            _tools = _TO()
+            _planner = _TP(ia=self.ia, tool_orchestrator=_tools)
             _pipe = PipelineExecutor(
                 kg=self.kg, ia=self.ia, ctx_crew=self.ctx_crew,
-                orquestrador=self.orquestrador, identidade=self.identidade
+                orquestrador=self.orquestrador, identidade=self.identidade,
+                task_planner=_planner, tool_orchestrator=_tools
             )
             _resposta, _revisao = _pipe.executar(texto)
             if _resposta and _revisao['status'] == 'OK':
