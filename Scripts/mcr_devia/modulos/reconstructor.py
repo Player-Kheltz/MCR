@@ -176,13 +176,27 @@ class Reconstructor:
             return contexto
         
         try:
-            # FONTE 1: KG PRINCIPAL (1 lesson com prioridade de ctx)
-            lessons_brutas = self.kg.buscar(termos, max_r=10)
-            if lessons_brutas:
-                # Pontua cada lesson: keyword_score * ctx_priority
+            # FONTE 1: KG PRINCIPAL (padrao mais similar via fingerprint do PatternEngine)
+            # Em vez de buscar por keyword + ctx priority, busca por FINGERPRINT SIMILARITY
+            # (KG como memoria de trabalho: encontra o padrao mais parecido)
+            lessons_brutas = self.kg.buscar(termos, max_r=15)
+            if lessons_brutas and self.pe:
+                # Calcula fingerprint da pergunta
+                fp_pergunta = self.pe.fingerprint(self.pe.tokenizar(termos, 'texto'))
+                
+                # Calcula similaridade com cada lesson
+                for l in lessons_brutas:
+                    texto_lesson = l.get('solucao', '') + ' ' + l.get('erro', '')
+                    if texto_lesson and len(texto_lesson) > 20:
+                        fp_lesson = self.pe.fingerprint(self.pe.tokenizar(texto_lesson, 'texto'))
+                        sim = self.pe.similaridade(fp_pergunta, fp_lesson)
+                        l['_sim'] = sim
+                    else:
+                        l['_sim'] = 0
+                
+                # Ordena por: similaridade > prioridade ctx (empatado)
                 lessons_brutas.sort(key=lambda l: (
-                    _CTX_PRIORIDADE.get(l.get('ctx', 'geral'), 50),
-                    len(l.get('solucao', ''))
+                    l.get('_sim', 0) * 10 + _CTX_PRIORIDADE.get(l.get('ctx', 'geral'), 50) / 100
                 ), reverse=True)
                 
                 melhor = lessons_brutas[0]
@@ -191,19 +205,22 @@ class Reconstructor:
                 sol = melhor.get('solucao', '')
                 if err and sol:
                     contexto['principal'] = f"[{ctx_melhor}] {err}: {sol}"
-                    print(f'  [Weaver] Principal: {ctx_melhor}/{err}...')
+                    print(f'  [Weaver] Principal: {ctx_melhor}/{err}... (sim={melhor.get("_sim",0):.2f})')
                 
-                # FONTE 3: KG CONTEXTO (outra lesson do MESMO ctx)
-                for l in lessons_brutas[1:4]:
+                # FONTE 3: KG CONTEXTO (segunda lesson mais similar, mesmo ctx)
+                for l in lessons_brutas[1:5]:
                     if l.get('ctx') == ctx_melhor and l.get('id') != melhor.get('id'):
                         err2 = l.get('erro', '')
                         sol2 = l.get('solucao', '')
                         if err2 and sol2:
-                            suporte = f"[ctx: {ctx_melhor}] {err2}: {sol2}"
-                            if contexto['suporte']:
-                                contexto['suporte'] += '\n'
-                            contexto['suporte'] += suporte
-                            break  # So 1 de suporte
+                            contexto['suporte'] = f"[ctx: {ctx_melhor}] {err2}: {sol2}"
+                            break
+            elif lessons_brutas:
+                # Fallback: sem PatternEngine, usa prioridade de ctx
+                lessons_brutas.sort(key=lambda l: (
+                    _CTX_PRIORIDADE.get(l.get('ctx', 'geral'), 50),
+                    len(l.get('solucao', ''))
+                ), reverse=True)  # So 1 de suporte
             
             # FONTE 2: CODIGO (se dominio = 'codigo' ou 'bugfix')
             if dominio in ('codigo', 'bugfix') and hasattr(self, 'tools') and self.tools:

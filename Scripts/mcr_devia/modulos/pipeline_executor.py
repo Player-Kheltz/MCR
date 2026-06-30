@@ -205,7 +205,7 @@ class PipelineExecutor:
             return True
         return False
 
-    def executar(self, texto: str, skip_tot=False, turbo=False, fragmentar=False, token_a_bloco=False) -> Tuple[str, Dict]:
+    def executar(self, texto: str, skip_tot=False, turbo=False, fragmentar=False, token_a_bloco=True) -> Tuple[str, Dict]:
         """Executa pipeline completo: planejar -> executar -> montar -> revisar.
         
         Args:
@@ -213,7 +213,7 @@ class PipelineExecutor:
             skip_tot: Se True, pula Tree of Thought (modo rapido)
             turbo: Se True, ativa Modo Offline Turbinado (5 ToT, KG expandido, sem internet)
             fragmentar: Se True, ativa modo Bolo Desconstruido (fragmenta + processa + reconstroi)
-            token_a_bloco: Se True, ativa modo token-a-bloco (gera um bloco por vez, valida, repete)
+            token_a_bloco: Se True (padrao), ativa modo LLM caseiro (um bloco por vez, valida, repete)
         """
         if token_a_bloco:
             return self._executar_token_a_bloco(texto)
