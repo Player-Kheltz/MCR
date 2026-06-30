@@ -17,6 +17,12 @@ OLLAMA_URL = os.environ.get('OLLAMA_URL', 'http://localhost:11434')
 _embedding_cache_kg = {}
 _EMBED_MODEL = 'nomic-embed-text:latest'
 
+# Buffer para escrita async de lessons
+_LESSONS_BUFFER = []
+_BUFFER_LIMIT = 10
+_LAST_SAVE = 0
+_BUFFER_TIMEOUT = 30
+
 def _cosine_similaridade(a, b):
     dot = sum(x * y for x, y in zip(a, b))
     na = math.sqrt(sum(x * x for x in a))
@@ -247,7 +253,7 @@ class KnowledgeGraph:
                     else: score += 2
             if score > 0: scores.append((score, l))
         scores.sort(key=lambda x: -x[0])
-        return [s[1] for s in scores]
+        return [s[1] for s in scores[:max_r if max_r else len(scores)]]
     
     def buscar_por_embedding(self, texto, n=3, incluir_benchmark=False):
         if any(p in texto.lower() for p in ['benchmark','stress','perf_test','performance']):
@@ -330,26 +336,70 @@ class KnowledgeGraph:
         return [s[1] for s in ordenados]
     
     # ===== APRENDIZADO =====
-    
-    def aprender(self, erro, causa, solucao, ctx='geral', tipo='dominio', time_sensitive=False):
-        """Registra aprendizado — salva APENAS o ctx alterado."""
-        licoes = self._get_licoes()
-        lid = f'L{len(licoes)+1:04d}'
+
+    def aprender_conceito(self, termo, definicao, ctx='conceito'):
+        """Atalho: aprende um conceito simples no KG.
+
+        Args:
+            termo: str, nome do conceito
+            definicao: str, definicao/explicacao do conceito
+            ctx: str, contexto (padrao 'conceito')
+
+        Returns:
+            dict: lesson criada
+        """
+        return self.aprender(erro=termo, causa=f"conceito: {termo}", solucao=definicao, ctx=ctx)
+
+    def _buffer_aprender(self, erro, causa, solucao, ctx='geral', tipo='dominio', time_sensitive=False, tags=None, fingerprint=None, tipos_markov=None):
+        ...
+        """Buffer de lessons: acumula e salva em lote.
+
+        Args:
+            erro: str, termo/erro
+            causa: str, causa
+            solucao: str, solucao/definicao
+            ctx: str, contexto
+            tipo: str, tipo da lesson
+            time_sensitive: bool, se eh time-sensitive
+            tags: list, tags adicionais
+        """
+        global _LESSONS_BUFFER, _LAST_SAVE
         lesson = {
-            'id': lid, 'erro': erro, 'causa': causa,
-            'solucao': solucao, 'ctx': ctx, 'tipo': tipo, 'usos': 0,
-            'timestamp': _time.time(), 'time_sensitive': time_sensitive,
+            'erro': erro, 'causa': causa, 'solucao': solucao, 'ctx': ctx,
+            'tipo': tipo, 'time_sensitive': time_sensitive,
+            'tags': tags or [], 'timestamp': _time.time(),
         }
+        if fingerprint is not None:
+            lesson['fingerprint'] = fingerprint
+        if tipos_markov is not None:
+            lesson['tipos_markov'] = tipos_markov
+        
         try:
             emb = _gerar_embedding_kg(erro + ' ' + causa)
             if emb: lesson['embedding'] = emb
         except Exception:
             pass
-        self.data['licoes'].append(lesson)
-        self._ctx_cache.setdefault(ctx, []).append(lesson)
-        self._dirty_ctxs.add(ctx)
-        # Salva imediatamente (so o ctx alterado)
-        self.salvar()
+        _LESSONS_BUFFER.append(lesson)
+        if len(_LESSONS_BUFFER) >= _BUFFER_LIMIT or (_time.time() - _LAST_SAVE) > _BUFFER_TIMEOUT:
+            licoes = self._get_licoes()
+            for l in _LESSONS_BUFFER:
+                lid = f'L{len(licoes)+1:04d}'
+                l['id'] = lid
+                licoes.append(l)
+                self._ctx_cache.setdefault(l.get('ctx', 'geral'), []).append(l)
+                self._dirty_ctxs.add(l.get('ctx', 'geral'))
+            self.salvar()
+            _LESSONS_BUFFER.clear()
+            _LAST_SAVE = _time.time()
+            return lesson
+        return lesson
+
+    def aprender(self, erro, causa, solucao, ctx='geral', tipo='dominio', time_sensitive=False, fingerprint=None, tipos_markov=None):
+        """Registra aprendizado — usa buffer para escrita em lote."""
+        tags = []
+        if any(p in (erro + ' ' + causa + ' ' + solucao).lower() for p in ['benchmark', 'test']):
+            tags.append('stress_test')
+        self._buffer_aprender(erro, causa, solucao, ctx, tipo, time_sensitive, tags, fingerprint, tipos_markov)
     
     def atualizar_lesson(self, lesson_id, novos_campos):
         licoes = self._get_licoes()
@@ -450,3 +500,38 @@ class KnowledgeGraph:
             # Fallback: master index
             ctxs = master.get('contexts', {})
         return ctxs
+    
+    def buscar_rotas(self, fingerprint, max_r=5, min_sim=0.5):
+        """Busca rotas aprendidas por similaridade de fingerprint.
+        
+        Cada lesson com ctx='rota' contem um fingerprint armazenado.
+        Calcula similaridade coseno entre o fingerprint fornecido e os armazenados.
+        Retorna as lessons mais similares (nao inativas).
+        
+        Args:
+            fingerprint: List[float] — fingerprint do PatternEngine
+            max_r: Maximo de resultados
+            min_sim: Similaridade minima para considerar match
+        Returns:
+            list[dict] — lessons ordenadas por similaridade (maior primeiro)
+        """
+        if not fingerprint:
+            return []
+        
+        licoes = self._get_licoes()
+        candidatos = []
+        
+        for l in licoes:
+            if l.get('inactive') or l.get('ctx') != 'rota':
+                continue
+            fp_lesson = l.get('fingerprint', [])
+            if not fp_lesson or len(fp_lesson) != len(fingerprint):
+                continue
+            
+            # Similaridade coseno
+            dot = sum(a * b for a, b in zip(fp_lesson, fingerprint))
+            if dot >= min_sim:
+                candidatos.append((dot, l))
+        
+        candidatos.sort(key=lambda x: -x[0])
+        return [c[1] for c in candidatos[:max_r]]

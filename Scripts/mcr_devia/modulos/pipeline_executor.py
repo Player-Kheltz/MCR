@@ -191,6 +191,7 @@ class PipelineExecutor:
         self.frag_manager = FragmentManager()
         self.assembler = ResponseAssembler()
         self.reviewer = PipelineReviewer()
+        self._exec_count = 0  # Contador para Emergir (a cada 5 execs)
     
     def _detectar_complexidade(self, texto):
         """Detecta se a pergunta e complexa o suficiente para usar TaskPlanner."""
@@ -535,17 +536,7 @@ class PipelineExecutor:
     
 
     def _executar_com_qualidade(self, texto, modo_ia="auto"):
-        """Quality Loop: tenta com menos IA, sobe de nivel se qualidade insuficiente.
-        
-        Niveis:
-          0 - Pi Engine (Markov + PatternEngine, 0 IA, 0 KG)
-          1 - +KG Weaver (fingerprint + lessons, 0 IA)
-          2 - +Conselho votado (score historico, 0 IA)
-          3 - +LLM 7b (fallback final)
-        
-        Cada nivel gera uma resposta, o Validation Pipeline da uma nota 0-10.
-        Se nota >= 8, entrega. Se nao, sobe de nivel com feedback.
-        """
+        """Quality Loop — com suporte a fragmentacao multi-intencao."""
         from modulos.progress_tracker import reportar as _trk_report
         from modulos.validation_pipeline import ValidationPipeline
         from modulos.pattern_engine import PatternEngine
@@ -559,124 +550,299 @@ class PipelineExecutor:
         _pi = PiEngine(pe=_pe_v, kg=_kg_v)
         _vp = ValidationPipeline(kg=_kg_v, pe=_pe_v, ia=self.ia)
         
-        # Decide niveis a tentar baseado no modo_ia
-        if modo_ia == "zero":
-            niveis = ['pi']
-        elif modo_ia == "kg":
-            niveis = ['pi', 'kg']
-        elif modo_ia == "conselho":
-            niveis = ['pi', 'kg', 'conselho']
-        elif modo_ia == "auto":
-            # Decide baseado na entropia
-            entropia = _pi.avaliar_entropia(texto)
-            if entropia < 0.4:
-                niveis = ['pi']
-            elif entropia < 0.65:
-                niveis = ['pi', 'kg']
-            elif entropia < 0.85:
-                niveis = ['pi', 'kg', 'conselho']
+        def _aprender_e_registrar(pergunta, nivel, nota, resposta):
+            try:
+                _kg_v.aprender(erro=pergunta, causa=f'nivel={nivel}, nota={nota}', solucao=resposta, ctx=f'resposta_{nivel}')
+            except Exception: pass
+            try:
+                from modulos.episodic_memory import EpisodicMemory as _EpMem
+                _EpMem().registrar(pergunta, resposta, licao=f'nivel={nivel}, nota={nota}')
+            except Exception: pass
+        
+        # ============================================================
+        # FRAGMENTAÇÃO: quebra texto em intenções múltiplas
+        # ============================================================
+        fragmentos = _pe_v.tokenizar_fragmentado(texto)
+        _num_fragmentos = len(fragmentos)
+        
+        if _num_fragmentos > 1:
+            print(f'  [Fragmentado] {_num_fragmentos} intencoes detectadas')
+        
+        # ============================================================
+        # PARA CADA FRAGMENTO: processa independentemente
+        # ============================================================
+        respostas_fragmentos = []
+        _intencoes_consolidadas = []
+        _todos_dados_coletados = []
+        
+        for _idx_frag, _frag in enumerate(fragmentos):
+            # Extrai texto do fragmento (suporta dict e Fragmento)
+            if isinstance(_frag, dict):
+                _frag_texto = _frag.get('fragmento', '')
+            elif hasattr(_frag, 'conteudo'):
+                _frag_texto = _frag.conteudo
             else:
-                niveis = ['pi', 'kg', 'conselho', 'llm']
-            print(f'  [Qualidade] Entropia {entropia:.2f} -> niveis: {niveis}')
-        else:
-            niveis = ['pi', 'kg', 'conselho', 'llm']
-        
-        resposta = ""
-        feedback = ""
-        nivel_atual = ""
-        
-        for nivel in niveis:
-            nivel_atual = nivel
-            print(f'  [Qualidade] Tentando nivel: {nivel}')
-            _trk_report('Qualidade', nivel, niveis.index(nivel)/len(niveis))
+                _frag_texto = str(_frag)
+            print(f'\n  [Fragmento {_idx_frag + 1}/{_num_fragmentos}] "{_frag_texto[:60]}"')
             
-            if nivel == 'pi':
-                # Pi Engine: Markov extrapolation (0 IA, 0 KG)
-                resposta = _pi.continuar_padrao(texto)
-                # Se nao adicionou conteudo, pula direto pro proximo nivel
-                if resposta == texto or len(resposta) - len(texto) < 10:
-                    print(f'  [Qualidade] Pi Engine sem predicão - subindo nivel')
-                    continue
-                
-            elif nivel == 'kg':
-                # KG Weaver: fingerprint + lessons
-                from modulos.reconstructor import Reconstructor
-                _recon = Reconstructor(kg=_kg_v, ia=self.ia, pe=_pe_v, tools=self.tool_orchestrator)
-                catalogo = _recon._catalogar(texto)
-                contexto = _recon._tecer_contexto(catalogo)
-                
-                if contexto.get('principal'):
-                    resposta = contexto['principal']
-                if contexto.get('codigo'):
-                    resposta += '\n' + contexto['codigo']
-                if not resposta:
-                    continue  # Tenta proximo nivel
-                
-            elif nivel == 'conselho':
-                # Conselho votado + BlankFiller (0 IA)
-                from modulos.blank_filler import BlankFiller
-                _bf = BlankFiller()
-                resposta = _bf.preencher_tudo(texto, modo='cadeia')
-                if not resposta or len(resposta) < 30:
-                    continue
-                
-            elif nivel == 'llm':
-                # LLM 7b fallback (ultimo recurso)
-                if hasattr(self, '_executar_token_a_bloco'):
-                    from modulos.reconstructor import Reconstructor
-                    _recon2 = Reconstructor(kg=_kg_v, ia=self.ia, pe=_pe_v)
-                    
-                    # Gera via token-a-bloco
-                    resposta = ""
-                    for ciclo in range(10):
-                        bloco = _recon2.gerar_proximo_bloco(texto, resposta)
-                        if not bloco or len(bloco) < 10:
-                            break
-                        resposta += " " + bloco
-                    
-                    if not resposta:
-                        # Fallback: chamada direta 7b
-                        if self.ia:
-                            prompt = f"[PERGUNTA]\n{texto}\n\n[RESPOSTA]:"
-                            resposta = self.ia.gerar(prompt, 0.3, 'pesado') or ""
+            # 1. IntentionEngine
+            from modulos.intention_engine import IntentionEngine as _IE
+            _ie_engine = _IE(pe=_pe_v, ia=self.ia)
+            _intencoes_ie = _ie_engine.detectar(_frag_texto)
+            _frag['intencao'] = _intencoes_ie[0] if _intencoes_ie else ("GERAL", {}, 0.3)
             
-            # Valida a resposta
-            if resposta and len(resposta) > 20:
-                validacao = _vp.validar(texto, resposta)
-                nota = validacao.get('nota_geral', 0)
-                print(f'  [Qualidade] Nivel {nivel}: {len(resposta)} chars, nota {nota}')
+            _cat_ie = _frag['intencao'][0]
+            _conf_ie = _frag['intencao'][2]
+            print(f'    IE: {_cat_ie} (conf={_conf_ie:.3f})')
+            
+            # 2. EpisodicMemory ajusta risco
+            _conf_ajustada = _conf_ie
+            try:
+                from modulos.episodic_memory import EpisodicMemory as _EpMem
+                _mem = _EpMem()
+                _exp = _mem.buscar(_frag_texto, n=1)
+                if _exp and not _exp[0].get('sucesso', True):
+                    _conf_ajustada *= 0.7
+                    print(f'    Episodico: falha conhecida, conf ajustada para {_conf_ajustada:.3f}')
+            except Exception:
+                pass
+            
+            # 3. PiEngine predizer contexto do fragmento anterior
+            if _idx_frag > 0 and _pi._markov_entre_fragmentos:
+                _frag_ant = fragmentos[_idx_frag - 1]['intencao'][0]
+                _pred, _conf_pred = _pi.predizer(self._pi._markov_entre_fragmentos, _frag_ant)
+                if _pred:
+                    print(f'    Predizer: fragmento anterior={_frag_ant}, pred={_pred} (conf={_conf_pred:.2f})')
+            
+            # 4. AutoTrigger coleta dados
+            from modulos.auto_trigger import AutoTriggerSystem as _ATS
+            _ats_engine = _ATS(kg=_kg_v, ia=self.ia, tools=self.tool_orchestrator)
+            _ctx_ats = _ats_engine.processar(_intencoes_ie, _frag_texto)
+            if _ctx_ats and _ctx_ats.get("contexto_completo"):
+                _todos_dados_coletados.append(_ctx_ats["contexto_completo"])
+            
+            # 5. IA direta para cada fragmento (com dados do AutoTrigger)
+            _resposta_frag = ""
+            try:
+                _dados_ctx = ""
+                if _ctx_ats and _ctx_ats.get("contexto_completo"):
+                    _dados_ctx = _ctx_ats["contexto_completo"][:1500]
                 
-                # Pi precisa nota >= 9 E conteudo novo. Demais niveis: nota >= 8
-                if (nivel == 'pi' and nota >= 9.0 and len(resposta) > len(texto) * 1.5) or (nivel != 'pi' and nota >= 8.0) or nivel == niveis[-1]:
-                    # Aprovado ou ultimo nivel
-                    tempo_total = round(_time.time() - t0, 1)
-                    print(f'[Pipeline] OK ({tempo_total}s) nivel={nivel}, nota={nota}, {len(resposta)} chars')
-                    
-                    # Aprende no KG
-                    try:
-                        _kg_v.aprender(
-                            erro=f'resposta_{nivel}: {texto}',
-                            causa=f'nivel={nivel}, nota={nota}',
-                            solucao=f'{resposta}',
-                            ctx=f'resposta_{nivel}'
-                        )
-                    except Exception:
-                        pass
-                    
-                    return resposta, {
-                        'status': 'OK', 'tamanho': len(resposta),
-                        'nivel': nivel, 'nota': nota, 'tempo': tempo_total
-                    }
+                _prompt_ia = f"""[SISTEMA]
+Voce e um assistente do Projeto MCR.
+Seu conhecimento interno PODE estar errado.
+USE OS DADOS ABAIXO para responder, nao invente.
+
+[IDENTIDADE]
+O Projeto MCR e um servidor personalizado de Tibia baseado no Canary (OTServ).
+SPA = Sistema de Progressao do Aventureiro (Fogo, Gelo, Terra, Energia).
+SHC = Sistema de Habilidades Contextuais (5 camadas).
+Eridanus = Cidade inicial dos aventureiros.
+Canary = Servidor OTServ personalizado.
+
+{f"Contexto: {_dados_ctx}" if _dados_ctx else ""}
+
+[PERGUNTA]
+{_frag_texto}
+
+[RESPOSTA]"""
+                
+                _resposta_frag = self.ia.gerar(_prompt_ia, 0.3, 'pesado') or ""
+                if _resposta_frag and len(_resposta_frag) > 20:
+                    print(f'    IA OK: {len(_resposta_frag)} chars')
                 else:
-                    feedback = f'Nota {nota} insuficiente. Subindo nivel...'
-                    print(f'  [Qualidade] {feedback}')
+                    _resposta_frag = ""
+                    print(f'    IA: resposta vazia')
+            except Exception as _e_ia:
+                print(f'    IA: ERRO - {_e_ia}')
+                _resposta_frag = ""
+            
+            # 6. AUTO-VALIDAÇÃO: detecta placeholders @TIPO e corrige com ferramentas
+            if _resposta_frag and '@' in _resposta_frag:
+                try:
+                    from modulos.aprendiz_de_padroes import AprendizDePadroes as _AP_PRE
+                    _ap_pre = _AP_PRE(pe=_pe_v, kg=_kg_v)
+                    _resposta_corrigida = _ap_pre.preencher_resposta(
+                        _resposta_frag,
+                        tipos_gerados=[t[0] for t in _frag.get('tokens', [])] if _frag.get('tokens') else None,
+                        pergunta_original=_frag_texto,
+                        tools=self.tool_orchestrator,
+                    )
+                    if _resposta_corrigida and _resposta_corrigida != _resposta_frag:
+                        _resposta_frag = _resposta_corrigida
+                        print(f'    Auto-validação: preenchido com ferramentas ({len(_resposta_frag)} chars)')
+                except Exception as _e_pre:
+                    pass
+            
+            respostas_fragmentos.append(_resposta_frag)
+            _intencoes_consolidadas.append(_frag['intencao'])
         
-        # Se chegou aqui, todos os niveis falharam
+        # ============================================================
+        # COMPILAÇÃO: junta respostas dos fragmentos
+        # ============================================================
+        resposta = '\n\n'.join(respostas_fragmentos) if respostas_fragmentos else ""
+        if _num_fragmentos > 1 and resposta:
+            print(f'  [Compilado] {_num_fragmentos} fragmentos em {len(resposta)} chars')
+        
+        # ============================================================
+        # VALIDATE — AutoRevisor + Tradutor
+        # ============================================================
+        if resposta and len(resposta) > 20:
+            try:
+                from modulos.auto_revisor import AutoRevisor as _AutoRevisor
+                _ar = _AutoRevisor()
+                _rev = _ar.revisar(resposta, pergunta_original=texto)
+                if _rev.get('total', 0) > 0:
+                    print(f'  [Validate] AutoRevisor: {_rev["total"]} alucinacoes detectadas')
+            except Exception:
+                pass
+            
+            try:
+                from modulos.tradutor import traduzir as _traduzir
+                _trad = _traduzir(resposta)
+                if _trad and len(_trad) > 10 and _trad != resposta:
+                    resposta = _trad
+                    print(f'  [Validate] Tradutor: ajustado')
+            except Exception:
+                pass
+        
         tempo_total = round(_time.time() - t0, 1)
-        return resposta or "Nao foi possivel gerar resposta.", {
-            'status': 'FALHA', 'tamanho': len(resposta or ''),
-            'nivel': nivel_atual, 'tempo': tempo_total
+        nota = 0
+        if resposta and len(resposta) > 20:
+            validacao = _vp.validar(texto, resposta)
+            nota = validacao.get('nota_geral', 0)
+            _taxa_v9 = 0.0
+            for _e in validacao.get('estagios', []):
+                if _e.get('nome') == 'SemanticChecker':
+                    _taxa_v9 = _e.get('taxa_cobertura', 0.0)
+                    break
+            if _taxa_v9 < 0.3 and _taxa_v9 > 0.0:
+                print(f'  [Validate] V9: cobertura {_taxa_v9:.0%} < 30%')
+        
+        print(f'[Pipeline] OK ({tempo_total}s) fragments={_num_fragmentos}, nota={nota}, {len(resposta)} chars')
+        
+        # ============================================================
+        # POS-PROCESSAMENTO + LEARN (igual ao original)
+        # ============================================================
+        _arquivos_criados_pp = []
+        if resposta and len(resposta) > 100 and _intencoes_consolidadas:
+            try:
+                from modulos.pos_processamento import PosProcessamento as _PP
+                _pp = _PP()
+                _arquivos_criados_pp = _pp.processar(resposta, _intencoes_consolidadas)
+                if _arquivos_criados_pp:
+                    print(f'  [PosProcessamento] Arquivos criados: {_arquivos_criados_pp}')
+            except Exception as _e_pp:
+                print(f'  [PosProcessamento] NAO disponivel: {_e_pp}')
+        
+        # LEARN
+        if resposta and len(resposta) > 20:
+            _aprender_e_registrar(texto, 'fragmentado', nota, resposta)
+            try:
+                _tokens_input = _pe_v.tokenizar_universal(texto)
+                _fp_learn = _pe_v.fingerprint(_tokens_input) if _tokens_input else []
+                _tokens_resp = _pe_v.tokenizar_universal(resposta)
+                _tm_learn = None
+                if _tokens_resp:
+                    _tl = [t[0] for t in _tokens_resp]
+                    _tm = {}
+                    for i in range(len(_tl) - 1):
+                        _t1, _t2 = _tl[i], _tl[i + 1]
+                        if _t1 not in _tm: _tm[_t1] = {}
+                        _tm[_t1][_t2] = _tm[_t1].get(_t2, 0) + 1
+                    for _t in _tm:
+                        _s = sum(_tm[_t].values())
+                        for _p in _tm[_t]:
+                            _tm[_t][_p] = round(_tm[_t][_p] / _s, 3) if _s else 0
+                    _tm_learn = _tm
+                
+                if _fp_learn:
+                    _tipos_str = ','.join(list(dict.fromkeys([t[0] for t in _tokens_input]))) if _tokens_input else ''
+                    _kg_v.aprender(
+                        erro=texto[:100],
+                        causa=f'intencao=fragmentado, nota={nota}, tipos=[{_tipos_str}]',
+                        solucao=resposta[:500],
+                        ctx='resposta_fragmentada',
+                        fingerprint=_fp_learn,
+                        tipos_markov=_tm_learn,
+                    )
+            except Exception:
+                pass
+            
+            try:
+                from modulos.memoria_compactada import consolidar as _consolidar
+                _consolidar()
+            except (ImportError, Exception):
+                pass
+        
+        return resposta, {
+            'status': 'OK' if resposta else 'FALHA',
+            'tamanho': len(resposta or ''),
+            'nivel': 'fragmentado',
+            'nota': nota,
+            'tempo': tempo_total,
+            'ciclos': _num_fragmentos,
+            'rota': 'FRAGMENTADO',
         }
+    
+    def _votar_yn(self, texto):
+        """Votacao Y/N: Conselho leve usando modelo 1.5b.
+        
+        Em vez de gerar texto longo, cada pergunta e respondida com S ou N
+        pelo modelo ultra_leve (1.5b). A maioria decide o fluxo.
+        
+        Returns:
+            dict com {'usar_template': bool, 'precisa_kg': bool, 
+                      'precisa_web': bool, 'tipo': str}
+        """
+        if not self.ia:
+            return {'usar_template': True, 'precisa_kg': True, 'precisa_web': False, 'tipo': 'conceito'}
+        
+        perguntas = [
+            ("Isso e sobre criar ou modificar codigo?", "codigo"),
+            ("Isso e uma pergunta conceitual ou factual?", "conceito"),
+            ("Precisa de dados da web para responder?", "web"),
+            ("Pode ser respondido com template existente?", "template"),
+            ("Precisa de lore ou historia nova?", "lore"),
+        ]
+        
+        prompt = f"""[INST]
+Responda APENAS com S ou N para cada pergunta abaixo.
+Nao explique. Nao justifique. Apenas S ou N.
+
+Pergunta: {texto[:300]}
+---
+"""
+        for i, (pergunta, _) in enumerate(perguntas, 1):
+            prompt += f"{i}. {pergunta}\n"
+        prompt += "\nRespostas (apenas S ou N, uma por linha):"
+        
+        try:
+            resp = self.ia.gerar(prompt, 0.1, 'ultra_leve') or ""
+            linhas = [l.strip().upper() for l in resp.split('\n') if l.strip()]
+            
+            resultado = {}
+            for i, (_, tipo) in enumerate(perguntas):
+                s_n = linhas[i] if i < len(linhas) else "N"
+                resultado[tipo] = s_n.startswith('S')
+            
+            # Inferir tipo baseado nas respostas
+            if resultado.get('codigo'):
+                _tipo_voto = 'codigo'
+            elif resultado.get('lore'):
+                _tipo_voto = 'lore'
+            elif resultado.get('conceito'):
+                _tipo_voto = 'conceito'
+            else:
+                _tipo_voto = 'conceito'
+            
+            resultado['tipo'] = _tipo_voto
+            print(f'  [Y/N] Votacao: template={resultado.get("template","?")} kg={resultado.get("conceito","?")} web={resultado.get("web","?")} tipo={_tipo_voto}')
+            return resultado
+        except Exception as _yn_e:
+            print(f'  [Y/N] Erro: {_yn_e}')
+            return {'usar_template': True, 'precisa_kg': True, 'precisa_web': False, 'tipo': 'conceito'}
+    
     def _executar_ia_fragmento(self, prompt, frag):
         """Executa um fragmento via IA leve. Prompt < 2K chars."""
         if self.ia:

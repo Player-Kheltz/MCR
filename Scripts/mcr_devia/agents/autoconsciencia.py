@@ -38,10 +38,16 @@ class AutoConsciencia:
         # 1. Verifica log de auto-reparo
         self._verificar_reparos()
         
-        # 2. Verifica KG
+        # 2. Verifica mesmo erro especifico >2x
+        self._verificar_mesmo_erro()
+        
+        # 3. Verifica IA falhando >2x
+        self._verificar_ia_falhando()
+        
+        # 4. Verifica KG
         self._verificar_kg()
         
-        # 3. Verifica idade do conhecimento
+        # 5. Verifica idade do conhecimento
         self._verificar_conhecimento()
         
         # Relatorio
@@ -60,6 +66,8 @@ class AutoConsciencia:
             log = json.load(f)
         
         reparos = log.get('reparos', [])
+        if not reparos:
+            return
         
         # Reparos que FALHARAM (se tiver o campo resultado)
         falhas = [r for r in reparos if r.get('resultado') == 'falha']
@@ -82,6 +90,60 @@ class AutoConsciencia:
                            f'Pode ser que a IA nao esteja respondendo ou o reparo esteja sendo pulado.',
                 'sugestao': 'Verifique se a IA local esta respondendo. Se nao, talvez seja um timeout.',
             })
+
+    def _verificar_mesmo_erro(self):
+        """Detecta se o MESMO erro especifico aparece >2x nos reparos."""
+        if not os.path.exists(AUTO_LOG): return
+        try:
+            with open(AUTO_LOG, 'r') as f:
+                log = json.load(f)
+            reparos = log.get('reparos', [])
+            if not reparos:
+                return
+            # Agrupa por motivo/tipo
+            motivos = {}
+            for r in reparos:
+                chave = r.get('motivo', r.get('tipo', 'desconhecido'))
+                motivos[chave] = motivos.get(chave, 0) + 1
+            for motivo, count in motivos.items():
+                if count > 2 and motivo != 'desconhecido':
+                    self.toques.append({
+                        'nivel': 'atencao',
+                        'mensagem': f'Mesmo erro {count}x: "{motivo}". '
+                                   f'O reparador esta patinando neste problema.',
+                        'sugestao': 'Analise manualmente o arquivo alvo. Pode ser um bug estrutural.',
+                    })
+                    break
+        except Exception:
+            pass
+
+    def _verificar_ia_falhando(self):
+        """Detecta se a IA nao responde >2x consecutivamente."""
+        if not os.path.exists(AUTO_LOG): return
+        try:
+            with open(AUTO_LOG, 'r') as f:
+                log = json.load(f)
+            reparos = log.get('reparos', [])
+            if not reparos:
+                return
+            # Conta falhas consecutivas NO FINAL da lista
+            falhas_consecutivas = 0
+            for r in reversed(reparos):
+                if r.get('resultado') == 'falha' or not r.get('resultado'):
+                    falhas_consecutivas += 1
+                else:
+                    break
+            if falhas_consecutivas > 2:
+                self.toques.append({
+                    'nivel': 'critico',
+                    'mensagem': f'IA falhando {falhas_consecutivas}x consecutivas. '
+                               f'O ultimo reparo foi em {reparos[-1].get("tipo","?")}. '
+                               f'A IA pode estar fora do ar ou com timeout.',
+                    'sugestao': 'Verifique se o servidor Ollama esta rodando. '
+                               'Se estiver, tente reiniciar o kernel.',
+                })
+        except Exception:
+            pass
     
     def _verificar_kg(self):
         """Verifica se o KG tem licoes repetidas."""

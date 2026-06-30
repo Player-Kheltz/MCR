@@ -145,7 +145,14 @@ class MCRKernel:
         # 0. Auto-cleanup: temp/ > 24h e output/ relatorios temporarios
         self._auto_cleanup()
         
-        # 0.5. Truncation Fixer: remove [:N] do codigo ativo
+        # 0.5. KGCleaner: marca lessons poluentes como inactive
+        try:
+            from modulos.kg_cleaner import limpar as _clean_kg
+            _clean_kg()
+        except Exception as _kg_err:
+            print(f'[Kernel] KGCleaner: {_kg_err}')
+        
+        # 0.6. Truncation Fixer: remove [:N] do codigo ativo
         try:
             from modulos.truncation_fixer import executar as _fix_truncation
             _fix_truncation()
@@ -168,6 +175,14 @@ class MCRKernel:
         self.events.on('pre_exec', self._hook_contexto_pre)
         self.events.on('pos_exec', self._hook_registrar_kg)
         self.events.on('pos_exec', self._hook_contexto_pos)
+        
+        # 6. Watchdog (monitora sandbox/)
+        try:
+            from modulos.watchdog import iniciar_watchdog
+            iniciar_watchdog()
+            print('[Kernel] Watchdog iniciado')
+        except Exception as e:
+            print(f'[Kernel] Watchdog nao iniciado: {e}')
         
         self._inicializado = True
         return n
@@ -227,6 +242,23 @@ class MCRKernel:
                 self.contexto['ia'] = ia
             except ImportError:
                 print('[Kernel] AVISO: mcr_devia.py nao encontrado, modo limitado')
+        
+        # SelfStudy: thread background a cada 10 minutos (fora do try)
+        try:
+            import threading as _th
+            def _ss_loop():
+                import time as _t
+                while True:
+                    _t.sleep(3600)
+                    try:
+                        from modulos.self_study import executar as _ss_exec
+                        _ss_exec()
+                    except Exception:
+                        pass
+            _th.Thread(target=_ss_loop, daemon=True).start()
+            print('[Kernel] SelfStudy: thread background iniciada')
+        except Exception:
+            pass
     
     def _auto_cleanup(self):
         """Limpa temp/ > 24h e relatorios temporarios em output/."""

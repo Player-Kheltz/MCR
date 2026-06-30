@@ -520,10 +520,11 @@ def _atualizar_metricas(resultado, intencao):
 class Orquestrador:
     """Gera prompts usando templates fixos + contexto injetado via FAST."""
 
-    def __init__(self, kg=None, ia=None, ctx_crew=None):
+    def __init__(self, kg=None, ia=None, ctx_crew=None, modo_silencioso=False):
         self.kg = kg
         self.ia = ia
         self.ctx_crew = ctx_crew
+        self.modo_silencioso = modo_silencioso
 
     def _filtrar_contexto(self, contexto_raw, consulta):
         """Filtra contexto se necessario. Pula filtro se ja tem arquivo lido diretamente."""
@@ -627,7 +628,8 @@ class Orquestrador:
                                     partes.append(f"[ARQUIVO: {nome_arq}]\n{_conteudo}")
                             else:
                                 partes.append(f"[ARQUIVO: {nome_arq}]\n{_conteudo}")
-                            print(f'  [Contexto] Arquivo lido: {nome_arq}')
+                            if not self.modo_silencioso:
+                                print(f'  [Contexto] Arquivo lido: {nome_arq}')
                             break
                         except: pass
         
@@ -832,7 +834,8 @@ class Orquestrador:
                 f"NAO gere outras secoes."
             )
             
-            print(f'  [Fragmentado] Secao {i+1}/{len(secoes)}: {nome} ({len(prompt_frag)} chars)')
+            if not self.modo_silencioso:
+                print(f'  [Fragmentado] Secao {i+1}/{len(secoes)}: {nome} ({len(prompt_frag)} chars)')
             
             # Tenta gerar, com ate 3 retries se codigo tiver erro de sintaxe
             resp = ""
@@ -854,7 +857,8 @@ class Orquestrador:
                     break
                 
                 if tentativa == 0:
-                    print(f'  [Fragmentado] Retry {i+1} ({erros_sintaxe} erros sintaxe)')
+                    if not self.modo_silencioso:
+                        print(f'  [Fragmentado] Retry {i+1} ({erros_sintaxe} erros sintaxe)')
                     prompt_frag += "\nATENCAO: Codigo anterior tinha erro de sintaxe. Gere codigo VALIDO."
                     resp = ""
             
@@ -882,18 +886,21 @@ class Orquestrador:
         t0 = time.time()
         params = params or {}
 
-        print(f'[Orquestrador] Executando: {intencao} | params: {str(params)}')
+        if not self.modo_silencioso:
+            print(f'[Orquestrador] Executando: {intencao} | params: {str(params)}')
         
         # 1. Gera prompt do template + contexto
         prompt, router = self.gerar_prompt(intencao, params, consulta)
         if not prompt:
-            print(f'  [Orquestrador] Prompt vazio - fallback ao template puro')
+            if not self.modo_silencioso:
+                print(f'  [Orquestrador] Prompt vazio - fallback ao template puro')
             template_key = self._selecionar_template(intencao, params)
             template = _TEMPLATES.get(template_key, _TEMPLATES["lore"])
             prompt = template.format(**params, contexto_extra="")
             router = _ROUTER.get(template_key, _ROUTER["default"])
 
-        print(f'  [Orquestrador] Prompt ({len(prompt)} chars) | router: {router}')
+        if not self.modo_silencioso:
+            print(f'  [Orquestrador] Prompt ({len(prompt)} chars) | router: {router}')
 
         # 2. Decide: geracao unica vs fragmentada (so para templates com estrutura clara)
         _TEMPLATES_FRAGMENTAVEIS = {"perguntar", "analisar_codigo", "analisar_bug"}
@@ -903,11 +910,13 @@ class Orquestrador:
         usa_fragmentacao = pode_fragmentar and len(secoes) >= 3
         
         if usa_fragmentacao:
-            print(f'  [Orquestrador] Usando geracao FRAGMENTADA ({len(secoes)} secoes)')
+            if not self.modo_silencioso:
+                print(f'  [Orquestrador] Usando geracao FRAGMENTADA ({len(secoes)} secoes)')
             params['_template_key'] = template_key  # Para lista branca
             resposta = self._gerar_fragmentado_texto(secoes, router, temp, params)
             if not resposta:
-                print(f'  [Orquestrador] Fragmentacao falhou - fallback para geracao unica')
+                if not self.modo_silencioso:
+                    print(f'  [Orquestrador] Fragmentacao falhou - fallback para geracao unica')
                 usa_fragmentacao = False
         
         if not usa_fragmentacao:
@@ -915,13 +924,15 @@ class Orquestrador:
             try:
                 resposta = _gerar(prompt, temp, router) or _fast(prompt, temp, router) or ""
             except Exception as e:
-                print(f'  [Orquestrador] ERRO na geracao: {e}')
+                if not self.modo_silencioso:
+                    print(f'  [Orquestrador] ERRO na geracao: {e}')
                 return {"sucesso": False, "erro": str(e), "tempo": round(time.time() - t0, 1)}
 
         # 3. Validacao
         valido = _validar_conteudo(resposta)
         if not valido:
-            print(f'  [Orquestrador] Validacao: conteudo rejeitado')
+            if not self.modo_silencioso:
+                print(f'  [Orquestrador] Validacao: conteudo rejeitado')
             resposta = "(conteudo rejeitado pela validacao)"
 
         # 3.5 AUTO-REVISAO: MCR-DevIA revisa a propria resposta
@@ -939,12 +950,14 @@ class Orquestrador:
                 
                 revisao = revisor.revisar(resposta, classes_permitidas)
                 if revisao["total"] > 0:
-                    print(f'  [Auto-Revisor] {revisao["total"]} alucinacoes: {revisao["sugestao"]}')
+                    if not self.modo_silencioso:
+                        print(f'  [Auto-Revisor] {revisao["total"]} alucinacoes: {revisao["sugestao"]}')
                     # Auto-corrige: marca classes suspeitas
                     resposta, _ = revisor.auto_corrigir(resposta, classes_permitidas)
                     valido = True  # Mantem valido mesmo com marcas
             except Exception as e:
-                print(f'  [Auto-Revisor] ERRO: {e}')
+                if not self.modo_silencioso:
+                    print(f'  [Auto-Revisor] ERRO: {e}')
 
         # 4. Metricas
         nomes = len(set(_re.findall(r'\b[A-Z][a-z]{2,}\b', resposta))) if resposta else 0
@@ -959,7 +972,8 @@ class Orquestrador:
             "tempo": round(time.time() - t0, 1),
             "template": self._selecionar_template(intencao, params),
         }
-        print(f'  [Orquestrador] OK ({resultado["tempo"]}s) {resultado["resposta_len"]} chars, {nomes} nomes')
+        if not self.modo_silencioso:
+            print(f'  [Orquestrador] OK ({resultado["tempo"]}s) {resultado["resposta_len"]} chars, {nomes} nomes')
 
         # 5. Atualiza metricas para dashboard
         _atualizar_metricas(resultado, intencao)

@@ -67,3 +67,29 @@ class AutoRepair:
             if r.get('resultado', {}).get('valido'):
                 return codigo_reparado, True
         return codigo, False
+
+    def reparar_com_validacao(self, codigo, linguagem="lua", tool_orch=None):
+        """Repara e valida o codigo automaticamente, com ate 3 tentativas.
+        
+        Usa validar_codigo do ToolOrchestrator para verificar o resultado.
+        Se tool_orch for None, retorna a primeira tentativa sem validacao.
+        
+        Args:
+            codigo: Codigo com erro (string)
+            linguagem: Linguagem do codigo (padrao 'lua')
+            tool_orch: ToolOrchestrator para validacao (opcional)
+        
+        Returns:
+            dict: {'sucesso': bool, 'corrigido': str}
+        """
+        erros_dummy = ["Erro desconhecido - validacao via reparar_com_validacao"]
+        for _tentativa in range(3):
+            codigo_reparado = self.reparar(codigo, erros_dummy, linguagem)
+            if tool_orch and codigo_reparado != codigo:
+                r = tool_orch.executar('validar_codigo', {'codigo': codigo_reparado})
+                if r.get('resultado', {}).get('valido'):
+                    return {'sucesso': True, 'corrigido': codigo_reparado}
+            elif codigo_reparado == codigo:
+                break
+            codigo = codigo_reparado
+        return {'sucesso': False, 'corrigido': codigo}

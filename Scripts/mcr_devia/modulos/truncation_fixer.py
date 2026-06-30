@@ -18,7 +18,7 @@ _PADRAO_UNIVERSAL = re.compile(r'(?<!sys\.path)\[\s*\:[\s\w\d]+\]')
 
 # Excecoes: padroes que DEVEM ser preservados
 _PADRAO_EXCECOES = re.compile(
-    r'(sys\.path\[:\d+\]|\[\:\d*\]\[:|\[\:0\]|\[\:len\()'
+    r'(sys\.path\[:\d+\]|\[\:\d*\]\[:|\[\:0\]|\[\:len\(|str\(.*?\)\[:\d+\])'
 )
 
 

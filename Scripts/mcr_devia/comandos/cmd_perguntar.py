@@ -61,21 +61,5 @@ def execute(kg, ia, args, ctx_crew=None):
     except Exception as e:
         print(f'[Perguntar] ERRO: {e}')
     
-    # Fallback: Orquestrador Universal
-    if ia and hasattr(ia, 'orquestrar'):
-        r = ia.orquestrar("perguntar", {"pergunta": texto, "identidade": identidade},
-                         consulta=texto, temp=0.3)
-        if r:
-            print(f'\n{r}')
-            return True
-    
-    # Ultimo fallback: IA direta
-    prompt = f"{identidade}\n\nPergunta: {texto}\nResponda de forma util e especifica."
-    if ia:
-        r = ia.gerar(prompt, 0.3)
-        if r:
-            print(f'\n{r}')
-            return True
-    
-    print('Nao foi possivel responder.')
+    # Fallbacks removidos — o pipeline ReAct no Kernel é o fluxo principal agora
     return True

@@ -37,39 +37,9 @@ class Supervisor:
         self.orquestrador = orquestrador
         self.identidade = identidade  # Identidade do projeto (injetada externamente)
     
-    _KEYWORD_MAP = [
-        (r"cri(a|r|e|ar)\s+(um|uma|o|a)?\s*(npc|personagem)", "CRIAR_NPC", 90),
-        (r"(npc|personagem|vendedor|trader|shop)", "CRIAR_NPC", 50),
-        (r"cri(a|r|e|ar)\s+(um|uma|o|a)?\s*(habilidade|skill|poder)", "CRIAR_HABILIDADE", 90),
-        (r"(habilidade|skill|dominio|spa)", "CRIAR_HABILIDADE", 40),
-        (r"cri(a|r|e|ar)\s+(um|uma|o|a)?\s*(arquivo|script|modulo|classe)", "CRIAR_CODIGO", 80),
-        (r"(criar|fazer|gerar|produzir|implementar|desenvolver)", "CRIAR_CODIGO", 70),
-        (r"(alterar|modificar|editar|mudar|atualizar|corrigir)", "EDITAR", 80),
-        (r"(deletar|remover|apagar|excluir)", "DELETAR", 90),
-        (r"(o que e|o que é|explique|como funciona|me fale sobre)", "PERGUNTA", 80),
-        (r"(cpu|memoria|ram|disco|processo|sistema)", "SISTEMA", 80),
-        (r"(teste|testando)", "TESTE", 90),
-        (r"(ajuda|help|comandos|o que voce faz)", "AJUDA", 90),
-    ]
-    
     def classificar_keyword(self, texto):
-        """Classifica intencao usando keywords (0 LLM, <1ms).
-        
-        Usado como fallback rapido ANTES de chamar o FAST.
-        De mcr_dev/router.py — resgatado e integrado.
-        """
-        msg = texto.lower().strip()
-        best_intent = "CHAT"
-        best_score = 0
-        
-        import re
-        for pattern, intent, priority in self._KEYWORD_MAP:
-            if re.search(pattern, msg):
-                if priority > best_score:
-                    best_score = priority
-                    best_intent = intent
-        
-        return best_intent if best_score >= 40 else None
+        """Delegado ao pipeline_executor (que tem a versao atualizada). Mantido como esqueleto."""
+        return None
     
     def classificar(self, texto):
         """Classifica intencao. Detecta prompts MULTI-intencao (3+ topicos)."""
@@ -306,29 +276,10 @@ class Supervisor:
         except Exception as _pipe_err:
             print(f'  [Pipeline] ERRO: {_pipe_err}')
         
-        # Se pipeline falhou, cai para a IA normal
-        # --- Pre-aquecer ContextCrew (antes da IA) ---
-        if self.ctx_crew:
-            try:
-                _ctx_pre = self.ctx_crew.executar(texto)
-                if _ctx_pre:
-                    contexto_extra += chr(10) + "[INFO] " + _ctx_pre + chr(10)
-            except: pass
-        # FASE 1: MENTE PENSA (SEMPRE - toda pergunta merece reflexao)
-        # ====================================================
-        mente_contexto = ""
-        try:
-            from modulos import mente as _mente
-            mente_contexto = _mente.think(texto, tipo, subtipo,
-                                         kg=self.kg, ia=self.ia, ctx_crew=self.ctx_crew)
-        except Exception as e:
-            print(f'  [Supervisor] Mente: {e}')
-        
-        # ====================================================
-        # FASE 2: CORPO EXECUTA (SEMPRE pelo Orquestrador)
-        # ====================================================
+        # Fallback: PipelineExecutor falhou — tenta Orquestrador diretamente
         resposta = None
-        
+        contexto_extra = ""
+        mente_contexto = ""
         if self.orquestrador:
             # PRE-VERIFICACAO: conhecimento suficiente no KG?
             _precisa_pesquisar = False
@@ -404,15 +355,8 @@ class Supervisor:
             
             resposta = self._executar_orq(template, params, consulta=texto, temp=0.4)
         
-        # Fallback: Orquestrador indisponivel
-        if not resposta:
-            print(f'  [Supervisor] Orquestrador indisponivel, usando fallback')
-            if self.ia:
-                prompt = f"{self.identidade}\n\n{texto}\n\n{contexto_extra}\nResponda de forma util."
-                resposta = self.ia.gerar(prompt, 0.3)
-        
         # ====================================================
-        # FASE 3: AUTO-REVISOR (SEMPRE)
+        # FASE 2: AUTO-REVISOR (SEMPRE)
         # ====================================================
         if resposta and len(resposta) > 100:
             try:

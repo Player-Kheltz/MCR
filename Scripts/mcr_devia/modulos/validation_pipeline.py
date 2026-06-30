@@ -24,6 +24,7 @@ _NOMES_ESTAGIOS = {
     'v6': 'TruncationChecker',
     'v7': 'Especificidade',
     'v8': 'Completude',
+    'v9': 'SemanticChecker',
 }
 
 
@@ -52,6 +53,7 @@ class ValidationPipeline:
         estagios.append(self._v6_truncation_checker(resposta))
         estagios.append(self._v7_especificidade(pergunta, resposta, contexto_kg))
         estagios.append(self._v8_completude(pergunta, resposta))
+        estagios.append(self._v9_semantic_checker(pergunta, resposta))
         
         self.resultados = {
             'estagios': estagios,
@@ -99,7 +101,7 @@ class ValidationPipeline:
                     nota += 1  # 1 ponto se tem arquivos confirmados
             
             elif nome == 'ConselhoChecker':
-                if 'coerente' in detalhes.lower() or 'aprovado' in detalhes.upper():
+                if 'aprovado' in detalhes.upper() or ('coerente' in detalhes.lower() and 'não' not in detalhes.lower() and 'nao' not in detalhes.lower()):
                     nota += 1
             
             elif nome == 'AlucinacaoChecker':
@@ -122,6 +124,15 @@ class ValidationPipeline:
                 if decisao == 'COMPLETO':
                     nota += 1
                 elif decisao == 'CONTINUAR':
+                    nota -= 0.5
+            
+            elif nome == 'SemanticChecker':
+                # V9: penaliza se resposta nao cobre os termos da pergunta
+                taxa = e.get('taxa_cobertura', 0.0)
+                nota += min(taxa * 2.5, 2.5)  # 0 a 2.5 pontos (peso maior)
+                if taxa < 0.3:
+                    nota -= 1.5  # penalidade severa para respostas fora do contexto
+                elif taxa < 0.5:
                     nota -= 0.5
         
         return round(max(0, min(10, nota)), 1)
@@ -321,6 +332,57 @@ class ValidationPipeline:
         if len(resposta) > 200:
             return {'nome': nome, 'status': 'INFO', 'detalhes': 'COMPLETO (fallback)', 'decisao': 'COMPLETO'}
         return {'nome': nome, 'status': 'INFO', 'detalhes': 'CONTINUAR (fallback)', 'decisao': 'CONTINUAR'}
+
+
+    def _v9_semantic_checker(self, pergunta, resposta):
+        """V9 - SemanticChecker: verifica se a resposta realmente RESPONDE a pergunta.
+        
+        Em vez de medir formato, mede se os termos-chave da pergunta
+        aparecem na resposta. Se nao aparecem, a resposta e irrelevante.
+        """
+        nome = 'SemanticChecker'
+        
+        if not pergunta or not resposta:
+            return {'nome': nome, 'status': 'INFO', 'detalhes': 'Sem dados',
+                    'taxa_cobertura': 0.0, 'termos_pergunta': [], 'termos_resposta': []}
+        
+        # Extrai termos-chave da pergunta (palavras com 3+ letras, excluindo stop words)
+        stop_words = {'que','para','com','uma','era','mais','como','por','seu','sua',
+                      'tem','ela','ele','voce','qual','onde','quando','porque','este',
+                      'essa','isto','como','sao','dos','das','nos','nas','em','no','na',
+                      'de','da','do','e','o','a','os','as','um','uma','uns','umas'}
+        
+        palavras_pergunta = re.findall(r'[a-zA-Z]{3,}', pergunta.lower())
+        palavras_resposta = re.findall(r'[a-zA-Z]{3,}', resposta.lower())
+        
+        termos_pergunta = [p for p in palavras_pergunta if p not in stop_words]
+        termos_resposta_set = set(palavras_resposta)
+        
+        if not termos_pergunta:
+            return {'nome': nome, 'status': 'INFO', 'detalhes': 'Pergunta sem termos para verificar',
+                    'taxa_cobertura': 1.0, 'termos_pergunta': [], 'termos_resposta': []}
+        
+        # Termos encontrados na resposta
+        encontrados = [t for t in termos_pergunta if t in termos_resposta_set]
+        taxa = len(encontrados) / len(termos_pergunta) if termos_pergunta else 1.0
+        
+        # Detalhes
+        detalhes = f'{len(encontrados)}/{len(termos_pergunta)} termos da pergunta na resposta ({taxa:.0%})'
+        if taxa < 0.3:
+            detalhes += ' | RESPOSTA FORA DO CONTEXTO: termos-chave da pergunta ausentes'
+        elif taxa < 0.6:
+            detalhes += ' | Cobertura parcial'
+        else:
+            detalhes += ' | Resposta contextualmente relevante'
+        
+        return {
+            'nome': nome,
+            'status': 'INFO',
+            'detalhes': detalhes,
+            'taxa_cobertura': taxa,
+            'termos_pergunta': termos_pergunta,
+            'termos_resposta': encontrados,
+        }
 
 
 def validar_resposta(pergunta, resposta, kg=None, pe=None, ia=None, contexto_kg=""):

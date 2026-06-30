@@ -181,23 +181,33 @@ class Reconstructor:
             # (KG como memoria de trabalho: encontra o padrao mais parecido)
             lessons_brutas = self.kg.buscar(termos, max_r=15)
             if lessons_brutas and self.pe:
-                # Filtra lessons inativas (runtime, stress_test, etc)
-                lessons_brutas = [l for l in lessons_brutas if not l.get('inactive', False)]
+                # Filtra lessons inativas + auto-aprendidas (resposta_* polui o KG)
+                lessons_brutas = [l for l in lessons_brutas 
+                                  if not l.get('inactive', False)
+                                  and 'resposta_' not in str(l.get('ctx', ''))]
                 if not lessons_brutas:
                     # Se so tem inativas, tenta buscar expandido
                     if hasattr(self.kg, 'buscar_expandido'):
                         lessons_brutas = self.kg.buscar_expandido(termos, max_r=10)
-                        lessons_brutas = [l for l in lessons_brutas if not l.get('inactive', False)]
+                        lessons_brutas = [l for l in lessons_brutas 
+                                          if not l.get('inactive', False)
+                                          and 'resposta_' not in str(l.get('ctx', ''))]
                 
                 # Calcula fingerprint da pergunta
                 fp_pergunta = self.pe.fingerprint(self.pe.tokenizar(termos, 'texto'))
                 
                 # Calcula similaridade com cada lesson
+                termos_pergunta = set(termos.lower().split()) if termos else set()
                 for l in lessons_brutas:
                     texto_lesson = l.get('solucao', '') + ' ' + l.get('erro', '')
                     if texto_lesson and len(texto_lesson) > 20:
                         fp_lesson = self.pe.fingerprint(self.pe.tokenizar(texto_lesson, 'texto'))
                         sim = self.pe.similaridade(fp_pergunta, fp_lesson)
+                        # Keyword boost SOMENTE no erro (nao na solucao)
+                        # Evita que lessons com "MCR" na solucao sejam todas boostadas
+                        erro_lower = (l.get('erro', '') or '').lower()
+                        if erro_lower and any(t in erro_lower for t in termos_pergunta):
+                            sim = min(1.0, sim + 0.4)  # +0.4 se o erro corresponde
                         l['_sim'] = sim
                     else:
                         l['_sim'] = 0
@@ -230,16 +240,34 @@ class Reconstructor:
                     len(l.get('solucao', ''))
                 ), reverse=True)  # So 1 de suporte
             
-            # FONTE 2: CODIGO (se dominio = 'codigo' ou 'bugfix')
-            if dominio in ('codigo', 'bugfix') and hasattr(self, 'tools') and self.tools:
+            # FONTE 2: FERRAMENTAS — busca em TODOS os arquivos (qualquer extensao)
+            # O grep bruto encontra a resposta onde ela estiver: docs/, codigo, config, etc.
+            # Sem filtro de extensao, sem hardcode de caminho — ferramenta pura.
+            if hasattr(self, 'tools') and self.tools:
                 try:
-                    # Tenta buscar no codigo o termo central
-                    termo_busca = catalogo['termos_lista'][0] if catalogo['termos_lista'] else ''
-                    if termo_busca and len(termo_busca) > 3:
-                        resultado = self.tools.executar('buscar_codigo', {'padrao': termo_busca})
-                        if resultado.get('sucesso'):
-                            contexto['codigo'] = str(resultado.get('resultado', ''))
-                            print(f'  [Weaver] Codigo: {len(contexto["codigo"])} chars')
+                    # Pula stop words de pergunta — escolhe o PRIMEIRO termo com significado
+                    _STOP_BUSCA = {'quantas','quanto','qual','quais','como','sao','tem','era',
+                                   'esta','este','isto','isso','onde','quando','porque','por',
+                                   'para','que','uma','com','mais','mas','dos','das','nos','nas',
+                                   'pra','pro','num','numa','muito','pouco','sobre','entre'}
+                    termo_busca = ''
+                    for _t in catalogo.get('termos_lista', []):
+                        if _t.lower() not in _STOP_BUSCA and len(_t) >= 3:
+                            termo_busca = _t
+                            break
+                    if not termo_busca and catalogo.get('termos_lista'):
+                        termo_busca = catalogo['termos_lista'][0]  # fallback
+                    if termo_busca and len(termo_busca) > 2:
+                        res = self.tools.executar('buscar_codigo', {'padrao': termo_busca})
+                        if res.get('sucesso'):
+                            txt = str(res.get('resultado', ''))
+                            if 'Nenhum' not in txt and len(txt) > 20:
+                                linhas = [l for l in txt.split('\n') if l.strip()]
+                                if linhas:
+                                    contexto['principal'] = f"[tool] {linhas[0]}"
+                                    print(f'  [Weaver] Tool: {termo_busca} encontrado ({len(linhas)} linhas)')
+                                    if self.kg:
+                                        self._aprender_do_tool(termo_busca, linhas[0])
                 except Exception:
                     pass
             
@@ -261,6 +289,39 @@ class Reconstructor:
             print(f'  [Weaver] ERRO: {e}')
         
         return contexto
+    
+    def _aprender_do_tool(self, termo, conteudo):
+        """Aprende no KG o que a ferramenta (grep) encontrou em docs/.
+        
+        Isso garante que na PRÓXIMA vez, o KG Weaver encontra direto
+        sem precisar chamar grep de novo.
+        """
+        if not self.kg or not termo or not conteudo:
+            return
+        try:
+            # Extrai contexto do nome do arquivo (ex: docs/MCR_IDENTITY.md)
+            arq = 'docs'
+            for linha in conteudo.split('\n'):
+                if 'docs\\' in linha or 'docs/' in linha:
+                    arq = linha.split(':')[0].strip() if ':' in linha else 'docs'
+                    break
+            
+            # So aprende se for informacao nova (nao repetir lessons)
+            existentes = self.kg.buscar(termo, max_r=1)
+            if existentes:
+                for l in existentes:
+                    if termo.lower() in l.get('erro', '').lower():
+                        return  # Ja existe lesson similar
+            
+            self.kg.aprender(
+                erro=termo,
+                causa=f'ferramenta: grep em {arq}',
+                solucao=conteudo,
+                ctx='conceito'
+            )
+            print(f'  [Weaver] Aprendeu: {termo} em {arq}')
+        except Exception:
+            pass
     
     def _montar_prompt(self, texto, contexto, catalogo):
         """MONTADOR: monta prompt sob medida com tamanho DINAMICO.

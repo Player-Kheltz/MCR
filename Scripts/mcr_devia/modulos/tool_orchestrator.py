@@ -62,8 +62,16 @@ class ToolOrchestrator:
 
         # === FERRAMENTAS DE BUSCA ===
         self.registrar('buscar_codigo', self._cmd_buscar_codigo,
-            desc="Busca texto no codigo fonte (grep/findstr)",
+            desc="Busca texto no codigo fonte usando Python os.walk()",
             params={'padrao': 'string', 'incluir': 'string (opcional)'}, output='string')
+
+        self.registrar('buscar_inteligente', self._cmd_buscar_inteligente,
+            desc="Busca inteligente: tenta multiplos padroes, retorna o mais especifico",
+            params={'padrao': 'string', 'termos_base': 'string (opcional)'}, output='string')
+
+        self.registrar('buscar_estrategico', self._cmd_buscar_estrategico,
+            desc="Busca estrategica: descobre diretorios, explora arquivos, retorna codigo real do projeto",
+            params={'termo': 'string'}, output='string')
 
         self.registrar('buscar_kg', self._cmd_buscar_kg,
             desc="Busca conhecimento no Knowledge Graph",
@@ -257,21 +265,315 @@ class ToolOrchestrator:
     # ============================================================
 
     def _cmd_buscar_codigo(self, padrao, incluir="*"):
-        """Busca texto no codigo fonte."""
+        """Busca texto no codigo fonte. Usa Python os.walk() — mais rapido que findstr.
+        
+        Args:
+            padrao: Texto a buscar (case insensitive)
+            incluir: '*' para extensoes padrao, ou glob (ex: '*.py')
+        Returns:
+            String com 'arquivo:linha:conteudo' ou 'Nenhum resultado encontrado'
+        """
+        import fnmatch as _fm
+        _start_ts = __import__('time').time()
+        _TIMEOUT = 15  # segundos maximo para busca
+        
         proj = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
-        # Tenta findstr (Windows)
+        
+        # Extensoes padrao quando incluir='*'
         if incluir == '*':
-            incluir_glob = '*.py *.lua *.cpp *.hpp *.h *.xml *.json *.md'
+            ext_padrao = ('*.py', '*.lua', '*.cpp', '*.hpp', '*.h', '*.xml', '*.json', '*.md', '*.txt', '*.cfg', '*.lsl')
         else:
-            incluir_glob = incluir
-        cmd = f'findstr /snip /c:"{padrao}" /d:"{proj}" {incluir_glob} 2>nul'
-        r = subprocess.run(cmd, capture_output=True, text=True, timeout=30, shell=True)
-        if r.stdout:
-            linhas = r.stdout.split('\n')
-            # Filtra diretorios irrelevantes
-            linhas = [l for l in linhas if 'sandbox' not in l and '__pycache__' not in l and '.git' not in l]
-            return '\n'.join(linhas)
+            ext_padrao = (incluir,)
+        
+        # Diretorios para pular (gigantes ou irrelevantes)
+        pular_dirs = {'.git', '__pycache__', 'node_modules', 'Legado', 'vcproj', 'vc17',
+                      'build', 'bin', 'obj', 'Debug', 'Release', 'x64', '.github'}
+        
+        padrao_lower = padrao.lower()
+        resultados = []
+        limite_resultados = 20  # Evita overflow de memoria + poluicao do prompt
+        
+        try:
+            for raiz, dirs, arquivos in os.walk(proj):
+                # Timeout de seguranca
+                if __import__('time').time() - _start_ts > _TIMEOUT:
+                    break
+                
+                # Pula diretorios irrelevantes (modifica dirs in-place para os.walk nao entrar)
+                dirs[:] = [d for d in dirs if d not in pular_dirs and not d.startswith('.')]
+                
+                for arq in arquivos:
+                    if len(resultados) >= limite_resultados:
+                        break
+                    if __import__('time').time() - _start_ts > _TIMEOUT:
+                        break
+                    
+                    # Filtra por extensao
+                    if not any(_fm.fnmatch(arq, ext) for ext in ext_padrao):
+                        continue
+                    
+                    caminho = os.path.join(raiz, arq)
+                    
+                    # Pula caches do proprio sistema + diretorios irrelevantes
+                    if 'sandbox' in caminho or '.rag_hot' in caminho or '.mcr_' in arq:
+                        continue
+                    
+                    try:
+                        # Tenta ler como texto
+                        with open(caminho, 'r', encoding='utf-8', errors='ignore') as f:
+                            for i, linha in enumerate(f, 1):
+                                if padrao_lower in linha.lower():
+                                    # Formato: arquivo:linha:conteudo (compativel com findstr /n)
+                                    rel = os.path.relpath(caminho, proj)
+                                    resultados.append(f"{rel}:{i}:{linha.rstrip()}")
+                                    if len(resultados) >= limite_resultados:
+                                        break
+                    except (IOError, OSError, UnicodeDecodeError):
+                        continue  # Arquivo nao legivel, pula
+                
+                if len(resultados) >= limite_resultados or __import__('time').time() - _start_ts > _TIMEOUT:
+                    break
+        except Exception:
+            pass
+        
+        if resultados:
+            return '\n'.join(resultados)
         return "Nenhum resultado encontrado"
+
+    def _cmd_buscar_inteligente(self, padrao, termos_base=""):
+        """Busca inteligente: tenta multiplos padroes, retorna o mais especifico.
+        
+        Se o padrao original retornar muitos resultados (>20 linhas),
+        tenta variacoes com os termos_base para encontrar resultados
+        mais especificos e relevantes para o projeto MCR.
+        
+        Args:
+            padrao: Padrao original de busca (ex: "funcao lua")
+            termos_base: Termos extraidos da pergunta (ex: "spa dominio")
+        Returns:
+            String com resultados ou 'Nenhum resultado encontrado'
+        """
+        # 1. Tenta o padrao original primeiro
+        r1 = self._cmd_buscar_codigo(padrao)
+        if r1 != "Nenhum resultado encontrado" and len(r1.split('\n')) <= 10:
+            return r1  # Resultado especifico, retorna direto
+        
+        # 2. Resultado generico ou vazio: tenta expandir com termos_base
+        termos = [t.strip() for t in termos_base.split() if len(t.strip()) >= 3]
+        termos += [t.strip() for t in padrao.split() if len(t.strip()) >= 3]
+        termos = list(dict.fromkeys(termos))  # dedup
+        
+        # Remove palavras genericas
+        _genericas = {'funcao', 'funcao', 'function', 'exemplo', 'exemplo', 'codigo', 'arquivo',
+                      'metodo', 'metodo', 'classe', 'sistema', 'como', 'para', 'que', 'com'}
+        termos = [t for t in termos if t.lower() not in _genericas]
+        
+        if not termos:
+            return r1  # Sem termos para expandir, retorna resultado original
+        
+        # 3. Tenta variacoes: termo + ".lua", "spa/termo", etc.
+        _variacoes_tentadas = set()
+        melhores_resultados = []
+        
+        for termo in termos:
+            variacoes = [
+                termo,
+                f"{termo}.lua",
+                f"MCR/{termo}",
+                f"SPA/{termo}",
+                f"{termo} function",
+                f"function.*{termo}",
+            ]
+            
+            for variacao in variacoes:
+                if variacao in _variacoes_tentadas:
+                    continue
+                _variacoes_tentadas.add(variacao)
+                
+                r = self._cmd_buscar_codigo(variacao)
+                if r != "Nenhum resultado encontrado":
+                    linhas = [l for l in r.split('\n') if l.strip()]
+                    # Filtra caches gerados pelo proprio sistema (.rag_hot, .mcr_)
+                    # Isso nao e hardcode de extensao — e filtrar NOSSOS proprios arquivos
+                    linhas = [l for l in linhas if 'rag_hot' not in l and '.mcr_' not in l]
+                    if not linhas:
+                        continue
+                    # Pontua: menos linhas = mais especifico (sem preferencia de extensao)
+                    # Reconstroi resultado sem linhas de cache
+                    _resultado_filtrado = '\n'.join(linhas)
+                    if len(linhas) <= 15:
+                        # Pontuacao: menos linhas = melhor, caminho mais profundo = melhor
+                        _profundidade = max(len(l.split('\\')) for l in linhas)
+                        _score_final = len(linhas) - _profundidade * 0.3
+                        melhores_resultados.append((_score_final, variacao, _resultado_filtrado))
+        
+        if melhores_resultados:
+            # Ordena por: menos linhas primeiro (mais especifico)
+            melhores_resultados.sort(key=lambda x: x[0])
+            _score, melhor_var, melhor_res = melhores_resultados[0]
+            print(f'  [BuscaInteligente] {padrao} -> {melhor_var} ({_score} linhas)')
+            return melhor_res
+        
+        # 4. Fallback: tenta listar diretorios MCR relevantes
+        try:
+            _proj = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+            _mcr_dirs = [
+                os.path.join(_proj, 'data-canary', 'scripts', 'MCR', 'SPA', 'core'),
+                os.path.join(_proj, 'data-canary', 'scripts', 'MCR', 'SPA', 'habilidades'),
+            ]
+            for _d in _mcr_dirs:
+                if os.path.isdir(_d):
+                    _arquivos = [f for f in os.listdir(_d) if f.endswith('.lua')]
+                    if _arquivos:
+                        _lista = '\n'.join([f'{os.path.relpath(os.path.join(_d, f), _proj)}' for f in _arquivos])
+                        print(f'  [BuscaInteligente] Fallback: listando {os.path.basename(_d)}/')
+                        return f"[DIR: {os.path.relpath(_d, _proj)}]\n{_lista}"
+        except Exception:
+            pass
+        
+        return r1
+
+    def _cmd_buscar_estrategico(self, termo):
+        """Busca estrategica: descobre diretorios, explora, retorna codigo real.
+        
+        Fluxo:
+        1. DESCOBRIR: busca por diretorios que contem o termo (profundidade maxima 4)
+        2. EXPLORAR: lista arquivos .lua nos diretorios descobertos
+        3. BUSCAR: grep por funcoes dentro dos arquivos encontrados
+        
+        Args:
+            termo: Termo de busca (ex: "SPA", "SHC", "postura")
+        Returns:
+            String estruturada com diretorios, arquivos e funcoes encontradas
+        """
+        import time as _time
+        _proj = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+        _resultados = []
+        _ts = _time.time()
+        _TIMEOUT = 20  # segundos para toda a operacao
+        
+        # Remove extensoes se vierem no termo (ex: "spa.lua" -> "spa")
+        termo_puro = termo.replace('.lua', '').replace('.py', '').strip()
+        termo_lower = termo_puro.lower()
+        termo_upper = termo_puro.upper()
+        
+        # ============================================================
+        # FASE 1: DESCOBRIR diretorios (os.walk com profundidade maxima)
+        # ============================================================
+        _diretorios = []
+        _arquivos_diretos = []
+        _MAX_DEPTH = 6  # Profundidade maxima para descobrir diretorios
+        
+        try:
+            for _raiz, _dirs, _files in os.walk(_proj):
+                if _time.time() - _ts > _TIMEOUT:
+                    break
+                
+                # Calcula profundidade
+                _rel = os.path.relpath(_raiz, _proj)
+                _depth = _rel.count(os.sep) + 1 if _rel != '.' else 0
+                
+                # Pula diretorios irrelevantes (sistema, dependencias, compilacao)
+                _dirs[:] = [d for d in _dirs if d not in (
+                    '.git', '__pycache__', 'node_modules', 'Legado',
+                    'build', 'bin', 'obj', 'Debug', 'Release', 'x64', '.github',
+                    'vcpkg', 'packages', 'ArquivosComplementares',
+                    '.vcpkg', 'out', '_deps',
+                ) and not d.startswith('.')]
+                
+                if _depth > _MAX_DEPTH:
+                    _dirs[:] = []  # Nao desce mais
+                    continue
+                
+                # Verifica se a pasta atual contem o termo (match de palavra, nao substring)
+                _pasta_nome = os.path.basename(_raiz)
+                _pasta_partes = set(_pasta_nome.replace('-', '_').replace('.', '_').split('_'))
+                if termo_puro in _pasta_partes or termo_upper in _pasta_partes or termo_lower in _pasta_partes:
+                    if _rel not in _diretorios:
+                        _diretorios.append(_rel)
+                        if len(_diretorios) >= 8:
+                            break
+                
+                # Tambem verifica arquivos .lua na superficie
+                if _depth <= 2:
+                    for _f in _files:
+                        _nome_partes = set(_f.replace('-', '_').replace('.', '_').split('_'))
+                        if _f.endswith('.lua') and (termo_puro in _nome_partes or termo_lower in _nome_partes):
+                            _arq_rel = os.path.relpath(os.path.join(_raiz, _f), _proj)
+                            _arquivos_diretos.append(_arq_rel)
+        except Exception:
+            pass
+        
+        if not _diretorios and not _arquivos_diretos:
+            # Fallback: varredura rapida por arquivos com o termo no nome
+            for _raiz, _dirs, _files in os.walk(_proj):
+                if _time.time() - _ts > _TIMEOUT:
+                    break
+                _dirs[:] = [d for d in _dirs if d not in ('.git', '__pycache__', 'node_modules', 'Legado') and not d.startswith('.')]
+                for _f in _files:
+                    if _time.time() - _ts > _TIMEOUT:
+                        break
+                    _nome_partes = set(_f.replace('-', '_').replace('.', '_').split('_'))
+                    if (termo_puro in _nome_partes or termo_lower in _nome_partes) and _f.endswith('.lua'):
+                        _arq_rel = os.path.relpath(os.path.join(_raiz, _f), _proj)
+                        _resultados.append(f"[ARQUIVO] {_arq_rel}")
+                        if len(_resultados) >= 15:
+                            break
+                if len(_resultados) >= 15:
+                    break
+            if _resultados:
+                return "[BUSCA ESTRATEGICA]\n" + "\n".join(_resultados) + "\n\n[Dica: use um termo mais especifico para explorar]"
+            return f"Nenhum diretorio ou arquivo encontrado para '{termo}'"
+        
+        # ============================================================
+        # FASE 2: EXPLORAR arquivos nos diretorios descobertos
+        # ============================================================
+        _resultados.append(f"[DIRETORIOS ENCONTRADOS]\n" + "\n".join(_diretorios))
+        
+        _arquivos_lua = []
+        for _dir in _diretorios:
+            _full_dir = os.path.join(_proj, _dir)
+            try:
+                for _root, _dirs, _files in os.walk(_full_dir):
+                    # Nao entrar em __pycache__
+                    _dirs[:] = [d for d in _dirs if d != '__pycache__']
+                    for _f in _files:
+                        if _f.endswith('.lua') and _f not in _arquivos_lua:
+                            _rel = os.path.relpath(os.path.join(_root, _f), _proj)
+                            _arquivos_lua.append(_rel)
+            except Exception:
+                pass
+        
+        if _arquivos_lua:
+            # Limita a 15 arquivos para evitar poluicao no seed
+            _exibidos = _arquivos_lua
+            if len(_arquivos_lua) > 15:
+                _exibidos.append(f"... e mais {len(_arquivos_lua) - 15} arquivos")
+            _resultados.append(f"\n[ARQUIVOS LUA]\n" + "\n".join(_exibidos))
+        
+        # ============================================================
+        # FASE 3: BUSCAR funcoes nos arquivos encontrados
+        # ============================================================
+        _funcoes = []
+        for _arq in _arquivos_lua:  # Limita a 10 arquivos
+            _full_arq = os.path.join(_proj, _arq)
+            try:
+                with open(_full_arq, 'r', encoding='utf-8', errors='ignore') as _f:
+                    for _i, _linha in enumerate(_f, 1):
+                        _linha_strip = _linha.strip()
+                        if _linha_strip.startswith('function ') or _linha_strip.startswith('local function '):
+                            _funcoes.append(f"{_arq}:{_i}: {_linha_strip}")
+                            if len(_funcoes) >= 20:
+                                break
+                if len(_funcoes) >= 20:
+                    break
+            except Exception:
+                pass
+        
+        if _funcoes:
+            _resultados.append(f"\n[FUNCOES ENCONTRADAS]\n" + "\n".join(_funcoes))
+        
+        return "\n\n".join(_resultados)
 
     def _cmd_buscar_kg(self, texto, max_r=5):
         """Busca no Knowledge Graph."""

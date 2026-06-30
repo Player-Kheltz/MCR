@@ -5,7 +5,7 @@ Filosofia: Pi e infinito. Tudo existe dentro dele. O padrao revela o proximo pas
 Nao precisamos de bilhoes de parametros — precisamos entender a REGRA do padrao.
 """
 import os, sys, re, time
-from typing import List, Tuple, Dict, Optional
+from typing import List, Tuple, Dict, Optional, Any
 
 BASE = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
 
@@ -24,6 +24,7 @@ class PiEngine:
         self.kg = kg
         self.ia = ia
         self._kg_markov = {}  # Markov construido a partir do KG
+        self._markov_entre_fragmentos = {}  # Markov entre fragmentos sequenciais
         self._inicializar_pe()
         self._construir_markov_kg()
     
@@ -121,6 +122,84 @@ class PiEngine:
                 break
         
         return resultado
+    
+    # ===================================================================
+    # PREDIZER UNIVERSAL — funciona com QUALQUER tipo de token
+    # ===================================================================
+    
+    def predizer(self, markov: Dict, ultimo_token: Any) -> Tuple[Any, float]:
+        """Prediz o PROXIMO token em QUALQUER Markov chain.
+        
+        Funciona com: str, int, bytes, tuple — qualquer tipo hashable.
+        Nao importa se são palavras, tipos de token, ou bytes — o Markov
+        é a mesma estrutura {token: {proximo: prob}}.
+        
+        Args:
+            markov: {token: {proximo_token: probabilidade}}
+            ultimo_token: qualquer tipo (str, int, bytes, tuple)
+        Returns:
+            (proximo_token, confianca) ou (None, 0.0)
+        """
+        if not markov or ultimo_token not in markov:
+            return None, 0.0
+        proximos = markov[ultimo_token]
+        if not proximos:
+            return None, 0.0
+        melhor = max(proximos, key=proximos.get)
+        return melhor, proximos[melhor]
+    
+    def gerar_sequencia(self, markov: Dict, semente: Any,
+                        max_passos: int = 15, conf_min: float = 0.3,
+                        max_repeticoes: int = 2) -> List[Any]:
+        """Gera uma sequencia de tokens usando Markov chain universal.
+        
+        Usa predizer() repetidamente para gerar uma corrente de tokens.
+        Qualquer tipo de token: str, int, bytes, tuple.
+        Inclui limitador de repeticoes para evitar loops.
+        
+        Args:
+            markov: {token: {proximo_token: prob}}
+            semente: token inicial (qualquer tipo)
+            max_passos: max tokens a gerar
+            conf_min: confianca minima p/ aceitar cada passo
+            max_repeticoes: max vezes que o mesmo token pode repetir consecutivo
+        Returns:
+            [token1, token2, ...] — sequencia gerada, vazia se falhar
+        """
+        sequencia = []
+        atual = semente
+        repeticoes_consecutivas = 0
+        ultimo_token = None
+        
+        for _ in range(max_passos):
+            proximo, conf = self.predizer(markov, atual)
+            if proximo is None or conf < conf_min:
+                break
+            
+            # Limitador de repeticoes consecutivas
+            if proximo == ultimo_token:
+                repeticoes_consecutivas += 1
+                if repeticoes_consecutivas >= max_repeticoes:
+                    # Tenta o SEGUNDO melhor se disponivel
+                    proximos = markov.get(atual, {})
+                    if len(proximos) > 1:
+                        sorted_prox = sorted(proximos.items(), key=lambda x: -x[1])
+                        for prox_alt, conf_alt in sorted_prox:
+                            if prox_alt != proximo and conf_alt >= conf_min:
+                                proximo = prox_alt
+                                conf = conf_alt
+                                repeticoes_consecutivas = 0
+                                break
+                    if repeticoes_consecutivas >= max_repeticoes:
+                        break  # loop detectado, para
+            else:
+                repeticoes_consecutivas = 0
+            
+            sequencia.append(proximo)
+            atual = proximo
+            ultimo_token = proximo
+        
+        return sequencia
     
     def _predizer_markov(self, texto, markov_input, temperatura):
         """Prediz o proximo termo usando Markov chain.

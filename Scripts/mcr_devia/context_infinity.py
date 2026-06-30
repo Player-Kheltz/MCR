@@ -81,7 +81,7 @@ class OrquestradorContexto:
     """
     
     def __init__(self, modelo: str = None,
-                 kg_path: str = None):
+                 kg_path: str = None, modo_silencioso: bool = False):
         if modelo is None:
             try:
                 from modulos.util import _get_modelo
@@ -91,6 +91,7 @@ class OrquestradorContexto:
                 modelo = "qwen2.5-coder:7b"  # fallback seguro
         self.modelo = modelo
         self.ctx_max = CTX_POR_MODELO.get(modelo, 2048)
+        self.modo_silencioso = modo_silencioso
         self.fragmentos: Dict[str, FragmentoContexto] = {}
         self.indice: Dict[str, List[str]] = {}  # termo -> [ids_fragmentos]
         self.historico_remocoes: List[Dict] = []
@@ -128,7 +129,8 @@ class OrquestradorContexto:
         
         # Mesmo removendo, nao cabe: fragmento muito grande
         # Solucao: fragmentar de novo
-        print(f"  [Contexto] Fragmento {fragmento.id} muito grande ({fragmento.tokens} tokens)")
+        if not self.modo_silencioso:
+            print(f"  [Contexto] Fragmento {fragmento.id} muito grande ({fragmento.tokens} tokens)")
         return False
     
     def _tokens_livres(self) -> int:

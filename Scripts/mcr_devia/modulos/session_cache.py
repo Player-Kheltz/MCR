@@ -19,6 +19,10 @@ from datetime import datetime
 BASE = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
 CACHE_PATH = os.path.join(BASE, 'sandbox', '.mcr_session_cache.json')
 
+# Cache de respostas com expiração de 5 minutos
+_SESSION_CACHE = {}
+_SESSION_CACHE_EXPIRY = 300  # 5 minutos
+
 # Estado em memoria para acesso rapido
 _cache = {
     'pipeline_id': None,
@@ -30,6 +34,39 @@ _cache = {
     'ultimo_passo': -1,
     'status': 'idle',  # idle | running | completed | error
 }
+
+
+def get_cache(key):
+    """Retorna dado do cache de sessão se ainda válido (5min TTL).
+
+    Args:
+        key: str, chave do cache
+
+    Returns:
+        Any or None: dado cacheado ou None se expirado/ausente
+    """
+    if key in _SESSION_CACHE:
+        entry = _SESSION_CACHE[key]
+        if time.time() - entry['time'] < _SESSION_CACHE_EXPIRY:
+            return entry['data']
+        del _SESSION_CACHE[key]
+    return None
+
+
+def set_cache(key, data):
+    """Armazena dado no cache de sessão com timestamp.
+
+    Args:
+        key: str, chave do cache
+        data: Any, dado a ser cacheado
+    """
+    _SESSION_CACHE[key] = {'data': data, 'time': time.time()}
+    # Limpa cache velho se crescer demais
+    if len(_SESSION_CACHE) > 100:
+        old_keys = [k for k, v in _SESSION_CACHE.items()
+                    if time.time() - v['time'] > _SESSION_CACHE_EXPIRY]
+        for k in old_keys:
+            del _SESSION_CACHE[k]
 
 
 def iniciar_sessao(pipeline_type, texto_original, plano):

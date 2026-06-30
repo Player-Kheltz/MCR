@@ -19,6 +19,10 @@ import json, hashlib, time
 # Cache LRU global com TTL
 _cache = {}
 
+# Cache semântico: texto -> tipo (para evitar re-classificar perguntas idênticas)
+_CACHE_SEMANTICO = {}
+_MAX_CACHE = 20
+
 
 def _cache_key(*args):
     return hashlib.md5(':'.join(str(a) for a in args).encode()).hexdigest()
@@ -175,6 +179,85 @@ class Decider:
                 pass
             _set_cache(key, esquema_exemplo)
             return dict(esquema_exemplo)
+
+    def classificar_com_fast(self, texto):
+        """Classifica texto nas categorias A-G usando modelo ultra_leve (1.5b).
+
+        Categorias:
+            A = conceito (definicao, explicacao)
+            B = codigo (programacao, script)
+            C = lore (historia, narrativa)
+            D = criacao (criar, fazer, gerar)
+            E = bugfix (erro, problema, crash)
+            F = comparacao (diferenca, vs)
+            G = geral (outros)
+
+        Cache semântico (_CACHE_SEMANTICO) para evitar re-classificar textos idênticos.
+        Fallback para classificar() (regex/FAST) se o modelo falhar.
+
+        Args:
+            texto: str, pergunta ou consulta para classificar
+
+        Returns:
+            str: tipo classificado (A-G)
+        """
+        global _CACHE_SEMANTICO, _MAX_CACHE
+        if texto in _CACHE_SEMANTICO:
+            return _CACHE_SEMANTICO[texto]
+
+        if self.ia:
+            try:
+                prompt = (
+                    "Classifique a pergunta abaixo em UMA destas categorias:\n"
+                    "A = conceito (definicao, explicacao)\n"
+                    "B = codigo (programacao, script)\n"
+                    "C = lore (historia, narrativa)\n"
+                    "D = criacao (criar, fazer, gerar)\n"
+                    "E = bugfix (erro, problema, crash)\n"
+                    "F = comparacao (diferenca, vs)\n"
+                    "G = geral (outros)\n\n"
+                    f"Pergunta: {texto}\n"
+                    "Categoria:"
+                )
+                resp = self.ia.fast(prompt, 0.1, "ultra_leve").strip().upper()
+                # Tenta match exato (A-G)
+                if resp in 'ABCDEFG':
+                    _CACHE_SEMANTICO[texto] = resp
+                    if len(_CACHE_SEMANTICO) > _MAX_CACHE:
+                        _CACHE_SEMANTICO.pop(next(iter(_CACHE_SEMANTICO)))
+                    return resp
+                # Match parcial
+                for letra in 'ABCDEFG':
+                    if letra in resp:
+                        _CACHE_SEMANTICO[texto] = letra
+                        if len(_CACHE_SEMANTICO) > _MAX_CACHE:
+                            _CACHE_SEMANTICO.pop(next(iter(_CACHE_SEMANTICO)))
+                        return letra
+            except Exception:
+                pass
+
+        # Fallback: mapeia A-G para categorias do classificar()
+        _MAP_REV = {'conceito': 'A', 'codigo': 'B', 'lore': 'C',
+                    'criacao': 'D', 'bug': 'E', 'bugfix': 'E',
+                    'comparacao': 'F', 'outra': 'G', 'duvida': 'G', 'tarefa': 'G'}
+        tipo = self.classificar(
+            texto,
+            ['conceito', 'codigo', 'lore', 'criacao', 'bug', 'comparacao', 'outra'],
+            instrucao="Classifique a pergunta em uma das categorias.",
+            exemplos=[
+                ("O que e SPA?", "conceito"),
+                ("Cria um monster lua", "codigo"),
+                ("Conte a historia de Eridanus", "lore"),
+                ("Crie 3 itens novos", "criacao"),
+                ("Erro ao compilar", "bug"),
+                ("Diferenca entre Fogo e Gelo", "comparacao"),
+            ]
+        )
+        tipo = _MAP_REV.get(tipo, 'G')
+        _CACHE_SEMANTICO[texto] = tipo
+        if len(_CACHE_SEMANTICO) > _MAX_CACHE:
+            _CACHE_SEMANTICO.pop(next(iter(_CACHE_SEMANTICO)))
+        return tipo
 
     def limpar_cache(self):
         """Limpa o cache de decisoes."""

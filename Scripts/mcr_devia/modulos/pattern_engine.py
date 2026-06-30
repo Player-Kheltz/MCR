@@ -10,6 +10,7 @@ Uso:
 """
 import os, json, re, math, ast, collections, keyword as _kw
 from typing import List, Tuple, Dict, Any, Optional
+from collections import Counter
 
 
 class PatternEngine:
@@ -43,7 +44,343 @@ class PatternEngine:
             return self._tokenizar_comportamento(entrada)
         return []
     
-    def _tokenizar_codigo(self, codigo: str) -> List[Tuple]:
+    # ===================================================================
+    # TOKENIZACAO UNIVERSAL — descobre o dominio automaticamente
+    # ===================================================================
+    
+    def tokenizar_universal(self, entrada) -> List[Tuple[str, Any]]:
+        """Tokeniza QUALQUER entrada sem precisar de dominio fixo.
+        
+        Detecta o tipo Python e roteia para o tokenizador adequado:
+        - bytes → _tokenizar_bytes()
+        - str → AST (codigo), JSON, texto_v2, texto classico
+        - list → cada item vira token
+        - dict → chaves viram tipos
+        - outros → RAW
+        
+        Returns:
+            List[Tuple[str, Any]] — mesmo formato de tokenizar()
+        """
+        import ast as _ast_uni, json as _json_uni
+        
+        if isinstance(entrada, bytes):
+            return self._tokenizar_bytes(entrada)
+        
+        elif isinstance(entrada, str):
+            # Tenta AST (codigo Python)
+            try:
+                _ast_uni.parse(entrada)
+                return self._tokenizar_codigo(entrada)
+            except SyntaxError:
+                pass
+            
+            # Tenta JSON
+            try:
+                _json_uni.loads(entrada)
+                return [('FORMAT_JSON', entrada[:200])]
+            except Exception:
+                pass
+            
+            # Tenta lexico_v2 PRIMEIRO (antes de SUSPEITO_CODIGO)
+            try:
+                from modulos.lexico_v2 import tokenizar_v2 as _tv2
+                tokens_v2_raw = _tv2(entrada)
+                tokens_v2 = [(t[0], t[1]) for t in tokens_v2_raw] if tokens_v2_raw else []
+                if tokens_v2:
+                    tipos = set(t[0] for t in tokens_v2)
+                    if not tipos.issubset({'PAL_CURTA', 'PAL_MEDIA', 'PAL_LONGA'}):
+                        # Se tambem parece codigo, adiciona marcador
+                        if re.search(r'\b(function|local|end|if|then|else|for|while|return)\b', entrada):
+                            tokens_v2.append(('SUSPEITO_CODIGO', 1))
+                        return tokens_v2
+            except ImportError:
+                pass
+            
+            # Detecta padroes de codigo nao-Python (Lua, C, JS)
+            # NOTA: 'do' nao esta aqui porque 'do MCR' em portugues nao e keyword
+            if re.search(r'\b(function|local|end|if|then|else|for|while|return|import|class|def|var|let|const)\b', entrada):
+                tokens = self._tokenizar_texto(entrada)
+                tokens.append(('SUSPEITO_CODIGO', 1))
+                return tokens
+            
+            # Fallback: texto classico
+            tokens_cls = self._tokenizar_texto(entrada)
+            
+            # Se entropia > 0.8, tenta descobrir estrutura
+            if tokens_cls:
+                try:
+                    padroes = self.extrair_padroes(tokens_cls)
+                    if padroes.get('entropia', 1.0) > 0.8:
+                        return self._tokenizar_desconhecido(entrada)
+                except Exception:
+                    pass
+            
+            return tokens_cls
+        
+        elif isinstance(entrada, (list, tuple)):
+            tokens = []
+            for i, item in enumerate(entrada[:50]):
+                if isinstance(item, str):
+                    tokens.append(('LIST_ITEM', item[:200]))
+                elif isinstance(item, (int, float)):
+                    tokens.append(('LIST_NUM', item))
+                elif isinstance(item, dict):
+                    for k, v in item.items():
+                        tokens.append((f'DICT_{k}', str(v)[:100]))
+                elif isinstance(item, (list, tuple)):
+                    tokens.append(('LIST_SUB', f'{len(item)} itens'))
+                else:
+                    tokens.append(('LIST_RAW', str(item)[:100]))
+            return tokens
+        
+        elif isinstance(entrada, dict):
+            tokens = []
+            for k, v in entrada.items():
+                if isinstance(v, (str, int, float, bool)):
+                    tokens.append((f'KEY_{k}', str(v)[:200]))
+                elif isinstance(v, (list, tuple)):
+                    tokens.append((f'KEY_{k}', f'list[{len(v)}]'))
+                elif isinstance(v, dict):
+                    tokens.append((f'KEY_{k}', f'dict[{len(v)}]'))
+                else:
+                    tokens.append((f'KEY_{k}', str(type(v).__name__)))
+            return tokens
+        
+        else:
+            return [('RAW', str(entrada)[:500])]
+    
+    # ===================================================================
+    # TOKENIZACAO FRAGMENTADA — quebra pergunta em intencoes multiplas
+    # ===================================================================
+    
+    def tokenizar_fragmentado(self, texto: str, max_fragmentos: int = 5) -> List[Dict]:
+        """Fragmenta o texto e tokeniza CADA fragmento separadamente.
+        
+        Usa SuperFragmentador para quebrar perguntas complexas
+        em frases independentes (separadas por '.', '?', '!', '\\n').
+        Cada fragmento vira uma lista de tokens separada.
+        
+        Args:
+            texto: pergunta do usuario (pode conter multiplas intencoes)
+            max_fragmentos: maximo de fragmentos a processar
+            
+        Returns:
+            List[Dict]: cada dict tem:
+                - 'fragmento': str, o texto do fragmento
+                - 'tokens': List[Tuple], tokens do fragmento
+                - 'tipos': List[str], tipos unicos em ordem
+                - 'intencao': (cat, params, conf) ou None
+        """
+        if not texto or len(texto) < 10:
+            # Texto curto, nao fragmenta
+            tokens = self.tokenizar_universal(texto)
+            tipos = list(dict.fromkeys([t[0] for t in tokens])) if tokens else []
+            return [{
+                'fragmento': texto,
+                'tokens': tokens or [],
+                'tipos': tipos,
+                'intencao': None,
+            }]
+        
+        # Tentativa 1: divisao por pontuacao (perguntas com multiplas intencoes)
+        resultados = []
+        frases = re.split(r'[.!?\n]+(?:\s+|$)', texto)
+        frases_validas = [f.strip() for f in frases if len(f.strip()) > 10]
+        
+        if len(frases_validas) >= 2:
+            # Pergunta tem multiplas intencoes — usa divisao por frases
+            for frase in frases_validas[:max_fragmentos]:
+                tokens = self.tokenizar_universal(frase)
+                tipos = list(dict.fromkeys([t[0] for t in tokens])) if tokens else []
+                resultados.append({
+                    'fragmento': frase,
+                    'tokens': tokens or [],
+                    'tipos': tipos,
+                    'intencao': None,
+                })
+            return resultados
+        
+        # Tentativa 2: SuperFragmentador (textos longos com paragrafos)
+        try:
+            from analysis.fragmenter import SuperFragmentador
+            frag = SuperFragmentador()
+            fragmentos = frag.fragmentar(texto)
+            for f in fragmentos[:max_fragmentos]:
+                conteudo = f.conteudo if hasattr(f, 'conteudo') else str(f)
+                if not conteudo or len(conteudo) < 5:
+                    continue
+                tokens = self.tokenizar_universal(conteudo)
+                tipos = list(dict.fromkeys([t[0] for t in tokens])) if tokens else []
+                resultados.append({
+                    'fragmento': conteudo,
+                    'tokens': tokens or [],
+                    'tipos': tipos,
+                    'intencao': None,
+                })
+            if resultados:
+                return resultados
+        except Exception:
+            pass
+        
+        # Tentativa 3: fallback — texto unico
+        if len(frases_validas) == 1:
+            tokens = self.tokenizar_universal(frases_validas[0])
+            tipos = list(dict.fromkeys([t[0] for t in tokens])) if tokens else []
+            return [{
+                'fragmento': frases_validas[0],
+                'tokens': tokens or [],
+                'tipos': tipos,
+                'intencao': None,
+            }]
+        
+        # Fallback final
+        tokens = self.tokenizar_universal(texto)
+        tipos = list(dict.fromkeys([t[0] for t in tokens])) if tokens else []
+        return [{
+            'fragmento': texto,
+            'tokens': tokens or [],
+            'tipos': tipos,
+            'intencao': None,
+        }]
+    
+    # ===================================================================
+    # TOKENIZACAO DE BYTES — descobre formato por magic + distribuicao
+    # ===================================================================
+    
+    def _tokenizar_bytes(self, data: bytes) -> List[Tuple[str, Any]]:
+        """Tokeniza bytes BRUTOS — apenas header + amostra estrutural.
+        
+        Nao le o arquivo todo. So header (16B) + amostra (4KB)
+        para detectar magic bytes, entropia, e blocos repetidos.
+        """
+        if not data or len(data) < 4:
+            return [('BINARY_EMPTY', 0)]
+        
+        tokens = []
+        tamanho = len(data)
+        tokens.append(('BINARY_SIZE', tamanho))
+        
+        # FASE 1: Magic bytes
+        header = data[:16]
+        MAGIC_MAP = [
+            (b'\x89PNG\r\n\x1a\n', 'FORMAT_PNG'),
+            (b'\x7fELF', 'FORMAT_ELF'),
+            (b'PK\x03\x04', 'FORMAT_ZIP'),
+            (b'GIF8', 'FORMAT_GIF'),
+            (b'\xff\xd8\xff', 'FORMAT_JPEG'),
+            (b'%PDF', 'FORMAT_PDF'),
+            (b'MZ', 'FORMAT_PE'),
+            (b'\x00\x00\x00\x1cftyp', 'FORMAT_MP4'),
+            (b'RIFF', 'FORMAT_AVI_WAV'),
+            (b'\x1f\x8b\x08', 'FORMAT_GZIP'),
+            (b'BZh', 'FORMAT_BZ2'),
+            (b'\xca\xfe\xba\xbe', 'FORMAT_CLASS'),
+            (b'\xef\xbb\xbf', 'FORMAT_UTF8_BOM'),
+            (b'\xff\xfe', 'FORMAT_UTF16_LE'),
+            (b'\xfe\xff', 'FORMAT_UTF16_BE'),
+        ]
+        formato = 'BINARY_UNKNOWN'
+        for magic, nome in MAGIC_MAP:
+            if header[:len(magic)] == magic:
+                formato = nome
+                break
+        tokens.append(('BINARY_FORMAT', formato))
+        
+        # FASE 2: Distribuicao de bytes (amostra 4KB)
+        amostra = data[:4096]
+        n = len(amostra)
+        if n > 0:
+            freq_byte = [0] * 256
+            for b in amostra:
+                freq_byte[b] += 1
+            n_distintos = sum(1 for f in freq_byte if f > 0)
+            tokens.append(('BINARY_BYTE_DIVERSITY', n_distintos))
+            
+            entropia = 0.0
+            for f in freq_byte:
+                if f > 0:
+                    p = f / n
+                    entropia -= p * math.log2(p)
+            entropia_norm = entropia / 8.0
+            tokens.append(('BINARY_ENTROPY', round(entropia_norm, 4)))
+        
+        # FASE 3: Blocos repetidos (struct detection)
+        if n >= 100:
+            bloco2 = Counter()
+            for i in range(0, min(n - 1, 2000), 2):
+                bloco2[data[i:i+2]] += 1
+            n_blocos2 = sum(1 for c in bloco2.values() if c > 5)
+            if n_blocos2 > 0:
+                tokens.append(('BINARY_BLOCK2', n_blocos2))
+            
+            bloco4 = Counter()
+            for i in range(0, min(n - 3, 2000), 4):
+                bloco4[data[i:i+4]] += 1
+            n_blocos4 = sum(1 for c in bloco4.values() if c > 3)
+            if n_blocos4 > 0:
+                tokens.append(('BINARY_BLOCK4', n_blocos4))
+        
+        # FASE 4: Classificacao
+        if 'BINARY_ENTROPY' in [t[0] for t in tokens]:
+            idx = next(i for i, t in enumerate(tokens) if t[0] == 'BINARY_ENTROPY')
+            ent = tokens[idx][1]
+            if ent < 0.3:
+                tokens.append(('BINARY_TYPE', 'LOW_ENTROPY'))
+            elif ent < 0.6:
+                tokens.append(('BINARY_TYPE', 'MIXED'))
+            else:
+                tokens.append(('BINARY_TYPE', 'HIGH_ENTROPY'))
+        
+        if formato == 'BINARY_UNKNOWN' and not any(t[0] == 'BINARY_TYPE' for t in tokens):
+            tokens.append(('BINARY_TYPE', 'UNKNOWN_STRUCTURED'))
+        
+        return tokens
+    
+    # ===================================================================
+    # TOKENIZACAO DE CONTEUDO DESCONHECIDO — descobre estrutura
+    # ===================================================================
+    
+    def _tokenizar_desconhecido(self, texto: str) -> List[Tuple[str, Any]]:
+        """Tokeniza conteudo que nao se encaixa em nenhum dominio conhecido.
+        
+        Usa n-gramas de caracteres para detectar repeticoes e criar
+        tokens baseados na estrutura do proprio texto.
+        """
+        if not texto or len(texto) < 10:
+            return self._tokenizar_texto(texto)
+        
+        tokens = []
+        palavras_reais = re.findall(r'\w+', texto)
+        
+        # N-gramas de caracteres (tamanho 3-5) para detectar repeticoes
+        ngramas_char = Counter()
+        for n_tam in [3, 4]:
+            for i in range(len(texto) - n_tam + 1):
+                ngramas_char[texto[i:i+n_tam]] += 1
+        
+        # N-gramas que aparecem 3+ vezes → padrao estrutural
+        padroes_estruturais = [ng for ng, c in ngramas_char.most_common(20) if c >= 3]
+        
+        if padroes_estruturais:
+            for i, ng in enumerate(padroes_estruturais[:10]):
+                tokens.append((f'PATTERN_{i}', ng[:50]))
+            tokens.append(('PATTERN_COUNT', len(padroes_estruturais)))
+        
+        # Distribuicao de caracteres
+        maiusculas = sum(1 for c in texto if c.isupper())
+        minusculas = sum(1 for c in texto if c.islower())
+        digitos = sum(1 for c in texto if c.isdigit())
+        espacos = sum(1 for c in texto if c.isspace())
+        outros = len(texto) - maiusculas - minusculas - digitos - espacos
+        total_car = max(len(texto), 1)
+        
+        tokens.append(('TEXT_UPPER', round(maiusculas / total_car, 3)))
+        tokens.append(('TEXT_LOWER', round(minusculas / total_car, 3)))
+        tokens.append(('TEXT_DIGIT', round(digitos / total_car, 3)))
+        tokens.append(('TEXT_SPACE', round(espacos / total_car, 3)))
+        tokens.append(('TEXT_OTHER', round(outros / total_car, 3)))
+        
+        return tokens
         """Tokeniza código Python: AST + indent + keywords."""
         tokens = []
         linhas = codigo.split('\n')

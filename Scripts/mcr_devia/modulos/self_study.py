@@ -588,3 +588,22 @@ class SelfStudyEngine:
         emit('narrator', f'Auto-conhecimento concluido em {round(time.time()-t0, 1)}s')
         emit('stage', {'name': 'self_study_fim', 'label': 'Auto-conhecimento OK', 'progress': 1.0})
         emit('result', {'chars': metricas['total_linhas'], 'arquivos': metricas['total_arquivos'], 'sucesso': True})
+
+
+# Funcao de modulo para compatibilidade com kernel.py
+_INSTANCIA = None
+
+def executar(ia=None, kg=None, log_callback=None, execution_count_getter=None):
+    """Wrapper de modulo para SelfStudyEngine.executar()."""
+    global _INSTANCIA
+    if _INSTANCIA is None:
+        _INSTANCIA = SelfStudyEngine(
+            ia=ia, kg=kg,
+            log_callback=log_callback,
+            execution_count_getter=execution_count_getter
+        )
+    try:
+        _INSTANCIA.executar()
+    except Exception as _e_ss:
+        if log_callback:
+            log_callback('error', f'SelfStudy: {_e_ss}')

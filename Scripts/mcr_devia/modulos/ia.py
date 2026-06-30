@@ -54,6 +54,9 @@ MODELOS = {
     # --- TEXTO PT-BR (qwen14b responde sempre; llama se recusa quando nao conhece) ---
     "texto":      {"modelo": "qwen2.5-coder:14b", "ctx": 4096, "num_predict": 2048,
                    "main_gpu": 0, "num_gpu": 99},
+    # --- DEEPSEEK (melhor em seguir instrucoes e contexto) ---
+    "instrucao": {"modelo": "deepseek-r1:7b",  "ctx": 8192, "num_predict": 4096,
+                  "raw": True},
     # --- ALTERNATIVO ---
     "alternativo":{"modelo": "mistral:7b",       "ctx": 4096, "num_predict": 4096},
 }
