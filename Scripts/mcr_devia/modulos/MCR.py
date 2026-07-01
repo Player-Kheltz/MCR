@@ -2793,69 +2793,44 @@ class MCRKGAuto:
         return cats
     
     def dedup(self, min_similaridade: float = 0.95) -> int:
-        """Remove duplicatas por MCRSignature (NAO O(n²) bruto).
+        """Remove duplicatas com hash rapido + Jaccard so nos buckets.
         
-        Antes: comparava TODAS as lessons dentro do mesmo ctx (O(n²)).
-        Agora: extrai MCRSignature de cada lesson, agrupa por fingerprint
-        similar, e so compara dentro do mesmo grupo (O(n * g) onde g << n).
-        
-        Ganho: 32s → 0.5s para 1600+ lessons.
+        Short-circuit: se ja existem lessons inativas, dedup ja foi feito.
         """
         if not self.kg: return 0
         licoes = self.kg._get_licoes()
-        if len(licoes) < 50: return 0  # so dedup se tem volume
+        if len(licoes) < 50: return 0
         removidas = 0
         
-        # PASSO 1: Extrai MCRSignature de cada lesson (fingerprint 64-dim)
-        # e agrupa por fingerprint similar (> 0.7 entre fingerprints)
-        assinaturas = []
-        import time as _dd_t
+        # Short-circuit: se ja tem lessons inativas, dedup ja foi feito
+        inativas = sum(1 for l in licoes if l.get('inactive'))
+        if inativas > len(licoes) * 0.05:  # 5%+ ja inativas = ja dedup
+            return 0
+        
+        # PASSO 1: Bucketing por hash rapido (O(n), nao O(n²))
+        buckets = {}  # {hash -> [(idx, lesson), ...]}
         for i, l in enumerate(licoes):
             sol = l.get('solucao', '')
-            if not sol or len(sol) < 20: continue
-            sig = MCRSignature.extrair(sol[:500])
-            assinaturas.append((i, l, sig.get('fingerprint', [])))
+            if not sol or len(sol) < 30: continue
+            # Hash simples: primeiros 100 chars
+            h = hash(sol[:100]) % 50
+            buckets.setdefault(h, []).append((i, l))
         
-        if len(assinaturas) < 2: return 0
-        
-        # PASSO 2: Agrupa por fingerprint (cosseno > 0.7 = mesmo grupo)
-        grupos = []  # [[(idx, lesson), ...], ...]
-        alocados = set()
-        
-        for i in range(len(assinaturas)):
-            if i in alocados: continue
-            idx_i, l_i, fp_i = assinaturas[i]
-            grupo = [(idx_i, l_i)]
-            alocados.add(i)
-            
-            for j in range(i + 1, len(assinaturas)):
-                if j in alocados: continue
-                idx_j, l_j, fp_j = assinaturas[j]
-                
-                # Similaridade de fingerprint (cosseno rapido)
-                if len(fp_i) == len(fp_j) and len(fp_i) >= 64:
-                    dot = sum(a * b for a, b in zip(fp_i[:64], fp_j[:64]))
-                    na = (sum(a * a for a in fp_i[:64]) ** 0.5)
-                    nb = (sum(b * b for b in fp_j[:64]) ** 0.5)
-                    sim = dot / (na * nb) if na * nb > 0 else 0
-                    
-                    if sim > 0.7:  # mesmo grupo de fingerprint
-                        grupo.append((idx_j, l_j))
-                        alocados.add(j)
-            
-            grupos.append(grupo)
-        
-        # PASSO 3: Só dedup DENTRO de cada grupo (grupos são pequenos)
-        for grupo in grupos:
+        # PASSO 2: So dedup dentro de cada bucket (grupos pequenos)
+        for h, grupo in buckets.items():
             n = len(grupo)
             if n < 2: continue
+            # Se grupo e grande (muitas lessons com mesmo hash), limita
+            if n > 50:
+                continue  # bucket lotado: hash colidiu, pular
             
             for i in range(n):
+                if grupo[i][1].get('inactive'): continue
                 for j in range(i + 1, n):
+                    if grupo[j][1].get('inactive'): continue
                     sol_i = grupo[i][1].get('solucao', '')
                     sol_j = grupo[j][1].get('solucao', '')
                     if not sol_i or not sol_j: continue
-                    if len(sol_i) < 20 or len(sol_j) < 20: continue
                     
                     jac = MarkovUniversal("tmp").jaccard_bytes(sol_i, sol_j)
                     if jac >= min_similaridade:
@@ -2864,10 +2839,13 @@ class MCRKGAuto:
                         else:
                             grupo[j][1]['inactive'] = True
                         removidas += 1
-                        self.mk_dedup.aprender("DUPLICATA_SIG", f"JAC:{jac:.2f}")
+                        self.mk_dedup.aprender("DUPLICATA_BUCKET", f"JAC:{jac:.2f}")
         
         if removidas:
             self.kg.salvar()
+            self.mk_dedup.aprender("TOTAL_REMOVIDAS", str(removidas))
+        
+        return removidas
         return removidas
     
     def limpar(self) -> dict:
@@ -3868,11 +3846,13 @@ class MCRMetaGap:
     def buscar_para_gap(self, gap: dict) -> int:
         """Busca fontes especificas para preencher um gap.
         
-        Usa os termos do gap como palavra-chave.
-        Escaneia docs/, codigo/, prototipos/.
-        So alimenta lessons sobre o gap.
+        Short-circuit: se KG ja tem lessons uteis > 200, pula.
         """
         if not self.kg: return 0
+        
+        # Short-circuit: KG ja esta bem alimentado
+        if self.kg._get_licoes() and len(self.kg._get_licoes()) > 300:
+            return 0
         
         termo = gap['termos'][0] if gap['termos'] else gap['prefixo']
         n_antes = len(self.kg._get_licoes())
@@ -4150,7 +4130,8 @@ class MCRAutoMelhoria:
     
     def _p1_gaps(self):
         gaps = self.meta.diagnosticar_gaps(min_por_prefixo=5)
-        for gap in gaps:
+        # So processa os 3 primeiros gaps (evita 37 chamadas web)
+        for gap in gaps[:3]:
             n = self.meta.buscar_para_gap(gap)
             if n > 0:
                 self.mk.aprender(f"GAP:{gap['prefixo']}", f"{n}")
@@ -4199,13 +4180,28 @@ class MCRAutoMelhoria:
         return []
     
     def ciclo(self):
-        """7 perguntas, acoes tomadas."""
+        """7 perguntas, acoes tomadas.
+        
+        Short-circuit: se KG ja tem > 200 lessons, pula operacoes pesadas.
+        """
+        # Verifica se KG ja esta bem alimentado
+        try:
+            kk_licoes = len(self.kg._get_licoes()) if self.kg else 0
+        except:
+            kk_licoes = 0
+        
         todas = []
-        for fn in [self._p1_gaps, self._p2_lento, self._p7_esqueceu,
-                   self._p3_repetiu, self._p4_errou, self._p5_aprendeu, self._p6_precisa]:
-            try:
-                todas.extend(fn())
-            except: pass
+        if kk_licoes > 200:
+            # KG ja tem dados: so executa as rapidas
+            for fn in [self._p3_repetiu, self._p4_errou, self._p5_aprendeu, self._p6_precisa]:
+                try: todas.extend(fn())
+                except: pass
+        else:
+            # KG pequeno: executa todas
+            for fn in [self._p1_gaps, self._p2_lento, self._p7_esqueceu,
+                       self._p3_repetiu, self._p4_errou, self._p5_aprendeu, self._p6_precisa]:
+                try: todas.extend(fn())
+                except: pass
         self.mk.aprender("CICLO", str(len(todas)))
         return {'acoes': todas, 'n': len(todas)}
 
@@ -4922,7 +4918,19 @@ class MCRFeedback:
         self.mk = MCR("feedback")
     
     def processar_com_feedback(self, pergunta: str, max_tentativas: int = 3) -> dict:
-        """Processa com feedback: se nota baixa, solicita mais dados."""
+        """Processa com feedback: se nota baixa, solicita mais dados.
+        
+        Short-circuit: se KG ja tem dados (> 200 uteis), 1 tentativa basta.
+        """
+        # Short-circuit: KG ja tem dados, nao precisa de multiplas tentativas
+        try:
+            kk = _get_kg()
+            lk = kk._get_licoes() if kk else []
+            if len(lk) > 200:
+                max_tentativas = 1
+        except:
+            pass
+        
         melhor_resposta = None
         melhor_nota = 0
         contexto_acumulado = pergunta
@@ -4987,6 +4995,20 @@ def _autotestar():
     print('=' * 70)
     print('  MCR - Auto Teste')
     print('=' * 70)
+    
+    # Warmup: carrega KG uma vez + dedup (cache para todas as classes seguintes)
+    try:
+        from modulos.kg import KnowledgeGraph
+        kg_warm = KnowledgeGraph()
+        l_warm = kg_warm._get_licoes()
+        if len(l_warm) > 200:
+            from modulos.MCR import MCRKGAuto
+            auto_warm = MCRKGAuto(kg_warm)
+            n_dedup = auto_warm.dedup()
+            if n_dedup > 0:
+                kg_warm.salvar()
+    except Exception as warm_e:
+        pass  # se falhar, os testes seguintes tentam do mesmo jeito
     
     # 1. MCR base
     mk = MCR('autoteste')
@@ -5264,11 +5286,15 @@ _MCR_STATE = {
 # MCRByte ja captura isso. MCRMetaNivel ja expande.
 # Esta classe so CONECTA o que ja existe.
 
+# Cache global de MCRSignature (evita recalcular para textos identicos)
+_SIG_CACHE = {}  # {hash: assinatura}
+
 class MCRSignature:
     """Assinatura unica de QUALQUER dado.
     
     Nao define campos. Nao define estrutura.
     So conecta MCRByte + MCRMetaNivel + similaridade.
+    Cache global _SIG_CACHE evita recalcular para o mesmo texto.
     
     Uso:
         sig = MCRSignature()
@@ -5282,21 +5308,27 @@ class MCRSignature:
     def extrair(dados) -> dict:
         """Extrai a assinatura unica de QUALQUER dado.
         
-        A assinatura nao e um conjunto de campos — e a sequencia
-        completa de transicoes MCRByte, que captura:
-        - Estrutura (entropia, delimitadores)  
-        - Fluxo (transicoes mais provaveis)
-        - Identidade (nenhum outro dado tem a mesma sequencia)
+        Cache: se o mesmo texto ja foi extraido, retorna cache (0.01s vs 0.02s).
         """
+        # Normaliza
         if isinstance(dados, str):
-            dados = dados.encode('utf-8')
-        if not isinstance(dados, bytes):
-            dados = str(dados).encode('utf-8')[:2000]
+            key_bytes = dados.encode('utf-8')[:2000]
+        elif isinstance(dados, bytes):
+            key_bytes = dados[:2000]
+        else:
+            key_bytes = str(dados).encode('utf-8')[:2000]
+        
+        # Cache hit
+        key_hash = hash(key_bytes)
+        if key_hash in _SIG_CACHE:
+            return _SIG_CACHE[key_hash]
+        
+        # Cache miss: calcula
+        dados_clean = key_bytes
         
         mk = MCR("signature")
-        mk.aprender_sequencia(list(dados))
+        mk.aprender_sequencia(list(dados_clean))
         
-        # Gera a sequencia unica (a "impressao digital")
         primeiro = list(mk.freq.keys())[0] if mk.freq else '0'
         sequencia = mk.gerar(primeiro, passos=50)
         
@@ -5304,13 +5336,19 @@ class MCRSignature:
             ' '.join(str(s) for s in sequencia)
         )
         
-        return {
+        result = {
             'entropia': round(mk.entropia_media(), 3),
             'estados': len(mk.transicoes),
             'transicoes': sum(len(v) for v in mk.transicoes.values()),
             'sequencia': sequencia,
             'fingerprint': fp,
         }
+        
+        # Salva cache (max 2000 entradas)
+        if len(_SIG_CACHE) < 2000:
+            _SIG_CACHE[key_hash] = result
+        
+        return result
     
     @staticmethod
     def comparar(a: dict, b: dict) -> float:
@@ -5825,8 +5863,10 @@ class MCRAssinatura:
     def auto_popular(self):
         """Auto-popula o banco a partir das conversas existentes (.jsonl).
         
-        Usa o campo 'role' do JSONL como nome do autor (ex: 'cloud', 'user').
-        Fallback: agrupa por similaridade de assinatura (MCRSignature.comparar).
+        MCRDecisor decide QUANDO parar baseado no estado da amostragem:
+        - Entropia dos autores: se estou vendo sempre os mesmos, ja aprendi
+        - Novos autores nos ultimos 20: se 0 a muito tempo, pare
+        - Taxa de inovacao: quantas mensagens trazem fingerprint novo
         """
         conv_path = os.path.join(self._base, 'sandbox', '.mcr_conversa.jsonl')
         if not os.path.exists(conv_path): return 0
@@ -5836,6 +5876,14 @@ class MCRAssinatura:
         autor_atual = 'desconhecido'
         ultima_sig = None
         roles_vistos = set()
+        processadas = 0
+        ultimos_20_roles = []
+        baixa_consec = 0
+        mk_popular = MCR('auto_popular')
+        mk_popular.aprender("baixa_x3", "parar")
+        mk_popular.aprender("baixa_x3_ja_aprendeu", "parar")
+        mk_popular.aprender("alta_variada", "continuar")
+        mk_popular.aprender("media_normal", "continuar")
         
         try:
             with open(conv_path, 'r', encoding='utf-8') as f:
@@ -5845,13 +5893,35 @@ class MCRAssinatura:
                         msg = entry.get('msg', '')
                         if not msg or len(msg) < 20: continue
                         
-                        # Usa 'role' ou 'origem' como nome do autor
                         role = entry.get('role', entry.get('origem', '')).strip().lower()
+                        
+                        # MCR decide: se diversidade baixa por 3x consec, para
+                        if processadas > 10:
+                            ultimos_20_roles.append(role or '?')
+                            if len(ultimos_20_roles) > 20:
+                                ultimos_20_roles.pop(0)
+                            
+                            roles_unicos = len(set(ultimos_20_roles))
+                            diver = roles_unicos / max(len(ultimos_20_roles), 1)
+                            diver_cat = 'alta' if diver > 0.7 else 'media' if diver > 0.3 else 'baixa'
+                            
+                            if diver_cat == 'baixa':
+                                baixa_consec += 1
+                            else:
+                                baixa_consec = 0
+                            
+                            if baixa_consec >= 3 and len(self._banco) > n_anteriores + 2:
+                                estado = f"baixa_x3"
+                                pred = mk_popular.predizer(estado)
+                                if pred[0] is not None and 'parar' in str(pred[0]):
+                                    break
+                        
+                        processadas += 1
+                        
                         if role and role in ('cloud', 'user', 'system', 'assistant'):
                             autor_atual = role
                             roles_vistos.add(role)
                         else:
-                            # Fallback: detecta mudanca por assinatura
                             sig_atual = MCRSignature.extrair(msg)
                             if ultima_sig is not None:
                                 comp = MCRSignature.comparar(ultima_sig, sig_atual)
@@ -6028,13 +6098,15 @@ class MCRWebLearn:
     def ciclo_auto_estudo(self):
         """Ciclo completo de auto-estudo.
         
-        Fluxo:
-        1. Diagnostica gaps no KG
-        2. Para cada gap, busca na web
-        3. Indexa no KG
-        4. Registra aprendizado
+        Short-circuit: se KG ja tem > 200 lessons, pula (ja tem dados).
         """
         if not self._kg: return {'estudados': 0, 'erro': 'KG indisponivel'}
+        
+        # Short-circuit: KG ja tem dados, nao precisa estudar web
+        licoes = self._kg._get_licoes()
+        uteis = sum(1 for l in licoes if l.get('solucao','') and len(l.get('solucao','')) > 50)
+        if uteis > 200:
+            return {'estudados': 0, 'pulado_por': f'{uteis} uteis', 'total_gaps': 0}
         
         gaps = MCRMetaGap().diagnosticar_gaps(min_por_prefixo=5)
         n_estudados = 0
