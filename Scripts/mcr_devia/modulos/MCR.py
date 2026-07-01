@@ -2940,6 +2940,206 @@ _MCR_THRESHOLD_FILTRO = MCRThreshold("filtro_global")
 
 
 # ============================================================
+# MCR FUEL — MCR que se auto-alimenta de 9 fontes
+# ============================================================
+
+class MCRFuel:
+    """MCR busca o proprio combustivel.
+    
+    Percorre 9 fontes e alimenta o KG automaticamente:
+    1. Codigo fonte (.py)
+    2. Documentacao (docs/*.md, docs/MCR - Instrucoes/*.txt)
+    3. Modulos (48 modulos)
+    4. Comandos (52 comandos)
+    5. MANIFEST (catalogo completo)
+    6. Prototipos (22 prototipos)
+    7. Cache e episodios anteriores
+    8. Ferramentas (30 ferramentas)
+    9. Conhecimento do proprio KG (re-organizar)
+    
+    Uso:
+        fuel = MCRFuel()
+        n = fuel.abastecer()  # retorna quantas lessons criou
+    """
+    
+    def __init__(self, kg=None, bridge=None):
+        self.kg = kg or (KnowledgeGraph() if MCR_COMPLETO else None)
+        self.bridge = bridge or MCRBridge()
+        self._base = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+        self._base_mod = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+        self.mk = MarkovUniversal("fuel")
+        self.total_lessons = 0
+    
+    def _ler(self, caminho, max_bytes=1000):
+        try:
+            if not os.path.exists(caminho): return ''
+            with open(caminho, 'r', encoding='utf-8', errors='replace') as f:
+                return f.read(max_bytes)
+        except: return ''
+    
+    def _listar_arquivos(self, diretorio, ext, max_n=100):
+        if not os.path.isdir(diretorio): return []
+        arquivos = []
+        for fname in os.listdir(diretorio):
+            if fname.endswith(ext) and not fname.startswith('__'):
+                arquivos.append(os.path.join(diretorio, fname))
+                if len(arquivos) >= max_n: break
+        return arquivos
+    
+    def _alimentar(self, erro, solucao, ctx='fuel'):
+        if not solucao or len(solucao) < 20: return
+        # Extrai so o texto util (limpo, sem JSON)
+        texto = solucao.replace('\n', ' ').strip()
+        if texto.startswith('{') or texto.startswith('['): return
+        self.kg.aprender(erro=erro[:80], causa=f"fuel:{ctx}", solucao=texto[:500], ctx=ctx)
+        self.total_lessons += 1
+    
+    def abastecer(self, fontes=None) -> int:
+        """Percorre as fontes e alimenta o KG.
+        
+        Args:
+            fontes: lista de fontes para percorrer (None = todas)
+        Returns:
+            numero de lessons criadas
+        """
+        if not self.kg: return 0
+        if not self.bridge._descobriu:
+            self.bridge.descobrir()
+        
+        self.total_lessons = 0
+        fontes_escolhidas = fontes or ['codigo', 'docs', 'modulos', 'comandos',
+                                        'manifesto', 'prototipos', 'cache', 'ferramentas', 'kg']
+        
+        for fonte in fontes_escolhidas:
+            if fonte == 'codigo':
+                for f in self._listar_arquivos(os.path.join(self._base_mod, 'modulos'), '.py', 20):
+                    nome = os.path.basename(f)
+                    conteudo = self._ler(f, 500)
+                    if conteudo:
+                        self._alimentar(f"modulo_{nome}", f"Codigo do modulo {nome}: {conteudo}", "fuel_codigo")
+                for f in self._listar_arquivos(os.path.join(self._base_mod, 'comandos'), '.py', 20):
+                    nome = os.path.basename(f)
+                    conteudo = self._ler(f, 300)
+                    if conteudo:
+                        self._alimentar(f"comando_{nome}", f"Comando {nome}: {conteudo}", "fuel_codigo")
+            
+            elif fonte == 'docs':
+                docs_dir = os.path.join(self._base, 'docs')
+                for f in self._listar_arquivos(docs_dir, '.md', 15):
+                    conteudo = self._ler(f, 500)
+                    if conteudo:
+                        self._alimentar(f"doc_{os.path.basename(f)}", conteudo, "fuel_docs")
+                # Instrucoes
+                instr_dir = os.path.join(docs_dir, 'MCR - Instrucoes')
+                for f in self._listar_arquivos(instr_dir, '.txt', 10):
+                    conteudo = self._ler(f, 500)
+                    if conteudo:
+                        self._alimentar(f"instr_{os.path.basename(f)}", conteudo, "fuel_docs")
+            
+            elif fonte == 'modulos':
+                for nome in sorted(self.bridge.modulos.keys())[:30]:
+                    mod = self.bridge.modulos[nome]
+                    doc = (mod.__doc__ or '')[:200]
+                    if doc:
+                        self._alimentar(f"mod:{nome}", doc, "fuel_modulos")
+                    # Tenta listar funcoes
+                    funcoes = [a for a in dir(mod) if not a.startswith('_') and callable(getattr(mod, a, None))][:5]
+                    if funcoes:
+                        self._alimentar(f"mod:{nome}_funcoes", f"Funcoes: {', '.join(funcoes)}", "fuel_modulos")
+            
+            elif fonte == 'comandos':
+                for nome in sorted(self.bridge.comandos.keys())[:30]:
+                    self._alimentar(f"cmd:{nome}", f"Comando disponivel: {nome}", "fuel_comandos")
+            
+            elif fonte == 'manifesto':
+                manifesto = self._ler(os.path.join(self._base, 'docs', 'MANIFEST.md'), 2000)
+                if manifesto:
+                    self._alimentar("manifesto", manifesto[:1000], "fuel_manifesto")
+            
+            elif fonte == 'prototipos':
+                sandbox_dir = os.path.join(self._base, 'sandbox')
+                for f in self._listar_arquivos(sandbox_dir, '.py', 15):
+                    if f.endswith('.py') and ('prototipo' in f or 'test_' in f):
+                        conteudo = self._ler(f, 300)
+                        if conteudo:
+                            nome = os.path.basename(f)
+                            self._alimentar(f"prototipo_{nome}", conteudo[:200], "fuel_prototipos")
+            
+            elif fonte == 'cache':
+                # Episodios
+                ep_path = os.path.join(self._base, 'sandbox', '.mcr_episodios.json')
+                if os.path.exists(ep_path):
+                    try:
+                        with open(ep_path, 'r', encoding='utf-8') as f:
+                            dados = json.load(f)
+                        for ep in dados[:20]:
+                            req = ep.get('request', '')[:100]
+                            suc = ep.get('sucesso', False)
+                            if req:
+                                self._alimentar(f"episodio_{req[:30]}", f"Request: {req} | Sucesso: {suc}", "fuel_cache")
+                    except: pass
+                # Conversas
+                conv_path = os.path.join(self._base, 'sandbox', '.mcr_conversa.jsonl')
+                if os.path.exists(conv_path):
+                    try:
+                        with open(conv_path, 'r', encoding='utf-8') as f:
+                            for i, line in enumerate(f):
+                                if i >= 10: break
+                                try:
+                                    entry = json.loads(line.strip())
+                                    msg = entry.get('msg', '')[:200]
+                                    if msg:
+                                        self._alimentar(f"conversa_{i}", msg, "fuel_cache")
+                                except: pass
+                    except: pass
+            
+            elif fonte == 'ferramentas':
+                ferramentas_list = [
+                    'buscar_kg', 'buscar_estrategico', 'pattern_analyze',
+                    'ler_arquivo', 'validar_codigo', 'gerar_esqueleto'
+                ]
+                for f in ferramentas_list:
+                    self._alimentar(f"tool:{f}", f"Ferramenta disponivel: {f}", "fuel_ferramentas")
+            
+            elif fonte == 'kg':
+                # Re-organiza o proprio KG
+                try:
+                    licoes = self.kg._get_licoes()
+                    uteis = [l for l in licoes 
+                             if l.get('solucao','') and len(l.get('solucao','')) > 50
+                             and not l.get('solucao','').startswith('{')
+                             and not l.get('inactive')]
+                    self._alimentar("kg_sumario", 
+                        f"KG tem {len(licoes)} lessons, {len(uteis)} uteis, "
+                        f"{len(licoes)-len(uteis)} lixo. "
+                        f"Distribuicao: {dict(__import__('collections').Counter(l.get('ctx','?') for l in licoes).most_common(10))}",
+                        "fuel_kg")
+                except: pass
+        
+        # Forca flush do KG
+        if self.total_lessons > 0:
+            for _ in range(10): self.kg.aprender_conceito("_fuel_flush", "_", ctx="_flush")
+        
+        self.mk.aprender("FUEL", f"LESSONS:{self.total_lessons}")
+        return self.total_lessons
+    
+    def abastecer_se_precisar(self, min_uteis=100) -> bool:
+        """Só abastece se o KG estiver com menos de min_uteis lessons uteis."""
+        try:
+            licoes = self.kg._get_licoes()
+            uteis = [l for l in licoes 
+                     if l.get('solucao','') and len(l.get('solucao','')) > 50
+                     and not l.get('solucao','').startswith('{')
+                     and not l.get('inactive')]
+            if len(uteis) < min_uteis:
+                n = self.abastecer()
+                return n > 0
+            return False
+        except:
+            return False
+
+
+# ============================================================
 # MCR MESTRE V2 — Decisor treinado, zero if/else
 # ============================================================
 
@@ -3027,8 +3227,14 @@ class MCRMestreV2:
                 token_s=8 if loops < 3 else 3
             )
             
-            # Se nota < 8: tenta expandir
+            # Se nota < 8: tenta expandir (MCRFuel + MCRExpansao)
             if nota < 8 and ciclo_atual < max_ciclos:
+                # MCRFuel: abastece KG com dados do projeto
+                fuel = MCRFuel(bridge=self.bridge)
+                n_fuel = fuel.abastecer_se_precisar(min_uteis=200)
+                if n_fuel:
+                    expansoes_feitas.append(f"fuel:{n_fuel}")
+                
                 # Expansao busca em 48 modulos
                 expansao = MCRExpansao(None, self.bridge)
                 res_exp = expansao.expandir(termo, max_recursos=5)
@@ -3187,7 +3393,19 @@ def _autotestar():
     d2 = diag.diagnosticar({'byte': 0.18, 'token': 0.88})
     testar(f"Diagnostico aprendeu loop={d2}", 'loop' in d2)
     
-    # 11. Teste: AutoStart
+    # 11. Teste: MCRFuel
+    try:
+        fuel = MCRFuel(kg=None, bridge=bridge)
+        testar("MCRFuel instancia sem KG", isinstance(fuel, MCRFuel))
+        if fuel.kg:
+            testar("MCRFuel tem KG", True)
+        else:
+            testar("MCRFuel sem KG (esperado no autoteste)", True)
+    except Exception as e:
+        print(f"      MCRFuel erro: {e}")
+        testar("MCRFuel instancia", False)
+    
+    # 13. Teste: AutoStart
     try:
         astart = MCRAutoStart.iniciar()
         ok = isinstance(astart, dict) and 'erro' not in astart
