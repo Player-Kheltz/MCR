@@ -1618,8 +1618,9 @@ class MCRPergunta:
             for c in freq.values():
                 p = c / n
                 if p > 0: h -= p * math.log2(p)
-            # Texto tem entropia > 4. JSON/codigo tem entropia > 6
-            if h < 3.0: return False  # binario
+            # Threshold por MCR, nao fixo
+            if h < _MCR_THRESHOLD_FILTRO.calcular(1.0):
+                return False
         # JSON detectado por primeiro caractere
         if sol.strip().startswith('{') or sol.strip().startswith('['):
             return False
@@ -2003,13 +2004,26 @@ class MCRDecisor:
         return 'kg_conector_cadeia'
     
     def _classificar_pergunta(self, pergunta: str) -> str:
+        # Tenta Markov primeiro (aprendido)
+        estado = f"PERG:{pergunta[:30].lower()}"
+        if estado in self.mk.transicoes:
+            prox, conf = self.mk.predizer(estado)
+            if prox and conf > 0.2:
+                return str(prox)
+        # Se nao aprendeu ainda, fallback (ate ser treinado)
         p = pergunta.lower()
-        if any(w in p for w in ['explique', 'o que e', 'como funciona', 'defina']):
-            return 'explicacao'
-        if any(w in p for w in ['crie', 'gere', 'criar', 'gere', 'implemente']):
-            return 'criacao'
-        if any(w in p for w in ['busque', 'encontre', 'procure', 'onde']):
-            return 'busca'
+        for palavra, categoria in [
+            ('explique', 'explicacao'), ('o que e', 'explicacao'),
+            ('como funciona', 'explicacao'), ('defina', 'explicacao'),
+            ('crie', 'criacao'), ('gere', 'criacao'), ('criar', 'criacao'),
+            ('implemente', 'criacao'), ('busque', 'busca'),
+            ('encontre', 'busca'), ('procure', 'busca'), ('onde', 'busca'),
+        ]:
+            if palavra in p:
+                # Aprende com este exemplo
+                self.aprender(estado, categoria, True)
+                return categoria
+        self.aprender(estado, 'geral', True)
         return 'geral'
 
 
@@ -2355,39 +2369,49 @@ class MCRExpansao:
         resultados = []
         recursos_usados = []
         
-        # 1. Tenta modulos
-        for nome, mod in list(self.bridge.modulos.items())[:max_recursos//3]:
-            # Tenta funcoes de busca
-            for func_nome in ['buscar', 'buscar_expandido', 'get', 'listar']:
-                if hasattr(mod, func_nome):
+        # Ordem decidida por MCRDecisor, nao fixa
+        ordem = ['modulos', 'comandos', 'kg']
+        try:
+            dec = MCRDecisor("expansao_ordem")
+            ordem_str = dec.decidir(f"EXPANDIR:{tema}")
+            if ordem_str and '_' in str(ordem_str):
+                ordem = str(ordem_str).split('_')
+        except:
+            pass
+        
+        for etapa in ordem:
+            if etapa == 'modulos':
+                for nome, mod in list(self.bridge.modulos.items())[:max_recursos//3]:
+                    for func_nome in ['buscar', 'buscar_expandido', 'get', 'listar']:
+                        if hasattr(mod, func_nome):
+                            try:
+                                res = getattr(mod, func_nome)(tema)
+                                if res:
+                                    resultados.append(f"[MOD:{nome}.{func_nome}] OK")
+                                    recursos_usados.append(f"modulo:{nome}")
+                                    self.mk.aprender(f"EXPANDIR:{tema}", f"MOD:{nome}")
+                                break
+                            except:
+                                pass
+            
+            elif etapa == 'comandos':
+                for nome in self.COMANDOS_MCR:
+                    if nome not in self.bridge.comandos: continue
+                    func = self.bridge.comandos[nome]
                     try:
-                        res = getattr(mod, func_nome)(tema)
-                        if res:
-                            resultados.append(f"[MOD:{nome}.{func_nome}] OK")
-                            recursos_usados.append(f"modulo:{nome}")
-                            self.mk.aprender(f"EXPANDIR:{tema}", f"MOD:{nome}")
-                        break
+                        cmd_result = func(tema) if func else None
+                        if cmd_result:
+                            resultados.append(f"[CMD:{nome}] OK")
+                            recursos_usados.append(f"comando:{nome}")
+                            self.mk.aprender(f"EXPANDIR:{tema}", f"CMD:{nome}")
                     except:
                         pass
-        
-        # 2. Tenta comandos (SÓ MCR-puros, sem LLM)
-        for nome in self.COMANDOS_MCR:
-            if nome not in self.bridge.comandos: continue
-            func = self.bridge.comandos[nome]
-            try:
-                cmd_result = func(tema) if func else None
-                if cmd_result:
-                    resultados.append(f"[CMD:{nome}] OK")
-                    recursos_usados.append(f"comando:{nome}")
-                    self.mk.aprender(f"EXPANDIR:{tema}", f"CMD:{nome}")
-            except:
-                pass
-        
-        # 3. Tenta o proprio KG
-        licoes = self.kg.buscar(tema, max_r=5)
-        if licoes:
-            resultados.append(f"[KG] {len(licoes)} lessons")
-            recursos_usados.append("kg")
+            
+            elif etapa == 'kg':
+                licoes = self.kg.buscar(tema, max_r=5)
+                if licoes:
+                    resultados.append(f"[KG] {len(licoes)} lessons")
+                    recursos_usados.append("kg")
         
         # 4. Autoavalia: o conhecimento sobre o tema melhorou?
         lessons_tema = self.kg.buscar(tema, max_r=20)
@@ -2909,6 +2933,10 @@ class MCRThreshold:
             return 0.5
         from statistics import median
         return median(self.observacoes) * multiplicador
+
+
+# Threshold global para filtros (MCR, nao fixo)
+_MCR_THRESHOLD_FILTRO = MCRThreshold("filtro_global")
 
 
 # ============================================================
