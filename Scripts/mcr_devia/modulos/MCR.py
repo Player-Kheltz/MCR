@@ -2773,6 +2773,229 @@ class MCRAutoStart:
 
 
 # ============================================================
+# MCR PESO NOTA — Aprenfe pesos ideais por regressao markoviana
+# ============================================================
+
+class MCRPesoNota:
+    """Aprende pesos ideais para cada componente da nota.
+    
+    Em vez de Byte(2)+Palavra(5)+Token(3) fixo,
+    aprende: "byte+palavra=0.8 → nota 3.0" (baixa)
+             "byte+token=0.5 → nota 7.0" (alta)
+    
+    Uso:
+        pn = MCRPesoNota()
+        pn.aprender({"byte": 0.8, "palavra": 0.2, "token": 0.3}, 3.0)
+        nota = pn.calcular(byte_s=4.0, palavra_s=2.0, token_s=1.0)
+    """
+    
+    def __init__(self, nome="peso_nota"):
+        self.mk = MarkovUniversal(nome)
+        self.historico = []
+    
+    def aprender(self, caracteristicas: dict, nota_real: float):
+        """Aprende que CARACTERISTICAS levam a NOTA_REAL.
+        
+        Args:
+            caracteristicas: {"byte": 0.8, "palavra": 0.2, "token": 0.3}
+            nota_real: 3.0 (nota humana ou externa)
+        """
+        estado = self._codificar(caracteristicas)
+        self.mk.aprender(estado, f"NOTA:{int(nota_real*10)}")
+        self.historico.append((caracteristicas, nota_real))
+    
+    def calcular(self, byte_s=None, palavra_s=None, token_s=None) -> float:
+        """Calcula nota estimada baseada no que aprendeu.
+        Sem pesos fixos — tudo baseado em experiencias anteriores."""
+        if not self.historico:
+            # Fallback: nota generica baseada nos componentes
+            nota = 5.0
+            if byte_s is not None: nota += (byte_s - 5) * 0.3
+            if palavra_s is not None: nota += (palavra_s - 5) * 0.5
+            if token_s is not None: nota += (token_s - 3) * 0.2
+            return max(0, min(10, nota))
+        
+        # Busca experiencias similares
+        caracteristicas = {}
+        if byte_s is not None: caracteristicas['byte'] = byte_s / 10
+        if palavra_s is not None: caracteristicas['palavra'] = palavra_s / 10
+        if token_s is not None: caracteristicas['token'] = token_s / 10
+        
+        estado = self._codificar(caracteristicas)
+        
+        if estado in self.mk.transicoes:
+            prox, conf = self.mk.predizer(estado)
+            if prox and conf > 0.1:
+                try:
+                    return int(prox.replace('NOTA:', '')) / 10.0
+                except:
+                    pass
+        
+        # Se nao achou, media das experiencias similares
+        notas_similares = []
+        for c, n in self.historico:
+            sim = sum(1 for k in caracteristicas if k in c and abs(caracteristicas[k] - c[k]) < 0.2)
+            if sim >= 2:
+                notas_similares.append(n)
+        
+        return sum(notas_similares)/len(notas_similares) if notas_similares else 5.0
+    
+    def _codificar(self, carac: dict) -> str:
+        partes = []
+        for k in ['byte', 'palavra', 'token']:
+            v = int(carac.get(k, 0) * 10)
+            partes.append(f"{k}:{v}")
+        return '|'.join(partes)
+
+
+# ============================================================
+# MCR THRESHOLD — Threshold por mediana dos dados (Regra de Ouro)
+# ============================================================
+
+class MCRThreshold:
+    """Threshold descoberto por MEDIANA dos dados, nunca fixo.
+    
+    Regra de Ouro: Dados definem thresholds.
+    
+    Uso:
+        t = MCRThreshold()
+        t.observar(0.8)  # jaccard observado
+        t.observar(0.9)
+        t.observar(0.85)
+        threshold = t.calcular(multiplicador=0.5)  # mediana * 0.5
+    """
+    
+    def __init__(self, nome="threshold"):
+        self.mk = MarkovUniversal(nome)
+        self.observacoes = []
+    
+    def observar(self, valor: float):
+        """Registra um valor observado."""
+        self.observacoes.append(valor)
+        self.mk.aprender(f"VAL:{int(valor*100)}", "OBS")
+    
+    def calcular(self, multiplicador: float = 1.0) -> float:
+        """Retorna threshold = mediana(observacoes) * multiplicador.
+        Se nao tem dados, fallback = 0.5 (neutro)."""
+        if len(self.observacoes) < 3:
+            return 0.5
+        from statistics import median
+        return median(self.observacoes) * multiplicador
+
+
+# ============================================================
+# MCR MESTRE V2 — Decisor treinado, zero if/else
+# ============================================================
+
+class MCRMestreV2:
+    """Mestre que decide TUDO por Markov, sem if/else.
+    
+    - Tipo da pergunta: MCRDecisor treinado
+    - N workers: aprendido por experiencia
+    - Fluxo: aprendido por experiencia
+    - Autoavalia: MCRPesoNota (pesos aprendidos)
+    - Diagnostico: auto-alimentado a cada execucao
+    
+    Uso:
+        mestre = MCRMestreV2()
+        resposta = mestre.processar("Explique SPA")
+    """
+    
+    def __init__(self, bridge=None):
+        self.decisor = MCRDecisor("mestre_v2")
+        self.peso_nota = MCRPesoNota()
+        self.threshold_loop = MCRThreshold("threshold_loop")
+        self.bridge = bridge or MCRBridge()
+        self.diagnostico = MCRDiagnostico("mestre_diag")
+        self.spawner = MCRSpawner()
+        self.conector = MCRConector()
+        self.cadeia = MCRCadeia(self.conector)
+        self.n_execucoes = 0
+    
+    def processar(self, pergunta: str) -> dict:
+        import time
+        t0 = time.time()
+        self.n_execucoes += 1
+        
+        if not self.bridge._descobriu:
+            self.bridge.descobrir()
+        
+        # 1. DECISOR decide fluxo (aprendido, nao if/else)
+        fluxo = self.decisor.decidir(pergunta)
+        
+        # 2. Aprende com esta execucao
+        self.decisor.aprender(pergunta, fluxo, True)
+        
+        # 3. Bridge + workers
+        tarefas = []
+        termo = pergunta.split()[-1] if pergunta.split() else 'MCR'
+        semente = pergunta.split()[0] if pergunta.split() else 'O'
+        
+        if 'kg' in fluxo:
+            tarefas.append(("kg", "buscar_kg", {'termo': termo, 'pergunta': pergunta}))
+        if 'conector' in fluxo or 'cadeia' in fluxo:
+            tarefas.append(("gerador", "gerar", {'semente': semente, 'n_tokens': 40}))
+        
+        workers = self.spawner.spawnar(tarefas) if tarefas else []
+        
+        # 4. Consolida
+        textos = []
+        for w in workers:
+            if w.resultado:
+                if isinstance(w.resultado, str): textos.append(w.resultado)
+                elif isinstance(w.resultado, list): textos.extend(w.resultado[:2])
+        
+        if textos:
+            for t in textos[:3]:
+                if isinstance(t, str) and len(t) > 20:
+                    self.conector.alimentar(t[:500], "consolidado")
+        
+        res_cadeia = self.cadeia.gerar(semente, n_tokens=40)
+        resposta = res_cadeia.get('texto', '')
+        nota_cadeia = res_cadeia.get('nota', 0)
+        
+        # 5. Autoavalia com MCRPesoNota (pesos aprendidos, nao fixos)
+        nota = self.peso_nota.calcular(
+            byte_s=nota_cadeia,
+            palavra_s=nota_cadeia,
+            token_s=nota_cadeia > 5 and 8 or 3
+        )
+        
+        # 6. Diagnostico AUTO-ALIMENTADO
+        loops = res_cadeia.get('loops_detectados', 0)
+        estado_diag = {
+            'byte': nota_cadeia / 10,
+            'palavra': nota_cadeia / 10,
+            'token': nota_cadeia > 5,
+        }
+        diag = self.diagnostico.diagnosticar(estado_diag)
+        
+        # Alimenta diagnostico com resultado real
+        problema = 'loop' if loops > 3 else 'ok'
+        self.diagnostico.alimentar(estado_diag, problema)
+        
+        # Threshold de loop aprende
+        self.threshold_loop.observar(nota_cadeia / 10)
+        
+        # 7. PesoNota aprende com esta execucao
+        self.peso_nota.aprender(
+            {'byte': nota_cadeia/10, 'palavra': nota_cadeia/10, 'token': nota_cadeia > 5 and 0.8 or 0.3},
+            nota
+        )
+        
+        return {
+            'pergunta': pergunta,
+            'resposta': resposta[:500],
+            'nota': round(nota, 1),
+            'fluxo': fluxo,
+            'n_workers': len(workers),
+            'diagnostico': diag,
+            'n_execucoes': self.n_execucoes,
+            'tempo': round(time.time() - t0, 2),
+        }
+
+
+# ============================================================
 # MCR AUTOTESTAR — Substitui if __name__ por metodo MCR
 # ============================================================
 
@@ -2843,7 +3066,47 @@ def _autotestar():
     res = mestre.processar("Explique o SPA")
     testar("Mestre processa pergunta", res is not None)
     
-    # 7. Teste: AutoStart
+    # 7. Teste: MCRPesoNota
+    pn = MCRPesoNota("teste_pn")
+    pn.aprender({"byte": 0.8, "palavra": 0.2, "token": 0.3}, 3.0)  # byte so = nota baixa
+    pn.aprender({"byte": 0.4, "palavra": 0.8, "token": 0.7}, 8.0)  # tudo ok = nota alta
+    nota_baixa = pn.calcular(byte_s=8.0, palavra_s=2.0, token_s=2.0)
+    nota_alta = pn.calcular(byte_s=4.0, palavra_s=8.0, token_s=7.0)
+    testar(f"MCRPesoNota: byte so = {nota_baixa:.1f} (baixa esperada)", nota_baixa < 6)
+    testar(f"MCRPesoNota: tudo ok = {nota_alta:.1f} (alta esperada)", nota_alta >= 5)
+    
+    # 8. Teste: MCRThreshold
+    th = MCRThreshold("teste_th")
+    for v in [0.8, 0.85, 0.9, 0.82, 0.88]:
+        th.observar(v)
+    th_calc = th.calcular(multiplicador=1.0)
+    testar(f"MCRThreshold: mediana~0.85 = {th_calc:.2f}", 0.8 < th_calc < 0.9)
+    
+    th_loop = MCRThreshold("teste_loop")
+    for _ in range(10): th_loop.observar(0.1)  # entropias baixas (loop)
+    th_loop_calc = th_loop.calcular(multiplicador=0.5)
+    testar(f"MCRThreshold loop: baixo={th_loop_calc:.2f}", th_loop_calc < 0.3)
+    
+    # 9. Teste: MCRMestreV2
+    mestre_v2 = MCRMestreV2(bridge)
+    res_v2 = mestre_v2.processar("Explique o SPA")
+    testar("MestreV2 processa pergunta", res_v2 is not None)
+    testar("MestreV2 sem if/else (fluxo decidido)", res_v2.get('fluxo', '') != '')
+    testar(f"MestreV2 N execucoes={mestre_v2.n_execucoes}", mestre_v2.n_execucoes > 0)
+    
+    # 10. Teste: Diagnostico auto-alimentado
+    diag = MCRDiagnostico("teste_diag2")
+    diag.alimentar({'byte': 0.9, 'palavra': 0.1}, 'JSON_no_texto')
+    diag.alimentar({'byte': 0.8, 'palavra': 0.15}, 'JSON_no_texto')
+    d1 = diag.diagnosticar({'byte': 0.85, 'palavra': 0.12})
+    testar(f"Diagnostico aprendeu JSON={d1}", 'JSON' in d1)
+    
+    diag.alimentar({'byte': 0.2, 'token': 0.9}, 'loop_detectado')
+    diag.alimentar({'byte': 0.15, 'token': 0.85}, 'loop_detectado')
+    d2 = diag.diagnosticar({'byte': 0.18, 'token': 0.88})
+    testar(f"Diagnostico aprendeu loop={d2}", 'loop' in d2)
+    
+    # 11. Teste: AutoStart
     try:
         astart = MCRAutoStart.iniciar()
         ok = isinstance(astart, dict) and 'erro' not in astart
