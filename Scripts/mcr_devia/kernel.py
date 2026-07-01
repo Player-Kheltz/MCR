@@ -123,8 +123,8 @@ class MCRKernel:
     """Orquestrador principal. Gerencia comandos, modulos, eventos."""
     
     def __init__(self):
+        self.loader = CommandLoader(COMANDOS_DIR)
         self.events = EventBus()
-        self.loader = CommandLoader()
         self.modulos = {}
         self.orquestrador_ctx = None
         self.ctx_crew = None
@@ -136,6 +136,30 @@ class MCRKernel:
             'kernel': self,
         }
         self._inicializado = False
+        # MCRSession: estado persistente entre execucoes
+        self._mcr_session = None
+    
+    def _carregar_sessao(self):
+        """Carrega MCRSession para retomada automatica."""
+        try:
+            from modulos.MCR import MCRSession as _MCRSession
+            self._mcr_session = _MCRSession()
+            estado = self._mcr_session.carregar_estado()
+            if estado:
+                print(f'[Kernel] Sessao retomada: ultima pergunta="{estado.get("ultima_pergunta","?")}"')
+            return True
+        except Exception as e:
+            print(f'[Kernel] AVISO: MCRSession nao disponivel: {e}')
+            return False
+    
+    def _salvar_sessao(self):
+        """Salva estado da sessao antes de encerrar."""
+        if self._mcr_session:
+            try:
+                self._mcr_session.salvar_estado()
+                print('[Kernel] Sessao salva.')
+            except Exception as e:
+                print(f'[Kernel] AVISO: Erro ao salvar sessao: {e}')
     
     def inicializar(self):
         """Inicializa kernel: carrega modulos essenciais + comandos."""
@@ -171,12 +195,17 @@ class MCRKernel:
         # 4. Escaneia comandos
         n = self.loader.scan()
         
-        # 5. Hooks padrao
+        # 5. MCRSession: carrega estado anterior (se houver)
+        self._carregar_sessao()
+        
+        # 6. Hooks padrao
         self.events.on('pre_exec', self._hook_contexto_pre)
         self.events.on('pos_exec', self._hook_registrar_kg)
         self.events.on('pos_exec', self._hook_contexto_pos)
+        # Hook pos-exec que salva sessao a cada comando
+        self.events.on('pos_exec', lambda **kw: self._salvar_sessao() if self._mcr_session else None)
         
-        # 6. Watchdog (monitora sandbox/)
+        # 7. Watchdog (monitora sandbox/)
         try:
             from modulos.watchdog import iniciar_watchdog
             iniciar_watchdog()
@@ -472,15 +501,35 @@ def try_executar(cmd, args, kg=None, ia=None):
 # ============================================================
 # ENTRY POINT
 # ============================================================
+def _shutdown_handler(signum=None, frame=None):
+    """Salva sessao e encerra graciosamente."""
+    print('\n[Kernel] Encerrando...')
+    try:
+        from modulos.MCR import MCRSession as _shut_session
+        _shut_session().salvar_estado()
+        print('[Kernel] Sessao salva no shutdown.')
+    except Exception:
+        pass
+    sys.exit(0)
+
 def main_kernel():
     """Entry point principal do kernel."""
+    
+    # ============================================================
+    # Registra handler de shutdown (CTRL+C, SIGTERM)
+    try:
+        import signal as _sig
+        _sig.signal(_sig.SIGINT, _shutdown_handler)
+        _sig.signal(_sig.SIGTERM, _shutdown_handler)
+    except Exception:
+        pass
     
     # ============================================================
     # Limpa progress tracker anterior (se houver)
     try:
         from modulos.progress_tracker import limpar as _trk_limpar
         _trk_limpar()
-    except ImportError:
+    except Exception:
         pass
     
     # Inicia tracker para esta execucao
