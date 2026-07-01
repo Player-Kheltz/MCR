@@ -3076,15 +3076,24 @@ class MCRMestre:
 
 class MCRAutoStart:
     """Auto-start: MCR se auto-organiza quando o sistema inicia.
+    Usa cache de checksum para evitar dedup O(n²) a cada execucao."""
     
-    Uso (no kernel.py):
-        from modulos.MCR import MCRAutoStart
-        MCRAutoStart.iniciar()
-    """
+    _cache_checksum = None
+    _cache_path = None
+    
+    @classmethod
+    def _calc_checksum(cls, kg):
+        """Calcula checksum do KG para saber se mudou."""
+        if not kg: return 0
+        licoes = kg._get_licoes()
+        # Checksum = total lessons + ultimo timestamp + hash dos ctxs
+        ts = max(l.get('timestamp', 0) for l in licoes) if licoes else 0
+        ctxs = '|'.join(sorted(set(l.get('ctx', '?') for l in licoes)))
+        return hash((len(licoes), ts, ctxs)) % (10**12)
     
     @staticmethod
     def iniciar() -> dict:
-        """Executa auto-diagnostico e organizacao do MCR."""
+        """Executa auto-diagnostico com cache se KG nao mudou."""
         try:
             kg = _get_kg()
             if not kg: return {'erro': 'KG indisponivel'}
@@ -3092,9 +3101,24 @@ class MCRAutoStart:
             bridge = MCRBridge()
             bridge.descobrir()
             
+            # Calcula checksum e verifica cache
+            checksum = MCRAutoStart._calc_checksum(kg)
+            if checksum == MCRAutoStart._cache_checksum:
+                # KG nao mudou — pula dedup/limpeza
+                licoes = kg._get_licoes()
+                uteis = [l for l in licoes 
+                         if l.get('solucao','') and len(l.get('solucao','')) > 50
+                         and not l.get('solucao','').startswith('{')
+                         and not l.get('inactive')]
+                return {
+                    'aproveitamento': f"{len(uteis)/max(len(licoes),1)*100:.0f}%",
+                    'uteis': len(uteis), 'total': len(licoes),
+                    'acoes': ['cache_hit'], 'modulos': bridge.stats().get('modulos', 0),
+                    'comandos': bridge.stats().get('comandos', 0),
+                }
+            
             meta = MCRMeta(kg)
             estado = meta.diagnosticar()
-            
             acoes = []
             
             if estado.get('precisa_limpar'):
@@ -3105,6 +3129,9 @@ class MCRAutoStart:
                 dedup = meta.auto_kg.dedup()
                 if dedup:
                     acoes.append(f"dedup:{dedup}")
+            
+            # Salva checksum
+            MCRAutoStart._cache_checksum = checksum
             
             if acoes:
                 meta.mk.aprender("AUTOSTART", '|'.join(acoes))
@@ -3685,34 +3712,41 @@ class MCRMestreV2:
                 if isinstance(t, str) and len(t) > 20:
                     self.conector.alimentar(t[:500], "consolidado")
         
-        # Expande UMA vez (nao 5x)
+        # Expande UMA vez (com cache de ultima expansao)
         expansoes_feitas = []
-        fuel = MCRFuel(bridge=self.bridge)
-        n_fuel = fuel.abastecer_se_precisar(min_uteis=200)
-        if n_fuel:
-            expansoes_feitas.append(f"fuel:{n_fuel}")
+        agora = time.time()
+        ultima_exp = getattr(self, '_ultima_expansao', 0)
         
-        meta = MCRMetaGap(kg=None, bridge=self.bridge)
-        gaps = meta.diagnosticar_gaps(min_por_prefixo=3)
-        if gaps:
-            n = meta.buscar_para_gap(gaps[0])
-            if n > 0:
-                expansoes_feitas.append(f"gap:{n}")
-        
-        expansao = MCRExpansao(None, self.bridge)
-        res_exp = expansao.expandir(termo, max_recursos=3)
-        if res_exp.get('expansoes', 0) > 0:
-            expansoes_feitas.append(f"exp:{res_exp['expansoes']}")
-            if self.conector.topicos:
-                for nome_topico in list(self.conector.topicos.keys())[:2]:
-                    cx = self.conector.conectar(termo, nome_topico)
-                    if cx:
-                        self.conector.alimentar(cx.get('sequencia',''), f"emrg_{termo}")
-        
-        # Bridge: tenta comando como fallback (com cache)
-        if 'explorar' in self.bridge.comandos:
-            try: self.bridge.usar_comando('explorar', {'termo': termo})
-            except: pass
+        # So expande se passou mais de 30s desde a ultima expansao
+        if agora - ultima_exp > 30:
+            fuel = MCRFuel(bridge=self.bridge)
+            n_fuel = fuel.abastecer_se_precisar(min_uteis=200)
+            if n_fuel:
+                expansoes_feitas.append(f"fuel:{n_fuel}")
+            
+            meta = MCRMetaGap(kg=None, bridge=self.bridge)
+            gaps = meta.diagnosticar_gaps(min_por_prefixo=3)
+            if gaps:
+                n = meta.buscar_para_gap(gaps[0])
+                if n > 0:
+                    expansoes_feitas.append(f"gap:{n}")
+            
+            expansao = MCRExpansao(None, self.bridge)
+            res_exp = expansao.expandir(termo, max_recursos=3)
+            if res_exp.get('expansoes', 0) > 0:
+                expansoes_feitas.append(f"exp:{res_exp['expansoes']}")
+                if self.conector.topicos:
+                    for nome_topico in list(self.conector.topicos.keys())[:2]:
+                        cx = self.conector.conectar(termo, nome_topico)
+                        if cx:
+                            self.conector.alimentar(cx.get('sequencia',''), f"emrg_{termo}")
+            
+            # Bridge: tenta comando como fallback (com cache)
+            if 'explorar' in self.bridge.comandos:
+                try: self.bridge.usar_comando('explorar', {'termo': termo})
+                except: pass
+            
+            self._ultima_expansao = agora
         
         # 5. GERACAO UNICA (nao em loop)
         res_cadeia = self.cadeia.gerar(semente, n_tokens=40)
@@ -5231,6 +5265,7 @@ class MCRWebLearn:
     def __init__(self):
         self._base = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
         self.mk = MCR("weblearn")
+        self._cache = {}  # cache de resultados de busca web
         self._kg = None
         try:
             from modulos.kg import KnowledgeGraph
@@ -5270,15 +5305,19 @@ class MCRWebLearn:
     def _buscar_web(self, termo):
         """Busca termo na web via Wikipedia API (leve, sem LLM)."""
         if not self._urlopen: return None
+        # Cache: se ja buscou este termo antes, retorna cache
+        if termo in self._cache:
+            self.mk.aprender(f"CACHE:{termo}", "hit")
+            return self._cache[termo]
         try:
             url = f"https://pt.wikipedia.org/w/api.php?action=query&list=search&srsearch={termo}&format=json&srlimit=1"
             resp = self._urlopen(url, timeout=10).read()
             dados = json.loads(resp.decode('utf-8'))
             resultados = dados.get('query', {}).get('search', [])
+            resultado = f"[Wikipedia] Resultado sobre {termo} encontrado."
             if resultados:
                 titulo = resultados[0].get('title', '')
                 if titulo:
-                    # Pega o resumo
                     url2 = f"https://pt.wikipedia.org/w/api.php?action=query&titles={titulo}&prop=extracts&exintro=true&format=json"
                     resp2 = self._urlopen(url2, timeout=10).read()
                     dados2 = json.loads(resp2.decode('utf-8'))
@@ -5286,13 +5325,17 @@ class MCRWebLearn:
                     for page_id, page_data in pages.items():
                         extract = page_data.get('extract', '')
                         if extract:
-                            # Remove tags HTML
                             import re
                             texto = re.sub(r'<[^>]+>', '', extract)
-                            return f"[Wikipedia: {titulo}] {texto[:1000]}"
-            return f"[Wikipedia] Resultado sobre {termo} encontrado."
+                            resultado = f"[Wikipedia: {titulo}] {texto[:1000]}"
+            # Salva no cache
+            self._cache[termo] = resultado
+            self.mk.aprender(f"WEB:{termo}", "OK")
+            return resultado
         except Exception as e:
-            return f"[WebLearn] {termo}: {str(e)[:50]}"
+            erro = f"[WebLearn] {termo}: {str(e)[:50]}"
+            self._cache[termo] = erro
+            return erro
     
     def ciclo_auto_estudo(self):
         """Ciclo completo de auto-estudo.
