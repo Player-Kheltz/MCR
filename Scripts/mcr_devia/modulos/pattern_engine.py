@@ -44,6 +44,48 @@ class PatternEngine:
             return self._tokenizar_comportamento(entrada)
         return []
     
+    def _tokenizar_codigo(self, codigo: str) -> List[Tuple[str, Any]]:
+        """Tokeniza código UNIVERSAL — 0 keywords hardcoded.
+        
+        Extrai TODOS os tokens sem saber nada sobre a linguagem.
+        O Markov APRENDE quais padrões são comuns em código válido.
+        Funciona para: Lua, Python, JS, C, qualquer linguagem.
+        """
+        tokens = []
+        linhas = codigo.split('\n')
+        
+        # Indentação (padrão universal em código)
+        for linha in linhas:
+            indent = len(linha) - len(linha.lstrip())
+            if indent >= 0:
+                tokens.append(('INDENT', indent // 4))
+        
+        # Tokeniza TUDO sem discriminar keywords
+        for palavra in codigo.split():
+            p = palavra.strip('():;,\'"{}[]=<>+-*/')
+            
+            # Símbolos/Operadores
+            if any(s in palavra for s in ('(', ')', '{', '}', '[', ']')):
+                tokens.append(('BRACKET', palavra))
+            elif any(s in palavra for s in ('=', '+', '-', '*', '/', '<', '>')):
+                tokens.append(('OP', palavra))
+            elif palavra.startswith('"') or palavra.startswith("'"):
+                tokens.append(('STR', palavra))
+            elif palavra.startswith('--') or palavra.startswith('//') or palavra.startswith('#'):
+                tokens.append(('COMMENT', palavra))
+            elif p and len(p) > 0:
+                # Classifica por FORMA, não por keyword
+                if p[0].isupper():
+                    tokens.append(('PROPER', p))
+                elif p.isdigit():
+                    tokens.append(('NUM', p))
+                elif p in ('.', ':', ';', ','):
+                    tokens.append(('PUNCT', p))
+                else:
+                    tokens.append(('WORD', p))
+        
+        return tokens
+    
     # ===================================================================
     # TOKENIZACAO UNIVERSAL — descobre o dominio automaticamente
     # ===================================================================
@@ -77,7 +119,7 @@ class PatternEngine:
             # Tenta JSON
             try:
                 _json_uni.loads(entrada)
-                return [('FORMAT_JSON', entrada[:200])]
+                return [('FORMAT_JSON', entrada)]
             except Exception:
                 pass
             
@@ -119,9 +161,9 @@ class PatternEngine:
         
         elif isinstance(entrada, (list, tuple)):
             tokens = []
-            for i, item in enumerate(entrada[:50]):
+            for i, item in enumerate(entrada):
                 if isinstance(item, str):
-                    tokens.append(('LIST_ITEM', item[:200]))
+                    tokens.append(('LIST_ITEM', item))
                 elif isinstance(item, (int, float)):
                     tokens.append(('LIST_NUM', item))
                 elif isinstance(item, dict):
@@ -189,7 +231,7 @@ class PatternEngine:
         
         if len(frases_validas) >= 2:
             # Pergunta tem multiplas intencoes — usa divisao por frases
-            for frase in frases_validas[:max_fragmentos]:
+            for frase in frases_validas:
                 tokens = self.tokenizar_universal(frase)
                 tipos = list(dict.fromkeys([t[0] for t in tokens])) if tokens else []
                 resultados.append({
@@ -205,7 +247,7 @@ class PatternEngine:
             from analysis.fragmenter import SuperFragmentador
             frag = SuperFragmentador()
             fragmentos = frag.fragmentar(texto)
-            for f in fragmentos[:max_fragmentos]:
+            for f in fragmentos:
                 conteudo = f.conteudo if hasattr(f, 'conteudo') else str(f)
                 if not conteudo or len(conteudo) < 5:
                     continue
@@ -261,7 +303,7 @@ class PatternEngine:
         tokens.append(('BINARY_SIZE', tamanho))
         
         # FASE 1: Magic bytes
-        header = data[:16]
+        header = data
         MAGIC_MAP = [
             (b'\x89PNG\r\n\x1a\n', 'FORMAT_PNG'),
             (b'\x7fELF', 'FORMAT_ELF'),
@@ -287,7 +329,7 @@ class PatternEngine:
         tokens.append(('BINARY_FORMAT', formato))
         
         # FASE 2: Distribuicao de bytes (amostra 4KB)
-        amostra = data[:4096]
+        amostra = data
         n = len(amostra)
         if n > 0:
             freq_byte = [0] * 256
@@ -362,8 +404,8 @@ class PatternEngine:
         padroes_estruturais = [ng for ng, c in ngramas_char.most_common(20) if c >= 3]
         
         if padroes_estruturais:
-            for i, ng in enumerate(padroes_estruturais[:10]):
-                tokens.append((f'PATTERN_{i}', ng[:50]))
+            for i, ng in enumerate(padroes_estruturais):
+                tokens.append((f'PATTERN_{i}', ng))
             tokens.append(('PATTERN_COUNT', len(padroes_estruturais)))
         
         # Distribuicao de caracteres

@@ -583,7 +583,7 @@ class PipelineExecutor:
                 _frag_texto = _frag.conteudo
             else:
                 _frag_texto = str(_frag)
-            print(f'\n  [Fragmento {_idx_frag + 1}/{_num_fragmentos}] "{_frag_texto[:60]}"')
+            print(f'\n  [Fragmento {_idx_frag + 1}/{_num_fragmentos}] "{_frag_texto}"')
             
             # 1. IntentionEngine
             from modulos.intention_engine import IntentionEngine as _IE
@@ -626,7 +626,7 @@ class PipelineExecutor:
             try:
                 _dados_ctx = ""
                 if _ctx_ats and _ctx_ats.get("contexto_completo"):
-                    _dados_ctx = _ctx_ats["contexto_completo"][:1500]
+                    _dados_ctx = _ctx_ats["contexto_completo"]
                 
                 _prompt_ia = f"""[SISTEMA]
 Voce e um assistente do Projeto MCR.
@@ -759,9 +759,9 @@ Canary = Servidor OTServ personalizado.
                 if _fp_learn:
                     _tipos_str = ','.join(list(dict.fromkeys([t[0] for t in _tokens_input]))) if _tokens_input else ''
                     _kg_v.aprender(
-                        erro=texto[:100],
+                        erro=texto,
                         causa=f'intencao=fragmentado, nota={nota}, tipos=[{_tipos_str}]',
-                        solucao=resposta[:500],
+                        solucao=resposta,
                         ctx='resposta_fragmentada',
                         fingerprint=_fp_learn,
                         tipos_markov=_tm_learn,
@@ -810,7 +810,7 @@ Canary = Servidor OTServ personalizado.
 Responda APENAS com S ou N para cada pergunta abaixo.
 Nao explique. Nao justifique. Apenas S ou N.
 
-Pergunta: {texto[:300]}
+Pergunta: {texto}
 ---
 """
         for i, (pergunta, _) in enumerate(perguntas, 1):

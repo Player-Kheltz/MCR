@@ -1,0 +1,222 @@
+[
+  {
+    "frase": "Crie um NPC Ferreiro em Eridanus",
+    "intencao": "CREATE/npc",
+    "conf_ie": 0.35,
+    "tokens_v2": [
+      "INTENT_CREATE",
+      "PAL_CURTA",
+      "DOM_NPC",
+      "PREP_IN",
+      "PAL_LONGA"
+    ],
+    "seq_esperada": [
+      "INTENT_CREATE",
+      "DOM_NPC",
+      "DOM_LORE",
+      "PREP_IN",
+      "DOM_SYSTEM",
+      "DOM_ITEM"
+    ],
+    "hits": [
+      [
+        "INTENT_CREATE",
+        0.95
+      ],
+      [
+        "DOM_NPC",
+        0.9
+      ],
+      [
+        "PREP_IN",
+        0.35
+      ]
+    ],
+    "misses": [
+      "PAL_CURTA",
+      "PAL_LONGA"
+    ],
+    "taxa_markov": 0.688,
+    "penalidade": 0,
+    "bonus": 0.15,
+    "peso": 2.0,
+    "confianca_final": 0.875,
+    "decisao": "✅ CONFIRMADA"
+  },
+  {
+    "frase": "Explique o sistema SPA do MCR",
+    "intencao": "EXPLAIN/conceito",
+    "conf_ie": 0.35,
+    "tokens_v2": [
+      "INTENT_EXPLAIN",
+      "PAL_CURTA",
+      "DOM_SYSTEM",
+      "PREP_OF"
+    ],
+    "seq_esperada": [
+      "INTENT_EXPLAIN",
+      "DOM_SYSTEM",
+      "DOM_SKILL",
+      "DOM_ELEMENT"
+    ],
+    "hits": [
+      [
+        "INTENT_EXPLAIN",
+        0.95
+      ],
+      [
+        "DOM_SYSTEM",
+        0.7
+      ]
+    ],
+    "misses": [
+      "PAL_CURTA",
+      "PREP_OF"
+    ],
+    "taxa_markov": 0.647,
+    "penalidade": 0,
+    "bonus": 0,
+    "peso": 2.0,
+    "confianca_final": 0.693,
+    "decisao": "⚠️ DUVIDOSA"
+  },
+  {
+    "frase": "O que e Canary no contexto do MCR?",
+    "intencao": "EXPLAIN/default",
+    "conf_ie": 0.3,
+    "tokens_v2": [
+      "PAL_CURTA",
+      "CONJUNCTION",
+      "PAL_MEDIA",
+      "PREP_IN",
+      "PAL_LONGA",
+      "PREP_OF"
+    ],
+    "seq_esperada": [
+      "INTENT_EXPLAIN",
+      "DOM_SYSTEM",
+      "PROPER_NOUN",
+      "PREP_OF",
+      "DOM_ELEMENT",
+      "DOM_SKILL"
+    ],
+    "hits": [
+      [
+        "CONJUNCTION",
+        0.15
+      ],
+      [
+        "PREP_OF",
+        0.4
+      ]
+    ],
+    "misses": [
+      "PAL_CURTA",
+      "PAL_MEDIA",
+      "PREP_IN",
+      "PAL_LONGA"
+    ],
+    "taxa_markov": 0.183,
+    "penalidade": 0,
+    "bonus": 0,
+    "peso": 2.0,
+    "confianca_final": 0.297,
+    "decisao": "❌ REJEITADA"
+  },
+  {
+    "frase": "Crie uma lore sobre a fundacao de Eridanus",
+    "intencao": "CREATE/lore",
+    "conf_ie": 0.35,
+    "tokens_v2": [
+      "INTENT_CREATE",
+      "PAL_CURTA",
+      "DOM_LORE",
+      "PAL_MEDIA",
+      "PAL_LONGA",
+      "PREP_OF"
+    ],
+    "seq_esperada": [
+      "INTENT_CREATE",
+      "DOM_LORE",
+      "PREP_OF",
+      "DOM_NPC",
+      "DOM_SYSTEM"
+    ],
+    "hits": [
+      [
+        "INTENT_CREATE",
+        0.95
+      ],
+      [
+        "DOM_LORE",
+        0.9
+      ],
+      [
+        "PREP_OF",
+        0.5
+      ]
+    ],
+    "misses": [
+      "PAL_CURTA",
+      "PAL_MEDIA",
+      "PAL_LONGA"
+    ],
+    "taxa_markov": 0.825,
+    "penalidade": 0,
+    "bonus": 0.15,
+    "peso": 2.0,
+    "confianca_final": 0.985,
+    "decisao": "✅ CONFIRMADA"
+  },
+  {
+    "frase": "Busque a definicao de SPA no codigo",
+    "intencao": "GERAL/default",
+    "conf_ie": 0.3,
+    "erro": "Sem modelo Markov para esta intenção",
+    "confianca_final": 0.15
+  },
+  {
+    "frase": "Adicione 'Eridanus = Cidade Inicial' ao arquivo TESTE.md",
+    "intencao": "EDIT/lore",
+    "conf_ie": 0.9,
+    "tokens_v2": [
+      "INTENT_EDIT",
+      "PAL_LONGA",
+      "DOM_LORE",
+      "PAL_MEDIA",
+      "PAL_CURTA",
+      "DOM_CODE"
+    ],
+    "seq_esperada": [
+      "INTENT_EDIT",
+      "DOM_CODE",
+      "DOM_LORE",
+      "PREP_IN"
+    ],
+    "hits": [
+      [
+        "INTENT_EDIT",
+        0.95
+      ],
+      [
+        "DOM_LORE",
+        0.25
+      ],
+      [
+        "DOM_CODE",
+        0.5
+      ]
+    ],
+    "misses": [
+      "PAL_LONGA",
+      "PAL_MEDIA",
+      "PAL_CURTA"
+    ],
+    "taxa_markov": 0.85,
+    "penalidade": 0,
+    "bonus": 0,
+    "peso": 1.5,
+    "confianca_final": 0.96,
+    "decisao": "✅ CONFIRMADA"
+  }
+]

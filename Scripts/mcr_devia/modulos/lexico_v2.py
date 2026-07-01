@@ -356,7 +356,7 @@ def verificar_markov(tokens_v2: List[Tuple[str, str, float]],
             "taxa_markov": 0.0,
             "peso": 0.5,
             "hits": [],
-            "misses": tipos_encontrados[:8],
+            "misses": tipos_encontrados,
             "penalidade": 0,
             "bonus": 0,
             "entropia_sugerida": 0.8,
@@ -370,13 +370,13 @@ def verificar_markov(tokens_v2: List[Tuple[str, str, float]],
     # Markov Score
     acertos = 0
     hits = []
-    for tipo_real in tipos_encontrados[:8]:
+    for tipo_real in tipos_encontrados:
         if tipo_real in tipos_esperados:
             prob = dict(seq_esperada).get(tipo_real, 0)
             acertos += prob
             hits.append((tipo_real, prob))
     
-    misses = [t for t in tipos_encontrados[:8] if t not in tipos_esperados]
+    misses = [t for t in tipos_encontrados if t not in tipos_esperados]
     
     # Normaliza
     max_possivel = sum(p for _, p in seq_esperada)
@@ -403,8 +403,8 @@ def verificar_markov(tokens_v2: List[Tuple[str, str, float]],
     return {
         "taxa_markov": round(taxa_markov, 3),
         "peso": peso,
-        "hits": hits[:5],
-        "misses": misses[:5],
+        "hits": hits,
+        "misses": misses,
         "penalidade": round(penalidade, 2),
         "bonus": round(bonus, 2),
         "entropia_sugerida": round(entropia_sugerida, 3),

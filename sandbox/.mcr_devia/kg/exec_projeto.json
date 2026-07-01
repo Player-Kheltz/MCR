@@ -780,7 +780,9 @@
       ],
       "tipo": "dominio",
       "timestamp": 1782698552.0449412,
-      "time_sensitive": false
+      "time_sensitive": false,
+      "_sim": 0.9517326812101435,
+      "inactive": true
     },
     {
       "id": "L0134",
@@ -1561,7 +1563,9 @@
       ],
       "tipo": "dominio",
       "timestamp": 1782698552.0449412,
-      "time_sensitive": false
+      "time_sensitive": false,
+      "_sim": 0.9320981951252434,
+      "inactive": true
     },
     {
       "id": "L0135",
@@ -2342,7 +2346,9 @@
       ],
       "tipo": "dominio",
       "timestamp": 1782698552.0449412,
-      "time_sensitive": false
+      "time_sensitive": false,
+      "_sim": 0.9202485265509176,
+      "inactive": true
     },
     {
       "id": "L0136",
@@ -3124,7 +3130,8 @@
       "tipo": "dominio",
       "timestamp": 1782698552.0449412,
       "time_sensitive": false,
-      "_sim": 0.9170308528330009
+      "_sim": 0.973399137737952,
+      "inactive": true
     },
     {
       "id": "L0137",
@@ -3906,7 +3913,8 @@
       "tipo": "dominio",
       "timestamp": 1782698552.0449412,
       "time_sensitive": false,
-      "_sim": 0.8656920770423566
+      "_sim": 0.9280206237434421,
+      "inactive": true
     },
     {
       "id": "L0153",
@@ -4688,7 +4696,8 @@
       "tipo": "dominio",
       "timestamp": 1782698552.0449412,
       "time_sensitive": false,
-      "_sim": 0.8368794449820486
+      "_sim": 1.0,
+      "inactive": true
     }
   ]
 }

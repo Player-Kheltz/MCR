@@ -10,7 +10,8 @@
       "tipo": "dominio",
       "timestamp": 1782698552.0449412,
       "time_sensitive": false,
-      "_sim": 0.7193801996596018
+      "_sim": 0.7193801996596018,
+      "inactive": true
     },
     {
       "id": "L0002",
@@ -20,7 +21,8 @@
       "ctx": "compilar",
       "tipo": "dominio",
       "timestamp": 1782698552.0449412,
-      "time_sensitive": false
+      "time_sensitive": false,
+      "inactive": true
     },
     {
       "id": "L0003",
@@ -30,7 +32,8 @@
       "ctx": "compilar",
       "tipo": "dominio",
       "timestamp": 1782698552.0449412,
-      "time_sensitive": false
+      "time_sensitive": false,
+      "inactive": true
     }
   ]
 }

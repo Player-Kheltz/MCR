@@ -1,9 +1,9 @@
 {
-  "total_calls": 426,
+  "total_calls": 437,
   "erros": 3,
   "cache_hits": 0,
   "cache_misses": 0,
-  "tempo_medio": 41.8,
+  "tempo_medio": 41.5,
   "templates_usados": {
     "lore": 19,
     "perguntar": 260,
@@ -15,92 +15,15 @@
     "analisar_bug": 3,
     "mega_teste": 20,
     "analisar_texto": 3,
-    "conselho_critico": 7,
+    "conselho_critico": 11,
     "conselho_revisor_codigo": 1,
     "conselho_arquiteto": 2,
-    "conselho_analista": 7,
+    "conselho_analista": 11,
     "analise_melhoria": 3,
-    "conselho_estrategista": 3,
+    "conselho_estrategista": 6,
     "conselho_contador_historias": 1
   },
   "ultimas": [
-    {
-      "ts": 1782760238.7655282,
-      "intencao": "perguntar",
-      "tempo": 48.4,
-      "sucesso": true,
-      "tam": 440
-    },
-    {
-      "ts": 1782760289.2992048,
-      "intencao": "perguntar",
-      "tempo": 37.4,
-      "sucesso": true,
-      "tam": 402
-    },
-    {
-      "ts": 1782760315.215098,
-      "intencao": "perguntar",
-      "tempo": 25.9,
-      "sucesso": true,
-      "tam": 260
-    },
-    {
-      "ts": 1782760348.905254,
-      "intencao": "perguntar",
-      "tempo": 33.7,
-      "sucesso": true,
-      "tam": 1106
-    },
-    {
-      "ts": 1782760392.4228501,
-      "intencao": "perguntar",
-      "tempo": 43.5,
-      "sucesso": true,
-      "tam": 1835
-    },
-    {
-      "ts": 1782760533.9951372,
-      "intencao": "perguntar",
-      "tempo": 49.2,
-      "sucesso": true,
-      "tam": 3422
-    },
-    {
-      "ts": 1782760567.3103063,
-      "intencao": "perguntar",
-      "tempo": 21.5,
-      "sucesso": true,
-      "tam": 672
-    },
-    {
-      "ts": 1782760776.7509625,
-      "intencao": "perguntar",
-      "tempo": 43.7,
-      "sucesso": true,
-      "tam": 1684
-    },
-    {
-      "ts": 1782760789.762289,
-      "intencao": "perguntar",
-      "tempo": 56.7,
-      "sucesso": true,
-      "tam": 2733
-    },
-    {
-      "ts": 1782760803.6070712,
-      "intencao": "perguntar",
-      "tempo": 70.6,
-      "sucesso": true,
-      "tam": 2651
-    },
-    {
-      "ts": 1782760852.4608831,
-      "intencao": "perguntar",
-      "tempo": 36.5,
-      "sucesso": true,
-      "tam": 1734
-    },
     {
       "ts": 1782760886.8034515,
       "intencao": "perguntar",
@@ -373,6 +296,83 @@
       "tempo": 100.3,
       "sucesso": true,
       "tam": 459
+    },
+    {
+      "ts": 1782791855.144171,
+      "intencao": "conselho_analista",
+      "tempo": 20.4,
+      "sucesso": true,
+      "tam": 318
+    },
+    {
+      "ts": 1782791865.7009542,
+      "intencao": "conselho_critico",
+      "tempo": 30.9,
+      "sucesso": true,
+      "tam": 369
+    },
+    {
+      "ts": 1782791885.9157102,
+      "intencao": "conselho_estrategista",
+      "tempo": 51.2,
+      "sucesso": true,
+      "tam": 596
+    },
+    {
+      "ts": 1782792028.1676183,
+      "intencao": "conselho_analista",
+      "tempo": 15.1,
+      "sucesso": true,
+      "tam": 271
+    },
+    {
+      "ts": 1782792038.7478838,
+      "intencao": "conselho_critico",
+      "tempo": 25.7,
+      "sucesso": true,
+      "tam": 313
+    },
+    {
+      "ts": 1782792197.360775,
+      "intencao": "conselho_analista",
+      "tempo": 22.8,
+      "sucesso": true,
+      "tam": 1161
+    },
+    {
+      "ts": 1782792207.653479,
+      "intencao": "conselho_critico",
+      "tempo": 33.1,
+      "sucesso": true,
+      "tam": 447
+    },
+    {
+      "ts": 1782792227.0230255,
+      "intencao": "conselho_estrategista",
+      "tempo": 52.4,
+      "sucesso": true,
+      "tam": 407
+    },
+    {
+      "ts": 1782839237.2761471,
+      "intencao": "conselho_analista",
+      "tempo": 16.2,
+      "sucesso": true,
+      "tam": 493
+    },
+    {
+      "ts": 1782839246.0069194,
+      "intencao": "conselho_critico",
+      "tempo": 25.0,
+      "sucesso": true,
+      "tam": 321
+    },
+    {
+      "ts": 1782839267.522034,
+      "intencao": "conselho_estrategista",
+      "tempo": 46.5,
+      "sucesso": true,
+      "tam": 250
     }
   ]
 }

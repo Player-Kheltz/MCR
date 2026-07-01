@@ -239,7 +239,7 @@ class PosProcessamento:
         else:
             # Nome genérico com hash
             import hashlib
-            h = hashlib.md5(conteudo.encode()).hexdigest()[:8]
+            h = hashlib.md5(conteudo.encode()).hexdigest()
             return f"artefato_{h}.{linguagem}"
 
     # ============================================================

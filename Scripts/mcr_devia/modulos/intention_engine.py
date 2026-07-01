@@ -193,7 +193,7 @@ class IntentionEngine:
                 f"D = EDIT (editar, modificar, adicionar)\n"
                 f"E = REVIEW (revisar, analisar, avaliar)\n"
                 f"F = GERAL (outros)\n\n"
-                f"Frase: {frase[:200]}\n"
+                f"Frase: {frase}\n"
                 f"Responda APENAS com a letra da categoria.\n"
                 f"Categoria:[/INST]"
             )

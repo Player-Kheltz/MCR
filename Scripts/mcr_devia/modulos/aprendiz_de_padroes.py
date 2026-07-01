@@ -110,7 +110,7 @@ class AprendizDePadroes:
         por_fonte = Counter(p.get('fonte', '?') for p in self._padroes_encontrados)
         for fonte, qtd in por_fonte.most_common():
             linhas.append(f"  {fonte}: {qtd}")
-        top = sorted(self._padroes_encontrados, key=lambda x: -x.get('conf', 0))[:10]
+        top = sorted(self._padroes_encontrados, key=lambda x: -x.get('conf', 0))
         linhas.append(f"\nTop 10 por confiança:")
         for p in top:
             nome = str(p.get('n_grama', p.get('termos', p.get('tipo', '?'))))[:60]
@@ -170,7 +170,7 @@ class AprendizDePadroes:
         if isinstance(dados, list):
             # Co-ocorrência de tipos de token
             tipos_por_item = []
-            for item in dados[:200]:
+            for item in dados:
                 try:
                     t_item = self._pe.tokenizar_universal(item)
                     tipos_por_item.append([t[0] for t in t_item])
@@ -201,7 +201,7 @@ class AprendizDePadroes:
         # ============================================================
         # FASE 4: N-GRAMAS DOS TOKENS
         # ============================================================
-        for ng, freq in list(n_gramas.items())[:15]:
+        for ng, freq in list(n_gramas.items()):
             if isinstance(ng, tuple) and len(ng) >= 2 and freq >= 2:
                 conf = min(0.8, 0.3 + freq * 0.08)
                 padroes.append({
@@ -266,14 +266,14 @@ class AprendizDePadroes:
             
             if falhas and sucessos:
                 termos_falha = Counter()
-                for f in falhas[:100]:
+                for f in falhas:
                     if isinstance(f, dict):
                         for v in f.values():
                             if isinstance(v, str):
                                 termos_falha.update(re.findall(r'\b\w{4,}\b', v.lower()))
                 
                 termos_sucesso = Counter()
-                for s in sucessos[:100]:
+                for s in sucessos:
                     if isinstance(s, dict):
                         for v in s.values():
                             if isinstance(v, str):
@@ -691,7 +691,7 @@ class AprendizDePadroes:
             # Concatena soluções em 1 string grande (o tokenizador universal analisa)
             texto_kg = ' '.join(
                 f"{l.get('erro','')} {l.get('solucao','')}" 
-                for l in todas_lessons[:500]
+                for l in todas_lessons
             )
             if texto_kg:
                 fontes['kg'] = texto_kg
@@ -749,7 +749,7 @@ class AprendizDePadroes:
                 except Exception:
                     pass
         if textos_teste:
-            fontes['testes'] = '\n'.join(textos_teste[:5])
+            fontes['testes'] = '\n'.join(textos_teste)
         
         # Conversa: .jsonl
         conv_path = os.path.join(self._base, 'sandbox', '.mcr_conversa.jsonl')
@@ -837,14 +837,14 @@ class AprendizDePadroes:
         """Extrai N palavras antes ou depois de um indice no texto."""
         if direcao == 'antes':
             # Pega N palavras antes do indice
-            antes = texto[:idx].strip()
+            antes = texto.strip()
             palavras = antes.split()
             return ' '.join(palavras[-n:]) if len(palavras) >= n else antes
         
         elif direcao == 'depois':
             depois = texto[idx:].strip()
             palavras = depois.split()
-            return ' '.join(palavras[:n]) if len(palavras) >= n else depois
+            return ' '.join(palavras) if len(palavras) >= n else depois
         
         return ''
     
@@ -922,10 +922,10 @@ class AprendizDePadroes:
             
             # Salva no KG e força flush do buffer
             self._kg.aprender(
-                erro=f"bloco: {pergunta[:80] if pergunta else fragmento[:80]}",
-                causa=f"tipos={','.join(tipos_unicos[:8])}",
+                erro=f"bloco: {pergunta if pergunta else fragmento}",
+                causa=f"tipos={','.join(tipos_unicos)}",
                 solucao=json.dumps({
-                    'fragmento': fragmento[:500],
+                    'fragmento': fragmento,
                     'nota': nota,
                     'tamanho': len(fragmento),
                 }),
@@ -988,10 +988,10 @@ class AprendizDePadroes:
                 continue
             fp_l = l.get('fingerprint', [])
             if not fp_l or len(fp_l) != len(fingerprint_input):
-                print(f'    [DB] bloco {l.get("erro","")[:30]}... fp_len={len(fp_l)} vs esperado={len(fingerprint_input)}')
+                print(f'    [DB] bloco {l.get("erro","")}... fp_len={len(fp_l)} vs esperado={len(fingerprint_input)}')
                 continue
             dot = sum(a * b for a, b in zip(fp_l, fingerprint_input))
-            print(f'    [DB] bloco similaridade={dot:.2f} | {l.get("erro","")[:40]}')
+            print(f'    [DB] bloco similaridade={dot:.2f} | {l.get("erro","")}')
             if dot >= 0.5:
                 l['_sim'] = dot
                 blocos.append(l)
@@ -1016,4 +1016,4 @@ class AprendizDePadroes:
         # 3. Adapta para a pergunta — remove ** do destaque do termo
         resultado = fragmento.replace('**', '')
         resultado = resultado.strip()
-        return resultado[:500] if len(resultado) > 10 else None
+        return resultado if len(resultado) > 10 else None
