@@ -194,6 +194,130 @@ class MCR:
         peso_uniao = sum(pesos.get(t, 1) for t in uniao)
         return peso_inter / peso_uniao
     
+    def _extrair_assinatura(self, dados: bytes) -> dict:
+        """Extrai a assinatura unica de um conjunto de bytes.
+        
+        A assinatura e o que define a 'alma' do dado:
+        - Entropia: quao imprevisivel
+        - Estados unicos: quantos bytes diferentes
+        - Top transicoes: os 5 pares byte→byte mais comuns
+        - Fingerprint: vetor de frequencia
+        """
+        mk = MCR("assinatura")
+        mk.aprender_sequencia(list(dados[:500]))
+        
+        # Top 5 transicoes mais comuns
+        top5 = []
+        for estado, prox in sorted(mk.transicoes.items(), 
+                                     key=lambda x: -sum(x[1].values()))[:5]:
+            melhor = max(prox, key=prox.get) if prox else ''
+            top5.append(f"{estado}->{melhor}")
+        
+        return {
+            'entropia': round(mk.entropia_media(), 3),
+            'estados': len(mk.transicoes),
+            'transicoes': sum(len(v) for v in mk.transicoes.values()),
+            'top5': top5,
+            'tamanho': len(dados),
+        }
+    
+    def _comparar_assinaturas(self, a: dict, b: dict) -> float:
+        """Compara 2 assinaturas e retorna compatibilidade (0-1).
+        
+        Similaridade = quanto compartilham:
+        - Mesma faixa de entropia?
+        - Numero similar de estados?
+        - Top transicoes coincidem?
+        """
+        score = 0.0
+        # Entropia similar (peso 3)
+        diff_ent = abs(a['entropia'] - b['entropia'])
+        score += 3.0 * (1.0 - min(1.0, diff_ent))
+        # Estados similares (peso 3)
+        diff_est = abs(a['estados'] - b['estados']) / max(a['estados'], b['estados'], 1)
+        score += 3.0 * (1.0 - min(1.0, diff_est))
+        # Top transicoes (peso 4)
+        if a['top5'] and b['top5']:
+            # Jaccard entre conjuntos de top transicoes
+            ta, tb = set(a['top5']), set(b['top5'])
+            inter = ta & tb
+            uniao = ta | tb
+            score += 4.0 * (len(inter) / len(uniao) if uniao else 0)
+        return score / 10.0
+    
+    def processar_bytes(self, entrada: bytes, max_iter: int = 3) -> dict:
+        """Entrada: QUALQUER coisa em bytes.
+        Saida: bytes processados + diagnostico.
+        
+        Ciclo fechado:
+        1. Extrai assinatura da entrada
+        2. Gera saida via MCRCadeia
+        3. Extrai assinatura da saida
+        4. Compara: entrada e saida sao compativeis?
+        5. Se sim: entrega
+        6. Se nao: regenera
+        """
+        import time
+        t0 = time.time()
+        
+        # 1. Assinatura da entrada
+        assinatura_in = self._extrair_assinatura(entrada)
+        
+        # 2. Tenta converter para texto
+        try:
+            texto = entrada.decode('utf-8', errors='replace')[:2000]
+        except:
+            texto = str(entrada[:200])
+        
+        palavras = texto.split()
+        semente = palavras[0] if palavras else 'byte'
+        
+        # 3. Gera saida via Cadeia (em bytes)
+        conector = MCRConector()
+        conector.alimentar(texto[:500], "entrada_bytes")
+        cadeia = MCRCadeia(conector)
+        res = cadeia.gerar(semente, n_tokens=30)
+        saida_texto = res.get('texto', semente)
+        saida_bytes = saida_texto.encode('utf-8')[:2000]
+        
+        # 4. Assinatura da saida
+        assinatura_out = self._extrair_assinatura(saida_bytes)
+        
+        # 5. Compara assinaturas
+        compatibilidade = self._comparar_assinaturas(assinatura_in, assinatura_out)
+        
+        # 6. Se baixa compatibilidade, regenera (ate max_iter)
+        iteracao = 0
+        while compatibilidade < 0.3 and iteracao < max_iter - 1:
+            iteracao += 1
+            # Muda semente para tentar saida diferente
+            if iteracao < len(palavras):
+                semente = palavras[iteracao]
+            cadeia = MCRCadeia(conector)
+            res = cadeia.gerar(semente, n_tokens=30)
+            saida_texto = res.get('texto', semente)
+            saida_bytes = saida_texto.encode('utf-8')[:2000]
+            assinatura_out = self._extrair_assinatura(saida_bytes)
+            compatibilidade = self._comparar_assinaturas(assinatura_in, assinatura_out)
+        
+        # 7. Autoavalia
+        nota = round(compatibilidade * 10, 1)
+        
+        # 8. Aprende
+        self.aprender(f"BYTES:{hash(entrada[:100])%10000}", f"COMPAT:{compatibilidade:.2f}")
+        
+        return {
+            'entrada_tamanho': len(entrada),
+            'saida_tamanho': len(saida_bytes),
+            'assinatura_entrada': assinatura_in,
+            'assinatura_saida': assinatura_out,
+            'compatibilidade': round(compatibilidade, 3),
+            'nota': nota,
+            'iteracoes': iteracao,
+            'saida': saida_texto[:300] if len(saida_texto) > 300 else saida_texto,
+            'tempo': round(time.time() - t0, 3),
+        }
+    
     def stats(self) -> Dict:
         return {
             'nome': self.nome, 'estados': len(self.transicoes),
@@ -4132,7 +4256,24 @@ def _autotestar():
         traceback.print_exc()
         testar("CicloUnico falhou", False)
     
-    # 11. Teste: Diagnostico auto-alimentado
+    # 11. Teste: MCR.processar_bytes 
+    try:
+        mcr_base = MCR("test_processar_bytes")
+        # Entrada: "SPA=Sistema" em bytes
+        entrada = "Explique o sistema SPA do MCR".encode('utf-8')
+        res_pb = mcr_base.processar_bytes(entrada)
+        testar(f"ProcessarBytes: compat={res_pb['compatibilidade']:.2f}", 
+               res_pb['compatibilidade'] > 0)
+        testar(f"ProcessarBytes: saida gerada ({res_pb['saida_tamanho']} bytes)", 
+               res_pb['saida_tamanho'] > 0)
+        testar(f"ProcessarBytes: {res_pb.get('iteracoes',0)} iteracoes", 
+               res_pb.get('iteracoes', 0) >= 0)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        testar("ProcessarBytes falhou", False)
+    
+    # 12. Teste: Diagnostico auto-alimentado
     diag = MCRDiagnostico("teste_diag2")
     diag.alimentar({'byte': 0.9, 'palavra': 0.1}, 'JSON_no_texto')
     diag.alimentar({'byte': 0.8, 'palavra': 0.15}, 'JSON_no_texto')
