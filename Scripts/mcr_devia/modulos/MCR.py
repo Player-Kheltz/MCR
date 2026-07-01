@@ -1452,94 +1452,79 @@ class MCRCadeia:
     
     def __init__(self, conector: MCRConector = None):
         self.conector = conector or MCRConector()
+        self.detector = MCREntropia()
+        self.ruido = MCRRuido()
         self.historico_ciclos = []
     
     def gerar(self, semente: str, n_tokens: int = 100, 
               contexto_tamanho: int = 3, max_tentativas_loop: int = 5) -> dict:
-        """Gera N tokens com contexto reinjetado.
-        
-        Args:
-            semente: palavra inicial
-            n_tokens: quantos tokens gerar
-            contexto_tamanho: quantos tokens usar como contexto (K)
-            max_tentativas_loop: quantas vezes tenta quebrar loop antes de desistir
-        """
+        """Gera N tokens com contexto reinjetado e deteccao MCR."""
         if not self.conector.topicos:
             return {'texto': semente, 'tokens': [semente], 
                     'nota': 0, 'loops_detectados': 0, 'erro': 'sem topicos'}
         
-        # Usa o mcr_palavra global do conector
         mk = self.conector.mcr_palavra
-        
         tokens_gerados = [semente]
         loops_detectados = 0
         repeticoes_evitadas = 0
         tentativas_loop = 0
-        ultimos_tokens = []
         
         for passo in range(n_tokens - 1):
-            # 1. Define contexto = últimos K tokens
+            # 1. Contexto = ultimos K tokens
             if len(tokens_gerados) >= contexto_tamanho:
                 contexto = tokens_gerados[-contexto_tamanho:]
             else:
                 contexto = tokens_gerados
             
-            # 2. Pega o ÚLTIMO token do contexto como semente
+            # 2. Prediz proximo token
             ultimo = contexto[-1]
             prox, conf = mk.predizer(ultimo)
-            
             if prox is None or conf < 0.01:
-                # Tenta com semente original
                 prox, conf = mk.predizer(semente)
-                if prox is None or conf < 0.01:
-                    break
+                if prox is None or conf < 0.01: break
             
-            # 3. DETECTOR DE LOOP
+            # 3. MCREntropia detecta loop (nao contagem fixa)
             token_str = str(prox)
-            em_loop = False
-            
-            # 3a. Mesmo token 3x seguidas
-            if len(tokens_gerados) >= 3:
-                if tokens_gerados[-1] == tokens_gerados[-2] == token_str:
-                    em_loop = True
-                # 3b. Bigrama repetido
-                if len(tokens_gerados) >= 4:
-                    ultimo_bigrama = f"{tokens_gerados[-2]} {tokens_gerados[-1]}"
-                    novo_bigrama = f"{tokens_gerados[-1]} {token_str}"
-                    # Verifica se o novo bigrama já apareceu antes
-                    texto_ate_agora = ' '.join(tokens_gerados[:-1])
-                    if novo_bigrama in texto_ate_agora:
-                        em_loop = True
+            self.detector.alimentar(token_str)
+            em_loop = self.detector.esta_em_loop()
             
             if em_loop:
                 loops_detectados += 1
                 tentativas_loop += 1
+                if tentativas_loop > max_tentativas_loop: break
                 
-                if tentativas_loop > max_tentativas_loop:
-                    break  # Desiste
-                
-                # INJETA RUÍDO: pega token de outro tópico
-                outros_topicos = [n for n in self.conector.topicos.keys()
-                                 if n != token_str[:20]]
-                if outros_topicos:
+                # MCRRuido decide COMO injetar ruido
+                melhor_ruido = self.ruido.melhor_tipo()
+                if melhor_ruido == 'palavra_outro_topico':
                     import random
-                    topico_alternativo = random.choice(outros_topicos)
-                    texto_alt = self.conector.topicos[topico_alternativo]['texto']
-                    palavras_alt = texto_alt.split()
-                    if palavras_alt:
-                        prox = random.choice(palavras_alt)
-                        conf = 0.5
-                        repeticoes_evitadas += 1
-                        tentativas_loop = 0  # reset após injetar ruído
+                    outros = [n for n in self.conector.topicos.keys() if n != token_str[:20]]
+                    if outros:
+                        t_alt = random.choice(outros)
+                        pal_alt = self.conector.topicos[t_alt]['texto'].split()
+                        if pal_alt:
+                            prox = random.choice(pal_alt)
+                            repeticoes_evitadas += 1
+                            tentativas_loop = 0
+                            self.ruido.registrar(melhor_ruido, True)
+                        else:
+                            self.ruido.registrar(melhor_ruido, False)
+                elif melhor_ruido == 'semente_original':
+                    prox = semente
+                    repeticoes_evitadas += 1
+                    tentativas_loop = 0
+                else:
+                    # Tenta com byte global
+                    prox, conf = self.conector.mcr_byte.predizer(token_str)
+                    if prox is None: break
+                    repeticoes_evitadas += 1
+                    tentativas_loop = 0
             
-            # 4. Adiciona token
             tokens_gerados.append(str(prox))
-            ultimos_tokens.append(str(prox))
         
         # Converte para texto
         texto = ' '.join(tokens_gerados)
         
-        # Autoavaliação simples
+        # Autoavaliacao com MCREntropia
         palavras = texto.split()
         n_palavras = len(palavras)
         if n_palavras >= 4:
@@ -1549,11 +1534,10 @@ class MCRCadeia:
             repeticao = 0.0
         
         nota = 10.0
-        # Penaliza loops NÃO quebrados (repeticoes_evitadas = sucesso)
         loops_nao_quebrados = max(0, loops_detectados - repeticoes_evitadas)
         if loops_nao_quebrados > 0: nota -= loops_nao_quebrados * 2
         if repeticao > 0.3: nota -= (repeticao - 0.3) * 10
-        nota = max(1, min(10, nota))  # nota minima 1
+        nota = max(1, min(10, nota))
         
         return {
             'texto': texto,
@@ -1587,7 +1571,60 @@ class MCRPergunta:
         self.conector = MCRConector()
         self.cadeia = MCRCadeia(self.conector)
         self.semantico = AutoavaliadorSemantico(kg, None)
+        self.diagnostico = MCRDiagnostico()
         self.log = []
+    
+    @staticmethod
+    def _limpar_texto(texto: str) -> str:
+        """Remove metadados, JSON, escapes do texto (MCR identifica o que e lixo)."""
+        if not texto: return ''
+        # Se comeca com { ou [ e' JSON — extrai so o texto
+        if texto.strip().startswith('{') or texto.strip().startswith('['):
+            import re
+            # Tenta extrair campo 'solucao' ou 'fragmento' ou 'texto'
+            for campo in ['solucao', 'fragmento', 'texto', 'resposta']:
+                m = re.search(r'"{0}"\s*:\s*"([^"]+)"'.format(campo), texto)
+                if m: return m.group(1)
+            # Remove chaves, aspas, escapes
+            texto = re.sub(r'[{}"\\]', '', texto)
+        # Remove escapes Unicode
+        texto = texto.replace('\\u00e3', 'ã').replace('\\u00e1', 'á')
+        texto = texto.replace('\\u00e9', 'é').replace('\\u00ed', 'í')
+        texto = texto.replace('\\u00f3', 'ó').replace('\\u00fa', 'ú')
+        texto = texto.replace('\\u00e7', 'ç').replace('\\u00f5', 'õ')
+        texto = texto.replace('\\u00ea', 'ê').replace('\\u00f4', 'ô')
+        texto = texto.replace('\\u00e2', 'â').replace('\\u00ee', 'î')
+        texto = texto.replace('\\u00fb', 'û').replace('\\u00c1', 'Á')
+        texto = texto.replace('\\u00c9', 'É').replace('\\u00d3', 'Ó')
+        # Remove ** marcacao **
+        texto = texto.replace('**', '')
+        return texto.strip()
+    
+    @staticmethod
+    def _filtrar_lesson(sol: str, mk_byte=None) -> bool:
+        """Filtra lessons que nao sao texto util (MCR por entropia)."""
+        if not sol or len(sol) < 20: return False
+        # Entropia baixa = nao e texto
+        if mk_byte:
+            from collections import Counter
+            import math
+            dados = sol.encode('utf-8')[:200]
+            freq = {}
+            for b in dados: freq[b] = freq.get(b, 0) + 1
+            n = len(dados)
+            h = 0.0
+            for c in freq.values():
+                p = c / n
+                if p > 0: h -= p * math.log2(p)
+            # Texto tem entropia > 4. JSON/codigo tem entropia > 6
+            if h < 3.0: return False  # binario
+        # JSON detectado por primeiro caractere
+        if sol.strip().startswith('{') or sol.strip().startswith('['):
+            return False
+        # Metadata de sistema
+        if sol.startswith('[') and ']' in sol[:20]:
+            return False
+        return True
     
     def perguntar(self, pergunta: str, max_tokens: int = 80) -> dict:
         """Responde uma pergunta usando MCR."""
@@ -1602,18 +1639,22 @@ class MCRPergunta:
                 ls = self.kg.buscar(termo, max_r=3, pergunta=pergunta)
                 lessons.extend(ls)
         
-        # 3. Alimenta conector com lessons encontradas
+        # 3. Alimenta conector com lessons encontradas (FILTRADAS E LIMPAS)
         topicos_alimentados = []
-        for i, l in enumerate(lessons[:5]):
+        mk_filtro = MarkovUniversal("filtro_kg")
+        for i, l in enumerate(lessons[:10]):
             sol = l.get('solucao', '') or l.get('erro', '')
-            if sol and len(sol) > 20:
+            if not self._filtrar_lesson(sol, mk_filtro): continue
+            sol = self._limpar_texto(sol)
+            if sol and len(sol) > 30:
                 nome = f"kg_{i}_{l.get('ctx', 'desconhecido')}"
                 self.conector.alimentar(sol[:500], nome)
                 topicos_alimentados.append(nome)
         
         # Se não encontrou nada no KG, usa a própria pergunta
         if not topicos_alimentados:
-            self.conector.alimentar(pergunta, "pergunta")
+            sol_limpa = self._limpar_texto(pergunta)
+            self.conector.alimentar(sol_limpa, "pergunta")
             topicos_alimentados.append("pergunta")
         
         # 4. Tenta conectar os topicos
@@ -1638,11 +1679,34 @@ class MCRPergunta:
             semente = palavras_primeiro[1] if len(palavras_primeiro) > 1 else semente
         resultado_cadeia = self.cadeia.gerar(semente, n_tokens=max_tokens)
         
-        # 6. Autoavalia
+        # 6. PÓS-PROCESSAMENTO: MCR garante maiuscula + pontuacao
         texto = resultado_cadeia['texto']
+        # Garante primeira maiuscula
+        if texto and texto[0].islower():
+            texto = texto[0].upper() + texto[1:]
+        # Garante pontuacao final
+        if texto and not any(texto.rstrip().endswith(p) for p in '.!?'):
+            texto += '.'
+        # Remove repeticoes de pontuacao
+        import re
+        texto = re.sub(r'([.!?])\1+', r'\1', texto)
+        # Se tem mais de 200 chars, corta no primeiro ponto final depois de 80 chars
+        if len(texto) > 200:
+            idx_ponto = texto.find('.', 80)
+            if idx_ponto > 0:
+                texto = texto[:idx_ponto+1]
+        
+        # 7. Autoavalia com MCRDiagnostico (nota HONESTA)
         av_sem = self.semantico.avaliar(texto, 'lore')
         
-        # Tenta avaliacao multi-nivel se tiver pelo menos 2 topicos
+        # Diagnostico MCR: detecta problemas no texto gerado
+        estado_diag = {
+            'byte': resultado_cadeia.get('nota', 5)/10,
+            'palavra': av_sem.get('nota', 5)/10 if isinstance(av_sem, dict) else 0.5,
+            'token': resultado_cadeia.get('loops_detectados', 0) > 3,
+        }
+        diag = self.diagnostico.diagnosticar(estado_diag)
+        
         nota_multinivel = 0
         if len(topicos_alimentados) >= 2:
             ta = self.conector.topicos.get(topicos_alimentados[0], {}).get('texto', '')
@@ -1651,13 +1715,17 @@ class MCRPergunta:
                 texto, ta, tb, "conteudo_compartilhado"
             )
         
-        # Nota final: media entre cadeia e semantica
+        # Nota final HONESTA: penaliza por diagnosticos ruins
         nota_cadeia = resultado_cadeia['nota']
-        nota_final = (nota_cadeia + av_sem['nota'] + nota_multinivel) / 3
+        nota_base = (nota_cadeia + av_sem['nota'] + nota_multinivel) / 3
+        penalidade_diag = 0.0
+        if 'JSON' in diag: penalidade_diag += 3.0
+        if 'loop' in diag: penalidade_diag += 2.0
+        nota_final = max(0, nota_base - penalidade_diag)
         
         resultado = {
             'pergunta': pergunta,
-            'resposta': texto[:500],
+            'resposta': texto[:600],
             'nota': round(nota_final, 1),
             'n_tokens': resultado_cadeia['n_tokens'],
             'topicos_usados': topicos_alimentados,
@@ -1666,22 +1734,27 @@ class MCRPergunta:
             'repeticoes_evitadas': resultado_cadeia['repeticoes_evitadas'],
             'avaliacao_semantica': av_sem,
             'nota_multinivel': round(nota_multinivel, 1) if nota_multinivel else 0,
-            'debug': self._gerar_debug(resultado_cadeia, conexoes, av_sem),
+            'diagnostico': diag,
+            'penalidade_diag': penalidade_diag,
+            'debug': self._gerar_debug(resultado_cadeia, conexoes, av_sem, diag),
         }
         
         self.log.append(resultado)
         return resultado
     
-    def _gerar_debug(self, cadeia, conexoes, av_sem):
+    def _gerar_debug(self, cadeia, conexoes, av_sem, diag=""):
         linhas = ["DEBUG MCRPergunta:"]
         linhas.append(f"  Cadeia: {cadeia['n_tokens']} tokens, nota {cadeia['nota']}/10")
         linhas.append(f"  Loops: {cadeia['loops_detectados']}, Repeticoes evitadas: {cadeia['repeticoes_evitadas']}")
         linhas.append(f"  Semantica: {av_sem['nota']}/10 ({av_sem['diagnostico']})")
+        if diag:
+            linhas.append(f"  Diagnostico: {diag}")
         if conexoes:
             linhas.append(f"  Conexoes: {len(conexoes)}")
             for cx in conexoes[:3]:
                 linhas.append(f"    {cx['topico_a']} <-> {cx['topico_b']}: {cx['nota']}/10")
         return '\n'.join(linhas)
+    
 
 
 # ============================================================
@@ -1781,9 +1854,25 @@ class MCREntropia:
         if max_h == 0: return 0.0 if h == 0 else 1.0  # tudo igual = loop
         return h / max_h
     
+    def _detectar_ciclo(self) -> bool:
+        """Detecta padrao ciclico: ABCABCABC (N tokens alternando)."""
+        if len(self.historico_entropias) < 10: return False
+        recentes = self.historico_entropias[-10:]
+        # Tenta periodo de 2 a 5
+        for periodo in range(2, 6):
+            if len(recentes) < periodo * 2: continue
+            padrao = recentes[:periodo]
+            ciclico = True
+            for i in range(periodo, len(recentes)):
+                if recentes[i] != padrao[i % periodo]:
+                    ciclico = False
+                    break
+            if ciclico: return True
+        return False
+    
     def esta_em_loop(self) -> bool:
-        """True se entropia local estiver abaixo de 0.3 (muita repeticao)."""
-        return self._entropia_local() < 0.3
+        """True se entropia baixa OU padrao ciclico."""
+        return self._entropia_local() < 0.3 or self._detectar_ciclo()
     
     def ultima_entropia(self) -> float:
         return self._entropia_local()
