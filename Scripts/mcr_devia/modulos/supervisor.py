@@ -57,36 +57,47 @@ class Supervisor:
         except Exception as e:
             print(f'  [Supervisor] CR ERRO: {e}')
         
-        # DETECCAO DE MULTI-INTENCAO: conta quantos topicos diferentes aparecem
+        # DETECCAO DE MULTI-INTENCAO: MCR path primeiro, fallback topicos
         topicos_detectados = set()
         
-        # Topicos que o prompt pode cobrir
-        topicos = {
-            'codigo': ['analise o codigo', 'analise este codigo', 'codigo fonte', 'arquivo .py',
-                       'classe data', 'def processar', 'processor.py', 'codigo inteiro'],
-            'bugs': ['bug', 'erro', 'problema', 'crash', 'travando', ' memoria', 'corrigir',
-                    'outofmemory', 'race condition', 'security'],
-            'gerar_codigo': ['crie um novo modulo', 'crie um novo', 'codigo completo',
-                           'validador.py', 'escreva o codigo'],
-            'arquitetura': ['arquitetura', '3 camadas', 'camadas', 'diagrama', 'fluxo de dados'],
-            'revisao': ['revise', 'revisao', 'problemas de seguranca', 'prioridade'],
-            'criacao': ['lenda', 'historia', 'narrativa', 'personagens', 'kael', 'pyra',
-                       'forja', 'dataforge', 'conto'],
-            'diagnostico': ['diagnostico', 'causa raiz', 'reproduzir', 'por que o sistema',
-                          'lento e trava'],
-            'refatoracao': ['refatore', 'refatorar', 'separe em metodos', '5 coisas'],
-            'planejamento': ['plano de acao', 'curto prazo', 'medio prazo', 'longo prazo',
-                           'board', 'etapas'],
-            'sintese': ['licoes', 'paragrafo final', 'aprender', 'novo desenvolvedor'],
-        }
+        # MCR path: classifica o texto por MCR (sem keywords fixas)
+        try:
+            from modulos.MCR import _classificar_token as _mcr_cat
+            palavras_t = t.lower().split()
+            for p in palavras_t:
+                cat_mcr = _mcr_cat(p)
+                # Mapeia categorias MCR para topicos
+                if cat_mcr == 'codigo':
+                    topicos_detectados.add('codigo')
+                elif cat_mcr == 'sistema':
+                    topicos_detectados.add('arquitetura')
+                elif cat_mcr == 'lore':
+                    topicos_detectados.add('criacao')
+                elif cat_mcr == 'numero':
+                    topicos_detectados.add('planejamento')
+        except ImportError:
+            pass
         
-        for topico, keywords in topicos.items():
-            if any(k in t for k in keywords):
-                topicos_detectados.add(topico)
+        # Fallback: topicos hardcoded (só se MCR não classificou nada)
+        if not topicos_detectados:
+            topicos = {
+                'codigo': ['analise o codigo', 'codigo fonte', 'arquivo .py', 'def processar'],
+                'bugs': ['bug', 'erro', 'problema', 'crash', 'travando'],
+                'gerar_codigo': ['crie um novo modulo', 'codigo completo', 'escreva o codigo'],
+                'arquitetura': ['arquitetura', 'camadas', 'diagrama', 'fluxo de dados'],
+                'revisao': ['revise', 'revisao', 'problemas de seguranca'],
+                'criacao': ['lenda', 'historia', 'narrativa', 'personagens', 'conto'],
+                'diagnostico': ['diagnostico', 'causa raiz', 'por que o sistema'],
+                'refatoracao': ['refatore', 'refatorar', 'separe em metodos'],
+                'planejamento': ['plano de acao', 'curto prazo', 'medio prazo', 'etapas'],
+            }
+            for topico, keywords in topicos.items():
+                if any(k in t for k in keywords):
+                    topicos_detectados.add(topico)
         
         # Se 3+ topicos, e MULTI-INTENCAO
         if len(topicos_detectados) >= 3:
-            print(f'  [Classificador] MULTI-INTENCAO detectada: {topicos_detectados}')
+            print(f'  [Classificador] MULTI-INTENCAO: {topicos_detectados}')
             return 'multimodal', 'complexo'
         
         # Classificacao classica (keyword-based) para intencoes simples
