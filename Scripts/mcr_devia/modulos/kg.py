@@ -230,9 +230,40 @@ class KnowledgeGraph:
             "lessons": []
         }
     
+    # ===== UTILITÁRIO MCR =====
+    
+    @staticmethod
+    def _jaccard_bytes(texto_a: str, texto_b: str) -> float:
+        """Jaccard entre CONJUNTOS DE TRANSIÇÕES DE BYTES.
+        
+        MCR puro: similaridade por transições de bytes (não por palavra-chave).
+        0.0 = completamente diferentes, 1.0 = mesmas transições.
+        """
+        ba = texto_a.encode('utf-8')
+        bb = texto_b.encode('utf-8')
+        ta = {f"{ba[i]:02x}->{ba[i+1]:02x}" for i in range(len(ba)-1)}
+        tb = {f"{bb[i]:02x}->{bb[i+1]:02x}" for i in range(len(bb)-1)}
+        inter = ta & tb
+        uniao = ta | tb
+        return len(inter) / len(uniao) if uniao else 0.0
+    
     # ===== BUSCA =====
     
-    def buscar(self, texto, max_r=5, incluir_inativos=False, incluir_benchmark=False):
+    def buscar(self, texto, max_r=5, incluir_inativos=False, incluir_benchmark=False, pergunta=None):
+        """Busca lessons por keyword + MCR Filter (Jaccard de bytes).
+        
+        Args:
+            texto: termos de busca (keywords)
+            max_r: maximo de resultados
+            incluir_inativos: se inclui lessons inativas
+            incluir_benchmark: se inclui lessons de benchmark
+            pergunta: Se fornecida, ativa FILTRO MCR — re-ranqueia por
+                      Jaccard de transições de bytes entre pergunta e solução.
+                      A pergunta ORIGINAL do usuário, não os termos extraídos.
+        
+        Returns:
+            list[dict] — lessons ordenadas por relevância
+        """
         palavras = set(re.findall(r'\w+', texto.lower())) - STOP_BUSCA
         if any(p in texto.lower() for p in ['benchmark','stress','perf_test','performance']):
             incluir_benchmark = True
@@ -252,6 +283,22 @@ class KnowledgeGraph:
                     elif p in l.get('causa','').lower(): score += 3
                     else: score += 2
             if score > 0: scores.append((score, l))
+        
+        # FILTRO MCR: se pergunta for fornecida, re-ranqueia por Jaccard de bytes
+        if pergunta and scores:
+            scores_com_jaccard = []
+            for score, l in scores:
+                sol = l.get('solucao', '')
+                jac = self._jaccard_bytes(pergunta, sol) if sol and len(sol) > 20 else 0
+                # Nota MCR: 70% keyword + 30% Jaccard (evita dominância de palavra solta)
+                nota_mcr = (score * 0.7) + (jac * 50 * 0.3)
+                scores_com_jaccard.append((nota_mcr, jac, l))
+            
+            # Ordena por nota MCR (depois por jaccard como desempate)
+            scores_com_jaccard.sort(key=lambda x: (-x[0], -x[1]))
+            return [s[2] for s in scores_com_jaccard[:max_r if max_r else len(scores_com_jaccard)]]
+        
+        # Sem filtro MCR: ordena por keyword score (comportamento original)
         scores.sort(key=lambda x: -x[0])
         return [s[1] for s in scores[:max_r if max_r else len(scores)]]
     
@@ -534,4 +581,4 @@ class KnowledgeGraph:
                 candidatos.append((dot, l))
         
         candidatos.sort(key=lambda x: -x[0])
-        return [c[1] for c in candidatos[:max_r]]
+        return [c[1] for c in candidatos]

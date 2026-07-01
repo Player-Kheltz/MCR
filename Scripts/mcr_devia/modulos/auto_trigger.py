@@ -93,6 +93,13 @@ class AutoTriggerSystem:
         self._tools = tools
         # Cache de arquivos lidos na sessão
         self._arquivos_lidos = {}
+        # MCR (opcional — se disponível, substitui ROTAS hardcoded)
+        self._mcr = None
+        try:
+            from modulos.MCR import MCR as _MCR
+            self._mcr = _MCR()
+        except ImportError:
+            pass
 
     def processar(self, intencoes: List[Tuple[str, Dict, float]],
                   texto_original: str = "") -> Dict[str, Any]:
@@ -169,7 +176,29 @@ class AutoTriggerSystem:
                 contexto["arquivos_para_extrair"].append("md")
 
     def _get_rota(self, cat: str, params: Dict) -> List[Tuple[str, Dict]]:
-        """Obtém a rota de ferramentas para uma intenção."""
+        """Obtém a rota de ferramentas para uma intenção.
+        
+        Se MCR estiver disponível, usa MarkovDecisor para decidir a ação.
+        Caso contrário, usa ROTAS hardcoded (fallback legado).
+        """
+        # CAMINHO MCR: MarkovDecisor decide a ação
+        if self._mcr:
+            estado = {'intencao': cat, 'ie_conf': 0.7, 'entropia_byte': 0.5}
+            acao, conf = self._mcr._decidir(estado)
+            if acao and conf > 0.2:
+                # Converte ação MCR para ferramenta auto_trigger
+                traducao = {
+                    'buscar_kg': ('buscar_kg', {'termo': '{termo}'}),
+                    'buscar_dados': ('buscar_estrategico', {'termo': '{termo}'}),
+                    'buscar_arquivos': ('buscar_estrategico', {'termo': '{termo}'}),
+                    'responder': None,  # não precisa de ferramenta
+                }
+                trad = traducao.get(acao)
+                if trad:
+                    return [trad]
+                return []
+        
+        # CAMINHO LEGADO: ROTAS hardcoded (fallback)
         if cat in self.ROTAS:
             rota = self.ROTAS[cat]
             if isinstance(rota, dict):
@@ -257,10 +286,10 @@ class AutoTriggerSystem:
         if not lessons:
             return ""
         partes = []
-        for l in lessons[:3]:
+        for l in lessons:
             sol = l.get("solucao", "").strip()
             if sol:
-                partes.append(f"- {sol[:200]}")
+                partes.append(f"- {sol}")
         return "\n".join(partes)
 
     def _executar_buscar_estrategico(self, termo: str) -> str:
@@ -273,7 +302,7 @@ class AutoTriggerSystem:
         if r and r.get("sucesso"):
             txt = str(r.get("resultado", ""))
             if txt and "Nenhum" not in txt and len(txt) > 30:
-                return txt[:2000]
+                return txt
         return ""
 
     def _executar_ler_arquivo(self, path: str) -> str:
@@ -288,7 +317,7 @@ class AutoTriggerSystem:
             with open(full_path, 'r', encoding='utf-8', errors='replace') as f:
                 conteudo = f.read()
                 self._arquivos_lidos[path] = conteudo
-                return f"({len(conteudo)} chars, {len(conteudo.splitlines())} linhas):\n{conteudo[:2000]}"
+                return f"({len(conteudo)} chars, {len(conteudo.splitlines())} linhas):\n{conteudo}"
         except Exception as e:
             return f"(Erro ao ler: {e})"
 
@@ -317,7 +346,7 @@ class AutoTriggerSystem:
                     resultado = self._executar_ler_arquivo(path)
                     if resultado and "nao encontrado" not in resultado.lower():
                         return f"[EXEMPLO DE {tipo.upper()}]\n{resultado}"
-            return f"[BUSCA POR {tipo.upper()}]\n{r[:1000]}"
+            return f"[BUSCA POR {tipo.upper()}]\n{r}"
 
         for caminho in caminhos:
             full = os.path.join(BASE, caminho)

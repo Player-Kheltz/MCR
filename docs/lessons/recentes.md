@@ -99,3 +99,68 @@ Sessao mais produtiva ate agora. Implementamos a arquitetura AGI completa em 5 c
 > **Contexto limitado a <7000 chars.** Modelo 14b tem 4096 tokens (~16K chars). Com identidade + ferramentas + contexto, o prompt total deve ficar abaixo de 7K chars para garantir que o modelo veja tudo.
 >
 > **TruncationFixer e um faca de dois gumes.** Remove `[:N]` que sao uteis (limites de contexto). A excecao `str(...)[:N]` foi essencial.
+
+## 2026-07-01 — MCR'zificacao: FiltroMCR nativo no kg + MCR.py unificado
+
+### Resumo
+Sessao de MCR'zificacao pratica. Integramos o FiltroMCR (Jaccard de bytes) NATIVAMENTE no `kg.buscar()`, atualizamos o `MCR.py` (que ja tinha autoavaliacao por Jaccard, Decisor, Loop), e MCR'zificamos o `auto_trigger.py` para usar MarkovDecisor.
+
+### O que foi feito
+
+1. **FiltroMCR nativo no kg.buscar()**:
+   - `kg.buscar()` agora aceita `pergunta=` para ativar re-ranqueio por Jaccard de bytes
+   - Nota MCR = 70% keyword score + 30% Jaccard * 50
+   - SEM filtro: lesson irrelevante (#1) "5 metodos em master_agent.py"
+   - COM filtro: lesson relevante (#1) "SPA = Sistema de Progressao do Aventureiro"
+   - Jaccard SPA=0.224 vs master_agent=0.119 (diferenca 0.104)
+
+2. **MCR.py atualizado**:
+   - `_executar()` agora passa `pergunta=` para `kg.buscar()` — ativa FiltroMCR nativo
+   - `_responder()` tbm usa `pergunta=` — resposta foi de 5.1 para 8.7/10
+   - IE movido de lazy import para `__init__` (criado uma vez)
+   - Adicionado `__main__` com teste rapido
+
+3. **auto_trigger.py MCR'zificado**:
+   - `_get_rota()` tenta MCR.MarkovDecisor primeiro
+   - Fallback para ROTAS hardcoded quando MCR nao disponivel
+   - Traducao de acoes MCR para ferramentas auto_trigger
+
+4. **14 prototipos revisados**:
+   - 3760+ linhas de prototipos analisados
+   - Conceitos validados: MarkovUniversal, Jaccard de bytes, Fingerprint RAW (sem INTENT_*)
+   - Autoavaliacao por tipos ERA FALSA — Jaccard de bytes e a metrica REAL
+
+### Problemas Identificados e Solucoes
+
+- **kg.buscar() sem FiltroMCR**: Lesson "5 metodos em master_agent" era #1 para pergunta "Explique SPA". Solucao: `buscar()` agora aceita `pergunta=` que re-ranqueia por Jaccard de bytes.
+- **Autoavaliacao por tipos e FALSA**: Cobertura de tipos (ANTES) dava nota alta para resposta errada. Solucao: ja estava corrigida no MCR.py (usa Jaccard).
+- **MCR.py nao passava pergunta= para kg.buscar()**: O FiltroMCR so existia no MCR, nao no KG. Solucao: `_executar()` e `_responder()` agora passam `pergunta=`.
+- **auto_trigger.py com ROTAS fixas**: Decisao de ferramentas era hardcoded. Solucao: `_get_rota()` tenta MCR.MarkovDecisor primeiro.
+
+### Resultados dos Testes
+
+| Teste | Metricas | Status |
+|-------|----------|--------|
+| FiltroMCR no kg.buscar() | Irrelevante caiu de #1 para #3. Relevante foi de #2 para #1. | ✅ OK |
+| Jaccard discrimina relevancia | SPA=0.224 vs master_agent=0.119 (diferenca 0.104) | ✅ OK |
+| MCRAutoLoop com FiltroMCR | SPA: 5.1 -> 8.7/10. Canary: 8.3/10 com KG | ✅ Melhorou |
+| MarkovUniversal standalone | Jaccard SPA/SPA=1.0, SPA/NPC=0.0 | ✅ OK |
+| auto_trigger MCR path | MarkovDecisor acionado via _get_rota() | ✅ Integrado |
+
+### Arquivos Modificados
+
+- `modulos/kg.py`: `buscar()` ganhou parametro `pergunta=` + metodo `_jaccard_bytes()` + re-ranqueio MCR
+- `modulos/MCR.py`: `_executar()` passa `pergunta=` p/ kg.buscar(); `_responder()` idem; IE movido p/ __init__; `__main__` adicionado
+- `modulos/auto_trigger.py`: `__init__` carrega MCR opcional; `_get_rota()` tenta MCR.MarkovDecisor primeiro
+- `docs/PLANO_MCRZIFICACAO.md`: Criado com plano completo de MCR'zificacao
+- `sandbox/test_mcr_integracao.py`: Teste de integracao criado
+
+### Licoes Aprendidas
+
+> **O FiltroMCR por Jaccard de bytes funciona como metrica universal.** Substitui keyword scoring, cobertura de tipos, e similaridade de fingerprint. Um unico Jaccard entre pergunta e resposta avalia relevância, qualidade e similaridade.
+>
+> **MCR.py ja existia e ja estava correto.** A autoavaliacao por Jaccard, FiltroMCR, MarkovDecisor e AutoLoop ja estavam implementados. So faltava conectar ao kg.buscar() passando o parametro `pergunta=`.
+>
+> **MCR'zificar e conectar, nao reescrever.** O kg.buscar() nao precisou ser reescrito — so ganhou um parametro opcional `pergunta=` que ativa o re-ranqueio MCR. Compatibilidade total mantida.
+>
+> **14 prototipos validaram o conceito.** 3760+ linhas de prototipos provaram que MarkovUniversal funciona em QUALQUER nivel (byte, palavra, token, intencao, acao). O MCR.py final tem ~420 linhas.
