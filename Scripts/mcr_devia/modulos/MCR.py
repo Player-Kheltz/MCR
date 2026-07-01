@@ -92,7 +92,7 @@ class MCR:
         prox = self.transicoes[sa]
         sorted_prox = sorted(prox.items(), key=lambda x: -x[1])
         total = sum(prox.values())
-        return [(p, c/total) for p, c in sorted_prox[:n]]
+        return [(p, c/total) for p, c in sorted_prox]
     
     def entropia(self, a: Any) -> float:
         sa = str(a)
@@ -195,8 +195,8 @@ class MCR:
     def jaccard_bytes_ponderado(self, texto_a: str, texto_b: str) -> float:
         """Jaccard PONDERADO: primeiros 10 bytes pesam 2x.
         Captura melhor INTENÇÃO (primeiras palavras) do que o Jaccard normal."""
-        da = texto_a.encode('utf-8')[:500]
-        db = texto_b.encode('utf-8')[:500]
+        da = texto_a.encode('utf-8')
+        db = texto_b.encode('utf-8')
         pesos = {}
         for i in range(max(len(da), len(db)) - 1):
             if i < len(da) - 1:
@@ -224,12 +224,12 @@ class MCR:
         - Fingerprint: vetor de frequencia
         """
         mk = MCR("assinatura")
-        mk.aprender_sequencia(list(dados[:500]))
+        mk.aprender_sequencia(list(dados))
         
         # Top 5 transicoes mais comuns
         top5 = []
         for estado, prox in sorted(mk.transicoes.items(), 
-                                     key=lambda x: -sum(x[1].values()))[:5]:
+                                     key=lambda x: -sum(x[1].values())):
             melhor = max(prox, key=prox.get) if prox else ''
             top5.append(f"{estado}->{melhor}")
         
@@ -285,20 +285,20 @@ class MCR:
         
         # 2. Tenta converter para texto
         try:
-            texto = entrada.decode('utf-8', errors='replace')[:2000]
+            texto = entrada.decode('utf-8', errors='replace')
         except:
-            texto = str(entrada[:200])
+            texto = str(entrada)
         
         palavras = texto.split()
         semente = palavras[0] if palavras else 'byte'
         
         # 3. Gera saida via Cadeia (em bytes)
         conector = MCRConector()
-        conector.alimentar(texto[:500], "entrada_bytes")
+        conector.alimentar(texto, "entrada_bytes")
         cadeia = MCRCadeia(conector)
         res = cadeia.gerar(semente, n_tokens=30)
         saida_texto = res.get('texto', semente)
-        saida_bytes = saida_texto.encode('utf-8')[:2000]
+        saida_bytes = saida_texto.encode('utf-8')
         
         # 4. Assinatura da saida
         assinatura_out = self._extrair_assinatura(saida_bytes)
@@ -316,7 +316,7 @@ class MCR:
             cadeia = MCRCadeia(conector)
             res = cadeia.gerar(semente, n_tokens=30)
             saida_texto = res.get('texto', semente)
-            saida_bytes = saida_texto.encode('utf-8')[:2000]
+            saida_bytes = saida_texto.encode('utf-8')
             assinatura_out = self._extrair_assinatura(saida_bytes)
             compatibilidade = self._comparar_assinaturas(assinatura_in, assinatura_out)
         
@@ -324,7 +324,7 @@ class MCR:
         nota = round(compatibilidade * 10, 1)
         
         # 8. Aprende
-        self.aprender(f"BYTES:{hash(entrada[:100])%10000}", f"COMPAT:{compatibilidade:.2f}")
+        self.aprender(f"BYTES:{hash(entrada)%10000}", f"COMPAT:{compatibilidade:.2f}")
         
         return {
             'entrada_tamanho': len(entrada),
@@ -334,7 +334,7 @@ class MCR:
             'compatibilidade': round(compatibilidade, 3),
             'nota': nota,
             'iteracoes': iteracao,
-            'saida': saida_texto[:300] if len(saida_texto) > 300 else saida_texto,
+            'saida': saida_texto if len(saida_texto) > 300 else saida_texto,
             'tempo': round(time.time() - t0, 3),
         }
     
@@ -683,7 +683,7 @@ class MCRSystem:
             with open(origem, 'rb') as f:
                 dados = f.read(max_bytes)
         else:
-            dados = origem.encode('utf-8')[:max_bytes]
+            dados = origem.encode('utf-8')
         
         mk_byte = MCR(f"ciclo_byte")
         mk_byte.aprender_sequencia(list(dados))
@@ -723,9 +723,9 @@ class MCRSystem:
         if self.kg:
             nome_base = os.path.basename(origem) if os.path.isfile(origem) else "texto_direto"
             self.kg.aprender_conceito(
-                f"ciclo:{nome_base[:40]}",
+                f"ciclo:{nome_base}",
                 f"Tipo: {tipo}, Entropia: {entropia:.2f}, Bytes: {len(dados)}. "
-                f"Estados: {n_estados}. Origem: {origem[:100]}.",
+                f"Estados: {n_estados}. Origem: {origem}.",
                 ctx="ciclo_unico"
             )
             resultado['etapas'].append("kg:salvo")
@@ -742,8 +742,8 @@ class MCRSystem:
         if nota >= 5.0:
             try:
                 conector = MCRConector()
-                conector.alimentar(texto[:500] if 'texto' in dir() else origem, "ciclo_entrada")
-                for nome, dados_t in list(conector.topicos.items())[:3]:
+                conector.alimentar(texto if 'texto' in dir() else origem, "ciclo_entrada")
+                for nome, dados_t in list(conector.topicos.items()):
                     if nome != "ciclo_entrada":
                         cx = conector.conectar("ciclo_entrada", nome)
                         if cx:
@@ -982,7 +982,7 @@ class MCRPreCache:
         n_guardados = 0
         if self.kg:
             # Arquitetura
-            nome_blob = os.path.basename(caminho_blob)[:16]
+            nome_blob = os.path.basename(caminho_blob)
             total_tokens = len(self.tokens)
             self.kg.aprender_conceito(
                 f"precache_{nome_blob}",
@@ -996,19 +996,19 @@ class MCRPreCache:
             prefixos = {}
             for t in self.tokens:
                 if len(t) >= 2:
-                    p = t[:2].lower()
+                    p = t.lower()
                     if p not in prefixos: prefixos[p] = []
                     prefixos[p].append(t)
             
             for prefixo, membros in sorted(prefixos.items(),
-                                            key=lambda x: -len(x[1]))[:max_tokens_kg]:
+                                            key=lambda x: -len(x[1])):
                 if len(membros) >= 5:
                     dominios_cont = Counter(_classificar_token(m) for m in membros)
                     dom_principal = dominios_cont.most_common(1)[0][0]
                     self.kg.aprender_conceito(
                         f"cluster_{prefixo}",
                         f"{len(membros)} tokens, dominio={dom_principal}. "
-                        f"Ex: {', '.join(membros[:6])}",
+                        f"Ex: {', '.join(membros)}",
                         ctx="tokenizer_cluster"
                     )
                     n_guardados += 1
@@ -1016,7 +1016,7 @@ class MCRPreCache:
             # Dominios
             for dominio, count in self.dominios.most_common():
                 exemplos = [t['token'] for t in self.token_info
-                           if t['dominio'] == dominio][:8]
+                           if t['dominio'] == dominio]
                 self.kg.aprender_conceito(
                     f"dominio_{dominio}",
                     f"{count} tokens ({count/len(self.tokens)*100:.1f}%). "
@@ -1049,7 +1049,7 @@ class MCRPreCache:
     def obter_tokens_por_dominio(self, dominio='lore', max_tokens=500):
         """Retorna tokens de um domínio específico para uso em geração."""
         return [t['token'] for t in self.token_info
-                if t['dominio'] == dominio][:max_tokens]
+                if t['dominio'] == dominio]
 
 
 class AutoavaliadorSemantico:
@@ -1093,8 +1093,8 @@ class AutoavaliadorSemantico:
         nota_dominio = proporcao_dominio * 3  # 0-3
         
         # 2. ESTRUTURA NARRATIVA
-        tem_sujeito = any(s in texto.lower() for s in _SUJEITOS_LORE[:20])
-        tem_verbo = any(v in texto.lower() for v in _VERBOS_LORE[:20])
+        tem_sujeito = any(s in texto.lower() for s in _SUJEITOS_LORE)
+        tem_verbo = any(v in texto.lower() for v in _VERBOS_LORE)
         tem_maiuscula_inicio = texto[0].isupper() if texto else False
         tem_pontuacao_final = any(texto.rstrip().endswith(p) for p in '.!?')
         n_frases = sum(1 for c in texto if c in '.!?')
@@ -1121,7 +1121,7 @@ class AutoavaliadorSemantico:
         nota_originalidade = 2.0  # 0-2, começa como maxima
         if self.kg:
             # Verifica se o texto copiou lessons do KG
-            for l in self.kg._get_licoes()[:100]:
+            for l in self.kg._get_licoes():
                 sol = l.get('solucao', '')
                 if sol and len(sol) > 50:
                     # Jaccard entre texto gerado e lesson
@@ -1248,14 +1248,14 @@ class GeradorNarrativa:
             jac = mk_temp.jaccard_bytes(tema, sol)
             if jac < 0.02: continue
             ctx = l.get('ctx', '')
-            erro = l.get('erro', '')[:60]
-            partes.append(f"[{ctx}] {erro}: {sol[:300]}")
+            erro = l.get('erro', '')
+            partes.append(f"[{ctx}] {erro}: {sol}")
             n_lessons += 1
         
         # Textos de lore do corpus
-        for texto in textos_lore[:5]:
+        for texto in textos_lore:
             if len(texto) > 100:
-                partes.append(f"[CORPUS] {texto[:500]}")
+                partes.append(f"[CORPUS] {texto}")
                 n_lessons += 1
         
         self.contexto_usado = '\n\n'.join(partes)
@@ -1439,7 +1439,7 @@ class MCRCruzado:
         
         pontes.sort(key=lambda x: -x['score'])
         return {'total_candidatas': len(pontes), 'tipo': 'byte_bridge',
-                'pontes': pontes[:8], 'melhor': pontes[0] if pontes else None}
+                'pontes': pontes, 'melhor': pontes[0] if pontes else None}
 
 
 class MCRConector:
@@ -1509,7 +1509,7 @@ class MCRConector:
         palavras_a = t_a['palavras']; palavras_b = t_b['palavras']
         
         import hashlib
-        h = hashlib.md5(f"{min(topico_a,topico_b)}|{max(topico_a,topico_b)}".encode()).hexdigest()[:12]
+        h = hashlib.md5(f"{min(topico_a,topico_b)}|{max(topico_a,topico_b)}".encode()).hexdigest()
         if h in self.conexoes_feitas: return None
         
         byte_ponte, tipo_ponte, pal_a, pal_b = self._encontrar_ponte(topico_a, topico_b)
@@ -1620,7 +1620,7 @@ class MCRConector:
         # Nivel Byte (2 pts)
         j_a = self.mcr_byte.jaccard_bytes(sequencia, texto_a)
         j_b = self.mcr_byte.jaccard_bytes(sequencia, texto_b)
-        seq_bytes = sequencia.encode('utf-8')[:200]
+        seq_bytes = sequencia.encode('utf-8')
         trans_ok = 0
         for i in range(len(seq_bytes)-1):
             e = f"B:{seq_bytes[i]:02x}"
@@ -1678,7 +1678,7 @@ class MCRConector:
         if not conexao: return "(sem conexao)"
         linhas = [f"DEBUG CONEXAO: {conexao.get('topico_a','?')} <-> {conexao.get('topico_b','?')}"]
         linhas.append(f"  Ponte: {conexao.get('palavra_a','?')} -> {conexao.get('palavra_b','?')} ({conexao.get('tipo_ponte','?')})")
-        linhas.append(f"  Sequencia: {conexao.get('sequencia','')[:100]}")
+        linhas.append(f"  Sequencia: {conexao.get('sequencia','')}")
         linhas.append(f"  Nota: {conexao.get('nota',0)}/10")
         det = conexao.get('detalhes_nota', {})
         if 'byte' in det: 
@@ -1775,7 +1775,7 @@ class MCRCadeia:
                 melhor_ruido = self.ruido.melhor_tipo()
                 if melhor_ruido == 'palavra_outro_topico':
                     import random
-                    outros = [n for n in self.conector.topicos.keys() if n != token_str[:20]]
+                    outros = [n for n in self.conector.topicos.keys() if n != token_str]
                     if outros:
                         t_alt = random.choice(outros)
                         pal_alt = self.conector.topicos[t_alt]['texto'].split()
@@ -1888,7 +1888,7 @@ class MCRPergunta:
         if mk_byte:
             from collections import Counter
             import math
-            dados = sol.encode('utf-8')[:200]
+            dados = sol.encode('utf-8')
             freq = {}
             for b in dados: freq[b] = freq.get(b, 0) + 1
             n = len(dados)
@@ -1900,7 +1900,7 @@ class MCRPergunta:
                 return False
         if sol.strip().startswith('{') or sol.strip().startswith('['):
             return False
-        if sol.startswith('[') and ']' in sol[:20]:
+        if sol.startswith('[') and ']' in sol:
             return False
         return True
 
@@ -1949,7 +1949,7 @@ class MCRPergunta:
                 if kw in sol_lower:
                     pts += 2
                     # Bonus pra matches no inicio do texto (mais relevante)
-                    if sol_lower[:100].find(kw) >= 0:
+                    if sol_lower.find(kw) >= 0:
                         pts += 1
             
             # Pontos negativos: palavras tecnicas
@@ -1957,7 +1957,7 @@ class MCRPergunta:
             for kw in TEC_KEYWORDS:
                 if kw in sol_lower:
                     tec_pts += 3
-                    if sol_lower[:50].find(kw) >= 0:
+                    if sol_lower.find(kw) >= 0:
                         tec_pts += 2
             
             # Penalidade se o texto parece documentacao tecnica
@@ -1977,7 +1977,7 @@ class MCRPergunta:
         for l in lessons:
             sol = l.get('solucao', '') or l.get('erro', '')
             if not sol: continue
-            score = _calcular_pontuacao_lore(sol[:500])
+            score = _calcular_pontuacao_lore(sol)
             com_pontos.append((score, l))
         
         # Ordena por pontuacao lore (decrescente)
@@ -1993,7 +1993,7 @@ class MCRPergunta:
         # 2. Busca no KG
         lessons = []
         if self.kg:
-            for termo in termos[:3]:
+            for termo in termos:
                 ls = self.kg.buscar(termo, max_r=3, pergunta=pergunta)
                 lessons.extend(ls)
         
@@ -2002,13 +2002,13 @@ class MCRPergunta:
         
         topicos_alimentados = []
         mk_filtro = MarkovUniversal("filtro_kg")
-        for i, l in enumerate(lessons[:10]):
+        for i, l in enumerate(lessons):
             sol = l.get('solucao', '') or l.get('erro', '')
             if not self._filtrar_lesson(sol, mk_filtro): continue
             sol = self._limpar_texto(sol)
             if sol and len(sol) > 30:
                 nome = f"kg_{i}_{l.get('ctx', 'desconhecido')}"
-                self.conector.alimentar(sol[:500], nome)
+                self.conector.alimentar(sol, nome)
                 topicos_alimentados.append(nome)
         
         # Se não encontrou nada no KG, EXPANDE automaticamente
@@ -2018,15 +2018,15 @@ class MCRPergunta:
             if exp.get('expansoes', 0) > 0:
                 # Tenta novamente com o KG expandido
                 lessons2 = []
-                for termo in termos[:3]:
+                for termo in termos:
                     ls = self.kg.buscar(termo, max_r=5, pergunta=pergunta)
                     lessons2.extend(ls)
-                for i, l in enumerate(lessons2[:5]):
+                for i, l in enumerate(lessons2):
                     sol = l.get('solucao', '') or l.get('erro', '')
                     if self._filtrar_lesson(sol) and sol:
                         sol = self._limpar_texto(sol)
                         nome = f"kg_exp_{i}_{l.get('ctx', '?')}"
-                        self.conector.alimentar(sol[:500], nome)
+                        self.conector.alimentar(sol, nome)
                         topicos_alimentados.append(nome)
             
             # Se ainda vazio, fallback na pergunta
@@ -2116,7 +2116,7 @@ class MCRPergunta:
         
         resultado = {
             'pergunta': pergunta,
-            'resposta': texto[:600],
+            'resposta': texto,
             'nota': round(nota_final, 1),
             'n_tokens': resultado_cadeia['n_tokens'],
             'topicos_usados': topicos_alimentados,
@@ -2141,7 +2141,7 @@ class MCRPergunta:
             linhas.append(f"  Diagnostico: {diag}")
         if conexoes:
             linhas.append(f"  Conexoes: {len(conexoes)}")
-            for cx in conexoes[:3]:
+            for cx in conexoes:
                 linhas.append(f"    {cx['topico_a']} <-> {cx['topico_b']}: {cx['nota']}/10")
         return '\n'.join(linhas)
     
@@ -2198,7 +2198,7 @@ class MCRPeso:
             freq = sum(trans.values())
             result.append((freq, estado.replace('CAT_', ''), valor))
         result.sort(key=lambda x: -x[0])
-        return [(c, v) for _, c, v in result[:top_n]]
+        return [(c, v) for _, c, v in result]
 
 
 class MCREntropia:
@@ -2251,7 +2251,7 @@ class MCREntropia:
         # Tenta periodo de 2 a 5
         for periodo in range(2, 6):
             if len(recentes) < periodo * 2: continue
-            padrao = recentes[:periodo]
+            padrao = recentes
             ciclico = True
             for i in range(periodo, len(recentes)):
                 if recentes[i] != padrao[i % periodo]:
@@ -2371,7 +2371,7 @@ class MCRDecisor:
     
     def _classificar_pergunta(self, pergunta: str) -> str:
         # Tenta Markov primeiro (aprendido)
-        estado = f"PERG:{pergunta[:30].lower()}"
+        estado = f"PERG:{pergunta.lower()}"
         if estado in self.mk.transicoes:
             prox, conf = self.mk.predizer(estado)
             if prox and conf > 0.2:
@@ -2576,7 +2576,7 @@ class MCRBridge:
         dados = self.comandos[nome]
         if isinstance(dados, bytes):
             try:
-                resultado = dados.decode('utf-8', errors='replace')[:500]
+                resultado = dados.decode('utf-8', errors='replace')
                 self._cache[cache_key] = resultado
                 return resultado
             except:
@@ -2708,7 +2708,7 @@ class MCRKGAuto:
         limpeza = self.limpar()
         return {
             'categorias': len(cats),
-            'distribuicao': {c: len(v) for c, v in sorted(cats.items(), key=lambda x: -len(x[1]))[:10]},
+            'distribuicao': {c: len(v) for c, v in sorted(cats.items(), key=lambda x: -len(x[1]))},
             'dedup_removidos': removidos_dedup,
             'limpeza': limpeza,
             'stats_mk': self.mk_cat.stats(),
@@ -2772,7 +2772,7 @@ class MCRExpansao:
                 try:
                     idx = _get_doc_index()
                     docs = idx.buscar(tema)
-                    for doc in docs[:3]:
+                    for doc in docs:
                         conteudo = idx.ler(doc['caminho'], 500)
                         if conteudo and tema.lower() in conteudo.lower():
                             resultados.append(f"[DOCS:{os.path.basename(doc['caminho'])}] OK")
@@ -2819,16 +2819,16 @@ class MCRExpansao:
             f"expansao_{tema}",
             f"Expandido via {len(recursos_usados)} recursos. "
             f"Agora temos {len(lessons_tema)} lessons sobre o tema. "
-            f"Recursos: {', '.join(recursos_usados[:5])}.",
+            f"Recursos: {', '.join(recursos_usados)}.",
             ctx="expansao_auto"
         )
         
         return {
             'tema': tema,
             'expansoes': len(resultados),
-            'recursos_usados': recursos_usados[:10],
+            'recursos_usados': recursos_usados,
             'lessons_agora': len(lessons_tema),
-            'detalhes': resultados[:10],
+            'detalhes': resultados,
         }
 
 
@@ -2964,11 +2964,11 @@ class MCRWorker:
                 if kg:
                     termo = self.dados.get('termo', '')
                     lessons = kg.buscar(termo, max_r=10, pergunta=self.dados.get('pergunta', ''))
-                    for i, l in enumerate(lessons[:5]):
+                    for i, l in enumerate(lessons):
                         sol = l.get('solucao', '') or l.get('erro', '')
                         if sol:
-                            self.conector.alimentar(sol[:500], f"kg_{i}")
-                    self.resultado = [l.get('solucao', '')[:100] for l in lessons[:3]]
+                            self.conector.alimentar(sol, f"kg_{i}")
+                    self.resultado = [l.get('solucao', '') for l in lessons]
                     self.nota = min(10, len(lessons))
             
             elif self.tarefa == 'conectar':
@@ -3137,14 +3137,14 @@ class MCRMestre:
                 if isinstance(w.resultado, str):
                     textos.append(w.resultado)
                 elif isinstance(w.resultado, list):
-                    textos.extend(w.resultado[:2])
+                    textos.extend(w.resultado)
                 self.mk.aprender(f"WORKER:{w.tarefa}", f"NOTA:{int(w.nota)}")
         
         # 7. Gera resposta final com MCRCadeia
         if textos:
-            for t in textos[:3]:
+            for t in textos:
                 if isinstance(t, str) and len(t) > 20:
-                    self.conector.alimentar(t[:500], "consolidado")
+                    self.conector.alimentar(t, "consolidado")
         
         semente = pergunta.split()[0] if pergunta.split() else 'O'
         res_cadeia = self.cadeia.gerar(semente, n_tokens=40)
@@ -3165,7 +3165,7 @@ class MCRMestre:
         
         return {
             'pergunta': pergunta,
-            'resposta': resposta[:500],
+            'resposta': resposta,
             'nota': round(nota, 1),
             'n_workers': len(workers),
             'workers': [{'nome': w.nome, 'tarefa': w.tarefa, 'nota': w.nota, 'tempo': round(w.tempo, 3)} for w in workers],
@@ -3415,7 +3415,7 @@ class MCRFuel:
         # Extrai so o texto util (limpo, sem JSON)
         texto = solucao.replace('\n', ' ').strip()
         if texto.startswith('{') or texto.startswith('['): return
-        self.kg.aprender(erro=erro[:80], causa=f"fuel:{ctx}", solucao=texto[:500], ctx=ctx)
+        self.kg.aprender(erro=erro, causa=f"fuel:{ctx}", solucao=texto, ctx=ctx)
         self.total_lessons += 1
     
     def abastecer(self, fontes=None) -> int:
@@ -3461,24 +3461,24 @@ class MCRFuel:
                         self._alimentar(f"instr_{os.path.basename(f)}", conteudo, "fuel_docs")
             
             elif fonte == 'modulos':
-                for nome in sorted(self.bridge.modulos.keys())[:30]:
+                for nome in sorted(self.bridge.modulos.keys()):
                     mod = self.bridge.modulos[nome]
-                    doc = (mod.__doc__ or '')[:200]
+                    doc = (mod.__doc__ or '')
                     if doc:
                         self._alimentar(f"mod:{nome}", doc, "fuel_modulos")
                     # Tenta listar funcoes
-                    funcoes = [a for a in dir(mod) if not a.startswith('_') and callable(getattr(mod, a, None))][:5]
+                    funcoes = [a for a in dir(mod) if not a.startswith('_') and callable(getattr(mod, a, None))]
                     if funcoes:
                         self._alimentar(f"mod:{nome}_funcoes", f"Funcoes: {', '.join(funcoes)}", "fuel_modulos")
             
             elif fonte == 'comandos':
-                for nome in sorted(self.bridge.comandos.keys())[:30]:
+                for nome in sorted(self.bridge.comandos.keys()):
                     self._alimentar(f"cmd:{nome}", f"Comando disponivel: {nome}", "fuel_comandos")
             
             elif fonte == 'manifesto':
                 manifesto = self._ler(os.path.join(self._base, 'docs', 'MANIFEST.md'), 2000)
                 if manifesto:
-                    self._alimentar("manifesto", manifesto[:1000], "fuel_manifesto")
+                    self._alimentar("manifesto", manifesto, "fuel_manifesto")
             
             elif fonte == 'prototipos':
                 sandbox_dir = os.path.join(self._base, 'sandbox')
@@ -3487,7 +3487,7 @@ class MCRFuel:
                         conteudo = self._ler(f, 300)
                         if conteudo:
                             nome = os.path.basename(f)
-                            self._alimentar(f"prototipo_{nome}", conteudo[:200], "fuel_prototipos")
+                            self._alimentar(f"prototipo_{nome}", conteudo, "fuel_prototipos")
             
             elif fonte == 'cache':
                 # Episodios
@@ -3496,11 +3496,11 @@ class MCRFuel:
                     try:
                         with open(ep_path, 'r', encoding='utf-8') as f:
                             dados = json.load(f)
-                        for ep in dados[:20]:
-                            req = ep.get('request', '')[:100]
+                        for ep in dados:
+                            req = ep.get('request', '')
                             suc = ep.get('sucesso', False)
                             if req:
-                                self._alimentar(f"episodio_{req[:30]}", f"Request: {req} | Sucesso: {suc}", "fuel_cache")
+                                self._alimentar(f"episodio_{req}", f"Request: {req} | Sucesso: {suc}", "fuel_cache")
                     except: pass
                 # Conversas
                 conv_path = os.path.join(self._base, 'sandbox', '.mcr_conversa.jsonl')
@@ -3511,7 +3511,7 @@ class MCRFuel:
                                 if i >= 10: break
                                 try:
                                     entry = json.loads(line.strip())
-                                    msg = entry.get('msg', '')[:200]
+                                    msg = entry.get('msg', '')
                                     if msg:
                                         self._alimentar(f"conversa_{i}", msg, "fuel_cache")
                                 except: pass
@@ -3619,7 +3619,7 @@ class MCRMetaGap:
         gaps = []
         for prefixo, dados in sorted(prefixos.items(), key=lambda x: x[1]['count']):
             if dados['count'] < min_por_prefixo and len(prefixo) > 1:
-                termo_exemplo = list(dados['termos'])[:3] if dados['termos'] else [prefixo]
+                termo_exemplo = list(dados['termos']) if dados['termos'] else [prefixo]
                 gaps.append({
                     'prefixo': prefixo,
                     'n_lessons': dados['count'],
@@ -3648,7 +3648,7 @@ class MCRMetaGap:
         doc_idx = _get_doc_index()
         doc_idx.indexar()  # so escaneia se nao tiver cache
         docs_encontrados = doc_idx.buscar(termo)
-        for doc in docs_encontrados[:5]:
+        for doc in docs_encontrados:
             conteudo = doc_idx.ler(doc['caminho'], max_bytes=2000)
             if conteudo and termo.lower() in conteudo.lower():
                 idx = conteudo.lower().find(termo.lower())
@@ -3658,7 +3658,7 @@ class MCRMetaGap:
                 if len(trecho) > 50:
                     self.kg.aprender_conceito(
                         f"{gap['prefixo']}:{os.path.basename(doc['caminho']).replace('.','_')}",
-                        f"[Fonte: {doc['caminho']}]\n{trecho[:500]}",
+                        f"[Fonte: {doc['caminho']}]\n{trecho}",
                         ctx=f"gap_{gap['prefixo']}"
                     )
         
@@ -3675,7 +3675,7 @@ class MCRMetaGap:
                     if len(conteudo) > 50:
                         self.kg.aprender_conceito(
                             f"{gap['prefixo']}:{fname.replace('.','_')}",
-                            f"[Prototipo: {fname}]\n{conteudo[:500]}",
+                            f"[Prototipo: {fname}]\n{conteudo}",
                             ctx=f"gap_{gap['prefixo']}"
                         )
                 except: pass
@@ -3684,11 +3684,11 @@ class MCRMetaGap:
         if self.bridge and self.bridge._descobriu:
             for nome, mod in self.bridge.modulos.items():
                 if termo.lower() in nome.lower():
-                    doc = (mod.__doc__ or '')[:300]
+                    doc = (mod.__doc__ or '')
                     if doc:
                         self.kg.aprender_conceito(
                             f"{gap['prefixo']}:mod_{nome}",
-                            f"[Modulo: {nome}]\n{doc[:300]}",
+                            f"[Modulo: {nome}]\n{doc}",
                             ctx=f"gap_{gap['prefixo']}"
                         )
         
@@ -3710,7 +3710,7 @@ class MCRMetaGap:
         resultados = []
         total_criadas = 0
         
-        for gap in gaps[:10]:  # max 10 gaps por ciclo
+        for gap in gaps:  # max 10 gaps por ciclo
             n = self.buscar_para_gap(gap)
             if n > 0:
                 resultados.append(f"{gap['prefixo']}:{n}")
@@ -3726,7 +3726,7 @@ class MCRMetaGap:
             'gaps': len(gaps),
             'preenchidos': len(resultados),
             'total_lessons_criadas': total_criadas,
-            'detalhes': resultados[:10],
+            'detalhes': resultados,
         }
 
 
@@ -3805,12 +3805,12 @@ class MCRMestreV2:
         for w in workers:
             if w.resultado:
                 if isinstance(w.resultado, str): textos.append(w.resultado)
-                elif isinstance(w.resultado, list): textos.extend(w.resultado[:2])
+                elif isinstance(w.resultado, list): textos.extend(w.resultado)
         
         if textos:
-            for t in textos[:3]:
+            for t in textos:
                 if isinstance(t, str) and len(t) > 20:
-                    self.conector.alimentar(t[:500], "consolidado")
+                    self.conector.alimentar(t, "consolidado")
         
         # Expande UMA vez (com cache de ultima expansao)
         expansoes_feitas = []
@@ -3836,7 +3836,7 @@ class MCRMestreV2:
             if res_exp.get('expansoes', 0) > 0:
                 expansoes_feitas.append(f"exp:{res_exp['expansoes']}")
                 if self.conector.topicos:
-                    for nome_topico in list(self.conector.topicos.keys())[:2]:
+                    for nome_topico in list(self.conector.topicos.keys()):
                         cx = self.conector.conectar(termo, nome_topico)
                         if cx:
                             self.conector.alimentar(cx.get('sequencia',''), f"emrg_{termo}")
@@ -3880,7 +3880,7 @@ class MCRMestreV2:
         
         return {
             'pergunta': pergunta,
-            'resposta': resposta[:500],
+            'resposta': resposta,
             'nota': round(nota, 1),
             'fluxo': fluxo,
             'ciclos': 1,
@@ -3917,11 +3917,11 @@ class MCRAutoMelhoria:
     
     def _p1_gaps(self):
         gaps = self.meta.diagnosticar_gaps(min_por_prefixo=5)
-        for gap in gaps[:5]:
+        for gap in gaps:
             n = self.meta.buscar_para_gap(gap)
             if n > 0:
                 self.mk.aprender(f"GAP:{gap['prefixo']}", f"{n}")
-        return [f"gap_{g['prefixo']}" for g in gaps[:3] if g]
+        return [f"gap_{g['prefixo']}" for g in gaps if g]
     
     def _p2_lento(self):
         if not self.frag.fragmentos: return []
@@ -3936,10 +3936,10 @@ class MCRAutoMelhoria:
             idx.indexar()
             for termo in ['eridanus','spa','shc','npc','lore']:
                 docs = idx.buscar(termo)
-                for doc in docs[:2]:
+                for doc in docs:
                     c = idx.ler(doc['caminho'], 500)
                     if c and self.kg:
-                        self.kg.aprender_conceito(f"auto_{os.path.basename(doc['caminho']).replace('.','_')}", c[:400], ctx="auto_descoberta")
+                        self.kg.aprender_conceito(f"auto_{os.path.basename(doc['caminho']).replace('.','_')}", c, ctx="auto_descoberta")
             return ["docs_autodescobertos"] if any(idx.buscar(t) for t in ['eridanus','spa','lore']) else []
         except: return []
     
@@ -4070,7 +4070,7 @@ class MCRDocIndex:
                             termos.add(palavra)
                     relpath = os.path.relpath(fpath, self._base)
                     self._indice[relpath] = {
-                        'termos': list(termos)[:100],
+                        'termos': list(termos),
                         'tamanho': len(conteudo),
                         'n_termos': len(termos),
                     }
@@ -4247,7 +4247,7 @@ class MCRNivel:
     def alimentar(self, dados: bytes):
         """Alimenta o nivel com dados. A entropia define o raio."""
         if not dados: return
-        self.mk.aprender_sequencia(list(dados[:1000]))
+        self.mk.aprender_sequencia(list(dados))
         self._alimentado += len(dados)
         
         # Entropia do nivel (quao imprevisivel)
@@ -4436,25 +4436,25 @@ class MCRMetaNivel:
             # Converte para o nivel alvo
             if novo_nivel == 'palavra':
                 # Nivel palavra: os proprios estados (ja sao palavras/bytes)
-                dados_novo = dados_reconstruidos.encode('utf-8')[:500]
+                dados_novo = dados_reconstruidos.encode('utf-8')
             elif novo_nivel == 'token':
                 # Nivel token: usa _classificar_token em cada estado
                 try:
                     tokens_tipos = []
-                    for e in estados[:20]:
+                    for e in estados:
                         pal = str(e).replace('B:', '').strip()
                         if pal:
                             from modulos.MCR import _classificar_token as _mcr_tip
                             tokens_tipos.append(_mcr_tip(pal) or 'outro')
                     dados_novo = ' '.join(tokens_tipos).encode('utf-8')
                 except:
-                    dados_novo = dados_reconstruidos.encode('utf-8')[:500]
+                    dados_novo = dados_reconstruidos.encode('utf-8')
             elif novo_nivel == 'intencao':
                 # Nivel intencao: usa os estados como palavras de intencao
-                dados_novo = dados_reconstruidos.encode('utf-8')[:500]
+                dados_novo = dados_reconstruidos.encode('utf-8')
             else:
                 # Outros niveis: dados reconstruidos do byte
-                dados_novo = dados_reconstruidos.encode('utf-8')[:500]
+                dados_novo = dados_reconstruidos.encode('utf-8')
             
             self.niveis[novo_nivel].alimentar(dados_novo)
         
@@ -4533,7 +4533,7 @@ class MCRGeracao:
             # 6. Se compativel, entrega
             limiar = self.threshold.calcular(1.0)
             if compatibilidade >= limiar and nota >= 4:
-                self.mk.aprender(f"GERADO:{pergunta[:30]}", 
+                self.mk.aprender(f"GERADO:{pergunta}", 
                                 f"comp={compatibilidade:.2f} tent={tentativa}")
                 return {
                     'texto': texto,
@@ -4546,7 +4546,7 @@ class MCRGeracao:
                 }
         
         # Se nenhuma tentativa foi compativel, entrega a melhor
-        self.mk.aprender(f"FALHO:{pergunta[:30]}", f"melhor_comp={melhor_comp:.2f}")
+        self.mk.aprender(f"FALHO:{pergunta}", f"melhor_comp={melhor_comp:.2f}")
         return {
             'texto': melhor_resposta,
             'compatibilidade': round(melhor_comp, 3),
@@ -4565,7 +4565,7 @@ class MCRGeracao:
         if estrategia == 'cadeia_direto':
             # Gera direto com MCRCadeia (sem KG)
             c = MCRConector()
-            c.alimentar(pergunta[:500], "pergunta")
+            c.alimentar(pergunta, "pergunta")
             cadeia = MCRCadeia(c)
             res = cadeia.gerar(semente, n_tokens=60)
             return res.get('texto', semente)
@@ -4578,10 +4578,10 @@ class MCRGeracao:
                 lessons = kg.buscar(semente, max_r=3)
                 if lessons:
                     c = MCRConector()
-                    for l in lessons[:3]:
+                    for l in lessons:
                         sol = l.get('solucao', '') or l.get('erro', '')
                         if sol:
-                            c.alimentar(sol[:500], "kg")
+                            c.alimentar(sol, "kg")
                     cadeia = MCRCadeia(c)
                     res = cadeia.gerar(semente, n_tokens=60)
                     return res.get('texto', semente)
@@ -4593,7 +4593,7 @@ class MCRGeracao:
             if len(palavras) > 1:
                 semente = palavras[-1]
             c = MCRConector()
-            c.alimentar(pergunta[:500], "pergunta")
+            c.alimentar(pergunta, "pergunta")
             cadeia = MCRCadeia(c)
             res = cadeia.gerar(semente, n_tokens=60)
             return res.get('texto', semente)
@@ -4637,7 +4637,7 @@ class MCRFilosofia:
         
         for pergunta in _PERGUNTAS_FUNDAMENTAIS:
             # Cada pergunta vira um topico no conector
-            nome = f"filosofia_{pergunta[:15].strip().lower()}"
+            nome = f"filosofia_{pergunta.strip().lower()}"
             self.conector.alimentar(pergunta, nome)
             
             # Palavras da pergunta viram transicoes no MCR de pensamento
@@ -4662,7 +4662,7 @@ class MCRFilosofia:
                 if palavras_similares >= 2:
                     cx = self.conector.conectar(nome, "pergunta" if "pergunta" in self.conector.topicos else nome)
                     if cx:
-                        return f"[Filosofia] {pergunta}\n[Conexao] {cx.get('sequencia', '')[:200]}"
+                        return f"[Filosofia] {pergunta}\n[Conexao] {cx.get('sequencia', '')}"
         
         # Fallback: gera com as transicoes filosoficas
         semente = pergunta.split()[0] if pergunta.split() else 'O'
@@ -4702,7 +4702,7 @@ class MCRFeedback:
             self.historico_tentativas.append({
                 'tentativa': tentativa + 1,
                 'nota': nota,
-                'resposta': res.get('resposta', '')[:100],
+                'resposta': res.get('resposta', ''),
             })
             self.mk.aprender(f"TENTATIVA:{tentativa}", f"NOTA:{int(nota)}")
             
@@ -4931,7 +4931,7 @@ def _autotestar():
     testar(f'MCRSignature.comparar diferentes={comp_ab:.3f} iguais={comp_aa:.3f}',
            comp_aa > comp_ab)
     mn = MCRSignature.metaniveis('Explique o sistema SPA do MCR', 8)
-    testar(f'MCRSignature.metaniveis {mn["niveis_finais"]} niveis ordem={mn["ordem"][:3]}',
+    testar(f'MCRSignature.metaniveis {mn["niveis_finais"]} niveis ordem={mn["ordem"]}',
            mn['niveis_finais'] >= 3)
     
     # 24. MCRSession
@@ -5069,9 +5069,9 @@ class MCRSignature:
             'entropia': round(mk.entropia_media(), 3),
             'estados': len(mk.transicoes),
             'transicoes': sum(len(v) for v in mk.transicoes.values()),
-            'sequencia': sequencia[:20],
+            'sequencia': sequencia,
             'fingerprint': MCRFingerprint.gerar(
-                ' '.join(str(s) for s in sequencia[:10])
+                ' '.join(str(s) for s in sequencia)
             ),
         }
     
@@ -5157,17 +5157,17 @@ class MCRSession:
         self._ultima_pergunta = pergunta
         self._ultima_resposta = resposta
         self._ultimo_autor = autor
-        self._historico.append({'pergunta': pergunta, 'resposta': resposta[:200], 'autor': autor})
+        self._historico.append({'pergunta': pergunta, 'resposta': resposta, 'autor': autor})
         
         # Salva no .jsonl
         try:
             os.makedirs(os.path.dirname(self._conv_path), exist_ok=True)
             with open(self._conv_path, 'a', encoding='utf-8') as f:
-                f.write(json.dumps({'msg': f'{autor}: {pergunta} -> {resposta[:100]}',
+                f.write(json.dumps({'msg': f'{autor}: {pergunta} -> {resposta}',
                                    'timestamp': _time.time()}) + '\n')
         except: pass
         
-        self.mk.aprender(f"CONV:{pergunta[:30]}", f"autor:{autor or 'anonimo'}")
+        self.mk.aprender(f"CONV:{pergunta}", f"autor:{autor or 'anonimo'}")
     
     def salvar_estado(self):
         """Salva estado completo da sessao (checkpoint)."""
@@ -5205,7 +5205,7 @@ class MCRSession:
         """Auto-retomada: se tinha estado salvo, carrega e retorna."""
         estado = self.carregar_estado()
         if estado:
-            self.mk.aprender("RETOMADA", f"pergunta:{estado.get('ultima_pergunta','')[:30]}")
+            self.mk.aprender("RETOMADA", f"pergunta:{estado.get('ultima_pergunta','')}")
             return estado
         return None
 
@@ -5302,15 +5302,17 @@ class MCRAssinatura:
     def auto_popular(self):
         """Auto-popula o banco a partir das conversas existentes (.jsonl).
         
-        Agrupa por similaridade de assinatura (MCRSignature.comparar > 0.7).
-        Cria perfis automaticamente.
+        Usa o campo 'role' do JSONL como nome do autor (ex: 'cloud', 'user').
+        Fallback: agrupa por similaridade de assinatura (MCRSignature.comparar).
         """
         conv_path = os.path.join(self._base, 'sandbox', '.mcr_conversa.jsonl')
         if not os.path.exists(conv_path): return 0
         
-        n = 0
+        n_autores = 0
+        n_anteriores = len(self._banco)
         autor_atual = 'desconhecido'
         ultima_sig = None
+        roles_vistos = set()
         
         try:
             with open(conv_path, 'r', encoding='utf-8') as f:
@@ -5320,23 +5322,32 @@ class MCRAssinatura:
                         msg = entry.get('msg', '')
                         if not msg or len(msg) < 20: continue
                         
-                        sig_atual = MCRSignature.extrair(msg)
-                        
-                        # Se tem assinatura anterior, compara
-                        if ultima_sig is not None:
-                            comp = MCRSignature.comparar(ultima_sig, sig_atual)
-                            if comp < 0.5:
-                                # Autor diferente
-                                autor_atual = f'autor_{n}'
-                                n += 1
+                        # Usa 'role' ou 'origem' como nome do autor
+                        role = entry.get('role', entry.get('origem', '')).strip().lower()
+                        if role and role in ('cloud', 'user', 'system', 'assistant'):
+                            autor_atual = role
+                            roles_vistos.add(role)
+                        else:
+                            # Fallback: detecta mudanca por assinatura
+                            sig_atual = MCRSignature.extrair(msg)
+                            if ultima_sig is not None:
+                                comp = MCRSignature.comparar(ultima_sig, sig_atual)
+                                if comp < 0.5:
+                                    autor_atual = f'autor_{n_autores}'
+                                    n_autores += 1
+                            ultima_sig = sig_atual
                         
                         self.aprender(msg, autor_atual)
-                        ultima_sig = sig_atual
                     except: pass
         except: pass
         
-        self.mk.aprender("AUTO_POP", f"autores:{n}")
-        return n
+        # Se encontrou roles, usa como nomes oficiais
+        if roles_vistos:
+            nomes = ', '.join(sorted(roles_vistos))
+            self.mk.aprender("AUTO_POP", f"roles:{nomes} total:{len(self._banco)-n_anteriores}")
+        else:
+            self.mk.aprender("AUTO_POP", f"autores:{n_autores} total:{len(self._banco)-n_anteriores}")
+        return len(self._banco) - n_anteriores
     
     def autores_conhecidos(self):
         return list(self._banco.keys())
@@ -5389,13 +5400,13 @@ class MCRWebLearn:
         if not gaps: return 0
         
         total = 0
-        for gap in gaps[:n_gaps]:
+        for gap in gaps:
             termo = gap['prefixo']
             resultado = self._buscar_web(termo)
             if resultado:
                 self._kg.aprender_conceito(
                     f"weblearn:{termo}",
-                    f"[WebLearn] {resultado[:500]}",
+                    f"[WebLearn] {resultado}",
                     ctx="weblearn"
                 )
                 total += 1
@@ -5427,7 +5438,7 @@ class MCRWebLearn:
                         if extract:
                             import re
                             texto = re.sub(r'<[^>]+>', '', extract)
-                            resultado = f"[Wikipedia: {titulo}] {texto[:1000]}"
+                            resultado = f"[Wikipedia: {titulo}] {texto}"
             # Salva no cache
             self._cache[termo] = resultado
             self.mk.aprender(f"WEB:{termo}", "OK")
@@ -5452,13 +5463,13 @@ class MCRWebLearn:
         n_estudados = 0
         erros = 0
         
-        for gap in gaps[:5]:
+        for gap in gaps:
             termo = gap['prefixo']
             resultado = self._buscar_web(termo)
             if resultado and len(resultado) > 30:
                 self._kg.aprender_conceito(
                     f"weblearn_auto:{termo}",
-                    resultado[:500],
+                    resultado,
                     ctx="weblearn"
                 )
                 n_estudados += 1
@@ -5525,7 +5536,7 @@ class MCRSelfIndex:
                     elif doc:
                         doc += ' ' + l
                 self._indice['classes'][nome_classe] = {
-                    'linha': i+1, 'doc': doc[:100],
+                    'linha': i+1, 'doc': doc,
                 }
                 # Aprende o padrao da classe
                 self.mk.aprender(f"CLS:{nome_classe}", f"L:{i+1}")
@@ -5747,7 +5758,7 @@ class BlankFiller:
     @staticmethod
     def preencher(texto, **kw):
         c = MCRConector()
-        c.alimentar(texto[:500], "blank")
+        c.alimentar(texto, "blank")
         cadeia = MCRCadeia(c)
         return cadeia.gerar(texto.split()[0] if texto.split() else 'O', 20).get('texto', texto)
 
