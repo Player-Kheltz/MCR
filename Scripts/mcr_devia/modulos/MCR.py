@@ -1435,6 +1435,256 @@ class MCRConector:
 
 
 # ============================================================
+# MCR CADEIA — Geração infinita com reinjeção de contexto
+# ============================================================
+
+class MCRCadeia:
+    """Gera N tokens sem repetir, reinjetando contexto a cada passo.
+    
+    Estratégia:
+    1. Markov gera 1 token
+    2. Pega últimos K tokens como novo contexto
+    3. Continua gerando a partir do contexto
+    4. A cada passo, autoavalia: está repetindo?
+    5. Se loop: injeta ruído de outro tópico
+    6. Repete até N tokens
+    """
+    
+    def __init__(self, conector: MCRConector = None):
+        self.conector = conector or MCRConector()
+        self.historico_ciclos = []
+    
+    def gerar(self, semente: str, n_tokens: int = 100, 
+              contexto_tamanho: int = 3, max_tentativas_loop: int = 5) -> dict:
+        """Gera N tokens com contexto reinjetado.
+        
+        Args:
+            semente: palavra inicial
+            n_tokens: quantos tokens gerar
+            contexto_tamanho: quantos tokens usar como contexto (K)
+            max_tentativas_loop: quantas vezes tenta quebrar loop antes de desistir
+        """
+        if not self.conector.topicos:
+            return {'texto': semente, 'tokens': [semente], 
+                    'nota': 0, 'loops_detectados': 0, 'erro': 'sem topicos'}
+        
+        # Usa o mcr_palavra global do conector
+        mk = self.conector.mcr_palavra
+        
+        tokens_gerados = [semente]
+        loops_detectados = 0
+        repeticoes_evitadas = 0
+        tentativas_loop = 0
+        ultimos_tokens = []
+        
+        for passo in range(n_tokens - 1):
+            # 1. Define contexto = últimos K tokens
+            if len(tokens_gerados) >= contexto_tamanho:
+                contexto = tokens_gerados[-contexto_tamanho:]
+            else:
+                contexto = tokens_gerados
+            
+            # 2. Pega o ÚLTIMO token do contexto como semente
+            ultimo = contexto[-1]
+            prox, conf = mk.predizer(ultimo)
+            
+            if prox is None or conf < 0.01:
+                # Tenta com semente original
+                prox, conf = mk.predizer(semente)
+                if prox is None or conf < 0.01:
+                    break
+            
+            # 3. DETECTOR DE LOOP
+            token_str = str(prox)
+            em_loop = False
+            
+            # 3a. Mesmo token 3x seguidas
+            if len(tokens_gerados) >= 3:
+                if tokens_gerados[-1] == tokens_gerados[-2] == token_str:
+                    em_loop = True
+                # 3b. Bigrama repetido
+                if len(tokens_gerados) >= 4:
+                    ultimo_bigrama = f"{tokens_gerados[-2]} {tokens_gerados[-1]}"
+                    novo_bigrama = f"{tokens_gerados[-1]} {token_str}"
+                    # Verifica se o novo bigrama já apareceu antes
+                    texto_ate_agora = ' '.join(tokens_gerados[:-1])
+                    if novo_bigrama in texto_ate_agora:
+                        em_loop = True
+            
+            if em_loop:
+                loops_detectados += 1
+                tentativas_loop += 1
+                
+                if tentativas_loop > max_tentativas_loop:
+                    break  # Desiste
+                
+                # INJETA RUÍDO: pega token de outro tópico
+                outros_topicos = [n for n in self.conector.topicos.keys()
+                                 if n != token_str[:20]]
+                if outros_topicos:
+                    import random
+                    topico_alternativo = random.choice(outros_topicos)
+                    texto_alt = self.conector.topicos[topico_alternativo]['texto']
+                    palavras_alt = texto_alt.split()
+                    if palavras_alt:
+                        prox = random.choice(palavras_alt)
+                        conf = 0.5
+                        repeticoes_evitadas += 1
+                        tentativas_loop = 0  # reset após injetar ruído
+            
+            # 4. Adiciona token
+            tokens_gerados.append(str(prox))
+            ultimos_tokens.append(str(prox))
+        
+        # Converte para texto
+        texto = ' '.join(tokens_gerados)
+        
+        # Autoavaliação simples
+        palavras = texto.split()
+        n_palavras = len(palavras)
+        if n_palavras >= 4:
+            bigramas = [' '.join(palavras[i:i+2]) for i in range(n_palavras-1)]
+            repeticao = 1.0 - (len(set(bigramas)) / max(len(bigramas), 1))
+        else:
+            repeticao = 0.0
+        
+        nota = 10.0
+        # Penaliza loops NÃO quebrados (repeticoes_evitadas = sucesso)
+        loops_nao_quebrados = max(0, loops_detectados - repeticoes_evitadas)
+        if loops_nao_quebrados > 0: nota -= loops_nao_quebrados * 2
+        if repeticao > 0.3: nota -= (repeticao - 0.3) * 10
+        nota = max(1, min(10, nota))  # nota minima 1
+        
+        return {
+            'texto': texto,
+            'tokens': tokens_gerados,
+            'n_tokens': len(tokens_gerados),
+            'nota': round(nota, 1),
+            'loops_detectados': loops_detectados,
+            'repeticoes_evitadas': repeticoes_evitadas,
+            'repeticao_final': round(repeticao, 3),
+        }
+
+
+# ============================================================
+# MCR PERGUNTA — Substitui perguntar_ia (KG + Conector + Cadeia)
+# ============================================================
+
+class MCRPergunta:
+    """Responde perguntas usando MCR puro (sem LLM).
+    
+    Fluxo:
+    1. Busca termos relevantes no KG (FiltroMCR)
+    2. Alimenta MCRConector com os resultados
+    3. Tenta conectar os tópicos encontrados
+    4. Usa MCRCadeia para gerar resposta longa
+    5. Autoavalia MultiNível + Semântica
+    6. Se nota < 5: expande e tenta de novo
+    """
+    
+    def __init__(self, kg=None):
+        self.kg = kg or (KnowledgeGraph() if MCR_COMPLETO else None)
+        self.conector = MCRConector()
+        self.cadeia = MCRCadeia(self.conector)
+        self.semantico = AutoavaliadorSemantico(kg, None)
+        self.log = []
+    
+    def perguntar(self, pergunta: str, max_tokens: int = 80) -> dict:
+        """Responde uma pergunta usando MCR."""
+        # 1. Extrai termos da pergunta
+        termos = [p.lower().strip('.,!?') for p in pergunta.split() 
+                  if len(p) > 3 and p.lower() not in CONECTORES]
+        
+        # 2. Busca no KG
+        lessons = []
+        if self.kg:
+            for termo in termos[:3]:
+                ls = self.kg.buscar(termo, max_r=3, pergunta=pergunta)
+                lessons.extend(ls)
+        
+        # 3. Alimenta conector com lessons encontradas
+        topicos_alimentados = []
+        for i, l in enumerate(lessons[:5]):
+            sol = l.get('solucao', '') or l.get('erro', '')
+            if sol and len(sol) > 20:
+                nome = f"kg_{i}_{l.get('ctx', 'desconhecido')}"
+                self.conector.alimentar(sol[:500], nome)
+                topicos_alimentados.append(nome)
+        
+        # Se não encontrou nada no KG, usa a própria pergunta
+        if not topicos_alimentados:
+            self.conector.alimentar(pergunta, "pergunta")
+            topicos_alimentados.append("pergunta")
+        
+        # 4. Tenta conectar os topicos
+        conexoes = []
+        for i in range(len(topicos_alimentados)):
+            for j in range(i+1, len(topicos_alimentados)):
+                cx = self.conector.conectar(topicos_alimentados[i], topicos_alimentados[j])
+                if cx:
+                    conexoes.append(cx)
+        
+        # 5. Gera resposta com MCRCadeia
+        # Semente = primeira palavra do PRIMEIRO topico (nao o nome do topico)
+        if topicos_alimentados:
+            primeiro_texto = self.conector.topicos.get(topicos_alimentados[0], {}).get('texto', pergunta)
+        else:
+            primeiro_texto = pergunta
+        # Pega a primeira palavra real do texto
+        palavras_primeiro = primeiro_texto.split()
+        semente = palavras_primeiro[0] if palavras_primeiro else pergunta.split()[0]
+        # Verifica se a semente existe no Markov
+        if semente not in self.conector.mcr_palavra.freq and len(palavras_primeiro) > 1:
+            semente = palavras_primeiro[1] if len(palavras_primeiro) > 1 else semente
+        resultado_cadeia = self.cadeia.gerar(semente, n_tokens=max_tokens)
+        
+        # 6. Autoavalia
+        texto = resultado_cadeia['texto']
+        av_sem = self.semantico.avaliar(texto, 'lore')
+        
+        # Tenta avaliacao multi-nivel se tiver pelo menos 2 topicos
+        nota_multinivel = 0
+        if len(topicos_alimentados) >= 2:
+            ta = self.conector.topicos.get(topicos_alimentados[0], {}).get('texto', '')
+            tb = self.conector.topicos.get(topicos_alimentados[1], {}).get('texto', '')
+            nota_multinivel, _ = self.conector._autoavaliar_multinivel(
+                texto, ta, tb, "conteudo_compartilhado"
+            )
+        
+        # Nota final: media entre cadeia e semantica
+        nota_cadeia = resultado_cadeia['nota']
+        nota_final = (nota_cadeia + av_sem['nota'] + nota_multinivel) / 3
+        
+        resultado = {
+            'pergunta': pergunta,
+            'resposta': texto[:500],
+            'nota': round(nota_final, 1),
+            'n_tokens': resultado_cadeia['n_tokens'],
+            'topicos_usados': topicos_alimentados,
+            'n_conexoes': len(conexoes),
+            'loops_detectados': resultado_cadeia['loops_detectados'],
+            'repeticoes_evitadas': resultado_cadeia['repeticoes_evitadas'],
+            'avaliacao_semantica': av_sem,
+            'nota_multinivel': round(nota_multinivel, 1) if nota_multinivel else 0,
+            'debug': self._gerar_debug(resultado_cadeia, conexoes, av_sem),
+        }
+        
+        self.log.append(resultado)
+        return resultado
+    
+    def _gerar_debug(self, cadeia, conexoes, av_sem):
+        linhas = ["DEBUG MCRPergunta:"]
+        linhas.append(f"  Cadeia: {cadeia['n_tokens']} tokens, nota {cadeia['nota']}/10")
+        linhas.append(f"  Loops: {cadeia['loops_detectados']}, Repeticoes evitadas: {cadeia['repeticoes_evitadas']}")
+        linhas.append(f"  Semantica: {av_sem['nota']}/10 ({av_sem['diagnostico']})")
+        if conexoes:
+            linhas.append(f"  Conexoes: {len(conexoes)}")
+            for cx in conexoes[:3]:
+                linhas.append(f"    {cx['topico_a']} <-> {cx['topico_b']}: {cx['nota']}/10")
+        return '\n'.join(linhas)
+
+
+# ============================================================
 # TESTE RÁPIDO
 # ============================================================
 
