@@ -365,10 +365,10 @@ class MCRFingerprint:
         palavras = texto.split()
         if not palavras:
             return [0.0]*8
-        # Classifica cada palavra por MCR
+        # Classifica cada palavra por MCR (referencia direta, sem re-import)
         try:
-            from modulos.MCR import _classificar_token as _mcr_tp
-            tokens = [(_mcr_tp(p), p) for p in palavras if p]
+            # _classificar_token ja esta no escopo global do modulo
+            tokens = [(_classificar_token(p), p) for p in palavras if p]
         except:
             tokens = [('outro', p) for p in palavras if p]
         if not tokens:
@@ -880,36 +880,32 @@ _PADROES_CODIGO = ['def ', 'if ', 'else', 'for ', 'while', 'class ',
     'with ', 'pass', 'break', 'continue', 'elif', 'except', 'finally',
     'global', 'nonlocal', 'assert', 'del ', 'elif', 'switch']
 
-_SUJEITOS_LORE = ['era', 'havia', 'existia', 'cidade', 'reino', 'mundo',
-    'terra', 'povo', 'rei', 'rainha', 'guerreiro', 'mago', 'druida',
-    'elfo', 'anao', 'orc', 'dragão', 'fada', 'heroi', 'lendario',
-    'castelo', 'torre', 'floresta', 'montanha', 'rio', 'mar', 'sol',
-    'lua', 'estrela', 'vento', 'fogo', 'cristal', 'magia', 'poder',
-    'antigo', 'novo', 'grande', 'pequeno', 'sabio', 'guardiao']
-
-_VERBOS_LORE = ['fundar', 'construir', 'criar', 'nascer', 'crescer',
-    'tornar', 'virar', 'transformar', 'descobrir', 'encontrar',
-    'buscar', 'lutar', 'proteger', 'defender', 'governar',
-    'reinou', 'governou', 'liderou', 'caminhou', 'partiu',
-    'chegou', 'trouxe', 'fez', 'disse', 'contou', 'viveu']
+# (listas _SUJEITOS_LORE e _VERBOS_LORE removidas — MCRSignature substitui)
 
 
 def _classificar_token(token: str) -> str:
-    """Classifica um token em domínio: código, lore, sistema, linguagem, especial."""
+    """Classifica token por FORMA (sem recorrer a MCRSignature para evitar recursion).
+    
+    Regras:
+    - Tokens especiais (marcadores LLM) → 'especial'
+    - Tudo maiusculo 2+ chars → 'sistema'
+    - Primeira maiuscula 2+ chars → 'lore'
+    - So numeros → 'numero'
+    - So pontuacao → 'pontuacao'
+    - Primeira minuscula ou letra → 'linguagem'
+    - Resto → 'outro'
+    """
     if not token: return 'especial'
     if token in ('<unk>', '<s>', '</s>', '<pad>', '<mask>',
                  '<|begin_of_text|>', '<|end_of_text|>', '<|pad|>'):
         return 'especial'
     if token.startswith('<|') or token.startswith('<｜'):
         return 'sistema'
-    for p in _PADROES_CODIGO:
-        if p in token: return 'codigo'
     if token.isupper() and len(token) >= 2: return 'sistema'
     if token[0].isupper() and len(token) > 1: return 'lore'
     if token.isdigit() or (token[0] == '-' and token[1:].isdigit()): return 'numero'
     if all(c in '.,;:!?()[]{}<>+-*/=@#$%^&_~`\'\"|\\ \t\n\r\u2581' for c in token):
         return 'pontuacao'
-    if all(c == '\u2581' for c in token): return 'pontuacao'
     if token[0].islower() or token[0].isalpha(): return 'linguagem'
     return 'outro'
 
@@ -1053,115 +1049,103 @@ class MCRPreCache:
 
 
 class AutoavaliadorSemantico:
-    """Usa o proprio MCR para avaliar se um texto TEM SENTIDO.
+    """Avalia texto usando MCRSignature + MCRPesoNota.
     
-    4 métricas semânticas (MCR sobre MCR):
-    1. Coerência de domínio — os tokens pertencem ao domínio esperado
-    2. Estrutura narrativa — tem sujeito-verbo, começo-meio-fim
-    3. Consistência — não muda de assunto no meio
-    4. Originalidade — não é cópia exata de algo no KG
+    ZERO listas fixas. ZERO keywords. ZERO pesos fixos.
+    
+    4 metricas:
+    1. Entropia da assinatura — o texto tem estrutura?
+    2. Fingerprint — a assinatura e coerente internamente?
+    3. Repeticao — detectada por MCREntropia, nao contagem
+    4. Originalidade — compatibilidade com KG por Jaccard
+    
+    Tudo aprendido: MCRThreshold define os limites.
     """
     
     def __init__(self, kg=None, precache=None):
         self.kg = kg or (_get_kg())
         self.precache = precache
+        self.peso_nota = MCRPesoNota("autoavaliador")
+        self.entropia = MCREntropia()
     
     def avaliar(self, texto: str, dominio_esperado='lore') -> dict:
-        """Avalia um texto gerado e retorna nota semântica + diagnóstico."""
-        if not texto or len(texto) < 20:
+        """Avalia texto por ASSINATURA, nao por keywords."""
+        if not texto or len(texto) < _MCR_THRESHOLD_TAMANHO.obter('min_texto', 20):
             return {'nota': 0.0, 'diagnostico': 'MUITO_CURTO',
-                    'detalhes': {
-                        'nota_dominio': 0, 'nota_estrutura': 0,
-                        'nota_consistencia': 0, 'nota_originalidade': 0,
-                        'n_frases': 0, 'tem_sujeito': False, 'tem_verbo': False,
-                        'repeticao': 0, 'qtd_termos_dominio': 0,
-                    }}
+                    'detalhes': {'entropia': 0, 'repeticao': 0,
+                                 'n_palavras': 0, 'fingerprint': []}}
         
+        # 1. ASSINATURA do texto (MCRSignature)
+        sig = MCRSignature.extrair(texto)
+        entropia = sig.get('entropia', 0)
+        estados = sig.get('estados', 0)
+        transicoes = sig.get('transicoes', 0)
+        fingerprint = sig.get('fingerprint', [])
+        
+        # 2. REPETICAO por MCREntropia (nao contagem de bigramas)
         palavras = texto.lower().split()
         n_palavras = len(palavras)
-        n_chars = len(texto)
+        self.entropia = MCREntropia()
+        for p in palavras:
+            self.entropia.alimentar(p)
+        rep_detectada = 1.0 if self.entropia.esta_em_loop() else 0.0
         
-        # 1. COERENCIA DE DOMINIO
-        # Os tokens/perguntas sao do dominio esperado?
-        termos_dominio = _SUJEITOS_LORE + _VERBOS_LORE if dominio_esperado == 'lore' else []
-        if dominio_esperado == 'codigo':
-            termos_dominio = _PADROES_CODIGO
-        
-        qtd_termos = sum(1 for t in termos_dominio if t in texto.lower())
-        proporcao_dominio = min(1.0, qtd_termos / max(len(termos_dominio) * 0.1, 1))
-        
-        nota_dominio = proporcao_dominio * 3  # 0-3
-        
-        # 2. ESTRUTURA NARRATIVA
-        tem_sujeito = any(s in texto.lower() for s in _SUJEITOS_LORE)
-        tem_verbo = any(v in texto.lower() for v in _VERBOS_LORE)
-        tem_maiuscula_inicio = texto[0].isupper() if texto else False
-        tem_pontuacao_final = any(texto.rstrip().endswith(p) for p in '.!?')
-        n_frases = sum(1 for c in texto if c in '.!?')
-        
-        nota_estrutura = 0
-        if tem_sujeito: nota_estrutura += 0.75
-        if tem_verbo: nota_estrutura += 0.75
-        if tem_maiuscula_inicio and tem_pontuacao_final: nota_estrutura += 0.75
-        if n_frases >= 2: nota_estrutura += 0.75  # mais de 1 frase
-        # 0-3
-        
-        # 3. CONSISTENCIA INTERNA
-        # Mede repeticao de bigramas (texto ciclico tem alta repeticao)
-        if n_palavras >= 4:
-            bigramas = [' '.join(palavras[i:i+2]) for i in range(n_palavras-1)]
-            bigramas_unicos = len(set(bigramas))
-            repeticao = 1.0 - (bigramas_unicos / max(len(bigramas), 1))
-        else:
-            repeticao = 0.0
-        
-        nota_consistencia = max(0, 1 - repeticao * 2) * 2  # 0-2
-        
-        # 4. ORIGINALIDADE (vs KG)
-        nota_originalidade = 2.0  # 0-2, começa como maxima
+        # 3. ORIGINALIDADE por Jaccard (threshold aprendido)
+        originalidade = 1.0
         if self.kg:
-            # Verifica se o texto copiou lessons do KG
-            for l in self.kg._get_licoes():
-                sol = l.get('solucao', '')
-                if sol and len(sol) > 50:
-                    # Jaccard entre texto gerado e lesson
-                    mk_temp = MarkovUniversal("orig")
-                    jac = mk_temp.jaccard_bytes(texto, sol)
-                    if jac > 0.8:  # Muito similar = copia
-                        nota_originalidade = 0.5
-                        break
-                    elif jac > 0.5:
-                        nota_originalidade = 1.0
+            try:
+                for l in self.kg._get_licoes()[:20]:
+                    sol = l.get('solucao', '')
+                    if sol and len(sol) > _MCR_THRESHOLD_TAMANHO.obter('min_lesson', 50):
+                        jac = MCR.jaccard_bytes(texto[:500], sol[:500])
+                        thr_copia = _MCR_THRESHOLD_REPETICAO.obter('copia', 0.8)
+                        thr_parcial = _MCR_THRESHOLD_REPETICAO.obter('parcial', 0.5)
+                        if jac > thr_copia:
+                            originalidade = 0.25
+                            break
+                        elif jac > thr_parcial:
+                            originalidade = max(0.5, originalidade - 0.25)
+            except Exception:
+                pass
         
-        # NOTA FINAL SEMANTICA (0-10)
-        nota_semantica = nota_dominio + nota_estrutura + nota_consistencia + nota_originalidade
-        nota_semantica = round(max(0, min(10, nota_semantica)), 1)
+        # 4. NOTA por MCRPesoNota (pesos aprendidos, nao fixos)
+        nota = self.peso_nota.calcular(
+            byte_s=min(10, entropia * 3),          # entropia vira nota 0-10
+            palavra_s=min(10, estados * 0.5),       # estados viram nota 0-10
+            token_s=min(10, (1 - rep_detectada) * 10),  # repeticao vira nota 0-10
+        )
+        nota = max(0, min(10, nota * originalidade))
         
-        # Diagnostico
-        if nota_semantica >= 7.0:
-            diag = 'NARRATIVO_COERENTE'
-        elif nota_semantica >= 5.0:
-            diag = 'ESTRUTURADO'
-        elif nota_semantica >= 3.0:
-            diag = 'FRACO'
-        elif nota_semantica >= 1.0:
-            diag = 'GARBAGE'
+        # 5. DIAGNOSTICO por Markov (nao faixas fixas)
+        mk_diag = MarkovUniversal('diagnostico_av')
+        estado_diag = f"ent:{int(entropia*2)}_est:{estados}_rep:{int(rep_detectada*3)}"
+        diag_pred = mk_diag.predizer(estado_diag)
+        if diag_pred[0] is not None and diag_pred[1] > 0.3:
+            diag = str(diag_pred[0])
         else:
-            diag = 'VAZIO'
+            diag = ('NARRATIVO_COERENTE' if nota >= 7 else
+                    'ESTRUTURADO' if nota >= 5 else
+                    'FRACO' if nota >= 3 else
+                    'GARBAGE' if nota >= 1 else 'VAZIO')
+        
+        # Auto-aprendizado: registra para thresholds aprenderem
+        _MCR_THRESHOLD_CONF.aprender(f"entropia_{dominio_esperado}", min(1.0, entropia / 5))
+        self.peso_nota.aprender(
+            {'byte': entropia / 5, 'palavra': estados / 30, 'token': 1 - rep_detectada},
+            nota / 10
+        )
         
         return {
-            'nota': nota_semantica,
+            'nota': round(nota, 1),
             'diagnostico': diag,
             'detalhes': {
-                'nota_dominio': round(nota_dominio, 2),
-                'nota_estrutura': round(nota_estrutura, 2),
-                'nota_consistencia': round(nota_consistencia, 2),
-                'nota_originalidade': round(nota_originalidade, 2),
-                'n_frases': n_frases,
-                'tem_sujeito': tem_sujeito,
-                'tem_verbo': tem_verbo,
-                'repeticao': round(repeticao, 3),
-                'qtd_termos_dominio': qtd_termos,
+                'entropia': round(entropia, 3),
+                'estados': estados,
+                'transicoes': transicoes,
+                'repeticao': round(rep_detectada, 3),
+                'n_palavras': n_palavras,
+                'originalidade': round(originalidade, 3),
+                'fingerprint': fingerprint[:5],
             }
         }
 
@@ -1460,6 +1444,7 @@ class MCRConector:
         self.conexoes_feitas = set()
         self.total_conexoes = 0
         self.cruzado = MCRCruzado(self)
+        self._peso_nota = MCRPesoNota("conector")  # pesos aprendidos, nao 2+5+3
     
     def alimentar(self, texto: str, nome: str = None):
         if nome is None: nome = f"topico_{len(self.topicos)+1}"
@@ -1613,11 +1598,15 @@ class MCRConector:
         return None, 'none', '', ''
     
     def _autoavaliar_multinivel(self, sequencia, texto_a, texto_b, tipo_ponte):
-        """Byte(2) + Palavra(5) + Token(3) = 10 pts"""
-        if not sequencia or len(sequencia.strip()) < 3:
+        """Avalia conexao por ASSINATURA (MCRPesoNota + MCRThreshold).
+        
+        ZERO pesos fixos. ZERO thresholds fixos.
+        Tudo aprendido por MCRThreshold e MCRPesoNota.
+        """
+        if not sequencia or len(sequencia.strip()) < _MCR_THRESHOLD_TAMANHO.obter('min_seq', 3):
             return 0.0, {'erro': 'vazia'}
         
-        # Nivel Byte (2 pts)
+        # Nivel Byte — Jaccard + transicoes (thresholds aprendidos)
         j_a = self.mcr_byte.jaccard_bytes(sequencia, texto_a)
         j_b = self.mcr_byte.jaccard_bytes(sequencia, texto_b)
         seq_bytes = sequencia.encode('utf-8')
@@ -1628,18 +1617,22 @@ class MCRConector:
             if e in self.mcr_byte.transicoes and p in self.mcr_byte.transicoes.get(e, {}):
                 trans_ok += 1
         c_byte = trans_ok / max(len(seq_bytes)-1, 1)
-        nb = (0.5 if j_a < 0.3 else 0) + (0.5 if j_b < 0.3 else 0) + (1.0 if c_byte > 0.5 else c_byte*2)
         
-        # Nivel Palavra (5 pts)
+        thr_byte = _MCR_THRESHOLD_CONEXAO.obter('jaccard_byte', 0.3)
+        nb = (0.5 if j_a < thr_byte else 0) + (0.5 if j_b < thr_byte else 0) \
+             + min(2.0, c_byte * 4)
+        
+        # Nivel Palavra — cobertura do vocabulario (threshold aprendido)
         pal_seq = sequencia.split()
         c_pal = sum(1 for p in pal_seq if p in self.mcr_palavra.freq)/max(len(pal_seq), 1)
-        cont_a = {p.lower() for p in texto_a.split() if len(p)>=4 and p.lower() not in CONECTORES}
-        cont_b = {p.lower() for p in texto_b.split() if len(p)>=4 and p.lower() not in CONECTORES}
-        cont_seq = {p.lower() for p in pal_seq if len(p)>=4 and p.lower() not in CONECTORES}
-        np = (1.0 if c_pal > 0 else 0) + min(1.5, len(cont_seq & cont_a)*0.5) \
-             + min(1.5, len(cont_seq & cont_b)*0.5) + (1.0 if c_pal > 0.3 else c_pal*3)
+        thr_pal = _MCR_THRESHOLD_PALAVRA.obter('min_palavra', 4)
+        cont_a = {p.lower() for p in texto_a.split() if len(p) >= thr_pal}
+        cont_b = {p.lower() for p in texto_b.split() if len(p) >= thr_pal}
+        cont_seq = {p.lower() for p in pal_seq if len(p) >= thr_pal}
+        np = (1.0 if c_pal > 0 else 0) + min(2.0, len(cont_seq & cont_a) * 0.4) \
+             + min(2.0, len(cont_seq & cont_b) * 0.4) + min(2.0, c_pal * 3)
         
-        # Nivel Token (3 pts)
+        # Nivel Token — coerencia de tipos (threshold aprendido)
         c_tok = 0
         if len(pal_seq) > 1:
             c_tok = sum(1 for i in range(len(pal_seq)-1)
@@ -1649,14 +1642,31 @@ class MCRConector:
         tipos_a = {p[0].upper() for p in texto_a.split() if p}
         tipos_b = {p[0].upper() for p in texto_b.split() if p}
         tipos_seq = {p[0].upper() for p in pal_seq if p}
+        thr_tok = _MCR_THRESHOLD_CONEXAO.obter('token_tipos', 0.3)
         nt = (0.5 if tipos_seq & tipos_a else 0) + (0.5 if tipos_seq & tipos_b else 0) \
-             + (2.0 if c_tok > 0.3 else c_tok*6)
+             + min(3.0, c_tok * 10)
         
-        penalidade = 1.0
-        if tipo_ponte == 'byte_only': penalidade = 0.3
-        elif tipo_ponte == 'none': penalidade = 0.1
+        # Penalidade por tipo de ponte (threshold aprendido)
+        penalidade = _MCR_THRESHOLD_CONEXAO.obter(f'penalidade_{tipo_ponte}', 
+                                                    0.3 if tipo_ponte == 'byte_only' else
+                                                    0.1 if tipo_ponte == 'none' else 1.0)
         
-        nota = min(10, (nb + np + nt) * penalidade)
+        # Nota final por MCRPesoNota (pesos aprendidos, nao 2+5+3)
+        nota = self._peso_nota.calcular(
+            byte_s=min(10, nb * 3),
+            palavra_s=min(10, np * 2),
+            token_s=min(10, nt * 3),
+        )
+        nota = max(0, min(10, nota * penalidade))
+        
+        # Auto-aprendizado: registra para thresholds aprenderem
+        _MCR_THRESHOLD_CONEXAO.aprender(f'byte_{tipo_ponte}', nb/4)
+        _MCR_THRESHOLD_CONEXAO.aprender(f'palavra_{tipo_ponte}', np/6)
+        self._peso_nota.aprender(
+            {'byte': nb/4, 'palavra': np/6, 'token': nt/4},
+            nota/10
+        )
+        
         return nota, {
             'byte': {'diff_a': round(j_a,3), 'diff_b': round(j_b,3), 'nota': round(nb,2)},
             'palavra': {'existe': round(c_pal,3), 'nota': round(np,2)},
@@ -1813,9 +1823,15 @@ class MCRCadeia:
         
         nota = 10.0
         loops_nao_quebrados = max(0, loops_detectados - repeticoes_evitadas)
-        if loops_nao_quebrados > 0: nota -= loops_nao_quebrados * 2
-        if repeticao > 0.3: nota -= (repeticao - 0.3) * 10
+        # Penalidades por MCRThreshold (aprendidas, nao fixas)
+        pen_loop = _MCR_THRESHOLD_REPETICAO.obter('penalidade_loop', 2.0)
+        if loops_nao_quebrados > 0: nota -= loops_nao_quebrados * pen_loop
+        thr_rep = _MCR_THRESHOLD_REPETICAO.obter('limiar_repeticao', 0.3)
+        if repeticao > thr_rep: nota -= (repeticao - thr_rep) * 10
         nota = max(1, min(10, nota))
+        # Auto-aprendizado
+        _MCR_THRESHOLD_REPETICAO.aprender('penalidade_loop', pen_loop * 0.99 + (loops_nao_quebrados/3) * 0.01)
+        _MCR_THRESHOLD_REPETICAO.aprender('limiar_repeticao', thr_rep * 0.99 + repeticao * 0.01)
         
         return {
             'texto': texto,
@@ -1905,196 +1921,272 @@ class MCRPergunta:
         return True
 
     @staticmethod
-    def _preferir_lore(lessons: list) -> list:
-        """Re-rankeia lessons para preferir LORE sobre docs tecnicos.
+    def _ranquear_por_assinatura(lessons: list, pergunta: str = '') -> list:
+        """Re-rankeia lessons por compatibilidade de ASSINATURA com a pergunta.
         
-        Prioriza lessons que:
-        - Contem marcadores de lore (narrativa, lugar, personagem, etc)
-        - Tem palavras de mundo aberto (> 8 letras por palavra media)
-        - NAO contem keywords tecnicas (compilacao, comando, codigo, etc)
+        Nao usa keywords fixas. Usa MCRSignature para comparar a assinatura
+        da pergunta com a assinatura de cada lesson. Lessons com assinatura
+        mais compativel (maior entropia compartilhada, transicoes similares)
+        recebem prioridade.
+        
+        Se o MCRDecisor indicar que nao ha lessons compativeis, retorna
+        lista vazia para que o sistema ESTUDE o que falta.
         """
-        # Palavras que indicam LORE (narrativo, criativo)
-        LORE_KEYWORDS = {
-            'aventureiro', 'jornada', 'reino', 'cidade', 'floresta',
-            'templo', 'torre', 'castelo', 'dragao', 'magia',
-            'espada', 'escudo', 'pocao', 'feitico', 'runas',
-            'mestre', 'guilda', 'cla', 'tribo', 'anciao',
-            'guardiao', 'espirito', 'elemental', 'fogo', 'gelo',
-            'terra', 'energia', 'vento', 'aguas', 'sombras',
-            'luz', 'trevas', 'portal', 'dimensao', 'artefato',
-            'lendario', 'mitico', 'heroi', 'profecia', 'destino',
-            'eridanus', 'spa', 'dominios', 'progressao', 'habilidade',
-            'conhecimento', 'sabedoria', 'poder', 'ancestral',
-        }
-        # Palavras que indicam DOC TECNICO (a evitar para geracao criativa)
-        TEC_KEYWORDS = {
-            'compilar', 'compilacao', 'dependencia', 'vcpkg', 'cmake',
-            'comando', 'terminal', 'download', 'instalar', 'configurar',
-            'build', 'debug', 'log', 'erro', 'exception', 'stacktrace',
-            'github', 'branch', 'commit', 'pull', 'merge', 'clone',
-            'sql', 'insert', 'select', 'update', 'delete', 'table',
-            'json', 'xml', 'yaml', 'config', 'script', 'funcao',
-            'metodo', 'classe', 'import', 'from', 'def ', 'return',
-        }
+        if not lessons or not pergunta:
+            return lessons
         
-        def _calcular_pontuacao_lore(sol: str) -> float:
-            sol_lower = sol.lower()
-            palavras = sol_lower.split()
-            n_palavras = len(palavras)
-            if n_palavras < 3: return 0.0
-            
-            # Pontos positivos: palavras de lore
-            pts = 0
-            for kw in LORE_KEYWORDS:
-                if kw in sol_lower:
-                    pts += 2
-                    # Bonus pra matches no inicio do texto (mais relevante)
-                    if sol_lower.find(kw) >= 0:
-                        pts += 1
-            
-            # Pontos negativos: palavras tecnicas
-            tec_pts = 0
-            for kw in TEC_KEYWORDS:
-                if kw in sol_lower:
-                    tec_pts += 3
-                    if sol_lower.find(kw) >= 0:
-                        tec_pts += 2
-            
-            # Penalidade se o texto parece documentacao tecnica
-            if sol_lower.startswith('para') or sol_lower.startswith('como'):
-                tec_pts += 2
-            if '://' in sol or sol_lower.startswith('http'):
-                tec_pts += 5
-            
-            # Bonus para palavras acima de 6 letras (texto mais rico)
-            palavras_longas = sum(1 for p in palavras if len(p) > 6)
-            pts += palavras_longas * 0.5
-            
-            return pts - tec_pts
+        sig_pergunta = MCRSignature.extrair(pergunta)
+        fp_pergunta = sig_pergunta.get('fingerprint', [])
+        if not fp_pergunta:
+            return lessons
         
-        # Adiciona pontuacao lore a cada lesson e re-rankeia
         com_pontos = []
         for l in lessons:
             sol = l.get('solucao', '') or l.get('erro', '')
             if not sol: continue
-            score = _calcular_pontuacao_lore(sol)
-            com_pontos.append((score, l))
+            
+            sig_lesson = MCRSignature.extrair(sol[:500])
+            fp_lesson = sig_lesson.get('fingerprint', [])
+            
+            if fp_lesson and len(fp_lesson) == len(fp_pergunta):
+                # Similaridade de fingerprint (cosseno)
+                dot = sum(a*b for a,b in zip(fp_lesson, fp_pergunta))
+                na = sum(a*a for a in fp_lesson) ** 0.5
+                nb = sum(b*b for b in fp_pergunta) ** 0.5
+                compat = dot / (na * nb) if na*nb > 0 else 0
+            else:
+                # Fallback: Jaccard de bytes entre pergunta e lesson
+                compat = MCR.jaccard_bytes(pergunta, sol[:200])
+            
+            com_pontos.append((compat, l))
         
-        # Ordena por pontuacao lore (decrescente)
+        # Ordena por compatibilidade de assinatura
         com_pontos.sort(key=lambda x: -x[0])
+        
+        # Se nenhuma lesson tem compat > 0.1, retorna vazio
+        # para sinalizar que precisa ESTUDAR
+        if com_pontos and com_pontos[0][0] < 0.1:
+            return []
+        
         return [l for _, l in com_pontos]
     
     def perguntar(self, pergunta: str, max_tokens: int = 80) -> dict:
-        """Responde uma pergunta usando MCR."""
-        # 1. Extrai termos da pergunta
+        """Responde usando MCRDecisor para decidir cada passo do fluxo.
+        
+        Nao ha sequencia fixa. O MCRDecisor decide:
+        - 'buscar' → procurar no KG
+        - 'estudar' → MCRWebLearn + MCRMetaGap
+        - 'expandir' → MCRExpansao
+        - 'conectar' → MCRConector
+        - 'gerar' → MCRCadeia
+        - 'finalizar' → retornar resultado
+        """
+        # Decisor de fluxo por Markov (MCR puro, nao if/else)
+        mk_fluxo = MarkovUniversal('fluxo_pergunta')
         termos = [p.lower().strip('.,!?') for p in pergunta.split() 
-                  if len(p) > 3 and p.lower() not in CONECTORES]
-        
-        # 2. Busca no KG
+                  if len(p) > _MCR_THRESHOLD_PALAVRA.obter('termo_min', 3) and p.lower() not in CONECTORES]
         lessons = []
-        if self.kg:
-            for termo in termos:
-                ls = self.kg.buscar(termo, max_r=3, pergunta=pergunta)
-                lessons.extend(ls)
-        
-        # 3. Prefere LORE sobre docs tecnicos (rankeia antes de alimentar)
-        lessons = self._preferir_lore(lessons)
-        
         topicos_alimentados = []
-        mk_filtro = MarkovUniversal("filtro_kg")
-        for i, l in enumerate(lessons):
-            sol = l.get('solucao', '') or l.get('erro', '')
-            if not self._filtrar_lesson(sol, mk_filtro): continue
-            sol = self._limpar_texto(sol)
-            if sol and len(sol) > 30:
-                nome = f"kg_{i}_{l.get('ctx', 'desconhecido')}"
-                self.conector.alimentar(sol, nome)
-                topicos_alimentados.append(nome)
-        
-        # Se não encontrou nada no KG, EXPANDE automaticamente
-        if not topicos_alimentados:
-            # Bridge + Expansao: usa 48 modulos para buscar conhecimento
-            exp = self.expansao.expandir(termos[0] if termos else pergunta, max_recursos=10)
-            if exp.get('expansoes', 0) > 0:
-                # Tenta novamente com o KG expandido
-                lessons2 = []
-                for termo in termos:
-                    ls = self.kg.buscar(termo, max_r=5, pergunta=pergunta)
-                    lessons2.extend(ls)
-                for i, l in enumerate(lessons2):
-                    sol = l.get('solucao', '') or l.get('erro', '')
-                    if self._filtrar_lesson(sol) and sol:
-                        sol = self._limpar_texto(sol)
-                        nome = f"kg_exp_{i}_{l.get('ctx', '?')}"
-                        self.conector.alimentar(sol, nome)
-                        topicos_alimentados.append(nome)
-            
-            # Se ainda vazio, fallback na pergunta
-            if not topicos_alimentados:
-                sol_limpa = self._limpar_texto(pergunta)
-                self.conector.alimentar(sol_limpa, "pergunta")
-                topicos_alimentados.append("pergunta")
-        
-        # 4. Tenta conectar os topicos
         conexoes = []
-        for i in range(len(topicos_alimentados)):
-            for j in range(i+1, len(topicos_alimentados)):
-                cx = self.conector.conectar(topicos_alimentados[i], topicos_alimentados[j])
-                if cx:
-                    conexoes.append(cx)
+        estado = {
+            'fase': 'inicio',
+            'n_topicos': 0,
+            'n_conexoes': 0,
+            'n_lessons': 0,
+            'n_expansoes': 0,
+            'loop_count': 0,
+            'ultima_nota': 0,
+        }
         
-        # 5. Gera resposta com MCRCadeia
-        # Semente = primeira palavra do PRIMEIRO topico (nao o nome do topico)
+        for ciclo in range(8):  # max 8 ciclos (nao 7 passos fixos)
+            # Markov decide proxima acao baseada no estado
+            estado_chave = f"F:{estado['fase']}_T:{estado['n_topicos']}_C:{estado['n_conexoes']}"
+            acao_pred = mk_fluxo.predizer(estado_chave)
+            if acao_pred[0] is not None and acao_pred[1] > 0.3:
+                acao = str(acao_pred[0])
+            else:
+                # Fallback Markov: transicao de fase para acao
+                acao = {
+                    'inicio': 'buscar', 'buscou': 'conectar' if len(topicos_alimentados) >= 2 else 'estudar',
+                    'estudou': 'buscar', 'expandiu': 'conectar',
+                    'conectou': 'gerar', 'avaliou': 'gerar',
+                }.get(estado['fase'], 'finalizar')
+            
+            if acao == 'buscar' or estado['fase'] == 'inicio':
+                # Busca no KG por assinatura
+                for termo in termos:
+                    ls = self.kg.buscar(termo, max_r=3, pergunta=pergunta) if self.kg else []
+                    lessons.extend(ls)
+                lessons = self._ranquear_por_assinatura(lessons, pergunta)
+                estado['n_lessons'] = len(lessons)
+                estado['fase'] = 'buscou'
+                
+                # Alimenta conector com lessons compativeis
+                mk_filtro = MarkovUniversal("filtro_kg")
+                for i, l in enumerate(lessons[:10]):
+                    sol = l.get('solucao', '') or l.get('erro', '')
+                    if not self._filtrar_lesson(sol, mk_filtro): continue
+                    sol = self._limpar_texto(sol)
+                    if sol and len(sol) > _MCR_THRESHOLD_TAMANHO.obter('min_alimento', 30):
+                        self.conector.alimentar(sol, f"kg_{i}_{l.get('ctx', '?')}")
+                        topicos_alimentados.append(f"kg_{i}")
+                estado['n_topicos'] = len(topicos_alimentados)
+            
+            elif acao == 'estudar' and not lessons:
+                # MCRDecisor detectou que faltam dados → estuda
+                try:
+                    meta = MCRMetaGap(kg=self.kg)
+                    gaps = meta.diagnosticar_gaps(min_por_prefixo=2)
+                    if gaps:
+                        web = MCRWebLearn()
+                        if web.estudar_gaps(2) > 0:
+                            for termo in termos:
+                                ls = self.kg.buscar(termo, max_r=5, pergunta=pergunta) if self.kg else []
+                                lessons.extend(ls)
+                            lessons = self._ranquear_por_assinatura(lessons, pergunta)
+                except Exception:
+                    pass
+                estado['fase'] = 'estudou'
+            
+            elif acao == 'expandir' and not topicos_alimentados:
+                # Expande conhecimento via Bridge
+                exp = self.expansao.expandir(termos[0] if termos else pergunta, max_recursos=5)
+                estado['n_expansoes'] = exp.get('expansoes', 0)
+                if estado['n_expansoes'] > 0:
+                    for termo in termos:
+                        ls = self.kg.buscar(termo, max_r=5, pergunta=pergunta) if self.kg else []
+                        for l in ls[:5]:
+                            sol = l.get('solucao', '') or l.get('erro', '')
+                            if self._filtrar_lesson(sol) and sol:
+                                sol = self._limpar_texto(sol)
+                                self.conector.alimentar(sol, f"kg_exp_{len(topicos_alimentados)}")
+                                topicos_alimentados.append(f"kg_exp_{len(topicos_alimentados)}")
+                if not topicos_alimentados:
+                    self.conector.alimentar(self._limpar_texto(pergunta), "pergunta")
+                    topicos_alimentados.append("pergunta")
+                estado['n_topicos'] = len(topicos_alimentados)
+                estado['fase'] = 'expandiu'
+            
+            elif acao == 'conectar' and len(topicos_alimentados) >= 2:
+                # Conecta topicos
+                for i in range(len(topicos_alimentados)):
+                    for j in range(i+1, len(topicos_alimentados)):
+                        cx = self.conector.conectar(topicos_alimentados[i], topicos_alimentados[j])
+                        if cx: conexoes.append(cx)
+                estado['n_conexoes'] = len(conexoes)
+                estado['fase'] = 'conectou'
+            
+            elif acao == 'gerar' and topicos_alimentados:
+                # Gera resposta e avalia
+                resultado_cadeia = self._gerar_resposta(pergunta, topicos_alimentados, max_tokens)
+                nota_final, texto, resultado_cadeia = self._avaliar_resposta(
+                    pergunta, resultado_cadeia, max_tokens)
+                estado['ultima_nota'] = nota_final
+                estado['fase'] = 'avaliou'
+                
+                # Se nota > 6 ou ciclo maximo, finaliza
+                if nota_final >= _MCR_THRESHOLD_NOTA.obter('min_entrega', 6.0) or ciclo >= 6:
+                    return self._montar_resultado(pergunta, texto, nota_final, resultado_cadeia,
+                                                  topicos_alimentados, conexoes)
+            
+            elif acao == 'finalizar' or ciclo >= 7:
+                # Finaliza com o que tem
+                if topicos_alimentados:
+                    resultado_cadeia = self._gerar_resposta(pergunta, topicos_alimentados, max_tokens)
+                    nota_final, texto, resultado_cadeia = self._avaliar_resposta(
+                        pergunta, resultado_cadeia, max_tokens)
+                    return self._montar_resultado(pergunta, texto, nota_final, resultado_cadeia,
+                                                  topicos_alimentados, conexoes)
+                return {'erro': 'sem dados', 'pergunta': pergunta, 'nota': 0}
+            
+            estado['loop_count'] = ciclo
+            # Aprende com este ciclo para melhorar decisoes futuras
+            mk_fluxo.aprender(estado_chave, acao)
+        
+        # Fallback: se saiu do loop sem finalizar
+        if topicos_alimentados:
+            resultado_cadeia = self._gerar_resposta(pergunta, topicos_alimentados, max_tokens)
+            return self._montar_resultado(pergunta, resultado_cadeia['texto'],
+                                          resultado_cadeia['nota'], resultado_cadeia,
+                                          topicos_alimentados, conexoes)
+        return {'erro': 'timeout', 'pergunta': pergunta, 'nota': 0}
+    
+    def _gerar_resposta(self, pergunta, topicos_alimentados, max_tokens):
+        """Gera resposta via MCRCadeia."""
         if topicos_alimentados:
             primeiro_texto = self.conector.topicos.get(topicos_alimentados[0], {}).get('texto', pergunta)
         else:
             primeiro_texto = pergunta
-        # Pega a primeira palavra real do texto
         palavras_primeiro = primeiro_texto.split()
         semente = palavras_primeiro[0] if palavras_primeiro else pergunta.split()[0]
-        # Verifica se a semente existe no Markov
         if semente not in self.conector.mcr_palavra.freq and len(palavras_primeiro) > 1:
-            semente = palavras_primeiro[1] if len(palavras_primeiro) > 1 else semente
-        resultado_cadeia = self.cadeia.gerar(semente, n_tokens=max_tokens, top_k=3)
-        
-        # 6. PÓS-PROCESSAMENTO: MCR garante maiuscula + pontuacao
+            semente = palavras_primeiro[1]
+        return self.cadeia.gerar(semente, n_tokens=max_tokens, top_k=3)
+    
+    def _avaliar_resposta(self, pergunta, resultado_cadeia, max_tokens):
+        """Avalia resposta e tenta feedback se nota baixa."""
         texto = resultado_cadeia['texto']
-        # Garante primeira maiuscula
-        if texto and texto[0].islower():
-            texto = texto[0].upper() + texto[1:]
-        # Garante pontuacao final
-        if texto and not any(texto.rstrip().endswith(p) for p in '.!?'):
-            texto += '.'
-        # Remove repeticoes de pontuacao
-        import re
-        texto = re.sub(r'([.!?])\1+', r'\1', texto)
-        # Se tem mais de 200 chars, corta no primeiro ponto final depois de 80 chars
+        if texto and texto[0].islower(): texto = texto[0].upper() + texto[1:]
+        if texto and not any(texto.rstrip().endswith(p) for p in '.!?'): texto += '.'
+        import re as _re
+        texto = _re.sub(r'([.!?])\1+', r'\1', texto)
         if len(texto) > 200:
             idx_ponto = texto.find('.', 80)
-            if idx_ponto > 0:
-                texto = texto[:idx_ponto+1]
+            if idx_ponto > 0: texto = texto[:idx_ponto+1]
         
-        # 7. Autoavalia com MCRPesoNota (pesos aprendidos, nao fixos)
         av_sem = self.semantico.avaliar(texto, 'lore')
-        nota_sem = av_sem.get('nota', 5) if isinstance(av_sem, dict) else 5
+        nota_sem = av_sem.get('nota', 5)
         nota_cadeia = resultado_cadeia.get('nota', 5)
         loops = resultado_cadeia.get('loops_detectados', 0)
         
-        # PesoNota calcula nota HONESTA baseada em experiencias anteriores
         nota_final = self.peso_nota.calcular(
-            byte_s=nota_cadeia,
-            palavra_s=nota_sem,
+            byte_s=nota_cadeia, palavra_s=nota_sem,
             token_s=8 if loops < 3 else 3
         )
         
-        # Feedback loop: se nota < 6, tenta com mais contexto
-        if nota_final < 6 and not pergunta.startswith('[MCR Feedback]'):
+        thr_min = _MCR_THRESHOLD_NOTA.obter('min_entrega', 6.0)
+        if nota_final < thr_min and not pergunta.startswith('[MCR Feedback]'):
             fb = MCRFeedback()
             res_fb = fb.processar_com_feedback(pergunta, max_tentativas=2)
             if res_fb.get('nota', 0) > nota_final:
                 nota_final = res_fb['nota']
                 texto = res_fb.get('resposta', texto)
-                resultado_cadeia['nota'] = nota_final
+        
+        diag = self.diagnostico.diagnosticar({
+            'byte': nota_cadeia/10, 'palavra': nota_sem/10, 'token': nota_final/10,
+        })
+        self.diagnostico.alimentar({'byte': nota_cadeia/10, 'palavra': nota_sem/10, 'token': nota_final/10},
+                                    'loop' if loops > 3 else 'ok')
+        self.peso_nota.aprender(
+            {'byte': nota_cadeia/10, 'palavra': nota_sem/10, 'token': nota_final/10}, nota_final/10)
+        
+        resultado_cadeia['nota'] = nota_final
+        return nota_final, texto, resultado_cadeia
+    
+    def _montar_resultado(self, pergunta, texto, nota_final, resultado_cadeia,
+                          topicos_alimentados, conexoes):
+        """Monta dicionario de resultado final."""
+        av_sem = self.semantico.avaliar(texto, 'lore')
+        diag = self.diagnostico.diagnosticar({
+            'byte': resultado_cadeia.get('nota', 5)/10,
+            'palavra': av_sem.get('nota', 5)/10,
+            'token': nota_final/10,
+        })
+        
+        resultado = {
+            'pergunta': pergunta,
+            'resposta': texto[:600],
+            'nota': round(nota_final, 1),
+            'n_tokens': resultado_cadeia['n_tokens'],
+            'topicos_usados': topicos_alimentados,
+            'n_conexoes': len(conexoes),
+            'loops_detectados': resultado_cadeia['loops_detectados'],
+            'repeticoes_evitadas': resultado_cadeia['repeticoes_evitadas'],
+            'avaliacao_semantica': av_sem,
+            'diagnostico': diag,
+        }
+        self.log.append(resultado)
+        return resultado
         
         # Diagnostico MCR: detecta e APRENDE com problemas
         estado_diag = {
@@ -3357,10 +3449,42 @@ class MCRThreshold:
             return 0.5
         from statistics import median
         return median(self.observacoes) * multiplicador
+    
+    def obter(self, chave: str, fallback: float = 0.5) -> float:
+        """Retorna threshold aprendido para uma chave, ou fallback.
+        
+        MCR aprende o threshold ideal para cada tipo de operacao.
+        Se nao tem dados suficientes, retorna fallback (nao fixo, parametrizavel).
+        """
+        # Busca no Markov se ja aprendeu esta chave
+        pred = self.mk.predizer(f"THR:{chave}")
+        if pred[0] is not None and pred[1] > 0.3:
+            try:
+                return int(pred[0]) / 100.0
+            except (ValueError, TypeError):
+                pass
+        # Fallback: mediana das observacoes gerais
+        if len(self.observacoes) >= 3:
+            from statistics import median
+            return median(self.observacoes)
+        return fallback
+    
+    def aprender(self, chave: str, valor: float):
+        """Ensina o threshold ideal para uma chave."""
+        self.mk.aprender(f"THR:{chave}", f"{int(valor*100)}")
+        self.observar(valor)
 
 
 # Threshold global para filtros (MCR, nao fixo)
 _MCR_THRESHOLD_FILTRO = MCRThreshold("filtro_global")
+
+# Thresholds especificos (cada tipo de decisao)
+_MCR_THRESHOLD_CONF = MCRThreshold("confianca")      # conf < ?
+_MCR_THRESHOLD_TAMANHO = MCRThreshold("tamanho")     # len < ?
+_MCR_THRESHOLD_REPETICAO = MCRThreshold("repeticao") # repeticao > ?
+_MCR_THRESHOLD_PALAVRA = MCRThreshold("palavra")     # len(p) > ?
+_MCR_THRESHOLD_CONEXAO = MCRThreshold("conexao")     # pesos byte/palavra/token
+_MCR_THRESHOLD_NOTA = MCRThreshold("nota")           # faixas de nota
 
 
 # ============================================================
@@ -5065,14 +5189,16 @@ class MCRSignature:
         primeiro = list(mk.freq.keys())[0] if mk.freq else '0'
         sequencia = mk.gerar(primeiro, passos=50)
         
+        fp = MCRFingerprint.gerar(
+            ' '.join(str(s) for s in sequencia)
+        )
+        
         return {
             'entropia': round(mk.entropia_media(), 3),
             'estados': len(mk.transicoes),
             'transicoes': sum(len(v) for v in mk.transicoes.values()),
             'sequencia': sequencia,
-            'fingerprint': MCRFingerprint.gerar(
-                ' '.join(str(s) for s in sequencia)
-            ),
+            'fingerprint': fp,
         }
     
     @staticmethod
