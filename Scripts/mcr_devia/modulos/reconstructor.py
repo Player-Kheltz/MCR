@@ -8,6 +8,18 @@ O tamanho e DINAMICO — exatamente o que o fragmento precisa.
 """
 import os, sys, json, time, re
 
+try:
+    from modulos.MCR import MCRThreshold
+    _TH_REC = MCRThreshold("reconstructor_ent")
+    for v in [0.12, 0.15, 0.18, 0.13, 0.16]:
+        _TH_REC.observar(v)
+    _TH_REC_SIM = MCRThreshold("reconstructor_sim")
+    for v in [0.65, 0.7, 0.75, 0.68, 0.72]:
+        _TH_REC_SIM.observar(v)
+except ImportError:
+    _TH_REC = None
+    _TH_REC_SIM = None
+
 BASE = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
 
 
@@ -95,7 +107,8 @@ class Reconstructor:
             return texto
         
         entropia = folha.get('entropia', 0.5)
-        if entropia < 0.15 or len(texto) < 15:
+        _limiar_ent = _TH_REC.calcular(1.0) if _TH_REC else 0.15
+        if entropia < _limiar_ent or len(texto) < 15:
             return texto.strip()
         if not self.ia:
             return texto.strip()

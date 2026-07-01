@@ -13,6 +13,19 @@ import os, json, time, re, hashlib, math
 import urllib.request
 from stop_words import STOP_MEMORIA as STOP_WORDS
 
+# Threshold MCR
+try:
+    from modulos.MCR import MCRThreshold
+    _TH_EP_SCORE = MCRThreshold("ep_score")
+    for v in [0.25, 0.3, 0.35, 0.28, 0.32]:
+        _TH_EP_SCORE.observar(v)
+    _TH_EP_TAXA = MCRThreshold("ep_taxa")
+    for v in [0.65, 0.7, 0.75, 0.68, 0.72]:
+        _TH_EP_TAXA.observar(v)
+except ImportError:
+    _TH_EP_SCORE = None
+    _TH_EP_TAXA = None
+
 # Path da memória (mesmo diretório do KG)
 BASE = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
 MEMORIA_PATH = os.path.join(BASE, 'sandbox', '.mcr_episodios.json')
@@ -245,7 +258,8 @@ class EpisodicMemory:
                 score *= 0.8
 
             # Threshold mínimo
-            if score < 0.30:
+            _limiar = _TH_EP_SCORE.calcular(1.0) if _TH_EP_SCORE else 0.30
+            if score < _limiar:
                 continue
 
             scores.append((score, ep))
@@ -288,7 +302,8 @@ class EpisodicMemory:
             for ep in resultados:
                 for acao in acoes:
                     taxa = self.taxa_sucesso_para(acao, request)
-                    if taxa > 0.7:
+                    _limiar_taxa = _TH_EP_TAXA.calcular(1.0) if _TH_EP_TAXA else 0.7
+                    if taxa > _limiar_taxa:
                         ep['_score_reforco'] = ep.get('_score_reforco', 0) + taxa
         return resultados
 

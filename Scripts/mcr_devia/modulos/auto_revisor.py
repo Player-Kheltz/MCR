@@ -10,6 +10,19 @@ FLUXO:
 """
 import os, re, json, time
 
+# Thresholds MCR (aprendidos, nao fixos)
+try:
+    from modulos.MCR import MCRThreshold
+    _TH_EIXO = MCRThreshold("revisor_eixo")
+    _TH_ENT = MCRThreshold("revisor_entropia")
+    for v in [0.35, 0.4, 0.45, 0.38, 0.42]:
+        _TH_EIXO.observar(v)
+    for v in [0.75, 0.8, 0.85, 0.78, 0.82]:
+        _TH_ENT.observar(v)
+except ImportError:
+    _TH_EIXO = None
+    _TH_ENT = None
+
 # Classes REAIS do projeto (conhecidas no codigo)
 # MCR-DevIA pode aprender isso escaneando o projeto com grep
 _CLASSES_REAIS = set()
@@ -208,7 +221,8 @@ class AutoRevisor:
             
             # Eixo check
             resultado['eixo'] = round(_eixo, 3)
-            if _eixo < 0.4:
+            _limiar = _TH_EIXO.calcular(1.0) if _TH_EIXO else 0.4
+            if _eixo < _limiar:
                 resultado['sugestao'] += f' | Eixo baixo ({_eixo:.2f}) — resposta caotica'
                 resultado['total'] += 1
                 alucinacoes.append(('EIXO_CAOS', f'eixo={_eixo:.2f}'))
@@ -216,7 +230,8 @@ class AutoRevisor:
             # Entropia check
             _entropia = _padroes.get('entropia', 0.5)
             resultado['entropia'] = round(_entropia, 3)
-            if _entropia > 0.8:
+            _limiar_ent = _TH_ENT.calcular(1.0) if _TH_ENT else 0.8
+            if _entropia > _limiar_ent:
                 resultado['sugestao'] += f' | Entropia alta ({_entropia:.2f}) — resposta aleatoria'
                 resultado['total'] += 1
                 alucinacoes.append(('ENTROPIA_ALTA', f'entropia={_entropia:.2f}'))
