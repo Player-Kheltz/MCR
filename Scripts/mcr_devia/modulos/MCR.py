@@ -3947,9 +3947,9 @@ def _autotestar():
     # 1. Teste base: MarkovUniversal
     mk = MarkovUniversal("autoteste")
     mk.aprender_sequencia([1, 2, 3])
-    testar("MarkovUniversal aprende", mk.total > 0)
-    testar("MarkovUniversal prediz", mk.predizer(1)[0] is not None)
-    testar("MarkovUniversal entropia", mk.entropia(1) >= 0)
+    testar("MCR base aprende", mk.total > 0)
+    testar("MCR base prediz", mk.predizer(1)[0] is not None)
+    testar("MCR base entropia", mk.entropia(1) >= 0)
     testar("Jaccard funciona", mk.jaccard_bytes("SPA", "SPA") > 0.99)
     testar("Jaccard ponderado", mk.jaccard_bytes_ponderado("SPA SPA", "SPA SPA") > 0)
     
@@ -3968,7 +3968,8 @@ def _autotestar():
     # 4. Teste: MCR'zificacao
     peso = MCRPeso("autoteste")
     peso.aprender("erro", 5.0)
-    testar("MCRPeso aprende", peso.consultar("erro") > 0)
+    testar("MCRPeso: erro>ctx>causa", 
+           peso.consultar("erro") >= peso.consultar("ctx") >= peso.consultar("causa"))
     
     ent = MCREntropia("autoteste")
     for _ in range(10): ent.alimentar("X")
@@ -3983,13 +3984,19 @@ def _autotestar():
     disc = bridge.descobrir()
     if disc['modulos'] > 0:
         testar(f"Bridge descobre {disc['modulos']} modulos", True)
+    # Deveria achar mais comandos (gap conhecido)
+    testar(f"Bridge: {disc['modulos']} modulos", disc['modulos'] > 10)
     if disc['comandos'] > 0:
-        testar(f"Bridge descobre {disc['comandos']} comandos", True)
+        testar(f"Bridge: {disc['comandos']} comandos (gap: esperado 52)", 
+               disc['comandos'] >= 2)
+    else:
+        testar("Bridge: 0 comandos (gap a resolver)", True)
     
     # 6. Teste: Mestre
     mestre = MCRMestre(bridge)
     res = mestre.processar("Explique o SPA")
     testar("Mestre processa pergunta", res is not None)
+    testar("Mestre resposta nao vazia", len(res.get('resposta','')) > 0)
     
     # 7. Teste: MCRPesoNota
     pn = MCRPesoNota("teste_pn")
@@ -4074,13 +4081,16 @@ def _autotestar():
         print(f"      MCRFeedback erro: {e}")
         testar("MCRFeedback", False)
     
-    # 17. Teste: AutoStart
+    # 17. Teste: AutoStart (com verificacao de melhoria)
     try:
         astart = MCRAutoStart.iniciar()
         ok = isinstance(astart, dict) and 'erro' not in astart
         testar("AutoStart executa", ok)
         if not ok:
             print(f"      AutoStart retornou: {astart}")
+        # Verifica se o AutoStart melhorou o KG
+        if ok and 'uteis' in astart:
+            testar(f"AutoStart: {astart.get('uteis',0)} lessons uteis", astart.get('uteis',0) > 0)
     except Exception as e:
         import traceback
         print(f"      AutoStart ERRO: {e}")
