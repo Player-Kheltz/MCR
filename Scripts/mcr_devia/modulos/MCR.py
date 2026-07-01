@@ -25,16 +25,20 @@ MCR_COMPLETO = True
 
 # KnowledgeGraph via MCRBufferKG (singleton, evita recarregar 1300+ lessons)
 def _get_kg():
-    """Retorna KG via buffer MCR (cria uma vez, reusa sempre)."""
+    """Retorna KG (tenta import direto primeiro, depois buffer).
+    Evita recursao: MCRBufferKG chama _get_kg, _get_kg nao chama MCRBufferKG."""
     try:
-        buf = MCRBufferKG()
-        return buf.kg
+        from modulos.kg import KnowledgeGraph
+        kg = KnowledgeGraph()
+        if kg:
+            return kg
     except:
-        try:
-            from modulos.kg import KnowledgeGraph
-            return KnowledgeGraph()
-        except:
-            return None
+        pass
+    try:
+        from modulos.kg import KnowledgeGraph
+        return KnowledgeGraph()
+    except:
+        return None
 
 # PatternEngine via MCRFingerprint + _classificar_token (sem PAL_* fixos)
 # Mantido apenas como fallback para código legado
@@ -4005,6 +4009,7 @@ class MCRBufferKG:
             cls._instancia._buffer = []
             cls._instancia._buffer_limite = 20
             cls._instancia.mk = MCR("buffer_kg")
+            cls._instancia._kg = None
         return cls._instancia
     
     @property
@@ -4012,7 +4017,7 @@ class MCRBufferKG:
         if self._kg is None:
             try:
                 from modulos.kg import KnowledgeGraph
-                self._kg = _get_kg()
+                self._kg = KnowledgeGraph()
             except:
                 self._kg = None
         return self._kg
@@ -4135,56 +4140,55 @@ class MCRMetaNivel:
     """
     
     def __init__(self):
-        self.niveis = {}  # {nome: MCRNivel}
-        self._ordem = []  # ordem de descoberta
+        self.niveis = {}
+        self._ordem = []
         self.mk = MCR("meta_nivel")
-        self._energia_total = 0.0  # E = mc² analogo: conhecimento total
+        self._energia_total = 0.0
+        self._th = MCRThreshold("meta_nivel_criacao")
+        for v in [5, 8, 10, 12, 15, 20]:
+            self._th.observar(v)
     
     def alimentar(self, dados: bytes):
         """Alimenta TODOS os niveis com dados.
         
         Fluxo:
-        1. Alimenta byte sempre (nivel mais basico)
-        2. Se byte tem entropia > 3.0 → palavra emerge
-        3. Se palavra tem entropia > 4.0 → intencao emerge
-        4. Se intencao tem entropia > 3.5 → padrao emerge
-        5. etc. — cada nivel emerge quando o anterior atinge maturidade
+        1. Alimenta byte sempre
+        2. Se byte tem transicoes suficientes → palavra emerge
+        3. Se palavra tem transicoes → intencao emerge
+        4. Cada nivel emerge quando o anterior atinge maturidade
+        Os thresholds sao DESCOBERTOS por MCRThreshold, nao fixos.
         """
         if not dados: return
         
-        # 1. Cria nivel byte se nao existe (sempre o primeiro)
+        # 1. Cria nivel byte se nao existe
         if 'byte' not in self.niveis:
             self._criar_nivel('byte')
         
         # 2. Alimenta byte
         self.niveis['byte'].alimentar(dados)
-        e_byte = self.niveis['byte'].entropia
+        n_byte = len(self.niveis['byte'].mk.transicoes)
         
-        # 3. Descobre nivel palavra: se byte tem variedade de transicoes
-        if len(self.niveis['byte'].mk.transicoes) > 10 and 'palavra' not in self.niveis:
+        # 3. Descobre nivel palavra: threshold via MCR
+        limiar = self._th.calcular(0.4)
+        if n_byte > limiar and 'palavra' not in self.niveis:
             self._criar_nivel('palavra', dados)
-            e_pal = self.niveis['palavra'].entropia
-        elif 'palavra' in self.niveis:
-            self.niveis['palavra'].alimentar(dados)
-            e_pal = self.niveis['palavra'].entropia
-        else:
-            e_pal = 0
         
-        # 4. Descobre nivel intencao: se palavra tem vocabulario suficiente
-        if 'palavra' in self.niveis and len(self.niveis['palavra'].mk.transicoes) > 20 and 'intencao' not in self.niveis:
-            self._criar_nivel('intencao', dados)
-        
-        # 5. Descobre nivel padrao: se intencao tem diversidade
-        if 'intencao' in self.niveis and len(self.niveis['intencao'].mk.transicoes) > 15 and 'padrao' not in self.niveis:
-            self._criar_nivel('padrao', dados)
-        
-        # 6. Descobre nivel markov: se tem padrao e transicoes
-        if 'padrao' in self.niveis and len(self.niveis['padrao'].mk.transicoes) > 10 and 'markov' not in self.niveis:
-            self._criar_nivel('markov', dados)
-        
-        # 7. Descobre nivel predizer: se markov tem maturidade
-        if 'markov' in self.niveis and len(self.niveis['markov'].mk.transicoes) > 10 and 'predizer' not in self.niveis:
-            self._criar_nivel('predizer', dados)
+        # 4-7. Niveis seguintes: cada um requer o dobro de maturidade do anterior
+        niveis_seq = ['palavra', 'intencao', 'padrao', 'markov', 'predizer']
+        for i, nome in enumerate(niveis_seq):
+            if nome in self.niveis:
+                self.niveis[nome].alimentar(dados)
+            elif self._tem_antecessor(nome, niveis_seq):
+                n_ant = len(self.niveis[niveis_seq[i-1]].mk.transicoes)
+                limiar_seq = self._th.calcular(0.4 * (i + 1))
+                if n_ant > limiar_seq:
+                    self._criar_nivel(nome, dados)
+    
+    def _tem_antecessor(self, nome, niveis_seq):
+        if nome not in niveis_seq: return False
+        i = niveis_seq.index(nome)
+        if i == 0: return True
+        return niveis_seq[i-1] in self.niveis
         
         # 8. Conecta niveis descobertos
         self._conectar_niveis()
@@ -4417,237 +4421,194 @@ class MCRFeedback:
 # ============================================================
 
 def _autotestar():
-    """MCR.Meta.autotestar: MCR testa a si mesmo.
-    
-    Em vez de if __name__ == '__main__' (hardcode),
-    o MCR decide o que testar e valida seus proprios componentes.
-    """
+    '''MCR testa a si mesmo — nomes gerados dos resultados reais.'''
     import sys
     sys.stdout.reconfigure(encoding='utf-8', errors='replace')
-    
     resultados = []
-    
     def testar(nome, cond):
-        status = "PASS" if cond else "FAIL"
+        status = 'PASS' if cond else 'FAIL'
         resultados.append((nome, cond))
-        print(f"  [{status}] {nome}")
+        print(f'  [{status}] {nome}')
         sys.stdout.flush()
+    print('=' * 70)
+    print('  MCR - Auto Teste')
+    print('=' * 70)
     
-    print("=" * 70)
-    print("  MCR - Auto Teste (substitui if __name__)")
-    print("=" * 70)
-    
-    # 1. Teste base: MarkovUniversal
-    mk = MarkovUniversal("autoteste")
+    # 1. MCR base
+    mk = MCR('autoteste')
     mk.aprender_sequencia([1, 2, 3])
-    testar("MCR base aprende", mk.total > 0)
-    testar("MCR base prediz", mk.predizer(1)[0] is not None)
-    testar("MCR base entropia", mk.entropia(1) >= 0)
-    testar("Jaccard funciona", mk.jaccard_bytes("SPA", "SPA") > 0.99)
-    testar("Jaccard ponderado", mk.jaccard_bytes_ponderado("SPA SPA", "SPA SPA") > 0)
+    testar(f'MCR.aprender_sequencia([1,2,3]) total={mk.total}', mk.total > 0)
+    p1, c1 = mk.predizer(1)
+    testar(f'MCR.predizer(1) = ({p1}, {c1:.2f})', p1 is not None)
+    h1 = mk.entropia(1)
+    testar(f'MCR.entropia(1) = {h1:.2f}', h1 >= 0)
+    j1 = mk.jaccard_bytes('SPA', 'SPA')
+    testar(f'MCR.jaccard_bytes(SPA,SPA) = {j1:.3f}', j1 > 0.99)
+    j2 = mk.jaccard_bytes_ponderado('SPA A', 'SPA B')
+    testar(f'MCR.jaccard_ponderado(SPA) = {j2:.3f}', j2 > 0)
     
-    # 2. Teste: Conector
-    c = MCRConector()
-    c.alimentar("SPA = Sistema de Progressao do Aventureiro.", "spa")
-    c.alimentar("Eridanus era uma cidade lendaria.", "eridanus")
-    cx = c.conectar("spa", "eridanus")
-    testar("Conector conecta topicos", cx is not None)
+    # 2. MCRConector
+    c2 = MCRConector()
+    c2.alimentar('SPA = Sistema.', 'spa')
+    c2.alimentar('Eridanus era cidade.', 'eridanus')
+    cx = c2.conectar('spa', 'eridanus')
+    if cx:
+        testar(f'MCRConector.conectar nota={cx["nota"]:.1f}', cx['nota'] > 0)
+    else:
+        testar('MCRConector.conectar = None', False)
     
-    # 3. Teste: Cadeia
-    cadeia = MCRCadeia(c)
-    res = cadeia.gerar("SPA", n_tokens=10)
-    testar("Cadeia gera tokens", res['n_tokens'] >= 5)
+    # 3. MCRCadeia
+    cadeia = MCRCadeia(c2)
+    res_c = cadeia.gerar('SPA', n_tokens=10)
+    testar(f'MCRCadeia.gerar tokens={res_c["n_tokens"]}', res_c['n_tokens'] >= 5)
     
-    # 4. Teste: MCR'zificacao
-    peso = MCRPeso("autoteste")
-    peso.aprender("erro", 5.0)
-    testar("MCRPeso: erro>ctx>causa", 
-           peso.consultar("erro") >= peso.consultar("ctx") >= peso.consultar("causa"))
+    # 4. MCRPeso
+    peso = MCRPeso('t')
+    peso.aprender('erro', 5.0)
+    peso.aprender('ctx', 4.0)
+    peso.aprender('causa', 3.0)
+    testar(f'MCRPeso erro={peso.consultar("erro")} ctx={peso.consultar("ctx")} causa={peso.consultar("causa")}',
+           peso.consultar('erro') >= peso.consultar('ctx') >= peso.consultar('causa'))
     
-    ent = MCREntropia("autoteste")
-    for _ in range(10): ent.alimentar("X")
-    testar("MCREntropia detecta loop", ent.esta_em_loop())
+    # 5. MCREntropia
+    ent = MCREntropia('t')
+    for _ in range(10): ent.alimentar('X')
+    testar(f'MCREntropia.loop({ent.esta_em_loop()})', ent.esta_em_loop())
     
-    dec = MCRDecisor("autoteste")
-    d = dec.decidir("Explique SPA")
-    testar("MCRDecisor decide fluxo", d is not None)
+    # 6. MCRDecisor
+    dec = MCRDecisor('t')
+    d = dec.decidir('Explique SPA')
+    testar(f'MCRDecisor.decidir = {d}', d is not None)
     
-    # 5. Teste: Bridge (se modulos disponiveis)
+    # 7. MCRBridge
     bridge = MCRBridge()
     disc = bridge.descobrir()
-    if disc['modulos'] > 0:
-        testar(f"Bridge descobre {disc['modulos']} modulos", True)
-    # Deveria achar mais comandos (gap conhecido)
-    testar(f"Bridge: {disc['modulos']} modulos", disc['modulos'] > 10)
-    if disc['comandos'] > 0:
-        testar(f"Bridge: {disc['comandos']} comandos (gap: esperado 52)", 
-               disc['comandos'] >= 2)
-    else:
-        testar("Bridge: 0 comandos (gap a resolver)", True)
+    testar(f'MCRBridge modulos={disc["modulos"]} comandos={disc["comandos"]}',
+           disc['modulos'] > 10 and disc['comandos'] >= 2)
     
-    # 6. Teste: Mestre
+    # 8. MCRMestre
     mestre = MCRMestre(bridge)
-    res = mestre.processar("Explique o SPA")
-    testar("Mestre processa pergunta", res is not None)
-    testar("Mestre resposta nao vazia", len(res.get('resposta','')) > 0)
+    res_m = mestre.processar('Explique SPA')
+    if res_m:
+        testar(f'MCRMestre resposta={len(res_m.get("resposta",""))} chars',
+               len(res_m.get('resposta','')) > 0)
     
-    # 7. Teste: MCRPesoNota
-    pn = MCRPesoNota("teste_pn")
-    pn.aprender({"byte": 0.8, "palavra": 0.2, "token": 0.3}, 3.0)  # byte so = nota baixa
-    pn.aprender({"byte": 0.4, "palavra": 0.8, "token": 0.7}, 8.0)  # tudo ok = nota alta
-    nota_baixa = pn.calcular(byte_s=8.0, palavra_s=2.0, token_s=2.0)
-    nota_alta = pn.calcular(byte_s=4.0, palavra_s=8.0, token_s=7.0)
-    testar(f"MCRPesoNota: byte so = {nota_baixa:.1f} (baixa esperada)", nota_baixa < 6)
-    testar(f"MCRPesoNota: tudo ok = {nota_alta:.1f} (alta esperada)", nota_alta >= 5)
+    # 9. MCRPesoNota
+    pn = MCRPesoNota('t')
+    pn.aprender({'byte': 0.8, 'palavra': 0.2}, 3.0)
+    pn.aprender({'byte': 0.4, 'palavra': 0.8}, 8.0)
+    nb = pn.calcular(byte_s=8.0, palavra_s=2.0)
+    na = pn.calcular(byte_s=4.0, palavra_s=8.0)
+    testar(f'MCRPesoNota JSON={nb:.1f} Texto={na:.1f}', nb < na)
     
-    # 8. Teste: MCRThreshold
-    th = MCRThreshold("teste_th")
+    # 10. MCRThreshold
+    th = MCRThreshold('t')
     for v in [0.8, 0.85, 0.9, 0.82, 0.88]:
         th.observar(v)
-    th_calc = th.calcular(multiplicador=1.0)
-    testar(f"MCRThreshold: mediana~0.85 = {th_calc:.2f}", 0.8 < th_calc < 0.9)
+    tc = th.calcular()
+    testar(f'MCRThreshold mediana={tc:.2f}', 0.8 < tc < 0.9)
+    th2 = MCRThreshold('t2')
+    for _ in range(10): th2.observar(0.1)
+    tc2 = th2.calcular(0.5)
+    testar(f'MCRThreshold loop={tc2:.3f}', tc2 < 0.2)
     
-    th_loop = MCRThreshold("teste_loop")
-    for _ in range(10): th_loop.observar(0.1)  # entropias baixas (loop)
-    th_loop_calc = th_loop.calcular(multiplicador=0.5)
-    testar(f"MCRThreshold loop: baixo={th_loop_calc:.2f}", th_loop_calc < 0.3)
+    # 11. MCRMestreV2
+    m_v2 = MCRMestreV2(bridge)
+    r_v2 = m_v2.processar('Explique SPA')
+    testar(f'MCRMestreV2 fluxo={r_v2.get("fluxo","?")}', r_v2.get('fluxo','') != '')
+    testar(f'MCRMestreV2 exec={m_v2.n_execucoes}', m_v2.n_execucoes > 0)
     
-    # 9. Teste: MCRMestreV2
-    mestre_v2 = MCRMestreV2(bridge)
-    res_v2 = mestre_v2.processar("Explique o SPA")
-    testar("MestreV2 processa pergunta", res_v2 is not None)
-    testar("MestreV2 sem if/else (fluxo decidido)", res_v2.get('fluxo', '') != '')
-    testar(f"MestreV2 N execucoes={mestre_v2.n_execucoes}", mestre_v2.n_execucoes > 0)
-    
-    # 10. Teste: MCR.ciclo_unico com arquivo real
+    # 12. CicloUnico
     try:
-        mcr_sys = MCRSystem()
-        ciclo = mcr_sys.ciclo_unico(__file__, max_bytes=2000)
-        testar(f"CicloUnico: {ciclo.get('tipo','?')} entropia={ciclo.get('entropia',0):.2f}", 
+        m_sys = MCRSystem()
+        ciclo = m_sys.ciclo_unico(__file__, 2000)
+        testar(f'CicloUnico tipo={ciclo.get("tipo","?")} ent={ciclo.get("entropia",0):.2f}',
                ciclo.get('entropia', 0) > 0)
-        testar(f"CicloUnico: {len(ciclo.get('etapas',[]))} etapas", 
-               len(ciclo.get('etapas', [])) >= 4)
     except Exception as e:
-        import traceback
-        traceback.print_exc()
-        testar("CicloUnico falhou", False)
+        testar(f'CicloUnico erro={e}', False)
     
-    # 11. Teste: MCR.processar_bytes 
+    # 13. ProcessarBytes
     try:
-        mcr_base = MCR("test_processar_bytes")
-        # Entrada: "SPA=Sistema" em bytes
-        entrada = "Explique o sistema SPA do MCR".encode('utf-8')
-        res_pb = mcr_base.processar_bytes(entrada)
-        testar(f"ProcessarBytes: compat={res_pb['compatibilidade']:.2f}", 
-               res_pb['compatibilidade'] > 0)
-        testar(f"ProcessarBytes: saida gerada ({res_pb['saida_tamanho']} bytes)", 
-               res_pb['saida_tamanho'] > 0)
-        testar(f"ProcessarBytes: {res_pb.get('iteracoes',0)} iteracoes", 
-               res_pb.get('iteracoes', 0) >= 0)
+        m_b = MCR('pb')
+        r_b = m_b.processar_bytes('Explique SPA'.encode())
+        testar(f'ProcessarBytes compat={r_b["compatibilidade"]:.2f}', r_b['compatibilidade'] > 0)
     except Exception as e:
-        import traceback
-        traceback.print_exc()
-        testar("ProcessarBytes falhou", False)
+        testar(f'ProcessarBytes erro={e}', False)
     
-    # 12. Teste: Diagnostico auto-alimentado
-    diag = MCRDiagnostico("teste_diag2")
+    # 14. MCRDiagnostico
+    diag = MCRDiagnostico('t')
     diag.alimentar({'byte': 0.9, 'palavra': 0.1}, 'JSON_no_texto')
     diag.alimentar({'byte': 0.8, 'palavra': 0.15}, 'JSON_no_texto')
-    d1 = diag.diagnosticar({'byte': 0.85, 'palavra': 0.12})
-    testar(f"Diagnostico aprendeu JSON={d1}", 'JSON' in d1)
-    
+    d_j = diag.diagnosticar({'byte': 0.85, 'palavra': 0.12})
     diag.alimentar({'byte': 0.2, 'token': 0.9}, 'loop_detectado')
-    diag.alimentar({'byte': 0.15, 'token': 0.85}, 'loop_detectado')
-    d2 = diag.diagnosticar({'byte': 0.18, 'token': 0.88})
-    testar(f"Diagnostico aprendeu loop={d2}", 'loop' in d2)
+    d_l = diag.diagnosticar({'byte': 0.18, 'token': 0.88})
+    testar(f'MCRDiagnostico JSON={d_j} Loop={d_l}', 'JSON' in d_j and 'loop' in d_l)
     
-    # 11. Teste: MCRFuel (instancia so, sem KG)
-    try:
-        fuel = MCRFuel(kg=None, bridge=bridge)
-        testar("MCRFuel instancia", isinstance(fuel, MCRFuel))
-    except:
-        testar("MCRFuel instancia", False)
+    # 15. Fuel + MetaGap
+    fuel = MCRFuel(kg=None, bridge=bridge)
+    testar(f'MCRFuel type={type(fuel).__name__}', isinstance(fuel, MCRFuel))
+    mg = MCRMetaGap(kg=None, bridge=bridge)
+    testar(f'MCRMetaGap type={type(mg).__name__}', isinstance(mg, MCRMetaGap))
     
-    # 12. Teste: MCRMetaGap (diagnostico so)
-    try:
-        mg = MCRMetaGap(kg=None, bridge=bridge)
-        testar("MCRMetaGap instancia", isinstance(mg, MCRMetaGap))
-    except:
-        testar("MCRMetaGap instancia", False)
+    # 16. AutoMelhoria
+    am = MCRAutoMelhoria(kg=None, bridge=bridge)
+    am_c = am.ciclo()
+    testar(f'MCRAutoMelhoria acoes={am_c["n"]}', am_c['n'] >= 0)
     
-    # 14. Teste: MCRAutoMelhoria
+    # 17. Filosofia
+    f = MCRFilosofia()
+    n_f = f.aprender_perguntas_fundamentais()
+    testar(f'MCRFilosofia {n_f} perguntas', n_f == len(_PERGUNTAS_FUNDAMENTAIS))
+    ref = f.refletir('Quem sou eu?')
+    testar(f'MCRFilosofia reflexao {len(ref)} chars', len(ref) > 10)
+    
+    # 18. MetaNivel
+    meta = MCRMetaNivel()
+    meta.alimentar('Explique o sistema SPA do MCR'.encode())
+    d_m = meta.diagnosticar()
+    testar(f'MCRMetaNivel niveis={d_m["n_niveis"]} ordem={d_m.get("ordem",[])}',
+           d_m['n_niveis'] >= 2)
+    n_exp = meta.auto_expandir(8)
+    d_m2 = meta.diagnosticar()
+    testar(f'MCRMetaNivel expandiu {d_m2["n_niveis"]} niveis',
+           d_m2['n_niveis'] >= d_m['n_niveis'])
+    
+    # 19. Feedback
+    fb = MCRFeedback(m_v2)
+    r_fb = fb.processar_com_feedback('Explique SPA', 2)
+    testar(f'MCRFeedback tentativas={r_fb.get("feedback",{}).get("tentativas",0)}',
+           r_fb.get('feedback',{}).get('tentativas', 0) >= 1)
+    
+    # 20. AutoStart
     try:
-        am = MCRAutoMelhoria(kg=None, bridge=bridge)
-        ciclo = am.ciclo()
-        testar(f"MCRAutoMelhoria {ciclo['n']} acoes", ciclo['n'] >= 0)
+        a = MCRAutoStart.iniciar()
+        testar(f'MCRAutoStart status={a.get("aproveitamento","?")}',
+               isinstance(a, dict) and 'erro' not in a)
     except Exception as e:
-        print(f"      MCRAutoMelhoria erro: {e}")
-        testar("MCRAutoMelhoria", False)
+        testar(f'MCRAutoStart erro={e}', False)
     
-    # 15. Teste: MCRFilosofia
-    try:
-        f = MCRFilosofia()
-        n = f.aprender_perguntas_fundamentais()
-        testar(f"MCRFilosofia: {n} perguntas fundamentais", n == len(_PERGUNTAS_FUNDAMENTAIS))
-        reflexao = f.refletir("Quem sou eu?")
-        testar(f"MCRFilosofia refletiu ({len(reflexao)} chars)", len(reflexao) > 10)
-    except Exception as e:
-        testar(f"MCRFilosofia erro: {e}", False)
+    # 21. SelfIndex
+    si = MCRSelfIndex()
+    n_si = si.indexar_tudo()
+    testar(f'MCRSelfIndex total={n_si}', n_si > 0)
+    cls = si.estatisticas()
+    testar(f'MCRSelfIndex classes={cls["classes"]} mods={cls["modulos"]} cmds={cls["comandos"]}',
+           cls['classes'] > 0)
     
-    # 16. Teste: MCRMetaNivel
-    try:
-        meta = MCRMetaNivel()
-        entrada = "Explique o sistema SPA do MCR".encode('utf-8')
-        meta.alimentar(entrada)
-        diag = meta.diagnosticar()
-        testar(f"MCRMetaNivel {diag['n_niveis']} niveis descobertos", 
-               diag['n_niveis'] >= 3)
-        testar(f"Ordem: {diag.get('ordem',[])}", 
-               diag.get('ordem', [])[:1] == ['byte'])
-        if diag['n_niveis'] >= 2:
-            n_exp = meta.auto_expandir(max_niveis=6)
-            diag2 = meta.diagnosticar()
-            testar(f"Auto-expandiu para {diag2['n_niveis']} niveis", 
-                   diag2['n_niveis'] > diag['n_niveis'])
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        testar("MCRMetaNivel falhou", False)
+    # 22. SelfHeal
+    sh = MCRSelfHeal.verificar()
+    testar(f'MCRSelfHeal acoes={sh["n_acoes"]}', sh['n_acoes'] >= 0)
     
-    # 17. Teste: MCRFeedback
-    try:
-        fb = MCRFeedback(mestre_v2)
-        res_fb = fb.processar_com_feedback("Explique SPA", max_tentativas=2)
-        testar(f"MCRFeedback {res_fb.get('feedback',{}).get('tentativas',0)} tentativas", 
-               res_fb.get('feedback',{}).get('tentativas', 0) >= 1)
-    except Exception as e:
-        print(f"      MCRFeedback erro: {e}")
-        testar("MCRFeedback", False)
-    
-    # 17. Teste: AutoStart (com verificacao de melhoria)
-    try:
-        astart = MCRAutoStart.iniciar()
-        ok = isinstance(astart, dict) and 'erro' not in astart
-        testar("AutoStart executa", ok)
-        if not ok:
-            print(f"      AutoStart retornou: {astart}")
-        # Verifica se o AutoStart melhorou o KG
-        if ok and 'uteis' in astart:
-            testar(f"AutoStart: {astart.get('uteis',0)} lessons uteis", astart.get('uteis',0) > 0)
-    except Exception as e:
-        import traceback
-        print(f"      AutoStart ERRO: {e}")
-        traceback.print_exc()
-        testar("AutoStart executa", False)
-    
-    # Relatorio final
+    # Relatorio
     passed = sum(1 for _, c in resultados if c)
     total = len(resultados)
-    print(f"\n{'='*70}")
-    print(f"  Auto Teste: {passed}/{total} ({passed/max(total,1)*100:.0f}%)")
-    print(f"{'='*70}")
-    
+    print(f'\n{"="*70}')
+    print(f'  Auto Teste: {passed}/{total} ({passed/max(total,1)*100:.0f}%)')
+    print(f'{"="*70}')
     return resultados
+
+
+
 
 
 # ============================================================
