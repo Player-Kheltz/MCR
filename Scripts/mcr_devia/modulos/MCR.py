@@ -1757,10 +1757,9 @@ class MCRPergunta:
             'loops_detectados': resultado_cadeia['loops_detectados'],
             'repeticoes_evitadas': resultado_cadeia['repeticoes_evitadas'],
             'avaliacao_semantica': av_sem,
-            'nota_multinivel': round(nota_multinivel, 1) if nota_multinivel else 0,
+            'nota_multinivel': 0,
             'diagnostico': diag,
-            'penalidade_diag': penalidade_diag,
-            'debug': self._gerar_debug(resultado_cadeia, conexoes, av_sem, diag),
+            'debug': self._gerar_debug(resultado_cadeia, conexoes if 'conexoes' in dir() else [], av_sem, diag),
         }
         
         self.log.append(resultado)
@@ -2338,6 +2337,9 @@ class MCRExpansao:
     5. Se KG do tema ainda fraco → repete com mais recursos
     """
     
+    # Comandos MCR-puros (sem LLM)
+    COMANDOS_MCR = ['explorar', 'aprender_conceito', 'conectar', 'analisar', 'memoria']
+    
     def __init__(self, kg=None, bridge=None):
         self.kg = kg or (KnowledgeGraph() if MCR_COMPLETO else None)
         self.bridge = bridge or MCRBridge()
@@ -2368,8 +2370,10 @@ class MCRExpansao:
                     except:
                         pass
         
-        # 2. Tenta comandos
-        for nome, func in list(self.bridge.comandos.items())[:max_recursos//3]:
+        # 2. Tenta comandos (SÓ MCR-puros, sem LLM)
+        for nome in self.COMANDOS_MCR:
+            if nome not in self.bridge.comandos: continue
+            func = self.bridge.comandos[nome]
             try:
                 cmd_result = func(tema) if func else None
                 if cmd_result:
