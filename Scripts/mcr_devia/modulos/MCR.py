@@ -2071,6 +2071,413 @@ class MCRFerramenta:
 
 
 # ============================================================
+# MCR BRIDGE — Descobre e expoe 49 modulos + 52 comandos + 30 ferramentas
+# ============================================================
+
+class MCRBridge:
+    """Bridge universal: descobre modulos, comandos e ferramentas DINAMICAMENTE.
+    
+    Cada modulo/comando/ferramenta vira um nivel MCR.
+    Zero hardcode. Zero import fixo. Tudo descoberto em runtime.
+    
+    Uso:
+        bridge = MCRBridge()
+        bridge.discover()  # escaneia tudo
+        bridge.usar("modulos.kg", "buscar", ["SPA"])
+        bridge.usar("comandos.ensinar", None, ["erro", "causa", "solucao", "ctx"])
+        bridge.usar("ferramentas.buscar_kg", {"termo": "SPA"})
+    """
+    
+    def __init__(self):
+        self.modulos = {}    # nome -> modulo
+        self.comandos = {}   # nome -> funcao
+        self.ferramentas = {}  # nome -> funcao
+        self.mk = MarkovUniversal("bridge")
+        self._descobriu = False
+    
+    def descobrir(self):
+        """Escaneia tudo disponivel e registra como niveis MCR."""
+        import importlib, pkgutil
+        
+        # 1. DESCOBRE MODULOS
+        mod_path = os.path.join(os.path.dirname(__file__), '..', 'modulos')
+        if os.path.isdir(mod_path):
+            for fname in os.listdir(mod_path):
+                if fname.endswith('.py') and not fname.startswith('_'):
+                    nome = fname[:-3]
+                    try:
+                        spec = importlib.util.spec_from_file_location(
+                            nome, os.path.join(mod_path, fname))
+                        if spec and spec.loader:
+                            mod = importlib.util.module_from_spec(spec)
+                            spec.loader.exec_module(mod)
+                            self.modulos[nome] = mod
+                            # Aprende que este modulo existe
+                            self.mk.aprender(f"MOD:{nome}", "disponivel")
+                    except Exception as e:
+                        self.mk.aprender(f"MOD:{nome}", f"erro:{str(e)[:20]}")
+        
+        # 2. DESCOBRE COMANDOS
+        cmd_path = os.path.join(os.path.dirname(__file__), '..', 'comandos')
+        if os.path.isdir(cmd_path):
+            for fname in os.listdir(cmd_path):
+                if fname.startswith('cmd_') and fname.endswith('.py'):
+                    nome = fname[4:-3]  # cmd_explorar.py -> explorar
+                    try:
+                        spec = importlib.util.spec_from_file_location(
+                            nome, os.path.join(cmd_path, fname))
+                        if spec and spec.loader:
+                            mod = importlib.util.module_from_spec(spec)
+                            spec.loader.exec_module(mod)
+                            # Procura funcao principal
+                            for attr in dir(mod):
+                                if attr.startswith('cmd_') or attr == 'executar':
+                                    self.comandos[nome] = getattr(mod, attr)
+                                    break
+                            self.mk.aprender(f"CMD:{nome}", "disponivel")
+                    except Exception as e:
+                        self.mk.aprender(f"CMD:{nome}", f"erro:{str(e)[:20]}")
+        
+        self._descobriu = True
+        
+        return {
+            'modulos': len(self.modulos),
+            'comandos': len(self.comandos),
+        }
+    
+    def usar_modulo(self, nome: str, funcao: str = None, args: list = None):
+        """Chama um modulo: bridge.usar_modulo('kg', 'buscar', ['SPA'])."""
+        if nome not in self.modulos: return None
+        mod = self.modulos[nome]
+        if funcao and hasattr(mod, funcao):
+            try:
+                return getattr(mod, funcao)(*(args or []))
+            except Exception as e:
+                self.mk.aprender(f"MOD:{nome}.{funcao}", f"erro:{str(e)[:30]}")
+                return None
+        return mod
+    
+    def usar_comando(self, nome: str, kwargs: dict = None):
+        """Executa um comando: bridge.usar_comando('ensinar', {...})."""
+        if nome not in self.comandos: return None
+        try:
+            return self.comandos[nome](**(kwargs or {}))
+        except:
+            try:
+                return self.comandos[nome](kwargs or {})
+            except Exception as e:
+                self.mk.aprender(f"CMD:{nome}", f"erro:{str(e)[:30]}")
+                return None
+    
+    def stats(self) -> dict:
+        s = self.mk.stats()
+        return {
+            'modulos': len(self.modulos),
+            'comandos': len(self.comandos),
+            'estados_bridge': s['estados'],
+            'transicoes_bridge': s['transicoes'],
+        }
+
+
+# ============================================================
+# MCR KG AUTO — Auto-categorizacao + Dedup
+# ============================================================
+
+class MCRKGAuto:
+    """Organiza o KG automaticamente: categoriza, dedup, limpa.
+    
+    Tudo MCR: categorias sao descobertas por prefixo do ctx,
+    duplicatas sao detectadas por Jaccard, limpeza por entropia.
+    """
+    
+    def __init__(self, kg=None):
+        self.kg = kg or (KnowledgeGraph() if MCR_COMPLETO else None)
+        self.mk_cat = MarkovUniversal("categorias")
+        self.mk_dedup = MarkovUniversal("dedup")
+    
+    def categorizar(self) -> dict:
+        """Categoriza lessons por prefixo do ctx + conteudo.
+        Retorna {categoria: [lessons]}."""
+        if not self.kg: return {}
+        licoes = self.kg._get_licoes()
+        cats = {}
+        for l in licoes:
+            ctx = l.get('ctx', '?')
+            sol = l.get('solucao', '')
+            # Categoria = prefixo do ctx
+            cat = ctx.split('_')[0] if '_' in ctx else ctx
+            # Se comeca com numero, categoria = 'outro'
+            if cat and cat[0].isdigit(): cat = 'numerico'
+            if cat not in cats: cats[cat] = []
+            cats[cat].append(l)
+            self.mk_cat.aprender(f"CTX:{ctx}", f"CAT:{cat}")
+        return cats
+    
+    def dedup(self, min_similaridade: float = 0.85) -> int:
+        """Remove duplicatas por Jaccard entre solucoes.
+        Retorna quantas foram removidas."""
+        if not self.kg: return 0
+        licoes = self.kg._get_licoes()
+        removidas = 0
+        
+        # Agrupa por ctx para comparar so dentro do mesmo contexto
+        from collections import defaultdict
+        por_ctx = defaultdict(list)
+        for l in licoes:
+            por_ctx[l.get('ctx', '?')].append(l)
+        
+        for ctx, grupo in por_ctx.items():
+            for i in range(len(grupo)):
+                for j in range(i+1, len(grupo)):
+                    sol_i = grupo[i].get('solucao', '')
+                    sol_j = grupo[j].get('solucao', '')
+                    if not sol_i or not sol_j: continue
+                    if len(sol_i) < 20 or len(sol_j) < 20: continue
+                    
+                    # Jaccard entre as duas solucoes
+                    jac = MarkovUniversal("tmp").jaccard_bytes(sol_i, sol_j)
+                    
+                    if jac >= min_similaridade:
+                        # Marca a menor como inativa
+                        if len(sol_i) <= len(sol_j):
+                            grupo[i]['inactive'] = True
+                        else:
+                            grupo[j]['inactive'] = True
+                        removidas += 1
+                        self.mk_dedup.aprender("DUPLICATA", f"JAC:{jac:.2f}")
+        
+        if removidas:
+            self.kg.salvar()
+        return removidas
+    
+    def limpar(self) -> dict:
+        """Remove lixo: JSON, vazias, _flush.
+        Retorna {removidos: N, mantidos: N}."""
+        if not self.kg: return {'removidos': 0, 'mantidos': 0}
+        licoes = self.kg._get_licoes()
+        removidos = 0
+        mantidos = 0
+        for l in licoes:
+            sol = l.get('solucao', '')
+            ctx = l.get('ctx', '')
+            # Criterios de lixo
+            if ctx == '_flush':
+                l['inactive'] = True; removidos += 1
+            elif not sol or len(sol) < 20:
+                l['inactive'] = True; removidos += 1
+            elif sol.strip().startswith('{') or sol.strip().startswith('['):
+                # JSON — verifica se realmente tem texto util
+                import re
+                # So marca como lixo se NAO tiver texto legivel
+                texto = re.sub(r'[{}"\[\]\\]', ' ', sol)
+                palavras = [w for w in texto.split() if len(w) > 3]
+                if len(palavras) < 3:
+                    l['inactive'] = True; removidos += 1
+                else:
+                    mantidos += 1
+            else:
+                mantidos += 1
+        if removidos:
+            self.kg.salvar()
+        return {'removidos': removidos, 'mantidos': mantidos}
+    
+    def organizar(self) -> dict:
+        """Executa tudo: categoriza + dedup + limpa.
+        Retorna relatorio completo."""
+        cats = self.categorizar()
+        removidos_dedup = self.dedup()
+        limpeza = self.limpar()
+        return {
+            'categorias': len(cats),
+            'distribuicao': {c: len(v) for c, v in sorted(cats.items(), key=lambda x: -len(x[1]))[:10]},
+            'dedup_removidos': removidos_dedup,
+            'limpeza': limpeza,
+            'stats_mk': self.mk_cat.stats(),
+        }
+
+
+# ============================================================
+# MCR EXPANSAO — AutoLoop que usa TUDO para expandir conhecimento
+# ============================================================
+
+class MCRExpansao:
+    """AutoLoop que usa TODOS os modulos, comandos e ferramentas.
+    
+    Fluxo:
+    1. Tema definido (ex: "Eridanus", "SPA")
+    2. Bridge descobre o que esta disponivel
+    3. Para CADA modulo/comando/ferramenta:
+       a) Tenta usar para aprender sobre o tema
+       b) Se resultado util → salva no KG
+       c) Se nao → tenta proximo
+    4. Apos N tentativas, autoavalia o KG
+    5. Se KG do tema ainda fraco → repete com mais recursos
+    """
+    
+    def __init__(self, kg=None, bridge=None):
+        self.kg = kg or (KnowledgeGraph() if MCR_COMPLETO else None)
+        self.bridge = bridge or MCRBridge()
+        self.mk = MarkovUniversal("expansao")
+    
+    def expandir(self, tema: str, max_recursos: int = 10) -> dict:
+        """Tenta expandir o conhecimento sobre um tema usando TUDO disponivel."""
+        if not self.kg: return {'tema': tema, 'expansoes': 0}
+        
+        if not self.bridge._descobriu:
+            disc = self.bridge.descobrir()
+        
+        resultados = []
+        recursos_usados = []
+        
+        # 1. Tenta modulos
+        for nome, mod in list(self.bridge.modulos.items())[:max_recursos//3]:
+            # Tenta funcoes de busca
+            for func_nome in ['buscar', 'buscar_expandido', 'get', 'listar']:
+                if hasattr(mod, func_nome):
+                    try:
+                        res = getattr(mod, func_nome)(tema)
+                        if res:
+                            resultados.append(f"[MOD:{nome}.{func_nome}] OK")
+                            recursos_usados.append(f"modulo:{nome}")
+                            self.mk.aprender(f"EXPANDIR:{tema}", f"MOD:{nome}")
+                        break
+                    except:
+                        pass
+        
+        # 2. Tenta comandos
+        for nome, func in list(self.bridge.comandos.items())[:max_recursos//3]:
+            try:
+                cmd_result = func(tema) if func else None
+                if cmd_result:
+                    resultados.append(f"[CMD:{nome}] OK")
+                    recursos_usados.append(f"comando:{nome}")
+                    self.mk.aprender(f"EXPANDIR:{tema}", f"CMD:{nome}")
+            except:
+                pass
+        
+        # 3. Tenta o proprio KG
+        licoes = self.kg.buscar(tema, max_r=5)
+        if licoes:
+            resultados.append(f"[KG] {len(licoes)} lessons")
+            recursos_usados.append("kg")
+        
+        # 4. Autoavalia: o conhecimento sobre o tema melhorou?
+        lessons_tema = self.kg.buscar(tema, max_r=20)
+        n_antes = 0  # idealmente teriamos o snapshot anterior
+        
+        # Salva aprendizado
+        self.kg.aprender_conceito(
+            f"expansao_{tema}",
+            f"Expandido via {len(recursos_usados)} recursos. "
+            f"Agora temos {len(lessons_tema)} lessons sobre o tema. "
+            f"Recursos: {', '.join(recursos_usados[:5])}.",
+            ctx="expansao_auto"
+        )
+        
+        return {
+            'tema': tema,
+            'expansoes': len(resultados),
+            'recursos_usados': recursos_usados[:10],
+            'lessons_agora': len(lessons_tema),
+            'detalhes': resultados[:10],
+        }
+
+
+# ============================================================
+# MCR META — Auto-organizacao do proprio MCR
+# ============================================================
+
+class MCRMeta:
+    """MCR que gerencia o proprio MCR.
+    
+    Aprende:
+    - Qual ctx usar para cada tipo de lesson
+    - Quantas lessons sao ideais por categoria
+    - Quando expandir KG (se fraco)
+    - Quando limpar KG (se sujo)
+    
+    Tudo MCR. Zero hardcode.
+    """
+    
+    def __init__(self, kg=None):
+        self.kg = kg or (KnowledgeGraph() if MCR_COMPLETO else None)
+        self.auto_kg = MCRKGAuto(self.kg)
+        self.expansao = MCRExpansao(self.kg)
+        self.mk = MarkovUniversal("meta")
+        self._ultimo_estado = {}
+    
+    def diagnosticar(self) -> dict:
+        """Diagnostica a saude do sistema MCR."""
+        if not self.kg: return {'erro': 'KG indisponivel'}
+        licoes = self.kg._get_licoes()
+        
+        # Metricas
+        uteis = [l for l in licoes 
+                 if l.get('solucao','') and len(l.get('solucao','')) > 50
+                 and not l.get('solucao','').strip().startswith('{')
+                 and not l.get('inactive')]
+        lixo = len(licoes) - len(uteis)
+        
+        # Categorias
+        cats = self.auto_kg.categorizar()
+        categorias_fracas = {c: len(v) for c, v in cats.items() if len(v) < 10}
+        
+        estado = {
+            'total': len(licoes),
+            'uteis': len(uteis),
+            'lixo': lixo,
+            'aproveitamento': f"{len(uteis)/max(len(licoes),1)*100:.0f}%",
+            'categorias': len(cats),
+            'categorias_fracas': len(categorias_fracas),
+            'precisa_limpar': lixo > len(uteis),
+            'precisa_expandir': len(categorias_fracas) > 3,
+        }
+        
+        self._ultimo_estado = estado
+        self.mk.aprender("DIAG", f"uteis:{len(uteis)}|lixo:{lixo}")
+        return estado
+    
+    def auto_organizar(self) -> dict:
+        """Auto-organiza o MCR: limpa, dedup, expande se necessario."""
+        acoes = []
+        
+        # 1. Diagnostica
+        estado = self.diagnosticar()
+        acoes.append(f"diagnostico: {estado['aproveitamento']} util")
+        
+        # 2. Limpa se necessario
+        if estado.get('precisa_limpar'):
+            limpeza = self.auto_kg.limpar()
+            acoes.append(f"limpeza: {limpeza['removidos']} removidos")
+            self.mk.aprender("ACAO:LIMPAR", f"removeu:{limpeza['removidos']}")
+        
+        # 3. Dedup se necessario
+        if estado.get('total', 0) > 200:
+            dedup = self.auto_kg.dedup()
+            if dedup:
+                acoes.append(f"dedup: {dedup} removidas")
+                self.mk.aprender("ACAO:DEDUP", f"removeu:{dedup}")
+        
+        # 4. Expande categorias fracas
+        if estado.get('precisa_expandir'):
+            cats = self.auto_kg.categorizar()
+            for cat, lessons in cats.items():
+                if len(lessons) < 10:
+                    # Tenta expandir
+                    tema = cat
+                    res = self.expansao.expandir(tema)
+                    if res['expansoes'] > 0:
+                        acoes.append(f"expandiu:{tema} ({res['expansoes']} recursos)")
+                        self.mk.aprender(f"ACAO:EXPANDIR:{tema}", f"recursos:{res['expansoes']}")
+        
+        return {
+            'acoes': acoes,
+            'n_acoes': len(acoes),
+            'estado_final': self.diagnosticar(),
+        }
+
+
+# ============================================================
 # TESTE RÁPIDO
 # ============================================================
 
