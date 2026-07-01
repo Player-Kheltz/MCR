@@ -1,22 +1,19 @@
-"""Intention Engine — 3 camadas de detecção de intenção.
+"""Intention Engine — 3 camadas + MCR path (sem INTENT/DOM fixos).
 
 Fluxo:
-1. PatternEngine: tokeniza → fingerprint → similaridade com exemplares conhecidos
-2. Keyword Actions (Léxico V2): match de verbos + domínios
-3. FAST 1.5b: fallback semântico
-4. Markov: verificação cruzada entre intenção detectada e sequência esperada
-
-Cada camada retorna categoria + confiança. A decisão final é ponderada.
+1. MCR path: tokenizar_v2_mcr() → classificação sem INTENT_/DOM_
+2. PatternEngine: tokeniza → fingerprint → similaridade
+3. Keyword Actions (Léxico V2): match legado
+4. FAST 1.5b: fallback semântico
 
 Uso:
     ie = IntentionEngine(pe=PatternEngine(), ia=IA())
-    intencoes = ie.detectar("Crie um NPC ferreiro e explique SPA")
-    # → [("CREATE", {"tipo": "npc", "alvo": "ferreiro"}, 0.94),
-    #    ("EXPLAIN", {"termo": "SPA"}, 0.87)]
+    intencoes = ie.detectar("Crie um NPC ferreiro")  # legacy
+    intencoes_mcr = ie.detectar_mcr("Crie um NPC")   # MCR puro
 """
 import re, math
 from typing import List, Tuple, Dict, Optional
-from modulos.lexico_v2 import tokenizar_v2, tipos_unicos, verificar_markov, _CATEGORIA_PATTERNS
+from modulos.lexico_v2 import tokenizar_v2, tokenizar_v2_mcr, tipos_unicos, verificar_markov, _CATEGORIA_PATTERNS
 
 
 class IntentionEngine:
@@ -64,6 +61,43 @@ class IntentionEngine:
         if not resultados:
             resultados.append(("GERAL", {"texto": texto}, 0.3))
 
+        return resultados
+    
+    def detectar_mcr(self, texto: str) -> List[Tuple[str, Dict, float]]:
+        """Detecta intenção usando MCR (sem INTENT_/DOM_ fixos).
+        
+        Usa tokenizar_v2_mcr() que classifica palavras por MCR:
+        'codigo', 'linguagem', 'lore', 'sistema', etc.
+        
+        Returns:
+            lista de (categoria_mcr, params, confianca)
+        """
+        if not texto or len(texto.strip()) < 5:
+            return [("linguagem", {"texto": texto}, 0.3)]
+        
+        tokens = tokenizar_v2_mcr(texto)
+        if not tokens:
+            return [("linguagem", {"texto": texto}, 0.3)]
+        
+        # Agrupa por categoria MCR
+        from collections import Counter
+        cats = Counter()
+        for cat, palavra, conf in tokens:
+            if cat != 'outro' and cat != 'pontuacao':
+                cats[cat] += conf
+        
+        if not cats:
+            return [("linguagem", {"texto": texto}, 0.3)]
+        
+        # Retorna as top 2 categorias
+        resultados = []
+        for cat, score in cats.most_common(2):
+            resultado = {
+                "texto": texto,
+                "tokens": [t for t in tokens if t[0] == cat],
+            }
+            resultados.append((cat, resultado, min(1.0, score)))
+        
         return resultados
 
     # ============================================================

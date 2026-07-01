@@ -225,24 +225,33 @@ class AprendizDePadroes:
                 if freq < 2:
                     continue
                 
-                # Tenta categorizar
+                # Tenta categorizar (MCR first, depois fallback legado)
                 cat = 'DOM_GENERICO'
-                if pal in ('npc', 'personagem', 'vendedor', 'guia', 'ferreiro'):
-                    cat = 'DOM_NPC'
-                elif pal in ('sistema', 'mecanica', 'dominio', 'progressao'):
-                    cat = 'DOM_SYSTEM'
-                elif pal in ('fogo', 'gelo', 'terra', 'energia', 'elemental'):
-                    cat = 'DOM_ELEMENT'
-                elif pal in ('codigo', 'funcao', 'arquivo', 'script'):
-                    cat = 'DOM_CODE'
-                elif pal in ('missao', 'quest', 'tarefa'):
-                    cat = 'DOM_QUEST'
-                elif pal in ('habilidade', 'skill', 'combo'):
-                    cat = 'DOM_SKILL'
-                elif pal in ('lore', 'historia', 'cidade', 'regiao'):
-                    cat = 'DOM_LORE'
-                elif pal in ('canary', 'servidor', 'client', 'otclient'):
-                    cat = 'DOM_SERVER'
+                try:
+                    from modulos.MCR import _classificar_token as _mcr_cat
+                    mcr_cat = _mcr_cat(pal)
+                    if mcr_cat != 'outro':
+                        cat = f'DOM_{mcr_cat.upper()}'
+                except ImportError:
+                    pass
+                
+                if cat == 'DOM_GENERICO':
+                    if pal in ('npc', 'personagem', 'vendedor', 'guia', 'ferreiro'):
+                        cat = 'DOM_NPC'
+                    elif pal in ('sistema', 'mecanica', 'dominio', 'progressao'):
+                        cat = 'DOM_SYSTEM'
+                    elif pal in ('fogo', 'gelo', 'terra', 'energia', 'elemental'):
+                        cat = 'DOM_ELEMENT'
+                    elif pal in ('codigo', 'funcao', 'arquivo', 'script'):
+                        cat = 'DOM_CODE'
+                    elif pal in ('missao', 'quest', 'tarefa'):
+                        cat = 'DOM_QUEST'
+                    elif pal in ('habilidade', 'skill', 'combo'):
+                        cat = 'DOM_SKILL'
+                    elif pal in ('lore', 'historia', 'cidade', 'regiao'):
+                        cat = 'DOM_LORE'
+                    elif pal in ('canary', 'servidor', 'client', 'otclient'):
+                        cat = 'DOM_SERVER'
                 
                 conf = min(0.85, 0.3 + freq * 0.05)
                 padroes.append({

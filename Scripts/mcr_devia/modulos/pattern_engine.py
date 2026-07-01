@@ -468,11 +468,33 @@ class PatternEngine:
         tokens = []
         palavras = re.findall(r'\w+', texto.lower()) if texto else []
         
-        # Distribuição de tamanho de palavras
-        for p in palavras:
-            if len(p) <= 3: tokens.append(('PAL_CURTA', 1))
-            elif len(p) <= 7: tokens.append(('PAL_MEDIA', 1))
-            else: tokens.append(('PAL_LONGA', 1))
+        # MCR path: classifica palavras por tipo (em vez de PAL_CURTA/MEDIA/LONGA)
+        try:
+            from modulos.MCR import _classificar_token as _mcr_tipo
+            for p in palavras:
+                mcr_tipo = _mcr_tipo(p)
+                if mcr_tipo == 'linguagem':
+                    tokens.append(('PAL_MEDIA', 1))  # lenguaje natural
+                elif mcr_tipo == 'lore':
+                    tokens.append(('PROPER_NOUN', 1))  # nomes proprios
+                elif mcr_tipo == 'codigo':
+                    tokens.append(('DOM_CODE', 1))
+                elif mcr_tipo == 'sistema':
+                    tokens.append(('DOM_SYSTEM', 1))
+                elif mcr_tipo == 'numero':
+                    tokens.append(('NUMERO', 1))
+                elif mcr_tipo == 'pontuacao':
+                    pass  # tratado abaixo
+                else:
+                    # Fallback: tamanho da palavra
+                    if len(p) <= 3: tokens.append(('PAL_CURTA', 1))
+                    elif len(p) <= 7: tokens.append(('PAL_MEDIA', 1))
+                    else: tokens.append(('PAL_LONGA', 1))
+        except ImportError:
+            for p in palavras:
+                if len(p) <= 3: tokens.append(('PAL_CURTA', 1))
+                elif len(p) <= 7: tokens.append(('PAL_MEDIA', 1))
+                else: tokens.append(('PAL_LONGA', 1))
         
         # Pontuação (ritmo de escrita)
         for char in texto or '':

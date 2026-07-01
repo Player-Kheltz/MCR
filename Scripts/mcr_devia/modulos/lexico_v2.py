@@ -1,17 +1,22 @@
-"""Léxico V2 — Vocabulário compartilhado entre IntentionEngine e tokenização rica.
+"""Léxico V2 — Vocabulário compartilhado (MCR + fallback legado).
 
-Contém:
-- _LEXICO: patterns de INTENÇÃO + DOMÍNIO + GRAMÁTICA (fonte única da verdade)
-- tokenizar_v2(): produz tokens RICOS (não PAL_CURTA/PAL_MEDIA)
-- MARKOV_POR_INTENCAO: sequência esperada para cada intenção
+MCR path: usa _classificar_token() do MCR (aprendido, sem INTENT/DOM fixo)
+Fallback: patterns regex legados (INTENT_, DOM_, PREP_, CONJ_)
 
 Uso:
-    from modulos.lexico_v2 import tokenizar_v2, MARKOV_POR_INTENCAO
-    tokens = tokenizar_v2("Crie um NPC Ferreiro")
-    # → [("INTENT_CREATE", "Crie", 0.9), ("DOM_NPC", "NPC", 0.8), ...]
+    from modulos.lexico_v2 import tokenizar_v2, tokenizar_v2_mcr
+    tokens = tokenizar_v2("Crie um NPC Ferreiro")  # legacy
+    tokens_mcr = tokenizar_v2_mcr("Crie um NPC")   # MCR puro
 """
 import re
 from typing import List, Tuple, Dict, Optional
+
+# MCR path (opcional — se disponivel, substitui INTENT/DOM fixos)
+try:
+    from modulos.MCR import _classificar_token as _mcr_classificar
+    MCR_LEXICO = True
+except ImportError:
+    MCR_LEXICO = False
 
 # ============================================================
 # LÉXICO UNIFICADO — padrão único de reconhecimento
@@ -57,7 +62,43 @@ for cat, pattern, conf in _LEXICO:
 
 
 # ============================================================
-# TOKENIZAÇÃO V2
+# TOKENIZAÇÃO V2 — MCR PATH (sem INTENT/DOM fixos)
+# ============================================================
+
+def tokenizar_v2_mcr(texto: str) -> List[Tuple[str, str, float]]:
+    """Tokeniza usando MCR (sem INTENT/DOM fixos).
+    
+    Cada palavra e classificada por _classificar_token() do MCR:
+    - 'codigo', 'linguagem', 'lore', 'sistema', 'pontuacao', etc.
+    - Zero INTENT_CREATE, DOM_NPC, PAL_MEDIA.
+    
+    Args:
+        texto: texto a tokenizar
+    Returns:
+        lista de (categoria_mcr, palavra, confianca)
+    """
+    if not MCR_LEXICO:
+        return tokenizar_v2(texto, incluir_fallback=False)
+    
+    tokens = []
+    palavras = texto.split()
+    
+    for palavra in palavras:
+        if not palavra:
+            continue
+        # Classifica pelo MCR (sem INTENT/DOM)
+        cat = _mcr_classificar(palavra)
+        conf = 0.7 if cat != 'outro' else 0.3
+        tokens.append((cat, palavra, conf))
+    
+    if not tokens:
+        tokens.append(('outro', texto, 0.1))
+    
+    return tokens
+
+
+# ============================================================
+# TOKENIZAÇÃO V2 — Legado (com INTENT/DOM)
 # ============================================================
 
 def tokenizar_v2(texto: str, incluir_fallback: bool = True) -> List[Tuple[str, str, float]]:
