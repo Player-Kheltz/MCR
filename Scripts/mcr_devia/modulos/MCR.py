@@ -2397,9 +2397,14 @@ class MCRBridge:
         self.ferramentas = {}  # nome -> funcao
         self.mk = MarkovUniversal("bridge")
         self._descobriu = False
+        self._cache = {}     # cache de resultados de descobertas
     
     def descobrir(self):
-        """Escaneia tudo disponivel e registra como niveis MCR."""
+        """Escaneia tudo disponivel e registra como niveis MCR.
+        Usa cache se ja foi descoberto antes."""
+        if self._descobriu and self._cache:
+            return self._cache
+        
         import importlib, pkgutil
         
         # 1. DESCOBRE MODULOS
@@ -2459,18 +2464,29 @@ class MCRBridge:
         return mod
     
     def usar_comando(self, nome: str, kwargs: dict = None):
-        """Retorna conhecimento do comando (bytes → texto)."""
+        """Retorna conhecimento do comando (bytes → texto).
+        Usa cache MCRSelfIndex se disponivel, senao usa bytes."""
         if nome not in self.comandos: return None
+        
+        # Cache: usa MCRSelfIndex se ja indexou
+        cache_key = f"cmd_{nome}"
+        if cache_key in self._cache:
+            return self._cache[cache_key]
+        
         dados = self.comandos[nome]
         if isinstance(dados, bytes):
             try:
-                # Converte bytes para texto (primeiros 500 chars)
-                return dados.decode('utf-8', errors='replace')[:500]
+                resultado = dados.decode('utf-8', errors='replace')[:500]
+                self._cache[cache_key] = resultado
+                return resultado
             except:
-                return f"[CMD:{nome}] {len(dados)} bytes disponiveis"
-        # Fallback: tenta executar como funcao (legado)
-        try: return dados(**(kwargs or {}))
-        except Exception as e: return f"[CMD:{nome}] erro: {str(e)[:30]}"
+                return f"[CMD:{nome}] {len(dados)} bytes"
+        try: 
+            resultado = dados(**(kwargs or {}))
+            self._cache[cache_key] = resultado
+            return resultado
+        except Exception as e: 
+            return f"[CMD:{nome}] erro: {str(e)[:30]}"
     
     def stats(self) -> dict:
         s = self.mk.stats()
@@ -2635,8 +2651,14 @@ class MCRExpansao:
         resultados = []
         recursos_usados = []
         
-        # Ordem decidida por MCRDecisor, nao fixa
-        ordem = ['modulos', 'comandos', 'kg']
+        # Ordem decidida por MCRDecisor, nao fixa (docs primeiro se disponivel)
+        try:
+            idx = _get_doc_index()
+            idx.indexar()
+            tem_docs = len(idx._indice) > 0
+        except:
+            tem_docs = False
+        ordem = ['docs', 'modulos', 'comandos', 'kg'] if tem_docs else ['modulos', 'comandos', 'kg']
         try:
             dec = MCRDecisor("expansao_ordem")
             ordem_str = dec.decidir(f"EXPANDIR:{tema}")
@@ -2646,7 +2668,20 @@ class MCRExpansao:
             pass
         
         for etapa in ordem:
-            if etapa == 'modulos':
+            if etapa == 'docs':
+                try:
+                    idx = _get_doc_index()
+                    docs = idx.buscar(tema)
+                    for doc in docs[:3]:
+                        conteudo = idx.ler(doc['caminho'], 500)
+                        if conteudo and tema.lower() in conteudo.lower():
+                            resultados.append(f"[DOCS:{os.path.basename(doc['caminho'])}] OK")
+                            recursos_usados.append(f"docs:{doc['caminho']}")
+                            self.mk.aprender(f"EXPANDIR:{tema}", f"DOCS:{doc['caminho']}")
+                except:
+                    pass
+            
+            elif etapa == 'modulos':
                 for nome, mod in list(self.bridge.modulos.items())[:max_recursos//3]:
                     for func_nome in ['buscar', 'buscar_expandido', 'get', 'listar']:
                         if hasattr(mod, func_nome):
@@ -3605,93 +3640,92 @@ class MCRMestreV2:
         if not self.bridge._descobriu:
             self.bridge.descobrir()
         
-        # 1. DECISOR decide fluxo (aprendido)
+        # 1. DECISOR decide fluxo + max_ciclos
         fluxo = self.decisor.decidir(pergunta)
         self.decisor.aprender(pergunta, fluxo, True)
+        max_ciclos = max(1, min(10, len(pergunta.split()) // 2))
+        try:
+            dc = MCRDecisor("max_ciclos")
+            mc_str = dc.decidir(f"CICLOS:{fluxo}")
+            if mc_str:
+                max_ciclos = max(1, min(10, int(str(mc_str).replace('C:', ''))))
+        except:
+            pass
         
         termo = pergunta.split()[-1] if pergunta.split() else 'MCR'
         semente = pergunta.split()[0] if pergunta.split() else 'O'
         
-        # 2. CICLO: gera -> avalia -> se nota < 8: expande -> regenera
-        nota = 0
-        resposta = ''
-        ciclo_atual = 0
-        max_ciclos = 5
-        expansoes_feitas = []
+        # 2. MCRPesoNota treinado com exemplos reais
+        if len(self.peso_nota.historico) < 5:
+            self.peso_nota.aprender({'byte': 0.8, 'palavra': 0.2, 'token': 0.3}, 2.0)
+            self.peso_nota.aprender({'byte': 0.7, 'palavra': 0.3, 'token': 0.4}, 3.0)
+            self.peso_nota.aprender({'byte': 0.4, 'palavra': 0.7, 'token': 0.8}, 8.0)
+            self.peso_nota.aprender({'byte': 0.3, 'palavra': 0.8, 'token': 0.7}, 7.5)
+            self.peso_nota.aprender({'byte': 0.5, 'palavra': 0.5, 'token': 0.5}, 5.0)
         
-        while nota < 8 and ciclo_atual < max_ciclos:
-            ciclo_atual += 1
-            # Se nota < 4 no primeiro ciclo, desiste rapido
-            if nota < 4 and ciclo_atual > 1:
-                break
-            
-            # Bridge + workers
-            tarefas = []
-            
-            if 'kg' in fluxo:
-                tarefas.append(("kg", "buscar_kg", {'termo': termo, 'pergunta': pergunta}))
-            if 'conector' in fluxo or 'cadeia' in fluxo:
-                tarefas.append(("gerador", "gerar", {'semente': semente, 'n_tokens': 40 + ciclo_atual*10}))
-            
-            workers = self.spawner.spawnar(tarefas) if tarefas else []
-            
-            # Consolida
-            textos = []
-            for w in workers:
-                if w.resultado:
-                    if isinstance(w.resultado, str): textos.append(w.resultado)
-                    elif isinstance(w.resultado, list): textos.extend(w.resultado[:2])
-            
-            if textos:
-                for t in textos[:3]:
-                    if isinstance(t, str) and len(t) > 20:
-                        self.conector.alimentar(t[:500], "consolidado")
-            
-            res_cadeia = self.cadeia.gerar(semente, n_tokens=40 + ciclo_atual*10)
-            resposta = res_cadeia.get('texto', '')
-            nota_cadeia = res_cadeia.get('nota', 0)
-            loops = res_cadeia.get('loops_detectados', 0)
-            
-            # Autoavalia com MCRPesoNota
-            nota = self.peso_nota.calcular(
-                byte_s=nota_cadeia,
-                palavra_s=min(10, len(resposta)/30),
-                token_s=8 if loops < 3 else 3
-            )
-            
-            # Se nota < 8: tenta expandir (MCRFuel + MCRExpansao)
-            if nota < 8 and ciclo_atual < max_ciclos:
-                # MCRFuel: abastece KG com dados do projeto
-                fuel = MCRFuel(bridge=self.bridge)
-                n_fuel = fuel.abastecer_se_precisar(min_uteis=200)
-                if n_fuel:
-                    expansoes_feitas.append(f"fuel:{n_fuel}")
-                
-                # MCRMetaGap: diagnostico rapido (sem file walk)
-                meta = MCRMetaGap(kg=None, bridge=self.bridge)
-                gaps = meta.diagnosticar_gaps(min_por_prefixo=3)
-                if gaps:
-                    # So preenche o primeiro gap (mais critico)
-                    n = meta.buscar_para_gap(gaps[0])
-                    if n > 0:
-                        expansoes_feitas.append(f"gap:{n}")
-                
-                # Expansao busca em 48 modulos
-                expansao = MCRExpansao(None, self.bridge)
-                res_exp = expansao.expandir(termo, max_recursos=5)
-                if res_exp.get('expansoes', 0) > 0:
-                    expansoes_feitas.append(f"ciclo{ciclo_atual}:{res_exp['expansoes']}")
-                    # Tenta EMERGIR: conectar termo com topicos existentes
-                    if self.conector.topicos:
-                        for nome_topico in list(self.conector.topicos.keys())[:3]:
-                            cx = self.conector.conectar(termo, nome_topico)
-                            if cx:
-                                self.conector.alimentar(cx.get('sequencia',''), f"emergir_{termo}")
-                
-                # Bridge: tenta comandos como fallback
-                if 'explorar' in self.bridge.comandos:
-                    try: self.bridge.usar_comando('explorar', {'termo': termo})
-                    except: pass
+        # 3. WORKERS PARALELOS com estrategias diferentes
+        # Cada worker tenta uma abordagem diferente, SIMULTANEAMENTE
+        tarefas = []
+        if 'kg' in fluxo:
+            tarefas.append(("kg", "buscar_kg", {'termo': termo, 'pergunta': pergunta}))
+        # Worker alternativo: geracao direta
+        tarefas.append(("gerador", "gerar", {'semente': semente, 'n_tokens': 40}))
+        
+        workers = self.spawner.spawnar(tarefas) if tarefas else []
+        
+        # 4. CONSOLIDA + EXPANSAO UNICA (nao em loop)
+        textos = []
+        for w in workers:
+            if w.resultado:
+                if isinstance(w.resultado, str): textos.append(w.resultado)
+                elif isinstance(w.resultado, list): textos.extend(w.resultado[:2])
+        
+        if textos:
+            for t in textos[:3]:
+                if isinstance(t, str) and len(t) > 20:
+                    self.conector.alimentar(t[:500], "consolidado")
+        
+        # Expande UMA vez (nao 5x)
+        expansoes_feitas = []
+        fuel = MCRFuel(bridge=self.bridge)
+        n_fuel = fuel.abastecer_se_precisar(min_uteis=200)
+        if n_fuel:
+            expansoes_feitas.append(f"fuel:{n_fuel}")
+        
+        meta = MCRMetaGap(kg=None, bridge=self.bridge)
+        gaps = meta.diagnosticar_gaps(min_por_prefixo=3)
+        if gaps:
+            n = meta.buscar_para_gap(gaps[0])
+            if n > 0:
+                expansoes_feitas.append(f"gap:{n}")
+        
+        expansao = MCRExpansao(None, self.bridge)
+        res_exp = expansao.expandir(termo, max_recursos=3)
+        if res_exp.get('expansoes', 0) > 0:
+            expansoes_feitas.append(f"exp:{res_exp['expansoes']}")
+            if self.conector.topicos:
+                for nome_topico in list(self.conector.topicos.keys())[:2]:
+                    cx = self.conector.conectar(termo, nome_topico)
+                    if cx:
+                        self.conector.alimentar(cx.get('sequencia',''), f"emrg_{termo}")
+        
+        # Bridge: tenta comando como fallback (com cache)
+        if 'explorar' in self.bridge.comandos:
+            try: self.bridge.usar_comando('explorar', {'termo': termo})
+            except: pass
+        
+        # 5. GERACAO UNICA (nao em loop)
+        res_cadeia = self.cadeia.gerar(semente, n_tokens=40)
+        resposta = res_cadeia.get('texto', '')
+        nota_cadeia = res_cadeia.get('nota', 0)
+        loops = res_cadeia.get('loops_detectados', 0)
+        
+        # Autoavalia com MCRPesoNota (ja treinado)
+        nota = self.peso_nota.calcular(
+            byte_s=nota_cadeia,
+            palavra_s=min(10, len(resposta)/30),
+            token_s=8 if loops < 3 else 3
+        )
         
         # Diagnostico AUTO-ALIMENTADO
         estado_diag = {
@@ -3715,7 +3749,7 @@ class MCRMestreV2:
             'resposta': resposta[:500],
             'nota': round(nota, 1),
             'fluxo': fluxo,
-            'ciclos': ciclo_atual,
+            'ciclos': 1,
             'expansoes': expansoes_feitas,
             'diagnostico': diag,
             'n_execucoes': self.n_execucoes,
