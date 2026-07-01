@@ -3233,29 +3233,23 @@ class MCRMetaGap:
         termo = gap['termos'][0] if gap['termos'] else gap['prefixo']
         n_antes = len(self.kg._get_licoes())
         
-        # 1. Busca em docs que contenham o termo
-        docs_dir = os.path.join(self._base, 'docs')
-        if os.path.isdir(docs_dir):
-            for root, dirs, files in os.walk(docs_dir):
-                for fname in files:
-                    if not (fname.endswith('.md') or fname.endswith('.txt')): continue
-                    fpath = os.path.join(root, fname)
-                    try:
-                        with open(fpath, 'r', encoding='utf-8', errors='replace') as f:
-                            conteudo = f.read(2000)
-                        if termo.lower() in conteudo.lower():
-                            # Extrai trecho relevante
-                            idx = conteudo.lower().find(termo.lower())
-                            inicio = max(0, idx - 100)
-                            fim = min(len(conteudo), idx + 300)
-                            trecho = conteudo[inicio:fim]
-                            if len(trecho) > 50:
-                                self.kg.aprender_conceito(
-                                    f"{gap['prefixo']}:{fname.replace('.','_')}",
-                                    f"[Fonte: {fpath}]\n{trecho[:500]}",
-                                    ctx=f"gap_{gap['prefixo']}"
-                                )
-                    except: pass
+        # 1. Busca em docs via indice (0.01s, nao 10-20s)
+        doc_idx = _get_doc_index()
+        doc_idx.indexar()  # so escaneia se nao tiver cache
+        docs_encontrados = doc_idx.buscar(termo)
+        for doc in docs_encontrados[:5]:
+            conteudo = doc_idx.ler(doc['caminho'], max_bytes=2000)
+            if conteudo and termo.lower() in conteudo.lower():
+                idx = conteudo.lower().find(termo.lower())
+                inicio = max(0, idx - 100)
+                fim = min(len(conteudo), idx + 300)
+                trecho = conteudo[inicio:fim]
+                if len(trecho) > 50:
+                    self.kg.aprender_conceito(
+                        f"{gap['prefixo']}:{os.path.basename(doc['caminho']).replace('.','_')}",
+                        f"[Fonte: {doc['caminho']}]\n{trecho[:500]}",
+                        ctx=f"gap_{gap['prefixo']}"
+                    )
         
         # 2. Busca em prototipos
         sandbox_dir = os.path.join(self._base, 'sandbox')
@@ -3505,6 +3499,203 @@ _PERGUNTAS_FUNDAMENTAIS = [
     "O que e o destino? Escrito ou construido? A tensao entre acaso e determinismo.",
     "O que e a beleza? Nos olhos de quem ve ou qualidade intrinseca? A estetica do ser.",
 ]
+
+# ============================================================
+# MCR DOC INDEX — Cache de docs para evitar os.walk
+# ============================================================
+
+class MCRDocIndex:
+    """Cache de documentos para consulta rapida por termo.
+    
+    Em vez de os.walk() a cada busca (10-20s),
+    indexa os docs uma vez e consulta em 0.01s.
+    
+    Uso:
+        idx = MCRDocIndex()
+        idx.indexar()  # escaneia docs/ uma vez
+        idx.buscar("Eridanus")  # → ["docs/MCR_IDENTITY.md", ...]
+    """
+    
+    def __init__(self):
+        self._base = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+        self._cache_path = os.path.join(self._base, 'sandbox', '.mcr_docs_index.json')
+        self._indice = {}
+        self._carregado = False
+        self.mk = MCR("doc_index")
+    
+    def _carregar(self):
+        if os.path.exists(self._cache_path):
+            try:
+                with open(self._cache_path, 'r', encoding='utf-8') as f:
+                    self._indice = json.load(f)
+                self._carregado = True
+                self.mk.aprender("INDEX", f"CARREGADO:{len(self._indice)}")
+                return
+            except: pass
+        self._carregado = False
+    
+    def _salvar(self):
+        try:
+            os.makedirs(os.path.dirname(self._cache_path), exist_ok=True)
+            with open(self._cache_path, 'w', encoding='utf-8') as f:
+                json.dump(self._indice, f, ensure_ascii=False, indent=2)
+        except: pass
+    
+    def indexar(self, forcar=False) -> int:
+        if self._carregado and not forcar:
+            return len(self._indice)
+        self._carregar()
+        if self._carregado and not forcar:
+            return len(self._indice)
+        docs_dir = os.path.join(self._base, 'docs')
+        if not os.path.isdir(docs_dir): return 0
+        n = 0
+        for root, dirs, files in os.walk(docs_dir):
+            for fname in files:
+                if not (fname.endswith('.md') or fname.endswith('.txt')): continue
+                fpath = os.path.join(root, fname)
+                try:
+                    with open(fpath, 'r', encoding='utf-8', errors='replace') as f:
+                        conteudo = f.read(2000)
+                    termos = set()
+                    for palavra in conteudo.lower().split():
+                        palavra = palavra.strip('.,;:!?()[]{}""\'')
+                        if len(palavra) >= 4:
+                            termos.add(palavra)
+                    relpath = os.path.relpath(fpath, self._base)
+                    self._indice[relpath] = {
+                        'termos': list(termos)[:100],
+                        'tamanho': len(conteudo),
+                        'n_termos': len(termos),
+                    }
+                    n += 1
+                except: pass
+        self._salvar()
+        self._carregado = True
+        self.mk.aprender("INDEX", f"CRIADO:{n}")
+        return n
+    
+    def buscar(self, termo: str) -> list:
+        if not self._carregado:
+            self._carregar()
+            if not self._carregado:
+                self.indexar()
+        termo = termo.lower()
+        resultados = []
+        for caminho, dados in self._indice.items():
+            if termo in dados.get('termos', []):
+                resultados.append({
+                    'caminho': caminho,
+                    'tamanho': dados.get('tamanho', 0),
+                    'relevancia': dados.get('n_termos', 0),
+                })
+        resultados.sort(key=lambda x: -x['relevancia'])
+        return resultados
+    
+    def ler(self, caminho_rel: str, max_bytes=500) -> str:
+        fpath = os.path.join(self._base, caminho_rel)
+        if not os.path.exists(fpath): return ''
+        try:
+            with open(fpath, 'r', encoding='utf-8', errors='replace') as f:
+                return f.read(max_bytes)
+        except: return ''
+
+
+_MCR_DOC_INDEX = None
+
+def _get_doc_index():
+    global _MCR_DOC_INDEX
+    if _MCR_DOC_INDEX is None:
+        _MCR_DOC_INDEX = MCRDocIndex()
+    return _MCR_DOC_INDEX
+
+
+# ============================================================
+# MCR FRAGMENTADOR — Fragmenta ciclo em partes executaveis
+# ============================================================
+
+class MCRFragmento:
+    """Um fragmento de processamento independente."""
+    
+    def __init__(self, nome, funcao, args=None):
+        self.nome = nome
+        self.funcao = funcao
+        self.args = args or {}
+        self.resultado = None
+        self.erro = None
+        self.tempo = 0
+        self.sucesso = False
+    
+    def executar(self):
+        import time
+        t0 = time.time()
+        try:
+            self.resultado = self.funcao(**self.args)
+            self.sucesso = True
+        except Exception as e:
+            self.erro = str(e)[:100]
+        self.tempo = time.time() - t0
+        return self.sucesso
+
+
+class MCRFragmentador:
+    """Fragmenta um ciclo em partes executaveis."""
+    
+    def __init__(self):
+        self.fragmentos = []
+        self.mk = MCR("fragmentador")
+    
+    def adicionar(self, nome, funcao, args=None):
+        self.fragmentos.append(MCRFragmento(nome, funcao, args))
+    
+    def executar_todos(self) -> list:
+        for f in self.fragmentos:
+            f.executar()
+            self.mk.aprender(f"FRAG:{f.nome}", f"{'OK' if f.sucesso else 'FALHA'}:{f.tempo:.2f}s")
+        return self.fragmentos
+
+
+# ============================================================
+# MCR BUFFER KG — Buffer de operacoes do KG
+# ============================================================
+
+class MCRBufferKG:
+    """Buffer de operacoes do KG (singleton, evita recarregar)."""
+    
+    _instancia = None
+    _kg = None
+    
+    def __new__(cls):
+        if cls._instancia is None:
+            cls._instancia = super().__new__(cls)
+            cls._instancia._buffer = []
+            cls._instancia._buffer_limite = 20
+            cls._instancia.mk = MCR("buffer_kg")
+        return cls._instancia
+    
+    @property
+    def kg(self):
+        if self._kg is None:
+            try:
+                from modulos.kg import KnowledgeGraph
+                self._kg = KnowledgeGraph() if MCR_COMPLETO else None
+            except:
+                self._kg = None
+        return self._kg
+    
+    def aprender(self, erro, solucao, ctx='buffer'):
+        if not self.kg: return
+        self._buffer.append({'erro': erro, 'solucao': solucao, 'ctx': ctx})
+        if len(self._buffer) >= self._buffer_limite:
+            self.flush()
+    
+    def flush(self):
+        if not self._buffer or not self.kg: return
+        n = len(self._buffer)
+        for item in self._buffer:
+            self.kg.aprender_conceito(item['erro'], item['solucao'], ctx=item['ctx'])
+        self._buffer = []
+        self.mk.aprender("FLUSH", f"{n} lessons salvas")
 
 
 class MCRFilosofia:
