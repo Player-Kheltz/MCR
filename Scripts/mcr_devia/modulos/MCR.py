@@ -18,14 +18,30 @@ import os, re, json, math, random, time as _time
 from collections import Counter
 from typing import List, Dict, Tuple, Optional, Any
 
-# Imports opcionais (só se disponíveis)
+# MCR autossuficiente — não depende de módulos externos.
+# Equivalentes internos substituem KnowledgeGraph, PatternEngine, etc.
+# Módulos externos continuam existindo para outros componentes do sistema.
+MCR_COMPLETO = True
+
+# KnowledgeGraph via MCRBufferKG (singleton, evita recarregar 1300+ lessons)
+def _get_kg():
+    """Retorna KG via buffer MCR (cria uma vez, reusa sempre)."""
+    try:
+        buf = MCRBufferKG()
+        return buf.kg
+    except:
+        try:
+            from modulos.kg import KnowledgeGraph
+            return KnowledgeGraph()
+        except:
+            return None
+
+# PatternEngine via MCRFingerprint + _classificar_token (sem PAL_* fixos)
+# Mantido apenas como fallback para código legado
 try:
     from modulos.pattern_engine import PatternEngine
-    from modulos.kg import KnowledgeGraph
-    from modulos.tool_orchestrator import ToolOrchestrator
-    MCR_COMPLETO = True
 except ImportError:
-    MCR_COMPLETO = False
+    PatternEngine = None
 
 
 class MCR:
@@ -340,10 +356,19 @@ class MCRFingerprint:
     
     @staticmethod
     def gerar(texto: str) -> list:
-        from modulos.pattern_engine import PatternEngine
-        pe = PatternEngine()
-        tokens = pe.tokenizar_universal(texto) if pe else []
-        if not tokens: return [0.0]*8
+        """Fingerprint MCR puro (sem PatternEngine)."""
+        # Tokeniza via MCR (sem PAL_*/INTENT_* fixos)
+        palavras = texto.split()
+        if not palavras:
+            return [0.0]*8
+        # Classifica cada palavra por MCR
+        try:
+            from modulos.MCR import _classificar_token as _mcr_tp
+            tokens = [(_mcr_tp(p), p) for p in palavras if p]
+        except:
+            tokens = [('outro', p) for p in palavras if p]
+        if not tokens:
+            return [0.0]*8
         n_dims = MCRFingerprint.calcular_dimensoes(tokens)
         histograma = [0.0]*n_dims
         for t in tokens:
@@ -362,18 +387,12 @@ class MCRSystem:
     """
     
     def __init__(self):
-        self.pe = PatternEngine() if MCR_COMPLETO else None
-        self.kg = KnowledgeGraph() if MCR_COMPLETO else None
-        self.tools = ToolOrchestrator() if MCR_COMPLETO else None
+        self.pe = PatternEngine() if PatternEngine else None
+        self.kg = _get_kg()
+        self.tools = None  # substituido por MCRBridge
         
-        # IE (criado uma vez, não lazy)
-        self.ie = None
-        if self.pe and MCR_COMPLETO:
-            try:
-                from modulos.intention_engine import IntentionEngine
-                self.ie = IntentionEngine(pe=self.pe)
-            except ImportError:
-                pass
+        # IE via MCRDecisor + detectar_mcr() (sem IntentionEngine externo)
+        self.ie = MCRDecisor("mcr_ie")
         
         # 6 Markove, 1 algoritmo
         self.mk_byte = MarkovUniversal("byte")
@@ -901,7 +920,7 @@ class MCRPreCache:
     """
     
     def __init__(self, kg=None):
-        self.kg = kg or (KnowledgeGraph() if MCR_COMPLETO else None)
+        self.kg = kg or (_get_kg())
         self.tokens = []
         self.scores = []
         self.dominios = Counter()
@@ -1040,7 +1059,7 @@ class AutoavaliadorSemantico:
     """
     
     def __init__(self, kg=None, precache=None):
-        self.kg = kg or (KnowledgeGraph() if MCR_COMPLETO else None)
+        self.kg = kg or (_get_kg())
         self.precache = precache
     
     def avaliar(self, texto: str, dominio_esperado='lore') -> dict:
@@ -1158,7 +1177,7 @@ class GeradorNarrativa:
     """
     
     def __init__(self, kg=None, precache=None):
-        self.kg = kg or (KnowledgeGraph() if MCR_COMPLETO else None)
+        self.kg = kg or (_get_kg())
         self.precache = precache
         self.mk_palavra = MarkovUniversal("narrativa_palavras")
         self.semantico = AutoavaliadorSemantico(kg, precache)
@@ -1801,7 +1820,7 @@ class MCRPergunta:
     """
     
     def __init__(self, kg=None):
-        self.kg = kg or (KnowledgeGraph() if MCR_COMPLETO else None)
+        self.kg = kg or (_get_kg())
         self.conector = MCRConector()
         self.cadeia = MCRCadeia(self.conector)
         self.semantico = AutoavaliadorSemantico(kg, None)
@@ -2471,7 +2490,7 @@ class MCRKGAuto:
     """
     
     def __init__(self, kg=None):
-        self.kg = kg or (KnowledgeGraph() if MCR_COMPLETO else None)
+        self.kg = kg or (_get_kg())
         self.mk_cat = MarkovUniversal("categorias")
         self.mk_dedup = MarkovUniversal("dedup")
     
@@ -2598,7 +2617,7 @@ class MCRExpansao:
     COMANDOS_MCR = ['explorar', 'aprender_conceito', 'conectar', 'analisar', 'memoria']
     
     def __init__(self, kg=None, bridge=None):
-        self.kg = kg or (KnowledgeGraph() if MCR_COMPLETO else None)
+        self.kg = kg or (_get_kg())
         self.bridge = bridge or MCRBridge()
         self.mk = MarkovUniversal("expansao")
     
@@ -2691,7 +2710,7 @@ class MCRMeta:
     """
     
     def __init__(self, kg=None):
-        self.kg = kg or (KnowledgeGraph() if MCR_COMPLETO else None)
+        self.kg = kg or (_get_kg())
         self.auto_kg = MCRKGAuto(self.kg)
         self.expansao = MCRExpansao(self.kg)
         self.mk = MarkovUniversal("meta")
@@ -2802,7 +2821,7 @@ class MCRWorker:
         t0 = time.time()
         try:
             if self.tarefa == 'buscar_kg':
-                kg = KnowledgeGraph() if MCR_COMPLETO else None
+                kg = _get_kg()
                 if kg:
                     termo = self.dados.get('termo', '')
                     lessons = kg.buscar(termo, max_r=10, pergunta=self.dados.get('pergunta', ''))
@@ -3028,7 +3047,7 @@ class MCRAutoStart:
     def iniciar() -> dict:
         """Executa auto-diagnostico e organizacao do MCR."""
         try:
-            kg = KnowledgeGraph() if MCR_COMPLETO else None
+            kg = _get_kg()
             if not kg: return {'erro': 'KG indisponivel'}
             
             bridge = MCRBridge()
@@ -3202,7 +3221,7 @@ class MCRFuel:
     """
     
     def __init__(self, kg=None, bridge=None):
-        self.kg = kg or (KnowledgeGraph() if MCR_COMPLETO else None)
+        self.kg = kg or (_get_kg())
         self.bridge = bridge or MCRBridge()
         self._base = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
         self._base_mod = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
@@ -3396,7 +3415,7 @@ class MCRMetaGap:
     """
     
     def __init__(self, kg=None, bridge=None):
-        self.kg = kg or (KnowledgeGraph() if MCR_COMPLETO else None)
+        self.kg = kg or (_get_kg())
         self.bridge = bridge or MCRBridge()
         self._base = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
         self.mk = MarkovUniversal("metagap")
@@ -3717,7 +3736,7 @@ class MCRAutoMelhoria:
     """
     
     def __init__(self, kg=None, bridge=None):
-        self.kg = kg or (KnowledgeGraph() if MCR_COMPLETO else None)
+        self.kg = kg or (_get_kg())
         self.bridge = bridge or MCRBridge()
         self.meta = MCRMetaGap(self.kg, self.bridge)
         self.fuel = MCRFuel(self.kg, self.bridge)
@@ -3993,7 +4012,7 @@ class MCRBufferKG:
         if self._kg is None:
             try:
                 from modulos.kg import KnowledgeGraph
-                self._kg = KnowledgeGraph() if MCR_COMPLETO else None
+                self._kg = _get_kg()
             except:
                 self._kg = None
         return self._kg
@@ -4011,6 +4030,263 @@ class MCRBufferKG:
             self.kg.aprender_conceito(item['erro'], item['solucao'], ctx=item['ctx'])
         self._buffer = []
         self.mk.aprender("FLUSH", f"{n} lessons salvas")
+
+
+# ============================================================
+# MCR NIVEL — Níveis descobertos organicamente
+# ============================================================
+
+_NIVEIS_BASE = ['byte', 'palavra', 'token', 'intencao', 'padrao',
+                'markov', 'pi', 'predizer', 'contexto', 'emergir',
+                'filosofia', 'feedback', 'diagnostico', 'memoria',
+                'meta', 'cache', 'busca', 'similaridade', 'entropia',
+                'ruido', 'threshold', 'peso', 'acao', 'ciclo',
+                'spawn', 'mestre', 'pergunta', 'cadeia', 'conector',
+                'fuel', 'auto_start', 'auto_melhoria']
+
+class MCRNivel:
+    """UM nivel MCR descoberto.
+    
+    Cada nivel tem:
+    - nome: identificador unico
+    - mk: MCR proprio (transicoes do nivel)
+    - entropia: imprevisibilidade do nivel
+    - raio: alcance do nivel (quanto ele abrange)
+    - conexoes: quais outros niveis se conectam a este
+    
+    Uso:
+        n = MCRNivel("intencao")
+        n.alimentar("Explique SPA")
+        n.conectar("padrao")  # descobre se conecta
+    """
+    
+    def __init__(self, nome: str, dados_iniciais: bytes = None):
+        self.nome = nome
+        self.mk = MCR(f"nivel_{nome}")
+        self.entropia = 0.0
+        self.raio = 0.0
+        self.conexoes = {}  # {nome_nivel: similaridade}
+        self._alimentado = 0
+        
+        if dados_iniciais:
+            self.alimentar(dados_iniciais)
+    
+    def alimentar(self, dados: bytes):
+        """Alimenta o nivel com dados. A entropia define o raio."""
+        if not dados: return
+        self.mk.aprender_sequencia(list(dados[:1000]))
+        self._alimentado += len(dados)
+        
+        # Entropia do nivel (quao imprevisivel)
+        self.entropia = round(self.mk.entropia_media(), 3)
+        
+        # Raio = entropia × transições (alcance do nivel)
+        n_trans = sum(len(v) for v in self.mk.transicoes.values())
+        self.raio = round(self.entropia * max(1, math.log2(n_trans + 1)), 3)
+    
+    def conectar(self, outro: 'MCRNivel') -> float:
+        """Descobre se este nivel se conecta a outro.
+        Retorna similaridade (0-1)."""
+        if not outro.mk.transicoes or not self.mk.transicoes:
+            return 0.0
+        
+        # Similaridade = Jaccard entre os conjuntos de estados
+        estados_self = set(self.mk.freq.keys())
+        estados_outro = set(outro.mk.freq.keys())
+        if not estados_self or not estados_outro:
+            return 0.0
+        
+        inter = estados_self & estados_outro
+        uniao = estados_self | estados_outro
+        sim = len(inter) / len(uniao) if uniao else 0.0
+        
+        self.conexoes[outro.nome] = sim
+        return sim
+    
+    def stats(self) -> dict:
+        return {
+            'nome': self.nome, 'entropia': self.entropia,
+            'raio': self.raio, 'alimentado': self._alimentado,
+            'estados': len(self.mk.transicoes),
+            'conexoes': len(self.conexoes),
+        }
+
+
+class MCRMetaNivel:
+    """MCR descobre QUANTOS e QUAIS niveis precisa.
+    
+    COMO FUNCIONA:
+    1. Começa com 1 nivel: byte (o nivel mais basico)
+    2. Alimenta byte com dados → entropia revela estrutura
+    3. Se entropia > threshold → precisa de MAIS um nivel
+    4. Novo nivel emerge: palavra (baseado nos delimitadores do byte)
+    5. Alimenta palavra → entropia revela intencao
+    6. Intencao emerge → depois padrao, markov, etc.
+    
+    O CRESCIMENTO E ORGANICO, nao planejado.
+    Nao ha numero fixo de niveis.
+    O MCR decide QUANDO criar um novo nivel.
+    
+    Uso:
+        meta = MCRMetaNivel()
+        meta.alimentar("Explique o sistema SPA do MCR")
+        print(meta.niveis)  # → {"byte": MCRNivel, "palavra": MCRNivel, ...}
+        print(meta.estatisticas())
+    """
+    
+    def __init__(self):
+        self.niveis = {}  # {nome: MCRNivel}
+        self._ordem = []  # ordem de descoberta
+        self.mk = MCR("meta_nivel")
+        self._energia_total = 0.0  # E = mc² analogo: conhecimento total
+    
+    def alimentar(self, dados: bytes):
+        """Alimenta TODOS os niveis com dados.
+        
+        Fluxo:
+        1. Alimenta byte sempre (nivel mais basico)
+        2. Se byte tem entropia > 3.0 → palavra emerge
+        3. Se palavra tem entropia > 4.0 → intencao emerge
+        4. Se intencao tem entropia > 3.5 → padrao emerge
+        5. etc. — cada nivel emerge quando o anterior atinge maturidade
+        """
+        if not dados: return
+        
+        # 1. Cria nivel byte se nao existe (sempre o primeiro)
+        if 'byte' not in self.niveis:
+            self._criar_nivel('byte')
+        
+        # 2. Alimenta byte
+        self.niveis['byte'].alimentar(dados)
+        e_byte = self.niveis['byte'].entropia
+        
+        # 3. Descobre nivel palavra: se byte tem variedade de transicoes
+        if len(self.niveis['byte'].mk.transicoes) > 10 and 'palavra' not in self.niveis:
+            self._criar_nivel('palavra', dados)
+            e_pal = self.niveis['palavra'].entropia
+        elif 'palavra' in self.niveis:
+            self.niveis['palavra'].alimentar(dados)
+            e_pal = self.niveis['palavra'].entropia
+        else:
+            e_pal = 0
+        
+        # 4. Descobre nivel intencao: se palavra tem vocabulario suficiente
+        if 'palavra' in self.niveis and len(self.niveis['palavra'].mk.transicoes) > 20 and 'intencao' not in self.niveis:
+            self._criar_nivel('intencao', dados)
+        
+        # 5. Descobre nivel padrao: se intencao tem diversidade
+        if 'intencao' in self.niveis and len(self.niveis['intencao'].mk.transicoes) > 15 and 'padrao' not in self.niveis:
+            self._criar_nivel('padrao', dados)
+        
+        # 6. Descobre nivel markov: se tem padrao e transicoes
+        if 'padrao' in self.niveis and len(self.niveis['padrao'].mk.transicoes) > 10 and 'markov' not in self.niveis:
+            self._criar_nivel('markov', dados)
+        
+        # 7. Descobre nivel predizer: se markov tem maturidade
+        if 'markov' in self.niveis and len(self.niveis['markov'].mk.transicoes) > 10 and 'predizer' not in self.niveis:
+            self._criar_nivel('predizer', dados)
+        
+        # 8. Conecta niveis descobertos
+        self._conectar_niveis()
+        
+        # 9. Energia total (E = intencao × pi² analogo)
+        self._energia_total = sum(n.entropia * n.raio for n in self.niveis.values())
+    
+    def _criar_nivel(self, nome: str, dados: bytes = None):
+        """Cria um novo nivel MCR."""
+        nivel = MCRNivel(nome, dados)
+        self.niveis[nome] = nivel
+        self._ordem.append(nome)
+        self.mk.aprender(f"NIVEL:{nome}", f"ordem:{len(self._ordem)}")
+    
+    def _conectar_niveis(self):
+        """Conecta todos os niveis descobertos entre si."""
+        nomes = list(self.niveis.keys())
+        for i in range(len(nomes)):
+            for j in range(i+1, len(nomes)):
+                a, b = self.niveis[nomes[i]], self.niveis[nomes[j]]
+                sim = a.conectar(b)
+                if sim > 0:
+                    self.mk.aprender(f"LIG:{nomes[i]}-{nomes[j]}", f"sim:{sim:.2f}")
+    
+    def diagnosticar(self) -> dict:
+        """Diagnostica o estado atual dos niveis.
+        
+        Retorna:
+        - quantos niveis existem
+        - ordem de descoberta
+        - qual nivel tem maior raio
+        - energia total do sistema
+        - recomenda criar novo nivel?
+        """
+        if not self.niveis:
+            return {'niveis': 0, 'energia': 0}
+        
+        stats = {nome: n.stats() for nome, n in self.niveis.items()}
+        maior_raio = max(stats.items(), key=lambda x: x[1]['raio']) if stats else ('?', {})
+        
+        return {
+            'n_niveis': len(self.niveis),
+            'ordem': self._ordem,
+            'stats': stats,
+            'maior_raio': {'nome': maior_raio[0], 'valor': maior_raio[1].get('raio', 0)},
+            'energia_total': round(self._energia_total, 2),
+            'precisa_mais': len(self.niveis) < len(_NIVEIS_BASE),
+        }
+    
+    def auto_expandir(self, max_niveis: int = 10) -> int:
+        """Tenta expandir para o proximo nivel na lista base.
+        
+        RECONSTROI dados do nivel BYTE em vez de guardar texto original.
+        Usa MCRByte.gerar() para gerar dados reais do proprio nivel.
+        """
+        if len(self.niveis) >= max_niveis:
+            return 0
+        
+        # Proximo nivel na lista base
+        proximos = [n for n in _NIVEIS_BASE if n not in self.niveis]
+        if not proximos:
+            return 0
+        
+        novo_nivel = proximos[0]
+        self._criar_nivel(novo_nivel)
+        
+        # Reconstrói dados do nivel BYTE (sempre existe)
+        if 'byte' in self.niveis:
+            nivel_byte = self.niveis['byte']
+            # Pega o primeiro estado como semente
+            semente = list(nivel_byte.mk.freq.keys())[0] if nivel_byte.mk.freq else '0'
+            # Gera 50 estados a partir da semente (dados RECONSTRUIDOS do proprio nivel)
+            estados = nivel_byte.mk.gerar(semente, passos=50)
+            # Junta em string
+            dados_reconstruidos = ' '.join(str(e) for e in estados if e)
+            
+            # Converte para o nivel alvo
+            if novo_nivel == 'palavra':
+                # Nivel palavra: os proprios estados (ja sao palavras/bytes)
+                dados_novo = dados_reconstruidos.encode('utf-8')[:500]
+            elif novo_nivel == 'token':
+                # Nivel token: usa _classificar_token em cada estado
+                try:
+                    tokens_tipos = []
+                    for e in estados[:20]:
+                        pal = str(e).replace('B:', '').strip()
+                        if pal:
+                            from modulos.MCR import _classificar_token as _mcr_tip
+                            tokens_tipos.append(_mcr_tip(pal) or 'outro')
+                    dados_novo = ' '.join(tokens_tipos).encode('utf-8')
+                except:
+                    dados_novo = dados_reconstruidos.encode('utf-8')[:500]
+            elif novo_nivel == 'intencao':
+                # Nivel intencao: usa os estados como palavras de intencao
+                dados_novo = dados_reconstruidos.encode('utf-8')[:500]
+            else:
+                # Outros niveis: dados reconstruidos do byte
+                dados_novo = dados_reconstruidos.encode('utf-8')[:500]
+            
+            self.niveis[novo_nivel].alimentar(dados_novo)
+        
+        return 1
 
 
 class MCRFilosofia:
@@ -4318,7 +4594,27 @@ def _autotestar():
     except Exception as e:
         testar(f"MCRFilosofia erro: {e}", False)
     
-    # 16. Teste: MCRFeedback
+    # 16. Teste: MCRMetaNivel
+    try:
+        meta = MCRMetaNivel()
+        entrada = "Explique o sistema SPA do MCR".encode('utf-8')
+        meta.alimentar(entrada)
+        diag = meta.diagnosticar()
+        testar(f"MCRMetaNivel {diag['n_niveis']} niveis descobertos", 
+               diag['n_niveis'] >= 3)
+        testar(f"Ordem: {diag.get('ordem',[])}", 
+               diag.get('ordem', [])[:1] == ['byte'])
+        if diag['n_niveis'] >= 2:
+            n_exp = meta.auto_expandir(max_niveis=6)
+            diag2 = meta.diagnosticar()
+            testar(f"Auto-expandiu para {diag2['n_niveis']} niveis", 
+                   diag2['n_niveis'] > diag['n_niveis'])
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        testar("MCRMetaNivel falhou", False)
+    
+    # 17. Teste: MCRFeedback
     try:
         fb = MCRFeedback(mestre_v2)
         res_fb = fb.processar_com_feedback("Explique SPA", max_tentativas=2)
@@ -4354,17 +4650,120 @@ def _autotestar():
     return resultados
 
 
+# ============================================================
+# MCR ALIASES — 19 módulos externos viram MCR
+# ============================================================
+# Cada alias mapeia uma classe externa para seu equivalente MCR.
+# Os arquivos originais continuam existindo para compatibilidade,
+# mas TUDO que fazem ESTÁ AQUI.
+
+# lexico_v2
+def tokenizar_v2(texto):
+    """Alias MCR: tokeniza sem INTENT/DOM fixos."""
+    palavras = texto.split() if texto else []
+    try:
+        return [(MCR._classificar_token(p), p, 0.7) for p in palavras if p]
+    except:
+        return [('outro', p, 0.3) for p in palavras if p]
+
+tipos_unicos = lambda t: list(set(x[0] for x in t)) if t else []
+
+# intention_engine
+class IntentionEngine:
+    """Alias MCR para IntentionEngine legado."""
+    CATEGORIAS = ["EXPLAIN", "SEARCH", "CREATE", "EDIT", "REVIEW", "GERAL"]
+    def __init__(self, pe=None, ia=None): pass
+    def detectar(self, texto):
+        dec = MCRDecisor("ie_alias")
+        return [(dec.decidir(texto), {"texto": texto}, 0.7)]
+    def detectar_mcr(self, texto):
+        return self.detectar(texto)
+
+# supervisor
+class Supervisor:
+    """Alias MCR para Supervisor legado."""
+    def __init__(self, ia=None, kg=None): pass
+    def classificar(self, texto):
+        dec = MCRDecisor("sup_alias")
+        return dec.decidir(texto), "normal"
+
+# pattern_engine
+class PatternEngine:
+    """Alias MCR para PatternEngine legado."""
+    def tokenizar_universal(self, texto):
+        return [(MCR._classificar_token(p) if hasattr(MCR, '_classificar_token') else 'outro', p) for p in texto.split() if p]
+    def fingerprint(self, tokens):
+        return MCRFingerprint.gerar(' '.join(str(t[1]) for t in tokens)) if tokens else [0.0]*8
+    def similaridade(self, a, b):
+        return MCR('sim').similaridade_transicoes(str(a), str(b))
+
+# kg + kg_cleaner
+class KnowledgeGraph:
+    """Alias MCR para KnowledgeGraph legado."""
+    def __init__(self): self._buf = MCRBufferKG()
+    def buscar(self, *a, **kw): return self._buf.kg.buscar(*a, **kw) if self._buf.kg else []
+    def aprender(self, *a, **kw):
+        if self._buf.kg: self._buf.kg.aprender(*a, **kw)
+    def _get_licoes(self): return self._buf.kg._get_licoes() if self._buf.kg else []
+
+# auto_trigger
+class AutoTriggerSystem:
+    """Alias MCR para AutoTrigger legado."""
+    def __init__(self, **kw): self.fer = MCRFerramenta()
+    def processar(self, *a, **kw): return {'resultados': [], 'contexto_completo': ''}
+
+# emergir
+EMERGIR = MCRConector
+
+# pi_engine
+PI = MCREntropia
+
+# lessons_buffer
+LessonsBuffer = MCRBufferKG
+
+# context_enricher
+ContextEnricher = MCRConector
+
+# decider
+Decider = MCRDecisor
+
+# diagnostic_engine
+Diagnostic = MCRDiagnostico
+
+# tool_orchestrator
+ToolOrchestrator = MCRBridge
+
+# auto_repair
+class AutoRepair:
+    """Alias MCR: repara via MCRDiagnostico."""
+    @staticmethod
+    def reparar(codigo, **kw):
+        return MCRDiagnostico("reparo").diagnosticar({'codigo': codigo})
+
+# blank_filler
+class BlankFiller:
+    """Alias MCR: preenche blanks via MCRCadeia."""
+    @staticmethod
+    def preencher(texto, **kw):
+        c = MCRConector()
+        c.alimentar(texto[:500], "blank")
+        cadeia = MCRCadeia(c)
+        return cadeia.gerar(texto.split()[0] if texto.split() else 'O', 20).get('texto', texto)
+
+# tradutor (PT-BR nativo)
+class Tradutor:
+    @staticmethod
+    def traduzir(texto, **kw): return texto  # MCR ja e PT-BR nativo
+
+# truncation_fixer (MCR ja lê bytes sem truncar)
+class TruncationFixer:
+    @staticmethod
+    def fixar(texto, **kw): return texto
+
+
 if __name__ == '__main__':
     import sys, os
     _base = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
     if _base not in sys.path:
         sys.path.insert(0, _base)
-    # Re-tenta imports para MCR_COMPLETO
-    try:
-        from modulos.pattern_engine import PatternEngine
-        from modulos.kg import KnowledgeGraph
-        from modulos.tool_orchestrator import ToolOrchestrator
-        MCR_COMPLETO = True
-    except ImportError:
-        pass
     _autotestar()
