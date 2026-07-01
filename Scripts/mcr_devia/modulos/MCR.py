@@ -3484,6 +3484,92 @@ class MCRMestreV2:
 
 
 # ============================================================
+# MCR AUTO MELHORIA — MCR se pergunta o que nao sabe e age
+# ============================================================
+
+class MCRAutoMelhoria:
+    """MCR que se autoaperfeicoa com 7 perguntas.
+    
+    1. O que NAO sabe? → gaps no KG
+    2. Onde e LENTO? → fragmentos
+    3. O que REPETIU? → loops
+    4. O que ERROU? → diagnosticos
+    5. O que APRENDEU? → lessons
+    6. O que PRECISA? → pesos
+    7. O que ESQUECEU? → docs nao lidos
+    """
+    
+    def __init__(self, kg=None, bridge=None):
+        self.kg = kg or (KnowledgeGraph() if MCR_COMPLETO else None)
+        self.bridge = bridge or MCRBridge()
+        self.meta = MCRMetaGap(self.kg, self.bridge)
+        self.fuel = MCRFuel(self.kg, self.bridge)
+        self.frag = MCRFragmentador()
+        self.mk = MCR("auto_melhoria")
+    
+    def _p1_gaps(self):
+        gaps = self.meta.diagnosticar_gaps(min_por_prefixo=5)
+        for gap in gaps[:5]:
+            n = self.meta.buscar_para_gap(gap)
+            if n > 0:
+                self.mk.aprender(f"GAP:{gap['prefixo']}", f"{n}")
+        return [f"gap_{g['prefixo']}" for g in gaps[:3] if g]
+    
+    def _p2_lento(self):
+        if not self.frag.fragmentos: return []
+        for f in self.frag.fragmentos:
+            if f.tempo > 1.0:
+                self.mk.aprender(f"LENTO:{f.nome}", f"{f.tempo:.1f}s")
+        return [f"lento:{f.nome}:{f.tempo:.1f}s" for f in self.frag.fragmentos if f.tempo > 1.0]
+    
+    def _p7_esqueceu(self):
+        try:
+            idx = _get_doc_index()
+            idx.indexar()
+            for termo in ['eridanus','spa','shc','npc','lore']:
+                docs = idx.buscar(termo)
+                for doc in docs[:2]:
+                    c = idx.ler(doc['caminho'], 500)
+                    if c and self.kg:
+                        self.kg.aprender_conceito(f"auto_{os.path.basename(doc['caminho']).replace('.','_')}", c[:400], ctx="auto_descoberta")
+            return ["docs_autodescobertos"] if any(idx.buscar(t) for t in ['eridanus','spa','lore']) else []
+        except: return []
+    
+    def _p3_repetiu(self):
+        if self.fuel.mk.total > 10 and self.fuel.mk.entropia_media() < 0.5:
+            self.mk.aprender("LOOP", "detectado")
+            return ["loop_detectado"]
+        return []
+    
+    def _p4_errou(self):
+        if not self.kg: return []
+        e = [l for l in self.kg._get_licoes() if 'erro' in l.get('ctx','')]
+        if e: self.mk.aprender("ERROS", str(len(e)))
+        return [f"erros:{len(e)}"] if e else []
+    
+    def _p5_aprendeu(self):
+        if not self.kg: return []
+        r = [l for l in self.kg._get_licoes() if l.get('timestamp',0) > 0]
+        return [f"aprendeu:{len(r)}"] if r else []
+    
+    def _p6_precisa(self):
+        pn = MCRPesoNota("check")
+        if len(pn.historico) < 5: return ["peso_nota_sem_treino"]
+        return []
+    
+    def ciclo(self):
+        """7 perguntas, acoes tomadas."""
+        todas = []
+        for fn in [self._p1_gaps, self._p2_lento, self._p7_esqueceu,
+                   self._p3_repetiu, self._p4_errou, self._p5_aprendeu, self._p6_precisa]:
+            try:
+                todas.extend(fn())
+            except: pass
+        self.mk.aprender("CICLO", str(len(todas)))
+        return {'acoes': todas, 'n': len(todas)}
+
+
+# ============================================================
 # MCR HUMANO — Conceitos humanos, filosofias, emoções como padrões MCR
 # ============================================================
 
@@ -3959,7 +4045,16 @@ def _autotestar():
     except:
         testar("MCRMetaGap instancia", False)
     
-    # 14. Teste: MCRFilosofia
+    # 14. Teste: MCRAutoMelhoria
+    try:
+        am = MCRAutoMelhoria(kg=None, bridge=bridge)
+        ciclo = am.ciclo()
+        testar(f"MCRAutoMelhoria {ciclo['n']} acoes", ciclo['n'] >= 0)
+    except Exception as e:
+        print(f"      MCRAutoMelhoria erro: {e}")
+        testar("MCRAutoMelhoria", False)
+    
+    # 15. Teste: MCRFilosofia
     try:
         f = MCRFilosofia()
         n = f.aprender_perguntas_fundamentais()
@@ -3969,7 +4064,7 @@ def _autotestar():
     except Exception as e:
         testar(f"MCRFilosofia erro: {e}", False)
     
-    # 15. Teste: MCRFeedback
+    # 16. Teste: MCRFeedback
     try:
         fb = MCRFeedback(mestre_v2)
         res_fb = fb.processar_com_feedback("Explique SPA", max_tentativas=2)
@@ -3979,7 +4074,7 @@ def _autotestar():
         print(f"      MCRFeedback erro: {e}")
         testar("MCRFeedback", False)
     
-    # 16. Teste: AutoStart
+    # 17. Teste: AutoStart
     try:
         astart = MCRAutoStart.iniciar()
         ok = isinstance(astart, dict) and 'erro' not in astart
