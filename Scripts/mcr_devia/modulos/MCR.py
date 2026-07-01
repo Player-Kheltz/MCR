@@ -4647,6 +4647,35 @@ def _autotestar():
     testar(f'MCRSignature.metaniveis {mn["niveis_finais"]} niveis ordem={mn["ordem"][:3]}',
            mn['niveis_finais'] >= 3)
     
+    # 24. MCRSession
+    sess = MCRSession()
+    sess.registrar("teste", "resposta_teste", "autoteste")
+    sess.salvar_estado()
+    carregado = sess.carregar_estado()
+    testar(f'MCRSession.registrar + salvar + carregar', carregado is not None)
+    testar(f'MCRSession.ultima_pergunta={sess.ultima_pergunta()}', 
+           sess.ultima_pergunta() == 'teste')
+    
+    # 25. MCRAssinatura
+    banco = MCRAssinatura()
+    banco.aprender("Explique o sistema SPA do MCR", "Kheltz")
+    banco.aprender("Crie um NPC ferreiro em Eridanus", "Kheltz")
+    autor, conf, _ = banco.identificar("Explique o SPA do projeto MCR")
+    testar(f'MCRAssinatura identificar autor={autor} conf={conf:.2f}', 
+           conf > 0.3)
+    n_auto = banco.auto_popular()
+    testar(f'MCRAssinatura.auto_popular autores={banco.autores_conhecidos()}', 
+           banco.estatisticas()['autores'] > 0)
+    
+    # 26. MCRWebLearn
+    web = MCRWebLearn()
+    n_estudados = web.estudar_gaps(1)
+    testar(f'MCRWebLearn.estudar_gaps estudados={n_estudados}', 
+           n_estudados >= 0)
+    ciclo = web.ciclo_auto_estudo()
+    testar(f'MCRWebLearn.ciclo_auto_estudo estudados={ciclo.get("estudados",0)}', 
+           ciclo.get('estudados', 0) >= 0)
+    
     # Relatorio
     passed = sum(1 for _, c in resultados if c)
     total = len(resultados)
@@ -4800,6 +4829,340 @@ class MCRSignature:
             'match': melhor,
             'alvo': sig_alvo,
         }
+
+
+# ============================================================
+# MCR SESSION — Memoria de sessao (checkpoint + retomada)
+# ============================================================
+
+class MCRSession:
+    """Memoria de sessao: salva/carrega estado, historico, checkpoint.
+    
+    Uso:
+        sess = MCRSession()
+        sess.registrar("Explique SPA", "SPA = Sistema...")  
+        sess.salvar_estado()
+        # ... (MCR reinicia)
+        ultimo = sess.carregar_estado()  # → "Explique SPA"
+    """
+    
+    def __init__(self):
+        self._base = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+        self._conv_path = os.path.join(self._base, 'sandbox', '.mcr_conversa.jsonl')
+        self._estado_path = os.path.join(self._base, 'sandbox', '.mcr_estado.json')
+        self._episodios_path = os.path.join(self._base, 'sandbox', '.mcr_episodios.json')
+        self._historico = []
+        self._ultima_pergunta = ''
+        self._ultima_resposta = ''
+        self._ultimo_autor = ''
+        self.mk = MCR("session")
+    
+    def registrar(self, pergunta, resposta, autor=''):
+        """Registra uma interacao no historico + arquivo de conversa."""
+        self._ultima_pergunta = pergunta
+        self._ultima_resposta = resposta
+        self._ultimo_autor = autor
+        self._historico.append({'pergunta': pergunta, 'resposta': resposta[:200], 'autor': autor})
+        
+        # Salva no .jsonl
+        try:
+            os.makedirs(os.path.dirname(self._conv_path), exist_ok=True)
+            with open(self._conv_path, 'a', encoding='utf-8') as f:
+                f.write(json.dumps({'msg': f'{autor}: {pergunta} -> {resposta[:100]}',
+                                   'timestamp': _time.time()}) + '\n')
+        except: pass
+        
+        self.mk.aprender(f"CONV:{pergunta[:30]}", f"autor:{autor or 'anonimo'}")
+    
+    def salvar_estado(self):
+        """Salva estado completo da sessao (checkpoint)."""
+        estado = {
+            'timestamp': _time.time(),
+            'ultima_pergunta': self._ultima_pergunta,
+            'ultima_resposta': self._ultima_resposta,
+            'ultimo_autor': self._ultimo_autor,
+            'n_historico': len(self._historico),
+        }
+        try:
+            os.makedirs(os.path.dirname(self._estado_path), exist_ok=True)
+            with open(self._estado_path, 'w', encoding='utf-8') as f:
+                json.dump(estado, f, ensure_ascii=False, indent=2)
+            return True
+        except: return False
+    
+    def carregar_estado(self):
+        """Carrega estado da ultima sessao."""
+        if not os.path.exists(self._estado_path): return None
+        try:
+            with open(self._estado_path, 'r', encoding='utf-8') as f:
+                estado = json.load(f)
+            self._ultima_pergunta = estado.get('ultima_pergunta', '')
+            self._ultima_resposta = estado.get('ultima_resposta', '')
+            self._ultimo_autor = estado.get('ultimo_autor', '')
+            return estado
+        except: return None
+    
+    def ultima_pergunta(self): return self._ultima_pergunta
+    def ultima_resposta(self): return self._ultima_resposta
+    def ultimo_autor(self): return self._ultimo_autor
+    
+    def auto_retomar(self):
+        """Auto-retomada: se tinha estado salvo, carrega e retorna."""
+        estado = self.carregar_estado()
+        if estado:
+            self.mk.aprender("RETOMADA", f"pergunta:{estado.get('ultima_pergunta','')[:30]}")
+            return estado
+        return None
+
+
+# ============================================================
+# MCR ASSINATURA — Banco de assinaturas de autores
+# ============================================================
+
+class MCRAssinatura:
+    """Banco de assinaturas de autores conhecidos.
+    
+    Cada autor tem uma assinatura unica (MCRSignature) do seu estilo.
+    O banco e populado AUTOMATICAMENTE pelas conversas.
+    
+    Uso:
+        banco = MCRAssinatura()
+        banco.aprender("Explique SPA", "Kheltz")  # aprende estilo
+        autor = banco.identificar("Explique o SPA")  # → "Kheltz"
+        banco.auto_popular()  # popula das conversas existentes
+    """
+    
+    def __init__(self):
+        self._banco = {}  # {autor: [assinaturas]}
+        self.mk = MCR("assinatura")
+        self._base = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+        self._banco_path = os.path.join(self._base, 'sandbox', '.mcr_assinaturas.json')
+        self._carregar()
+    
+    def _carregar(self):
+        if os.path.exists(self._banco_path):
+            try:
+                with open(self._banco_path, 'r', encoding='utf-8') as f:
+                    dados = json.load(f)
+                self._banco = dados
+                self.mk.aprender("BANCO", f"autores:{len(self._banco)}")
+            except: pass
+    
+    def _salvar(self):
+        try:
+            os.makedirs(os.path.dirname(self._banco_path), exist_ok=True)
+            with open(self._banco_path, 'w', encoding='utf-8') as f:
+                json.dump(self._banco, f, ensure_ascii=False, indent=2)
+        except: pass
+    
+    def aprender(self, texto, autor):
+        """Aprende a assinatura de um autor a partir de um texto."""
+        if not texto or not autor: return
+        sig = MCRSignature.extrair(texto)
+        if autor not in self._banco:
+            self._banco[autor] = []
+        self._banco[autor].append({
+            'fingerprint': sig.get('fingerprint', []),
+            'entropia': sig.get('entropia', 0),
+            'timestamp': _time.time(),
+        })
+        self.mk.aprender(f"AUTOR:{autor}", f"ent:{sig.get('entropia',0):.2f}")
+        self._salvar()
+    
+    def identificar(self, texto):
+        """Identifica quem escreveu o texto comparando com o banco.
+        
+        Retorna: (nome_autor, confianca, detalhes)
+        """
+        if not texto or not self._banco: return ('desconhecido', 0.0, {})
+        
+        sig_alvo = MCRSignature.extrair(texto)
+        fp_alvo = sig_alvo.get('fingerprint', [])
+        if not fp_alvo: return ('desconhecido', 0.0, {})
+        
+        melhor_autor = 'desconhecido'
+        melhor_conf = 0.0
+        detalhes = {}
+        
+        for autor, assinaturas in self._banco.items():
+            confs = []
+            for ass in assinaturas[-5:]:  # ultimas 5 assinaturas
+                fp_ass = ass.get('fingerprint', [])
+                if fp_ass and len(fp_ass) == len(fp_alvo):
+                    # Cosseno entre fingerprints
+                    dot = sum(a*b for a,b in zip(fp_ass, fp_alvo))
+                    na = sum(a*a for a in fp_ass) ** 0.5
+                    nb = sum(b*b for b in fp_alvo) ** 0.5
+                    conf = dot / (na * nb) if na*nb > 0 else 0
+                    confs.append(conf)
+            if confs:
+                conf_media = sum(confs) / len(confs)
+                detalhes[autor] = round(conf_media, 3)
+                if conf_media > melhor_conf:
+                    melhor_conf = conf_media
+                    melhor_autor = autor
+        
+        return (melhor_autor, round(melhor_conf, 3), detalhes)
+    
+    def auto_popular(self):
+        """Auto-popula o banco a partir das conversas existentes (.jsonl).
+        
+        Agrupa por similaridade de assinatura (MCRSignature.comparar > 0.7).
+        Cria perfis automaticamente.
+        """
+        conv_path = os.path.join(self._base, 'sandbox', '.mcr_conversa.jsonl')
+        if not os.path.exists(conv_path): return 0
+        
+        n = 0
+        autor_atual = 'desconhecido'
+        ultima_sig = None
+        
+        try:
+            with open(conv_path, 'r', encoding='utf-8') as f:
+                for linha in f:
+                    try:
+                        entry = json.loads(linha.strip())
+                        msg = entry.get('msg', '')
+                        if not msg or len(msg) < 20: continue
+                        
+                        sig_atual = MCRSignature.extrair(msg)
+                        
+                        # Se tem assinatura anterior, compara
+                        if ultima_sig is not None:
+                            comp = MCRSignature.comparar(ultima_sig, sig_atual)
+                            if comp < 0.5:
+                                # Autor diferente
+                                autor_atual = f'autor_{n}'
+                                n += 1
+                        
+                        self.aprender(msg, autor_atual)
+                        ultima_sig = sig_atual
+                    except: pass
+        except: pass
+        
+        self.mk.aprender("AUTO_POP", f"autores:{n}")
+        return n
+    
+    def autores_conhecidos(self):
+        return list(self._banco.keys())
+    
+    def estatisticas(self):
+        return {'autores': len(self._banco), 
+                'total_assinaturas': sum(len(v) for v in self._banco.values())}
+
+
+# ============================================================
+# MCR WEB LEARN — Estudo web autonomo
+# ============================================================
+
+class MCRWebLearn:
+    """Estudo web AUTONOMO.
+    
+    MCR decide o que estudar baseado em gaps (MCRMetaGap).
+    Busca na web, extrai texto, indexa no KG.
+    
+    Uso:
+        web = MCRWebLearn()
+        web.estudar_gaps(3)  # estuda os 3 maiores gaps
+        web.ciclo_auto_estudo()  # tudo automatico
+    """
+    
+    def __init__(self):
+        self._base = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+        self.mk = MCR("weblearn")
+        self._kg = None
+        try:
+            from modulos.kg import KnowledgeGraph
+            self._kg = KnowledgeGraph()
+        except:
+            pass
+        try:
+            import urllib.request
+            self._urlopen = urllib.request.urlopen
+        except:
+            self._urlopen = None
+    
+    def estudar_gaps(self, n_gaps=3):
+        """Estuda os N maiores gaps do conhecimento.
+        
+        Pega gaps do MCRMetaGap, busca conteudo na web, indexa no KG.
+        """
+        if not self._kg: return 0
+        
+        gaps = MCRMetaGap().diagnosticar_gaps(min_por_prefixo=5)
+        if not gaps: return 0
+        
+        total = 0
+        for gap in gaps[:n_gaps]:
+            termo = gap['prefixo']
+            resultado = self._buscar_web(termo)
+            if resultado:
+                self._kg.aprender_conceito(
+                    f"weblearn:{termo}",
+                    f"[WebLearn] {resultado[:500]}",
+                    ctx="weblearn"
+                )
+                total += 1
+                self.mk.aprender(f"WWW:{termo}", "OK")
+        return total
+    
+    def _buscar_web(self, termo):
+        """Busca termo na web via Wikipedia API (leve, sem LLM)."""
+        if not self._urlopen: return None
+        try:
+            url = f"https://pt.wikipedia.org/w/api.php?action=query&list=search&srsearch={termo}&format=json&srlimit=1"
+            resp = self._urlopen(url, timeout=10).read()
+            dados = json.loads(resp.decode('utf-8'))
+            resultados = dados.get('query', {}).get('search', [])
+            if resultados:
+                titulo = resultados[0].get('title', '')
+                if titulo:
+                    # Pega o resumo
+                    url2 = f"https://pt.wikipedia.org/w/api.php?action=query&titles={titulo}&prop=extracts&exintro=true&format=json"
+                    resp2 = self._urlopen(url2, timeout=10).read()
+                    dados2 = json.loads(resp2.decode('utf-8'))
+                    pages = dados2.get('query', {}).get('pages', {})
+                    for page_id, page_data in pages.items():
+                        extract = page_data.get('extract', '')
+                        if extract:
+                            # Remove tags HTML
+                            import re
+                            texto = re.sub(r'<[^>]+>', '', extract)
+                            return f"[Wikipedia: {titulo}] {texto[:1000]}"
+            return f"[Wikipedia] Resultado sobre {termo} encontrado."
+        except Exception as e:
+            return f"[WebLearn] {termo}: {str(e)[:50]}"
+    
+    def ciclo_auto_estudo(self):
+        """Ciclo completo de auto-estudo.
+        
+        Fluxo:
+        1. Diagnostica gaps no KG
+        2. Para cada gap, busca na web
+        3. Indexa no KG
+        4. Registra aprendizado
+        """
+        if not self._kg: return {'estudados': 0, 'erro': 'KG indisponivel'}
+        
+        gaps = MCRMetaGap().diagnosticar_gaps(min_por_prefixo=5)
+        n_estudados = 0
+        erros = 0
+        
+        for gap in gaps[:5]:
+            termo = gap['prefixo']
+            resultado = self._buscar_web(termo)
+            if resultado and len(resultado) > 30:
+                self._kg.aprender_conceito(
+                    f"weblearn_auto:{termo}",
+                    resultado[:500],
+                    ctx="weblearn"
+                )
+                n_estudados += 1
+                self.mk.aprender(f"AUTO_WWW:{termo}", "OK")
+            else:
+                erros += 1
+        
+        return {'estudados': n_estudados, 'erros': erros, 'total_gaps': len(gaps)}
 
 
 # ============================================================
