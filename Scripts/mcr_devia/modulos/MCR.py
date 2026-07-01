@@ -1572,6 +1572,8 @@ class MCRPergunta:
         self.cadeia = MCRCadeia(self.conector)
         self.semantico = AutoavaliadorSemantico(kg, None)
         self.diagnostico = MCRDiagnostico()
+        self.peso_nota = MCRPesoNota("pergunta_peso")
+        self.expansao = MCRExpansao(self.kg)
         self.log = []
     
     @staticmethod
@@ -1651,11 +1653,29 @@ class MCRPergunta:
                 self.conector.alimentar(sol[:500], nome)
                 topicos_alimentados.append(nome)
         
-        # Se não encontrou nada no KG, usa a própria pergunta
+        # Se não encontrou nada no KG, EXPANDE automaticamente
         if not topicos_alimentados:
-            sol_limpa = self._limpar_texto(pergunta)
-            self.conector.alimentar(sol_limpa, "pergunta")
-            topicos_alimentados.append("pergunta")
+            # Bridge + Expansao: usa 48 modulos para buscar conhecimento
+            exp = self.expansao.expandir(termos[0] if termos else pergunta, max_recursos=10)
+            if exp.get('expansoes', 0) > 0:
+                # Tenta novamente com o KG expandido
+                lessons2 = []
+                for termo in termos[:3]:
+                    ls = self.kg.buscar(termo, max_r=5, pergunta=pergunta)
+                    lessons2.extend(ls)
+                for i, l in enumerate(lessons2[:5]):
+                    sol = l.get('solucao', '') or l.get('erro', '')
+                    if self._filtrar_lesson(sol) and sol:
+                        sol = self._limpar_texto(sol)
+                        nome = f"kg_exp_{i}_{l.get('ctx', '?')}"
+                        self.conector.alimentar(sol[:500], nome)
+                        topicos_alimentados.append(nome)
+            
+            # Se ainda vazio, fallback na pergunta
+            if not topicos_alimentados:
+                sol_limpa = self._limpar_texto(pergunta)
+                self.conector.alimentar(sol_limpa, "pergunta")
+                topicos_alimentados.append("pergunta")
         
         # 4. Tenta conectar os topicos
         conexoes = []
@@ -1696,32 +1716,36 @@ class MCRPergunta:
             if idx_ponto > 0:
                 texto = texto[:idx_ponto+1]
         
-        # 7. Autoavalia com MCRDiagnostico (nota HONESTA)
+        # 7. Autoavalia com MCRPesoNota (pesos aprendidos, nao fixos)
         av_sem = self.semantico.avaliar(texto, 'lore')
+        nota_sem = av_sem.get('nota', 5) if isinstance(av_sem, dict) else 5
+        nota_cadeia = resultado_cadeia.get('nota', 5)
+        loops = resultado_cadeia.get('loops_detectados', 0)
         
-        # Diagnostico MCR: detecta problemas no texto gerado
+        # PesoNota calcula nota HONESTA baseada em experiencias anteriores
+        nota_final = self.peso_nota.calcular(
+            byte_s=nota_cadeia,
+            palavra_s=nota_sem,
+            token_s=8 if loops < 3 else 3
+        )
+        
+        # Diagnostico MCR: detecta e APRENDE com problemas
         estado_diag = {
-            'byte': resultado_cadeia.get('nota', 5)/10,
-            'palavra': av_sem.get('nota', 5)/10 if isinstance(av_sem, dict) else 0.5,
-            'token': resultado_cadeia.get('loops_detectados', 0) > 3,
+            'byte': nota_cadeia/10,
+            'palavra': nota_sem/10,
+            'token': nota_final/10,
         }
         diag = self.diagnostico.diagnosticar(estado_diag)
         
-        nota_multinivel = 0
-        if len(topicos_alimentados) >= 2:
-            ta = self.conector.topicos.get(topicos_alimentados[0], {}).get('texto', '')
-            tb = self.conector.topicos.get(topicos_alimentados[1], {}).get('texto', '')
-            nota_multinivel, _ = self.conector._autoavaliar_multinivel(
-                texto, ta, tb, "conteudo_compartilhado"
-            )
+        # AUTO-ALIMENTA: diagnostico aprende com o resultado real
+        problema = 'loop' if loops > 3 else 'ok'
+        self.diagnostico.alimentar(estado_diag, problema)
         
-        # Nota final HONESTA: penaliza por diagnosticos ruins
-        nota_cadeia = resultado_cadeia['nota']
-        nota_base = (nota_cadeia + av_sem['nota'] + nota_multinivel) / 3
-        penalidade_diag = 0.0
-        if 'JSON' in diag: penalidade_diag += 3.0
-        if 'loop' in diag: penalidade_diag += 2.0
-        nota_final = max(0, nota_base - penalidade_diag)
+        # PesoNota aprende com esta execucao
+        self.peso_nota.aprender(
+            {'byte': nota_cadeia/10, 'palavra': nota_sem/10, 'token': nota_final/10},
+            nota_final
+        )
         
         resultado = {
             'pergunta': pergunta,
@@ -2920,66 +2944,90 @@ class MCRMestreV2:
         if not self.bridge._descobriu:
             self.bridge.descobrir()
         
-        # 1. DECISOR decide fluxo (aprendido, nao if/else)
+        # 1. DECISOR decide fluxo (aprendido)
         fluxo = self.decisor.decidir(pergunta)
-        
-        # 2. Aprende com esta execucao
         self.decisor.aprender(pergunta, fluxo, True)
         
-        # 3. Bridge + workers
-        tarefas = []
         termo = pergunta.split()[-1] if pergunta.split() else 'MCR'
         semente = pergunta.split()[0] if pergunta.split() else 'O'
         
-        if 'kg' in fluxo:
-            tarefas.append(("kg", "buscar_kg", {'termo': termo, 'pergunta': pergunta}))
-        if 'conector' in fluxo or 'cadeia' in fluxo:
-            tarefas.append(("gerador", "gerar", {'semente': semente, 'n_tokens': 40}))
+        # 2. CICLO: gera -> avalia -> se nota < 8: expande -> regenera
+        nota = 0
+        resposta = ''
+        ciclo_atual = 0
+        max_ciclos = 5
+        expansoes_feitas = []
         
-        workers = self.spawner.spawnar(tarefas) if tarefas else []
+        while nota < 8 and ciclo_atual < max_ciclos:
+            ciclo_atual += 1
+            
+            # Bridge + workers
+            tarefas = []
+            
+            if 'kg' in fluxo:
+                tarefas.append(("kg", "buscar_kg", {'termo': termo, 'pergunta': pergunta}))
+            if 'conector' in fluxo or 'cadeia' in fluxo:
+                tarefas.append(("gerador", "gerar", {'semente': semente, 'n_tokens': 40 + ciclo_atual*10}))
+            
+            workers = self.spawner.spawnar(tarefas) if tarefas else []
+            
+            # Consolida
+            textos = []
+            for w in workers:
+                if w.resultado:
+                    if isinstance(w.resultado, str): textos.append(w.resultado)
+                    elif isinstance(w.resultado, list): textos.extend(w.resultado[:2])
+            
+            if textos:
+                for t in textos[:3]:
+                    if isinstance(t, str) and len(t) > 20:
+                        self.conector.alimentar(t[:500], "consolidado")
+            
+            res_cadeia = self.cadeia.gerar(semente, n_tokens=40 + ciclo_atual*10)
+            resposta = res_cadeia.get('texto', '')
+            nota_cadeia = res_cadeia.get('nota', 0)
+            loops = res_cadeia.get('loops_detectados', 0)
+            
+            # Autoavalia com MCRPesoNota
+            nota = self.peso_nota.calcular(
+                byte_s=nota_cadeia,
+                palavra_s=min(10, len(resposta)/30),
+                token_s=8 if loops < 3 else 3
+            )
+            
+            # Se nota < 8: tenta expandir
+            if nota < 8 and ciclo_atual < max_ciclos:
+                # Expansao busca em 48 modulos
+                expansao = MCRExpansao(None, self.bridge)
+                res_exp = expansao.expandir(termo, max_recursos=5)
+                if res_exp.get('expansoes', 0) > 0:
+                    expansoes_feitas.append(f"ciclo{ciclo_atual}:{res_exp['expansoes']}")
+                    # Tenta EMERGIR: conectar termo com topicos existentes
+                    if self.conector.topicos:
+                        for nome_topico in list(self.conector.topicos.keys())[:3]:
+                            cx = self.conector.conectar(termo, nome_topico)
+                            if cx:
+                                self.conector.alimentar(cx.get('sequencia',''), f"emergir_{termo}")
+                
+                # Bridge: tenta comandos como fallback
+                if 'explorar' in self.bridge.comandos:
+                    try: self.bridge.usar_comando('explorar', {'termo': termo})
+                    except: pass
         
-        # 4. Consolida
-        textos = []
-        for w in workers:
-            if w.resultado:
-                if isinstance(w.resultado, str): textos.append(w.resultado)
-                elif isinstance(w.resultado, list): textos.extend(w.resultado[:2])
-        
-        if textos:
-            for t in textos[:3]:
-                if isinstance(t, str) and len(t) > 20:
-                    self.conector.alimentar(t[:500], "consolidado")
-        
-        res_cadeia = self.cadeia.gerar(semente, n_tokens=40)
-        resposta = res_cadeia.get('texto', '')
-        nota_cadeia = res_cadeia.get('nota', 0)
-        
-        # 5. Autoavalia com MCRPesoNota (pesos aprendidos, nao fixos)
-        nota = self.peso_nota.calcular(
-            byte_s=nota_cadeia,
-            palavra_s=nota_cadeia,
-            token_s=nota_cadeia > 5 and 8 or 3
-        )
-        
-        # 6. Diagnostico AUTO-ALIMENTADO
-        loops = res_cadeia.get('loops_detectados', 0)
+        # Diagnostico AUTO-ALIMENTADO
         estado_diag = {
-            'byte': nota_cadeia / 10,
-            'palavra': nota_cadeia / 10,
-            'token': nota_cadeia > 5,
+            'byte': nota_cadeia / 10 if 'nota_cadeia' in dir() else 0.5,
+            'palavra': nota / 10,
+            'token': nota > 5,
         }
         diag = self.diagnostico.diagnosticar(estado_diag)
-        
-        # Alimenta diagnostico com resultado real
-        problema = 'loop' if loops > 3 else 'ok'
+        problema = 'loop' if locals().get('loops', 0) > 3 else 'ok'
         self.diagnostico.alimentar(estado_diag, problema)
         
-        # Threshold de loop aprende
-        self.threshold_loop.observar(nota_cadeia / 10)
-        
-        # 7. PesoNota aprende com esta execucao
+        # Threshold e PesoNota aprendem
+        self.threshold_loop.observar(nota / 10)
         self.peso_nota.aprender(
-            {'byte': nota_cadeia/10, 'palavra': nota_cadeia/10, 'token': nota_cadeia > 5 and 0.8 or 0.3},
+            {'byte': nota/10, 'palavra': nota/10, 'token': nota > 5 and 0.8 or 0.3},
             nota
         )
         
@@ -2988,7 +3036,8 @@ class MCRMestreV2:
             'resposta': resposta[:500],
             'nota': round(nota, 1),
             'fluxo': fluxo,
-            'n_workers': len(workers),
+            'ciclos': ciclo_atual,
+            'expansoes': expansoes_feitas,
             'diagnostico': diag,
             'n_execucoes': self.n_execucoes,
             'tempo': round(time.time() - t0, 2),
