@@ -2176,26 +2176,24 @@ class MCRBridge:
                     except Exception as e:
                         self.mk.aprender(f"MOD:{nome}", f"erro:{str(e)[:20]}")
         
-        # 2. DESCOBRE COMANDOS
+        # 2. DESCOBRE COMANDOS (por bytes, nao por import)
         cmd_path = os.path.join(os.path.dirname(__file__), '..', 'comandos')
         if os.path.isdir(cmd_path):
-            for fname in os.listdir(cmd_path):
-                if fname.startswith('cmd_') and fname.endswith('.py'):
-                    nome = fname[4:-3]  # cmd_explorar.py -> explorar
-                    try:
-                        spec = importlib.util.spec_from_file_location(
-                            nome, os.path.join(cmd_path, fname))
-                        if spec and spec.loader:
-                            mod = importlib.util.module_from_spec(spec)
-                            spec.loader.exec_module(mod)
-                            # Procura funcao principal
-                            for attr in dir(mod):
-                                if attr.startswith('cmd_') or attr == 'executar':
-                                    self.comandos[nome] = getattr(mod, attr)
-                                    break
-                            self.mk.aprender(f"CMD:{nome}", "disponivel")
-                    except Exception as e:
-                        self.mk.aprender(f"CMD:{nome}", f"erro:{str(e)[:20]}")
+            for fname in sorted(os.listdir(cmd_path)):
+                if not (fname.startswith('cmd_') and fname.endswith('.py')): continue
+                nome = fname[4:-3]
+                fpath = os.path.join(cmd_path, fname)
+                try:
+                    with open(fpath, 'rb') as f:
+                        dados = f.read(2000)  # lê como bytes
+                    # MCRByte aprende o padrao do comando
+                    mk_cmd = MCR(f"cmd_{nome}")
+                    mk_cmd.aprender_sequencia(list(dados))
+                    # Registra como disponivel (bytes, nao funcao)
+                    self.comandos[nome] = dados  
+                    self.mk.aprender(f"CMD:{nome}", f"disponivel:{len(dados)}bytes")
+                except Exception as e:
+                    self.mk.aprender(f"CMD:{nome}", f"erro:{str(e)[:20]}")
         
         self._descobriu = True
         
@@ -2217,16 +2215,18 @@ class MCRBridge:
         return mod
     
     def usar_comando(self, nome: str, kwargs: dict = None):
-        """Executa um comando: bridge.usar_comando('ensinar', {...})."""
+        """Retorna conhecimento do comando (bytes → texto)."""
         if nome not in self.comandos: return None
-        try:
-            return self.comandos[nome](**(kwargs or {}))
-        except:
+        dados = self.comandos[nome]
+        if isinstance(dados, bytes):
             try:
-                return self.comandos[nome](kwargs or {})
-            except Exception as e:
-                self.mk.aprender(f"CMD:{nome}", f"erro:{str(e)[:30]}")
-                return None
+                # Converte bytes para texto (primeiros 500 chars)
+                return dados.decode('utf-8', errors='replace')[:500]
+            except:
+                return f"[CMD:{nome}] {len(dados)} bytes disponiveis"
+        # Fallback: tenta executar como funcao (legado)
+        try: return dados(**(kwargs or {}))
+        except Exception as e: return f"[CMD:{nome}] erro: {str(e)[:30]}"
     
     def stats(self) -> dict:
         s = self.mk.stats()
@@ -2419,15 +2419,11 @@ class MCRExpansao:
             elif etapa == 'comandos':
                 for nome in self.COMANDOS_MCR:
                     if nome not in self.bridge.comandos: continue
-                    func = self.bridge.comandos[nome]
-                    try:
-                        cmd_result = func(tema) if func else None
-                        if cmd_result:
-                            resultados.append(f"[CMD:{nome}] OK")
-                            recursos_usados.append(f"comando:{nome}")
-                            self.mk.aprender(f"EXPANDIR:{tema}", f"CMD:{nome}")
-                    except:
-                        pass
+                    cmd_result = self.bridge.usar_comando(nome)
+                    if cmd_result and isinstance(cmd_result, str) and len(cmd_result) > 20:
+                        resultados.append(f"[CMD:{nome}] OK")
+                        recursos_usados.append(f"comando:{nome}")
+                        self.mk.aprender(f"EXPANDIR:{tema}", f"CMD:{nome}")
             
             elif etapa == 'kg':
                 licoes = self.kg.buscar(tema, max_r=5)
