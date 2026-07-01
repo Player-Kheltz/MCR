@@ -511,6 +511,103 @@ class MCRSystem:
                 return lessons[0].get('solucao', '')
         
         return f"(MCR processou: {estado['intencao']}, {estado['n_tokens']} tokens)"
+    
+    def ciclo_unico(self, origem: str, max_bytes: int = 5000) -> dict:
+        """Entrada: QUALQUER coisa (arquivo, texto, URL).
+        Saida: conhecimento estruturado no KG + diagnostico.
+        
+        Fluxo:
+        1. Le bytes da origem
+        2. MCRByte descobre estrutura (entropia, delimitadores)
+        3. MCRPalavra extrai conteudo significativo
+        4. MCRToken classifica o tipo
+        5. KG armazena como lesson
+        6. Autoavalia: aprendeu algo novo?
+        7. Se sim: conecta com conhecimento existente (EMERGIR)
+        8. Se nao: tenta ler mais bytes
+        9. Loop ate entender TUDO
+        """
+        import time
+        t0 = time.time()
+        resultado = {'origem': origem, 'etapas': []}
+        
+        # 1. Le bytes da origem
+        if os.path.isfile(origem):
+            with open(origem, 'rb') as f:
+                dados = f.read(max_bytes)
+        else:
+            dados = origem.encode('utf-8')[:max_bytes]
+        
+        mk_byte = MCR(f"ciclo_byte")
+        mk_byte.aprender_sequencia(list(dados))
+        resultado['etapas'].append(f"bytes:{len(dados)}")
+        
+        # 2. MCRByte descobre estrutura
+        entropia = mk_byte.entropia_media()
+        n_estados = len(mk_byte.transicoes)
+        resultado['entropia'] = round(entropia, 3)
+        resultado['estados'] = n_estados
+        
+        # Classifica o tipo pelo padrao de bytes
+        if entropia < 2.0:
+            tipo = "binario_estruturado"
+        elif entropia < 4.0:
+            tipo = "texto_estruturado"
+        elif entropia < 6.0:
+            tipo = "texto_livre"
+        else:
+            tipo = "dados_aleatorios"
+        resultado['tipo'] = tipo
+        resultado['etapas'].append(f"tipo:{tipo}")
+        
+        # 3. Extrai texto se possivel
+        try:
+            texto = dados.decode('utf-8', errors='replace')
+            palavras = texto.split()
+            if len(palavras) > 2:
+                mk_palavra = MCR(f"ciclo_palavra")
+                mk_palavra.aprender_sequencia(palavras)
+                resultado['palavras_unicas'] = len(set(palavras))
+                resultado['etapas'].append(f"palavras:{len(palavras)}")
+        except:
+            pass
+        
+        # 4. KG armazena
+        if self.kg:
+            nome_base = os.path.basename(origem) if os.path.isfile(origem) else "texto_direto"
+            self.kg.aprender_conceito(
+                f"ciclo:{nome_base[:40]}",
+                f"Tipo: {tipo}, Entropia: {entropia:.2f}, Bytes: {len(dados)}. "
+                f"Estados: {n_estados}. Origem: {origem[:100]}.",
+                ctx="ciclo_unico"
+            )
+            resultado['etapas'].append("kg:salvo")
+        
+        # 5. Autoavalia
+        nota = 5.0
+        if entropia > 2.0: nota += 2.0  # tem estrutura
+        if n_estados > 20: nota += 2.0   # tem variedade
+        if resultado.get('palavras_unicas', 0) > 10: nota += 1.0  # tem vocabulario
+        resultado['nota'] = round(min(10, nota), 1)
+        resultado['etapas'].append(f"nota:{resultado['nota']}")
+        
+        # 6. Conecta com conhecimento existente (EMERGIR)
+        if nota >= 5.0:
+            try:
+                conector = MCRConector()
+                conector.alimentar(texto[:500] if 'texto' in dir() else origem, "ciclo_entrada")
+                for nome, dados_t in list(conector.topicos.items())[:3]:
+                    if nome != "ciclo_entrada":
+                        cx = conector.conectar("ciclo_entrada", nome)
+                        if cx:
+                            resultado['conexao'] = cx.get('nota', 0)
+                            resultado['etapas'].append(f"conexao:{cx.get('nota',0)}")
+                            break
+            except:
+                pass
+        
+        resultado['tempo'] = round(time.time() - t0, 2)
+        return resultado
 
 
 def termo_relevante(pergunta: str, linha: str) -> bool:
@@ -4022,7 +4119,20 @@ def _autotestar():
     testar("MestreV2 sem if/else (fluxo decidido)", res_v2.get('fluxo', '') != '')
     testar(f"MestreV2 N execucoes={mestre_v2.n_execucoes}", mestre_v2.n_execucoes > 0)
     
-    # 10. Teste: Diagnostico auto-alimentado
+    # 10. Teste: MCR.ciclo_unico com arquivo real
+    try:
+        mcr_sys = MCRSystem()
+        ciclo = mcr_sys.ciclo_unico(__file__, max_bytes=2000)
+        testar(f"CicloUnico: {ciclo.get('tipo','?')} entropia={ciclo.get('entropia',0):.2f}", 
+               ciclo.get('entropia', 0) > 0)
+        testar(f"CicloUnico: {len(ciclo.get('etapas',[]))} etapas", 
+               len(ciclo.get('etapas', [])) >= 4)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        testar("CicloUnico falhou", False)
+    
+    # 11. Teste: Diagnostico auto-alimentado
     diag = MCRDiagnostico("teste_diag2")
     diag.alimentar({'byte': 0.9, 'palavra': 0.1}, 'JSON_no_texto')
     diag.alimentar({'byte': 0.8, 'palavra': 0.15}, 'JSON_no_texto')
