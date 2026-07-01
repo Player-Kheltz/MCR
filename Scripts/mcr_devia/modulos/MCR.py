@@ -5305,8 +5305,14 @@ class MCRSignature:
     """
     
     @staticmethod
-    def extrair(dados) -> dict:
+    def extrair(dados, rapido=False) -> dict:
         """Extrai a assinatura unica de QUALQUER dado.
+        
+        Args:
+            dados: texto ou bytes para extrair assinatura
+            rapido: se True, usa hash simplificado (100x mais rapido)
+                    ideal para auto_popular onde precisamos so
+                    distinguir autores, nao analisar profundamente.
         
         Cache: se o mesmo texto ja foi extraido, retorna cache (0.01s vs 0.02s).
         """
@@ -5320,12 +5326,31 @@ class MCRSignature:
         
         # Cache hit
         key_hash = hash(key_bytes)
-        if key_hash in _SIG_CACHE:
+        if not rapido and key_hash in _SIG_CACHE:
             return _SIG_CACHE[key_hash]
         
-        # Cache miss: calcula
         dados_clean = key_bytes
         
+        # MODO RAPIDO: apenas entropia + hash simples (para auto_popular)
+        if rapido:
+            from collections import Counter
+            freq = Counter(dados_clean)
+            n = len(dados_clean) or 1
+            h = 0.0
+            for c in freq.values():
+                p = c / n
+                if p > 0: h -= p * math.log2(p)
+            
+            result = {
+                'entropia': round(h, 3),
+                'estados': len(freq),
+                'transicoes': n - 1,
+                'sequencia': list(dados_clean[:10]) if dados_clean else [],
+                'fingerprint': [h / 8.0, n / 2000.0, float(dados_clean[0] if dados_clean else 0) / 255.0] + [0.0] * 61,
+            }
+            return result
+        
+        # Modo completo
         mk = MCR("signature")
         mk.aprender_sequencia(list(dados_clean))
         
@@ -5692,14 +5717,15 @@ class MCRAssinatura:
                 json.dump(self._banco, f, ensure_ascii=False, indent=2)
         except: pass
     
-    def aprender(self, texto, autor):
+    def aprender(self, texto, autor, rapido=False):
         """Aprende a assinatura de um autor a partir de um texto.
         
-        Se autor='Kheltz', atualiza TAMBEM a assinatura hardcoded
-        (aprendizado continuo da identidade do criador).
+        Args:
+            rapido: se True, usa hash simplificado (para auto_popular em massa).
+                    Depois, quando identificar() for chamado, usa full signature.
         """
         if not texto or not autor: return
-        sig = MCRSignature.extrair(texto)
+        sig = MCRSignature.extrair(texto, rapido=rapido)
         if autor not in self._banco:
             self._banco[autor] = []
         self._banco[autor].append({
@@ -5719,8 +5745,7 @@ class MCRAssinatura:
                 fp = sig.get('fingerprint', [])
                 if len(fp) >= 64:
                     _KHELTZ_ASSINATURA['fingerprint_64'] = fp[:64]
-        
-        self._salvar()
+        # _salvar() removido — salva no final do batch (auto_popular salva)
     
     def identificar(self, texto):
         """Identifica quem escreveu o texto.
@@ -5922,7 +5947,7 @@ class MCRAssinatura:
                             autor_atual = role
                             roles_vistos.add(role)
                         else:
-                            sig_atual = MCRSignature.extrair(msg)
+                            sig_atual = MCRSignature.extrair(msg, rapido=True)
                             if ultima_sig is not None:
                                 comp = MCRSignature.comparar(ultima_sig, sig_atual)
                                 if comp < 0.5:
@@ -5930,7 +5955,7 @@ class MCRAssinatura:
                                     n_autores += 1
                             ultima_sig = sig_atual
                         
-                        self.aprender(msg, autor_atual)
+                        self.aprender(msg, autor_atual, rapido=True)
                     except: pass
         except: pass
         
@@ -5940,6 +5965,8 @@ class MCRAssinatura:
             self.mk.aprender("AUTO_POP", f"roles:{nomes} total:{len(self._banco)-n_anteriores}")
         else:
             self.mk.aprender("AUTO_POP", f"autores:{n_autores} total:{len(self._banco)-n_anteriores}")
+        # Salva UMA vez no final (nao a cada aprender)
+        self._salvar()
         return len(self._banco) - n_anteriores
     
     def confirmar(self, texto, autor='Kheltz'):
@@ -5955,6 +5982,7 @@ class MCRAssinatura:
         if estilo and autor == 'Kheltz':
             _kheltz_atualizar_assinatura(estilo)
             self.aprender(texto, autor)
+            self._salvar()  # salva apos confirmacao explicita
             self.mk.aprender("CONFIRMOU", f"autor:{autor}")
             return {
                 'status': 'confirmado',
@@ -5965,6 +5993,7 @@ class MCRAssinatura:
             }
         else:
             self.aprender(texto, autor)
+            self._salvar()
             return {'status': 'aprendido', 'autor': autor}
     
     def autores_conhecidos(self):
