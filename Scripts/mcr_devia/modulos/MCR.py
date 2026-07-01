@@ -534,6 +534,460 @@ class MCRAutoLoop:
 
 
 # ============================================================
+# MCR PRÉ-CACHE — Estuda LLM, extrai vocabulário, prepara KG
+# ============================================================
+
+# Constantes para classificação de tokens
+_PADROES_CODIGO = ['def ', 'if ', 'else', 'for ', 'while', 'class ',
+    'import ', 'from ', 'return', 'function', 'local ', 'end', 'then',
+    'do ', 'in ', 'nil', 'true', 'false', 'self', 'this', '->', '=>',
+    '===', '!=', '&&', '||', 'fn ', 'let ', 'mut ', 'const ', 'var ',
+    'pub ', 'impl ', 'struct ', 'enum ', 'trait ', 'where ', 'async',
+    'await', 'try ', 'catch', 'throw', 'printf', 'scanf',
+    'print', 'input', 'len(', 'range', 'lambda', 'yield', 'raise',
+    'with ', 'pass', 'break', 'continue', 'elif', 'except', 'finally',
+    'global', 'nonlocal', 'assert', 'del ', 'elif', 'switch']
+
+_SUJEITOS_LORE = ['era', 'havia', 'existia', 'cidade', 'reino', 'mundo',
+    'terra', 'povo', 'rei', 'rainha', 'guerreiro', 'mago', 'druida',
+    'elfo', 'anao', 'orc', 'dragão', 'fada', 'heroi', 'lendario',
+    'castelo', 'torre', 'floresta', 'montanha', 'rio', 'mar', 'sol',
+    'lua', 'estrela', 'vento', 'fogo', 'cristal', 'magia', 'poder',
+    'antigo', 'novo', 'grande', 'pequeno', 'sabio', 'guardiao']
+
+_VERBOS_LORE = ['fundar', 'construir', 'criar', 'nascer', 'crescer',
+    'tornar', 'virar', 'transformar', 'descobrir', 'encontrar',
+    'buscar', 'lutar', 'proteger', 'defender', 'governar',
+    'reinou', 'governou', 'liderou', 'caminhou', 'partiu',
+    'chegou', 'trouxe', 'fez', 'disse', 'contou', 'viveu']
+
+
+def _classificar_token(token: str) -> str:
+    """Classifica um token em domínio: código, lore, sistema, linguagem, especial."""
+    if not token: return 'especial'
+    if token in ('<unk>', '<s>', '</s>', '<pad>', '<mask>',
+                 '<|begin_of_text|>', '<|end_of_text|>', '<|pad|>'):
+        return 'especial'
+    if token.startswith('<|') or token.startswith('<｜'):
+        return 'sistema'
+    for p in _PADROES_CODIGO:
+        if p in token: return 'codigo'
+    if token.isupper() and len(token) >= 2: return 'sistema'
+    if token[0].isupper() and len(token) > 1: return 'lore'
+    if token.isdigit() or (token[0] == '-' and token[1:].isdigit()): return 'numero'
+    if all(c in '.,;:!?()[]{}<>+-*/=@#$%^&_~`\'\"|\\ \t\n\r\u2581' for c in token):
+        return 'pontuacao'
+    if all(c == '\u2581' for c in token): return 'pontuacao'
+    if token[0].islower() or token[0].isalpha(): return 'linguagem'
+    return 'outro'
+
+
+class MCRPreCache:
+    """Estuda uma LLM (GGUF) e prepara o KG com vocabulário classificado.
+    
+    Uso:
+        cache = MCRPreCache()
+        cache.estudar("caminho/para/modelo.gguf")
+        # KG agora tem lessons sobre tokens, clusters, dominios
+    """
+    
+    def __init__(self, kg=None):
+        self.kg = kg or (KnowledgeGraph() if MCR_COMPLETO else None)
+        self.tokens = []
+        self.scores = []
+        self.dominios = Counter()
+        self.mk_token = None
+        self.token_info = []
+    
+    def estudar(self, caminho_blob, max_tokens_kg=50):
+        """Extrai tokenizer do GGUF, classifica tokens, salva no KG."""
+        if not os.path.exists(caminho_blob):
+            print(f"  [MCRPreCache] Blob nao encontrado: {caminho_blob}")
+            return 0
+        
+        import struct
+        try:
+            with open(caminho_blob, 'rb') as f:
+                magic = f.read(4)
+                if magic != b'GGUF': return 0
+                f.read(4)  # version
+                f.read(8)  # tensor_count
+                kv_count = struct.unpack('<Q', f.read(8))[0]
+                tokens_raw = None
+                scores_raw = None
+                for _ in range(min(kv_count, 500)):
+                    key = self._ler_string_gguf(f)
+                    if key is None: break
+                    tipo = struct.unpack('<I', f.read(4))[0]
+                    valor = self._ler_valor_gguf(f, tipo)
+                    if key == 'tokenizer.ggml.tokens': tokens_raw = valor
+                    elif key == 'tokenizer.ggml.scores': scores_raw = valor
+                    if tokens_raw and scores_raw: break
+        except Exception as e:
+            print(f"  [MCRPreCache] Erro: {e}")
+            return 0
+        
+        if not tokens_raw: return 0
+        self.tokens = tokens_raw
+        self.scores = scores_raw or [0]*len(tokens_raw)
+        
+        # MarkovToken aprende ordem do vocabulario
+        # (nao para gerar, para entender as relacoes entre tokens)
+        self.mk_token = MarkovUniversal("precache_tokens")
+        self.mk_token.aprender_sequencia(self.tokens)
+        
+        # Classifica cada token
+        for i, token in enumerate(self.tokens):
+            dominio = _classificar_token(token)
+            self.dominios[dominio] += 1
+            self.token_info.append({
+                'id': i, 'token': token,
+                'dominio': dominio,
+                'score': self.scores[i] if i < len(self.scores) else 0,
+            })
+        
+        # Salva no KG
+        n_guardados = 0
+        if self.kg:
+            # Arquitetura
+            nome_blob = os.path.basename(caminho_blob)[:16]
+            total_tokens = len(self.tokens)
+            self.kg.aprender_conceito(
+                f"precache_{nome_blob}",
+                f"Estudado: {total_tokens} tokens, "
+                f"{len(self.dominios)} dominios. "
+                f"Distribuicao: {dict(self.dominios.most_common())}",
+            )
+            n_guardados += 1
+            
+            # Clusters de prefixo (EMERGIR-style)
+            prefixos = {}
+            for t in self.tokens:
+                if len(t) >= 2:
+                    p = t[:2].lower()
+                    if p not in prefixos: prefixos[p] = []
+                    prefixos[p].append(t)
+            
+            for prefixo, membros in sorted(prefixos.items(),
+                                            key=lambda x: -len(x[1]))[:max_tokens_kg]:
+                if len(membros) >= 5:
+                    dominios_cont = Counter(_classificar_token(m) for m in membros)
+                    dom_principal = dominios_cont.most_common(1)[0][0]
+                    self.kg.aprender_conceito(
+                        f"cluster_{prefixo}",
+                        f"{len(membros)} tokens, dominio={dom_principal}. "
+                        f"Ex: {', '.join(membros[:6])}",
+                        ctx="tokenizer_cluster"
+                    )
+                    n_guardados += 1
+            
+            # Dominios
+            for dominio, count in self.dominios.most_common():
+                exemplos = [t['token'] for t in self.token_info
+                           if t['dominio'] == dominio][:8]
+                self.kg.aprender_conceito(
+                    f"dominio_{dominio}",
+                    f"{count} tokens ({count/len(self.tokens)*100:.1f}%). "
+                    f"Ex: {', '.join(exemplos)}",
+                    ctx="tokenizer_dominio"
+                )
+                n_guardados += 1
+        
+        return n_guardados
+    
+    def _ler_string_gguf(self, f):
+        import struct
+        len_bytes = f.read(8)
+        if len(len_bytes) < 8: return None
+        slen = struct.unpack('<Q', len_bytes)[0]
+        return f.read(slen).decode('utf-8', errors='replace') if slen > 0 else ""
+    
+    def _ler_valor_gguf(self, f, tipo):
+        import struct
+        if tipo == 8: return self._ler_string_gguf(f)
+        elif tipo == 9:
+            ta = struct.unpack('<I', f.read(4))[0]
+            ni = struct.unpack('<Q', f.read(8))[0]
+            return [self._ler_valor_gguf(f, ta) for _ in range(ni)]
+        elif tipo == 6: return struct.unpack('<f', f.read(4))[0]
+        elif tipo == 4: return struct.unpack('<I', f.read(4))[0]
+        elif tipo == 5: return struct.unpack('<i', f.read(4))[0]
+        return None
+    
+    def obter_tokens_por_dominio(self, dominio='lore', max_tokens=500):
+        """Retorna tokens de um domínio específico para uso em geração."""
+        return [t['token'] for t in self.token_info
+                if t['dominio'] == dominio][:max_tokens]
+
+
+class AutoavaliadorSemantico:
+    """Usa o proprio MCR para avaliar se um texto TEM SENTIDO.
+    
+    4 métricas semânticas (MCR sobre MCR):
+    1. Coerência de domínio — os tokens pertencem ao domínio esperado
+    2. Estrutura narrativa — tem sujeito-verbo, começo-meio-fim
+    3. Consistência — não muda de assunto no meio
+    4. Originalidade — não é cópia exata de algo no KG
+    """
+    
+    def __init__(self, kg=None, precache=None):
+        self.kg = kg or (KnowledgeGraph() if MCR_COMPLETO else None)
+        self.precache = precache
+    
+    def avaliar(self, texto: str, dominio_esperado='lore') -> dict:
+        """Avalia um texto gerado e retorna nota semântica + diagnóstico."""
+        if not texto or len(texto) < 20:
+            return {'nota': 0.0, 'diagnostico': 'MUITO_CURTO',
+                    'detalhes': {
+                        'nota_dominio': 0, 'nota_estrutura': 0,
+                        'nota_consistencia': 0, 'nota_originalidade': 0,
+                        'n_frases': 0, 'tem_sujeito': False, 'tem_verbo': False,
+                        'repeticao': 0, 'qtd_termos_dominio': 0,
+                    }}
+        
+        palavras = texto.lower().split()
+        n_palavras = len(palavras)
+        n_chars = len(texto)
+        
+        # 1. COERENCIA DE DOMINIO
+        # Os tokens/perguntas sao do dominio esperado?
+        termos_dominio = _SUJEITOS_LORE + _VERBOS_LORE if dominio_esperado == 'lore' else []
+        if dominio_esperado == 'codigo':
+            termos_dominio = _PADROES_CODIGO
+        
+        qtd_termos = sum(1 for t in termos_dominio if t in texto.lower())
+        proporcao_dominio = min(1.0, qtd_termos / max(len(termos_dominio) * 0.1, 1))
+        
+        nota_dominio = proporcao_dominio * 3  # 0-3
+        
+        # 2. ESTRUTURA NARRATIVA
+        tem_sujeito = any(s in texto.lower() for s in _SUJEITOS_LORE[:20])
+        tem_verbo = any(v in texto.lower() for v in _VERBOS_LORE[:20])
+        tem_maiuscula_inicio = texto[0].isupper() if texto else False
+        tem_pontuacao_final = any(texto.rstrip().endswith(p) for p in '.!?')
+        n_frases = sum(1 for c in texto if c in '.!?')
+        
+        nota_estrutura = 0
+        if tem_sujeito: nota_estrutura += 0.75
+        if tem_verbo: nota_estrutura += 0.75
+        if tem_maiuscula_inicio and tem_pontuacao_final: nota_estrutura += 0.75
+        if n_frases >= 2: nota_estrutura += 0.75  # mais de 1 frase
+        # 0-3
+        
+        # 3. CONSISTENCIA INTERNA
+        # Mede repeticao de bigramas (texto ciclico tem alta repeticao)
+        if n_palavras >= 4:
+            bigramas = [' '.join(palavras[i:i+2]) for i in range(n_palavras-1)]
+            bigramas_unicos = len(set(bigramas))
+            repeticao = 1.0 - (bigramas_unicos / max(len(bigramas), 1))
+        else:
+            repeticao = 0.0
+        
+        nota_consistencia = max(0, 1 - repeticao * 2) * 2  # 0-2
+        
+        # 4. ORIGINALIDADE (vs KG)
+        nota_originalidade = 2.0  # 0-2, começa como maxima
+        if self.kg:
+            # Verifica se o texto copiou lessons do KG
+            for l in self.kg._get_licoes()[:100]:
+                sol = l.get('solucao', '')
+                if sol and len(sol) > 50:
+                    # Jaccard entre texto gerado e lesson
+                    mk_temp = MarkovUniversal("orig")
+                    jac = mk_temp.jaccard_bytes(texto, sol)
+                    if jac > 0.8:  # Muito similar = copia
+                        nota_originalidade = 0.5
+                        break
+                    elif jac > 0.5:
+                        nota_originalidade = 1.0
+        
+        # NOTA FINAL SEMANTICA (0-10)
+        nota_semantica = nota_dominio + nota_estrutura + nota_consistencia + nota_originalidade
+        nota_semantica = round(max(0, min(10, nota_semantica)), 1)
+        
+        # Diagnostico
+        if nota_semantica >= 7.0:
+            diag = 'NARRATIVO_COERENTE'
+        elif nota_semantica >= 5.0:
+            diag = 'ESTRUTURADO'
+        elif nota_semantica >= 3.0:
+            diag = 'FRACO'
+        elif nota_semantica >= 1.0:
+            diag = 'GARBAGE'
+        else:
+            diag = 'VAZIO'
+        
+        return {
+            'nota': nota_semantica,
+            'diagnostico': diag,
+            'detalhes': {
+                'nota_dominio': round(nota_dominio, 2),
+                'nota_estrutura': round(nota_estrutura, 2),
+                'nota_consistencia': round(nota_consistencia, 2),
+                'nota_originalidade': round(nota_originalidade, 2),
+                'n_frases': n_frases,
+                'tem_sujeito': tem_sujeito,
+                'tem_verbo': tem_verbo,
+                'repeticao': round(repeticao, 3),
+                'qtd_termos_dominio': qtd_termos,
+            }
+        }
+
+
+class GeradorNarrativa:
+    """Gera texto narrativo usando MarkovPalavra + contexto longo do KG.
+    
+    Estratégia:
+    1. Pré-cache: MCRPreCache estudou a LLM e preparou o KG
+    2. Contexto longo: busca 50+ lessons do KG sobre o tema
+    3. Geração: MarkovPalavra (PALAVRAS, não bytes) condicionado ao contexto
+    4. Autoavaliação semântica: verifica se o texto TEM SENTIDO
+    5. Se nota baixa: expande contexto e regenera
+    
+    NOTA: Usa MarkovPalavra (palavras) em vez de MarkovByte (bytes)
+    porque palavras capturam estrutura narrativa; bytes geram "da da da".
+    """
+    
+    def __init__(self, kg=None, precache=None):
+        self.kg = kg or (KnowledgeGraph() if MCR_COMPLETO else None)
+        self.precache = precache
+        self.mk_palavra = MarkovUniversal("narrativa_palavras")
+        self.semantico = AutoavaliadorSemantico(kg, precache)
+        self.contexto_usado = ""
+        self._textos_lore_cache = []  # cache de textos de lore
+    
+    def _carregar_textos_lore(self):
+        """Carrega todos os textos de lore disponiveis no projeto."""
+        if self._textos_lore_cache:
+            return self._textos_lore_cache
+        
+        textos = []
+        
+        # 1. MCR_IDENTITY.md
+        path_id = os.path.join(BASE, 'docs', 'MCR_IDENTITY.md') if 'BASE' in dir() else \
+                  os.path.join(os.path.dirname(__file__), '..', '..', '..', 'docs', 'MCR_IDENTITY.md')
+        if os.path.exists(path_id):
+            with open(path_id, 'r', encoding='utf-8') as f:
+                textos.append(f.read())
+        
+        # 2. Lessons do KG com ctx=lore, conceito, identidade
+        if self.kg:
+            for l in self.kg._get_licoes():
+                ctx = l.get('ctx', '')
+                sol = l.get('solucao', '')
+                if ctx in ('lore', 'conceito', 'identidade', 'tokenizer_cluster',
+                           'tokenizer_dominio') and sol and len(sol) > 30:
+                    textos.append(sol)
+        
+        # 3. Arquivos .md de docs
+        docs_dir = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'docs')
+        if os.path.isdir(docs_dir):
+            for fname in os.listdir(docs_dir):
+                if fname.endswith('.md') and fname[0] != '_':
+                    try:
+                        with open(os.path.join(docs_dir, fname), 'r', encoding='utf-8') as f:
+                            textos.append(f.read())
+                    except: pass
+        
+        self._textos_lore_cache = textos
+        return textos
+    
+    def preparar_contexto(self, tema, max_lessons=50):
+        """Busca contexto longo do KG sobre o tema e carrega corpus de lore."""
+        if not self.kg:
+            self.contexto_usado = f"Contexto sobre {tema} (KG indisponivel)"
+            return self.contexto_usado
+        
+        # Carrega textos de lore
+        textos_lore = self._carregar_textos_lore()
+        
+        # Busca expandida no KG
+        lessons = self.kg.buscar_expandido(tema, max_r=max_lessons)
+        
+        # Monta contexto completo
+        partes = [f"Contexto sobre {tema}:\n"]
+        
+        # Lessons do KG
+        n_lessons = 0
+        mk_temp = MarkovUniversal("filtro")
+        for l in lessons:
+            sol = l.get('solucao', '')
+            if not sol or len(sol) < 30: continue
+            jac = mk_temp.jaccard_bytes(tema, sol)
+            if jac < 0.02: continue
+            ctx = l.get('ctx', '')
+            erro = l.get('erro', '')[:60]
+            partes.append(f"[{ctx}] {erro}: {sol[:300]}")
+            n_lessons += 1
+        
+        # Textos de lore do corpus
+        for texto in textos_lore[:5]:
+            if len(texto) > 100:
+                partes.append(f"[CORPUS] {texto[:500]}")
+                n_lessons += 1
+        
+        self.contexto_usado = '\n\n'.join(partes)
+        return self.contexto_usado
+    
+    def gerar(self, tema='Eridanus', max_palavras=100, temperatura=0.3):
+        """Gera texto narrativo usando MarkovPalavra (PALAVRAS, nao bytes)."""
+        # 1. Prepara contexto longo
+        contexto = self.preparar_contexto(tema, max_lessons=50)
+        
+        # 2. Treina MarkovPalavra no contexto (palavras, nao bytes!)
+        texto_limpo = re.sub(r'[<>*#\[\]]', ' ', contexto)
+        palavras = texto_limpo.split()
+        self.mk_palavra = MarkovUniversal(f"narrativa_{tema}")
+        
+        # So treina se tiver palavras suficientes
+        if len(palavras) < 10:
+            return {'texto': f"[MCR] Contexto insuficiente sobre {tema}",
+                    'tamanho_chars': 0, 'tamanho_palavras': 0,
+                    'contexto_chars': len(contexto),
+                    'n_lessons_usadas': 0,
+                    'avaliacao': self.semantico.avaliar('', 'lore')}
+        
+        self.mk_palavra.aprender_sequencia(palavras)
+        
+        # 3. Semente: primeiras 2 palavras do contexto
+        semente = palavras[0] if palavras else tema
+        gerado = self.mk_palavra.gerar(semente, max_palavras)
+        
+        # 4. Converte para texto
+        texto = ' '.join(str(g) for g in gerado)
+        
+        # 5. Autoavaliação semântica
+        avaliacao = self.semantico.avaliar(texto, 'lore')
+        
+        return {
+            'texto': texto,
+            'tamanho_chars': len(texto),
+            'tamanho_palavras': len(gerado),
+            'contexto_chars': len(contexto),
+            'n_lessons_usadas': contexto.count('['),
+            'avaliacao': avaliacao,
+        }
+    
+    def gerar_com_loop(self, tema='Eridanus', max_iter=3):
+        """Gera com AutoLoop: tenta → avalia → se ruim, expande contexto."""
+        melhor = None
+        
+        for i in range(max_iter):
+            n_lessons = 20 + i * 30
+            resultado = self.gerar(tema, max_palavras=100, temperatura=0.3)
+            nota_sem = resultado['avaliacao']['nota']
+            diag = resultado['avaliacao']['diagnostico']
+            
+            if melhor is None or nota_sem > melhor['avaliacao']['nota']:
+                melhor = resultado
+            
+            if nota_sem >= 5.0:  # Mais tolerante com MarkovPalavra
+                break
+        
+        return melhor
+
+
+# ============================================================
 # TESTE RÁPIDO
 # ============================================================
 
