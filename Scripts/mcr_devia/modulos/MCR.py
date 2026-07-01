@@ -1743,6 +1743,15 @@ class MCRPergunta:
             token_s=8 if loops < 3 else 3
         )
         
+        # Feedback loop: se nota < 6, tenta com mais contexto
+        if nota_final < 6 and not pergunta.startswith('[MCR Feedback]'):
+            fb = MCRFeedback()
+            res_fb = fb.processar_com_feedback(pergunta, max_tentativas=2)
+            if res_fb.get('nota', 0) > nota_final:
+                nota_final = res_fb['nota']
+                texto = res_fb.get('resposta', texto)
+                resultado_cadeia['nota'] = nota_final
+        
         # Diagnostico MCR: detecta e APRENDE com problemas
         estado_diag = {
             'byte': nota_cadeia/10,
@@ -3372,6 +3381,9 @@ class MCRMestreV2:
         
         while nota < 8 and ciclo_atual < max_ciclos:
             ciclo_atual += 1
+            # Se nota < 4 no primeiro ciclo, desiste rapido
+            if nota < 4 and ciclo_atual > 1:
+                break
             
             # Bridge + workers
             tarefas = []
