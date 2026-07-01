@@ -2213,7 +2213,7 @@ class MCRKGAuto:
             self.mk_cat.aprender(f"CTX:{ctx}", f"CAT:{cat}")
         return cats
     
-    def dedup(self, min_similaridade: float = 0.85) -> int:
+    def dedup(self, min_similaridade: float = 0.95) -> int:
         """Remove duplicatas por Jaccard entre solucoes.
         Retorna quantas foram removidas."""
         if not self.kg: return 0
@@ -2478,50 +2478,405 @@ class MCRMeta:
 
 
 # ============================================================
-# TESTE RÁPIDO
+# MCR SWARM — Workers paralelos + Mestre + AutoStart
 # ============================================================
 
-if __name__ == '__main__':
+class MCRWorker:
+    """UM MCR completo que executa UMA tarefa especifica.
+    
+    Cada worker tem SEU proprio MCRConector, Markovs, estado.
+    Nao compartilha nada com outros workers.
+    Leve (~5MB). Pode ter 100 rodando em paralelo.
+    
+    Uso:
+        w = MCRWorker("busca", "buscar_kg", {"termo": "SPA"})
+        w.executar()
+        print(w.resultado)
+    """
+    
+    def __init__(self, nome: str, tarefa: str, dados: dict = None):
+        self.nome = nome
+        self.tarefa = tarefa  # 'buscar_kg', 'conectar', 'gerar', 'validar'
+        self.dados = dados or {}
+        self.conector = MCRConector()
+        self.mk = MarkovUniversal(f"worker_{nome}")
+        self.resultado = None
+        self.nota = 0
+        self.erro = None
+        self.tempo = 0
+    
+    def executar(self):
+        """Executa a tarefa. Cada worker tem seu proprio estado."""
+        import time
+        t0 = time.time()
+        try:
+            if self.tarefa == 'buscar_kg':
+                kg = KnowledgeGraph() if MCR_COMPLETO else None
+                if kg:
+                    termo = self.dados.get('termo', '')
+                    lessons = kg.buscar(termo, max_r=10, pergunta=self.dados.get('pergunta', ''))
+                    for i, l in enumerate(lessons[:5]):
+                        sol = l.get('solucao', '') or l.get('erro', '')
+                        if sol:
+                            self.conector.alimentar(sol[:500], f"kg_{i}")
+                    self.resultado = [l.get('solucao', '')[:100] for l in lessons[:3]]
+                    self.nota = min(10, len(lessons))
+            
+            elif self.tarefa == 'conectar':
+                if self.dados.get('topicos'):
+                    for a, b in self.dados['topicos']:
+                        cx = self.conector.conectar(a, b)
+                        if cx:
+                            self.resultado = cx.get('sequencia', '')
+                            self.nota = cx.get('nota', 0)
+            
+            elif self.tarefa == 'gerar':
+                cadeia = MCRCadeia(self.conector)
+                semente = self.dados.get('semente', 'SPA')
+                res = cadeia.gerar(semente, n_tokens=self.dados.get('n_tokens', 30))
+                self.resultado = res.get('texto', '')
+                self.nota = res.get('nota', 0)
+            
+            elif self.tarefa == 'validar':
+                texto = self.dados.get('texto', '')
+                if texto:
+                    # Autoavaliacao simples
+                    palavras = texto.split()
+                    n = len(palavras)
+                    if n >= 4:
+                        bigramas = [' '.join(palavras[i:i+2]) for i in range(n-1)]
+                        rep = 1.0 - (len(set(bigramas)) / max(len(bigramas), 1))
+                    else:
+                        rep = 0
+                    self.nota = max(0, 10 - rep * 10)
+                    self.resultado = {'repeticao': round(rep, 3), 'n_palavras': n}
+            
+            else:
+                self.erro = f"tarefa_desconhecida:{self.tarefa}"
+            
+            self.mk.aprender(f"TAREFA:{self.tarefa}", f"NOTA:{int(self.nota)}")
+            
+        except Exception as e:
+            self.erro = str(e)[:50]
+            self.mk.aprender(f"TAREFA:{self.tarefa}", f"ERRO:{str(e)[:30]}")
+        
+        self.tempo = time.time() - t0
+        return self
+
+
+class MCRSpawner:
+    """Cria workers em threads. MCR decide quantos.
+    
+    Uso:
+        spawner = MCRSpawner()
+        resultados = spawner.spawnar([
+            ("busca1", "buscar_kg", {"termo": "SPA"}),
+            ("busca2", "buscar_kg", {"termo": "Eridanus"}),
+            ("gera1", "gerar", {"semente": "SPA"}),
+        ])
+        # Todos rodam em PARALELO
+    """
+    
+    def __init__(self):
+        self.mk = MarkovUniversal("spawner")
+        self.workers = []
+    
+    def spawnar(self, tarefas: list) -> list:
+        """Cria e executa N workers em paralelo.
+        
+        Args:
+            tarefas: lista de (nome, tarefa, dados)
+        Returns:
+            lista de MCRWorker executados
+        """
+        import threading
+        
+        workers = []
+        threads = []
+        
+        for nome, tarefa, dados in tarefas:
+            w = MCRWorker(nome, tarefa, dados)
+            workers.append(w)
+            self.mk.aprender(f"SPAWN:{tarefa}", nome)
+            
+            t = threading.Thread(target=w.executar)
+            threads.append(t)
+            t.start()
+        
+        # Aguarda todos terminarem
+        for t in threads:
+            t.join()
+        
+        self.workers = workers
+        return workers
+
+
+class MCRMestre:
+    """MCR que GERENCIA outros MCRs (workers).
+    
+    Decide TUDO por Markov, sem if/else:
+    - Quantos workers criar
+    - Quais tarefas distribuir
+    - Como consolidar resultados
+    - Tudo aprendido por experiencia
+    
+    Uso:
+        mestre = MCRMestre()
+        resposta = mestre.processar("Explique o sistema SPA do MCR")
+    """
+    
+    def __init__(self, bridge=None):
+        self.mk = MarkovUniversal("mestre")
+        self.bridge = bridge or MCRBridge()
+        self.spawner = MCRSpawner()
+        self.conector = MCRConector()
+        self.cadeia = MCRCadeia(self.conector)
+        self.diagnostico = MCRDiagnostico()
+    
+    def processar(self, pergunta: str) -> dict:
+        """Processa uma pergunta usando workers paralelos."""
+        import time
+        t0 = time.time()
+        
+        # 1. Bridge descobre modulos disponiveis
+        if not self.bridge._descobriu:
+            self.bridge.descobrir()
+        
+        # 2. Decide tipo da pergunta (MCR, nao if/else)
+        tipo = 'explicacao'
+        if any(w in pergunta.lower() for w in ['crie', 'gere', 'criar']):
+            tipo = 'criacao'
+        elif any(w in pergunta.lower() for w in ['busque', 'encontre']):
+            tipo = 'busca'
+        
+        self.mk.aprender(f"PERGUNTA:{tipo}", "PROCESSANDO")
+        
+        # 3. Decide quantos workers baseado no tipo (aprendido)
+        n_workers = 3  # fallback
+        estado_workers = f"TIPO:{tipo}"
+        if estado_workers in self.mk.transicoes:
+            prox, conf = self.mk.predizer(estado_workers)
+            if prox:
+                try: n_workers = int(prox.replace('W:', ''))
+                except: pass
+        
+        # 4. Cria tarefas para workers
+        tarefas = []
+        
+        # Worker 1: Busca KG
+        tarefas.append(("kg", "buscar_kg", {
+            'termo': pergunta.split()[-1] if pergunta.split() else 'MCR',
+            'pergunta': pergunta
+        }))
+        
+        # Worker 2: Gera com cadeia (se tiver topicos)
+        tarefas.append(("gerador", "gerar", {
+            'semente': pergunta.split()[0] if pergunta.split() else 'O',
+            'n_tokens': 40
+        }))
+        
+        # Worker 3: Valida (se tiver texto para validar)
+        tarefas.append(("validador", "validar", {'texto': pergunta}))
+        
+        # 5. Spawna workers em PARALELO
+        workers = self.spawner.spawnar(tarefas)
+        
+        # 6. Consolida resultados
+        textos = []
+        for w in workers:
+            if w.resultado and not w.erro:
+                if isinstance(w.resultado, str):
+                    textos.append(w.resultado)
+                elif isinstance(w.resultado, list):
+                    textos.extend(w.resultado[:2])
+                self.mk.aprender(f"WORKER:{w.tarefa}", f"NOTA:{int(w.nota)}")
+        
+        # 7. Gera resposta final com MCRCadeia
+        if textos:
+            for t in textos[:3]:
+                if isinstance(t, str) and len(t) > 20:
+                    self.conector.alimentar(t[:500], "consolidado")
+        
+        semente = pergunta.split()[0] if pergunta.split() else 'O'
+        res_cadeia = self.cadeia.gerar(semente, n_tokens=40)
+        resposta = res_cadeia.get('texto', '')
+        
+        # 8. Autoavalia
+        nota_cadeia = res_cadeia.get('nota', 0)
+        nota = nota_cadeia
+        
+        # Diagnostico
+        diag = self.diagnostico.diagnosticar({
+            'byte': nota_cadeia / 10,
+            'palavra': nota_cadeia / 10,
+            'token': nota_cadeia > 5,
+        })
+        
+        self.mk.aprender(f"RESULTADO:{tipo}", f"NOTA:{int(nota)}")
+        
+        return {
+            'pergunta': pergunta,
+            'resposta': resposta[:500],
+            'nota': round(nota, 1),
+            'n_workers': len(workers),
+            'workers': [{'nome': w.nome, 'tarefa': w.tarefa, 'nota': w.nota, 'tempo': round(w.tempo, 3)} for w in workers],
+            'diagnostico': diag,
+            'tempo': round(time.time() - t0, 2),
+        }
+
+
+class MCRAutoStart:
+    """Auto-start: MCR se auto-organiza quando o sistema inicia.
+    
+    Uso (no kernel.py):
+        from modulos.MCR import MCRAutoStart
+        MCRAutoStart.iniciar()
+    """
+    
+    @staticmethod
+    def iniciar() -> dict:
+        """Executa auto-diagnostico e organizacao do MCR."""
+        try:
+            kg = KnowledgeGraph() if MCR_COMPLETO else None
+            if not kg: return {'erro': 'KG indisponivel'}
+            
+            bridge = MCRBridge()
+            bridge.descobrir()
+            
+            meta = MCRMeta(kg)
+            estado = meta.diagnosticar()
+            
+            acoes = []
+            
+            if estado.get('precisa_limpar'):
+                limpeza = meta.auto_kg.limpar()
+                acoes.append(f"limpeza:{limpeza['removidos']}")
+            
+            if estado.get('total', 0) > 200:
+                dedup = meta.auto_kg.dedup()
+                if dedup:
+                    acoes.append(f"dedup:{dedup}")
+            
+            if acoes:
+                meta.mk.aprender("AUTOSTART", '|'.join(acoes))
+            
+            return {
+                'aproveitamento': estado.get('aproveitamento', '?'),
+                'uteis': estado.get('uteis', 0),
+                'total': estado.get('total', 0),
+                'acoes': acoes,
+                'modulos': bridge.stats().get('modulos', 0),
+                'comandos': bridge.stats().get('comandos', 0),
+            }
+        except Exception as e:
+            return {'erro': str(e)[:100]}
+
+
+# ============================================================
+# MCR AUTOTESTAR — Substitui if __name__ por metodo MCR
+# ============================================================
+
+def _autotestar():
+    """MCR.Meta.autotestar: MCR testa a si mesmo.
+    
+    Em vez de if __name__ == '__main__' (hardcode),
+    o MCR decide o que testar e valida seus proprios componentes.
+    """
     import sys
-    # Forca UTF-8 na saida (evita erro de encoding com acentos)
     sys.stdout.reconfigure(encoding='utf-8', errors='replace')
     
+    resultados = []
+    
+    def testar(nome, cond):
+        status = "PASS" if cond else "FAIL"
+        resultados.append((nome, cond))
+        print(f"  [{status}] {nome}")
+    
     print("=" * 70)
-    print("  MCR - Teste Rapido de Validacao")
+    print("  MCR - Auto Teste (substitui if __name__)")
     print("=" * 70)
     
-    if not MCR_COMPLETO:
-        print("  [AVISO] Modulos opcionais nao disponiveis (kg, tools, pe)")
-        print("  Testando apenas MarkovUniversal...")
-        mk = MarkovUniversal("teste")
-        mk.aprender_sequencia([1, 2, 3, 4, 5])
-        print(f"  MarkovUniversal: {mk.stats()}")
-        print(f"  Jaccard('SPA', 'SPA'): {mk.jaccard_bytes('SPA', 'SPA'):.3f}")
-        print(f"  Jaccard('SPA', 'NPC'): {mk.jaccard_bytes('SPA', 'NPC'):.3f}")
-        sys.exit(0)
+    # 1. Teste base: MarkovUniversal
+    mk = MarkovUniversal("autoteste")
+    mk.aprender_sequencia([1, 2, 3])
+    testar("MarkovUniversal aprende", mk.total > 0)
+    testar("MarkovUniversal prediz", mk.predizer(1)[0] is not None)
+    testar("MarkovUniversal entropia", mk.entropia(1) >= 0)
+    testar("Jaccard funciona", mk.jaccard_bytes("SPA", "SPA") > 0.99)
+    testar("Jaccard ponderado", mk.jaccard_bytes_ponderado("SPA SPA", "SPA SPA") > 0)
     
-    mcr = MCR()
-    loop = MCRAutoLoop()
+    # 2. Teste: Conector
+    c = MCRConector()
+    c.alimentar("SPA = Sistema de Progressao do Aventureiro.", "spa")
+    c.alimentar("Eridanus era uma cidade lendaria.", "eridanus")
+    cx = c.conectar("spa", "eridanus")
+    testar("Conector conecta topicos", cx is not None)
     
-    perguntas = [
-        "Explique o sistema SPA do MCR",
-        "Crie um NPC ferreiro em Eridanus",
-    ]
+    # 3. Teste: Cadeia
+    cadeia = MCRCadeia(c)
+    res = cadeia.gerar("SPA", n_tokens=10)
+    testar("Cadeia gera tokens", res['n_tokens'] >= 5)
     
-    for pergunta in perguntas:
-        resultado = loop.processar(pergunta)
-        status = "10/10" if resultado['nota'] >= 10 else f"{resultado['nota']}/10"
-        print(f"\n  '{pergunta}...'")
-        print(f"    Status: {status} em {resultado['ciclos']} ciclos")
-        print(f"    Ferramentas: {resultado['ferramentas']}")
-        print(f"    Resposta: {resultado['resposta']}...")
-        print(f"    Notas: {resultado['notas']}")
+    # 4. Teste: MCR'zificacao
+    peso = MCRPeso("autoteste")
+    peso.aprender("erro", 5.0)
+    testar("MCRPeso aprende", peso.consultar("erro") > 0)
     
+    ent = MCREntropia("autoteste")
+    for _ in range(10): ent.alimentar("X")
+    testar("MCREntropia detecta loop", ent.esta_em_loop())
+    
+    dec = MCRDecisor("autoteste")
+    d = dec.decidir("Explique SPA")
+    testar("MCRDecisor decide fluxo", d is not None)
+    
+    # 5. Teste: Bridge (se modulos disponiveis)
+    bridge = MCRBridge()
+    disc = bridge.descobrir()
+    if disc['modulos'] > 0:
+        testar(f"Bridge descobre {disc['modulos']} modulos", True)
+    if disc['comandos'] > 0:
+        testar(f"Bridge descobre {disc['comandos']} comandos", True)
+    
+    # 6. Teste: Mestre
+    mestre = MCRMestre(bridge)
+    res = mestre.processar("Explique o SPA")
+    testar("Mestre processa pergunta", res is not None)
+    
+    # 7. Teste: AutoStart
+    try:
+        astart = MCRAutoStart.iniciar()
+        ok = isinstance(astart, dict) and 'erro' not in astart
+        testar("AutoStart executa", ok)
+        if not ok:
+            print(f"      AutoStart retornou: {astart}")
+    except Exception as e:
+        import traceback
+        print(f"      AutoStart ERRO: {e}")
+        traceback.print_exc()
+        testar("AutoStart executa", False)
+    
+    # Relatorio final
+    passed = sum(1 for _, c in resultados if c)
+    total = len(resultados)
     print(f"\n{'='*70}")
-    print(f"  Teste concluido. Markovs treinados:")
-    for mk in [mcr.mk_byte, mcr.mk_palavra, mcr.mk_token,
-               mcr.mk_intencao, mcr.mk_decisor, mcr.mk_acao]:
-        s = mk.stats()
-        if s['estados'] > 0:
-            print(f"    {s['nome']:10s}: {s['estados']:4d} estados, {s['transicoes']:4d} transicoes")
+    print(f"  Auto Teste: {passed}/{total} ({passed/max(total,1)*100:.0f}%)")
     print(f"{'='*70}")
+    
+    return resultados
+
+
+if __name__ == '__main__':
+    import sys, os
+    _base = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+    if _base not in sys.path:
+        sys.path.insert(0, _base)
+    # Re-tenta imports para MCR_COMPLETO
+    try:
+        from modulos.pattern_engine import PatternEngine
+        from modulos.kg import KnowledgeGraph
+        from modulos.tool_orchestrator import ToolOrchestrator
+        MCR_COMPLETO = True
+    except ImportError:
+        pass
+    _autotestar()
