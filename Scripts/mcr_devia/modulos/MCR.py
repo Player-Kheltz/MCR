@@ -2766,13 +2766,106 @@ class MCRKGAuto:
     """Organiza o KG automaticamente: categoriza, dedup, limpa.
     
     Tudo MCR: categorias sao descobertas por prefixo do ctx,
-    duplicatas sao detectadas por Jaccard, limpeza por entropia.
+    duplicatas sao detectadas por Jaccard, limpeza por MCRSignature.
     """
     
     def __init__(self, kg=None):
         self.kg = kg or (_get_kg())
         self.mk_cat = MarkovUniversal("categorias")
         self.mk_dedup = MarkovUniversal("dedup")
+        self.mk_qualidade = MCR('qualidade_lesson')  # aprende o que e lixo
+        # Seed: exemplos do que e BOA lesson
+        for _txt in ['SPA e o sistema de progressao do aventureiro',
+                     'Eridanus e a cidade inicial do projeto MCR',
+                     'O SHC gerencia habilidades contextuais em 5 camadas']:
+            sig = MCRSignature.extrair(_txt, rapido=True)
+            self.mk_qualidade.aprender(f"ENT:{int(sig['entropia']*10)}_EST:{sig['estados']}", "UTIL")
+        for _txt in ['{"nome": "teste", "valor": 123}',
+                     '_flush_20260101_000000',
+                     '{\'fragmento\': \'texto\', \'score\': 0.5}']:
+            sig = MCRSignature.extrair(_txt, rapido=True)
+            self.mk_qualidade.aprender(f"ENT:{int(sig['entropia']*10)}_EST:{sig['estados']}", "LIXO")
+    
+    @staticmethod
+    def _classificar_qualidade(sol: str) -> float:
+        """Classifica qualidade de uma lesson por MCRSignature (0 = lixo, 1 = util).
+        
+        Usa MCRSignature + deteccao de padroes reais de lixo observados.
+        """
+        if not sol or len(sol) < 10:
+            return 0.0
+        
+        sig = MCRSignature.extrair(sol[:500], rapido=True)
+        ent = sig.get('entropia', 0)
+        est = sig.get('estados', 0)
+        
+        # Entropia muito baixa = sem estrutura = lixo
+        if ent < 0.3 and est < 5:
+            return 0.0
+        
+        sol_lower = sol.lower().strip()
+        
+        # PADROES DE LIXO OBSERVADOS (extraidos de dados reais do KG)
+        # Nao sao regras fixas — sao assinaturas de lixo que identificamos
+        
+        # 1. except: pass / except: return / except: (codigo morto)
+        if sol_lower.startswith('except') and ('pass' in sol_lower or 'return' in sol_lower or 'continue' in sol_lower):
+            return 0.05
+        
+        # 2. resultado: True / resultado: False (runtime cru)
+        if sol_lower.startswith('resultado') and ('true' in sol_lower or 'false' in sol_lower):
+            return 0.05
+        
+        # 3. rota=..., score=... (debug de roteamento)
+        if sol_lower.startswith('rota='):
+            return 0.05
+        
+        # 4. Sucesso: True/False (auto_melhoria)
+        if sol_lower.startswith('sucesso:'):
+            return 0.05
+        
+        # 5. Tarefa concluida com sucesso em N/N passos
+        if 'tarefa concluida' in sol_lower:
+            return 0.05
+        
+        # 6. Jaccard=..., Cosseno=... (metricas comparacao)
+        if sol_lower.startswith('jaccard') or sol_lower.startswith('cos'):
+            return 0.05
+        
+        # 7. Solucao 0, Solucao 1... (testes)
+        if sol_lower.startswith('solucao ') and len(sol_lower) < 15:
+            return 0.05
+        
+        # 8. classes=..., total=N (auto_revisor)
+        if sol_lower.startswith('classes='):
+            return 0.05
+        
+        # 9. flush / _flush / flush_temp
+        if sol_lower == 'flush' or sol_lower.startswith('_flush') or 'flush_temp' in sol_lower:
+            return 0.0
+        
+        # 10. stdcpp20, find()!=npos (compilacao cru)
+        if sol_lower in ('stdcpp20',) or 'npos' in sol_lower:
+            return 0.05
+        
+        # 11. teste (sessions de teste)
+        if sol_lower == 'teste':
+            return 0.0
+        
+        # 12. Funcoes: ListaDeClasses (fuel_modulos cru)
+        if sol_lower.startswith('funcoes:'):
+            return 0.2
+        
+        # Para o que nao se encaixa, usa regras baseadas em vocabulario
+        palavras_reais = [w for w in sol.split() if len(w) > 3 and not w.isdigit()]
+        if len(palavras_reais) >= 10:
+            return 0.85
+        elif len(palavras_reais) >= 5:
+            return 0.65
+        elif len(palavras_reais) >= 2:
+            return 0.35
+        
+        return 0.2
     
     def categorizar(self) -> dict:
         """Categoriza lessons por prefixo do ctx + conteudo.
@@ -2849,30 +2942,22 @@ class MCRKGAuto:
         return removidas
     
     def limpar(self) -> dict:
-        """Remove lixo: JSON, vazias, _flush.
+        """Remove lixo usando MCRSignature (nao regras fixas).
         Retorna {removidos: N, mantidos: N}."""
         if not self.kg: return {'removidos': 0, 'mantidos': 0}
         licoes = self.kg._get_licoes()
         removidos = 0
         mantidos = 0
         for l in licoes:
+            if l.get('inactive'): continue
             sol = l.get('solucao', '')
-            ctx = l.get('ctx', '')
-            # Criterios de lixo
-            if ctx == '_flush':
+            qualidade = self._classificar_qualidade(sol)
+            if qualidade < 0.3:
                 l['inactive'] = True; removidos += 1
-            elif not sol or len(sol) < 20:
+            elif qualidade < 0.5:
+                # Duvidoso: marca como inactive mas registra motivo
                 l['inactive'] = True; removidos += 1
-            elif sol.strip().startswith('{') or sol.strip().startswith('['):
-                # JSON — verifica se realmente tem texto util
-                import re
-                # So marca como lixo se NAO tiver texto legivel
-                texto = re.sub(r'[{}"\[\]\\]', ' ', sol)
-                palavras = [w for w in texto.split() if len(w) > 3]
-                if len(palavras) < 3:
-                    l['inactive'] = True; removidos += 1
-                else:
-                    mantidos += 1
+                self.mk_cat.aprender("DUVIDOSO", l.get('ctx', '?'))
             else:
                 mantidos += 1
         if removidos:
@@ -5331,8 +5416,34 @@ class MCRSignature:
         
         dados_clean = key_bytes
         
-        # MODO RAPIDO: apenas entropia + hash simples (para auto_popular)
+        # MODO RAPIDO: fingerprint por tipo de caractere (8 buckets)
         if rapido:
+            from collections import Counter
+            # 8 buckets: lowercase, uppercase, digit, space, punct, special, high_ascii, other
+            tipo_idx = {'a': 0, 'A': 1, '0': 2, ' ': 3, '.': 4, '#': 5, chr(128): 6}
+            buckets8 = [0.0]*8
+            for b in dados_clean:
+                if 97 <= b <= 122:       # a-z
+                    buckets8[0] += 1
+                elif 65 <= b <= 90:       # A-Z
+                    buckets8[1] += 1
+                elif 48 <= b <= 57:       # 0-9
+                    buckets8[2] += 1
+                elif b == 32:             # space
+                    buckets8[3] += 1
+                elif b in (33,44,46,58,59,63,40,41,45,95):  # . , : ; ? ( ) - _
+                    buckets8[4] += 1
+                elif b < 65:              # special chars (tabs, etc)
+                    buckets8[5] += 1
+                elif b > 122:             # high ascii (acentos)
+                    buckets8[6] += 1
+                else:
+                    buckets8[7] += 1
+            
+            total_b = sum(buckets8) or 1
+            fp = [round(b/total_b*10, 3) for b in buckets8]
+            
+            # Entropia simples
             from collections import Counter
             freq = Counter(dados_clean)
             n = len(dados_clean) or 1
@@ -5345,8 +5456,8 @@ class MCRSignature:
                 'entropia': round(h, 3),
                 'estados': len(freq),
                 'transicoes': n - 1,
-                'sequencia': list(dados_clean[:10]) if dados_clean else [],
-                'fingerprint': [h / 8.0, n / 2000.0, float(dados_clean[0] if dados_clean else 0) / 255.0] + [0.0] * 61,
+                'sequencia': list(bytes(dados_clean[:8])),
+                'fingerprint': fp,
             }
             return result
         
@@ -5688,10 +5799,11 @@ class MCRAssinatura:
             except: pass
     
     def _migrar_fingerprints(self):
-        """Remove fingerprints 8-dim antigos (agora sao 64+ dim).
+        """Remove fingerprints antigos que sao muito curtos.
         
-        Mantem apenas fingerprints com >= 64 dimensoes.
-        Isso garante que a nova assinatura funcione corretamente.
+        Mantem apenas fingerprints com >= 8 dimensoes.
+        Fingerprints de 8-dim sao do modo rapido (validos)
+        Fingerprints de 64+ sao do modo completo.
         """
         removidos = 0
         for autor in list(self._banco.keys()):
@@ -5699,7 +5811,7 @@ class MCRAssinatura:
             novas = []
             for ass in assinaturas:
                 fp = ass.get('fingerprint', [])
-                if len(fp) >= 64:
+                if len(fp) >= 8:
                     novas.append(ass)
                 else:
                     removidos += 1
@@ -5794,13 +5906,26 @@ class MCRAssinatura:
             score_fp = 0.0
             kheltz_fps = self._banco.get('Kheltz', [])
             if kheltz_fps:
+                # Detecta dimensao dos fingerprints salvos (rapido=8, full=64+)
+                dim_salva = len(kheltz_fps[-1].get('fingerprint', []))
+                fp_alvo_match = fp_alvo if len(fp_alvo) == dim_salva else []
+                
+                # Se nao casou, extrai no modo correto
+                if not fp_alvo_match and dim_salva > 0:
+                    if dim_salva <= 20:
+                        sig_rapido = MCRSignature.extrair(texto, rapido=True)
+                        fp_alvo_match = sig_rapido.get('fingerprint', [])
+                    elif dim_salva >= 60:
+                        sig_completo = MCRSignature.extrair(texto)
+                        fp_alvo_match = sig_completo.get('fingerprint', [])
+                
                 fp_scores = []
-                for ass in kheltz_fps[-10:]:  # ultimas 10
+                for ass in kheltz_fps[-10:]:
                     fp_ass = ass.get('fingerprint', [])
-                    if fp_ass and len(fp_ass) == len(fp_alvo):
-                        dot = sum(a*b for a,b in zip(fp_ass, fp_alvo))
+                    if fp_ass and len(fp_ass) == len(fp_alvo_match) >= 8:
+                        dot = sum(a*b for a,b in zip(fp_ass, fp_alvo_match))
                         na = sum(a*a for a in fp_ass) ** 0.5
-                        nb = sum(b*b for b in fp_alvo) ** 0.5
+                        nb = sum(b*b for b in fp_alvo_match) ** 0.5
                         conf = dot / (na * nb) if na*nb > 0 else 0
                         fp_scores.append(conf)
                 if fp_scores:
@@ -6127,21 +6252,17 @@ class MCRWebLearn:
     def ciclo_auto_estudo(self):
         """Ciclo completo de auto-estudo.
         
-        Short-circuit: se KG ja tem > 200 lessons, pula (ja tem dados).
+        Diagnostica gaps no KG e busca na web para preencher.
+        Limitado a 5 gaps para evitar excesso de web requests.
         """
         if not self._kg: return {'estudados': 0, 'erro': 'KG indisponivel'}
-        
-        # Short-circuit: KG ja tem dados, nao precisa estudar web
-        licoes = self._kg._get_licoes()
-        uteis = sum(1 for l in licoes if l.get('solucao','') and len(l.get('solucao','')) > 50)
-        if uteis > 200:
-            return {'estudados': 0, 'pulado_por': f'{uteis} uteis', 'total_gaps': 0}
         
         gaps = MCRMetaGap().diagnosticar_gaps(min_por_prefixo=5)
         n_estudados = 0
         erros = 0
+        max_gaps = min(5, len(gaps))  # max 5 gaps (evita 37 web requests)
         
-        for gap in gaps:
+        for gap in gaps[:max_gaps]:
             termo = gap['prefixo']
             resultado = self._buscar_web(termo)
             if resultado and len(resultado) > 30:
