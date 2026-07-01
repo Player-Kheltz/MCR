@@ -4327,6 +4327,159 @@ class MCRMetaNivel:
         return 1
 
 
+# ============================================================
+# MCR GERACAO — Geração com validação por assinatura
+# ============================================================
+
+class MCRGeracao:
+    """Gera resposta e VALIDA se a assinatura condiz com a pergunta.
+    
+    Fluxo:
+    1. Extrai assinatura da pergunta
+    2. Gera resposta (MarkovPalavra via MCRCadeia)
+    3. Extrai assinatura da resposta
+    4. Compara: pergunta e resposta sao compativeis?
+    5. Se compatibilidade < threshold: regenera com estrategia diferente
+    6. Entrega quando compativel OU apos N tentativas
+    
+    Uso:
+        g = MCRGeracao()
+        resultado = g.gerar("Explique o sistema SPA do MCR")
+        # → {"texto": "...", "compatibilidade": 0.45, "nota": 6.5}
+    """
+    
+    def __init__(self):
+        self.decisor = MCRDecisor("geracao")
+        self.threshold = MCRThreshold("geracao_comp")
+        for v in [0.2, 0.25, 0.3, 0.35, 0.28]:
+            self.threshold.observar(v)
+        self.mk = MCR("geracao")
+    
+    def gerar(self, pergunta: str, max_tentativas: int = 3) -> dict:
+        """Gera resposta validando assinatura a cada tentativa.
+        
+        Se a assinatura da resposta nao condiz com a assinatura da pergunta,
+        MCRDecisor decide a estrategia de regeneracao.
+        """
+        # 1. Assinatura da pergunta
+        sig_pergunta = MCRSignature.extrair(pergunta)
+        
+        melhor_resposta = ''
+        melhor_comp = 0
+        melhor_estrategia = ''
+        tentativas = 0
+        
+        for tentativa in range(max_tentativas):
+            tentativas += 1
+            
+            # 2. Decide estrategia de geracao
+            if tentativa == 1:
+                estrategia = 'cadeia_direto'
+            else:
+                estado = f"COMP:{melhor_comp:.2f}|TENT:{tentativa}"
+                estrategia = self.decisor.decidir(estado)
+                if not estrategia or estrategia == 'kg_primeiro':
+                    estrategia = 'cadeia_direto'
+            
+            # 3. Gera resposta
+            texto = self._executar_estrategia(pergunta, estrategia)
+            
+            # 4. Assinatura da resposta
+            sig_resposta = MCRSignature.extrair(texto)
+            compatibilidade = MCRSignature.comparar(sig_pergunta, sig_resposta)
+            
+            # 5. Autoavalia
+            nota = self._autoavaliar(texto, pergunta, compatibilidade)
+            
+            if compatibilidade > melhor_comp:
+                melhor_comp = compatibilidade
+                melhor_resposta = texto
+                melhor_estrategia = estrategia
+            
+            # 6. Se compativel, entrega
+            limiar = self.threshold.calcular(1.0)
+            if compatibilidade >= limiar and nota >= 4:
+                self.mk.aprender(f"GERADO:{pergunta[:30]}", 
+                                f"comp={compatibilidade:.2f} tent={tentativa}")
+                return {
+                    'texto': texto,
+                    'compatibilidade': round(compatibilidade, 3),
+                    'nota': round(nota, 1),
+                    'tentativas': tentativas,
+                    'estrategia': estrategia,
+                    'assinatura_pergunta': sig_pergunta,
+                    'assinatura_resposta': sig_resposta,
+                }
+        
+        # Se nenhuma tentativa foi compativel, entrega a melhor
+        self.mk.aprender(f"FALHO:{pergunta[:30]}", f"melhor_comp={melhor_comp:.2f}")
+        return {
+            'texto': melhor_resposta,
+            'compatibilidade': round(melhor_comp, 3),
+            'nota': round(self._autoavaliar(melhor_resposta, pergunta, melhor_comp), 1),
+            'tentativas': tentativas,
+            'estrategia': melhor_estrategia,
+            'assinatura_pergunta': sig_pergunta,
+            'assinatura_resposta': MCRSignature.extrair(melhor_resposta),
+        }
+    
+    def _executar_estrategia(self, pergunta: str, estrategia: str) -> str:
+        """Executa uma estrategia de geracao especifica."""
+        palavras = pergunta.split()
+        semente = palavras[0] if palavras else 'O'
+        
+        if estrategia == 'cadeia_direto':
+            # Gera direto com MCRCadeia (sem KG)
+            c = MCRConector()
+            c.alimentar(pergunta[:500], "pergunta")
+            cadeia = MCRCadeia(c)
+            res = cadeia.gerar(semente, n_tokens=60)
+            return res.get('texto', semente)
+        
+        elif estrategia == 'kg_primeiro':
+            # Busca no KG primeiro, depois gera
+            try:
+                from modulos.kg import KnowledgeGraph
+                kg = KnowledgeGraph()
+                lessons = kg.buscar(semente, max_r=3)
+                if lessons:
+                    c = MCRConector()
+                    for l in lessons[:3]:
+                        sol = l.get('solucao', '') or l.get('erro', '')
+                        if sol:
+                            c.alimentar(sol[:500], "kg")
+                    cadeia = MCRCadeia(c)
+                    res = cadeia.gerar(semente, n_tokens=60)
+                    return res.get('texto', semente)
+            except: pass
+            return self._executar_estrategia(pergunta, 'cadeia_direto')
+        
+        elif estrategia == 'semente_alternativa':
+            # Tenta com semente diferente (ultima palavra)
+            if len(palavras) > 1:
+                semente = palavras[-1]
+            c = MCRConector()
+            c.alimentar(pergunta[:500], "pergunta")
+            cadeia = MCRCadeia(c)
+            res = cadeia.gerar(semente, n_tokens=60)
+            return res.get('texto', semente)
+        
+        return pergunta
+    
+    def _autoavaliar(self, texto, pergunta, compatibilidade):
+        """Autoavaliacao simples baseada em compatibilidade + tamanho."""
+        if not texto or len(texto) < 20:
+            return 0.0
+        
+        nota = 0.0
+        nota += compatibilidade * 4  # 0-4 pts: similaridade com pergunta
+        nota += min(2.0, len(texto) / 200)  # 0-2 pts: tamanho minimo 200 chars
+        nota += min(2.0, len(set(texto.split())) / 20)  # 0-2 pts: vocabulario diverso
+        nota += 2.0 if not any(p in texto for p in ['Projeto MCR', 'Guia de']) else 1.0  # 0-2 pts: nao repetitivo
+        
+        return round(min(10, max(0, nota)), 1)
+
+
 class MCRFilosofia:
     """Padroes de pensamento humano como niveis MCR.
     
@@ -4675,6 +4828,14 @@ def _autotestar():
     ciclo = web.ciclo_auto_estudo()
     testar(f'MCRWebLearn.ciclo_auto_estudo estudados={ciclo.get("estudados",0)}', 
            ciclo.get('estudados', 0) >= 0)
+    
+    # 27. MCRGeracao
+    g = MCRGeracao()
+    res_g = g.gerar("Explique o sistema SPA do MCR")
+    testar(f'MCRGeracao compat={res_g["compatibilidade"]:.2f} tent={res_g["tentativas"]}', 
+           res_g['compatibilidade'] > 0)
+    testar(f'MCRGeracao texto={len(res_g["texto"])} chars nota={res_g["nota"]}', 
+           len(res_g['texto']) > 20)
     
     # Relatorio
     passed = sum(1 for _, c in resultados if c)
