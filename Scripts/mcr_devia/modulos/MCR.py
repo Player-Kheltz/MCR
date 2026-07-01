@@ -1714,8 +1714,15 @@ class MCRCadeia:
         self.historico_ciclos = []
     
     def gerar(self, semente: str, n_tokens: int = 100, 
-              contexto_tamanho: int = 3, max_tentativas_loop: int = 5) -> dict:
-        """Gera N tokens com contexto reinjetado e deteccao MCR."""
+              contexto_tamanho: int = 3, max_tentativas_loop: int = 5,
+              top_k: int = 3) -> dict:
+        """Gera N tokens com TOP-K sampling + contexto reinjetado.
+        
+        top_k: em vez de sempre pegar o token mais provavel, 
+               sorteia entre os K tokens mais provaveis (diversidade).
+               k=1 = greedy (original), k>1 = criativo.
+        """
+        import random
         if not self.conector.topicos:
             return {'texto': semente, 'tokens': [semente], 
                     'nota': 0, 'loops_detectados': 0, 'erro': 'sem topicos'}
@@ -1733,12 +1740,26 @@ class MCRCadeia:
             else:
                 contexto = tokens_gerados
             
-            # 2. Prediz proximo token
+            # 2. Top-K sampling: pega K mais provaveis e sorteia
             ultimo = contexto[-1]
-            prox, conf = mk.predizer(ultimo)
-            if prox is None or conf < 0.01:
-                prox, conf = mk.predizer(semente)
-                if prox is None or conf < 0.01: break
+            preds = mk.predizer_n(ultimo, n=top_k)
+            if not preds:
+                # Fallback: predizer normal
+                prox, conf = mk.predizer(ultimo)
+                if prox is None or conf < 0.01:
+                    prox, conf = mk.predizer(semente)
+                    if prox is None or conf < 0.01: break
+            else:
+                # Sorteio ponderado entre os top-K (mais provavel tem mais chance)
+                pesos = [conf for _, conf in preds]
+                total = sum(pesos)
+                r = random.uniform(0, total)
+                acum = 0
+                for prox_str, conf in preds:
+                    acum += conf
+                    if r <= acum:
+                        prox = prox_str
+                        break
             
             # 3. MCREntropia detecta loop (nao contagem fixa)
             token_str = str(prox)
@@ -1875,16 +1896,93 @@ class MCRPergunta:
             for c in freq.values():
                 p = c / n
                 if p > 0: h -= p * math.log2(p)
-            # Threshold por MCR, nao fixo
             if h < _MCR_THRESHOLD_FILTRO.calcular(1.0):
                 return False
-        # JSON detectado por primeiro caractere
         if sol.strip().startswith('{') or sol.strip().startswith('['):
             return False
-        # Metadata de sistema
         if sol.startswith('[') and ']' in sol[:20]:
             return False
         return True
+
+    @staticmethod
+    def _preferir_lore(lessons: list) -> list:
+        """Re-rankeia lessons para preferir LORE sobre docs tecnicos.
+        
+        Prioriza lessons que:
+        - Contem marcadores de lore (narrativa, lugar, personagem, etc)
+        - Tem palavras de mundo aberto (> 8 letras por palavra media)
+        - NAO contem keywords tecnicas (compilacao, comando, codigo, etc)
+        """
+        # Palavras que indicam LORE (narrativo, criativo)
+        LORE_KEYWORDS = {
+            'aventureiro', 'jornada', 'reino', 'cidade', 'floresta',
+            'templo', 'torre', 'castelo', 'dragao', 'magia',
+            'espada', 'escudo', 'pocao', 'feitico', 'runas',
+            'mestre', 'guilda', 'cla', 'tribo', 'anciao',
+            'guardiao', 'espirito', 'elemental', 'fogo', 'gelo',
+            'terra', 'energia', 'vento', 'aguas', 'sombras',
+            'luz', 'trevas', 'portal', 'dimensao', 'artefato',
+            'lendario', 'mitico', 'heroi', 'profecia', 'destino',
+            'eridanus', 'spa', 'dominios', 'progressao', 'habilidade',
+            'conhecimento', 'sabedoria', 'poder', 'ancestral',
+        }
+        # Palavras que indicam DOC TECNICO (a evitar para geracao criativa)
+        TEC_KEYWORDS = {
+            'compilar', 'compilacao', 'dependencia', 'vcpkg', 'cmake',
+            'comando', 'terminal', 'download', 'instalar', 'configurar',
+            'build', 'debug', 'log', 'erro', 'exception', 'stacktrace',
+            'github', 'branch', 'commit', 'pull', 'merge', 'clone',
+            'sql', 'insert', 'select', 'update', 'delete', 'table',
+            'json', 'xml', 'yaml', 'config', 'script', 'funcao',
+            'metodo', 'classe', 'import', 'from', 'def ', 'return',
+        }
+        
+        def _calcular_pontuacao_lore(sol: str) -> float:
+            sol_lower = sol.lower()
+            palavras = sol_lower.split()
+            n_palavras = len(palavras)
+            if n_palavras < 3: return 0.0
+            
+            # Pontos positivos: palavras de lore
+            pts = 0
+            for kw in LORE_KEYWORDS:
+                if kw in sol_lower:
+                    pts += 2
+                    # Bonus pra matches no inicio do texto (mais relevante)
+                    if sol_lower[:100].find(kw) >= 0:
+                        pts += 1
+            
+            # Pontos negativos: palavras tecnicas
+            tec_pts = 0
+            for kw in TEC_KEYWORDS:
+                if kw in sol_lower:
+                    tec_pts += 3
+                    if sol_lower[:50].find(kw) >= 0:
+                        tec_pts += 2
+            
+            # Penalidade se o texto parece documentacao tecnica
+            if sol_lower.startswith('para') or sol_lower.startswith('como'):
+                tec_pts += 2
+            if '://' in sol or sol_lower.startswith('http'):
+                tec_pts += 5
+            
+            # Bonus para palavras acima de 6 letras (texto mais rico)
+            palavras_longas = sum(1 for p in palavras if len(p) > 6)
+            pts += palavras_longas * 0.5
+            
+            return pts - tec_pts
+        
+        # Adiciona pontuacao lore a cada lesson e re-rankeia
+        com_pontos = []
+        for l in lessons:
+            sol = l.get('solucao', '') or l.get('erro', '')
+            if not sol: continue
+            score = _calcular_pontuacao_lore(sol[:500])
+            com_pontos.append((score, l))
+        
+        # Ordena por pontuacao lore (decrescente)
+        com_pontos.sort(key=lambda x: -x[0])
+        return [l for _, l in com_pontos]
     
     def perguntar(self, pergunta: str, max_tokens: int = 80) -> dict:
         """Responde uma pergunta usando MCR."""
@@ -1899,7 +1997,9 @@ class MCRPergunta:
                 ls = self.kg.buscar(termo, max_r=3, pergunta=pergunta)
                 lessons.extend(ls)
         
-        # 3. Alimenta conector com lessons encontradas (FILTRADAS E LIMPAS)
+        # 3. Prefere LORE sobre docs tecnicos (rankeia antes de alimentar)
+        lessons = self._preferir_lore(lessons)
+        
         topicos_alimentados = []
         mk_filtro = MarkovUniversal("filtro_kg")
         for i, l in enumerate(lessons[:10]):
@@ -1955,7 +2055,7 @@ class MCRPergunta:
         # Verifica se a semente existe no Markov
         if semente not in self.conector.mcr_palavra.freq and len(palavras_primeiro) > 1:
             semente = palavras_primeiro[1] if len(palavras_primeiro) > 1 else semente
-        resultado_cadeia = self.cadeia.gerar(semente, n_tokens=max_tokens)
+        resultado_cadeia = self.cadeia.gerar(semente, n_tokens=max_tokens, top_k=3)
         
         # 6. PÓS-PROCESSAMENTO: MCR garante maiuscula + pontuacao
         texto = resultado_cadeia['texto']
