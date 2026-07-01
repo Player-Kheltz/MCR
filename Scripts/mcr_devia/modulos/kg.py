@@ -7,6 +7,20 @@ Knowledge Graph multi-arquivo: cada contexto em arquivo separado + master index.
 import os, json, re, hashlib, math, urllib.request, time as _time
 from stop_words import STOP_BUSCA
 
+# Cache global do KG — evita recarregar 98 JSONs a cada instancia
+# MCRSignature do diretorio determina se o cache ainda e valido
+_KG_CACHE = {'checksum': None, 'licoes': [], 'ctx_cache': {}}
+
+def _kg_dir_checksum(kg_dir):
+    """Calcula checksum do diretorio KG baseado nos mtimes dos arquivos."""
+    if not os.path.exists(kg_dir): return None
+    sig_parts = []
+    for fname in sorted(os.listdir(kg_dir)):
+        if fname.endswith('.json'):
+            fpath = os.path.join(kg_dir, fname)
+            sig_parts.append(f"{fname}:{os.path.getmtime(fpath)}")
+    return hashlib.md5('|'.join(sig_parts).encode()).hexdigest() if sig_parts else None
+
 # Threshold MCR
 try:
     from modulos.MCR import MCRThreshold
@@ -100,10 +114,25 @@ class KnowledgeGraph:
         return {}
     
     def _carregar_tudo(self):
-        """Carrega TODOS os ctxs (lazy full load)."""
+        """Carrega TODOS os ctxs (lazy full load) com cache global.
+        
+        Usa _KG_CACHE global: se o diretorio nao mudou (mesmo checksum),
+        reusa as lessons ja carregadas. Evita ler 98 JSONs de novo.
+        """
         if self._all_loaded:
             return
         self._all_loaded = True
+        
+        # Verifica cache global
+        if os.path.exists(self.kg_dir):
+            checksum = _kg_dir_checksum(self.kg_dir)
+            if checksum and checksum == _KG_CACHE.get('checksum'):
+                # Cache hit! Reutiliza dados ja carregados
+                self.data['licoes'] = list(_KG_CACHE['licoes'])
+                self._ctx_cache = dict(_KG_CACHE['ctx_cache'])
+                return
+        
+        # Cache miss: carrega do disco
         self.data['licoes'] = []
         if not os.path.exists(self.kg_dir):
             return
@@ -120,6 +149,11 @@ class KnowledgeGraph:
                 self.data['licoes'].append(l)
                 ctx = l.get('ctx', 'geral')
                 self._ctx_cache.setdefault(ctx, []).append(l)
+        
+        # Atualiza cache global
+        _KG_CACHE['checksum'] = _kg_dir_checksum(self.kg_dir) if os.path.exists(self.kg_dir) else None
+        _KG_CACHE['licoes'] = list(self.data['licoes'])
+        _KG_CACHE['ctx_cache'] = dict(self._ctx_cache)
     
     def _carregar_ctx(self, ctx):
         """Carrega um ctx especifico do arquivo."""
