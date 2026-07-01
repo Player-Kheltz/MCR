@@ -36,12 +36,14 @@ class MarkovUniversal:
         self.transicoes = {}   # {token: {proximo: count}}
         self.freq = Counter()
         self.total = 0
+        self._entropia_cache: Dict[str, float] = {}
     
     def aprender(self, a: Any, b: Any):
         sa, sb = str(a), str(b)
         self.freq[sa] += 1; self.total += 1
         if sa not in self.transicoes: self.transicoes[sa] = {}
         self.transicoes[sa][sb] = self.transicoes[sa].get(sb, 0) + 1
+        self._entropia_cache.pop(sa, None)  # invalida cache
     
     def aprender_sequencia(self, seq: List[Any]):
         for i in range(len(seq)-1): self.aprender(seq[i], seq[i+1])
@@ -60,23 +62,51 @@ class MarkovUniversal:
         prox = self.transicoes[sa]
         sorted_prox = sorted(prox.items(), key=lambda x: -x[1])
         total = sum(prox.values())
-        return [(p, c/total) for p, c in sorted_prox]
+        return [(p, c/total) for p, c in sorted_prox[:n]]
     
     def entropia(self, a: Any) -> float:
         sa = str(a)
-        if sa not in self.transicoes: return 0.0
+        if sa in self._entropia_cache: return self._entropia_cache[sa]
+        if sa not in self.transicoes: return 1.0
         prox = self.transicoes[sa]; t = sum(prox.values())
-        if t == 0: return 0.0
+        if t == 0: return 1.0
         h = 0.0
         for c in prox.values():
             p = c/t
             if p > 0: h -= p * math.log2(p)
+        self._entropia_cache[sa] = h
         return h
     
     def entropia_media(self) -> float:
         if not self.transicoes: return 0.0
         hs = [self.entropia(t) for t in self.transicoes if self.transicoes[t]]
         return sum(hs)/len(hs) if hs else 0.0
+    
+    def entropia_sequencia(self, seq: List[Any]) -> float:
+        """Entropia média ao longo de uma sequência de estados.
+        Baixa = previsível (repetitivo). Alta = variada (criativo)."""
+        if not seq: return 1.0
+        hs = [self.entropia(s) for s in seq]
+        return sum(hs)/len(hs)
+    
+    def jaccard(self, outra: 'MarkovUniversal') -> float:
+        """Jaccard entre CONJUNTOS DE ESTADOS desta cadeia e outra.
+        Mede quão similares são os vocabulários dos dois níveis."""
+        estados_a = set(self.freq.keys())
+        estados_b = set(outra.freq.keys())
+        if not estados_a or not estados_b: return 0.0
+        inter = estados_a & estados_b
+        uniao = estados_a | estados_b
+        return len(inter)/len(uniao)
+    
+    def jaccard_transicoes(self, outra: 'MarkovUniversal') -> float:
+        """Jaccard entre CONJUNTOS DE TRANSIÇÕES 'a→b' desta e outra."""
+        trans_a = set(f"{a}→{b}" for a in self.transicoes for b in self.transicoes[a])
+        trans_b = set(f"{a}→{b}" for a in outra.transicoes for b in outra.transicoes[a])
+        if not trans_a or not trans_b: return 0.0
+        inter = trans_a & trans_b
+        uniao = trans_a | trans_b
+        return len(inter)/len(uniao)
     
     def gerar(self, semente: Any, passos: int = 10) -> List[Any]:
         res = [semente]; atual = semente
@@ -132,12 +162,57 @@ class MarkovUniversal:
             return 0.0
         return dot / (na * nb)
     
+    def jaccard_bytes_ponderado(self, texto_a: str, texto_b: str) -> float:
+        """Jaccard PONDERADO: primeiros 10 bytes pesam 2x.
+        Captura melhor INTENÇÃO (primeiras palavras) do que o Jaccard normal."""
+        da = texto_a.encode('utf-8')[:500]
+        db = texto_b.encode('utf-8')[:500]
+        pesos = {}
+        for i in range(max(len(da), len(db)) - 1):
+            if i < len(da) - 1:
+                t = f"{da[i]:02x}->{da[i+1]:02x}"
+                pesos[t] = pesos.get(t, 0) + (2.0 if i < 10 else 1.0)
+            if i < len(db) - 1:
+                t = f"{db[i]:02x}->{db[i+1]:02x}"
+                pesos[t] = pesos.get(t, 0) + (2.0 if i < 10 else 1.0)
+        trans_a = {f"{da[i]:02x}->{da[i+1]:02x}" for i in range(len(da)-1)}
+        trans_b = {f"{db[i]:02x}->{db[i+1]:02x}" for i in range(len(db)-1)}
+        inter = trans_a & trans_b
+        uniao = trans_a | trans_b
+        if not uniao: return 0.0
+        peso_inter = sum(pesos.get(t, 1) for t in inter)
+        peso_uniao = sum(pesos.get(t, 1) for t in uniao)
+        return peso_inter / peso_uniao
+    
     def stats(self) -> Dict:
         return {
             'nome': self.nome, 'estados': len(self.transicoes),
             'transicoes': sum(len(v) for v in self.transicoes.values()),
             'entropia': round(self.entropia_media(), 3),
         }
+
+
+class MCRFingerprint:
+    """Fingerprint MCR com N dimenções descoberto pela entropia.
+    Regra de Ouro: n_dims = max(8, min(256, n_tipos_unicos * 4))."""
+    
+    @staticmethod
+    def calcular_dimensoes(tokens) -> int:
+        tipos = set(t[0] for t in tokens) if tokens else set()
+        return max(8, min(256, len(tipos) * 4))
+    
+    @staticmethod
+    def gerar(texto: str) -> list:
+        from modulos.pattern_engine import PatternEngine
+        pe = PatternEngine()
+        tokens = pe.tokenizar_universal(texto) if pe else []
+        if not tokens: return [0.0]*8
+        n_dims = MCRFingerprint.calcular_dimensoes(tokens)
+        histograma = [0.0]*n_dims
+        for t in tokens:
+            histograma[hash(t[0]) % n_dims] += 1
+        total = sum(histograma) or 1
+        return [h/total*10 for h in histograma]
 
 
 class MCR:
@@ -985,6 +1060,378 @@ class GeradorNarrativa:
                 break
         
         return melhor
+
+
+# Alias: MCR.Nivel = MarkovUniversal (refatoração gradual)
+MCR.Nivel = MarkovUniversal
+
+# ============================================================
+# MCR CRUZADO — Busca ponte ótima entre 2 tópicos
+# ============================================================
+
+CONECTORES = {
+    'a', 'e', 'o', 'de', 'da', 'do', 'em', 'com', 'para', 'por',
+    'se', 'no', 'na', 'um', 'uma', 'os', 'as', 'ao', 'aos', 'das',
+    'dos', 'num', 'numa', 'pelo', 'pela', 'pelos', 'pelas', 'que',
+    'como', 'mas', 'mais', 'ou', 'nem', 'tambem', 'so',
+}
+
+class MCRCruzado:
+    """Analisa entropia cruzada entre cadeias para emergência.
+    
+    Ponte ótima = divergência × especificidade × profundidade
+    """
+    
+    def __init__(self, conector):
+        self.conector = conector
+    
+    def analisar(self, topico_a: str, topico_b: str) -> dict:
+        if topico_a not in self.conector.topicos or topico_b not in self.conector.topicos:
+            return {'erro': 'topico nao encontrado', 'pontes': [], 'melhor': None}
+        
+        conteudo_a = self.conector.topicos[topico_a].get('conteudo', set())
+        conteudo_b = self.conector.topicos[topico_b].get('conteudo', set())
+        candidatas = conteudo_a & conteudo_b
+        
+        if not candidatas:
+            return self._analisar_sem_compartilhadas(topico_a, topico_b)
+        
+        pontes = []
+        for palavra in candidatas:
+            score, detalhes = self._avaliar_ponte(topico_a, topico_b, palavra)
+            pontes.append({'palavra': palavra, 'score': round(score, 2), **detalhes})
+        
+        pontes.sort(key=lambda x: -x['score'])
+        return {
+            'total_candidatas': len(candidatas),
+            'divergencia_media': round(sum(p.get('divergencia', 0) for p in pontes)/len(pontes), 3) if pontes else 0,
+            'pontes': pontes,
+            'melhor': pontes[0] if pontes else None,
+        }
+    
+    def melhor_ponte(self, topico_a: str, topico_b: str) -> dict:
+        return self.analisar(topico_a, topico_b).get('melhor')
+    
+    def _avaliar_ponte(self, topico_a, topico_b, palavra):
+        mk_a = self.conector.topicos[topico_a].get('mcr_palavra')
+        mk_b = self.conector.topicos[topico_b].get('mcr_palavra')
+        if not mk_a or not mk_b: return 0.0, {}
+        
+        trans_a = set(mk_a.transicoes.get(palavra, {}).keys())
+        trans_b = set(mk_b.transicoes.get(palavra, {}).keys())
+        if not trans_a and not trans_b: divergencia = 0.0
+        elif not trans_a or not trans_b: divergencia = 1.0
+        else:
+            inter = trans_a & trans_b; uniao = trans_a | trans_b
+            divergencia = 1.0 - (len(inter)/len(uniao) if uniao else 0)
+        
+        h_a = mk_a.entropia(palavra) if palavra in mk_a.freq else 0
+        h_b = mk_b.entropia(palavra) if palavra in mk_b.freq else 0
+        entropia_comb = (h_a + h_b)/2
+        
+        freq_global = sum(1 for _, d in self.conector.topicos.items()
+                         if palavra in d.get('conteudo', set()))
+        especificidade = 1.0 - min(1.0, freq_global/max(1, len(self.conector.topicos)*0.5))
+        
+        cadeia_a = len(mk_a.gerar(palavra, passos=5))
+        cadeia_b = len(mk_b.gerar(palavra, passos=5))
+        profundidade = min(1.0, (cadeia_a + cadeia_b)/10)
+        
+        score = divergencia*5 + especificidade*3 + profundidade*2 + min(0.5, entropia_comb*0.2)
+        score = min(12, score)
+        
+        return score, {
+            'divergencia': round(divergencia, 3),
+            'especificidade': round(especificidade, 3),
+            'profundidade': round(profundidade, 3),
+            'entropia_combinada': round(entropia_comb, 3),
+            'freq_global': freq_global,
+            'cadeia_a': cadeia_a, 'cadeia_b': cadeia_b,
+            'nota_divergencia': round(divergencia*5, 2),
+            'nota_especificidade': round(especificidade*3, 2),
+            'nota_profundidade': round(profundidade*2, 2),
+        }
+    
+    def _analisar_sem_compartilhadas(self, topico_a, topico_b):
+        texto_a = self.conector.topicos[topico_a]['texto']
+        texto_b = self.conector.topicos[topico_b]['texto']
+        da = texto_a.encode('utf-8'); db = texto_b.encode('utf-8')
+        bytes_comuns = set(da) & set(db)
+        pontes = []
+        for byte_val in bytes_comuns:
+            pal_a = None; pal_b = None
+            for i, b in enumerate(da):
+                if b == byte_val:
+                    ini, fim = i, i
+                    while ini > 0 and da[ini-1] != 32: ini -= 1
+                    while fim < len(da) and da[fim] != 32: fim += 1
+                    pal_a = da[ini:fim].decode('utf-8', errors='replace')
+                    break
+            for i, b in enumerate(db):
+                if b == byte_val:
+                    ini, fim = i, i
+                    while ini > 0 and db[ini-1] != 32: ini -= 1
+                    while fim < len(db) and db[fim] != 32: fim += 1
+                    pal_b = db[ini:fim].decode('utf-8', errors='replace')
+                    break
+            if not pal_a or not pal_b or pal_a.lower() == pal_b.lower(): continue
+            score, det = self._avaliar_ponte(topico_a, topico_b, pal_a)
+            score *= 0.7
+            det['palavra_a'] = pal_a; det['palavra_b'] = pal_b
+            pontes.append({'palavra': f"{pal_a}↔{pal_b}", 'score': round(score, 2), **det})
+        
+        pontes.sort(key=lambda x: -x['score'])
+        return {'total_candidatas': len(pontes), 'tipo': 'byte_bridge',
+                'pontes': pontes[:8], 'melhor': pontes[0] if pontes else None}
+
+
+class MCRConector:
+    """Conecta tópicos distantes usando MCR multi-nível (Byte+Palavra+Token).
+    
+    Uso:
+        c = MCRConector()
+        c.alimentar("SPA é progressão", "spa")
+        c.alimentar("Eridanus é cidade", "eridanus")  
+        conexao = c.conectar("spa", "eridanus")
+    """
+    
+    def __init__(self):
+        self.mcr_byte = MCR.Nivel("byte_global")
+        self.mcr_palavra = MCR.Nivel("palavra_global")
+        self.mcr_token = MCR.Nivel("token_global")
+        self.topicos = {}
+        self.conexoes_feitas = set()
+        self.total_conexoes = 0
+        self.cruzado = MCRCruzado(self)
+    
+    def alimentar(self, texto: str, nome: str = None):
+        if nome is None: nome = f"topico_{len(self.topicos)+1}"
+        dados = texto.encode('utf-8')
+        for i in range(len(dados)-1):
+            self.mcr_byte.aprender(f"B:{dados[i]:02x}", f"B:{dados[i+1]:02x}")
+        palavras = texto.split()
+        for i in range(len(palavras)-1):
+            self.mcr_palavra.aprender(palavras[i], palavras[i+1])
+        for i in range(len(palavras)-1):
+            ta = palavras[i][0].upper() if palavras[i] else '?'
+            tb = palavras[i+1][0].upper() if palavras[i+1] else '?'
+            self.mcr_token.aprender(ta, tb)
+        
+        mcr_t = MCR.Nivel(nome)
+        for i in range(len(dados)-1):
+            mcr_t.aprender(f"B:{dados[i]:02x}", f"B:{dados[i+1]:02x}")
+        mcr_p = MCR.Nivel(f"{nome}_palavra")
+        for i in range(len(palavras)-1):
+            mcr_p.aprender(palavras[i], palavras[i+1])
+        
+        self.topicos[nome] = {
+            'texto': texto, 'mcr_byte': mcr_t, 'mcr_palavra': mcr_p,
+            'palavras': palavras, 'bytes': len(dados),
+            'conteudo': {p.lower() for p in palavras
+                        if len(p) >= 4 and p.lower() not in CONECTORES},
+        }
+        return nome
+    
+    def alimentar_json(self, arquivo):
+        if not os.path.exists(arquivo): return 0
+        with open(arquivo, 'r', encoding='utf-8') as f:
+            dados = json.load(f)
+        conteudo = dados.get('topicos', dados if isinstance(dados, list) else [])
+        count = 0
+        for item in conteudo:
+            if isinstance(item, dict) and 'texto' in item:
+                self.alimentar(item['texto'], item.get('nome')); count += 1
+            elif isinstance(item, str):
+                self.alimentar(item); count += 1
+        return count
+    
+    def conectar(self, topico_a: str, topico_b: str) -> dict:
+        if topico_a not in self.topicos or topico_b not in self.topicos: return None
+        t_a = self.topicos[topico_a]; t_b = self.topicos[topico_b]
+        texto_a = t_a['texto']; texto_b = t_b['texto']
+        palavras_a = t_a['palavras']; palavras_b = t_b['palavras']
+        
+        import hashlib
+        h = hashlib.md5(f"{min(topico_a,topico_b)}|{max(topico_a,topico_b)}".encode()).hexdigest()[:12]
+        if h in self.conexoes_feitas: return None
+        
+        byte_ponte, tipo_ponte, pal_a, pal_b = self._encontrar_ponte(topico_a, topico_b)
+        sequencia = ''
+        
+        if tipo_ponte in ('conteudo_compartilhado', 'conteudo_mas_parcial'):
+            mk_a = t_a['mcr_palavra']; mk_b = t_b['mcr_palavra']
+            semente = palavras_a[0] if palavras_a else 'O'
+            seq = []; atual = semente; atingiu = False
+            for _ in range(14):
+                seq.append(atual)
+                if not atingiu and atual.lower() == pal_a.lower():
+                    atingiu = True; atual = pal_b; continue
+                mk = mk_b if atingiu else mk_a
+                prox, conf = mk.predizer(atual)
+                if prox is None or conf < 0.01: break
+                atual = prox
+            sequencia = ' '.join(seq)
+            if len(sequencia.strip()) < 10: sequencia = ''
+        
+        if not sequencia:
+            mk_a_byte = t_a['mcr_byte']; mk_b_byte = t_b['mcr_byte']
+            inicio = f"B:{texto_a.encode('utf-8')[0]:02x}"
+            seq_a = mk_a_byte.gerar(inicio, 8)
+            estados_b = set(mk_b_byte.freq.keys())
+            ponte = None
+            for e in seq_a:
+                if e in estados_b: ponte = e; break
+            if ponte is None:
+                for e in seq_a:
+                    if e in self.mcr_byte.freq:
+                        prox, _ = self.mcr_byte.predizer(e)
+                        if prox and prox in estados_b: ponte = e; break
+            if ponte is None: return None
+            seq_b = mk_b_byte.gerar(ponte, 8)
+            chars = []
+            for s in seq_a:
+                if s.startswith('B:'):
+                    try: chars.append(chr(int(s[2:], 16)))
+                    except: chars.append('?')
+            chars.append(' ')
+            for s in seq_b:
+                if s.startswith('B:'):
+                    try: chars.append(chr(int(s[2:], 16)))
+                    except: chars.append('?')
+            sequencia = ''.join(chars)
+        
+        nota, detalhes = self._autoavaliar_multinivel(sequencia, texto_a, texto_b, tipo_ponte)
+        self.conexoes_feitas.add(h)
+        self.total_conexoes += 1
+        
+        return {
+            'hash': h, 'topico_a': topico_a, 'topico_b': topico_b,
+            'tipo_ponte': tipo_ponte, 'palavra_a': pal_a, 'palavra_b': pal_b,
+            'sequencia': sequencia, 'nota': round(nota, 2),
+            'detalhes_nota': detalhes,
+        }
+    
+    def _encontrar_ponte(self, topico_a, topico_b):
+        melhor = self.cruzado.melhor_ponte(topico_a, topico_b)
+        if melhor:
+            palavra = melhor.get('palavra', '')
+            score = melhor.get('score', 0)
+            pal_a = melhor.get('palavra_a', palavra) or palavra
+            pal_b = melhor.get('palavra_b', palavra) or palavra
+            texto_a = self.topicos[topico_a]['texto']
+            idx = texto_a.lower().find(pal_a.lower())
+            byte_p = f"B:{texto_a.encode('utf-8')[idx if idx>=0 else 0]:02x}"
+            tipo = 'conteudo_compartilhado' if score >= 6 else 'conteudo_mas_parcial'
+            return byte_p, tipo, pal_a, pal_b
+        
+        conteudo_a = self.topicos[topico_a].get('conteudo', set())
+        conteudo_b = self.topicos[topico_b].get('conteudo', set())
+        comp = conteudo_a & conteudo_b
+        if comp:
+            pal = max(comp, key=len)
+            texto_a = self.topicos[topico_a]['texto']
+            idx = texto_a.lower().find(pal)
+            byte_p = f"B:{texto_a.encode('utf-8')[idx if idx>=0 else 0]:02x}"
+            return byte_p, 'conteudo_mas_parcial', pal, pal
+        
+        return self._byte_bridge(topico_a, topico_b)
+    
+    def _byte_bridge(self, topico_a, topico_b):
+        mk_a = self.topicos[topico_a]['mcr_byte']
+        mk_b = self.topicos[topico_b]['mcr_byte']
+        texto_a = self.topicos[topico_a]['texto']
+        inicio = f"B:{texto_a.encode('utf-8')[0]:02x}"
+        seq = mk_a.gerar(inicio, 8)
+        estados_b = set(mk_b.freq.keys())
+        for e in seq:
+            if e in estados_b:
+                c = chr(int(e[2:], 16)) if e.startswith('B:') else '?'
+                return e, 'byte_only', c, c
+        for e in seq:
+            if e in self.mcr_byte.freq:
+                prox, _ = self.mcr_byte.predizer(e)
+                if prox and prox in estados_b:
+                    c = chr(int(e[2:], 16))
+                    return e, 'byte_only', c, c
+        return None, 'none', '', ''
+    
+    def _autoavaliar_multinivel(self, sequencia, texto_a, texto_b, tipo_ponte):
+        """Byte(2) + Palavra(5) + Token(3) = 10 pts"""
+        if not sequencia or len(sequencia.strip()) < 3:
+            return 0.0, {'erro': 'vazia'}
+        
+        # Nivel Byte (2 pts)
+        j_a = self.mcr_byte.jaccard_bytes(sequencia, texto_a)
+        j_b = self.mcr_byte.jaccard_bytes(sequencia, texto_b)
+        seq_bytes = sequencia.encode('utf-8')[:200]
+        trans_ok = 0
+        for i in range(len(seq_bytes)-1):
+            e = f"B:{seq_bytes[i]:02x}"
+            p = f"B:{seq_bytes[i+1]:02x}"
+            if e in self.mcr_byte.transicoes and p in self.mcr_byte.transicoes.get(e, {}):
+                trans_ok += 1
+        c_byte = trans_ok / max(len(seq_bytes)-1, 1)
+        nb = (0.5 if j_a < 0.3 else 0) + (0.5 if j_b < 0.3 else 0) + (1.0 if c_byte > 0.5 else c_byte*2)
+        
+        # Nivel Palavra (5 pts)
+        pal_seq = sequencia.split()
+        c_pal = sum(1 for p in pal_seq if p in self.mcr_palavra.freq)/max(len(pal_seq), 1)
+        cont_a = {p.lower() for p in texto_a.split() if len(p)>=4 and p.lower() not in CONECTORES}
+        cont_b = {p.lower() for p in texto_b.split() if len(p)>=4 and p.lower() not in CONECTORES}
+        cont_seq = {p.lower() for p in pal_seq if len(p)>=4 and p.lower() not in CONECTORES}
+        np = (1.0 if c_pal > 0 else 0) + min(1.5, len(cont_seq & cont_a)*0.5) \
+             + min(1.5, len(cont_seq & cont_b)*0.5) + (1.0 if c_pal > 0.3 else c_pal*3)
+        
+        # Nivel Token (3 pts)
+        c_tok = 0
+        if len(pal_seq) > 1:
+            c_tok = sum(1 for i in range(len(pal_seq)-1)
+                       if pal_seq[i][0].upper() in self.mcr_token.transicoes
+                       and pal_seq[i+1][0].upper() in self.mcr_token.transicoes.get(pal_seq[i][0].upper(), {}))
+            c_tok /= (len(pal_seq)-1)
+        tipos_a = {p[0].upper() for p in texto_a.split() if p}
+        tipos_b = {p[0].upper() for p in texto_b.split() if p}
+        tipos_seq = {p[0].upper() for p in pal_seq if p}
+        nt = (0.5 if tipos_seq & tipos_a else 0) + (0.5 if tipos_seq & tipos_b else 0) \
+             + (2.0 if c_tok > 0.3 else c_tok*6)
+        
+        penalidade = 1.0
+        if tipo_ponte == 'byte_only': penalidade = 0.3
+        elif tipo_ponte == 'none': penalidade = 0.1
+        
+        nota = min(10, (nb + np + nt) * penalidade)
+        return nota, {
+            'byte': {'diff_a': round(j_a,3), 'diff_b': round(j_b,3), 'nota': round(nb,2)},
+            'palavra': {'existe': round(c_pal,3), 'nota': round(np,2)},
+            'token': {'coerencia': round(c_tok,3), 'nota': round(nt,2)},
+            'penalidade': penalidade, 'nota_final': round(nota,2),
+        }
+    
+    def explorar_todos(self):
+        conexoes = []
+        nomes = list(self.topicos.keys())
+        for i in range(len(nomes)):
+            for j in range(i+1, len(nomes)):
+                res = self.conectar(nomes[i], nomes[j])
+                if res: conexoes.append(res)
+        return conexoes
+    
+    def debug(self, conexao: dict) -> str:
+        """Rastreamento passo-a-passo de uma conexao."""
+        if not conexao: return "(sem conexao)"
+        linhas = [f"DEBUG CONEXAO: {conexao.get('topico_a','?')} <-> {conexao.get('topico_b','?')}"]
+        linhas.append(f"  Ponte: {conexao.get('palavra_a','?')} -> {conexao.get('palavra_b','?')} ({conexao.get('tipo_ponte','?')})")
+        linhas.append(f"  Sequencia: {conexao.get('sequencia','')[:100]}")
+        linhas.append(f"  Nota: {conexao.get('nota',0)}/10")
+        det = conexao.get('detalhes_nota', {})
+        if 'byte' in det: 
+            linhas.append(f"  Byte: {det['byte'].get('nota',0):.1f}/2 (diff_a={det['byte'].get('diff_a',0):.3f})")
+        if 'palavra' in det:
+            linhas.append(f"  Palavra: {det['palavra'].get('nota',0):.1f}/5")
+        if 'token' in det:
+            linhas.append(f"  Token: {det['token'].get('nota',0):.1f}/3")
+        linhas.append(f"  Penalidade: x{det.get('penalidade',1)}")
+        return '\n'.join(linhas)
 
 
 # ============================================================
