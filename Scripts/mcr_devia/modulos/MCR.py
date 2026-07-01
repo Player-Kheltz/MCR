@@ -1685,6 +1685,303 @@ class MCRPergunta:
 
 
 # ============================================================
+# MCR'ZIFICAÇÃO — Todos os pontos de hardcode viram Markov
+# ============================================================
+
+class MCRPeso:
+    """Aprende PESOS dos dados, não de regras fixas.
+    
+    Substitui:
+    - kg.buscar(): +5 erro, +4 ctx, +3 causa → frequencia observada
+    - Autoavaliacao: Byte(2)+Palavra(5)+Token(3) → correlacao com nota real
+    - Qualquer peso fixo → Markov descobre
+    
+    Uso:
+        peso = MCRPeso()
+        peso.aprender("tipo_erro", relevancia_observada)
+        peso_aprendido = peso.consultar("tipo_erro")
+    """
+    
+    def __init__(self, nome="pesos"):
+        self.mk = MarkovUniversal(nome)
+        self.total_obs = 0
+    
+    def aprender(self, categoria: str, valor: float):
+        """Aprende que CATEGORIA tem VALOR de relevancia."""
+        self.mk.aprender(f"CAT_{categoria}", f"VAL_{int(valor*10)}")
+        self.total_obs += 1
+    
+    def consultar(self, categoria: str, fallback: float = 1.0) -> float:
+        """Retorna peso aprendido para categoria, ou fallback se nunca viu."""
+        estado = f"CAT_{categoria}"
+        if estado not in self.mk.transicoes: return fallback
+        prox, conf = self.mk.predizer(estado)
+        if prox is None or conf < 0.1: return fallback
+        try:
+            return int(prox.replace('VAL_', '')) / 10.0
+        except:
+            return fallback
+    
+    def pesos_mais_comuns(self, top_n: int = 5) -> list:
+        """Retorna os pares (categoria, peso) mais frequentes."""
+        result = []
+        for estado, trans in self.mk.transicoes.items():
+            if not estado.startswith('CAT_'): continue
+            melhor = max(trans, key=trans.get) if trans else ''
+            try:
+                valor = int(melhor.replace('VAL_', '')) / 10.0
+            except:
+                valor = 0
+            freq = sum(trans.values())
+            result.append((freq, estado.replace('CAT_', ''), valor))
+        result.sort(key=lambda x: -x[0])
+        return [(c, v) for _, c, v in result[:top_n]]
+
+
+class MCREntropia:
+    """Detecta anomalias e loops por ENTROPIA, não por contagem fixa.
+    
+    Substitui:
+    - "3x mesmo token = loop" → entropia caiu abaixo da mediana?
+    - "texto suspeito" → entropia foge do esperado?
+    
+    Uso:
+        det = MCREntropia()
+        det.alimentar(sequencia_de_tokens)
+        det.esta_em_loop()  # True/False baseado em entropia
+    """
+    
+    def __init__(self, nome="entropia"):
+        self.mk = MarkovUniversal(nome)
+        self.historico_entropias = []
+        self.janela = 10  # quantos tokens olhar para tras
+    
+    def alimentar(self, token: str):
+        """Alimenta um token e atualiza entropia local.
+        Entropia de Shannon dos ultimos N tokens.
+        Se todos sao iguais → entropia = 0 (loop).
+        Se todos sao diferentes → entropia = maxima.
+        """
+        self.mk.aprender(token, f"_count")
+        self.historico_entropias.append(token)
+    
+    def _entropia_local(self) -> float:
+        """Entropia de Shannon dos ultimos N tokens."""
+        if len(self.historico_entropias) < 3: return 1.0
+        recentes = self.historico_entropias[-self.janela:]
+        freq = {}
+        for t in recentes: freq[t] = freq.get(t, 0) + 1
+        n = len(recentes)
+        h = 0.0
+        for c in freq.values():
+            p = c / n
+            if p > 0: h -= p * math.log2(p)
+        # Normaliza: 0 = todos iguais (loop), 1 = todos diferentes
+        max_h = math.log2(min(len(freq), n)) if len(freq) > 1 else 0
+        if max_h == 0: return 0.0 if h == 0 else 1.0  # tudo igual = loop
+        return h / max_h
+    
+    def esta_em_loop(self) -> bool:
+        """True se entropia local estiver abaixo de 0.3 (muita repeticao)."""
+        return self._entropia_local() < 0.3
+    
+    def ultima_entropia(self) -> float:
+        return self._entropia_local()
+    
+    def mediana_historica(self) -> float:
+        if len(self.historico_entropias) < 3: return 1.0
+        from statistics import median
+        # Calcula entropia para varias janelas
+        entropias = []
+        for i in range(0, len(self.historico_entropias) - self.janela, max(1, self.janela//2)):
+            janela = self.historico_entropias[i:i+self.janela]
+            freq = {}
+            for t in janela: freq[t] = freq.get(t, 0) + 1
+            n = len(janela)
+            h = 0.0
+            for c in freq.values():
+                p = c / n
+                if p > 0: h -= p * math.log2(p)
+            max_h = math.log2(min(len(freq), n))
+            entropias.append(h / max_h if max_h > 0 else 1.0)
+        return median(entropias) if entropias else 1.0
+
+
+class MCRRuido:
+    """Aprende QUE TIPO de ruído funciona para quebrar loops.
+    
+    Substitui:
+    - "pega token de outro topico" fixo → aprende o que funciona
+    
+    Uso:
+        ruido = MCRRuido()
+        ruido.tentar("injeção_byte") 
+        ruido.registrar("injeção_byte", sucesso=True)
+        melhor = ruido.melhor_tipo()  # → "injeção_palavra"
+    """
+    
+    def __init__(self, nome="ruido"):
+        self.mk = MarkovUniversal(nome)
+        self.tipos = ['byte_global', 'palavra_outro_topico', 'pontuacao', 'semente_original']
+    
+    def tentar(self, tipo: str, estado_atual: str) -> str:
+        """Tenta gerar ruído de um tipo específico."""
+        return self.mk.predizer(f"{tipo}_{estado_atual}")[0]
+    
+    def registrar(self, tipo: str, sucesso: bool):
+        """Registra se o tipo de ruído funcionou."""
+        self.mk.aprender(tipo, "sucesso" if sucesso else "falha")
+    
+    def melhor_tipo(self) -> str:
+        """Retorna o tipo de ruído com maior taxa de sucesso."""
+        scores = []
+        for t in self.tipos:
+            if t in self.mk.transicoes:
+                prox = self.mk.transicoes[t]
+                suc = prox.get('sucesso', 0)
+                fal = prox.get('falha', 0)
+                taxa = suc / max(suc + fal, 1)
+                scores.append((taxa, t))
+        scores.sort(key=lambda x: -x[0])
+        return scores[0][1] if scores else 'palavra_outro_topico'
+    
+    def taxa_sucesso(self, tipo: str) -> float:
+        if tipo not in self.mk.transicoes: return 0.5
+        prox = self.mk.transicoes[tipo]
+        suc = prox.get('sucesso', 0)
+        fal = prox.get('falha', 0)
+        return suc / max(suc + fal, 1)
+
+
+class MCRDecisor:
+    """Decide o FLUXO de ações por Markov, não por if/else.
+    
+    Substitui:
+    - "KG → Conector → Cadeia" fixo → Markov decide ordem
+    
+    Uso:
+        dec = MCRDecisor()
+        dec.aprender(estado_pergunta, "kg_primeiro")
+        decisao = dec.decidir(estado_pergunta)
+    """
+    
+    def __init__(self, nome="decisor"):
+        self.mk = MarkovUniversal(nome)
+        self.acoes_possiveis = ['kg_primeiro', 'conector_primeiro', 'cadeia_direto',
+                                'kg_conector_cadeia', 'conector_kg_cadeia']
+    
+    def aprender(self, estado_pergunta: str, acao: str, sucesso: bool):
+        tag = "ok" if sucesso else "falha"
+        self.mk.aprender(f"{estado_pergunta}_{tag}", acao)
+    
+    def decidir(self, pergunta: str, estado_extra: str = "") -> str:
+        """Decide qual acao tomar baseado no estado da pergunta."""
+        tipo = self._classificar_pergunta(pergunta)
+        estado = f"{tipo}_{estado_extra}" if estado_extra else tipo
+        
+        # Tenta Markov primeiro
+        if estado in self.mk.transicoes:
+            melhor = max(self.mk.transicoes[estado], key=self.mk.transicoes[estado].get)
+            return melhor
+        
+        # Fallback: tipo da pergunta determina
+        if tipo == 'explicacao': return 'kg_primeiro'
+        if tipo == 'criacao': return 'conector_primeiro'
+        if tipo == 'busca': return 'kg_conector_cadeia'
+        return 'kg_conector_cadeia'
+    
+    def _classificar_pergunta(self, pergunta: str) -> str:
+        p = pergunta.lower()
+        if any(w in p for w in ['explique', 'o que e', 'como funciona', 'defina']):
+            return 'explicacao'
+        if any(w in p for w in ['crie', 'gere', 'criar', 'gere', 'implemente']):
+            return 'criacao'
+        if any(w in p for w in ['busque', 'encontre', 'procure', 'onde']):
+            return 'busca'
+        return 'geral'
+
+
+class MCRDiagnostico:
+    """Diagnostico MCR'zificado — Markov de estado para debug.
+    
+    Substitui:
+    - print() fixo de debug → Markov que aponta onde esta o problema
+    
+    Uso:
+        diag = MCRDiagnostico()
+        problema = diag.diagnosticar(estado_atual)
+        # → "byte:baixo|palavra:alto → JSON no texto"
+    """
+    
+    def __init__(self, nome="diagnostico"):
+        self.mk = MarkovUniversal(nome)
+        self.historico = []
+    
+    def alimentar(self, estado: dict, diagnostico: str):
+        """Aprende que ESTADO leva a DIAGNOSTICO."""
+        codigo = self._codificar_estado(estado)
+        self.mk.aprender(codigo, diagnostico)
+        self.historico.append((codigo, diagnostico))
+    
+    def diagnosticar(self, estado: dict) -> str:
+        """Retorna diagnostico para o estado atual."""
+        codigo = self._codificar_estado(estado)
+        if codigo in self.mk.transicoes:
+            melhor = max(self.mk.transicoes[codigo], key=self.mk.transicoes[codigo].get)
+            return melhor
+        return "sem_diagnostico_previo"
+    
+    def _codificar_estado(self, estado: dict) -> str:
+        partes = []
+        for k, v in estado.items():
+            if isinstance(v, (int, float)):
+                nivel = 'alto' if v > 0.7 else 'medio' if v > 0.3 else 'baixo'
+                partes.append(f"{k}:{nivel}")
+        return '|'.join(partes)
+
+
+class MCRFerramenta:
+    """Cada ferramenta ToolOrchestrator vira um estado num Markov.
+    
+    Em vez de 30 funcoes fixas, o MCR aprende:
+    - Dado ESTADO_ATUAL, qual FERRAMENTA usar
+    - Dado FERRAMENTA, qual RESULTADO esperar
+    
+    Uso:
+        f = MCRFerramenta()
+        f.registrar("perguntar", estado, "resposta_valida")
+        melhor = f.recomendar(estado)  # → "perguntar"
+    """
+    
+    def __init__(self, nome="ferramentas"):
+        self.mk = MarkovUniversal(nome)
+        self._ferramentas = set()
+    
+    def registrar_ferramenta(self, nome: str):
+        self._ferramentas.add(nome)
+    
+    def aprender(self, ferramenta: str, estado: str, resultado: str):
+        self.mk.aprender(f"{ferramenta}_{estado}", resultado)
+    
+    def recomendar(self, estado: str) -> str:
+        """Recomenda a melhor ferramenta para o estado."""
+        scores = []
+        for f in self._ferramentas:
+            chave = f"{f}_{estado}"
+            if chave in self.mk.transicoes:
+                result = self.mk.transicoes[chave]
+                total = sum(result.values())
+                # Score = diversidade de resultados (mais resultados = ferramenta mais util)
+                score = len(result) / max(total, 1)
+                scores.append((score, f))
+        scores.sort(key=lambda x: -x[0])
+        return scores[0][1] if scores else ''
+
+    def ferramentas_disponiveis(self) -> list:
+        return list(self._ferramentas)
+
+
+# ============================================================
 # TESTE RÁPIDO
 # ============================================================
 
