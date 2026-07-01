@@ -1561,7 +1561,8 @@
         -1.0076826810836792,
         -1.5961124897003174
       ],
-      "id": "L0616"
+      "id": "L0616",
+      "inactive": true
     },
     {
       "erro": "padrao: ngrama_token | ('PAL_MEDIA', 'PAL_MEDIA', 'PAL_LONGA')",
@@ -2342,7 +2343,8 @@
         -0.9157681465148926,
         -1.7011922597885132
       ],
-      "id": "L0617"
+      "id": "L0617",
+      "inactive": true
     },
     {
       "erro": "padrao: ngrama_token | ('PAL_MEDIA', 'PAL_CURTA', 'PAL_LONGA')",
@@ -3123,7 +3125,8 @@
         -0.9157681465148926,
         -1.7011922597885132
       ],
-      "id": "L0618"
+      "id": "L0618",
+      "inactive": true
     },
     {
       "erro": "padrao: ngrama_token | ('PAL_LONGA', 'CONJUNCTION', 'PAL_LONGA')",
@@ -3904,7 +3907,8 @@
         -0.9029518961906433,
         -1.7525930404663086
       ],
-      "id": "L0619"
+      "id": "L0619",
+      "inactive": true
     },
     {
       "erro": "padrao: ngrama_token | ('PAL_LONGA', 'PAL_LONGA', 'PAL_MEDIA')",
@@ -4685,7 +4689,8 @@
         -0.9157681465148926,
         -1.7011922597885132
       ],
-      "id": "L0620"
+      "id": "L0620",
+      "inactive": true
     },
     {
       "erro": "padrao: ngrama_token | ('PAL_LONGA', 'PAL_LONGA', 'PAL_LONGA')",
@@ -5466,7 +5471,8 @@
         -0.9157681465148926,
         -1.7011922597885132
       ],
-      "id": "L0621"
+      "id": "L0621",
+      "inactive": true
     },
     {
       "erro": "padrao: ngrama_token | ('PROPER_NOUN', 'PAL_CURTA', 'PAL_CURTA')",
@@ -6247,7 +6253,8 @@
         -0.966819167137146,
         -1.558197021484375
       ],
-      "id": "L0622"
+      "id": "L0622",
+      "inactive": true
     },
     {
       "erro": "padrao: ngrama_token | ('PAL_CURTA', 'PAL_LONGA', 'PAL_CURTA')",
@@ -7028,7 +7035,8 @@
         -0.966819167137146,
         -1.558197021484375
       ],
-      "id": "L0623"
+      "id": "L0623",
+      "inactive": true
     },
     {
       "erro": "padrao: ngrama_token | ('PAL_CURTA', 'PAL_MEDIA', 'PAL_LONGA')",
@@ -7809,7 +7817,8 @@
         -0.966819167137146,
         -1.558197021484375
       ],
-      "id": "L0624"
+      "id": "L0624",
+      "inactive": true
     },
     {
       "erro": "padrao: ngrama_token | ('PAL_LONGA', 'PAL_MEDIA', 'PAL_CURTA')",
@@ -8590,7 +8599,8 @@
         -0.966819167137146,
         -1.558197021484375
       ],
-      "id": "L0625"
+      "id": "L0625",
+      "inactive": true
     },
     {
       "erro": "padrao: ngrama_token | ('PAL_MEDIA', 'PREP_OF', 'PAL_LONGA')",
@@ -9371,7 +9381,8 @@
         -1.0085803270339966,
         -1.5204581022262573
       ],
-      "id": "L0626"
+      "id": "L0626",
+      "inactive": true
     },
     {
       "erro": "padrao: ngrama_token | ('DOM_ELEMENT', 'PAL_CURTA', 'DOM_ELEMENT')",
@@ -10152,7 +10163,8 @@
         -1.0085803270339966,
         -1.5204581022262573
       ],
-      "id": "L0627"
+      "id": "L0627",
+      "inactive": true
     },
     {
       "erro": "padrao: ngrama_token | ('PAL_CURTA', 'DOM_ELEMENT', 'PAL_CURTA')",
@@ -10933,7 +10945,8 @@
         -1.0085803270339966,
         -1.5204581022262573
       ],
-      "id": "L0628"
+      "id": "L0628",
+      "inactive": true
     },
     {
       "erro": "padrao: ngrama_token | ('PAL_LONGA', 'PREP_OF', 'PAL_MEDIA')",
@@ -11714,7 +11727,8 @@
         -1.0085803270339966,
         -1.5204581022262573
       ],
-      "id": "L0629"
+      "id": "L0629",
+      "inactive": true
     },
     {
       "erro": "padrao: ngrama_token | ('PAL_LONGA', 'PAL_CURTA', 'PROPER_NOUN')",
@@ -12495,7 +12509,8 @@
         -1.0085803270339966,
         -1.5204581022262573
       ],
-      "id": "L0630"
+      "id": "L0630",
+      "inactive": true
     },
     {
       "erro": "padrao: coocorrencia | ",
@@ -13276,7 +13291,8 @@
         -0.8310416340827942,
         -0.8144098520278931
       ],
-      "id": "L0631"
+      "id": "L0631",
+      "inactive": true
     },
     {
       "erro": "padrao: coocorrencia | ",
@@ -14057,7 +14073,8 @@
         -0.7972986102104187,
         -0.6092746257781982
       ],
-      "id": "L0632"
+      "id": "L0632",
+      "inactive": true
     },
     {
       "erro": "padrao: ngrama_token | ('PAL_CURTA', 'DOM_ELEMENT', 'PAL_CURTA')",
@@ -14838,7 +14855,8 @@
         -0.879111111164093,
         -1.3440109491348267
       ],
-      "id": "L0633"
+      "id": "L0633",
+      "inactive": true
     },
     {
       "erro": "padrao: ngrama_token | ('PAL_LONGA', 'PREP_OF', 'PAL_MEDIA')",
@@ -15619,7 +15637,8 @@
         -0.9389669299125671,
         -1.324900507926941
       ],
-      "id": "L0634"
+      "id": "L0634",
+      "inactive": true
     },
     {
       "erro": "padrao: ngrama_token | ('PAL_MEDIA', 'PROPER_NOUN', 'PAL_MEDIA')",
@@ -16400,7 +16419,8 @@
         -0.9389669299125671,
         -1.324900507926941
       ],
-      "id": "L0635"
+      "id": "L0635",
+      "inactive": true
     },
     {
       "erro": "padrao: ngrama_token | ('PREP_OF', 'PAL_MEDIA', 'PAL_MEDIA')",
@@ -17181,7 +17201,8 @@
         -0.9389669299125671,
         -1.324900507926941
       ],
-      "id": "L0636"
+      "id": "L0636",
+      "inactive": true
     },
     {
       "erro": "padrao: ngrama_token | ('PAL_CURTA', 'DOM_ELEMENT', 'PAL_CURTA')",
@@ -17962,7 +17983,8 @@
         -0.9584247469902039,
         -1.3631235361099243
       ],
-      "id": "L0637"
+      "id": "L0637",
+      "inactive": true
     },
     {
       "erro": "padrao: ngrama_token | ('PAL_LONGA', 'PREP_OF', 'PAL_MEDIA')",
@@ -18743,7 +18765,8 @@
         -0.9874649047851562,
         -1.3620704412460327
       ],
-      "id": "L0638"
+      "id": "L0638",
+      "inactive": true
     },
     {
       "erro": "padrao: ngrama_token | ('PAL_MEDIA', 'PROPER_NOUN', 'PAL_MEDIA')",
@@ -20305,7 +20328,8 @@
         -0.9874649047851562,
         -1.3620704412460327
       ],
-      "id": "L0640"
+      "id": "L0640",
+      "inactive": true
     },
     {
       "erro": "padrao: ngrama_token | ('DOM_SYSTEM', 'DOM_SYSTEM', 'DOM_SYSTEM')",
@@ -25772,7 +25796,8 @@
         -0.9930474758148193,
         -1.3148053884506226
       ],
-      "id": "L0647"
+      "id": "L0647",
+      "inactive": true
     },
     {
       "erro": "padrao: ngrama_token | ('PAL_MEDIA', 'DOM_CODE', 'PAL_MEDIA')",
@@ -26553,7 +26578,8 @@
         -0.9930474758148193,
         -1.3148053884506226
       ],
-      "id": "L0648"
+      "id": "L0648",
+      "inactive": true
     },
     {
       "erro": "padrao: ngrama_token | ('DOM_CODE', 'PAL_MEDIA', 'PAL_MEDIA')",
@@ -27334,7 +27360,8 @@
         -0.9930474758148193,
         -1.3148053884506226
       ],
-      "id": "L0649"
+      "id": "L0649",
+      "inactive": true
     },
     {
       "erro": "padrao: ngrama_token | ('PAL_MEDIA', 'PAL_MEDIA', 'PAL_LONGA')",
@@ -28115,7 +28142,8 @@
         -0.8456133008003235,
         -1.5616892576217651
       ],
-      "id": "L0650"
+      "id": "L0650",
+      "inactive": true
     },
     {
       "erro": "padrao: ngrama_token | ('PAL_CURTA', 'PAL_MEDIA', 'PAL_MEDIA')",
@@ -28896,7 +28924,8 @@
         -0.9139121770858765,
         -1.3361790180206299
       ],
-      "id": "L0651"
+      "id": "L0651",
+      "inactive": true
     },
     {
       "erro": "padrao: ngrama_token | ('PAL_MEDIA', 'PAL_LONGA', 'PAL_MEDIA')",
@@ -29677,7 +29706,8 @@
         -1.0482937097549438,
         -1.3366613388061523
       ],
-      "id": "L0652"
+      "id": "L0652",
+      "inactive": true
     },
     {
       "erro": "padrao: ngrama_token | ('PAL_LONGA', 'PAL_MEDIA', 'DOM_NPC')",
@@ -30458,7 +30488,8 @@
         -0.8850732445716858,
         -1.3851693868637085
       ],
-      "id": "L0653"
+      "id": "L0653",
+      "inactive": true
     },
     {
       "erro": "padrao: ngrama_token | ('PAL_LONGA', 'PAL_CURTA', 'PAL_MEDIA')",
@@ -31239,7 +31270,8 @@
         -0.9999764561653137,
         -1.2309318780899048
       ],
-      "id": "L0654"
+      "id": "L0654",
+      "inactive": true
     },
     {
       "erro": "padrao: ngrama_token | ('PAL_MEDIA', 'PAL_CURTA', 'PAL_MEDIA')",
@@ -32020,7 +32052,8 @@
         -0.8679243326187134,
         -1.1197701692581177
       ],
-      "id": "L0655"
+      "id": "L0655",
+      "inactive": true
     },
     {
       "erro": "padrao: ngrama_token | ('PAL_MEDIA', 'DOM_NPC', 'PAL_MEDIA')",
@@ -32801,7 +32834,8 @@
         -0.8679243326187134,
         -1.1197701692581177
       ],
-      "id": "L0656"
+      "id": "L0656",
+      "inactive": true
     },
     {
       "erro": "padrao: ngrama_token | ('DOM_NPC', 'PAL_MEDIA', 'PAL_CURTA')",
@@ -33582,7 +33616,8 @@
         -1.0739772319793701,
         -1.2491358518600464
       ],
-      "id": "L0657"
+      "id": "L0657",
+      "inactive": true
     },
     {
       "erro": "padrao: ngrama_token | ('PAL_MEDIA', 'DOM_NPC', 'PAL_LONGA')",
@@ -34363,7 +34398,8 @@
         -0.9034566879272461,
         -1.538096308708191
       ],
-      "id": "L0658"
+      "id": "L0658",
+      "inactive": true
     },
     {
       "erro": "padrao: ngrama_token | ('DOM_NPC', 'PAL_LONGA', 'PAL_CURTA')",
@@ -35144,7 +35180,8 @@
         -0.9034566879272461,
         -1.538096308708191
       ],
-      "id": "L0659"
+      "id": "L0659",
+      "inactive": true
     },
     {
       "erro": "padrao: ngrama_token | ('PAL_MEDIA', 'PAL_MEDIA', 'PAL_MEDIA')",
@@ -35925,7 +35962,8 @@
         -0.9329243302345276,
         -1.3883416652679443
       ],
-      "id": "L0660"
+      "id": "L0660",
+      "inactive": true
     },
     {
       "erro": "padrao: ngrama_token | ('PAL_MEDIA', 'PAL_LONGA', 'PAL_LONGA')",
@@ -36706,7 +36744,8 @@
         -0.8826273083686829,
         -1.3134106397628784
       ],
-      "id": "L0661"
+      "id": "L0661",
+      "inactive": true
     },
     {
       "erro": "padrao: coocorrencia | ",
@@ -37487,7 +37526,8 @@
         -0.5646940469741821,
         -0.8463155627250671
       ],
-      "id": "L0662"
+      "id": "L0662",
+      "inactive": true
     },
     {
       "erro": "padrao: coocorrencia | ",
@@ -38268,7 +38308,8 @@
         -0.8184551000595093,
         -0.53249192237854
       ],
-      "id": "L0663"
+      "id": "L0663",
+      "inactive": true
     },
     {
       "erro": "padrao: coocorrencia | ",
@@ -39049,7 +39090,8 @@
         -0.8184551000595093,
         -0.53249192237854
       ],
-      "id": "L0664"
+      "id": "L0664",
+      "inactive": true
     },
     {
       "erro": "padrao: coocorrencia | ",
@@ -39830,7 +39872,8 @@
         -0.8184551000595093,
         -0.53249192237854
       ],
-      "id": "L0665"
+      "id": "L0665",
+      "inactive": true
     },
     {
       "erro": "padrao: coocorrencia | ",
@@ -40611,7 +40654,8 @@
         -0.8184551000595093,
         -0.53249192237854
       ],
-      "id": "L0666"
+      "id": "L0666",
+      "inactive": true
     },
     {
       "erro": "padrao: coocorrencia | ",
@@ -41392,7 +41436,8 @@
         -0.702275276184082,
         -0.5561412572860718
       ],
-      "id": "L0667"
+      "id": "L0667",
+      "inactive": true
     },
     {
       "erro": "padrao: coocorrencia | ",
@@ -42173,7 +42218,8 @@
         -0.702275276184082,
         -0.5561412572860718
       ],
-      "id": "L0668"
+      "id": "L0668",
+      "inactive": true
     },
     {
       "erro": "padrao: coocorrencia | ",
@@ -42954,7 +43000,8 @@
         -0.7427765130996704,
         -0.7300329804420471
       ],
-      "id": "L0669"
+      "id": "L0669",
+      "inactive": true
     },
     {
       "erro": "padrao: coocorrencia | ",
@@ -43735,7 +43782,8 @@
         -0.7756741046905518,
         -0.7104715704917908
       ],
-      "id": "L0670"
+      "id": "L0670",
+      "inactive": true
     },
     {
       "erro": "padrao: coocorrencia | ",
@@ -45297,7 +45345,8 @@
         -0.9344090819358826,
         -1.571576714515686
       ],
-      "id": "L0672"
+      "id": "L0672",
+      "inactive": true
     },
     {
       "erro": "padrao: ngrama_token | ('PAL_CURTA', 'PAL_LONGA', 'PAL_CURTA')",
@@ -46078,7 +46127,8 @@
         -0.9344090819358826,
         -1.571576714515686
       ],
-      "id": "L0673"
+      "id": "L0673",
+      "inactive": true
     },
     {
       "erro": "padrao: ngrama_token | ('PAL_MEDIA', 'PAL_MEDIA', 'PAL_LONGA')",
@@ -46859,7 +46909,8 @@
         -0.9344090819358826,
         -1.571576714515686
       ],
-      "id": "L0674"
+      "id": "L0674",
+      "inactive": true
     },
     {
       "erro": "padrao: ngrama_token | ('PREP_OF', 'DOM_SKILL', 'PAL_LONGA')",
@@ -47640,7 +47691,8 @@
         -0.8378124237060547,
         -1.6656038761138916
       ],
-      "id": "L0675"
+      "id": "L0675",
+      "inactive": true
     },
     {
       "erro": "padrao: ngrama_token | ('DOM_SKILL', 'PAL_LONGA', 'PAL_CURTA')",
@@ -48421,7 +48473,8 @@
         -0.8974401354789734,
         -1.5347766876220703
       ],
-      "id": "L0676"
+      "id": "L0676",
+      "inactive": true
     },
     {
       "erro": "padrao: ngrama_token | ('PAL_LONGA', 'PAL_CURTA', 'PROPER_NOUN')",
@@ -49202,7 +49255,8 @@
         -0.8974401354789734,
         -1.5347766876220703
       ],
-      "id": "L0677"
+      "id": "L0677",
+      "inactive": true
     },
     {
       "erro": "padrao: ngrama_token | ('PROPER_NOUN', 'PAL_CURTA', 'PAL_CURTA')",
@@ -49983,7 +50037,8 @@
         -0.8974401354789734,
         -1.5347766876220703
       ],
-      "id": "L0678"
+      "id": "L0678",
+      "inactive": true
     },
     {
       "erro": "padrao: ngrama_token | ('DOM_SYSTEM', 'DOM_SYSTEM', 'DOM_SYSTEM')",
@@ -50764,7 +50819,8 @@
         -0.8974401354789734,
         -1.5347766876220703
       ],
-      "id": "L0679"
+      "id": "L0679",
+      "inactive": true
     },
     {
       "erro": "padrao: ngrama_token | ('PAL_MEDIA', 'PAL_CURTA', 'PAL_LONGA')",
@@ -51545,7 +51601,8 @@
         -0.8974401354789734,
         -1.5347766876220703
       ],
-      "id": "L0680"
+      "id": "L0680",
+      "inactive": true
     },
     {
       "erro": "padrao: ngrama_token | ('PAL_LONGA', 'PAL_MEDIA', 'PAL_CURTA')",
@@ -52326,7 +52383,8 @@
         -0.8974401354789734,
         -1.5347766876220703
       ],
-      "id": "L0681"
+      "id": "L0681",
+      "inactive": true
     },
     {
       "erro": "padrao: ngrama_token | ('DOM_SYSTEM', 'PREP_OF', 'DOM_SKILL')",
@@ -53107,7 +53165,8 @@
         -0.9639032483100891,
         -1.496665120124817
       ],
-      "id": "L0682"
+      "id": "L0682",
+      "inactive": true
     },
     {
       "erro": "padrao: ngrama_token | ('PROPER_NOUN', 'DOM_SYSTEM', 'PREP_OF')",
@@ -54669,7 +54728,8 @@
         -0.9639032483100891,
         -1.496665120124817
       ],
-      "id": "L0684"
+      "id": "L0684",
+      "inactive": true
     },
     {
       "erro": "padrao: ngrama_token | ('PAL_CURTA', 'PAL_CURTA', 'DOM_SYSTEM')",
@@ -57012,7 +57072,8 @@
         -0.6778292059898376,
         -0.6721017956733704
       ],
-      "id": "L0687"
+      "id": "L0687",
+      "inactive": true
     },
     {
       "erro": "padrao: coocorrencia | ",
@@ -57793,7 +57854,8 @@
         -0.7392594218254089,
         -0.7572558522224426
       ],
-      "id": "L0688"
+      "id": "L0688",
+      "inactive": true
     },
     {
       "erro": "padrao: coocorrencia | ",
@@ -58574,7 +58636,8 @@
         -0.7594465613365173,
         -0.6003787517547607
       ],
-      "id": "L0689"
+      "id": "L0689",
+      "inactive": true
     },
     {
       "erro": "padrao: coocorrencia | ",
@@ -59355,7 +59418,8 @@
         -0.6389379501342773,
         -0.7185989618301392
       ],
-      "id": "L0690"
+      "id": "L0690",
+      "inactive": true
     },
     {
       "erro": "padrao: coocorrencia | ",
@@ -60917,7 +60981,8 @@
         -0.9112709760665894,
         -1.5741121768951416
       ],
-      "id": "L0692"
+      "id": "L0692",
+      "inactive": true
     },
     {
       "erro": "padrao: ngrama_token | ('PAL_CURTA', 'PAL_LONGA', 'PAL_CURTA')",
@@ -61698,7 +61763,8 @@
         -0.9112709760665894,
         -1.5741121768951416
       ],
-      "id": "L0693"
+      "id": "L0693",
+      "inactive": true
     },
     {
       "erro": "padrao: ngrama_token | ('PAL_MEDIA', 'PAL_MEDIA', 'PAL_LONGA')",
@@ -62479,7 +62545,8 @@
         -0.9112709760665894,
         -1.5741121768951416
       ],
-      "id": "L0694"
+      "id": "L0694",
+      "inactive": true
     },
     {
       "erro": "padrao: ngrama_token | ('PREP_OF', 'DOM_SKILL', 'PAL_LONGA')",
@@ -63260,7 +63327,8 @@
         -0.8369890451431274,
         -1.6592378616333008
       ],
-      "id": "L0695"
+      "id": "L0695",
+      "inactive": true
     },
     {
       "erro": "padrao: ngrama_token | ('DOM_SKILL', 'PAL_LONGA', 'PAL_CURTA')",
@@ -64041,7 +64109,8 @@
         -0.9069961905479431,
         -1.5438283681869507
       ],
-      "id": "L0696"
+      "id": "L0696",
+      "inactive": true
     },
     {
       "erro": "padrao: ngrama_token | ('PAL_LONGA', 'PAL_CURTA', 'PROPER_NOUN')",
@@ -64822,7 +64891,8 @@
         -0.9069961905479431,
         -1.5438283681869507
       ],
-      "id": "L0697"
+      "id": "L0697",
+      "inactive": true
     },
     {
       "erro": "padrao: ngrama_token | ('PAL_CURTA', 'PAL_LONGA', 'PAL_MEDIA')",
@@ -65605,7 +65675,8 @@
         -0.9088698625564575,
         -1.4787793159484863
       ],
-      "id": "L0698"
+      "id": "L0698",
+      "inactive": true
     },
     {
       "erro": "padrao: ngrama_token | ('PAL_MEDIA', 'PAL_LONGA', 'PAL_MEDIA')",
@@ -66388,7 +66459,8 @@
         -0.8850732445716858,
         -1.3851693868637085
       ],
-      "id": "L0699"
+      "id": "L0699",
+      "inactive": true
     },
     {
       "erro": "padrao: ngrama_token | ('PAL_LONGA', 'PAL_MEDIA', 'PAL_LONGA')",
@@ -67171,7 +67243,8 @@
         -0.8048587441444397,
         -1.401719331741333
       ],
-      "id": "L0700"
+      "id": "L0700",
+      "inactive": true
     },
     {
       "erro": "padrao: ngrama_token | ('PAL_MEDIA', 'PAL_CURTA', 'PAL_LONGA')",
@@ -67954,7 +68027,8 @@
         -0.7208300828933716,
         -1.2628114223480225
       ],
-      "id": "L0701"
+      "id": "L0701",
+      "inactive": true
     },
     {
       "erro": "padrao: ngrama_token | ('PAL_LONGA', 'PAL_MEDIA', 'PAL_CURTA')",
@@ -68737,7 +68811,8 @@
         -0.860210657119751,
         -1.5369927883148193
       ],
-      "id": "L0702"
+      "id": "L0702",
+      "inactive": true
     },
     {
       "erro": "padrao: ngrama_token | ('PAL_LONGA', 'PAL_CURTA', 'PAL_LONGA')",
@@ -69520,7 +69595,8 @@
         -0.9536605477333069,
         -1.468912124633789
       ],
-      "id": "L0703"
+      "id": "L0703",
+      "inactive": true
     },
     {
       "erro": "padrao: ngrama_token | ('PAL_MEDIA', 'PAL_MEDIA', 'PAL_MEDIA')",
@@ -70303,7 +70379,8 @@
         -0.789074718952179,
         -1.3716495037078857
       ],
-      "id": "L0704"
+      "id": "L0704",
+      "inactive": true
     },
     {
       "erro": "padrao: ngrama_token | ('PAL_CURTA', 'PAL_LONGA', 'PAL_CURTA')",
@@ -71086,7 +71163,8 @@
         -1.009231686592102,
         -1.3599631786346436
       ],
-      "id": "L0705"
+      "id": "L0705",
+      "inactive": true
     },
     {
       "erro": "padrao: ngrama_token | ('PAL_LONGA', 'PAL_MEDIA', 'PAL_MEDIA')",
@@ -71869,7 +71947,8 @@
         -0.9999764561653137,
         -1.2309318780899048
       ],
-      "id": "L0706"
+      "id": "L0706",
+      "inactive": true
     },
     {
       "erro": "padrao: ngrama_token | ('PAL_MEDIA', 'PAL_MEDIA', 'PAL_LONGA')",
@@ -72652,7 +72731,8 @@
         -1.0739772319793701,
         -1.2491358518600464
       ],
-      "id": "L0707"
+      "id": "L0707",
+      "inactive": true
     },
     {
       "erro": "padrao: ngrama_token | ('PAL_MEDIA', 'PAL_LONGA', 'PAL_LONGA')",
@@ -73435,7 +73515,8 @@
         -0.9329243302345276,
         -1.3883416652679443
       ],
-      "id": "L0708"
+      "id": "L0708",
+      "inactive": true
     },
     {
       "erro": "padrao: ngrama_token | ('PAL_LONGA', 'PAL_LONGA', 'PAL_MEDIA')",
@@ -74218,7 +74299,8 @@
         -0.9329243302345276,
         -1.3883416652679443
       ],
-      "id": "L0709"
+      "id": "L0709",
+      "inactive": true
     },
     {
       "erro": "padrao: ngrama_token | ('PAL_MEDIA', 'PAL_MEDIA', 'PAL_CURTA')",
@@ -74999,7 +75081,8 @@
         -0.9299523830413818,
         -1.3073874711990356
       ],
-      "id": "L0710"
+      "id": "L0710",
+      "inactive": true
     },
     {
       "erro": "padrao: ngrama_token | ('PAL_MEDIA', 'PAL_LONGA', 'PAL_CURTA')",
@@ -77346,7 +77429,8 @@
         -0.5593015551567078,
         -0.5665270090103149
       ],
-      "id": "L0713"
+      "id": "L0713",
+      "inactive": true
     },
     {
       "erro": "padrao: coocorrencia | ",
@@ -78129,7 +78213,8 @@
         -0.5593015551567078,
         -0.5665270090103149
       ],
-      "id": "L0714"
+      "id": "L0714",
+      "inactive": true
     },
     {
       "erro": "padrao: coocorrencia | ",
@@ -78912,7 +78997,8 @@
         -0.5593015551567078,
         -0.5665270090103149
       ],
-      "id": "L0715"
+      "id": "L0715",
+      "inactive": true
     },
     {
       "erro": "padrao: coocorrencia | ",
@@ -79695,7 +79781,8 @@
         -0.8296264410018921,
         -0.5285017490386963
       ],
-      "id": "L0716"
+      "id": "L0716",
+      "inactive": true
     },
     {
       "erro": "padrao: coocorrencia | ",
@@ -80478,7 +80565,8 @@
         -0.8451929688453674,
         -0.3333190381526947
       ],
-      "id": "L0717"
+      "id": "L0717",
+      "inactive": true
     },
     {
       "erro": "padrao: coocorrencia | ",
@@ -81261,7 +81349,8 @@
         -0.9557508826255798,
         -0.39096543192863464
       ],
-      "id": "L0718"
+      "id": "L0718",
+      "inactive": true
     },
     {
       "erro": "padrao: coocorrencia | ",
@@ -82044,7 +82133,8 @@
         -0.7526364326477051,
         -0.5417081117630005
       ],
-      "id": "L0719"
+      "id": "L0719",
+      "inactive": true
     },
     {
       "erro": "padrao: coocorrencia | ",
@@ -82827,7 +82917,8 @@
         -0.7526364326477051,
         -0.5417081117630005
       ],
-      "id": "L0720"
+      "id": "L0720",
+      "inactive": true
     },
     {
       "erro": "padrao: coocorrencia | ",
@@ -83610,7 +83701,8 @@
         -0.7526364326477051,
         -0.5417081117630005
       ],
-      "id": "L0721"
+      "id": "L0721",
+      "inactive": true
     },
     {
       "erro": "padrao: coocorrencia | ",
@@ -84393,7 +84485,8 @@
         -0.7526364326477051,
         -0.5417081117630005
       ],
-      "id": "L0722"
+      "id": "L0722",
+      "inactive": true
     },
     {
       "erro": "padrao: coocorrencia | ",
@@ -85174,7 +85267,8 @@
         -0.6912711262702942,
         -0.44627052545547485
       ],
-      "id": "L0723"
+      "id": "L0723",
+      "inactive": true
     },
     {
       "erro": "padrao: coocorrencia | ",
@@ -88298,7 +88392,8 @@
         -0.9344090819358826,
         -1.571576714515686
       ],
-      "id": "L0727"
+      "id": "L0727",
+      "inactive": true
     },
     {
       "erro": "padrao: ngrama_token | ('PAL_MEDIA', 'PAL_MEDIA', 'PAL_LONGA')",
@@ -89079,7 +89174,8 @@
         -0.8378124237060547,
         -1.6656038761138916
       ],
-      "id": "L0728"
+      "id": "L0728",
+      "inactive": true
     },
     {
       "erro": "padrao: ngrama_token | ('PAL_MEDIA', 'PAL_CURTA', 'PAL_LONGA')",
@@ -89860,7 +89956,8 @@
         -0.8378124237060547,
         -1.6656038761138916
       ],
-      "id": "L0729"
+      "id": "L0729",
+      "inactive": true
     },
     {
       "erro": "padrao: ngrama_token | ('PAL_LONGA', 'CONJUNCTION', 'PAL_LONGA')",
@@ -90641,7 +90738,8 @@
         -0.8257863521575928,
         -1.723590612411499
       ],
-      "id": "L0730"
+      "id": "L0730",
+      "inactive": true
     },
     {
       "erro": "padrao: ngrama_token | ('PAL_LONGA', 'PAL_LONGA', 'PAL_MEDIA')",
@@ -91422,7 +91520,8 @@
         -0.8378124237060547,
         -1.6656038761138916
       ],
-      "id": "L0731"
+      "id": "L0731",
+      "inactive": true
     },
     {
       "erro": "padrao: ngrama_token | ('PAL_LONGA', 'PAL_LONGA', 'PAL_LONGA')",
@@ -92203,7 +92302,8 @@
         -0.8378124237060547,
         -1.6656038761138916
       ],
-      "id": "L0732"
+      "id": "L0732",
+      "inactive": true
     },
     {
       "erro": "padrao: ngrama_token | ('PROPER_NOUN', 'PAL_CURTA', 'PAL_CURTA')",
@@ -92984,7 +93084,8 @@
         -0.8974401354789734,
         -1.5347766876220703
       ],
-      "id": "L0733"
+      "id": "L0733",
+      "inactive": true
     },
     {
       "erro": "padrao: ngrama_token | ('PAL_CURTA', 'PAL_LONGA', 'PAL_CURTA')",
@@ -93765,7 +93866,8 @@
         -0.8974401354789734,
         -1.5347766876220703
       ],
-      "id": "L0734"
+      "id": "L0734",
+      "inactive": true
     },
     {
       "erro": "padrao: ngrama_token | ('PAL_CURTA', 'PAL_MEDIA', 'PAL_LONGA')",
@@ -94546,7 +94648,8 @@
         -0.8974401354789734,
         -1.5347766876220703
       ],
-      "id": "L0735"
+      "id": "L0735",
+      "inactive": true
     },
     {
       "erro": "padrao: ngrama_token | ('PAL_LONGA', 'PAL_MEDIA', 'PAL_CURTA')",
@@ -95327,7 +95430,8 @@
         -0.8974401354789734,
         -1.5347766876220703
       ],
-      "id": "L0736"
+      "id": "L0736",
+      "inactive": true
     },
     {
       "erro": "padrao: ngrama_token | ('PAL_MEDIA', 'PREP_OF', 'PAL_LONGA')",
@@ -96108,7 +96212,8 @@
         -0.9639032483100891,
         -1.496665120124817
       ],
-      "id": "L0737"
+      "id": "L0737",
+      "inactive": true
     },
     {
       "erro": "padrao: ngrama_token | ('DOM_ELEMENT', 'PAL_CURTA', 'DOM_ELEMENT')",
@@ -97670,7 +97775,8 @@
         -0.9639032483100891,
         -1.496665120124817
       ],
-      "id": "L0739"
+      "id": "L0739",
+      "inactive": true
     },
     {
       "erro": "padrao: ngrama_token | ('PAL_LONGA', 'PREP_OF', 'PAL_MEDIA')",
@@ -101575,7 +101681,8 @@
         -0.9912018179893494,
         -1.2393317222595215
       ],
-      "id": "L0744"
+      "id": "L0744",
+      "inactive": true
     },
     {
       "erro": "padrao: ngrama_token | ('PAL_CURTA', 'PAL_LONGA', 'PAL_LONGA')",
@@ -103137,7 +103244,8 @@
         -1.0502506494522095,
         -1.2665754556655884
       ],
-      "id": "L0746"
+      "id": "L0746",
+      "inactive": true
     },
     {
       "erro": "padrao: ngrama_token | ('PAL_MEDIA', 'PAL_LONGA', 'PAL_CURTA')",
@@ -103918,7 +104026,8 @@
         -1.0502506494522095,
         -1.2665754556655884
       ],
-      "id": "L0747"
+      "id": "L0747",
+      "inactive": true
     },
     {
       "erro": "padrao: ngrama_token | ('PAL_LONGA', 'PAL_LONGA', 'PAL_LONGA')",
@@ -104699,7 +104808,8 @@
         -1.0502506494522095,
         -1.2665754556655884
       ],
-      "id": "L0748"
+      "id": "L0748",
+      "inactive": true
     },
     {
       "erro": "padrao: coocorrencia | ",

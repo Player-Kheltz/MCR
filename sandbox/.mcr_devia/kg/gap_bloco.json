@@ -1,0 +1,158 @@
+{
+  "ctx": "gap_bloco",
+  "licoes": [
+    {
+      "erro": "bloco:MCR_IDENTITY_md",
+      "causa": "conceito: bloco:MCR_IDENTITY_md",
+      "solucao": "[Fonte: E:\\Projeto MCR\\docs\\MCR_IDENTITY.md]\nR para modelos de IA locais.\n\nMCR = Projeto MCR, um servidor CUSTOMIZADO de Tibia baseado em Canary (OTServ).\nSPA = Sistema de Progressão do Aventureiro, que gerencia habilidades e progressão em dominios elementais.\nSHC = Sistema de Habilidades Contextuais (5 camadas: postura/nível/sinergia/estado/condição).\nCanary = Servidor de Tibia personalizado (OTServ) usado no projeto MCR.\nOTClient = Cliente",
+      "ctx": "gap_bloco",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782920774.5959697,
+      "id": "L1168"
+    },
+    {
+      "erro": "bloco:[0] MCR - INDICE GERAL_txt",
+      "causa": "conceito: bloco:[0] MCR - INDICE GERAL_txt",
+      "solucao": "[Fonte: docs\\MCR - Instruções\\[0] MCR - INDICE GERAL.txt]\nTOMIZAÇÃO\nQualquer componente do ecossistema pode ser modificado em nível de código‑fonte: Servidor Canary (C++ e Lua), OTClient (C++ e Lua), Login Server (Go) e Map Editor. Se uma funcionalidade não puder ser implementada apenas com scripts, o assistente DEVE considerar a modificação dos fontes como uma opção válida e documentá‑la.\n\n▶ PILAR 3 – IDIOMA OFICIAL: PORTUGUÊS DO BRASIL (PT‑BR)\nTodas as",
+      "ctx": "gap_bloco",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782924797.3541498,
+      "id": "L1316",
+      "inactive": true
+    },
+    {
+      "erro": "bloco:2026-06-23_teste-bridge-alucinacoes_md",
+      "causa": "conceito: bloco:2026-06-23_teste-bridge-alucinacoes_md",
+      "solucao": "[Fonte: docs\\lessons\\2026-06-23_teste-bridge-alucinacoes.md]\nquivos, mas tentou fingir |\n| **Estrutura errada** | Usou XML (`<talkaction words=\"...\">`) quando o Canary usa revscript Lua | RAG não recuperou exemplos reais; conhecimento base não documenta o sistema |\n| **APIs inventadas** | `addEffect()`, `increaseTime()`, `CONST_EFFECT_FIRESWELL`, `getMagicLevel()` como gate | Modelo preencheu lacunas com conhecimento genérico de TFS/OTX |\n\n## Encaminhamento",
+      "ctx": "gap_bloco",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [
+        "stress_test"
+      ],
+      "timestamp": 1782924801.388198,
+      "id": "L1317",
+      "inactive": true
+    },
+    {
+      "erro": "bloco:[Documentação] MCR - Documentação Técnica do Motor SPA_txt",
+      "causa": "conceito: bloco:[Documentação] MCR - Documentação Técnica do Motor SPA_txt",
+      "solucao": "[Fonte: docs\\MCR - Instruções\\[Documentação] MCR - Documentação Técnica do Motor SPA.txt]\nocumento descreve todas as APIs, métodos, constantes, estruturas de dados e sistemas que o servidor Canary expõe ao Sistema de Progressão do Aventureiro (SPA). Inclui também a integração completa com o Sistema de Perseguição Multi‑Piso v3.2.0, o Mapa Cognitivo Global (GlobalMonsterMap) e o SPAManager (gestão de eventos e pets). Todas as funcionalidades aqui listadas estão implementadas, compiladas",
+      "ctx": "gap_bloco",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782924805.420084,
+      "id": "L1318",
+      "inactive": true
+    },
+    {
+      "erro": "bloco:[4] MCR - Guia do Login Server_txt",
+      "causa": "conceito: bloco:[4] MCR - Guia do Login Server_txt",
+      "solucao": "[Fonte: docs\\MCR - Instruções\\[4] MCR - Guia do Login Server.txt]\n os Domínios, a Maestria, a Sinergia Elemental e as Posturas são geridos inteiramente pelo servidor Canary (C++ e Lua). No entanto, o assistente deve garantir que os personagens criados tenham sempre vocation = 0 (Aventureiro) e que o endpoint /guest_login continue a posicionar o personagem Alma no Salão dos Destinos, de onde o Oráculo o encaminhará para Eridanus após a criação da conta permanente",
+      "ctx": "gap_bloco",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782924809.47779,
+      "id": "L1319",
+      "inactive": true
+    },
+    {
+      "erro": "bloco:autonomia_md",
+      "causa": "conceito: bloco:autonomia_md",
+      "solucao": "[Fonte: docs\\rules\\autonomia.md]\no no Supervisor)\n- `mente` — ciclo Mente-Corpo (think → learn → score)\n- `compilar` — compilação de Canary e OTClient\n- `system_scan`, `bugfinder` — diagnóstico do sistema\n\n### Cloud (assume quando MCR falha 3x)\n- `edit`, `write` — edição cirúrgica (quando MCR falha)\n- `webfetch` — fallback quando `weblearn` falha\n- **Sempre usar MCR-DevIA primeiro** (grep, read, analisar, perguntar)\n- Decisões ar",
+      "ctx": "gap_bloco",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782924813.5148013,
+      "id": "L1320",
+      "inactive": true
+    },
+    {
+      "erro": "bloco:mod_canary_indexer",
+      "causa": "conceito: bloco:mod_canary_indexer",
+      "solucao": "[Modulo: canary_indexer]\nCanaryIndexer — Indexador do ecossistema Canary (NPCs, Schema DB, API).\n\nVarre NPCs do servidor, extrai padrões e constrói base de conhecimento\npara geração inteligente de scripts. Base da arquitetura AGI do MCR-DevIA.\n\nUso:\n    from modulos.canary_indexer import CanaryIndexer\n    idx = CanaryIndexe",
+      "ctx": "gap_bloco",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782924817.5555906,
+      "id": "L1321",
+      "inactive": true
+    },
+    {
+      "erro": "bloco:[0] MCR - INDICE GERAL_txt",
+      "causa": "conceito: bloco:[0] MCR - INDICE GERAL_txt",
+      "solucao": "[Fonte: docs\\MCR - Instruções\\[0] MCR - INDICE GERAL.txt]\nTOMIZAÇÃO\nQualquer componente do ecossistema pode ser modificado em nível de código‑fonte: Servidor Canary (C++ e Lua), OTClient (C++ e Lua), Login Server (Go) e Map Editor. Se uma funcionalidade não puder ser implementada apenas com scripts, o assistente DEVE considerar a modificação dos fontes como uma opção válida e documentá‑la.\n\n▶ PILAR 3 – IDIOMA OFICIAL: PORTUGUÊS DO BRASIL (PT‑BR)\nTodas as",
+      "ctx": "gap_bloco",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782929049.0368469,
+      "id": "L1471"
+    },
+    {
+      "erro": "bloco:2026-06-23_teste-bridge-alucinacoes_md",
+      "causa": "conceito: bloco:2026-06-23_teste-bridge-alucinacoes_md",
+      "solucao": "[Fonte: docs\\lessons\\2026-06-23_teste-bridge-alucinacoes.md]\nquivos, mas tentou fingir |\n| **Estrutura errada** | Usou XML (`<talkaction words=\"...\">`) quando o Canary usa revscript Lua | RAG não recuperou exemplos reais; conhecimento base não documenta o sistema |\n| **APIs inventadas** | `addEffect()`, `increaseTime()`, `CONST_EFFECT_FIRESWELL`, `getMagicLevel()` como gate | Modelo preencheu lacunas com conhecimento genérico de TFS/OTX |\n\n## Encaminhamento",
+      "ctx": "gap_bloco",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [
+        "stress_test"
+      ],
+      "timestamp": 1782929053.1308851,
+      "id": "L1472"
+    },
+    {
+      "erro": "bloco:[Documentação] MCR - Documentação Técnica do Motor SPA_txt",
+      "causa": "conceito: bloco:[Documentação] MCR - Documentação Técnica do Motor SPA_txt",
+      "solucao": "[Fonte: docs\\MCR - Instruções\\[Documentação] MCR - Documentação Técnica do Motor SPA.txt]\nocumento descreve todas as APIs, métodos, constantes, estruturas de dados e sistemas que o servidor Canary expõe ao Sistema de Progressão do Aventureiro (SPA). Inclui também a integração completa com o Sistema de Perseguição Multi‑Piso v3.2.0, o Mapa Cognitivo Global (GlobalMonsterMap) e o SPAManager (gestão de eventos e pets). Todas as funcionalidades aqui listadas estão implementadas, compiladas",
+      "ctx": "gap_bloco",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782929057.2025578,
+      "id": "L1473"
+    },
+    {
+      "erro": "bloco:[4] MCR - Guia do Login Server_txt",
+      "causa": "conceito: bloco:[4] MCR - Guia do Login Server_txt",
+      "solucao": "[Fonte: docs\\MCR - Instruções\\[4] MCR - Guia do Login Server.txt]\n os Domínios, a Maestria, a Sinergia Elemental e as Posturas são geridos inteiramente pelo servidor Canary (C++ e Lua). No entanto, o assistente deve garantir que os personagens criados tenham sempre vocation = 0 (Aventureiro) e que o endpoint /guest_login continue a posicionar o personagem Alma no Salão dos Destinos, de onde o Oráculo o encaminhará para Eridanus após a criação da conta permanente",
+      "ctx": "gap_bloco",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782929062.0959818,
+      "id": "L1474"
+    },
+    {
+      "erro": "bloco:autonomia_md",
+      "causa": "conceito: bloco:autonomia_md",
+      "solucao": "[Fonte: docs\\rules\\autonomia.md]\no no Supervisor)\n- `mente` — ciclo Mente-Corpo (think → learn → score)\n- `compilar` — compilação de Canary e OTClient\n- `system_scan`, `bugfinder` — diagnóstico do sistema\n\n### Cloud (assume quando MCR falha 3x)\n- `edit`, `write` — edição cirúrgica (quando MCR falha)\n- `webfetch` — fallback quando `weblearn` falha\n- **Sempre usar MCR-DevIA primeiro** (grep, read, analisar, perguntar)\n- Decisões ar",
+      "ctx": "gap_bloco",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782929066.17409,
+      "id": "L1475"
+    },
+    {
+      "erro": "bloco:mod_canary_indexer",
+      "causa": "conceito: bloco:mod_canary_indexer",
+      "solucao": "[Modulo: canary_indexer]\nCanaryIndexer — Indexador do ecossistema Canary (NPCs, Schema DB, API).\n\nVarre NPCs do servidor, extrai padrões e constrói base de conhecimento\npara geração inteligente de scripts. Base da arquitetura AGI do MCR-DevIA.\n\nUso:\n    from modulos.canary_indexer import CanaryIndexer\n    idx = CanaryIndexe",
+      "ctx": "gap_bloco",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782929070.2302825,
+      "id": "L1476"
+    }
+  ]
+}

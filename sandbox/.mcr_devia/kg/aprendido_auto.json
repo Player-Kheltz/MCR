@@ -3625,7 +3625,8 @@
         -0.029668673872947693,
         -0.47678959369659424
       ],
-      "id": "L0765"
+      "id": "L0765",
+      "inactive": true
     },
     {
       "erro": "auto_aprendizado: Explique o sistema SPA do MCR",

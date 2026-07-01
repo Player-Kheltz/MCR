@@ -780,7 +780,8 @@
         -1.0390034914016724,
         -0.6752033233642578
       ],
-      "id": "L0794"
+      "id": "L0794",
+      "inactive": true
     },
     {
       "erro": "mcr_core_aprendizado_lore",
@@ -1561,7 +1562,8 @@
         -0.792809009552002,
         -1.0213698148727417
       ],
-      "id": "L0795"
+      "id": "L0795",
+      "inactive": true
     },
     {
       "erro": "mcr_core_aprendizado_lore",
@@ -2342,7 +2344,8 @@
         -1.0390034914016724,
         -0.6752033233642578
       ],
-      "id": "L0796"
+      "id": "L0796",
+      "inactive": true
     },
     {
       "erro": "mcr_core_aprendizado_lore",

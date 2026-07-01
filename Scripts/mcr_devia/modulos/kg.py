@@ -7,6 +7,15 @@ Knowledge Graph multi-arquivo: cada contexto em arquivo separado + master index.
 import os, json, re, hashlib, math, urllib.request, time as _time
 from stop_words import STOP_BUSCA
 
+# Threshold MCR
+try:
+    from modulos.MCR import MCRThreshold
+    _TH_KG = MCRThreshold("kg_sim")
+    for v in [0.7, 0.75, 0.8, 0.72, 0.77]:
+        _TH_KG.observar(v)
+except ImportError:
+    _TH_KG = None
+
 BASE = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
 SANDBOX = os.path.join(BASE, 'sandbox')
 KG_DIR = os.path.join(SANDBOX, '.mcr_devia', 'kg')
@@ -359,7 +368,7 @@ class KnowledgeGraph:
                     for palavra_alvo in alvo.split():
                         if len(palavra_alvo) >= 4:
                             sim = _SM(None, p, palavra_alvo).ratio()
-                            if sim > 0.75:
+                            if sim > (_TH_KG.calcular(1.0) if _TH_KG else 0.75):
                                 score += 1
                                 break
             if score > 0:

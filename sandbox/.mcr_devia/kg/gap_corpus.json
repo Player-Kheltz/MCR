@@ -1,0 +1,386 @@
+{
+  "ctx": "gap_corpus",
+  "licoes": [
+    {
+      "erro": "corpus:auto_avaliacao_mcr_md",
+      "causa": "conceito: corpus:auto_avaliacao_mcr_md",
+      "solucao": "[Fonte: E:\\Projeto MCR\\docs\\auto_avaliacao_mcr.md]\n\" \"solucao\" \"ctx\"`)\n2. **IMPLEMENTE** se for codigo (via mcr_scriptbuilder.py ou diretamente)\n3. **TESTE** no training_ground ou teste_cego\n4. **INTEGRE** ao uso real (fora do sandbox)\n5. **COMEMORE** (ele aprendeu algo novo)\n\n## Areas de Melhoria Prioritaria\n\n- Detectar indentacao mista (tabs + espacos)\n- Detectar IDs duplicados entre arquivos\n- Detectar NPCs sem saudacao (ja faz!)\n- Detectar mon",
+      "ctx": "gap_corpus",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [
+        "stress_test"
+      ],
+      "timestamp": 1782920795.6929965,
+      "id": "L1173"
+    },
+    {
+      "erro": "corpus:AUTO_TESTE_md",
+      "causa": "conceito: corpus:AUTO_TESTE_md",
+      "solucao": "[Fonte: E:\\Projeto MCR\\docs\\AUTO_TESTE.md]\n# 🧪 Auto-Teste Definitivo do MCR-DevIA\n\n> **Este é o ÚNICO teste oficial.** Quando alguém pedir \"faça um teste\", execute este.\n> Versão: 1.0 | Data: 28/06/2026\n\n---\n\n## 1. Objetivo\n\nTestar as **capacidades GERAIS** do MCR-DevIA (não conhecimento específico do projeto)\ne coletar **auto-crítica real** para alim",
+      "ctx": "gap_corpus",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [
+        "stress_test"
+      ],
+      "timestamp": 1782920799.7505245,
+      "id": "L1174"
+    },
+    {
+      "erro": "corpus:CATALOG_md",
+      "causa": "conceito: corpus:CATALOG_md",
+      "solucao": "[Fonte: E:\\Projeto MCR\\docs\\CATALOG.md]\n# Catalogo de Documentacao MCR\n\n> Gerado por scripts/doc-sync.py em 2026-06-24\n> Leia este arquivo no inicio de toda conversa para saber quais docs carregar.\n\n## Tabela de Decisao Rapida\n\n| Sua tarefa envolve... | Leia |\n|---|---|\n| LOS, visao, BattleList, projeteis, multi-piso | DevLog/Sistema Multi-Piso.md |\n| SPA, dominios, habilidades, progressao, Maestria | [Documentacao] MCR - ",
+      "ctx": "gap_corpus",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782920803.8109908,
+      "id": "L1175"
+    },
+    {
+      "erro": "corpus:IMPLEMENTACAO_MANIFEST_md",
+      "causa": "conceito: corpus:IMPLEMENTACAO_MANIFEST_md",
+      "solucao": "[Fonte: E:\\Projeto MCR\\docs\\IMPLEMENTACAO_MANIFEST.md]\nas)\n2. [Próximas Etapas](#-proximas-etapas)\n3. [Barreiras / Bloqueios](#-barreiras--bloqueios)\n4. [Testes de Validação](#-testes-de-validacao)\n5. [Decisões de Implementação](#-decisoes-de-implementacao)\n6. [Checklist Pré-Implementação](#-checklist-pre-implementacao)\n\n---\n\n## ✅ Etapas Concluídas\n\n| # | Etapa | Onde | Data | Teste | Ref. MANIFEST |\n|---|-------|------|------|-------|---------------|",
+      "ctx": "gap_corpus",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [
+        "stress_test"
+      ],
+      "timestamp": 1782920807.8761473,
+      "id": "L1176"
+    },
+    {
+      "erro": "corpus:LEGACY_md",
+      "causa": "conceito: corpus:LEGACY_md",
+      "solucao": "[Fonte: E:\\Projeto MCR\\docs\\LEGACY.md]\n# LEGACY — Arquivos Movidos para Legado\n\nEste documento registra o que foi movido para `/Legado/` e por quê.\nTudo aqui é **código histórico** — preservado para referência, não para uso ativo.\n\n---\n\n## Legado/sandbox/ — Scripts temporários do sandbox\n\n**501 arquivos movidos** em 2026-06-30.\n\n| Categoria | Quantidade | Exemplos |\n|----------",
+      "ctx": "gap_corpus",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782920812.6805115,
+      "id": "L1177"
+    },
+    {
+      "erro": "corpus:MCR_IDENTITY_md",
+      "causa": "conceito: corpus:MCR_IDENTITY_md",
+      "solucao": "[Fonte: E:\\Projeto MCR\\docs\\MCR_IDENTITY.md]\n>> CATALOG tags=context, identity, definition, mcr updated=2026-06-28\n# Identidade do Projeto MCR\n\nEste arquivo fornece contexto essencial sobre o Projeto MCR para modelos de IA locais.\n\nMCR = Projeto MCR, um servidor CUSTOMIZADO de Tibia baseado em Canary (OTServ).\nSPA = Sistema de Progressão do Aventureiro, que gerencia habilidades e progressão em dominios elementais.\nSHC = Sistema de Habilidad",
+      "ctx": "gap_corpus",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782920816.7356765,
+      "id": "L1178"
+    },
+    {
+      "erro": "corpus:PENDENCIA_REVAMP_SCRIPTS_LEGADOS_md",
+      "causa": "conceito: corpus:PENDENCIA_REVAMP_SCRIPTS_LEGADOS_md",
+      "solucao": "[Fonte: E:\\Projeto MCR\\docs\\PENDENCIA_REVAMP_SCRIPTS_LEGADOS.md]\n | Upgrade massivo | Legado (uma vez só) |\n| 12 | `corrida_final_absoluta.py` | qwen2.5-coder:7b | Teste massivo | Legado |\n| 13 | `mcr_auto_improve.py` | qwen2.5-coder:7b | Auto melhoria | **Pode ser útil** |\n| 14 | `input_pipeline.py` | OLLAMA_URL | Pipeline de input antigo | Substituído por pipeline_executor.py |\n\n## Ação Necessária\n1. Verificar se cada script ainda funciona (teste básico)\n2. S",
+      "ctx": "gap_corpus",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [
+        "stress_test"
+      ],
+      "timestamp": 1782920820.7694044,
+      "id": "L1179"
+    },
+    {
+      "erro": "corpus:PLANO_DEBATE_TESTO_CEGO_md",
+      "causa": "conceito: corpus:PLANO_DEBATE_TESTO_CEGO_md",
+      "solucao": "[Fonte: E:\\Projeto MCR\\docs\\PLANO_DEBATE_TESTO_CEGO.md]\n# Plano: Debate + Teste Cego — Cloud vs MCR-DevIA\n# Salvo para uso futuro. Mesmo conceito, qualquer tema.\n\n## Estrutura\n\"\"\"\nFASE 1: AQUECIMENTO (3 rounds de debate)\n  → Cloud e MCR discutem um tema técnico\n  → Sem teste cego ainda — apenas para aquecer\n\nFASE 2: PROPOSTA DE TESTE CEGO (Cloud propõe)\n  → \"MCR, que tal t",
+      "ctx": "gap_corpus",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [
+        "stress_test"
+      ],
+      "timestamp": 1782920824.8391533,
+      "id": "L1180"
+    },
+    {
+      "erro": "corpus:2026-06-23_gerenciamento-de-processos-em-segundo-pl_md",
+      "causa": "conceito: corpus:2026-06-23_gerenciamento-de-processos-em-segundo-pl_md",
+      "solucao": "[Fonte: E:\\Projeto MCR\\docs\\lessons\\2026-06-23_gerenciamento-de-processos-em-segundo-pl.md]\nerenciamento de processos em segundo plano\n\n## Decisao\nSempre finalizar servidores e servicos apos testes. Processos esquecidos bloqueiam compilacao e consomem recursos.\n\n## Motivo\nServidor rodando impediu compilacao (LNK1104 - exe bloqueado). Perdi varios minutos debugando.\n\n## Alternativas rejeitadas\nNao documentar como regra\n\n## Referencias\nscripts/auto.py (server stop/start), docs/lessons/\n",
+      "ctx": "gap_corpus",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [
+        "stress_test"
+      ],
+      "timestamp": 1782920828.9069898,
+      "id": "L1181"
+    },
+    {
+      "erro": "corpus:2026-06-23_teste-bridge-alucinacoes_md",
+      "causa": "conceito: corpus:2026-06-23_teste-bridge-alucinacoes_md",
+      "solucao": "[Fonte: E:\\Projeto MCR\\docs\\lessons\\2026-06-23_teste-bridge-alucinacoes.md]\n# Teste Bridge: Alucinações do Qwen 7B em Pergunta Técnica\n\n## Data: 2026-06-23\n\n## Contexto\nO usuário fez um teste com o bot (Qwen 2.5 Coder 7B via Bridge), pedindo para\ncriar um arquivo .lua com TalkAction de fogos de artifício. O objetivo era\navaliar se o bot respondia corretamente sobre o projeto M",
+      "ctx": "gap_corpus",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [
+        "stress_test"
+      ],
+      "timestamp": 1782920832.9798055,
+      "id": "L1182"
+    },
+    {
+      "erro": "corpus:README_md",
+      "causa": "conceito: corpus:README_md",
+      "solucao": "[Fonte: E:\\Projeto MCR\\docs\\lessons\\README.md]\n# Lições Aprendidas — Projeto MCR\n\nEste diretorio registra decisoes estruturais e aprendizados do projeto.\nCada arquivo `YYYY-MM-DD_tema.md` documenta uma decisao, seu motivo e alternativas rejeitadas.\n\n## Indice\n- [2026-06-23 — Gerenciamento de processos em segundo plano](2026-06-23_gerenciamento-de-processos-em-segundo-pl.md)\n\n- [2",
+      "ctx": "gap_corpus",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782920837.029552,
+      "id": "L1183"
+    },
+    {
+      "erro": "corpus:extraido_txt",
+      "causa": "conceito: corpus:extraido_txt",
+      "solucao": "[Fonte: E:\\Projeto MCR\\docs\\Localizador Projeto MCR\\Server (Data)\\extraido.txt]\nof my enemies is my friend! For a mere 1000 gold I will create the documents you need. Are you interested?\n126_3_say=Did you find my stuff?\n130_2_say=I see: You want me to add an additional story to this book. A legend about how it brings ill luck to kill a white deer. I could do that, yes. It costs 5000 gold, however. Are you still interested?\n137_4_say=And here they are! Now forget where you got",
+      "ctx": "gap_corpus",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782920841.0949821,
+      "id": "L1184"
+    },
+    {
+      "erro": "corpus:reparado_txt",
+      "causa": "conceito: corpus:reparado_txt",
+      "solucao": "[Fonte: E:\\Projeto MCR\\docs\\Localizador Projeto MCR\\Server (Data)\\reparado.txt]\nVocê encontrou minhas coisas?\n130_2_say=Entendo: você quer que eu adicione uma história adicional a este livro. Uma lenda sobre como matar um cervo branco traz azar. Eu poderia fazer isso, sim. Custa 5.000 ouro, no entanto. Você ainda está interessado?\n137_4_say=E aqui estão eles! Agora esqueça de onde você os tirou.\n139_4_say=Você não tem dinheiro suficiente.\n151_4_say=ÓTIMO! Se você precisar de ",
+      "ctx": "gap_corpus",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782920845.9059374,
+      "id": "L1185",
+      "inactive": true
+    },
+    {
+      "erro": "corpus:traduzido_txt",
+      "causa": "conceito: corpus:traduzido_txt",
+      "solucao": "[Fonte: E:\\Projeto MCR\\docs\\Localizador Projeto MCR\\Server (Data)\\traduzido.txt]\nVocê encontrou minhas coisas?\n130_2_say=Entendo: você quer que eu adicione uma história adicional a este livro. Uma lenda sobre como matar um cervo branco traz azar. Eu poderia fazer isso, sim. Custa 5.000 ouro, no entanto. Você ainda está interessado?\n137_4_say=E aqui estão eles! Agora esqueça de onde você os tirou.\n139_4_say=Você não tem dinheiro suficiente.\n151_4_say=ÓTIMO! Se você precisar de ",
+      "ctx": "gap_corpus",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782920849.96489,
+      "id": "L1186"
+    },
+    {
+      "erro": "corpus:[0] MCR - INDICE GERAL_txt",
+      "causa": "conceito: corpus:[0] MCR - INDICE GERAL_txt",
+      "solucao": "[Fonte: E:\\Projeto MCR\\docs\\MCR - Instruções\\[0] MCR - INDICE GERAL.txt]\nidades v2.0\nArquivo: [0] MCR - INDICE GERAL.txt\nÚltima actualização: 21 de Junho de 2026\n\n🎯 FUNÇÃO DESTE ARQUIVO\nEste documento é a raiz de toda a documentação do Projeto MCR. Serve a três propósitos fundamentais:\n\n- LEMBRETE PERMANENTE: contém os pilares filosóficos e técnicos que NUNCA podem ser violados em nenhuma camada do projecto.\n- ÍNDICE DE GUIAS: lista todos os documentos temáticos que co",
+      "ctx": "gap_corpus",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782920854.0123968,
+      "id": "L1187"
+    },
+    {
+      "erro": "corpus:[10] MCR - Guia de Tradução e Localização (PT‑BR)_txt",
+      "causa": "conceito: corpus:[10] MCR - Guia de Tradução e Localização (PT‑BR)_txt",
+      "solucao": "[Fonte: E:\\Projeto MCR\\docs\\MCR - Instruções\\[10] MCR - Guia de Tradução e Localização (PT‑BR).txt]\n Revscript consolidada)\nArquivo: [10] MCR - Guia de Tradução e Localização (PT‑BR).txt\n\n🎯 OBJETIVO DESTE GUIA\nEste documento é a autoridade máxima sobre a correta aplicação do idioma Português do Brasil em TODAS as camadas do Projeto MCR. Ele define:\n\nQuais elementos DEVEM estar em PT‑BR.\n\nQuais elementos PODEM permanecer em inglês.\n\nA codificação correcta de cada tipo de arquivo (UTF‑8 com BOM, I",
+      "ctx": "gap_corpus",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782920858.0740058,
+      "id": "L1188"
+    },
+    {
+      "erro": "corpus:[11] MCR - Guia de Experiência do Jogador_txt",
+      "causa": "conceito: corpus:[11] MCR - Guia de Experiência do Jogador_txt",
+      "solucao": "[Fonte: E:\\Projeto MCR\\docs\\MCR - Instruções\\[11] MCR - Guia de Experiência do Jogador.txt]\n e progressão totalmente activa\nArquivo: [11] MCR - Guia de Experiência do Jogador.txt\n\n🎯 OBJETIVO DESTE GUIA\nFornecer ao assistente/desenvolvedor uma visão completa e integrada daquilo que o jogador vê, sente e percorre no Projeto MCR — do primeiro clique no Salão dos Destinos até à consagração como herói de um mundo vivo. Este guia funciona como bússola de design: cada decisão técnica (interface",
+      "ctx": "gap_corpus",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782920862.133569,
+      "id": "L1189"
+    },
+    {
+      "erro": "corpus:[12] MCR - Guia de Conteúdo Inicial e Tutorial_txt",
+      "causa": "conceito: corpus:[12] MCR - Guia de Conteúdo Inicial e Tutorial_txt",
+      "solucao": "[Fonte: E:\\Projeto MCR\\docs\\MCR - Instruções\\[12] MCR - Guia de Conteúdo Inicial e Tutorial.txt]\n e progressão em Eridanus)\nArquivo: [12] MCR - Guia de Conteúdo Inicial e Tutorial.txt\n\n🎯 OBJETIVO DESTE GUIA\nDescrever, passo a passo, a Ilha do Despertar (Eridanus) — o cenário de tutorial do Projeto MCR. Aqui o novo Aventureiro aprende, de forma orgânica e narrativa, todas as mecânicas fundamentais: combate, posturas, ferramentas, pesca, runas, ofícios e a progressão por Domínios. Nenhuma janel",
+      "ctx": "gap_corpus",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782920866.1849947,
+      "id": "L1190"
+    },
+    {
+      "erro": "corpus:[13] MCR - Guia de Criacao de Habilidades_txt",
+      "causa": "conceito: corpus:[13] MCR - Guia de Criacao de Habilidades_txt",
+      "solucao": "[Fonte: E:\\Projeto MCR\\docs\\MCR - Instruções\\[13] MCR - Guia de Criacao de Habilidades.txt]\nar v2.0 e Limites de Categoria)\nArquivo: [13] MCR - Guia de Criacao de Habilidades.txt\n\n🎯 OBJETIVO DESTE GUIA\nEste documento é a autoridade máxima sobre como criar, organizar e manter as\nhabilidades do Sistema de Progressão do Aventureiro (SPA). Define a filosofia\nde design, a estrutura de habilidades por hierarquia de domínio, os pacotes\ntemáticos, as regras de feedback narrativo limpo, as direct",
+      "ctx": "gap_corpus",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782920870.2224996,
+      "id": "L1191"
+    },
+    {
+      "erro": "corpus:[1] MCR - Guia de Compilação (Servidor)_txt",
+      "causa": "conceito: corpus:[1] MCR - Guia de Compilação (Servidor)_txt",
+      "solucao": "[Fonte: E:\\Projeto MCR\\docs\\MCR - Instruções\\[1] MCR - Guia de Compilação (Servidor).txt]\nreiro): v5.8 (alinhado com a documentação técnica)\nÚltima actualização: 13 de Junho de 2026\n\n(Nota: Este documento foi alinhado com a Documentação Técnica do Motor SPA v5.8 e com o Documento de Perseguição Multi‑Piso v3.2.0. A versão do sistema multi‑piso foi actualizada de v8.0 para v3.2.0, reflectindo a reescrita completa do sistema.)\n\n🎯 FUNÇÃO DESTE ARQUIVO\nFornecer todas as instruções, dependê",
+      "ctx": "gap_corpus",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782920874.2730684,
+      "id": "L1192"
+    },
+    {
+      "erro": "corpus:MCR_IDENTITY_md",
+      "causa": "conceito: corpus:MCR_IDENTITY_md",
+      "solucao": "[Fonte: E:\\Projeto MCR\\docs\\MCR_IDENTITY.md]\n>> CATALOG tags=context, identity, definition, mcr updated=2026-06-28\n# Identidade do Projeto MCR\n\nEste arquivo fornece contexto essencial sobre o Projeto MCR para modelos de IA locais.\n\nMCR = Projeto MCR, um servidor CUSTOMIZADO de Tibia baseado em Canary (OTServ).\nSPA = Sistema de Progressão do Aventureiro, que gerencia habilidades",
+      "ctx": "gap_corpus",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782920917.48935,
+      "id": "L1193",
+      "inactive": true
+    },
+    {
+      "erro": "corpus:MCR_IDENTITY_md",
+      "causa": "conceito: corpus:MCR_IDENTITY_md",
+      "solucao": "[Fonte: E:\\Projeto MCR\\docs\\MCR_IDENTITY.md]\n>> CATALOG tags=context, identity, definition, mcr updated=2026-06-28\n# Identidade do Projeto MCR\n\nEste arquivo fornece contexto essencial sobre o Projeto MCR para modelos de IA locais.\n\nMCR = Projeto MCR, um servidor CUSTOMIZADO de Tibia baseado em Canary (OTServ).\nSPA = Sistema de Progressão do Aventureiro, que gerencia habilidades e progressão em",
+      "ctx": "gap_corpus",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782921089.6385865,
+      "id": "L1218",
+      "inactive": true
+    },
+    {
+      "erro": "corpus:MCR_IDENTITY_md",
+      "causa": "conceito: corpus:MCR_IDENTITY_md",
+      "solucao": "[Fonte: E:\\Projeto MCR\\docs\\MCR_IDENTITY.md]\n>> CATALOG tags=context, identity, definition, mcr updated=2026-06-28\n# Identidade do Projeto MCR\n\nEste arquivo fornece contexto essencial sobre o Projeto MCR para modelos de IA locais.\n\nMCR = Projeto MCR, um servidor CUSTOMIZADO de Tibia baseado em Canary (OTServ).\nSPA = Sistema de Progressão do Aventureiro, que gerencia habilidades e progressão em",
+      "ctx": "gap_corpus",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782921204.0422873,
+      "id": "L1245",
+      "inactive": true
+    },
+    {
+      "erro": "corpus:MCR_IDENTITY_md",
+      "causa": "conceito: corpus:MCR_IDENTITY_md",
+      "solucao": "[Fonte: E:\\Projeto MCR\\docs\\MCR_IDENTITY.md]\n>> CATALOG tags=context, identity, definition, mcr updated=2026-06-28\n# Identidade do Projeto MCR\n\nEste arquivo fornece contexto essencial sobre o Projeto MCR para modelos de IA locais.\n\nMCR = Projeto MCR, um servidor CUSTOMIZADO de Tibia baseado em Canary (OTServ).\nSPA = Sistema de Progressão do Aventureiro, que gerencia habilidades e progressão em",
+      "ctx": "gap_corpus",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782921317.6709025,
+      "id": "L1272",
+      "inactive": true
+    },
+    {
+      "erro": "corpus:MCR_IDENTITY_md",
+      "causa": "conceito: corpus:MCR_IDENTITY_md",
+      "solucao": "[Fonte: docs\\MCR_IDENTITY.md]\n>> CATALOG tags=context, identity, definition, mcr updated=2026-06-28\n# Identidade do Projeto MCR\n\nEste arquivo fornece contexto essencial sobre o Projeto MCR para modelos de IA locais.\n\nMCR = Projeto MCR, um servidor CUSTOMIZADO de Tibia baseado em Canary (OTServ).\nSPA = Sistema de Progressão do Aventureiro, que gerencia habilidades e progressão em",
+      "ctx": "gap_corpus",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782924842.7848527,
+      "id": "L1327",
+      "inactive": true
+    },
+    {
+      "erro": "corpus:05 - GUIAS DE CRIACAO_txt",
+      "causa": "conceito: corpus:05 - GUIAS DE CRIACAO_txt",
+      "solucao": "[Fonte: docs\\MCR - Instruções\\Sistema de Habilidades Contextuais\\05 - GUIAS DE CRIACAO.txt]\nr que não repete nicho de domínio irmão\n\n2. TEMPLATE COMPLETO\n═════════════════════\n-- Copie e cole este template para criar uma nova habilidade\nHABILIDADES[ID] = {\n    nome = \"Nome da Habilidade\",\n    tipo = \"gatilho\",   -- gatilho | passiva | toggle | transformacao\n    dominio = {ID_DOMINIO_PRINCIPAL},\n    cooldown = 6,\n    categoria = \"single\",  -- aoe | single | debuff | buff | finisher | defe",
+      "ctx": "gap_corpus",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782925136.8303545,
+      "id": "L1344"
+    },
+    {
+      "erro": "corpus:MCR_IDENTITY_md",
+      "causa": "conceito: corpus:MCR_IDENTITY_md",
+      "solucao": "[Fonte: docs\\MCR_IDENTITY.md]\n>> CATALOG tags=context, identity, definition, mcr updated=2026-06-28\n# Identidade do Projeto MCR\n\nEste arquivo fornece contexto essencial sobre o Projeto MCR para modelos de IA locais.\n\nMCR = Projeto MCR, um servidor CUSTOMIZADO de Tibia baseado em Canary (OTServ).\nSPA = Sistema de Progressão do Aventureiro, que gerencia habilidades e progressão em dominios elementais.\nSHC = Sistema de Habilidad",
+      "ctx": "gap_corpus",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782925141.6275709,
+      "id": "L1345",
+      "inactive": true
+    },
+    {
+      "erro": "corpus:README_md",
+      "causa": "conceito: corpus:README_md",
+      "solucao": "[Fonte: docs\\lessons\\README.md]\n# Lições Aprendidas — Projeto MCR\n\nEste diretorio registra decisoes estruturais e aprendizados do projeto.\nCada arquivo `YYYY-MM-DD_tema.md` documenta uma decisao, seu motivo e alternativas rejeitadas.\n\n## Indice\n- [2026-06-23 — Gerenciamento de processos em segundo plano](2026-06-23_gerenciamento-de-processos-em-segundo-pl.md)\n\n- [2",
+      "ctx": "gap_corpus",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782925145.678707,
+      "id": "L1346",
+      "inactive": true
+    },
+    {
+      "erro": "corpus:teste_capacidade_real_py",
+      "causa": "conceito: corpus:teste_capacidade_real_py",
+      "solucao": "[Prototipo: teste_capacidade_real.py]\n#!/usr/bin/env python3\n\"\"\"TESTE REAL DE CAPACIDADE — MCR Unificado\nTesta: Alimentacao, Emergencia, Autoavaliacao MultiNivel, Geracao, Debug\nCompara MCR vs LLM. Nota final ponderada.\n\"\"\"\nimport sys, os, math, json, time as _time\nfrom collections import Counter\n\nBASE = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))\nsys.path.insert(0, os.path.join(BASE, 'scripts', 'mcr_devia'))\nsys.stdout.reconfigure(encoding='utf-8', errors='replace')\n\nfrom modulos.MCR import (MCRConector, Autoaval",
+      "ctx": "gap_corpus",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [
+        "stress_test"
+      ],
+      "timestamp": 1782925149.7278726,
+      "id": "L1347"
+    },
+    {
+      "erro": "corpus:teste_correcoes_py",
+      "causa": "conceito: corpus:teste_correcoes_py",
+      "solucao": "[Prototipo: teste_correcoes.py]\n#!/usr/bin/env python3\n\"\"\"Teste das correcoes: autoavaliacao + autoloop.\"\"\"\nimport sys, os\nsys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'scripts', 'mcr_devia'))\nsys.stdout.reconfigure(encoding='utf-8', errors='replace')\n\nfrom modulos.MCR import MCRAutoLoop, MarkovUniversal, MCR\n\nmk = MarkovUniversal('teste')\npergunta = 'Explique o sistema SPA do MCR'\n\ncasos = [\n    ('PERFEITA',  202, 'SPA = Sistema de Progressao do Aventureiro, que gerencia habilidades e progressao em dominio",
+      "ctx": "gap_corpus",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [
+        "stress_test"
+      ],
+      "timestamp": 1782925153.7801366,
+      "id": "L1348"
+    },
+    {
+      "erro": "corpus:teste_intencao_markov_py",
+      "causa": "conceito: corpus:teste_intencao_markov_py",
+      "solucao": "[Prototipo: teste_intencao_markov.py]\n#!/usr/bin/env python3\n\"\"\"TESTE: IntentionEngine + Markov — verificação cruzada (v2 unificada).\n\nImporta o léxico v2 do MCR e testa a validação cruzada.\nNÃO MODIFICA NADA NO MCR. Só importa módulos existentes.\n\"\"\"\nimport sys, os, re, json\nfrom collections import Counter\n\nBASE = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))\nsys.path.insert(0, os.path.join(BASE, 'scripts', 'mcr_devia'))\nsys.path.insert(0, os.path.join(BASE, 'scripts'))\n\n# Importa OS MÓDULOS EXISTENTES (agora unifi",
+      "ctx": "gap_corpus",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [
+        "stress_test"
+      ],
+      "timestamp": 1782925157.8549242,
+      "id": "L1349"
+    },
+    {
+      "erro": "corpus:MCR_IDENTITY_md",
+      "causa": "conceito: corpus:MCR_IDENTITY_md",
+      "solucao": "[Fonte: docs\\MCR_IDENTITY.md]\n>> CATALOG tags=context, identity, definition, mcr updated=2026-06-28\n# Identidade do Projeto MCR\n\nEste arquivo fornece contexto essencial sobre o Projeto MCR para modelos de IA locais.\n\nMCR = Projeto MCR, um servidor CUSTOMIZADO de Tibia baseado em Canary (OTServ).\nSPA = Sistema de Progressão do Aventureiro, que gerencia habilidades e progressão em",
+      "ctx": "gap_corpus",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782925705.5254216,
+      "id": "L1368",
+      "inactive": true
+    }
+  ]
+}

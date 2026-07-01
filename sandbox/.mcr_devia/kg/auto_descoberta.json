@@ -1,0 +1,451 @@
+{
+  "ctx": "auto_descoberta",
+  "licoes": [
+    {
+      "erro": "auto_[12] MCR - Guia de Conteúdo Inicial e Tutorial_txt",
+      "causa": "conceito: auto_[12] MCR - Guia de Conteúdo Inicial e Tutorial_txt",
+      "solucao": ">> CATALOG tags=tutorial, eridanus, new-player updated=2026-06-23\nPROJETO MCR – GUIA DE CONTEÚDO INICIAL E TUTORIAL\n(Versão 5.0 – Integração total com o SPA v3.2.0, sistema de cores, missões e progressão em Eridanus)\nArquivo: [12] MCR - Guia de Conteúdo Inicial e Tutorial.txt\n\n🎯 OBJETIVO DESTE GUIA\nDescrever, passo a passo, a Ilha do Despertar (Eridanus) — o cenário de tutorial do Projeto MCR. Aqu",
+      "ctx": "auto_descoberta",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782924846.8417683,
+      "id": "L1328",
+      "inactive": true
+    },
+    {
+      "erro": "auto_[4] MCR - Guia do Login Server_txt",
+      "causa": "conceito: auto_[4] MCR - Guia do Login Server_txt",
+      "solucao": ">> CATALOG tags=login-server, auth, api updated=2026-06-23\nPROJETO MCR – GUIA DO LOGIN SERVER\nVersão 2.1 – Compatibilidade total com o Sistema de Progressão do Aventureiro (SPA v4.2), vocação única (0) e manutenção da limpeza automática\nArquivo: [4] MCR - Guia do Login Server.txt\n\n🎯 OBJETIVO DESTE GUIA\nFornecer todas as regras, especificações de API, protocolos de erro e lições aprendidas referent",
+      "ctx": "auto_descoberta",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782924850.9012995,
+      "id": "L1329",
+      "inactive": true
+    },
+    {
+      "erro": "auto_LEGACY_md",
+      "causa": "conceito: auto_LEGACY_md",
+      "solucao": "# LEGACY — Arquivos Movidos para Legado\n\nEste documento registra o que foi movido para `/Legado/` e por quê.\nTudo aqui é **código histórico** — preservado para referência, não para uso ativo.\n\n---\n\n## Legado/sandbox/ — Scripts temporários do sandbox\n\n**501 arquivos movidos** em 2026-06-30.\n\n| Categoria | Quantidade | Exemplos |\n|-----------|:----------:|----------|\n| `_test*.py` | 37 | Testes desc",
+      "ctx": "auto_descoberta",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [
+        "stress_test"
+      ],
+      "timestamp": 1782924854.9792397,
+      "id": "L1330",
+      "inactive": true
+    },
+    {
+      "erro": "auto_AGI_ARCHITECTURE_md",
+      "causa": "conceito: auto_AGI_ARCHITECTURE_md",
+      "solucao": "# 🧬 ARQUITETURA AGI — MCR-DevIA como Rede Neural Viva\n\n> AUTOR: Cloud + Kheltz\n> DATA: 2026-06-30 (atualizado)\n> STATUS: FASE 1 ✅ | FASE 2 ✅ | FASE 3 ⏳ | FASE 4 ⏳\n> OBJETIVO: Transformar o pipeline linear em uma AGI ciclica autonoma e autosuficiente\n\n---\n\n## Sumario\n\n1. [Status Atual](#-status-atual)\n2. [As 5 Camadas da AGI](#-as-5-camadas-da-agi)\n3. [Fluxo Completo](#-fluxo-completo)\n4. [Plano de",
+      "ctx": "auto_descoberta",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782924859.8701622,
+      "id": "L1331",
+      "inactive": true
+    },
+    {
+      "erro": "auto_[12] MCR - Guia de Conteúdo Inicial e Tutorial_txt",
+      "causa": "conceito: auto_[12] MCR - Guia de Conteúdo Inicial e Tutorial_txt",
+      "solucao": ">> CATALOG tags=tutorial, eridanus, new-player updated=2026-06-23\nPROJETO MCR – GUIA DE CONTEÚDO INICIAL E TUTORIAL\n(Versão 5.0 – Integração total com o SPA v3.2.0, sistema de cores, missões e progressão em Eridanus)\nArquivo: [12] MCR - Guia de Conteúdo Inicial e Tutorial.txt\n\n🎯 OBJETIVO DESTE GUIA\nDescrever, passo a passo, a Ilha do Despertar (Eridanus) — o cenário de tutorial do Projeto MCR. Aqu",
+      "ctx": "auto_descoberta",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782925161.9125974,
+      "id": "L1350",
+      "inactive": true
+    },
+    {
+      "erro": "auto_[4] MCR - Guia do Login Server_txt",
+      "causa": "conceito: auto_[4] MCR - Guia do Login Server_txt",
+      "solucao": ">> CATALOG tags=login-server, auth, api updated=2026-06-23\nPROJETO MCR – GUIA DO LOGIN SERVER\nVersão 2.1 – Compatibilidade total com o Sistema de Progressão do Aventureiro (SPA v4.2), vocação única (0) e manutenção da limpeza automática\nArquivo: [4] MCR - Guia do Login Server.txt\n\n🎯 OBJETIVO DESTE GUIA\nFornecer todas as regras, especificações de API, protocolos de erro e lições aprendidas referent",
+      "ctx": "auto_descoberta",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782925165.9702704,
+      "id": "L1351",
+      "inactive": true
+    },
+    {
+      "erro": "auto_LEGACY_md",
+      "causa": "conceito: auto_LEGACY_md",
+      "solucao": "# LEGACY — Arquivos Movidos para Legado\n\nEste documento registra o que foi movido para `/Legado/` e por quê.\nTudo aqui é **código histórico** — preservado para referência, não para uso ativo.\n\n---\n\n## Legado/sandbox/ — Scripts temporários do sandbox\n\n**501 arquivos movidos** em 2026-06-30.\n\n| Categoria | Quantidade | Exemplos |\n|-----------|:----------:|----------|\n| `_test*.py` | 37 | Testes desc",
+      "ctx": "auto_descoberta",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [
+        "stress_test"
+      ],
+      "timestamp": 1782925170.0397296,
+      "id": "L1352",
+      "inactive": true
+    },
+    {
+      "erro": "auto_AGI_ARCHITECTURE_md",
+      "causa": "conceito: auto_AGI_ARCHITECTURE_md",
+      "solucao": "# 🧬 ARQUITETURA AGI — MCR-DevIA como Rede Neural Viva\n\n> AUTOR: Cloud + Kheltz\n> DATA: 2026-06-30 (atualizado)\n> STATUS: FASE 1 ✅ | FASE 2 ✅ | FASE 3 ⏳ | FASE 4 ⏳\n> OBJETIVO: Transformar o pipeline linear em uma AGI ciclica autonoma e autosuficiente\n\n---\n\n## Sumario\n\n1. [Status Atual](#-status-atual)\n2. [As 5 Camadas da AGI](#-as-5-camadas-da-agi)\n3. [Fluxo Completo](#-fluxo-completo)\n4. [Plano de",
+      "ctx": "auto_descoberta",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782925174.887329,
+      "id": "L1353",
+      "inactive": true
+    },
+    {
+      "erro": "auto_[12] MCR - Guia de Conteúdo Inicial e Tutorial_txt",
+      "causa": "conceito: auto_[12] MCR - Guia de Conteúdo Inicial e Tutorial_txt",
+      "solucao": ">> CATALOG tags=tutorial, eridanus, new-player updated=2026-06-23\nPROJETO MCR – GUIA DE CONTEÚDO INICIAL E TUTORIAL\n(Versão 5.0 – Integração total com o SPA v3.2.0, sistema de cores, missões e progressão em Eridanus)\nArquivo: [12] MCR - Guia de Conteúdo Inicial e Tutorial.txt\n\n🎯 OBJETIVO DESTE GUIA\nDescrever, passo a passo, a Ilha do Despertar (Eridanus) — o cenário de tutorial do Projeto MCR. Aqu",
+      "ctx": "auto_descoberta",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782925709.5786173,
+      "id": "L1369",
+      "inactive": true
+    },
+    {
+      "erro": "auto_[4] MCR - Guia do Login Server_txt",
+      "causa": "conceito: auto_[4] MCR - Guia do Login Server_txt",
+      "solucao": ">> CATALOG tags=login-server, auth, api updated=2026-06-23\nPROJETO MCR – GUIA DO LOGIN SERVER\nVersão 2.1 – Compatibilidade total com o Sistema de Progressão do Aventureiro (SPA v4.2), vocação única (0) e manutenção da limpeza automática\nArquivo: [4] MCR - Guia do Login Server.txt\n\n🎯 OBJETIVO DESTE GUIA\nFornecer todas as regras, especificações de API, protocolos de erro e lições aprendidas referent",
+      "ctx": "auto_descoberta",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782925713.633148,
+      "id": "L1370",
+      "inactive": true
+    },
+    {
+      "erro": "auto_LEGACY_md",
+      "causa": "conceito: auto_LEGACY_md",
+      "solucao": "# LEGACY — Arquivos Movidos para Legado\n\nEste documento registra o que foi movido para `/Legado/` e por quê.\nTudo aqui é **código histórico** — preservado para referência, não para uso ativo.\n\n---\n\n## Legado/sandbox/ — Scripts temporários do sandbox\n\n**501 arquivos movidos** em 2026-06-30.\n\n| Categoria | Quantidade | Exemplos |\n|-----------|:----------:|----------|\n| `_test*.py` | 37 | Testes desc",
+      "ctx": "auto_descoberta",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [
+        "stress_test"
+      ],
+      "timestamp": 1782925717.6741364,
+      "id": "L1371",
+      "inactive": true
+    },
+    {
+      "erro": "auto_AGI_ARCHITECTURE_md",
+      "causa": "conceito: auto_AGI_ARCHITECTURE_md",
+      "solucao": "# 🧬 ARQUITETURA AGI — MCR-DevIA como Rede Neural Viva\n\n> AUTOR: Cloud + Kheltz\n> DATA: 2026-06-30 (atualizado)\n> STATUS: FASE 1 ✅ | FASE 2 ✅ | FASE 3 ⏳ | FASE 4 ⏳\n> OBJETIVO: Transformar o pipeline linear em uma AGI ciclica autonoma e autosuficiente\n\n---\n\n## Sumario\n\n1. [Status Atual](#-status-atual)\n2. [As 5 Camadas da AGI](#-as-5-camadas-da-agi)\n3. [Fluxo Completo](#-fluxo-completo)\n4. [Plano de",
+      "ctx": "auto_descoberta",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782925721.7220404,
+      "id": "L1372",
+      "inactive": true
+    },
+    {
+      "erro": "auto_[12] MCR - Guia de Conteúdo Inicial e Tutorial_txt",
+      "causa": "conceito: auto_[12] MCR - Guia de Conteúdo Inicial e Tutorial_txt",
+      "solucao": ">> CATALOG tags=tutorial, eridanus, new-player updated=2026-06-23\nPROJETO MCR – GUIA DE CONTEÚDO INICIAL E TUTORIAL\n(Versão 5.0 – Integração total com o SPA v3.2.0, sistema de cores, missões e progressão em Eridanus)\nArquivo: [12] MCR - Guia de Conteúdo Inicial e Tutorial.txt\n\n🎯 OBJETIVO DESTE GUIA\nDescrever, passo a passo, a Ilha do Despertar (Eridanus) — o cenário de tutorial do Projeto MCR. Aqu",
+      "ctx": "auto_descoberta",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782926075.5191445,
+      "id": "L1390",
+      "inactive": true
+    },
+    {
+      "erro": "auto_[4] MCR - Guia do Login Server_txt",
+      "causa": "conceito: auto_[4] MCR - Guia do Login Server_txt",
+      "solucao": ">> CATALOG tags=login-server, auth, api updated=2026-06-23\nPROJETO MCR – GUIA DO LOGIN SERVER\nVersão 2.1 – Compatibilidade total com o Sistema de Progressão do Aventureiro (SPA v4.2), vocação única (0) e manutenção da limpeza automática\nArquivo: [4] MCR - Guia do Login Server.txt\n\n🎯 OBJETIVO DESTE GUIA\nFornecer todas as regras, especificações de API, protocolos de erro e lições aprendidas referent",
+      "ctx": "auto_descoberta",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782926079.5695415,
+      "id": "L1391",
+      "inactive": true
+    },
+    {
+      "erro": "auto_LEGACY_md",
+      "causa": "conceito: auto_LEGACY_md",
+      "solucao": "# LEGACY — Arquivos Movidos para Legado\n\nEste documento registra o que foi movido para `/Legado/` e por quê.\nTudo aqui é **código histórico** — preservado para referência, não para uso ativo.\n\n---\n\n## Legado/sandbox/ — Scripts temporários do sandbox\n\n**501 arquivos movidos** em 2026-06-30.\n\n| Categoria | Quantidade | Exemplos |\n|-----------|:----------:|----------|\n| `_test*.py` | 37 | Testes desc",
+      "ctx": "auto_descoberta",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [
+        "stress_test"
+      ],
+      "timestamp": 1782926083.6177218,
+      "id": "L1392",
+      "inactive": true
+    },
+    {
+      "erro": "auto_AGI_ARCHITECTURE_md",
+      "causa": "conceito: auto_AGI_ARCHITECTURE_md",
+      "solucao": "# 🧬 ARQUITETURA AGI — MCR-DevIA como Rede Neural Viva\n\n> AUTOR: Cloud + Kheltz\n> DATA: 2026-06-30 (atualizado)\n> STATUS: FASE 1 ✅ | FASE 2 ✅ | FASE 3 ⏳ | FASE 4 ⏳\n> OBJETIVO: Transformar o pipeline linear em uma AGI ciclica autonoma e autosuficiente\n\n---\n\n## Sumario\n\n1. [Status Atual](#-status-atual)\n2. [As 5 Camadas da AGI](#-as-5-camadas-da-agi)\n3. [Fluxo Completo](#-fluxo-completo)\n4. [Plano de",
+      "ctx": "auto_descoberta",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782926087.6684978,
+      "id": "L1393",
+      "inactive": true
+    },
+    {
+      "erro": "auto_[12] MCR - Guia de Conteúdo Inicial e Tutorial_txt",
+      "causa": "conceito: auto_[12] MCR - Guia de Conteúdo Inicial e Tutorial_txt",
+      "solucao": ">> CATALOG tags=tutorial, eridanus, new-player updated=2026-06-23\nPROJETO MCR – GUIA DE CONTEÚDO INICIAL E TUTORIAL\n(Versão 5.0 – Integração total com o SPA v3.2.0, sistema de cores, missões e progressão em Eridanus)\nArquivo: [12] MCR - Guia de Conteúdo Inicial e Tutorial.txt\n\n🎯 OBJETIVO DESTE GUIA\nDescrever, passo a passo, a Ilha do Despertar (Eridanus) — o cenário de tutorial do Projeto MCR. Aqu",
+      "ctx": "auto_descoberta",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782926385.8322384,
+      "id": "L1409",
+      "inactive": true
+    },
+    {
+      "erro": "auto_[4] MCR - Guia do Login Server_txt",
+      "causa": "conceito: auto_[4] MCR - Guia do Login Server_txt",
+      "solucao": ">> CATALOG tags=login-server, auth, api updated=2026-06-23\nPROJETO MCR – GUIA DO LOGIN SERVER\nVersão 2.1 – Compatibilidade total com o Sistema de Progressão do Aventureiro (SPA v4.2), vocação única (0) e manutenção da limpeza automática\nArquivo: [4] MCR - Guia do Login Server.txt\n\n🎯 OBJETIVO DESTE GUIA\nFornecer todas as regras, especificações de API, protocolos de erro e lições aprendidas referent",
+      "ctx": "auto_descoberta",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782926389.892142,
+      "id": "L1410",
+      "inactive": true
+    },
+    {
+      "erro": "auto_LEGACY_md",
+      "causa": "conceito: auto_LEGACY_md",
+      "solucao": "# LEGACY — Arquivos Movidos para Legado\n\nEste documento registra o que foi movido para `/Legado/` e por quê.\nTudo aqui é **código histórico** — preservado para referência, não para uso ativo.\n\n---\n\n## Legado/sandbox/ — Scripts temporários do sandbox\n\n**501 arquivos movidos** em 2026-06-30.\n\n| Categoria | Quantidade | Exemplos |\n|-----------|:----------:|----------|\n| `_test*.py` | 37 | Testes desc",
+      "ctx": "auto_descoberta",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [
+        "stress_test"
+      ],
+      "timestamp": 1782926393.9517329,
+      "id": "L1411",
+      "inactive": true
+    },
+    {
+      "erro": "auto_AGI_ARCHITECTURE_md",
+      "causa": "conceito: auto_AGI_ARCHITECTURE_md",
+      "solucao": "# 🧬 ARQUITETURA AGI — MCR-DevIA como Rede Neural Viva\n\n> AUTOR: Cloud + Kheltz\n> DATA: 2026-06-30 (atualizado)\n> STATUS: FASE 1 ✅ | FASE 2 ✅ | FASE 3 ⏳ | FASE 4 ⏳\n> OBJETIVO: Transformar o pipeline linear em uma AGI ciclica autonoma e autosuficiente\n\n---\n\n## Sumario\n\n1. [Status Atual](#-status-atual)\n2. [As 5 Camadas da AGI](#-as-5-camadas-da-agi)\n3. [Fluxo Completo](#-fluxo-completo)\n4. [Plano de",
+      "ctx": "auto_descoberta",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782926398.006178,
+      "id": "L1412",
+      "inactive": true
+    },
+    {
+      "erro": "auto_[12] MCR - Guia de Conteúdo Inicial e Tutorial_txt",
+      "causa": "conceito: auto_[12] MCR - Guia de Conteúdo Inicial e Tutorial_txt",
+      "solucao": ">> CATALOG tags=tutorial, eridanus, new-player updated=2026-06-23\nPROJETO MCR – GUIA DE CONTEÚDO INICIAL E TUTORIAL\n(Versão 5.0 – Integração total com o SPA v3.2.0, sistema de cores, missões e progressão em Eridanus)\nArquivo: [12] MCR - Guia de Conteúdo Inicial e Tutorial.txt\n\n🎯 OBJETIVO DESTE GUIA\nDescrever, passo a passo, a Ilha do Despertar (Eridanus) — o cenário de tutorial do Projeto MCR. Aqu",
+      "ctx": "auto_descoberta",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782927944.0801814,
+      "id": "L1424",
+      "inactive": true
+    },
+    {
+      "erro": "auto_[4] MCR - Guia do Login Server_txt",
+      "causa": "conceito: auto_[4] MCR - Guia do Login Server_txt",
+      "solucao": ">> CATALOG tags=login-server, auth, api updated=2026-06-23\nPROJETO MCR – GUIA DO LOGIN SERVER\nVersão 2.1 – Compatibilidade total com o Sistema de Progressão do Aventureiro (SPA v4.2), vocação única (0) e manutenção da limpeza automática\nArquivo: [4] MCR - Guia do Login Server.txt\n\n🎯 OBJETIVO DESTE GUIA\nFornecer todas as regras, especificações de API, protocolos de erro e lições aprendidas referent",
+      "ctx": "auto_descoberta",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782927948.1549816,
+      "id": "L1425",
+      "inactive": true
+    },
+    {
+      "erro": "auto_LEGACY_md",
+      "causa": "conceito: auto_LEGACY_md",
+      "solucao": "# LEGACY — Arquivos Movidos para Legado\n\nEste documento registra o que foi movido para `/Legado/` e por quê.\nTudo aqui é **código histórico** — preservado para referência, não para uso ativo.\n\n---\n\n## Legado/sandbox/ — Scripts temporários do sandbox\n\n**501 arquivos movidos** em 2026-06-30.\n\n| Categoria | Quantidade | Exemplos |\n|-----------|:----------:|----------|\n| `_test*.py` | 37 | Testes desc",
+      "ctx": "auto_descoberta",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [
+        "stress_test"
+      ],
+      "timestamp": 1782927952.212852,
+      "id": "L1426",
+      "inactive": true
+    },
+    {
+      "erro": "auto_AGI_ARCHITECTURE_md",
+      "causa": "conceito: auto_AGI_ARCHITECTURE_md",
+      "solucao": "# 🧬 ARQUITETURA AGI — MCR-DevIA como Rede Neural Viva\n\n> AUTOR: Cloud + Kheltz\n> DATA: 2026-06-30 (atualizado)\n> STATUS: FASE 1 ✅ | FASE 2 ✅ | FASE 3 ⏳ | FASE 4 ⏳\n> OBJETIVO: Transformar o pipeline linear em uma AGI ciclica autonoma e autosuficiente\n\n---\n\n## Sumario\n\n1. [Status Atual](#-status-atual)\n2. [As 5 Camadas da AGI](#-as-5-camadas-da-agi)\n3. [Fluxo Completo](#-fluxo-completo)\n4. [Plano de",
+      "ctx": "auto_descoberta",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782927956.287815,
+      "id": "L1427",
+      "inactive": true
+    },
+    {
+      "erro": "auto_[12] MCR - Guia de Conteúdo Inicial e Tutorial_txt",
+      "causa": "conceito: auto_[12] MCR - Guia de Conteúdo Inicial e Tutorial_txt",
+      "solucao": ">> CATALOG tags=tutorial, eridanus, new-player updated=2026-06-23\nPROJETO MCR – GUIA DE CONTEÚDO INICIAL E TUTORIAL\n(Versão 5.0 – Integração total com o SPA v3.2.0, sistema de cores, missões e progressão em Eridanus)\nArquivo: [12] MCR - Guia de Conteúdo Inicial e Tutorial.txt\n\n🎯 OBJETIVO DESTE GUIA\nDescrever, passo a passo, a Ilha do Despertar (Eridanus) — o cenário de tutorial do Projeto MCR. Aqu",
+      "ctx": "auto_descoberta",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782928188.0758686,
+      "id": "L1436",
+      "inactive": true
+    },
+    {
+      "erro": "auto_[4] MCR - Guia do Login Server_txt",
+      "causa": "conceito: auto_[4] MCR - Guia do Login Server_txt",
+      "solucao": ">> CATALOG tags=login-server, auth, api updated=2026-06-23\nPROJETO MCR – GUIA DO LOGIN SERVER\nVersão 2.1 – Compatibilidade total com o Sistema de Progressão do Aventureiro (SPA v4.2), vocação única (0) e manutenção da limpeza automática\nArquivo: [4] MCR - Guia do Login Server.txt\n\n🎯 OBJETIVO DESTE GUIA\nFornecer todas as regras, especificações de API, protocolos de erro e lições aprendidas referent",
+      "ctx": "auto_descoberta",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782928192.1212635,
+      "id": "L1437",
+      "inactive": true
+    },
+    {
+      "erro": "auto_LEGACY_md",
+      "causa": "conceito: auto_LEGACY_md",
+      "solucao": "# LEGACY — Arquivos Movidos para Legado\n\nEste documento registra o que foi movido para `/Legado/` e por quê.\nTudo aqui é **código histórico** — preservado para referência, não para uso ativo.\n\n---\n\n## Legado/sandbox/ — Scripts temporários do sandbox\n\n**501 arquivos movidos** em 2026-06-30.\n\n| Categoria | Quantidade | Exemplos |\n|-----------|:----------:|----------|\n| `_test*.py` | 37 | Testes desc",
+      "ctx": "auto_descoberta",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [
+        "stress_test"
+      ],
+      "timestamp": 1782928196.1702242,
+      "id": "L1438",
+      "inactive": true
+    },
+    {
+      "erro": "auto_AGI_ARCHITECTURE_md",
+      "causa": "conceito: auto_AGI_ARCHITECTURE_md",
+      "solucao": "# 🧬 ARQUITETURA AGI — MCR-DevIA como Rede Neural Viva\n\n> AUTOR: Cloud + Kheltz\n> DATA: 2026-06-30 (atualizado)\n> STATUS: FASE 1 ✅ | FASE 2 ✅ | FASE 3 ⏳ | FASE 4 ⏳\n> OBJETIVO: Transformar o pipeline linear em uma AGI ciclica autonoma e autosuficiente\n\n---\n\n## Sumario\n\n1. [Status Atual](#-status-atual)\n2. [As 5 Camadas da AGI](#-as-5-camadas-da-agi)\n3. [Fluxo Completo](#-fluxo-completo)\n4. [Plano de",
+      "ctx": "auto_descoberta",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782928201.115565,
+      "id": "L1439",
+      "inactive": true
+    },
+    {
+      "erro": "auto_[12] MCR - Guia de Conteúdo Inicial e Tutorial_txt",
+      "causa": "conceito: auto_[12] MCR - Guia de Conteúdo Inicial e Tutorial_txt",
+      "solucao": ">> CATALOG tags=tutorial, eridanus, new-player updated=2026-06-23\nPROJETO MCR – GUIA DE CONTEÚDO INICIAL E TUTORIAL\n(Versão 5.0 – Integração total com o SPA v3.2.0, sistema de cores, missões e progressão em Eridanus)\nArquivo: [12] MCR - Guia de Conteúdo Inicial e Tutorial.txt\n\n🎯 OBJETIVO DESTE GUIA\nDescrever, passo a passo, a Ilha do Despertar (Eridanus) — o cenário de tutorial do Projeto MCR. Aqu",
+      "ctx": "auto_descoberta",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782928676.0226705,
+      "id": "L1455",
+      "inactive": true
+    },
+    {
+      "erro": "auto_[4] MCR - Guia do Login Server_txt",
+      "causa": "conceito: auto_[4] MCR - Guia do Login Server_txt",
+      "solucao": ">> CATALOG tags=login-server, auth, api updated=2026-06-23\nPROJETO MCR – GUIA DO LOGIN SERVER\nVersão 2.1 – Compatibilidade total com o Sistema de Progressão do Aventureiro (SPA v4.2), vocação única (0) e manutenção da limpeza automática\nArquivo: [4] MCR - Guia do Login Server.txt\n\n🎯 OBJETIVO DESTE GUIA\nFornecer todas as regras, especificações de API, protocolos de erro e lições aprendidas referent",
+      "ctx": "auto_descoberta",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782928680.0796804,
+      "id": "L1456",
+      "inactive": true
+    },
+    {
+      "erro": "auto_LEGACY_md",
+      "causa": "conceito: auto_LEGACY_md",
+      "solucao": "# LEGACY — Arquivos Movidos para Legado\n\nEste documento registra o que foi movido para `/Legado/` e por quê.\nTudo aqui é **código histórico** — preservado para referência, não para uso ativo.\n\n---\n\n## Legado/sandbox/ — Scripts temporários do sandbox\n\n**501 arquivos movidos** em 2026-06-30.\n\n| Categoria | Quantidade | Exemplos |\n|-----------|:----------:|----------|\n| `_test*.py` | 37 | Testes desc",
+      "ctx": "auto_descoberta",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [
+        "stress_test"
+      ],
+      "timestamp": 1782928684.142835,
+      "id": "L1457",
+      "inactive": true
+    },
+    {
+      "erro": "auto_AGI_ARCHITECTURE_md",
+      "causa": "conceito: auto_AGI_ARCHITECTURE_md",
+      "solucao": "# 🧬 ARQUITETURA AGI — MCR-DevIA como Rede Neural Viva\n\n> AUTOR: Cloud + Kheltz\n> DATA: 2026-06-30 (atualizado)\n> STATUS: FASE 1 ✅ | FASE 2 ✅ | FASE 3 ⏳ | FASE 4 ⏳\n> OBJETIVO: Transformar o pipeline linear em uma AGI ciclica autonoma e autosuficiente\n\n---\n\n## Sumario\n\n1. [Status Atual](#-status-atual)\n2. [As 5 Camadas da AGI](#-as-5-camadas-da-agi)\n3. [Fluxo Completo](#-fluxo-completo)\n4. [Plano de",
+      "ctx": "auto_descoberta",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782928688.2116532,
+      "id": "L1458",
+      "inactive": true
+    },
+    {
+      "erro": "auto_[12] MCR - Guia de Conteúdo Inicial e Tutorial_txt",
+      "causa": "conceito: auto_[12] MCR - Guia de Conteúdo Inicial e Tutorial_txt",
+      "solucao": ">> CATALOG tags=tutorial, eridanus, new-player updated=2026-06-23\nPROJETO MCR – GUIA DE CONTEÚDO INICIAL E TUTORIAL\n(Versão 5.0 – Integração total com o SPA v3.2.0, sistema de cores, missões e progressão em Eridanus)\nArquivo: [12] MCR - Guia de Conteúdo Inicial e Tutorial.txt\n\n🎯 OBJETIVO DESTE GUIA\nDescrever, passo a passo, a Ilha do Despertar (Eridanus) — o cenário de tutorial do Projeto MCR. Aqu",
+      "ctx": "auto_descoberta",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782929095.4179006,
+      "id": "L1482"
+    },
+    {
+      "erro": "auto_[4] MCR - Guia do Login Server_txt",
+      "causa": "conceito: auto_[4] MCR - Guia do Login Server_txt",
+      "solucao": ">> CATALOG tags=login-server, auth, api updated=2026-06-23\nPROJETO MCR – GUIA DO LOGIN SERVER\nVersão 2.1 – Compatibilidade total com o Sistema de Progressão do Aventureiro (SPA v4.2), vocação única (0) e manutenção da limpeza automática\nArquivo: [4] MCR - Guia do Login Server.txt\n\n🎯 OBJETIVO DESTE GUIA\nFornecer todas as regras, especificações de API, protocolos de erro e lições aprendidas referent",
+      "ctx": "auto_descoberta",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782929099.4776454,
+      "id": "L1483"
+    },
+    {
+      "erro": "auto_LEGACY_md",
+      "causa": "conceito: auto_LEGACY_md",
+      "solucao": "# LEGACY — Arquivos Movidos para Legado\n\nEste documento registra o que foi movido para `/Legado/` e por quê.\nTudo aqui é **código histórico** — preservado para referência, não para uso ativo.\n\n---\n\n## Legado/sandbox/ — Scripts temporários do sandbox\n\n**501 arquivos movidos** em 2026-06-30.\n\n| Categoria | Quantidade | Exemplos |\n|-----------|:----------:|----------|\n| `_test*.py` | 37 | Testes desc",
+      "ctx": "auto_descoberta",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [
+        "stress_test"
+      ],
+      "timestamp": 1782929103.5408547,
+      "id": "L1484"
+    },
+    {
+      "erro": "auto_AGI_ARCHITECTURE_md",
+      "causa": "conceito: auto_AGI_ARCHITECTURE_md",
+      "solucao": "# 🧬 ARQUITETURA AGI — MCR-DevIA como Rede Neural Viva\n\n> AUTOR: Cloud + Kheltz\n> DATA: 2026-06-30 (atualizado)\n> STATUS: FASE 1 ✅ | FASE 2 ✅ | FASE 3 ⏳ | FASE 4 ⏳\n> OBJETIVO: Transformar o pipeline linear em uma AGI ciclica autonoma e autosuficiente\n\n---\n\n## Sumario\n\n1. [Status Atual](#-status-atual)\n2. [As 5 Camadas da AGI](#-as-5-camadas-da-agi)\n3. [Fluxo Completo](#-fluxo-completo)\n4. [Plano de",
+      "ctx": "auto_descoberta",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782929107.5949845,
+      "id": "L1485"
+    }
+  ]
+}

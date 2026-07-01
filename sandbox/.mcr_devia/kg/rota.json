@@ -846,7 +846,8 @@
         0.0,
         0.0,
         0.0
-      ]
+      ],
+      "inactive": true
     },
     {
       "erro": "rota_B: O que significa a sigla MCR no projeto?",
@@ -1627,7 +1628,8 @@
         -0.2213054597377777,
         -0.2539239227771759
       ],
-      "id": "L0582"
+      "id": "L0582",
+      "inactive": true
     },
     {
       "erro": "rota_A: O que significa SPA no MCR?",
@@ -2408,7 +2410,8 @@
         -0.20531053841114044,
         -0.1998542845249176
       ],
-      "id": "L0584"
+      "id": "L0584",
+      "inactive": true
     },
     {
       "erro": "rota_B: O que significa SHC no MCR?",
@@ -3189,7 +3192,8 @@
         -0.20531053841114044,
         -0.1998542845249176
       ],
-      "id": "L0586"
+      "id": "L0586",
+      "inactive": true
     },
     {
       "erro": "rota_B: Qual e a cidade inicial do projeto MCR?",
@@ -3970,7 +3974,8 @@
         -0.240450918674469,
         0.10460270196199417
       ],
-      "id": "L0588"
+      "id": "L0588",
+      "inactive": true
     }
   ]
 }

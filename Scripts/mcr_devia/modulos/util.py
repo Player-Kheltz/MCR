@@ -1,6 +1,15 @@
 """Modulo: Util - Funcoes compartilhadas entre comandos modulares."""
 import os, json, urllib.request, sys, re
 
+# Threshold MCR
+try:
+    from modulos.MCR import MCRThreshold
+    _TH_UTIL = MCRThreshold("util_sim")
+    for v in [0.7, 0.75, 0.8, 0.72, 0.77]:
+        _TH_UTIL.observar(v)
+except ImportError:
+    _TH_UTIL = None
+
 # Paths
 BASE = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
 SANDBOX = os.path.join(BASE, 'sandbox')
@@ -227,7 +236,7 @@ def reparar_com_validacao(codigo_original, funcao_reparo, *args, similaridade_mi
             # 2. Fallback character-level (SequenceMatcher)
             from difflib import SequenceMatcher
             sim_char = SequenceMatcher(None, codigo_original, codigo_novo).ratio()
-            if sim_char < 0.75:
+            if sim_char < (_TH_UTIL.calcular(1.0) if _TH_UTIL else 0.75):
                 return codigo_original  # character-level rejeitou
             # 3. Similaridade mais rigorosa
             similaridade_min = max(similaridade_min, 0.90)

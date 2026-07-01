@@ -782,7 +782,8 @@
         -0.9922886490821838,
         -1.3452638387680054
       ],
-      "id": "L0797"
+      "id": "L0797",
+      "inactive": true
     },
     {
       "erro": "mcr_core_aprendizado_codigo",

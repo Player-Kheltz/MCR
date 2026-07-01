@@ -1,0 +1,60 @@
+{
+  "ctx": "gap_correcoes",
+  "licoes": [
+    {
+      "erro": "correcoes:LEGACY_md",
+      "causa": "conceito: correcoes:LEGACY_md",
+      "solucao": "[Fonte: E:\\Projeto MCR\\docs\\LEGACY.md]\n|\n| `ensinar_*.py` | 10 | Ensino em lote para o Knowledge Graph |\n| `bench*.py` | 2 | Benchmarks de performance |\n| `_resposta_*.txt` | 14 | Logs de respostas de testes cegos |\n| Outros `.py` | ~360 | Scripts diversos de uso único |\n| `.txt` | ~46 | Logs, análises, lore gerada |\n| `.json` | ~24 | Dados de benchmark e cache |\n| `.lua` | 3 | NPCs gerados (mergulhador, comerciante, vendedor) |\n\n**Mot",
+      "ctx": "gap_correcoes",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [
+        "stress_test"
+      ],
+      "timestamp": 1782920922.4385252,
+      "id": "L1194",
+      "inactive": true
+    },
+    {
+      "erro": "correcoes:LEGACY_md",
+      "causa": "conceito: correcoes:LEGACY_md",
+      "solucao": "[Fonte: E:\\Projeto MCR\\docs\\LEGACY.md]\n|\n| `ensinar_*.py` | 10 | Ensino em lote para o Knowledge Graph |\n| `bench*.py` | 2 | Benchmarks de performance |\n| `_resposta_*.txt` | 14 | Logs de respostas de testes cegos |\n| Outros `.py` | ~360 | Scripts diversos de uso único |\n| `.txt` | ~46 | Logs, análises, lore gerada |\n| `.json` | ~24 | Dados de benchmark e cache |\n| `.lua` | 3 | NPCs gerados (mergulhador, comerciante, vendedor) |\n\n**Mot",
+      "ctx": "gap_correcoes",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [
+        "stress_test"
+      ],
+      "timestamp": 1782921094.4632547,
+      "id": "L1219",
+      "inactive": true
+    },
+    {
+      "erro": "correcoes:LEGACY_md",
+      "causa": "conceito: correcoes:LEGACY_md",
+      "solucao": "[Fonte: E:\\Projeto MCR\\docs\\LEGACY.md]\n|\n| `ensinar_*.py` | 10 | Ensino em lote para o Knowledge Graph |\n| `bench*.py` | 2 | Benchmarks de performance |\n| `_resposta_*.txt` | 14 | Logs de respostas de testes cegos |\n| Outros `.py` | ~360 | Scripts diversos de uso único |\n| `.txt` | ~46 | Logs, análises, lore gerada |\n| `.json` | ~24 | Dados de benchmark e cache |\n| `.lua` | 3 | NPCs gerados (mergulhador, comerciante, vendedor) |\n\n**Mot",
+      "ctx": "gap_correcoes",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [
+        "stress_test"
+      ],
+      "timestamp": 1782921208.111245,
+      "id": "L1246",
+      "inactive": true
+    },
+    {
+      "erro": "correcoes:LEGACY_md",
+      "causa": "conceito: correcoes:LEGACY_md",
+      "solucao": "[Fonte: E:\\Projeto MCR\\docs\\LEGACY.md]\n|\n| `ensinar_*.py` | 10 | Ensino em lote para o Knowledge Graph |\n| `bench*.py` | 2 | Benchmarks de performance |\n| `_resposta_*.txt` | 14 | Logs de respostas de testes cegos |\n| Outros `.py` | ~360 | Scripts diversos de uso único |\n| `.txt` | ~46 | Logs, análises, lore gerada |\n| `.json` | ~24 | Dados de benchmark e cache |\n| `.lua` | 3 | NPCs gerados (mergulhador, comerciante, vendedor) |\n\n**Mot",
+      "ctx": "gap_correcoes",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [
+        "stress_test"
+      ],
+      "timestamp": 1782921322.53232,
+      "id": "L1273"
+    }
+  ]
+}

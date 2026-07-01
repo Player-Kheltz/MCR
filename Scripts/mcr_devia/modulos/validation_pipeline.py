@@ -12,6 +12,13 @@ Estagios:
   V7: Especificidade — diagnostico de especificidade MCR
 """
 import os, re, sys, json
+try:
+    from modulos.MCR import MCRThreshold
+    _TH_VAL = MCRThreshold("val_sim")
+    for v in [0.75, 0.8, 0.85, 0.78, 0.82]:
+        _TH_VAL.observar(v)
+except ImportError:
+    _TH_VAL = None
 
 BASE = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
 
@@ -87,7 +94,7 @@ class ValidationPipeline:
                 if m:
                     sim = float(m.group())
                     nota += sim * 2  # 0 a 2 pontos
-                    if sim > 0.8:
+                    if sim > (_TH_VAL.calcular(1.0) if _TH_VAL else 0.8):
                         nota += 0.5
             
             elif nome == 'FactChecker':

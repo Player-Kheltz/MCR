@@ -847,7 +847,8 @@
         -0.07503099739551544
       ],
       "id": "L0774",
-      "_sim": 0.9682862197534606
+      "_sim": 0.9682862197534606,
+      "inactive": true
     },
     {
       "erro": "bloco: Explique o sistema SPA do MCR",
@@ -1695,7 +1696,8 @@
         -0.07503099739551544
       ],
       "id": "L0775",
-      "_sim": 0.9682862197534606
+      "_sim": 0.9682862197534606,
+      "inactive": true
     },
     {
       "erro": "bloco: Explique o sistema SPA do MCR",
@@ -2543,7 +2545,8 @@
         -0.07503099739551544
       ],
       "id": "L0776",
-      "_sim": 1.8293973308645717
+      "_sim": 1.8293973308645717,
+      "inactive": true
     },
     {
       "erro": "bloco: Explique o sistema SPA do MCR",
@@ -3391,7 +3394,8 @@
         -0.07503099739551544
       ],
       "id": "L0777",
-      "_sim": 2.579397330864572
+      "_sim": 2.579397330864572,
+      "inactive": true
     },
     {
       "erro": "bloco: Explique o sistema SPA do MCR",
@@ -4239,7 +4243,8 @@
         -0.07503099739551544
       ],
       "id": "L0778",
-      "_sim": 0.9682862197534606
+      "_sim": 0.9682862197534606,
+      "inactive": true
     },
     {
       "erro": "bloco: Explique o sistema SPA do MCR",

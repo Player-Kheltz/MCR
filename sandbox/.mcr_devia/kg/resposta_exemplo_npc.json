@@ -1741,7 +1741,8 @@
         -0.21548157930374146,
         -0.0770246610045433
       ],
-      "id": "L0596"
+      "id": "L0596",
+      "inactive": true
     },
     {
       "erro": "Crie um NPC ferreiro em Eridanus",
@@ -2522,7 +2523,8 @@
         -0.24097536504268646,
         -0.22690922021865845
       ],
-      "id": "L0597"
+      "id": "L0597",
+      "inactive": true
     },
     {
       "erro": "Crie um NPC ferreiro em Eridanus",

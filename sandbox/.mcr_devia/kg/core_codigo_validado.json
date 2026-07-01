@@ -12497,7 +12497,8 @@
         -0.9935317039489746,
         -1.260067343711853
       ],
-      "id": "L0813"
+      "id": "L0813",
+      "inactive": true
     },
     {
       "erro": "mcr_core_aprendizado_codigo_validado",
