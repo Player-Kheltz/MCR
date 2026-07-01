@@ -4599,6 +4599,20 @@ def _autotestar():
     sh = MCRSelfHeal.verificar()
     testar(f'MCRSelfHeal acoes={sh["n_acoes"]}', sh['n_acoes'] >= 0)
     
+    # 23. MCRSignature
+    sig_a = MCRSignature.extrair('Explique o sistema SPA do MCR')
+    sig_b = MCRSignature.extrair('Crie um NPC ferreiro em Eridanus')
+    sig_sim = MCRSignature.extrair('Explique o sistema SPA do MCR')
+    comp_ab = MCRSignature.comparar(sig_a, sig_b)
+    comp_aa = MCRSignature.comparar(sig_a, sig_sim)
+    testar(f'MCRSignature.extrair ent={sig_a["entropia"]} est={sig_a["estados"]} trans={sig_a["transicoes"]}',
+           sig_a['estados'] > 0)
+    testar(f'MCRSignature.comparar diferentes={comp_ab:.3f} iguais={comp_aa:.3f}',
+           comp_aa > comp_ab)
+    mn = MCRSignature.metaniveis('Explique o sistema SPA do MCR', 8)
+    testar(f'MCRSignature.metaniveis {mn["niveis_finais"]} niveis ordem={mn["ordem"][:3]}',
+           mn['niveis_finais'] >= 3)
+    
     # Relatorio
     passed = sum(1 for _, c in resultados if c)
     total = len(resultados)
@@ -4647,6 +4661,111 @@ _MCR_STATE = {
         'MCRBufferKG', 'MCRAutoMelhoria',
     ]
 }
+
+
+# ============================================================
+# MCR SIGNATURE — Assinatura unica de QUALQUER dado
+# ============================================================
+# A assinatura NAO e um conjunto de campos fixos.
+# E a SEQUENCIA COMPLETA de transicoes do dado em bytes.
+# MCRByte ja captura isso. MCRMetaNivel ja expande.
+# Esta classe so CONECTA o que ja existe.
+
+class MCRSignature:
+    """Assinatura unica de QUALQUER dado.
+    
+    Nao define campos. Nao define estrutura.
+    So conecta MCRByte + MCRMetaNivel + similaridade.
+    
+    Uso:
+        sig = MCRSignature()
+        a = sig.extrair("SPA = Sistema")    # → assinatura unica de bytes
+        b = sig.extrair("SPA = Progressao")
+        sim = sig.comparar(a, b)            # → 0.224 (Jaccard)
+        niveis = sig.metaniveis("Explique SPA")  # → quantos niveis emergem
+    """
+    
+    @staticmethod
+    def extrair(dados) -> dict:
+        """Extrai a assinatura unica de QUALQUER dado.
+        
+        A assinatura nao e um conjunto de campos — e a sequencia
+        completa de transicoes MCRByte, que captura:
+        - Estrutura (entropia, delimitadores)  
+        - Fluxo (transicoes mais provaveis)
+        - Identidade (nenhum outro dado tem a mesma sequencia)
+        """
+        if isinstance(dados, str):
+            dados = dados.encode('utf-8')
+        if not isinstance(dados, bytes):
+            dados = str(dados).encode('utf-8')[:2000]
+        
+        mk = MCR("signature")
+        mk.aprender_sequencia(list(dados))
+        
+        # Gera a sequencia unica (a "impressao digital")
+        primeiro = list(mk.freq.keys())[0] if mk.freq else '0'
+        sequencia = mk.gerar(primeiro, passos=50)
+        
+        return {
+            'entropia': round(mk.entropia_media(), 3),
+            'estados': len(mk.transicoes),
+            'transicoes': sum(len(v) for v in mk.transicoes.values()),
+            'sequencia': sequencia[:20],
+            'fingerprint': MCRFingerprint.gerar(
+                ' '.join(str(s) for s in sequencia[:10])
+            ),
+        }
+    
+    @staticmethod
+    def comparar(a: dict, b: dict) -> float:
+        """Compara 2 assinaturas pelo Jaccard das sequencias.
+        Quanto maior, mais similares sao os padroes."""
+        if not a.get('sequencia') or not b.get('sequencia'):
+            return 0.0
+        seq_a = ' '.join(str(s) for s in a['sequencia'])
+        seq_b = ' '.join(str(s) for s in b['sequencia'])
+        mk = MCR("sig_comp")
+        return mk.jaccard_bytes(seq_a, seq_b)
+    
+    @staticmethod
+    def metaniveis(dados, max_niveis=10) -> dict:
+        """Alimenta MetaNiveis com o dado e descobre quantos niveis emergem.
+        Cada nivel e uma dimensao da assinatura."""
+        meta = MCRMetaNivel()
+        if isinstance(dados, str):
+            dados = dados.encode('utf-8')
+        meta.alimentar(dados)
+        diag = meta.diagnosticar()
+        meta.auto_expandir(max_niveis)
+        diag2 = meta.diagnosticar()
+        return {
+            'niveis_iniciais': diag['n_niveis'],
+            'niveis_finais': diag2['n_niveis'],
+            'ordem': diag2.get('ordem', []),
+            'energia': diag2.get('energia_total', 0),
+        }
+    
+    @staticmethod
+    def identificar(dados, banco: list = None) -> dict:
+        """Identifica um dado comparando com um banco de assinaturas.
+        Retorna a mais similar + score."""
+        sig_alvo = MCRSignature.extrair(dados)
+        if not banco:
+            return {'identificado': False, 'score': 0, 'alvo': sig_alvo}
+        melhor = None
+        melhor_score = 0
+        for item in banco:
+            score = MCRSignature.comparar(sig_alvo, item['assinatura'])
+            if score > melhor_score:
+                melhor_score = score
+                melhor = item
+        return {
+            'identificado': melhor_score > 0.3,
+            'score': round(melhor_score, 3),
+            'match': melhor,
+            'alvo': sig_alvo,
+        }
 
 
 # ============================================================
