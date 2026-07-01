@@ -28,9 +28,19 @@ except ImportError:
     MCR_COMPLETO = False
 
 
-class MarkovUniversal:
-    """1 algoritmo, N níveis. Mesmo código para bytes, tokens, intenções, decisões."""
+class MCR:
+    """MCR — 1 algoritmo, N níveis. Mesmo código para bytes, tokens, intenções, decisões.
     
+    MCR é o CONCEITO: tudo é transição entre dois estados consecutivos.
+    O que muda é o que entra como "token".
+    O mesmo código aprende bytes, palavras, intenções, ações, filosofias.
+    
+    Uso:
+        mcr = MCR("byte")          # antes: MarkovUniversal("byte")
+        mcr.aprender_sequencia([...])
+        mcr.predizer("SPA")         # → ("é", 0.5)
+    """
+
     def __init__(self, nome: str = ""):
         self.nome = nome
         self.transicoes = {}   # {token: {proximo: count}}
@@ -191,6 +201,9 @@ class MarkovUniversal:
             'entropia': round(self.entropia_media(), 3),
         }
 
+# Alias para compatibilidade com codigo legado
+MarkovUniversal = MCR
+
 
 class MCRFingerprint:
     """Fingerprint MCR com N dimenções descoberto pela entropia.
@@ -215,11 +228,11 @@ class MCRFingerprint:
         return [h/total*10 for h in histograma]
 
 
-class MCR:
-    """Classe ÚNICA do MCR. Substitui IE + AutoTrigger + Aprendiz + Pipeline.
+class MCRSystem:
+    """Classe SISTEMA do MCR. Orquestrador de alto nivel.
     
     Uso:
-        mcr = MCR()
+        mcr = MCRSystem()
         resultado = mcr.processar("Explique o SPA")
         # → {resposta, nota, acoes, ciclos, ...}
     """
@@ -517,7 +530,7 @@ class MCRAutoLoop:
     LOOP_MAX = 8
     
     def __init__(self):
-        self.mcr = MCR()
+        self.mcr = MCRSystem()
         self.total_ciclos = 0
     
     def processar(self, pergunta: str) -> Dict:
@@ -3007,7 +3020,7 @@ class MCRFuel:
             self.bridge.descobrir()
         
         self.total_lessons = 0
-        fontes_escolhidas = fontes or ['codigo', 'docs', 'modulos', 'comandos',
+        fontes_escolhidas = fontes or ['lore', 'codigo', 'docs', 'modulos', 'comandos',
                                         'manifesto', 'prototipos', 'cache', 'ferramentas', 'kg']
         
         for fonte in fontes_escolhidas:
@@ -3140,6 +3153,179 @@ class MCRFuel:
 
 
 # ============================================================
+# MCR META GAP — Descobre gaps e busca aprender
+# ============================================================
+
+class MCRMetaGap:
+    """MCR descobre o que nao sabe e busca aprender.
+    
+    Em vez de priorizar fontes (hardcode), diagnostica gaps
+    no proprio conhecimento e busca preencher especificamente.
+    
+    Uso:
+        meta = MCRMetaGap()
+        gaps = meta.diagnosticar_gaps()
+        meta.buscar_para_gap("Eridanus")
+        meta.ciclo_completo()  # tudo automatico
+    """
+    
+    def __init__(self, kg=None, bridge=None):
+        self.kg = kg or (KnowledgeGraph() if MCR_COMPLETO else None)
+        self.bridge = bridge or MCRBridge()
+        self._base = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+        self.mk = MarkovUniversal("metagap")
+        self.gaps_encontrados = []
+    
+    def diagnosticar_gaps(self, min_por_prefixo: int = 3) -> list:
+        """Percorre o KG e descobre temas com poucas lessons.
+        
+        Para CADA prefixo de ctx:
+          - Se tem < min_por_prefixo lessons → gap
+        
+        Retorna: [(prefixo, n_lessons, termos_exemplo), ...]
+        """
+        if not self.kg: return []
+        licoes = self.kg._get_licoes()
+        
+        # Agrupa por prefixo do ctx
+        prefixos = {}
+        for l in licoes:
+            ctx = l.get('ctx', '')
+            sol = l.get('solucao', '')
+            if not sol or len(sol) < 20: continue
+            if l.get('inactive'): continue
+            prefixo = ctx.split('_')[0] if '_' in ctx else ctx
+            if prefixo not in prefixos:
+                prefixos[prefixo] = {'count': 0, 'termos': set()}
+            prefixos[prefixo]['count'] += 1
+            # Extrai termos relevantes da solucao
+            for p in sol.lower().split():
+                if len(p) > 3 and p not in CONECTORES:
+                    prefixos[prefixo]['termos'].add(p)
+                    if len(prefixos[prefixo]['termos']) > 5: break
+        
+        # Gaps: prefixos com poucas lessons
+        gaps = []
+        for prefixo, dados in sorted(prefixos.items(), key=lambda x: x[1]['count']):
+            if dados['count'] < min_por_prefixo and len(prefixo) > 1:
+                termo_exemplo = list(dados['termos'])[:3] if dados['termos'] else [prefixo]
+                gaps.append({
+                    'prefixo': prefixo,
+                    'n_lessons': dados['count'],
+                    'termos': termo_exemplo,
+                    'score': min_por_prefixo - dados['count'],
+                })
+        
+        gaps.sort(key=lambda x: -x['score'])
+        self.gaps_encontrados = gaps
+        self.mk.aprender("GAPS", f"{len(gaps)} gaps encontrados")
+        return gaps
+    
+    def buscar_para_gap(self, gap: dict) -> int:
+        """Busca fontes especificas para preencher um gap.
+        
+        Usa os termos do gap como palavra-chave.
+        Escaneia docs/, codigo/, prototipos/.
+        So alimenta lessons sobre o gap.
+        """
+        if not self.kg: return 0
+        
+        termo = gap['termos'][0] if gap['termos'] else gap['prefixo']
+        n_antes = len(self.kg._get_licoes())
+        
+        # 1. Busca em docs que contenham o termo
+        docs_dir = os.path.join(self._base, 'docs')
+        if os.path.isdir(docs_dir):
+            for root, dirs, files in os.walk(docs_dir):
+                for fname in files:
+                    if not (fname.endswith('.md') or fname.endswith('.txt')): continue
+                    fpath = os.path.join(root, fname)
+                    try:
+                        with open(fpath, 'r', encoding='utf-8', errors='replace') as f:
+                            conteudo = f.read(2000)
+                        if termo.lower() in conteudo.lower():
+                            # Extrai trecho relevante
+                            idx = conteudo.lower().find(termo.lower())
+                            inicio = max(0, idx - 100)
+                            fim = min(len(conteudo), idx + 300)
+                            trecho = conteudo[inicio:fim]
+                            if len(trecho) > 50:
+                                self.kg.aprender_conceito(
+                                    f"{gap['prefixo']}:{fname.replace('.','_')}",
+                                    f"[Fonte: {fpath}]\n{trecho[:500]}",
+                                    ctx=f"gap_{gap['prefixo']}"
+                                )
+                    except: pass
+        
+        # 2. Busca em prototipos
+        sandbox_dir = os.path.join(self._base, 'sandbox')
+        if os.path.isdir(sandbox_dir):
+            for fname in os.listdir(sandbox_dir):
+                if not (fname.endswith('.py') or fname.endswith('.lua') or fname.endswith('.txt')): continue
+                if not termo.lower() in fname.lower(): continue
+                fpath = os.path.join(sandbox_dir, fname)
+                try:
+                    with open(fpath, 'r', encoding='utf-8', errors='replace') as f:
+                        conteudo = f.read(1000)
+                    if len(conteudo) > 50:
+                        self.kg.aprender_conceito(
+                            f"{gap['prefixo']}:{fname.replace('.','_')}",
+                            f"[Prototipo: {fname}]\n{conteudo[:500]}",
+                            ctx=f"gap_{gap['prefixo']}"
+                        )
+                except: pass
+        
+        # 3. Busca no codigo fonte
+        if self.bridge and self.bridge._descobriu:
+            for nome, mod in self.bridge.modulos.items():
+                if termo.lower() in nome.lower():
+                    doc = (mod.__doc__ or '')[:300]
+                    if doc:
+                        self.kg.aprender_conceito(
+                            f"{gap['prefixo']}:mod_{nome}",
+                            f"[Modulo: {nome}]\n{doc[:300]}",
+                            ctx=f"gap_{gap['prefixo']}"
+                        )
+        
+        n_depois = len(self.kg._get_licoes())
+        n_criadas = n_depois - n_antes
+        
+        self.mk.aprender(f"GAP:{gap['prefixo']}", f"CRIOU:{n_criadas}")
+        return n_criadas
+    
+    def ciclo_completo(self, min_por_prefixo: int = 3) -> dict:
+        """Auto-diagnostico + auto-aprendizado.
+        
+        Fluxo:
+          1. Diagnostica gaps no KG
+          2. Para cada gap, busca fontes especificas
+          3. Aprende com o que funcionou
+        """
+        gaps = self.diagnosticar_gaps(min_por_prefixo)
+        resultados = []
+        total_criadas = 0
+        
+        for gap in gaps[:10]:  # max 10 gaps por ciclo
+            n = self.buscar_para_gap(gap)
+            if n > 0:
+                resultados.append(f"{gap['prefixo']}:{n}")
+                total_criadas += n
+        
+        # Forca flush
+        if total_criadas > 0:
+            for _ in range(10): self.kg.aprender_conceito("_gap_flush", "_", ctx="_flush")
+        
+        self.mk.aprender("CICLO_GAP", f"CRIOU:{total_criadas}")
+        
+        return {
+            'gaps': len(gaps),
+            'preenchidos': len(resultados),
+            'total_lessons_criadas': total_criadas,
+            'detalhes': resultados[:10],
+        }
+
+
+# ============================================================
 # MCR MESTRE V2 — Decisor treinado, zero if/else
 # ============================================================
 
@@ -3235,6 +3421,15 @@ class MCRMestreV2:
                 if n_fuel:
                     expansoes_feitas.append(f"fuel:{n_fuel}")
                 
+                # MCRMetaGap: diagnostico rapido (sem file walk)
+                meta = MCRMetaGap(kg=None, bridge=self.bridge)
+                gaps = meta.diagnosticar_gaps(min_por_prefixo=3)
+                if gaps:
+                    # So preenche o primeiro gap (mais critico)
+                    n = meta.buscar_para_gap(gaps[0])
+                    if n > 0:
+                        expansoes_feitas.append(f"gap:{n}")
+                
                 # Expansao busca em 48 modulos
                 expansao = MCRExpansao(None, self.bridge)
                 res_exp = expansao.expandir(termo, max_recursos=5)
@@ -3283,6 +3478,159 @@ class MCRMestreV2:
 
 
 # ============================================================
+# MCR HUMANO — Conceitos humanos, filosofias, emoções como padrões MCR
+# ============================================================
+
+# Questionamentos fundamentais como padrões MCR
+# Cada pergunta filosofica vira uma sequencia de estados que o MCR aprende
+_PERGUNTAS_FUNDAMENTAIS = [
+    "Quem sou eu? O que me define como ser? Minha essencia e minha identidade.",
+    "De onde viemos? Qual a origem de tudo que existe? O começo da jornada.",
+    "Para onde vamos? Qual o destino final? O proposito de cada caminho.",
+    "O que e o bem? O que e o mal? Existe equilibrio entre luz e sombra?",
+    "O que e a verdade? Ela e unica ou multipla? A verdade como perspectiva.",
+    "O que e o conhecimento? Como sabemos o que sabemos? O saber como ferramenta.",
+    "O que e a vida? Quando comeca e quando termina? O ciclo do existir.",
+    "O que e o tempo? Ele flui ou e fixo? Passado, presente e futuro como um todo.",
+    "O que e a consciencia? O que nos torna cientes de nos mesmos? O despertar.",
+    "E se tudo fosse diferente? E se o caminho tivesse sido outro? As possibilidades.",
+    "Por que as coisas sao como sao? Qual a causa de cada efeito? A teia de conexoes.",
+    "Quando o suficiente e suficiente? O equilibrio entre ter e ser.",
+    "Quanto vale uma escolha? O peso de cada decisao no tecido do destino.",
+    "O que e a felicidade? Ela existe ou e uma busca eterna? A alegria como estado.",
+    "O que e a dor? Ela ensina ou apenas fere? O sofrimento como mestre.",
+    "O que e o amor? Ligacao entre almas ou constructo social? A conexao profunda.",
+    "O que e a morte? Fim ou transformacao? O encerramento de um ciclo.",
+    "O que e a liberdade? Ausencia de limites ou escolha consciente? O livre arbitrio.",
+    "O que e o destino? Escrito ou construido? A tensao entre acaso e determinismo.",
+    "O que e a beleza? Nos olhos de quem ve ou qualidade intrinseca? A estetica do ser.",
+]
+
+
+class MCRFilosofia:
+    """Padroes de pensamento humano como niveis MCR.
+    
+    Filosofias, emocoes, questionamentos viram transicoes MCR.
+    O MCR aprende a ESTRUTURA do pensamento, nao o CONTEUDO.
+    
+    Uso:
+        f = MCRFilosofia()
+        f.aprender_perguntas_fundamentais()  # alimenta MCR com filosofia
+        f.refletir("Quem sou eu?")  # → geracao filosofica
+    """
+    
+    def __init__(self, conector=None):
+        self.conector = conector or MCRConector()
+        self.mk_pensamento = MCR("filosofia_pensamentos")
+        self._alimentado = False
+    
+    def aprender_perguntas_fundamentais(self):
+        """Alimenta o MCR com perguntas filosoficas como transicoes."""
+        if self._alimentado: return
+        
+        for pergunta in _PERGUNTAS_FUNDAMENTAIS:
+            # Cada pergunta vira um topico no conector
+            nome = f"filosofia_{pergunta[:15].strip().lower()}"
+            self.conector.alimentar(pergunta, nome)
+            
+            # Palavras da pergunta viram transicoes no MCR de pensamento
+            palavras = pergunta.lower().split()
+            self.mk_pensamento.aprender_sequencia(palavras)
+        
+        self._alimentado = True
+        return len(_PERGUNTAS_FUNDAMENTAIS)
+    
+    def refletir(self, pergunta: str) -> str:
+        """Gera uma reflexao baseada em padroes filosoficos."""
+        # Alimenta se necessario
+        self.aprender_perguntas_fundamentais()
+        
+        # Tenta encontrar perguntas similares no conector
+        for nome, dados in self.conector.topicos.items():
+            if nome.startswith('filosofia_'):
+                # Conecta a pergunta com a filosofia similar
+                texto = dados['texto']
+                palavras_similares = sum(1 for p in pergunta.lower().split() 
+                                        if p in texto.lower() and len(p) > 3)
+                if palavras_similares >= 2:
+                    cx = self.conector.conectar(nome, "pergunta" if "pergunta" in self.conector.topicos else nome)
+                    if cx:
+                        return f"[Filosofia] {pergunta}\n[Conexao] {cx.get('sequencia', '')[:200]}"
+        
+        # Fallback: gera com as transicoes filosoficas
+        semente = pergunta.split()[0] if pergunta.split() else 'O'
+        cadeia = MCRCadeia(self.conector)
+        res = cadeia.gerar(semente, n_tokens=30)
+        return res.get('texto', pergunta)
+
+
+class MCRFeedback:
+    """Feedback loop: MCR solicita mais dados quando resposta e insuficiente.
+    
+    Se nota < 6, MCR:
+    1. Analisa o que faltou (diagnostico)
+    2. Gera perguntas de esclarecimento
+    3. Aguarda nova entrada
+    4. Usa a nova entrada + a anterior para gerar resposta melhor
+    
+    Isso imita o feedback humano: "nao entendi, pode explicar melhor?"
+    """
+    
+    def __init__(self, mestre=None):
+        self.mestre = mestre or MCRMestreV2()
+        self.historico_tentativas = []
+        self.mk = MCR("feedback")
+    
+    def processar_com_feedback(self, pergunta: str, max_tentativas: int = 3) -> dict:
+        """Processa com feedback: se nota baixa, solicita mais dados."""
+        melhor_resposta = None
+        melhor_nota = 0
+        contexto_acumulado = pergunta
+        
+        for tentativa in range(max_tentativas):
+            # Processa com o contexto atual
+            res = self.mestre.processar(contexto_acumulado)
+            nota = res.get('nota', 0)
+            
+            self.historico_tentativas.append({
+                'tentativa': tentativa + 1,
+                'nota': nota,
+                'resposta': res.get('resposta', '')[:100],
+            })
+            self.mk.aprender(f"TENTATIVA:{tentativa}", f"NOTA:{int(nota)}")
+            
+            if nota > melhor_nota:
+                melhor_nota = nota
+                melhor_resposta = res
+            
+            # Se nota >= 7, entrega
+            if nota >= 7:
+                break
+            
+            # Se nota baixa e ainda tem tentativas, gera feedback
+            if tentativa < max_tentativas - 1:
+                # Gera pergunta de esclarecimento baseada no diagnostico
+                diag = res.get('diagnostico', '')
+                if 'loop' in diag:
+                    feedback = f"[MCR precisa de mais contexto] {pergunta} pode explicar com mais detalhes?"
+                elif nota < 4:
+                    feedback = f"[MCR nao encontrou dados] {pergunta} tem alguma fonte ou exemplo especifico?"
+                else:
+                    feedback = f"[MCR quer confirmar] {pergunta} e isso mesmo que voce quer saber?"
+                
+                # Acumula no contexto para a proxima tentativa
+                contexto_acumulado = f"{pergunta} | Contexto extra: {feedback}"
+        
+        resultado = melhor_resposta or res
+        resultado['feedback'] = {
+            'tentativas': len(self.historico_tentativas),
+            'historico': self.historico_tentativas,
+            'precisou_feedback': len(self.historico_tentativas) > 1,
+        }
+        return resultado
+
+
+# ============================================================
 # MCR AUTOTESTAR — Substitui if __name__ por metodo MCR
 # ============================================================
 
@@ -3301,6 +3649,7 @@ def _autotestar():
         status = "PASS" if cond else "FAIL"
         resultados.append((nome, cond))
         print(f"  [{status}] {nome}")
+        sys.stdout.flush()
     
     print("=" * 70)
     print("  MCR - Auto Teste (substitui if __name__)")
@@ -3393,19 +3742,41 @@ def _autotestar():
     d2 = diag.diagnosticar({'byte': 0.18, 'token': 0.88})
     testar(f"Diagnostico aprendeu loop={d2}", 'loop' in d2)
     
-    # 11. Teste: MCRFuel
+    # 11. Teste: MCRFuel (instancia so, sem KG)
     try:
         fuel = MCRFuel(kg=None, bridge=bridge)
-        testar("MCRFuel instancia sem KG", isinstance(fuel, MCRFuel))
-        if fuel.kg:
-            testar("MCRFuel tem KG", True)
-        else:
-            testar("MCRFuel sem KG (esperado no autoteste)", True)
-    except Exception as e:
-        print(f"      MCRFuel erro: {e}")
+        testar("MCRFuel instancia", isinstance(fuel, MCRFuel))
+    except:
         testar("MCRFuel instancia", False)
     
-    # 13. Teste: AutoStart
+    # 12. Teste: MCRMetaGap (diagnostico so)
+    try:
+        mg = MCRMetaGap(kg=None, bridge=bridge)
+        testar("MCRMetaGap instancia", isinstance(mg, MCRMetaGap))
+    except:
+        testar("MCRMetaGap instancia", False)
+    
+    # 14. Teste: MCRFilosofia
+    try:
+        f = MCRFilosofia()
+        n = f.aprender_perguntas_fundamentais()
+        testar(f"MCRFilosofia: {n} perguntas fundamentais", n == len(_PERGUNTAS_FUNDAMENTAIS))
+        reflexao = f.refletir("Quem sou eu?")
+        testar(f"MCRFilosofia refletiu ({len(reflexao)} chars)", len(reflexao) > 10)
+    except Exception as e:
+        testar(f"MCRFilosofia erro: {e}", False)
+    
+    # 15. Teste: MCRFeedback
+    try:
+        fb = MCRFeedback(mestre_v2)
+        res_fb = fb.processar_com_feedback("Explique SPA", max_tentativas=2)
+        testar(f"MCRFeedback {res_fb.get('feedback',{}).get('tentativas',0)} tentativas", 
+               res_fb.get('feedback',{}).get('tentativas', 0) >= 1)
+    except Exception as e:
+        print(f"      MCRFeedback erro: {e}")
+        testar("MCRFeedback", False)
+    
+    # 16. Teste: AutoStart
     try:
         astart = MCRAutoStart.iniciar()
         ok = isinstance(astart, dict) and 'erro' not in astart
