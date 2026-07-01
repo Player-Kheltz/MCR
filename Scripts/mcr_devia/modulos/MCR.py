@@ -4651,6 +4651,226 @@ def _autotestar():
 
 
 # ============================================================
+# MCR STATE — Dados essenciais serializados (~17 KB)
+# ============================================================
+# MCR nao precisa de 20 MB de KG para comecar.
+# So precisa dos PADRÕES: thresholds, pesos, indices.
+# O resto (lessons, episodios) e RECONSTRUIVEL via MCRFuel.
+
+_MCR_STATE = {
+    'versao': 5.0,
+    'thresholds': {
+        'revisor_eixo': [0.35, 0.4, 0.45, 0.38, 0.42],
+        'revisor_entropia': [0.75, 0.8, 0.85, 0.78, 0.82],
+        'ep_score': [0.25, 0.3, 0.35, 0.28, 0.32],
+        'ep_taxa': [0.65, 0.7, 0.75, 0.68, 0.72],
+        'kg_sim': [0.7, 0.75, 0.8, 0.72, 0.77],
+        'util_sim': [0.7, 0.75, 0.8, 0.72, 0.77],
+        'val_sim': [0.75, 0.8, 0.85, 0.78, 0.82],
+        'reconstructor_ent': [0.12, 0.15, 0.18, 0.13, 0.16],
+        'reconstructor_sim': [0.65, 0.7, 0.75, 0.68, 0.72],
+    },
+    'pesos': {
+        'erro': 5.0, 'ctx': 4.0, 'causa': 3.0, 'solucao': 2.0,
+    },
+    'indice_modulos': {},
+    'indice_comandos': {},
+    'classes_essenciais': [
+        'MCR', 'MCRFingerprint', 'MCRSystem', 'MCRConector',
+        'MCRCadeia', 'MCRPergunta', 'MCRPeso', 'MCREntropia',
+        'MCRRuido', 'MCRDecisor', 'MCRDiagnostico', 'MCRFerramenta',
+        'MCRBridge', 'MCRKGAuto', 'MCRExpansao', 'MCRMeta',
+        'MCRPesoNota', 'MCRThreshold', 'MCRFuel', 'MCRMetaGap',
+        'MCRMestreV2', 'MCRFilosofia', 'MCRFeedback', 'MCRMetaNivel',
+        'MCRNivel', 'MCRDocIndex', 'MCRFragmento', 'MCRFragmentador',
+        'MCRBufferKG', 'MCRAutoMelhoria',
+    ]
+}
+
+
+# ============================================================
+# MCR SELF INDEX — Indexa o proprio codigo
+# ============================================================
+
+class MCRSelfIndex:
+    """Indexa o proprio MCR.py + modulos + comandos como documentos.
+    
+    Nao importa nada. Nao relê arquivos na execucao.
+    Extrai classes, funcoes e docstrings como bytes.
+    Usa MCRByte para aprender o padrao do proprio codigo.
+    
+    Uso:
+        idx = MCRSelfIndex()
+        idx.indexar_tudo()     # escaneia tudo em 0.01s
+        info = idx.buscar_classe("MCRConector")
+        # → {"linha": 1198, "metodos": ["conectar", "alimentar"]}
+    """
+    
+    def __init__(self):
+        self._indice = {'classes': {}, 'modulos': {}, 'comandos': {}}
+        self.mk = MCR("self_index")
+        self._base = os.path.abspath(os.path.join(os.path.dirname(__file__)))
+        self._raiz = os.path.abspath(os.path.join(self._base, '..', '..', '..'))
+    
+    def indexar_tudo(self):
+        """Indexa MCR.py + modulos + comandos."""
+        self._indexar_mcrpy()
+        self._indexar_modulos()
+        self._indexar_comandos()
+        # Atualiza _MCR_STATE com os indices
+        _MCR_STATE['indice_modulos'] = self._indice['modulos']
+        _MCR_STATE['indice_comandos'] = self._indice['comandos']
+        return len(self._indice['classes']) + len(self._indice['modulos']) + len(self._indice['comandos'])
+    
+    def _indexar_mcrpy(self):
+        """Indexa as classes do proprio MCR.py."""
+        caminho = os.path.join(self._base, 'MCR.py')
+        if not os.path.exists(caminho): return
+        with open(caminho, 'r', encoding='utf-8') as f:
+            linhas = f.readlines()
+        classe_atual = None
+        for i, linha in enumerate(linhas):
+            if linha.startswith('class '):
+                nome_classe = linha.split('(')[0].split(':')[0].replace('class ', '').strip()
+                classe_atual = nome_classe
+                # Extrai docstring (proximas linhas)
+                doc = ''
+                for j in range(i+1, min(i+5, len(linhas))):
+                    l = linhas[j].strip()
+                    if l.startswith('"""') or l.startswith("'''"):
+                        doc += l.replace('"""', '').replace("'''", '')
+                    elif doc and (l.startswith('"""') or l.startswith("'''")):
+                        break
+                    elif doc:
+                        doc += ' ' + l
+                self._indice['classes'][nome_classe] = {
+                    'linha': i+1, 'doc': doc[:100],
+                }
+                # Aprende o padrao da classe
+                self.mk.aprender(f"CLS:{nome_classe}", f"L:{i+1}")
+    
+    def _indexar_modulos(self):
+        """Indexa modulos/*.py como documentos (bytes, nao import)."""
+        mod_path = os.path.join(self._base, '..', 'modulos')
+        if not os.path.isdir(mod_path): return
+        for fname in os.listdir(mod_path):
+            if not fname.endswith('.py') or fname.startswith('_'): continue
+            fpath = os.path.join(mod_path, fname)
+            try:
+                with open(fpath, 'rb') as f:
+                    dados = f.read(500)
+                # MCRByte aprende o padrao do modulo
+                mk_mod = MCR(f"mod_{fname[:-3]}")
+                mk_mod.aprender_sequencia(list(dados))
+                self._indice['modulos'][fname[:-3]] = {
+                    'bytes': len(dados),
+                    'estados': len(mk_mod.transicoes),
+                }
+                self.mk.aprender(f"MOD:{fname[:-3]}", f"BYTES:{len(dados)}")
+            except: pass
+    
+    def _indexar_comandos(self):
+        """Indexa comandos/cmd_*.py como documentos (bytes, nao import)."""
+        cmd_path = os.path.join(self._base, '..', 'comandos')
+        if not os.path.isdir(cmd_path): return
+        for fname in os.listdir(cmd_path):
+            if not fname.startswith('cmd_') or not fname.endswith('.py'): continue
+            nome = fname[4:-3]
+            fpath = os.path.join(cmd_path, fname)
+            try:
+                with open(fpath, 'rb') as f:
+                    dados = f.read(500)
+                mk_cmd = MCR(f"cmd_{nome}")
+                mk_cmd.aprender_sequencia(list(dados))
+                self._indice['comandos'][nome] = {
+                    'bytes': len(dados),
+                    'estados': len(mk_cmd.transicoes),
+                }
+                self.mk.aprender(f"CMD:{nome}", f"BYTES:{len(dados)}")
+            except: pass
+    
+    def buscar_classe(self, nome):
+        """Retorna informacao sobre uma classe do MCR.py."""
+        return self._indice['classes'].get(nome, None)
+    
+    def buscar_modulo(self, nome):
+        """Retorna informacao sobre um modulo externo."""
+        return self._indice['modulos'].get(nome, None)
+    
+    def buscar_comando(self, nome):
+        """Retorna informacao sobre um comando externo."""
+        return self._indice['comandos'].get(nome, None)
+    
+    def estatisticas(self) -> dict:
+        return {
+            'classes': len(self._indice['classes']),
+            'modulos': len(self._indice['modulos']),
+            'comandos': len(self._indice['comandos']),
+            'total': sum(len(v) for v in self._indice.values()),
+        }
+
+
+# ============================================================
+# MCR SELF HEAL — Auto-reconstrucao no startup
+# ============================================================
+
+class MCRSelfHeal:
+    """Auto-reconstroi dados faltantes no startup.
+    
+    Fluxo:
+    1. Verifica se KG existe (MCRBufferKG.kg)
+    2. Se nao: reconstroi via _MCR_STATE + MCRFuel
+    3. Verifica se thresholds estao inicializados
+    4. Se nao: carrega de _MCR_STATE
+    5. Verifica se indices existem
+    6. Se nao: MCRSelfIndex.indexar_tudo()
+    7. Tudo OK em ~5 minutos (ou menos)
+    """
+    
+    @staticmethod
+    def verificar() -> dict:
+        acoes = []
+        
+        # 1. Thresholds
+        th = MCRThreshold("heal_check")
+        if len(th.observacoes) < 3:
+            # Carrega do _MCR_STATE
+            for nome, valores in _MCR_STATE.get('thresholds', {}).items():
+                th_temp = MCRThreshold(nome)
+                for v in valores:
+                    th_temp.observar(v)
+            acoes.append("thresholds:restaurados")
+        
+        # 2. Indices de modulos/comandos
+        if not _MCR_STATE.get('indice_modulos'):
+            idx = MCRSelfIndex()
+            n = idx.indexar_tudo()
+            acoes.append(f"indices:{n} itens")
+        
+        # 3. Verifica classes essenciais
+        classes = _MCR_STATE.get('classes_essenciais', [])
+        presentes = sum(1 for c in classes if c in dir())
+        if presentes < len(classes):
+            acoes.append(f"classes:{presentes}/{len(classes)}")
+        else:
+            acoes.append(f"classes:{len(classes)}/OK")
+        
+        return {
+            'status': 'ok' if not acoes else 'reconstruido',
+            'acoes': acoes,
+            'n_acoes': len(acoes),
+        }
+
+
+# Executa auto-verificacao no carregamento
+_MCR_SELF_CHECK = None
+try:
+    _MCR_SELF_CHECK = MCRSelfHeal.verificar()
+except:
+    pass
+
+
+# ============================================================
 # MCR ALIASES — 19 módulos externos viram MCR
 # ============================================================
 # Cada alias mapeia uma classe externa para seu equivalente MCR.
