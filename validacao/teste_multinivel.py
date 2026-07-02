@@ -140,6 +140,22 @@ def predizer_por_dimensao(mks, dims, ultimo_valor, seq):
     
     return palpites
 
+def inferir_por_dimensao_zerada(dims, seq):
+    """Se uma dimensao tem valor CONSTANTE (ex: soma_anterior = 0),
+    isso revela uma REGRA que pode ser usada para inferir o proximo.
+    
+    Ex: soma_anterior = [0,0,0,0,0] para Fibonacci
+        → regra: seq[i] = seq[i-1] + seq[i-2]
+        → proximo = seq[-1] + seq[-2]
+    """
+    if 'soma_anterior' in dims and len(dims['soma_anterior']) >= 3:
+        vals = dims['soma_anterior']
+        if all(v == 0 for v in vals):
+            # REGRA: cada elemento e a soma dos 2 anteriores
+            if len(seq) >= 2:
+                return seq[-1] + seq[-2], 10.0  # peso maximo
+    return None, 0.0
+
 def converter_palpite_para_numero(nome_dimensao, palpite, ultimo_valor, seq):
     """Converte o palpite de uma dimensao para um numero candidato."""
     if nome_dimensao == 'palavra':
@@ -204,6 +220,13 @@ def main():
                 peso = conf * (1.0 / (entropia + 0.1))
                 candidatos_por_palpite[numero_cand] = candidatos_por_palpite.get(numero_cand, 0) + peso
                 print(f'      {nome_dim:15s}: {palpite} (conf={conf:.3f}, entr={entropia:.2f}) -> numero {numero_cand} (peso={peso:.3f})')
+
+        # INFERENCIA: alguma dimensao revelou uma REGRA?
+        cand_inferido, conf_inferido = inferir_por_dimensao_zerada(dims, seq)
+        if cand_inferido is not None:
+            print(f'      INFERIDO por regra constante: {cand_inferido} (peso={conf_inferido:.1f})')
+            candidatos_por_palpite[cand_inferido] = \
+                candidatos_por_palpite.get(cand_inferido, 0) + conf_inferido
 
         # Consenso: o candidato com maior peso total
         if candidatos_por_palpite:
