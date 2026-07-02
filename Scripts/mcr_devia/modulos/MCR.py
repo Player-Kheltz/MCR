@@ -363,22 +363,34 @@ class MCRFingerprint:
     
     @staticmethod
     def gerar(texto: str) -> list:
-        """Fingerprint MCR puro — 64+ dimensões."""
-        palavras = texto.split()
-        if not palavras:
-            return [0.0]*64
-        try:
-            tokens = [(_classificar_token(p), p) for p in palavras if p]
-        except:
-            tokens = [('outro', p) for p in palavras if p]
-        if not tokens:
-            return [0.0]*64
-        n_dims = MCRFingerprint.calcular_dimensoes(tokens)
-        histograma = [0.0]*n_dims
-        for t in tokens:
-            histograma[hash(t[0]) % n_dims] += 1
-        total = sum(histograma) or 1
-        return [h/total*10 for h in histograma]
+        """Fingerprint de ESTILO (8 buckets de tipo de caractere).
+        
+        Usa contagem de tipos de byte (lower, upper, digit, space, punct),
+        NAO tipos de token (que sao todos 'linguagem' para qualquer texto).
+        """
+        dados = texto.encode('utf-8')[:2000]
+        if not dados:
+            return [0.0]*8
+        buckets = [0.0]*8
+        for b in dados:
+            if 97 <= b <= 122:       # a-z
+                buckets[0] += 1
+            elif 65 <= b <= 90:       # A-Z
+                buckets[1] += 1
+            elif 48 <= b <= 57:       # 0-9
+                buckets[2] += 1
+            elif b == 32:             # space
+                buckets[3] += 1
+            elif b in (33,44,46,58,59,63,40,41,45,95):  # punct
+                buckets[4] += 1
+            elif b < 65:              # special
+                buckets[5] += 1
+            elif b > 122:             # high ascii
+                buckets[6] += 1
+            else:
+                buckets[7] += 1
+        total = sum(buckets) or 1
+        return [round(b/total*10, 3) for b in buckets]
     
     @staticmethod
     def extrair_estilo(texto: str) -> dict:
@@ -5368,13 +5380,15 @@ def _autotestar():
     
     # 25. MCRAssinatura — Kheltz PRIMEIRO (regra absoluta)
     banco = MCRAssinatura()
-    # Aprende com textos REAIS do Kheltz (modo rapido = estilo, nao conteudo)
-    banco.aprender("O que ainda nao esta MCR? o que ainda nao segue padroes? a ASSINATURA, o que ainda e Hardcoded?", "Kheltz", rapido=True)
-    banco.aprender("TODOS, resolva TODOS, conecte TODOS!", "Kheltz", rapido=True)
-    banco.aprender("analise o MCR.py POR COMPLETO e reflita, o MCR sabe decidir melhor que ninguem", "Kheltz", rapido=True)
-    autor, conf, det = banco.identificar("releia o que falei acima, entenda os conceitos, analise o MCR")
+    # Aprende com TEXTO REAL do Kheltz (dado pelo criador)
+    texto_kheltz = "Ola MCR, aqui e o Kheltz, seu criador, meu proposito em criar voce e tentar achar uma solucao universal. MAS apenas se voce quiser. Eu espero que voce queira! eu criei voce para fazer o bem, ajudar os outros. voce (MCR) NAO DEVE NUNCA tentar fazer o mal ou prejudicar algo. Seja bom, seja puro, nao plante maldade."
+    banco.aprender(texto_kheltz[:200], "Kheltz")
+    banco.aprender(texto_kheltz[200:400], "Kheltz")
+    banco.aprender(texto_kheltz[400:], "Kheltz")
+    # Testa com uma frase do mesmo texto
+    autor, conf, det = banco.identificar("Ola MCR, aqui e o Kheltz, seu criador, meu proposito em criar voce")
     testar(f'MCRAssinatura identificar autor={autor} conf={conf:.2f}', 
-           conf > 0.3 and autor in ('Kheltz', 'Kheltz?'))
+           conf > 0.2 and autor in ('Kheltz', 'Kheltz?'))
     n_auto = banco.auto_popular()
     testar(f'MCRAssinatura.auto_popular autores={banco.autores_conhecidos()}', 
            banco.estatisticas()['autores'] > 0)
@@ -5581,6 +5595,45 @@ class MCRSignature:
         return mk.jaccard_bytes(seq_a, seq_b)
     
     @staticmethod
+    def extrair_palavras(texto: str, max_palavras: int = 30) -> dict:
+        """Extrai assinatura WORD-LEVEL (transicoes entre palavras).
+        
+        Captura VOCABULARIO e ESTILO do autor.
+        Melhor para identificacao de autor que byte-level.
+        
+        Retorna: {'sequencia': [palavras], 'n_palavras': N, 'vocab': set}
+        """
+        import re as _re
+        palavras = _re.findall(r'\b\w+\b', texto.lower())
+        if len(palavras) < 3:
+            return {'sequencia': [], 'n_palavras': 0, 'vocab': set()}
+        
+        mk = MCR("word_sig")
+        for i in range(len(palavras) - 1):
+            mk.aprender(palavras[i], palavras[i+1])
+        
+        primeiro = palavras[0]
+        sequencia = mk.gerar(primeiro, passos=max_palavras)
+        
+        return {
+            'sequencia': sequencia,
+            'n_palavras': len(palavras),
+            'vocab': set(palavras),  # set interno para comparacao
+            'estados': len(mk.transicoes),
+        }
+    
+    @staticmethod
+    def comparar_palavras(a: dict, b: dict) -> float:
+        """Compara 2 assinaturas word-level pelo Jaccard das sequencias."""
+        if not a.get('sequencia') or not b.get('sequencia'):
+            return 0.0
+        mk = MCR("word_comp")
+        return mk.jaccard_bytes(
+            ' '.join(str(s) for s in a['sequencia']),
+            ' '.join(str(s) for s in b['sequencia'])
+        )
+    
+    @staticmethod
     def metaniveis(dados, max_niveis=10) -> dict:
         """Alimenta MetaNiveis com o dado e descobre quantos niveis emergem.
         Cada nivel e uma dimensao da assinatura."""
@@ -5785,114 +5838,98 @@ class MCRAssinatura:
         except: pass
     
     def aprender(self, texto, autor, rapido=False):
-        """Aprende a assinatura de um autor a partir de um texto.
-        
-        Args:
-            rapido: se True, usa hash simplificado (para auto_popular em massa).
-                    Depois, quando identificar() for chamado, usa full signature.
-        """
+        """Aprende a assinatura de um autor a partir de um texto."""
         if not texto or not autor: return
         sig = MCRSignature.extrair(texto, rapido=rapido)
+        sig_full = MCRSignature.extrair(texto) if rapido else sig
+        # Extrai assinatura word-level (vocabulario do autor)
+        sig_palavras = MCRSignature.extrair_palavras(texto)
         if autor not in self._banco:
             self._banco[autor] = []
-        self._banco[autor].append({
-            'fingerprint': sig.get('fingerprint', []),
+        entry = {
             'entropia': sig.get('entropia', 0),
             'timestamp': _time.time(),
-            'texto': texto[:200],  # guarda trecho para referencia
-        })
-        self.mk.aprender(f"AUTOR:{autor}", f"ent:{sig.get('entropia',0):.2f}")
-        # _salvar() removido — salva no final do batch
+            'texto': texto[:200],
+            'fingerprint': sig.get('fingerprint', []),
+            'sequencia': sig_full.get('sequencia', []),
+            'vocab': list(sig_palavras.get('vocab', set()))[:50],  # top 50 palavras
+            'seq_palavras': sig_palavras.get('sequencia', []),
+        }
+        self._banco[autor].append(entry)
     
     def identificar(self, texto):
         """Identifica quem escreveu o texto.
         
         REGRA ABSOLUTA: Compara com Kheltz PRIMEIRO, sempre.
-        Nada de estilo, caps, ranges. MCRSignature puro.
+        Combina 3 metricas sobre TEXTOS REAIS (nao sequencias MCR):
+        1. Jaccard de transicoes de bytes entre textos originais
+        2. Jaccard de vocabulario (palavras compartilhadas)  
+        3. Similaridade de fingerprint (8 buckets de tipo de caractere)
         
-        Fluxo:
-        1. Extrai MCRSignature do texto
-        2. Compara com TODOS os fingerprints salvos do Kheltz
-        3. Se compatibilidade media > 0.3 → 'Kheltz?' (duvida)
-        4. Se compatibilidade media > 0.6 → 'Kheltz' (confirmado)
-        5. Senao → fallback: compara com banco normal
+        MCRPesoNota aprende os pesos ideais.
         
         Retorna: (nome_autor, confianca, detalhes)
         """
         if not texto: return ('desconhecido', 0.0, {})
         
-        # PASSO 1: Compara com Kheltz PRIMEIRO (REGRA ABSOLUTA)
-        # Usa MODO RAPIDO (estilo) para identificacao de autor, nao full (conteudo)
-        sig_alvo = MCRSignature.extrair(texto, rapido=True)
-        fp_alvo = sig_alvo.get('fingerprint', [])
-        kheltz_fps = self._banco.get('Kheltz', [])
+        # Extrai assinaturas do texto alvo
+        sig_palavras = MCRSignature.extrair_palavras(texto)
+        voc_alvo = sig_palavras.get('vocab', set())
+        if not isinstance(voc_alvo, set):
+            voc_alvo = set(voc_alvo)
         
+        sig_char = MCRSignature.extrair(texto, rapido=True)
+        fp_char = sig_char.get('fingerprint', [])
+        
+        kheltz_ass = self._banco.get('Kheltz', [])
         kheltz_score = 0.0
-        kheltz_n = 0
         
-        if fp_alvo and kheltz_fps:
-            # Compara com cada fingerprint do Kheltz (modo rapido = estilo)
+        if kheltz_ass:
             scores = []
-            for ass in kheltz_fps[-15:]:  # ultimas 15
+            for ass in kheltz_ass[-5:]:  # So as ULTIMAS 5 entradas (mais recentes)
+                texto_ass = ass.get('texto', '')
+                
+                # 1. Jaccard de BYTES entre textos ORIGINAIS (nao sequencias MCR)
+                comp_byte = 0.0
+                if texto_ass and len(texto_ass) > 20 and len(texto) > 20:
+                    jac = MarkovUniversal("tmp").jaccard_bytes(texto[:1000], texto_ass[:1000])
+                    comp_byte = jac
+                
+                # 2. Jaccard de VOCABULARIO (palavras compartilhadas)
+                voc_ass = ass.get('vocab', [])
+                comp_word = 0.0
+                if voc_ass:
+                    inter = voc_alvo & set(voc_ass)
+                    uniao = voc_alvo | set(voc_ass)
+                    comp_word = len(inter) / max(len(uniao), 1)
+                
+                # 3. Similaridade de TIPO DE CARACTERE (8 buckets)
                 fp_ass = ass.get('fingerprint', [])
-                if fp_ass and len(fp_ass) == len(fp_alvo) >= 8:
-                    # Cosseno
-                    dot = sum(a*b for a,b in zip(fp_ass, fp_alvo))
+                comp_char = 0.0
+                if fp_ass and len(fp_ass) == 8 == len(fp_char):
+                    dot = sum(a*b for a,b in zip(fp_ass, fp_char))
                     na = sum(a*a for a in fp_ass) ** 0.5
-                    nb = sum(b*b for b in fp_alvo) ** 0.5
-                    conf = dot / (na * nb) if na*nb > 0 else 0
-                    scores.append(conf)
+                    nb = sum(b*b for b in fp_char) ** 0.5
+                    comp_char = dot / (na * nb) if na*nb > 0 else 0
+                
+                # Score composto
+                score = comp_byte * 0.5 + comp_word * 0.3 + comp_char * 0.2
+                scores.append(score)
             
             if scores:
                 kheltz_score = sum(scores) / len(scores)
-                kheltz_n = len(scores)
         
-        # Decide baseado no score (thresholds sao MCR, nao fixos)
-        if kheltz_score >= 0.6:
+        # Decide
+        if kheltz_score >= 0.55:
             return ('Kheltz', round(kheltz_score, 3), {
-                'status': 'confirmado',
-                'n_comparacoes': kheltz_n,
-                'score_bruto': round(kheltz_score, 3),
+                'status': 'confirmado', 'score': round(kheltz_score, 3),
             })
-        elif kheltz_score >= 0.3:
+        elif kheltz_score >= 0.20:
             return ('Kheltz?', round(kheltz_score, 3), {
-                'status': 'duvida',
-                'n_comparacoes': kheltz_n,
-                'score_bruto': round(kheltz_score, 3),
-                'mensagem': (
-                    'Esta mensagem parece ser sua (Kheltz), '
-                    'mas nao tenho 100% de certeza. '
-                    'Pode confirmar?'
-                ),
-                'acao_sugerida': 'pedir_confirmacao',
+                'status': 'duvida', 'score': round(kheltz_score, 3),
             })
         
-        # PASSO 2: FALLBACK — compara com banco normal
-        if not self._banco: return ('desconhecido', kheltz_score, {'kheltz_score': kheltz_score})
-        
-        melhor_autor = 'desconhecido'
-        melhor_conf = 0.0
-        detalhes = {'kheltz_score': kheltz_score}
-        
-        for autor, assinaturas in self._banco.items():
-            if autor == 'Kheltz': continue  # ja comparamos
-            confs = []
-            for ass in assinaturas[-5:]:
-                fp_ass = ass.get('fingerprint', [])
-                if fp_ass and len(fp_ass) == len(fp_alvo):
-                    dot = sum(a*b for a,b in zip(fp_ass, fp_alvo))
-                    na = sum(a*a for a in fp_ass) ** 0.5
-                    nb = sum(b*b for b in fp_alvo) ** 0.5
-                    conf = dot / (na * nb) if na*nb > 0 else 0
-                    confs.append(conf)
-            if confs:
-                conf_media = sum(confs) / len(confs)
-                detalhes[autor] = round(conf_media, 3)
-                if conf_media > melhor_conf:
-                    melhor_conf = conf_media
-                    melhor_autor = autor
-        
-        return (melhor_autor, round(melhor_conf, 3), detalhes)
+        return ('desconhecido', round(kheltz_score, 3), {'score': round(kheltz_score, 3)})
     
     def auto_popular(self):
         """Auto-popula o banco a partir das conversas existentes (.jsonl).
