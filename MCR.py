@@ -271,6 +271,131 @@ class MCRByteUtils:
 
 
 # ═══════════════════════════════════════════════════════════════
+# MCRSignatureMultidimensional — Assinatura N-dimensional
+# ═══════════════════════════════════════════════════════════════
+
+class MCRSignatureMultidimensional:
+    """Assinatura N-dimensional de QUALQUER evento.
+
+    Captura todas as dimensoes de uma ocorrencia simultaneamente:
+      byte, contexto, entropia, frequencia, posicao, fonte, ciclo
+
+    O fingerprint nao e uma projecao 1D do byte.
+    E um vetor N-dimensional que carrega todas as dimensoes
+    da realidade daquele evento.
+
+    Uso:
+        sig = MCRSignatureMultidimensional.extrair(byte_val, offset, total, mk_byte)
+        sig2 = MCRSignatureMultidimensional.extrair(outro_byte, ...)
+        sim = MCRSignatureMultidimensional.similaridade(sig, sig2)
+    """
+
+    DIMENSOES = [
+        'byte_freq',       # 0: frequencia relativa do byte (0-1)
+        'byte_entropia',   # 1: entropia local do byte (0-1)
+        'byte_transicoes', # 2: quantas saidas o byte tem (0-1)
+        'offset_normal',   # 3: posicao normalizada na sequencia (0-1)
+        'contexto_anterior',# 4: byte anterior normalizado (0-1)
+        'contexto_proximo',# 5: byte proximo normalizado (0-1)
+        'ciclo',           # 6: ciclo de processamento (0-1)
+        'fonte',           # 7: tipo de fonte (0-1)
+    ]
+
+    N_DIMS = len(DIMENSOES)
+
+    @staticmethod
+    def extrair(valor_byte: int, offset: int = 0, total: int = 1,
+                mk_byte: MCR = None, byte_anterior: int = None,
+                byte_proximo: int = None, ciclo: int = 0,
+                fonte: str = 'desconhecida') -> List[float]:
+        """Extrai assinatura N-dim de um unico byte num contexto."""
+        sig = [0.0] * MCRSignatureMultidimensional.N_DIMS
+
+        # D0: frequencia relativa
+        estado = f"B:{valor_byte:02x}"
+        if mk_byte and estado in mk_byte.freq:
+            sig[0] = mk_byte.freq[estado] / max(mk_byte.total, 1)
+
+        # D1: entropia local (imprevisibilidade)
+        if mk_byte and estado in mk_byte.transicoes:
+            sig[1] = mk_byte.entropia(estado) / 8.0
+
+        # D2: diversidade de transicoes
+        if mk_byte and estado in mk_byte.transicoes:
+            sig[2] = len(mk_byte.transicoes[estado]) / 256.0
+
+        # D3: posicao na sequencia
+        sig[3] = offset / max(total, 1)
+
+        # D4: byte anterior (contexto imediato)
+        if byte_anterior is not None:
+            sig[4] = byte_anterior / 255.0
+
+        # D5: byte proximo (contexto imediato)
+        if byte_proximo is not None:
+            sig[5] = byte_proximo / 255.0
+
+        # D6: ciclo de processamento
+        sig[6] = min(1.0, ciclo / 100.0)
+
+        # D7: tipo de fonte (hash normalizado)
+        sig[7] = (hash(fonte) % 10000) / 10000.0
+
+        return sig
+
+    @staticmethod
+    def extrair_sequencia(sequencia: bytes, mk_byte: MCR = None,
+                          ciclo: int = 0, fonte: str = '') -> List[List[float]]:
+        """Extrai assinatura N-dim para CADA byte de uma sequencia."""
+        n = len(sequencia)
+        assinaturas = []
+        for i in range(n):
+            ant = sequencia[i - 1] if i > 0 else None
+            prox = sequencia[i + 1] if i < n - 1 else None
+            sig = MCRSignatureMultidimensional.extrair(
+                sequencia[i], i, n, mk_byte, ant, prox, ciclo, fonte)
+            assinaturas.append(sig)
+        return assinaturas
+
+    @staticmethod
+    def similaridade(sig_a: List[float], sig_b: List[float]) -> float:
+        """Cosseno entre duas assinaturas N-dim.
+        Vetores identicos (inclusive zero) retornam 1.0."""
+        if len(sig_a) != len(sig_b):
+            return 0.0
+        dot = sum(a * b for a, b in zip(sig_a, sig_b))
+        na = math.sqrt(sum(a * a for a in sig_a))
+        nb = math.sqrt(sum(b * b for b in sig_b))
+        if na == 0 and nb == 0:
+            return 1.0  # ambos zero = identicos
+        if na == 0 or nb == 0:
+            return 0.0
+        return dot / (na * nb)
+
+    @staticmethod
+    def similaridade_sequencia(ass_a: List[List[float]],
+                                ass_b: List[List[float]]) -> float:
+        """Similaridade media entre duas sequencias de assinaturas."""
+        if not ass_a or not ass_b:
+            return 0.0
+        min_len = min(len(ass_a), len(ass_b))
+        if min_len == 0:
+            return 0.0
+        sims = [MCRSignatureMultidimensional.similaridade(ass_a[i], ass_b[i])
+                for i in range(min_len)]
+        return sum(sims) / len(sims)
+
+    @staticmethod
+    def fingerprint_sequencia(assinaturas: List[List[float]]) -> List[float]:
+        """Reduz N assinaturas a um unico fingerprint N-dim (media)."""
+        if not assinaturas:
+            return [0.0] * MCRSignatureMultidimensional.N_DIMS
+        n = len(assinaturas)
+        return [sum(sig[d] for sig in assinaturas) / n
+                for d in range(MCRSignatureMultidimensional.N_DIMS)]
+
+
+# ═══════════════════════════════════════════════════════════════
 # MCRThreshold — Thresholds adaptativos
 # ═══════════════════════════════════════════════════════════════
 
@@ -1022,6 +1147,88 @@ class MCRMotor:
         if nota >= 5.0: return "EMERGENTE_MEDIO"
         if nota >= 3.0: return "EMERGENTE_FRACO"
         return "SEM_CONEXAO"
+
+    # ─── EQUAÇÃO MCR SIG-NATURE ──────────────────────────────
+    #
+    # A assinatura N-dimensional captura TODAS as dimensoes
+    # de um evento simultaneamente:
+    #   byte, contexto, entropia, frequencia, posicao, fonte
+    #
+    # A Equacao MCR mede a COERENCIA DA ASSINATURA como um todo,
+    # sem separar byte/palavra/token em pesos fixos.
+    # ─────────────────────────────────────────────────────────
+
+    def _assinatura_sequencia(self, seq_texto: str, fonte: str = '',
+                               ciclo: int = 0) -> List[List[float]]:
+        """Extrai assinaturas N-dim de cada byte da sequencia."""
+        dados = seq_texto.encode('utf-8')[:500]
+        return MCRSignatureMultidimensional.extrair_sequencia(
+            dados, self.mk_byte, ciclo, fonte)
+
+    def _autoavaliar_por_assinatura(self, sequencia: str, texto_a: str = '',
+                                     texto_b: str = '',
+                                     tipo_ponte: str = 'byte_only') -> Tuple[float, Dict]:
+        """Autoavalia usando assinatura N-dimensional.
+
+        Em vez de medir byte/palavra/token separadamente,
+        extrai a assinatura N-dim da sequencia gerada e compara
+        com as assinaturas dos textos de referencia.
+
+        A nota final reflete a COERENCIA GLOBAL da assinatura:
+        - Quanto mais proxima das assinaturas conhecidas, maior a nota
+        - Penalidade por tipo de ponte (igual a Equacao MCR)
+        """
+        if not sequencia or len(sequencia.strip()) < 3:
+            return 0.0, {'erro': 'sequencia vazia'}
+
+        # Assinatura N-dim da sequencia gerada
+        ass_seq = self._assinatura_sequencia(sequencia)
+        fp_seq = MCRSignatureMultidimensional.fingerprint_sequencia(ass_seq)
+
+        # Assinatura dos textos de referencia
+        ass_a = self._assinatura_sequencia(texto_a, 'ref_a') if texto_a else []
+        ass_b = self._assinatura_sequencia(texto_b, 'ref_b') if texto_b else []
+
+        fp_a = MCRSignatureMultidimensional.fingerprint_sequencia(ass_a) if ass_a else None
+        fp_b = MCRSignatureMultidimensional.fingerprint_sequencia(ass_b) if ass_b else None
+
+        # Similaridade entre fingerprints N-dim
+        sim_a = MCRSignatureMultidimensional.similaridade(fp_seq, fp_a) if fp_a else 0
+        sim_b = MCRSignatureMultidimensional.similaridade(fp_seq, fp_b) if fp_b else 0
+
+        # Quanto mais DIFERENTE das referencias, melhor (inovacao)
+        diff_a = max(0, 1 - sim_a)
+        diff_b = max(0, 1 - sim_b)
+
+        # Coerencia interna: similaridade entre metades da sequencia
+        n = len(ass_seq)
+        if n >= 4:
+            metade = n // 2
+            fp_1 = MCRSignatureMultidimensional.fingerprint_sequencia(ass_seq[:metade])
+            fp_2 = MCRSignatureMultidimensional.fingerprint_sequencia(ass_seq[metade:])
+            coerencia = MCRSignatureMultidimensional.similaridade(fp_1, fp_2)
+        else:
+            coerencia = 0.5
+
+        # PENALIDADE (mesma da Equacao MCR)
+        penalidade = {'conteudo_compartilhado': 0.0,
+                      'conteudo_mas_parcial': 0.3,
+                      'byte_only': 0.7}.get(tipo_ponte, 0.9)
+
+        # NOTA = inovacao × coerencia × (1 - penalidade)
+        inovacao = (diff_a + diff_b) / 2
+        nota = (inovacao * 5 + coerencia * 5) * (1 - penalidade)
+        nota = min(10.0, max(0.0, nota))
+
+        return nota, {
+            'sim_a': round(sim_a, 3),
+            'sim_b': round(sim_b, 3),
+            'coerencia': round(coerencia, 3),
+            'inovacao': round(inovacao, 3),
+            'penalidade': penalidade,
+            'nota_final': round(nota, 2),
+            'fingerprint': [round(v, 3) for v in fp_seq],
+        }
 
     # ─── EXPLORAÇÃO ─────────────────────────────────────────
 
