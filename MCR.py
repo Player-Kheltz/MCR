@@ -3112,8 +3112,92 @@ def mcr_autoavaliar():
     }
 
 
+def mcr_detectar_hardcodes():
+    """Aplica a Equacao MCR no proprio codigo para detectar hardcodes.
+
+    Cada linha do codigo tem uma assinatura (entropia, fingerprint).
+    Linhas que DESVIAM da assinatura media do arquivo sao
+    potenciais hardcodes — lugares onde o programador colocou
+    um valor fixo em vez de deixar a equacao decidir.
+
+    Retorna: lista de hardcodes detectados, ordenados por
+    quanto desviam da assinatura media.
+    """
+    with open(__file__, 'r', encoding='utf-8') as f:
+        linhas = f.readlines()
+
+    # Filtra linhas significativas (codigo, nao comentarios ou branco)
+    linhas_codigo = []
+    for i, l in enumerate(linhas):
+        s = l.strip()
+        if not s or s.startswith('#') or s.startswith('"""') or s.startswith("'''"):
+            continue
+        if s.startswith('import ') or s.startswith('from '):
+            continue
+        linhas_codigo.append((i + 1, s))
+
+    if not linhas_codigo:
+        return []
+
+    # Assinatura MEDIA do codigo
+    codigo_completo = '\n'.join(l for _, l in linhas_codigo)
+    dados_completos = codigo_completo.encode('utf-8')
+    fp_medio = MCRSignatureExpansiva.fingerprint(dados_completos, 16)
+    h_medio = MCRByteUtils.entropia_bytes(dados_completos)
+    dim_media = MCRSignatureExpansiva.dimensionalidade_ideal(
+        dados_completos, max_dims=64)
+
+    # Padroes que a equacao pode detectar como "desvio de assinatura"
+    # (Nao sao regras fixas — sao apenas heuristicas para ONDE olhar.
+    #  A equacao decide o que e hardcode ou nao.)
+    suspeitos = []
+
+    for num, linha in linhas_codigo:
+        dados_linha = linha.encode('utf-8')
+        if len(dados_linha) < 10:
+            continue
+
+        h_linha = MCRByteUtils.entropia_bytes(dados_linha)
+        fp_linha = MCRSignatureExpansiva.fingerprint(dados_linha, 16)
+
+        # Distancia da assinatura media
+        dist_fp = 1.0 - MCRSignatureExpansiva.similaridade(fp_linha, fp_medio)
+        dist_h = abs(h_linha - h_medio) / max(h_medio, 0.01)
+
+        score_hardcode = (dist_fp * 0.6 + dist_h * 0.4)
+        score_hardcode = min(1.0, score_hardcode)
+
+        if score_hardcode > 0.5:
+            suspeitos.append({
+                'linha': num,
+                'codigo': linha.strip()[:80],
+                'score': round(score_hardcode, 3),
+                'entropia': round(h_linha, 3),
+                'distancia_fp': round(dist_fp, 3),
+            })
+
+    suspeitos.sort(key=lambda x: -x['score'])
+    return suspeitos
+
+
 if __name__ == '__main__':
-    resultado = mcr_autoavaliar()
-    print('MCR Auto-Avaliacao:')
-    for k, v in resultado.items():
-        print(f'  {k}: {v}')
+    import sys as _sys
+
+    if '--hardcode' in _sys.argv[1:]:
+        resultado = mcr_detectar_hardcodes()
+        print('MCR DETECCAO DE HARDCODES (auto-analise)')
+        print('=' * 60)
+        print(f'Total de hardcodes detectados: {len(resultado)}')
+        print()
+        for h in resultado[:20]:
+            print(f'  L{h["linha"]:5d} score={h["score"]:.2f} H={h["entropia"]:.2f} | {h["codigo"][:60]}')
+        print()
+        print('(A equacao MCR detectou desvios de assinatura no proprio codigo.)')
+    else:
+        resultado = mcr_autoavaliar()
+        print('MCR Auto-Avaliacao:')
+        for k, v in resultado.items():
+            if k == 'fingerprint':
+                print(f'  {k}: {[round(x,2) for x in v[:4]]}...')
+            else:
+                print(f'  {k}: {v}')
