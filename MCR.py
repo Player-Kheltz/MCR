@@ -1376,6 +1376,109 @@ class MCRMotor:
 
         return ' '.join(palavras)
 
+    # ─── PERSISTENCIA ────────────────────────────────────────
+
+    def salvar(self, arquivo: str) -> bool:
+        """Salva TODO o estado do motor em JSON.
+        
+        Inclui: topicos, markov global (byte/palavra/token),
+        conexoes, estado da sessao.
+        
+        A experiencia do MCR NAO morre ao fechar o programa.
+        """
+        def _serializar_mk(mk: MCR) -> dict:
+            return {
+                'freq': dict(mk.freq),
+                'transicoes': {k: dict(v) for k, v in mk.transicoes.items()},
+                'total': mk.total,
+            }
+
+        estado = {
+            'timestamp': _time.time(),
+            'topicos': {
+                nome: {
+                    'texto': dados['texto'],
+                    'markov': _serializar_mk(dados['markov']),
+                    'markov_palavra': _serializar_mk(dados.get('markov_palavra', MCR())),
+                    'bytes': dados.get('bytes', 0),
+                    'n_palavras': dados.get('n_palavras', 0),
+                }
+                for nome, dados in self.topicos.items()
+            },
+            'mk_byte': _serializar_mk(self.mk_byte),
+            'mk_palavra': _serializar_mk(self.mk_palavra),
+            'mk_token': _serializar_mk(self.mk_token),
+            'conexoes_feitas': list(self.conexoes_feitas),
+            'total_conexoes': self.total_conexoes,
+        }
+        try:
+            os.makedirs(os.path.dirname(arquivo), exist_ok=True)
+            with open(arquivo, 'w', encoding='utf-8') as f:
+                json.dump(estado, f, ensure_ascii=False, indent=2)
+            self.mk_byte.aprender("SALVAR", f"{len(self.topicos)} topicos")
+            return True
+        except (OSError, IOError, TypeError) as e:
+            return False
+
+    def carregar(self, arquivo: str) -> bool:
+        """Carrega estado completo do motor de um JSON.
+        
+        Restaura topicos, Markov global, conexoes.
+        Retorna True se carregou com sucesso.
+        """
+        if not os.path.exists(arquivo):
+            return False
+
+        def _restaurar_mk(dados: dict, nome: str = "") -> MCR:
+            mk = MCR(nome)
+            mk.total = dados.get('total', 0)
+            freq = dados.get('freq', {})
+            transicoes = dados.get('transicoes', {})
+            # Restaura como dict normal (as contagens)
+            mk.freq = dict(freq)
+            mk.transicoes = {k: dict(v) for k, v in transicoes.items()}
+            return mk
+
+        try:
+            with open(arquivo, 'r', encoding='utf-8') as f:
+                estado = json.load(f)
+        except (OSError, IOError, json.JSONDecodeError):
+            return False
+
+        # Restaura Markov global
+        if 'mk_byte' in estado:
+            self.mk_byte = _restaurar_mk(estado['mk_byte'], 'byte_global')
+        if 'mk_palavra' in estado:
+            self.mk_palavra = _restaurar_mk(estado['mk_palavra'], 'palavra_global')
+        if 'mk_token' in estado:
+            self.mk_token = _restaurar_mk(estado['mk_token'], 'token_global')
+
+        # Restaura topicos
+        topicos_raw = estado.get('topicos', {})
+        for nome, dados in topicos_raw.items():
+            mk_byte = _restaurar_mk(dados.get('markov', {}), nome)
+            mk_pal = _restaurar_mk(dados.get('markov_palavra', {}), f"{nome}_palavra")
+            texto = dados.get('texto', '')
+            palavras = texto.split()
+
+            self.topicos[nome] = {
+                'texto': texto,
+                'markov': mk_byte,
+                'markov_palavra': mk_pal,
+                'palavras': palavras,
+                'bytes': dados.get('bytes', len(texto.encode('utf-8'))),
+                'n_palavras': dados.get('n_palavras', len(palavras)),
+                'conteudo': {p.lower() for p in palavras
+                             if len(p) >= 4 and p.lower() not in CONECTORES},
+            }
+
+        # Restaura conexoes
+        self.conexoes_feitas = set(estado.get('conexoes_feitas', []))
+        self.total_conexoes = estado.get('total_conexoes', 0)
+
+        self.mk_byte.aprender("CARREGAR", f"{len(self.topicos)} topicos")
+        return True
+
     def relatorio(self) -> str:
         return (
             f"MCR MOTOR\n"
@@ -2305,11 +2408,19 @@ class MCRFerramentas:
 
         self.motor.topicos.pop(nome_pedido, None)
 
+        # Salva experiencia automaticamente
+        estado_path = os.path.join(
+            os.path.dirname(os.path.dirname(__file__)),
+            'validacao', 'cache', 'mcr_estado.json'
+        )
+        self.motor.salvar(estado_path)
+
         return {
             'resposta': resultado_final,
             'nota': round(auto_nota, 2),
             'ferramentas': list(set(ferramentas_usadas)),
             'ciclos': len(self.historico),
             'topicos_finais': len(self.motor.topicos),
+            'salvo_em': estado_path if os.path.exists(estado_path) else '',
             'historico': self.historico,
         }
