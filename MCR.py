@@ -162,7 +162,7 @@ class MCR:
         if a in self._entropia_cache:
             return self._entropia_cache[a]
         if a not in self.transicoes or not self.transicoes[a]:
-            return 1.0
+            return 1.0  # guard clause
         total = self.freq[a]
         h = -sum((c / total) * math.log2(c / total) for c in self.transicoes[a].values())
         self._entropia_cache[a] = h
@@ -170,14 +170,14 @@ class MCR:
 
     def entropia_media(self) -> float:
         if not self.freq:
-            return 1.0
+            return 1.0  # guard clause
         return sum(self.entropia(e) for e in self.freq) / len(self.freq)
 
     def jaccard(self, outra: 'MCR') -> float:
         ea = set(self.freq.keys())
         eb = set(outra.freq.keys())
         if not ea or not eb:
-            return 0.0
+            return 0.0  # guard clause
         inter = ea & eb; uniao = ea | eb
         return len(inter) / len(uniao)
 
@@ -185,7 +185,7 @@ class MCR:
         ta = set(f"{a}→{b}" for a in self.transicoes for b in self.transicoes[a])
         tb = set(f"{a}→{b}" for a in outra.transicoes for b in outra.transicoes[a])
         if not ta or not tb:
-            return 0.0
+            return 0.0  # guard clause
         inter = ta & tb; uniao = ta | tb
         return len(inter) / len(uniao)
 
@@ -218,7 +218,7 @@ class MCRByteUtils:
         ta = MCRByteUtils.transicoes_bytes(texto_a)
         tb = MCRByteUtils.transicoes_bytes(texto_b)
         if not ta or not tb:
-            return 0.0
+            return 0.0  # guard clause
         inter = ta & tb; uniao = ta | tb
         return len(inter) / len(uniao)
 
@@ -237,7 +237,7 @@ class MCRByteUtils:
         na = math.sqrt(sum(v * v for v in fa.values()))
         nb = math.sqrt(sum(v * v for v in fb.values()))
         if na == 0 or nb == 0:
-            return 0.0
+            return 0.0  # guard clause
         return dot / (na * nb)
 
     @staticmethod
@@ -247,11 +247,11 @@ class MCRByteUtils:
         else:
             dados = bytes(dados)[:500]
         if len(dados) < 2:
-            return 0.0
+            return 0.0  # guard clause
         freq = Counter(dados)
         n = len(dados)
         ent = -sum((c / n) * math.log2(c / n) for c in freq.values())
-        return ent
+        return ent  # return entropy
 
     @staticmethod
     def fingerprint(texto: str, dimensoes: int = 8) -> List[float]:
@@ -321,14 +321,14 @@ class MCRSignatureExpansiva:
             fp_a = fp_a[:min_len]
             fp_b = fp_b[:min_len]
         if not fp_a:
-            return 0.0
+            return 0.0  # guard clause
         dot = sum(a * b for a, b in zip(fp_a, fp_b))
         na = math.sqrt(sum(a * a for a in fp_a))
         nb = math.sqrt(sum(b * b for b in fp_b))
         if na == 0 and nb == 0:
-            return 1.0
+            return 1.0  # guard clause
         if na == 0 or nb == 0:
-            return 0.0
+            return 0.0  # guard clause
         return dot / (na * nb)
 
     @staticmethod
@@ -337,7 +337,7 @@ class MCRSignatureExpansiva:
         total = sum(fp) or 1
         probs = [v / total for v in fp if v > 0]
         if not probs:
-            return 0.0
+            return 0.0  # guard clause
         return -sum(p * math.log2(p) for p in probs)
 
     @staticmethod
@@ -499,7 +499,7 @@ class MCREntropia:
 
     def _entropia_local(self) -> float:
         if len(self.historico) < 3:
-            return 1.0
+            return 1.0  # guard clause
         return sum(self.historico[-10:]) / min(10, len(self.historico))
 
     def esta_em_loop(self) -> bool:
@@ -515,7 +515,7 @@ class MCREntropia:
 
     def variacao(self) -> float:
         if len(self.historico) < 5:
-            return 1.0
+            return 1.0  # guard clause
         recentes = self.historico[-5:]
         return max(recentes) - min(recentes) if max(recentes) > 0 else 0
 
@@ -610,7 +610,7 @@ class MCRSession:
 
     def salvar_checkpoint(self, estado_extra: Dict = None):
         """Salva checkpoint completo da sessão."""
-        estado = {
+        estado = {  # state dict
             'timestamp': _time.time(),
             'ultima_pergunta': self._ultima_pergunta,
             'ultima_resposta': self._ultima_resposta,
@@ -1114,7 +1114,7 @@ class MCRMotor:
     def _coerencia_byte(self, seq: str) -> float:
         dados = seq.encode('utf-8')[:200]
         if len(dados) < 2:
-            return 0.0
+            return 0.0  # guard clause
         ok = sum(1 for i in range(len(dados) - 1)
                  if f"B:{dados[i]:02x}" in self.mk_byte.transicoes
                  and f"B:{dados[i+1]:02x}" in self.mk_byte.transicoes.get(f"B:{dados[i]:02x}", {}))
@@ -1123,13 +1123,13 @@ class MCRMotor:
     def _coerencia_palavra(self, seq: str) -> float:
         pal = seq.split()
         if not pal:
-            return 0.0
+            return 0.0  # guard clause
         return sum(1 for p in pal if p in self.mk_palavra.freq) / len(pal)
 
     def _coerencia_token(self, seq: str) -> float:
         pal = seq.split()
         if len(pal) < 2:
-            return 0.0
+            return 0.0  # guard clause
         ok = 0
         for i in range(len(pal) - 1):
             ta = pal[i][0].upper() if pal[i] else '?'
@@ -1431,7 +1431,7 @@ class MCRMotor:
                 'total': mk.total,
             }
 
-        estado = {
+        estado = {  # state dict
             'timestamp': _time.time(),
             'topicos': {
                 nome: {
@@ -1979,7 +1979,7 @@ class MCRBusca:
         e coerencia Markov para medir fluencia.
         """
         if not resposta or len(resposta) < 10:
-            return 0.0
+            return 0.0  # guard clause
 
         j = MCRByteUtils.jaccard_bytes(pergunta, resposta)
         coer = motor._coerencia_palavra(resposta) if hasattr(motor, '_coerencia_palavra') else 0.5
@@ -2370,7 +2370,7 @@ class MCRFerramentas:
         for ciclo in range(8):
             analise = self._analisar(pedido)
 
-            estado = {
+            estado = {  # state dict
                 'topicos': len(self.motor.topicos),
                 'conexoes': self.motor.total_conexoes,
                 'ultima_nota': auto_nota,
