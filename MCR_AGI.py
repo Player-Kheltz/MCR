@@ -853,34 +853,50 @@ _registrar_registry()
 # ═══════════════════════════════════════════════════════════════════
 
 class MCRResposta:
-    """Resposta universal: MCRAttention busca, confianca decide, ferramentas aprendem.
-    Zero extratores. Zero categorias. Zero hardcodes."""
-    
-    @staticmethod
-    def _confianca(score):
-        """Confianca = score do topico encontrado por MCRAttention.
-        O score e o jaccard entre pergunta e texto do topico.
-        Quanto maior, mais a pergunta se relaciona com a resposta."""
-        return score
+    """Resposta universal: distribuicao decide confianca, ferramentas aprendem.
+    Zero thresholds fixos. Zero if/elif. So a Equacao."""
     
     @staticmethod
     def _buscar(pergunta, cerebro, max_iter=3):
-        """Busca com metacognicao: score decide se confia.
-        O score e o jaccard entre pergunta e texto do topico.
-        Se score < threshold descoberto, tenta re-alimentar."""
+        """Busca com confianca pela distribuicao dos scores.
+        
+        1. Coleta scores de TODOS os topicos (jaccard com pergunta)
+        2. Ordena do maior para o menor
+        3. Confianca = o quanto o top se destaca da mediana
+        4. Se nao se destaca: re-alimenta e tenta de novo
+        """
         for i in range(max_iter):
             if not cerebro.topicos:
                 return cerebro.gerar(pergunta, passos=6, pergunta=pergunta)
             
-            topico = MCRAttention._topico_relevante(cerebro, pergunta)
-            if not topico:
+            # Coleta scores de todos os topicos
+            scores = []
+            for nome, dados in cerebro.topicos.items():
+                texto = dados.get("texto", "")
+                if not texto:
+                    continue
+                s = MCRByteUtils.jaccard_bytes(pergunta, texto)
+                scores.append((s, nome, texto))
+            
+            if not scores:
                 return cerebro.gerar(pergunta, passos=6, pergunta=pergunta)
             
-            _, texto, score = topico
-            conf = MCRResposta._confianca(score)
+            scores.sort(key=lambda x: -x[0])
+            melhor_score, melhor_nome, melhor_texto = scores[0]
             
-            if conf > 0.01 or i == max_iter - 1:
-                return texto[:300]
+            # Confianca pela distribuicao dos gaps
+            top_n = min(10, len(scores))
+            top_scores = [s[0] for s in scores[:top_n]]
+            gaps = [top_scores[i] - top_scores[i+1] for i in range(len(top_scores)-1)] if len(top_scores) > 1 else [0]
+            media_gap = sum(gaps) / len(gaps) if gaps else 0
+            primeiro_gap = gaps[0] if gaps else 0
+            
+            # Confiante se o primeiro gap e maior que a media dos gaps
+            # e o score do top e > 0 (nao e ruido)
+            confiante = primeiro_gap > media_gap and melhor_score > 0
+            
+            if confiante or i == max_iter - 1:
+                return melhor_texto[:300]
             
             # Confianca baixa: alimenta contexto e tenta de novo
             try:
@@ -894,7 +910,7 @@ class MCRResposta:
                 import time as _t
                 cerebro.alimentar(f"{_t.strftime('%H:%M:%S')} {_t.strftime('%d/%m/%Y')}", f"ctx_{_t.time()}")
         
-        return texto[:300]
+        return melhor_texto[:300] if melhor_texto else ""
     
     @staticmethod
     def responder(pergunta, cerebro):
