@@ -1030,6 +1030,142 @@ class MCRMotor:
             if (c := self.conectar(nomes[i], nomes[j])) is not None
         ]
 
+    # ─── GERAÇÃO POR ASSINATURA ──────────────────────────────
+    #
+    # Em vez de Markov P(prox | ultimo), pergunta:
+    #   "Qual próximo token MAXIMIZA a assinatura
+    #    (Equação MCR) com toda a sequência?"
+    #
+    # Usa byte + palavra + token SIMULTANEAMENTE para escolher.
+    # ─────────────────────────────────────────────────────────
+
+    def _coletar_candidatos(self, palavras: List[str], max_candidatos: int = 10) -> List[str]:
+        """Junta candidatos dos 3 níveis: palavra, token, byte.
+        Filtra palavras repetidas nos últimos 3 passos.
+        Se a última palavra não está no modelo, tenta a penúltima.
+        """
+        candidatos: List[str] = []
+        vistos: Set[str] = set()
+
+        if not palavras:
+            return candidatos
+
+        # Palavras recentes (evitar repetição imediata)
+        recentes = set(palavras[-3:])
+
+        # Encontra a última palavra que ESTÁ no modelo
+        semente = palavras[-1]
+        for offset in range(min(len(palavras), 3)):
+            teste = palavras[-1 - offset]
+            if teste in self.mk_palavra.freq:
+                semente = teste
+                break
+
+        # Nível palavra: top N mais prováveis
+        for p, conf in self.mk_palavra.predizer_n(semente, max_candidatos):
+            if (p not in vistos and p not in recentes
+                    and p != semente and conf > 0.01):
+                candidatos.append(p)
+                vistos.add(p)
+
+        # Nível token: candidatos por tipo (primeira letra)
+        if semente:
+            tipo = semente[0].upper()
+            for p, conf in self.mk_token.predizer_n(tipo, max_candidatos // 2):
+                if conf < 0.01:
+                    continue
+                for pp, _ in self.mk_palavra.predizer_n(p.lower(), 3):
+                    if pp not in vistos and pp not in recentes and pp != semente:
+                        candidatos.append(pp)
+                        vistos.add(pp)
+
+        return candidatos[:max_candidatos]
+
+    def _escolher_por_assinatura(self, palavras: List[str], candidatos: List[str]) -> Optional[str]:
+        """Aplica Equação MCR em cada candidato, retorna o que maximiza.
+        
+        Quanto maior a assinatura, mais o candidato "se encaixa"
+        no padrão da sequência atual em TODOS os níveis.
+        """
+        if not candidatos:
+            return None
+
+        texto_base = ' '.join(palavras)
+        melhor_candidato = None
+        melhor_nota = 0.0
+
+        for cand in candidatos:
+            texto_teste = f"{texto_base} {cand}" if texto_base else cand
+
+            # Nível BYTE (0-2): coerência de transições byte
+            c_byte = self._coerencia_byte(texto_teste)
+
+            # Nível PALAVRA (0-5): coerência + palavras de conteúdo existentes
+            c_pal = self._coerencia_palavra(texto_teste)
+            pal_existe = 1.0 if c_pal > 0 else 0.0
+            pal_coer = 1.0 if c_pal > 0.3 else (c_pal * 3 if c_pal > 0 else 0)
+            nota_palavra = pal_existe + pal_coer
+
+            # Nível TOKEN (0-3): coerência de tipos
+            c_tok = self._coerencia_token(texto_teste)
+            nota_token = 2.0 if c_tok > 0.3 else (c_tok * 6 if c_tok > 0 else 0)
+
+            # Assinatura total: normalizada 0-1
+            # byte(2) + palavra(5?) + token(3) = max 10? nao, byte max 2 + palavra max 2 + token max 2
+            # Vamos normalizar assim:
+            nota_byte = c_byte * 2  # 0-2
+            nota_ass = (nota_byte + nota_palavra + nota_token) / 7.0  # normaliza 0-1
+            nota_ass = min(1.0, nota_ass)
+
+            if nota_ass > melhor_nota:
+                melhor_nota = nota_ass
+                melhor_candidato = cand
+
+        return melhor_candidato
+
+    def gerar_por_assinatura(self, texto: str, passos: int = 10,
+                             conf_min: float = 0.15) -> str:
+        """Gera sequência escolhendo cada token por assinatura MCR.
+        
+        Diferente de MCR.gerar() (Markov puro), aqui CADA passo
+        avalia múltiplos candidatos pela Equação MCR e escolhe
+        o que MAXIMIZA a assinatura em byte + palavra + token.
+        
+        Args:
+            texto: semente inicial
+            passos: máximo de tokens a gerar
+            conf_min: nota mínima para aceitar um token
+        Returns:
+            texto original + tokens gerados
+        """
+        palavras = texto.split()
+        if not palavras:
+            return texto
+
+        for _ in range(passos):
+            candidatos = self._coletar_candidatos(palavras)
+            if not candidatos:
+                break
+
+            melhor = self._escolher_por_assinatura(palavras, candidatos)
+            if melhor is None:
+                break
+
+            # Verifica nota do melhor candidato
+            texto_teste = f"{' '.join(palavras)} {melhor}"
+            c_byte = self._coerencia_byte(texto_teste)
+            nota = (c_byte * 2 + 1.0) / 7.0  # estimativa rápida
+            if nota < conf_min:
+                break
+
+            palavras.append(melhor)
+
+            # Critério de parada: repetição consecutiva
+            if len(palavras) >= 3 and palavras[-1] == palavras[-2] == palavras[-3]:
+                break
+
+        return ' '.join(palavras)
+
     def relatorio(self) -> str:
         return (
             f"MCR MOTOR\n"
@@ -1242,16 +1378,12 @@ class MCRPiEngine:
 
     @staticmethod
     def _modo_markov(texto: str, motor: MCRMotor, passos: int) -> str:
-        """Extrapola usando MCR nível palavra. Rápido, determinístico."""
-        palavras = texto.split()
-        if not palavras:
-            return texto
-        ultima = palavras[-1]
-        mk = motor.mk_palavra
-        seq = mk.gerar(ultima, passos)
-        if len(seq) <= 1:
-            return texto
-        return texto + ' ' + ' '.join(seq[1:])
+        """Gera por ASSINATURA MCR (byte + palavra + token simultaneamente).
+        
+        Substitui o Markov ordem 1 puro por seleção do token que
+        maximiza a Equação MCR na sequência completa.
+        """
+        return motor.gerar_por_assinatura(texto, passos)
 
     # ─── MODO BYTE (entropia média) ──────────────────────────
 
