@@ -1794,22 +1794,32 @@ class MCRCadeia:
     def gerar(self, semente: str, n_tokens: int = 100, 
               contexto_tamanho: int = 3, max_tentativas_loop: int = 5,
               top_k: int = 3) -> dict:
-        """Gera N tokens com TOP-K sampling + contexto reinjetado.
+        """Gera N tokens com multi-nivel MCR (byte + palavra + token).
         
-        top_k: em vez de sempre pegar o token mais provavel, 
-               sorteia entre os K tokens mais provaveis (diversidade).
-               k=1 = greedy (original), k>1 = criativo.
+        MCRDecisor decide QUAL nivel usar a cada passo:
+        - 'byte': MCRByte gera bytes (estrutura, novidade)
+        - 'palavra': MCRPalavra gera palavras (vocabulario)
+        - 'token': MCRToken gera tipos de token (coerencia)
+        
+        A decisao e baseada no estado ATUAL (se esta em loop, se
+        gerou palavra longa, etc), nao em regras fixas.
         """
         import random
         if not self.conector.topicos:
             return {'texto': semente, 'tokens': [semente], 
                     'nota': 0, 'loops_detectados': 0, 'erro': 'sem topicos'}
         
-        mk = self.conector.mcr_palavra
+        # 3 niveis de Markov
+        mk_byte = self.conector.mcr_byte
+        mk_palavra = self.conector.mcr_palavra
+        mk_token = self.conector.mcr_token
+        mk_decisor = MCRDecisor('cadeia_nivel')
+        
         tokens_gerados = [semente]
         loops_detectados = 0
         repeticoes_evitadas = 0
         tentativas_loop = 0
+        nivel_atual = 'palavra'  # comeca com palavra
         
         for passo in range(n_tokens - 1):
             # 1. Contexto = ultimos K tokens
@@ -1817,29 +1827,93 @@ class MCRCadeia:
                 contexto = tokens_gerados[-contexto_tamanho:]
             else:
                 contexto = tokens_gerados
+            ultimo = str(contexto[-1])
             
-            # 2. Top-K sampling: pega K mais provaveis e sorteia
-            ultimo = contexto[-1]
-            preds = mk.predizer_n(ultimo, n=top_k)
-            if not preds:
-                # Fallback: predizer normal
-                prox, conf = mk.predizer(ultimo)
-                if prox is None or conf < 0.01:
+            # 2. MCRDecisor decide qual nivel usar baseado no estado
+            tipo_ultimo = _classificar_token(ultimo)
+            esta_em_loop = self.detector.esta_em_loop()
+            estado_decisao = f"tipo:{tipo_ultimo}_loop:{esta_em_loop}_nivel:{nivel_atual}"
+            nivel_acao = mk_decisor.decidir(estado_decisao)
+            
+            # Se MCRDecisor sugeriu outro nivel, muda
+            niveis_validos = ('byte', 'palavra', 'token')
+            for nv in niveis_validos:
+                if nv in nivel_acao.lower():
+                    nivel_atual = nv
+                    break
+            
+            # 3. Gera no nivel selecionado
+            prox = None
+            conf = 0.0
+            
+            if nivel_atual == 'byte':
+                # Gera como byte
+                mk = mk_byte
+                preds = mk.predizer_n(ultimo, n=top_k)
+                if preds:
+                    pesos = [c for _, c in preds]
+                    total = sum(pesos)
+                    r = random.uniform(0, total)
+                    acum = 0
+                    for p_str, p_conf in preds:
+                        acum += p_conf
+                        if r <= acum:
+                            prox = p_str
+                            conf = p_conf
+                            break
+                if prox is None:
+                    prox, conf = mk.predizer(ultimo)
+                if prox is not None:
+                    # Converte byte para caractere se possivel
+                    if str(prox).startswith('B:'):
+                        try: prox = chr(int(str(prox)[2:], 16))
+                        except: pass
+            
+            elif nivel_atual == 'token':
+                # Gera como token (primeira letra)
+                mk = mk_token
+                preds = mk.predizer_n(ultimo[0].upper() if ultimo else '?', n=top_k)
+                if preds:
+                    pesos = [c for _, c in preds]
+                    total = sum(pesos)
+                    r = random.uniform(0, total)
+                    acum = 0
+                    for p_str, p_conf in preds:
+                        acum += p_conf
+                        if r <= acum:
+                            prox = p_str
+                            conf = p_conf
+                            break
+                if prox is None:
+                    prox, conf = mk.predizer(ultimo[0].upper() if ultimo else '?')
+                if prox is not None:
+                    prox = str(prox)
+            
+            else:  # 'palavra' (padrao)
+                mk = mk_palavra
+                preds = mk.predizer_n(ultimo, n=top_k)
+                if preds:
+                    pesos = [c for _, c in preds]
+                    total = sum(pesos)
+                    r = random.uniform(0, total)
+                    acum = 0
+                    for p_str, p_conf in preds:
+                        acum += p_conf
+                        if r <= acum:
+                            prox = p_str
+                            conf = p_conf
+                            break
+                if prox is None:
+                    prox, conf = mk.predizer(ultimo)
+                if prox is None:
                     prox, conf = mk.predizer(semente)
-                    if prox is None or conf < 0.01: break
-            else:
-                # Sorteio ponderado entre os top-K (mais provavel tem mais chance)
-                pesos = [conf for _, conf in preds]
-                total = sum(pesos)
-                r = random.uniform(0, total)
-                acum = 0
-                for prox_str, conf in preds:
-                    acum += conf
-                    if r <= acum:
-                        prox = prox_str
-                        break
+                if prox is None or conf < 0.01:
+                    break
             
-            # 3. MCREntropia detecta loop (nao contagem fixa)
+            if prox is None:
+                break
+            
+            # 4. MCREntropia detecta loop
             token_str = str(prox)
             self.detector.alimentar(token_str)
             em_loop = self.detector.esta_em_loop()
@@ -1849,33 +1923,18 @@ class MCRCadeia:
                 tentativas_loop += 1
                 if tentativas_loop > max_tentativas_loop: break
                 
-                # MCRRuido decide COMO injetar ruido
+                # Ruido: muda de nivel forcadamente
                 melhor_ruido = self.ruido.melhor_tipo()
-                if melhor_ruido == 'palavra_outro_topico':
-                    import random
-                    outros = [n for n in self.conector.topicos.keys() if n != token_str]
-                    if outros:
-                        t_alt = random.choice(outros)
-                        pal_alt = self.conector.topicos[t_alt]['texto'].split()
-                        if pal_alt:
-                            prox = random.choice(pal_alt)
-                            repeticoes_evitadas += 1
-                            tentativas_loop = 0
-                            self.ruido.registrar(melhor_ruido, True)
-                        else:
-                            self.ruido.registrar(melhor_ruido, False)
-                elif melhor_ruido == 'semente_original':
-                    prox = semente
-                    repeticoes_evitadas += 1
-                    tentativas_loop = 0
+                if nivel_atual == 'palavra':
+                    nivel_atual = 'byte'  # muda para byte (novidade)
+                elif nivel_atual == 'byte':
+                    nivel_atual = 'token'  # muda para token (coerencia)
                 else:
-                    # Tenta com byte global
-                    prox, conf = self.conector.mcr_byte.predizer(token_str)
-                    if prox is None: break
-                    repeticoes_evitadas += 1
-                    tentativas_loop = 0
+                    nivel_atual = 'palavra'  # volta pra palavra
+                self.ruido.registrar(melhor_ruido, True)
+                continue
             
-            tokens_gerados.append(str(prox))
+            tokens_gerados.append(token_str)
         
         # Converte para texto
         texto = ' '.join(tokens_gerados)
@@ -6393,6 +6452,7 @@ class MCRSegmentador:
         self.mk_tipos = MarkovUniversal("segmentador_tipos")
         self.mk_transicoes = MarkovUniversal("segmentador_trans")
         self._tipos_aprendidos = set()
+        self._linhas_info = None
     
     def _classificar_linha(self, linha: str) -> str:
         """Classifica uma linha por ENTROPIA + indentacao.
@@ -6468,37 +6528,44 @@ class MCRSegmentador:
                     self.mk_transicoes.aprender(ultimo_tipo, tipo)
                 ultimo_tipo = tipo
         
+        self._linhas_info = linhas_info
         return linhas_info
     
     def encontrar_dados(self) -> list:
         """Encontra a secao de dados usando Markov aprendido.
         
-        MCR prediz a transicao mais provavel:
-        CODE → BLANK → DATA → BLANK → CODE
+        MCR aprendeu a transicao entre tipos de linha.
+        A secao de dados e onde linhas DATA consecutivas aparecem.
+        O limite e detectado pela transicao CODE→DATA (inicio)
+        e DATA→CODE (fim).
         
-        A secao de dados e a regiao onde as transicoes
-        aprendidas indicam DATA consecutivo no final do arquivo.
-        
-        Retorna: [(linha_inicio, linha_fim), ...]  (indices)
+        Retorna: [(linha_inicio, linha_fim, conteudo), ...]
         """
-        if not self.mk_transicoes.freq:
+        if not self._linhas_info:
             return []
         
-        # Prediz transicao esperada: CODE → DATA ou BLANK → DATA
-        prox_de_code = self.mk_transicoes.predizer('CODE')
-        prox_de_blank = self.mk_transicoes.predizer('BLANK')
+        # Encontra blocos de DATA consecutivos
+        blocos = []
+        em_data = False
+        inicio_bloco = 0
         
-        # Se MCR aprendeu que CODE→DATA ou BLANK→DATA existe,
-        # entao ha uma secao de dados
-        if (prox_de_code[0] == 'DATA' and prox_de_code[1] > 0.3) or \
-           (prox_de_blank[0] == 'DATA' and prox_de_blank[1] > 0.3):
-            return [('aprendido', 'transicao CODE→DATA ou BLANK→DATA')]
+        for tipo, num, conteudo in self._linhas_info:
+            if tipo == 'DATA' and not em_data:
+                em_data = True
+                inicio_bloco = num
+            elif tipo != 'DATA' and em_data:
+                em_data = False
+                # Um bloco de dados: pelo menos 5 linhas consecutivas
+                if num - inicio_bloco >= 5:
+                    blocos.append((inicio_bloco, num - 1))
         
-        return []
-    
-    def esta_pronto(self) -> bool:
-        """MCR ja estudou o suficiente para segmentar?"""
-        return len(self._tipos_aprendidos) >= 3 and len(self.mk_transicoes.freq) >= 2
+        # Captura bloco no final do arquivo
+        if em_data:
+            ultimo_num = self._linhas_info[-1][1]
+            if ultimo_num - inicio_bloco >= 5:
+                blocos.append((inicio_bloco, ultimo_num))
+        
+        return blocos
 
 
 # ============================================================
