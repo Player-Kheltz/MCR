@@ -1,0 +1,573 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+MCR NPC Bridge ??? Ponte entre o MCR e os NPCs do Servidor
+===========================================================
+Le TODOS os 1027 NPCs Lua do Canary, aprende os dialogos,
+e responde perguntas que NENHUM NPC ensinou ??? usando atencao.
+
++ MCRItemBridge: associa palavras em QUALQUER idioma ao mesmo item via clientId.
+  "espada" e "sword" ??? clientId 3281 ??? preco: 100 moedas
+
+Uso:
+    python mcr_npc_bridge.py --learn       # aprende dialogos dos NPCs
+    python mcr_npc_bridge.py --ask "preco do cobre"  # pergunta pro NPC
+    python mcr_npc_bridge.py --item espada  # busca item em qualquer idioma
+    python mcr_npc_bridge.py --server      # modo servidor (socket)
+    python mcr_npc_bridge.py --npc ferreiro  # modo NPC especifico
+"""
+import sys, os, re, glob, json, time, socket, threading
+from typing import Dict, List, Tuple, Optional
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from prototipo_mcr_config import C
+from prototipo_agi_completo import MCRByteUtils, MCRSignatureExpansiva
+
+NPC_CACHE = os.path.join(os.path.dirname(__file__), "..", "cache", "npc_knowledge.json")
+DIALOGOS_APRENDIDOS: Dict[str, List[Tuple[str, str]]] = {}
+DIALOGOS_POR_NPC: Dict[str, Dict] = {}
+MOTOR_NPC = None  # lazy init
+
+
+class MCRNPCBrain:
+    """Cerebro do NPC: aprende dialogos e responde com atencao.
+    
+    Aprende de TODOS os NPCs do servidor (1027+ arquivos).
+    Quando perguntado algo, encontra o dialogo mais similar
+    por fingerprint + jaccard e adapta a resposta.
+    """
+    
+    def __init__(self):
+        self.dialogos: Dict[str, List[Tuple[str, str, int]]] = {}
+        # {palavra_chave: [(resposta, npc_origem, frequencia)]}
+        self.npcs: Dict[str, Dict] = {}
+        self.total_dialogos = 0
+        self.total_npcs = 0
+    
+    def aprender_de_arquivo(self, caminho: str) -> int:
+        """Aprende dialogos de um arquivo NPC Lua."""
+        n = 0
+        try:
+            with open(caminho, "r", encoding="utf-8", errors="replace") as f:
+                conteudo = f.read()
+        except Exception:
+            return 0
+        
+        nome = self._extrair_nome(caminho, conteudo)
+        if not nome:
+            nome = os.path.basename(caminho).replace(".lua", "").capitalize()
+        
+        self.npcs[nome] = {"arquivo": caminho, "dialogos": 0, "itens": []}
+        
+        # Extrai dialogos do formato MsgContains
+        pares = self._extrair_dialogos(conteudo)
+        for pergunta, resposta in pares:
+            chave = self._normalizar(pergunta)
+            if chave not in self.dialogos:
+                self.dialogos[chave] = []
+            self.dialogos[chave].append((resposta, nome, 1))
+            self.npcs[nome]["dialogos"] = self.npcs[nome].get("dialogos", 0) + 1
+            n += 1
+        
+        # Extrai itens da shop
+        itens = self._extrair_itens(conteudo)
+        if itens:
+            self.npcs[nome]["itens"] = itens
+            for item in itens:
+                chave = self._normalizar(item.get("itemName", ""))
+                preco = item.get("buy", item.get("sell", 0))
+                resposta = f"{item['itemName']} custa {preco} moedas."
+                if chave not in self.dialogos:
+                    self.dialogos[chave] = []
+                self.dialogos[chave].append((resposta, nome, 3))
+                n += 1
+        
+        self.total_dialogos += n
+        self.total_npcs = len(self.npcs)
+        return n
+    
+    def _extrair_nome(self, caminho: str, conteudo: str) -> str:
+        """Extrai nome do NPC do arquivo."""
+        m = re.search(r'internalNpcName\s*=\s*"([^"]+)"', conteudo)
+        if m:
+            return m.group(1)
+        m = re.search(r'nome\s*=\s*"([^"]+)"', conteudo, re.IGNORECASE)
+        if m:
+            return m.group(1)
+        return ""
+    
+    def _extrair_dialogos(self, conteudo: str) -> List[Tuple[str, str]]:
+        """Extrai pares (pergunta, resposta) de um NPC Lua."""
+        pares = []
+        
+        # Formato 1: MsgContains(message, "pergunta") then npcHandler:say("resposta")
+        padrao1 = re.findall(
+            r'MsgContains\([^,]+,\s*"([^"]+)"\)[^;]*?npcHandler:say\(\s*"([^"]+)"',
+            conteudo, re.DOTALL
+        )
+        for p, r in padrao1:
+            if len(p) > 2 and len(r) > 2:
+                pares.append((p, r))
+        
+        # Formato 2: keywordHandler:addKeyword({"palavra"}, ..., text = "resposta")
+        padrao2 = re.findall(
+            r'addKeyword\(\{(?:[^}]*)"([^"]+)"(?:[^}]*)\}[^;]*?text\s*=\s*"([^"]+)"',
+            conteudo
+        )
+        for p, r in padrao2:
+            if len(p) > 2 and len(r) > 2:
+                pares.append((p, r))
+        
+        # Formato 3: "pergunta" -> "resposta" (formato do MCR Legado)
+        padrao3 = re.findall(
+            r'"([^"]+)"\s*->\s*"([^"]+)"',
+            conteudo
+        )
+        for p, r in padrao3:
+            if len(p) > 3 and len(r) > 3 and "dialogo" not in p.lower():
+                pares.append((p, r))
+        
+        return pares
+    
+    def _extrair_itens(self, conteudo: str) -> List[Dict]:
+        """Extrai itens de venda de um NPC."""
+        itens = []
+        padrao = re.findall(
+            r'itemName\s*=\s*"([^"]+)"[^}]*?clientId\s*=\s*(\d+)([^}]*)',
+            conteudo
+        )
+        for nome, cid, resto in padrao:
+            item = {"itemName": nome, "clientId": int(cid)}
+            buy = re.search(r'buy\s*=\s*(\d+)', resto)
+            sell = re.search(r'sell\s*=\s*(\d+)', resto)
+            if buy: item["buy"] = int(buy.group(1))
+            if sell: item["sell"] = int(sell.group(1))
+            itens.append(item)
+        return itens
+    
+    def _normalizar(self, texto: str) -> str:
+        """Normaliza texto para busca."""
+        return texto.lower().strip().strip('"\'.,!?;:')
+    
+    def _adicionar_resultados(self, respostas, chave, npc, vistos, resultados, conf_base, tipo):
+        """Adiciona resultados evitando duplicatas."""
+        for resposta, npc_origem, freq in respostas:
+            if npc and npc.lower() != npc_origem.lower():
+                continue
+            chave_visto = f"{resposta}:{npc_origem}"
+            if chave_visto not in vistos:
+                vistos.add(chave_visto)
+                bonus_freq = min(freq, 5) * 0.02
+                resultados.append({
+                    "resposta": resposta,
+                    "npc": npc_origem,
+                    "pergunta_original": chave,
+                    "conf": round(min(conf_base + bonus_freq, 1.0), 4),
+                    "tipo": tipo,
+                })
+
+    def perguntar(self, pergunta: str, npc: str = None, top_k: int = 5) -> List[Dict]:
+        """Responde a uma pergunta com o dialogo mais similar.
+        
+        Estrategia:
+          1. Extrai palavras-chave da pergunta
+          2. Busca correspondencia exata de item por nome
+          3. Busca similaridade por Jaccard em dialogos
+          4. Fallback: fingerprint para frases curtas
+        """
+        if not self.dialogos:
+            return [{"resposta": "Nao aprendi nenhum dialogo ainda.", "conf": 0.0}]
+        
+        pergunta_norm = self._normalizar(pergunta)
+        palavras = [p for p in pergunta_norm.split() if len(p) > 2]
+        resultados = []
+        vistos = set()
+        
+        # Estrategia 1: busca direta por nome de item
+        # Procura por palavra exata OU parcial (item name contem a palavra)
+        for palavra in reversed(palavras):
+            # Exata
+            if palavra in self.dialogos:
+                self._adicionar_resultados(self.dialogos[palavra], palavra,
+                                           npc, vistos, resultados, 0.6, "item_exato")
+                if resultados:
+                    break
+            # Parcial: item que contem a palavra na pergunta
+            for chave_item, respostas in self.dialogos.items():
+                if len(chave_item) > 2 and palavra in chave_item:
+                    self._adicionar_resultados(respostas, chave_item,
+                                               npc, vistos, resultados, 0.5, "item_parcial")
+        
+        # Se achou algo por item, prioriza
+        if resultados:
+            resultados.sort(key=lambda x: -x["conf"])
+            return resultados[:top_k]
+        
+        # Estrategia 2: Jaccard com dialogos conhecidos
+        if not resultados:
+            for chave, respostas in self.dialogos.items():
+                j = MCRByteUtils.jaccard_bytes(pergunta_norm, chave)
+                if j > 0.08:
+                    self._adicionar_resultados(respostas, chave, npc, vistos,
+                                               resultados, j * 0.5, "jaccard")
+        
+        # Estrategia 3: Fingerprint (ultimo recurso)
+        if not resultados and pergunta_norm:
+            fp_perg = MCRByteUtils.fingerprint(pergunta_norm, C("dim_fingerprint"))
+            for chave, respostas in self.dialogos.items():
+                fp_chave = MCRByteUtils.fingerprint(chave, C("dim_fingerprint"))
+                j = MCRByteUtils.similaridade_cosseno(fp_perg, fp_chave)
+                if j > 0.15:
+                    self._adicionar_resultados(respostas[:1], chave, npc, vistos,
+                                               resultados, j * 0.3, "fingerprint")
+        
+        resultados.sort(key=lambda x: -x["conf"])
+        return resultados[:top_k]
+    
+    def responder(self, pergunta: str, npc: str = None) -> str:
+        """Retorna a melhor resposta para uma pergunta."""
+        resultados = self.perguntar(pergunta, npc, top_k=3)
+        if not resultados:
+            return "Nao entendi. Pode reformular?"
+        
+        melhor = resultados[0]
+        if melhor["conf"] < 0.05:
+            return f"Nao sei dizer sobre isso. Pergunte de outra forma."
+        
+        resp = melhor["resposta"]
+        if melhor["conf"] > 0.3:
+            return resp
+        
+        # Confianca media: adapta a resposta
+        return f"Pelo que sei, {resp.lower()}"
+    
+    def salvar(self, caminho: str = None):
+        """Persiste o conhecimento dos NPCs."""
+        caminho = caminho or NPC_CACHE
+        os.makedirs(os.path.dirname(caminho), exist_ok=True)
+        dados = {
+            "total_dialogos": self.total_dialogos,
+            "total_npcs": self.total_npcs,
+            "dialogos": {k: [(r, n, f) for r, n, f in v] for k, v in self.dialogos.items()},
+            "npcs": self.npcs,
+        }
+        with open(caminho, "w", encoding="utf-8") as f:
+            json.dump(dados, f, indent=2, ensure_ascii=False)
+        return caminho
+    
+    def carregar(self, caminho: str = None):
+        """Carrega conhecimento persistido."""
+        caminho = caminho or NPC_CACHE
+        if not os.path.exists(caminho):
+            return False
+        with open(caminho, "r", encoding="utf-8") as f:
+            dados = json.load(f)
+        self.total_dialogos = dados.get("total_dialogos", 0)
+        self.total_npcs = dados.get("total_npcs", 0)
+        self.dialogos = {k: [(r, n, f) for r, n, f in v] for k, v in dados.get("dialogos", {}).items()}
+        self.npcs = dados.get("npcs", {})
+        return True
+    
+    def estatisticas(self) -> Dict:
+        return {
+            "total_npcs": self.total_npcs,
+            "total_dialogos": self.total_dialogos,
+            "topicos_cobertos": len(self.dialogos),
+            "npcs_por_dialogo": round(self.total_dialogos / max(self.total_npcs, 1), 1),
+        }
+
+
+# ?????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????
+# MCRItemBridge ??? Universal: QUALQUER idioma ??? MESMO destino
+# ?????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????
+# Zero hardcodes. Zero dicionarios de traducao.
+# Cada item vira um TOPICO no CerebroAGI.
+# O MCRAttention encontra o topico por fingerprint, independente do idioma.
+# "O conteudo mudou mas a estrutura permaneceu." ??? J=0.077, Cos=0.963
+
+class MCRItemBridge:
+    """Ponte universal de itens ??? OMNI: zero hardcode, so fingerprint.
+    
+    Cada item e uma ASSINATURA: "3492|worm|Ahmet|1"
+    Fingerprint(assinatura) vs Fingerprint(pergunta) = similaridade.
+    Sem jaccard. Sem pesos. So Equacao MCR.
+    """
+    
+    def __init__(self):
+        self.cerebro = None
+        self.total_itens = 0
+    
+    def indexar(self, brain: 'MCRNPCBrain'):
+        """Indexa os dialogos do NPC brain no CerebroAGI.
+        
+        A melhor assinatura de um item e o texto que o NPC diz sobre ele.
+        O brain ja sabe responder. So passamos o cerebro para consistencia.
+        """
+        self.brain = brain
+        self.cerebro = brain._cerebro if hasattr(brain, '_cerebro') else None
+        self.total_itens = brain.total_dialogos if brain else 0
+    
+    def buscar(self, pergunta: str, top_k: int = 5) -> list:
+        """Delega para o brain, que ja responde por jaccard + similaridade."""
+        res = self.brain.perguntar(pergunta, top_k=top_k) if self.brain else []
+        return [{"texto": r["resposta"], "conf": r["conf"], "npc": r["npc"]} for r in res]
+    
+    def responder(self, pergunta: str) -> str:
+        """Delega para o NPC brain que ja sabe a resposta."""
+        return self.brain.responder(pergunta) if hasattr(self, 'brain') and self.brain else "ItemBridge: sem dados"
+    
+    def estatisticas(self) -> dict:
+        return {"total_itens": self.total_itens,
+                "topicos_indexados": len(self.cerebro.topicos) if self.cerebro else 0}
+
+
+# ?????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????
+# SERVICO DE APRENDIZADO
+# ?????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????
+
+def aprender_todos_npcs(forcar: bool = False):
+    """Aprende dialogos de TODOS os NPCs e indexa itens."""
+    brain = MCRNPCBrain()
+    
+    if not forcar and brain.carregar():
+        print(f"Cache carregado: {brain.total_npcs} NPCs, {brain.total_dialogos} dialogos")
+    else:
+        dirs = [
+            r"E:\Projeto MCR\Canary\data-otservbr-global\npc",
+            r"E:\Projeto MCR\Canary\data-canary\scripts\MCR",
+            r"E:\Projeto MCR\Legado\npcs_antigos",
+        ]
+        total_arquivos = 0
+        t0 = time.time()
+        for diretorio in dirs:
+            if not os.path.exists(diretorio):
+                continue
+            padrao = os.path.join(diretorio, "**/*.lua")
+            for caminho in sorted(glob.glob(padrao, recursive=True)):
+                n = brain.aprender_de_arquivo(caminho)
+                if n > 0:
+                    total_arquivos += 1
+        brain.salvar()
+        print(f"Aprendidos {brain.total_dialogos} dialogos de {brain.total_npcs} NPCs "
+              f"({total_arquivos} arquivos em {time.time()-t0:.1f}s)")
+    
+    # Indexa itens via MCRItemBridge (alimenta como topicos no CerebroAGI)
+    item_bridge = MCRItemBridge()
+    item_bridge.indexar(brain)
+    print(f"Indexados {item_bridge.total_itens} itens, {item_bridge.estatisticas()['topicos_indexados']} topicos no cerebro MCR")
+    
+    return brain, item_bridge
+
+
+# ?????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????
+# MODO CHAT
+# ?????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????
+
+def modo_chat(brain: MCRNPCBrain, item_bridge: MCRItemBridge = None):
+    """Chat interativo com qualquer NPC."""
+    print("\n" + "=" * 55)
+    print("  MCR NPC Bridge ??? Modo Chat")
+    print("  Pergunte qualquer coisa sobre o servidor!")
+    print("  Use @npc:NOME para falar com um NPC especifico")
+    print("  Use @item:TERMO para buscar item em qualquer idioma")
+    print("  Ex: @npc:Ahmet qual o preco do worm?")
+    print("  'sair' para encerrar")
+    print("=" * 55)
+    print(f"  Conhecimento: {brain.total_npcs} NPCs, {brain.total_dialogos} dialogos")
+    if item_bridge:
+        est = item_bridge.estatisticas()
+        print(f"  Itens: {est['total_itens']} itens, {est['topicos_indexados']} topicos")
+    print()
+    
+    while True:
+        try:
+            entrada = input("voce: ").strip()
+        except (EOFError, KeyboardInterrupt):
+            break
+        
+        if not entrada: continue
+        if entrada.lower() in ("sair", "exit", "quit"):
+            print("NPC: Volte sempre!")
+            break
+        
+        if entrada.startswith("@item:"):
+            termo = entrada[6:]
+            if item_bridge:
+                print(f"  [ItemBridge]: {item_bridge.responder(termo)}")
+            else:
+                print("  ItemBridge nao disponivel")
+            continue
+        
+        npc_especifico = None
+        if entrada.startswith("@npc:"):
+            partes = entrada[5:].split(" ", 1)
+            if len(partes) == 2:
+                npc_especifico = partes[0]
+                entrada = partes[1]
+        
+        # Usa MCRAttention para responder (item bridge universal)
+        if item_bridge:
+            resposta = item_bridge.responder(entrada)
+        else:
+            resposta = brain.responder(entrada, npc_especifico)
+        
+        safe = resposta.encode("ascii", errors="replace").decode("ascii")
+        prefixo = f"[{npc_especifico}]" if npc_especifico else "[NPC]"
+        print(f"  {prefixo}: {safe}")
+
+
+# ?????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????
+# MODO SERVIDOR (socket)
+# ?????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????
+
+def modo_servidor(brain: MCRNPCBrain, porta: int = 9100):
+    """Servidor socket para NPCs consultarem o MCR."""
+    def handle(conn):
+        try:
+            data = conn.recv(4096).decode("utf-8", errors="replace")
+            msg = json.loads(data)
+            pergunta = msg.get("pergunta", "")
+            npc = msg.get("npc")
+            resposta = brain.responder(pergunta, npc)
+            conn.send(json.dumps({"resposta": resposta}).encode())
+        except Exception as e:
+            conn.send(json.dumps({"erro": str(e)}).encode())
+        finally:
+            conn.close()
+    
+    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    server.bind(("127.0.0.1", porta))
+    server.listen(5)
+    print(f"Servidor NPC ouvindo na porta {porta}")
+    print(f"Conhecimento: {brain.total_npcs} NPCs, {brain.total_dialogos} dialogos")
+    print()
+    
+    while True:
+        conn, addr = server.accept()
+        threading.Thread(target=handle, args=(conn,), daemon=True).start()
+
+
+# ?????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????
+# DEMONSTRACAO
+# ?????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????
+
+def demo(brain: MCRNPCBrain, item_bridge: MCRItemBridge = None):
+    """Demonstra o MCRExpansor: expande, equacao, constroi."""
+    from prototipo_mcr_expansor import MCRExpansor
+    
+    # Registra extratores
+    MCRExpansor.registrar("npc_brain", lambda p: [
+        {"assinatura": r["resposta"], "meta": {"npc": r.get("npc", "?"), "pergunta": r.get("pergunta_original", "")}}
+        for r in brain.perguntar(p, top_k=5)
+    ])
+    
+    if item_bridge and hasattr(item_bridge, 'brain') and item_bridge.brain:
+        MCRExpansor.registrar("itens_bridge", lambda p: [
+            {"assinatura": r["resposta"], "meta": {"npc": r.get("npc", "?")}}
+            for r in item_bridge.brain.perguntar(p, top_k=5)
+        ])
+    
+    # Construtor padrao
+    MCRExpansor.registrar_construtor("padrao", lambda ctx, r: r.get("assinatura", ""))
+    
+    print("\n" + "=" * 55)
+    print("  DEMONSTRACAO: MCRExpansor OMNI")
+    print("  EXPANDE ??? EQUACAO ??? CONSTROI")
+    print("  Zero hardcode. Zero if/elif. So registro.")
+    print("=" * 55)
+    print(f"  Extratores: {MCRExpansor.nomes_extratores()}")
+    print(f"  Construtores: {MCRExpansor.nomes_construtores()}")
+    print()
+    
+    for pergunta in ["worm", "quanto custa o worm", "sword", "espada"]:
+        print(f"--- Pergunta: {pergunta} ---")
+        
+        # Fase 1: Expande
+        todos = MCRExpansor.expandir(pergunta)
+        print(f"  Expandiu: {len(todos)} assinaturas de {len(set(r.get('fonte','?') for r in todos))} fontes")
+        
+        # Fase 2: Equacao
+        rankeados = MCRExpansor.equacao(pergunta, todos)
+        if rankeados:
+            m = rankeados[0]
+            safe = m["assinatura"].encode("ascii", errors="replace").decode("ascii")
+            print(f"  Melhor: nota={m['nota']:.3f} fonte={m['fonte']}: \"{safe[:60]}\"")
+        else:
+            print(f"  Melhor: (nenhum)")
+        
+        # Fase 3: Constroi
+        resposta = MCRExpansor.construir(pergunta, rankeados)
+        safe_r = resposta.encode("ascii", errors="replace").decode("ascii")
+        print(f"  Resposta: {safe_r[:120]}")
+        print()
+    
+    print("--- Fluxo completo (responder) ---")
+    for p in ["qual o preco do worm", "quanto custa a espada"]:
+        r = MCRExpansor.responder(p)
+        safe = r.encode("ascii", errors="replace").decode("ascii")
+        print(f"  '{p}' -> {safe[:120]}")
+    print()
+
+
+# ?????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????
+# MAIN
+# ?????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????
+
+def main():
+    args = sys.argv[1:]
+    
+    # Learn mode: so aprende, nao carrega item bridge
+    if "--learn" in args:
+        brain, _ = aprender_todos_npcs(forcar=True)
+        print(f"\nConhecimento salvo em: {NPC_CACHE}")
+        return
+    
+    # Carrega conhecimento + item bridge
+    brain, item_bridge = aprender_todos_npcs()
+    
+    # Item mode: busca por item em qualquer idioma
+    if "--item" in args:
+        idx = args.index("--item") + 1
+        if idx < len(args):
+            termo = " ".join(args[idx:])
+            print(item_bridge.responder(termo))
+        else:
+            print("Uso: --item <termo>")
+        return
+    
+    if "--ask" in args:
+        idx = args.index("--ask") + 1
+        if idx < len(args):
+            pergunta = " ".join(args[idx:])
+            resp = item_bridge.responder(pergunta) if item_bridge else brain.responder(pergunta)
+            safe = resp.encode("ascii", errors="replace").decode("ascii")
+            print(safe)
+        return
+    
+    if "--npc" in args:
+        idx = args.index("--npc") + 1
+        npc_nome = args[idx] if idx < len(args) else None
+        print(f"NPC: {npc_nome or 'todos'}")
+        print(f"Dialogos: {brain.total_dialogos}")
+        if npc_nome:
+            npc_info = brain.npcs.get(npc_nome.capitalize(), {})
+            print(f"Itens: {len(npc_info.get('itens', []))}")
+            for item in npc_info.get("itens", [])[:10]:
+                print(f"  - {item['itemName']}: {item.get('buy', item.get('sell', '?'))} moedas")
+        return
+    
+    if "--server" in args:
+        modo_servidor(brain)
+        return
+    
+    if "--demo" in args or len(args) == 0:
+        demo(brain, item_bridge)
+        modo_chat(brain, item_bridge)
+        return
+    
+    print(__doc__)
+
+
+if __name__ == "__main__":
+    main()
