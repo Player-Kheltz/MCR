@@ -63,9 +63,9 @@ MCR requires:
 | **AGPL v3** | Research, personal use, open-source projects | **Free** |
 | **Commercial License** | Proprietary systems, closed-source products, enterprise servers | **Paid** |
 
-Under AGPL v3, if you modify MCR and use it on a network server, you **must** disclose the source code. If you cannot or don't want to, you need a commercial license.
+Under AGPL v3, if you modify MCR and use it on a network server, you **must** disclose the source code. If you cannot or don't want to, you need a **commercial license** — contact for pricing.
 
-See [LICENCA_COMERCIAL.md](LICENCA_COMERCIAL.md) for details and pricing.
+See [LICENCA_COMERCIAL.md](LICENCA_COMERCIAL.md) for details.
 
 ## Author
 

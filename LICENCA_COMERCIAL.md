@@ -54,16 +54,20 @@ Esta licenca comercial CONCEDE ao Licenciado o direito de:
 
 ### 5. TAXAS
 
-| Categoria | Taxa Anual | Inclui |
-|-----------|-----------|--------|
-| **Pessoa Fisica** (uso proprio, sem equipe) | R$ 97,00 | Licenca para uso pessoal comercial |
-| **MEI / Autonomo** (ate 1 funcionario) | R$ 497,00 | Licenca + suporte por email |
-| **Startup** (ate 10 funcionarios) | R$ 1.997,00 | Licenca + suporte prioritario |
-| **Empresa Media** (ate 50 funcionarios) | R$ 4.997,00 | Licenca + suporte + 2h de consultoria |
-| **Empresa Grande** (50+ funcionarios) | R$ 14.997,00 | Licenca + suporte dedicado + 8h de consultoria |
-| **Licenca Vitalicia** (qualquer porte) | R$ 49.997,00 | Licenca permanente + suporte vitalicio |
+Os valores das licencas comerciais sao definidos individualmente, conforme o porte, a natureza do uso e as necessidades especificas de cada Licenciado.
+
+| Categoria | Taxa |
+|-----------|------|
+| **Pessoa Fisica** | Sob consulta |
+| **MEI / Autonomo** | Sob consulta |
+| **Startup** | Sob consulta |
+| **Empresa Media** | Sob consulta |
+| **Empresa Grande** | Sob consulta |
+| **Licenca Vitalicia** | Sob consulta |
 
 **Formas de pagamento aceitas:** Pix, PayPal, Mercado Pago, Transferencia bancaria.
+
+Entre em contato para receber um orcamento personalizado para o seu caso.
 
 ---
 
