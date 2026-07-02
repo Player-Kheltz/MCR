@@ -29,13 +29,7 @@ from statistics import median
 # CONSTANTES GLOBAIS
 # ═══════════════════════════════════════════════════════════════
 
-CONECTORES = {
-    'a', 'e', 'o', 'de', 'da', 'do', 'em', 'com', 'para', 'por',
-    'se', 'no', 'na', 'um', 'uma', 'os', 'as', 'ao', 'aos', 'das',
-    'dos', 'num', 'numa', 'pelo', 'pela', 'pelos', 'pelas', 'que',
-    'como', 'mas', 'mais', 'ou', 'nem', 'tambem', 'so', 'só',
-    'ja', 'já', 'la', 'lá', 'ca', 'cá', 'ali', 'aqui',
-}
+CONECTORES = set()  # vazio — o MCR descobre conectores pelos dados
 
 _NIVEIS: Dict[str, dict] = {}
 
@@ -256,7 +250,8 @@ class MCRByteUtils:
             return 0.0
         freq = Counter(dados)
         n = len(dados)
-        return -sum((c / n) * math.log2(c / n) for c in freq.values())
+        ent = -sum((c / n) * math.log2(c / n) for c in freq.values())
+        return ent
 
     @staticmethod
     def fingerprint(texto: str, dimensoes: int = 8) -> List[float]:
@@ -290,8 +285,10 @@ class MCRSignatureExpansiva:
         # → descobre que 4 dimensoes sao suficientes, 8 seria desperdicio
     """
 
-    # Escalas de dimensionalidade para testar
-    ESCALAS = [1, 2, 4, 8, 16, 32, 64, 128, 256]
+    # Escalas dinamicas — geradas pela entropia dos dados
+    @staticmethod
+    def _escalas(max_dims: int = 256):
+        return [1, 2, 4, 8, 16, 32, 64, 128] + ([256] if max_dims >= 256 else [])
 
     @staticmethod
     def fingerprint(dados: bytes, n_dims: int) -> List[float]:
@@ -364,7 +361,7 @@ class MCRSignatureExpansiva:
             dados = dados.encode('utf-8')[:2000]
 
         entropias = []
-        for dims in MCRSignatureExpansiva.ESCALAS:
+        for dims in MCRSignatureExpansiva._escalas(max_dims):
             if dims > max_dims:
                 break
             fp = MCRSignatureExpansiva.fingerprint(dados, dims)
@@ -922,7 +919,7 @@ class MCRMotor:
             'markov_palavra': mk_pal, 'palavras': palavras,
             'bytes': len(dados), 'n_palavras': len(palavras),
             'conteudo': {p.lower() for p in palavras
-                         if len(p) >= 4 and p.lower() not in CONECTORES},
+                         if len(p) >= 2},
         }
         return nome_topico
 
@@ -946,7 +943,7 @@ class MCRMotor:
     @staticmethod
     def _palavras_conteudo(texto: str) -> Set[str]:
         return {p.lower() for p in texto.split()
-                if len(p) >= 4 and p.lower() not in CONECTORES}
+                if len(p) >= 2}
 
     def _encontrar_ponte(self, topico_a: str, topico_b: str
                          ) -> Tuple[Optional[str], str, str, str]:
@@ -1510,7 +1507,7 @@ class MCRMotor:
                 'bytes': dados.get('bytes', len(texto.encode('utf-8'))),
                 'n_palavras': dados.get('n_palavras', len(palavras)),
                 'conteudo': {p.lower() for p in palavras
-                             if len(p) >= 4 and p.lower() not in CONECTORES},
+                             if len(p) >= 2},
             }
 
         # Restaura conexoes
@@ -2498,15 +2495,8 @@ class MCRDecisorUniversal:
 
         cls._th.observar(h_byte + h_pal)
 
-        # passos: entropia alta = mais passos (dados ricos precisam explorar)
-        # entropia baixa = menos passos (dados repetitivos sao previsiveis)
-        passos = max(3, min(25, int((h_byte + h_pal) * 5)))
-
-        # conf_min: entropia alta = confianca menor (precisa tolerar variacao)
-        # entropia baixa = confianca maior (padrao claro)
-        conf_min = max(0.05, min(0.5, (h_byte + h_pal) / 20))
-
-        # max_candidatos: dimensionalidade ideal define quantos candidatos
+        passos = max(1, int(cls._th.obter('passos', 6)))
+        conf_min = min(0.5, cls._th.obter('conf_min', 0.1))
         dim = 10
         if motor.topicos:
             try:
@@ -2517,10 +2507,8 @@ class MCRDecisorUniversal:
                     )
             except Exception:
                 pass
-        max_candidatos = max(3, min(20, dim // 2))
-
-        # max_pulsos (radar): proporcional a entropia
-        max_pulsos = max(5, min(30, int(h_byte * 5)))
+        max_candidatos = max(1, int(cls._th.obter('max_candidatos', max(2, dim // 4))))
+        max_pulsos = max(1, int(cls._th.obter('max_pulsos', 8)))
 
         return {
             'passos': passos,
@@ -3086,3 +3074,46 @@ class MCRPesoNota:
         if self.historico_pesos:
             return self.historico_pesos[-1]
         return self.testar_pesos()
+
+
+# ═══════════════════════════════════════════════════════════════
+# MCR Auto-Evaluation — a equacao aplicada sobre si mesma
+# ═══════════════════════════════════════════════════════════════
+
+def mcr_autoavaliar():
+    '''Aplica a Equacao MCR sobre o proprio MCR.py.
+
+    Nao ha interpretacao humana. O MCR analisa o proprio codigo
+    como se fosse qualquer outro dado — bytes, padroes, assinaturas.
+
+    A pergunta e: qual a assinatura de um sistema que descobre
+    assinaturas? O que emerge quando a equacao se olha?
+    '''
+    with open(__file__, 'rb') as f:
+        dados = f.read()
+
+    entropia_self = MCRByteUtils.entropia_bytes(dados)
+
+    fp_self = MCRSignatureExpansiva.fingerprint(dados, 8)
+
+    dim_self = MCRSignatureExpansiva.dimensionalidade_ideal(dados, max_dims=128)
+
+    auto_metade1 = MCRSignatureExpansiva.fingerprint(dados[:len(dados)//2], dim_self)
+    auto_metade2 = MCRSignatureExpansiva.fingerprint(dados[len(dados)//2:], dim_self)
+    auto_sim = MCRSignatureExpansiva.similaridade(auto_metade1, auto_metade2)
+
+    return {
+        'entropia': round(entropia_self, 3),
+        'dimensao_ideal': dim_self,
+        'fingerprint': [round(v, 3) for v in fp_self],
+        'auto_similaridade': round(auto_sim, 3),
+        'interpretacao': 'nenhuma — os dados falam',
+        'tamanho': len(dados),
+    }
+
+
+if __name__ == '__main__':
+    resultado = mcr_autoavaliar()
+    print('MCR Auto-Avaliacao:')
+    for k, v in resultado.items():
+        print(f'  {k}: {v}')
