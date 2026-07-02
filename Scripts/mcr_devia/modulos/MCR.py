@@ -2155,6 +2155,8 @@ class MCRPergunta:
                     if not self._filtrar_lesson(sol, mk_filtro): continue
                     sol = self._limpar_texto(sol)
                     if sol and len(sol) > _MCR_THRESHOLD_TAMANHO.obter('min_alimento', 30):
+                        # Registra consumo desta lesson (MCR aprende o que e util)
+                        _registrar_consumo_global(sol)
                         self.conector.alimentar(sol, f"kg_{i}_{l.get('ctx', '?')}")
                         topicos_alimentados.append(f"kg_{i}")
                 estado['n_topicos'] = len(topicos_alimentados)
@@ -2821,6 +2823,33 @@ class MCRBridge:
 # MCR KG AUTO — Auto-categorizacao + Dedup
 # ============================================================
 
+# Markov de qualidade de lessons (aprende por consumo, nao regras)
+# Inicializacao lazy: so e populado no primeiro acesso
+_MK_QUALIDADE = None
+
+def _get_mk_qualidade():
+    """Retorna _MK_QUALIDADE (inicializa lazymente se necessario)."""
+    global _MK_QUALIDADE
+    if _MK_QUALIDADE is not None:
+        return _MK_QUALIDADE
+    _MK_QUALIDADE = MCR('qualidade_consumo')
+    # Seed: alguns exemplos para comecar
+    for _txt in ['SPA e o sistema de progressao',
+                 'Eridanus e a cidade inicial do projeto MCR',
+                 'O SHC gerencia habilidades']:
+        try:
+            _sig = MCRSignature.extrair(_txt, rapido=True)
+            _MK_QUALIDADE.aprender('_'.join(str(int(v*10)) for v in _sig['fingerprint'][:4]), 'UTIL')
+        except: pass
+    for _txt in ['{"nome": "teste", "valor": 123}',
+                 '_flush_20260101_000000']:
+        try:
+            _sig = MCRSignature.extrair(_txt, rapido=True)
+            _MK_QUALIDADE.aprender('_'.join(str(int(v*10)) for v in _sig['fingerprint'][:4]), 'LIXO')
+        except: pass
+    return _MK_QUALIDADE
+
+
 class MCRKGAuto:
     """Organiza o KG automaticamente: categoriza, dedup, limpa.
     
@@ -2847,84 +2876,35 @@ class MCRKGAuto:
     
     @staticmethod
     def _classificar_qualidade(sol: str) -> float:
-        """Classifica qualidade de uma lesson por MCRSignature (0 = lixo, 1 = util).
+        """Classifica qualidade de uma lesson por CONSUMO (nao regras).
         
-        Usa MCRSignature + deteccao de padroes reais de lixo observados.
+        MCR aprende o que e lixo pelo USO:
+        - Se uma lesson foi CONSUMIDA por MCRPergunta → UTIL
+        - Se NUNCA foi consumida → LIXO (inativa)
+        - Se e NOVA (nunca vista) → duvidosa (0.5) ate ser consumida
+        
+        Zero padroes hardcoded. Zero keywords.
         """
         if not sol or len(sol) < 10:
             return 0.0
         
         sig = MCRSignature.extrair(sol[:500], rapido=True)
-        ent = sig.get('entropia', 0)
-        est = sig.get('estados', 0)
-        
-        # Entropia muito baixa = sem estrutura = lixo
-        if ent < 0.3 and est < 5:
+        fp = sig.get('fingerprint', [])
+        if not fp:
             return 0.0
         
-        sol_lower = sol.lower().strip()
+        # Verifica no Markov de consumo: ja vi esta fingerprint?
+        fp_chave = '_'.join(str(int(v*10)) for v in fp[:4])
+        pred = _get_mk_qualidade().predizer(fp_chave)
         
-        # PADROES DE LIXO OBSERVADOS (extraidos de dados reais do KG)
-        # Nao sao regras fixas — sao assinaturas de lixo que identificamos
+        if pred[0] is not None and pred[1] > 0.2:
+            if pred[0] == 'UTIL':
+                return 0.9
+            elif pred[0] == 'LIXO':
+                return 0.1
         
-        # 1. except: pass / except: return / except: (codigo morto)
-        if sol_lower.startswith('except') and ('pass' in sol_lower or 'return' in sol_lower or 'continue' in sol_lower):
-            return 0.05
-        
-        # 2. resultado: True / resultado: False (runtime cru)
-        if sol_lower.startswith('resultado') and ('true' in sol_lower or 'false' in sol_lower):
-            return 0.05
-        
-        # 3. rota=..., score=... (debug de roteamento)
-        if sol_lower.startswith('rota='):
-            return 0.05
-        
-        # 4. Sucesso: True/False (auto_melhoria)
-        if sol_lower.startswith('sucesso:'):
-            return 0.05
-        
-        # 5. Tarefa concluida com sucesso em N/N passos
-        if 'tarefa concluida' in sol_lower:
-            return 0.05
-        
-        # 6. Jaccard=..., Cosseno=... (metricas comparacao)
-        if sol_lower.startswith('jaccard') or sol_lower.startswith('cos'):
-            return 0.05
-        
-        # 7. Solucao 0, Solucao 1... (testes)
-        if sol_lower.startswith('solucao ') and len(sol_lower) < 15:
-            return 0.05
-        
-        # 8. classes=..., total=N (auto_revisor)
-        if sol_lower.startswith('classes='):
-            return 0.05
-        
-        # 9. flush / _flush / flush_temp
-        if sol_lower == 'flush' or sol_lower.startswith('_flush') or 'flush_temp' in sol_lower:
-            return 0.0
-        
-        # 10. stdcpp20, find()!=npos (compilacao cru)
-        if sol_lower in ('stdcpp20',) or 'npos' in sol_lower:
-            return 0.05
-        
-        # 11. teste (sessions de teste)
-        if sol_lower == 'teste':
-            return 0.0
-        
-        # 12. Funcoes: ListaDeClasses (fuel_modulos cru)
-        if sol_lower.startswith('funcoes:'):
-            return 0.2
-        
-        # Para o que nao se encaixa, usa regras baseadas em vocabulario
-        palavras_reais = [w for w in sol.split() if len(w) > 3 and not w.isdigit()]
-        if len(palavras_reais) >= 10:
-            return 0.85
-        elif len(palavras_reais) >= 5:
-            return 0.65
-        elif len(palavras_reais) >= 2:
-            return 0.35
-        
-        return 0.2
+        # Nunca viu: duvidoso (mas nao lixo ainda)
+        return 0.5
     
     def categorizar(self) -> dict:
         """Categoriza lessons por prefixo do ctx + conteudo.
@@ -3022,6 +3002,26 @@ class MCRKGAuto:
         if removidos:
             self.kg.salvar()
         return {'removidos': removidos, 'mantidos': mantidos}
+    
+    def registrar_consumo(self, sol: str):
+        """Registra que uma lesson foi CONSUMIDA (utilizada para responder)."""
+        if not sol: return
+        _registrar_consumo_global(sol)
+        self.mk_cat.aprender("CONSUMO", sol[:20])
+
+
+def _registrar_consumo_global(sol: str):
+    """Registra consumo de uma lesson no Markov global de qualidade.
+    
+    Chame sempre que uma lesson for usada para responder.
+    MCR aprende: fingerprint desta lesson = UTIL.
+    """
+    if not sol: return
+    sig = MCRSignature.extrair(sol[:500], rapido=True)
+    fp = sig.get('fingerprint', [])
+    if fp:
+        fp_chave = '_'.join(str(int(v*10)) for v in fp[:4])
+        _get_mk_qualidade().aprender(fp_chave, 'UTIL')
     
     def organizar(self) -> dict:
         """Executa tudo: categoriza + dedup + limpa.
@@ -4861,15 +4861,25 @@ class MCRGeracao:
         for v in [0.2, 0.25, 0.3, 0.35, 0.28]:
             self.threshold.observar(v)
         self.mk = MCR("geracao")
+        self.mk_pred = MCR("geracao_pred")  # aprende: fp_pergunta → fp_resposta_boa
     
     def gerar(self, pergunta: str, max_tentativas: int = 3) -> dict:
         """Gera resposta validando assinatura a cada tentativa.
         
-        Se a assinatura da resposta nao condiz com a assinatura da pergunta,
-        MCRDecisor decide a estrategia de regeneracao.
+        MCR aprende: fingerprint da pergunta → fingerprint da boa resposta.
+        Usa essa predicao para guiar a geracao.
         """
-        # 1. Assinatura da pergunta
-        sig_pergunta = MCRSignature.extrair(pergunta)
+        # 1. Assinatura da pergunta (rapido = estilo)
+        sig_pergunta = MCRSignature.extrair(pergunta, rapido=True)
+        fp_pergunta = sig_pergunta.get('fingerprint', [])
+        fp_chave = '_'.join(str(int(v*10)) for v in fp_pergunta[:4]) if fp_pergunta else ''
+        
+        # Prediz fingerprint esperado para uma boa resposta
+        fp_resp_esperado = None
+        if fp_chave:
+            pred = self.mk_pred.predizer(fp_chave)
+            if pred[0] is not None and pred[1] > 0.3:
+                fp_resp_esperado = str(pred[0])
         
         melhor_resposta = ''
         melhor_comp = 0
@@ -4892,8 +4902,15 @@ class MCRGeracao:
             texto = self._executar_estrategia(pergunta, estrategia)
             
             # 4. Assinatura da resposta
-            sig_resposta = MCRSignature.extrair(texto)
+            sig_resposta = MCRSignature.extrair(texto, rapido=True)
             compatibilidade = MCRSignature.comparar(sig_pergunta, sig_resposta)
+            
+            # 4b. Se temos predicao, verifica compatibilidade com fingerprint esperado
+            if fp_resp_esperado and texto:
+                fp_resp = '_'.join(str(int(v*10)) for v in 
+                                   sig_resposta.get('fingerprint', [])[:4])
+                if fp_resp == fp_resp_esperado:
+                    compatibilidade = max(compatibilidade, 0.8)
             
             # 5. Autoavalia
             nota = self._autoavaliar(texto, pergunta, compatibilidade)
@@ -4906,6 +4923,13 @@ class MCRGeracao:
             # 6. Se compativel, entrega
             limiar = self.threshold.calcular(1.0)
             if compatibilidade >= limiar and nota >= 4:
+                # Aprende: fp_pergunta → fp_resposta (para futuras predicoes)
+                if fp_chave and texto and len(texto) > 30:
+                    fp_r = '_'.join(str(int(v*10)) for v in 
+                                    sig_resposta.get('fingerprint', [])[:4])
+                    if fp_r:
+                        self.mk_pred.aprender(fp_chave, fp_r)
+                
                 self.mk.aprender(f"GERADO:{pergunta}", 
                                 f"comp={compatibilidade:.2f} tent={tentativa}")
                 return {
