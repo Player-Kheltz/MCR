@@ -610,10 +610,11 @@ class MCRConexao:
         cadeia_b = len(mk_b.gerar(palavra, passos=5))
         profundidade = min(1.0, (cadeia_a + cadeia_b) / 10)
 
-        score = divergencia * 5 + especificidade * 3 + profundidade * 2
+        score = (divergencia * 5 + especificidade * 3 + profundidade * 2) / 10
         h_a = mk_a.entropia(palavra) if palavra in mk_a.freq else 0
         h_b = mk_b.entropia(palavra) if palavra in mk_b.freq else 0
-        score += min(0.5, (h_a + h_b) / 2 * 0.2)
+        score += min(0.5, (h_a + h_b) / 2 * 0.2) / 10
+        score = min(1.0, score)
 
         return score, {
             'divergencia': round(divergencia, 3),
@@ -629,8 +630,8 @@ class MCRConexao:
 
         pontes = []
         for byte_val in bytes_comuns:
-            pal_a = self._palavra_por_byte(topico_a, byte_val)
-            pal_b = self._palavra_por_byte(topico_b, byte_val)
+            pal_a = self._palavra_por_byte(self.motor, topico_a, byte_val)
+            pal_b = self._palavra_por_byte(self.motor, topico_b, byte_val)
             if not pal_a or not pal_b or pal_a.lower() == pal_b.lower():
                 continue
             score, det = self._avaliar_ponte(topico_a, topico_b, pal_a)
@@ -772,8 +773,8 @@ class MCRMotor:
             idx = texto_a.lower().find(pal_a.lower())
             byte_p = f"B:{texto_a.encode('utf-8')[max(0, idx)]:02x}" if idx >= 0 else (
                 f"B:{texto_a.encode('utf-8')[0]:02x}")
-            tipo = ('conteudo_compartilhado' if score >= 6.0
-                    else 'conteudo_mas_parcial' if score >= 3.0
+            tipo = ('conteudo_compartilhado' if score >= 0.6
+                    else 'conteudo_mas_parcial' if score >= 0.3
                     else 'byte_only')
             return byte_p, tipo, pal_a, pal_b
 
@@ -987,25 +988,29 @@ class MCRMotor:
         nota_token = nt_a + nt_b + nt_c
 
         # PENALIDADE
-        penalidade = {'conteudo_compartilhado': 1.0,
-                      'conteudo_mas_parcial': 0.7,
-                      'byte_only': 0.3}.get(tipo_ponte, 0.1)
+        # Valor = quanto descontar (0.0 = nada, 0.7 = 70%% de corte)
+        penalidade = {'conteudo_compartilhado': 0.0,
+                      'conteudo_mas_parcial': 0.3,
+                      'byte_only': 0.7}.get(tipo_ponte, 0.9)
 
-        nota = (nota_byte + nota_palavra + nota_token) * penalidade
+        nota = (nota_byte + nota_palavra + nota_token) * (1 - penalidade)
         nota = min(10.0, max(0.0, nota))
         self.threshold.observar(nota)
+
+        desconto_pct = int(penalidade * 100)
 
         return nota, {
             'byte': round(nota_byte, 2),
             'palavra': round(nota_palavra, 2),
             'token': round(nota_token, 2),
             'penalidade': penalidade,
+            'desconto': f"{desconto_pct}%%",
             'jaccard_a': round(j_a, 3),
             'jaccard_b': round(j_b, 3),
             'coerencia_byte': round(c_byte, 3),
             'coerencia_palavra': round(c_pal, 3),
             'nota_final': round(nota, 2),
-            'equacao': f"({nota_byte:.1f}+{nota_palavra:.1f}+{nota_token:.1f})x{penalidade}={nota:.1f}",
+            'equacao': f"({nota_byte:.1f}+{nota_palavra:.1f}+{nota_token:.1f})x(1-{penalidade:.1f})={nota:.1f}",
         }
 
     @staticmethod
