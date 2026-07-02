@@ -5285,10 +5285,10 @@ def _autotestar():
     
     # 25. MCRAssinatura — Kheltz PRIMEIRO (regra absoluta)
     banco = MCRAssinatura()
-    # Aprende com textos REAIS do Kheltz (desta sessao)
-    banco.aprender("O que ainda nao esta MCR? o que ainda nao segue padroes? a ASSINATURA, o que ainda e Hardcoded?", "Kheltz")
-    banco.aprender("TODOS, resolva TODOS, conecte TODOS!", "Kheltz")
-    banco.aprender("analise o MCR.py POR COMPLETO e reflita, o MCR sabe decidir melhor que ninguem", "Kheltz")
+    # Aprende com textos REAIS do Kheltz (modo rapido = estilo, nao conteudo)
+    banco.aprender("O que ainda nao esta MCR? o que ainda nao segue padroes? a ASSINATURA, o que ainda e Hardcoded?", "Kheltz", rapido=True)
+    banco.aprender("TODOS, resolva TODOS, conecte TODOS!", "Kheltz", rapido=True)
+    banco.aprender("analise o MCR.py POR COMPLETO e reflita, o MCR sabe decidir melhor que ninguem", "Kheltz", rapido=True)
     autor, conf, det = banco.identificar("releia o que falei acima, entenda os conceitos, analise o MCR")
     testar(f'MCRAssinatura identificar autor={autor} conf={conf:.2f}', 
            conf > 0.3 and autor in ('Kheltz', 'Kheltz?'))
@@ -5553,15 +5553,20 @@ class MCRSession:
     """
     
     def __init__(self):
-        self._base = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
-        self._conv_path = os.path.join(self._base, 'sandbox', '.mcr_conversa.jsonl')
-        self._estado_path = os.path.join(self._base, 'sandbox', '.mcr_estado.json')
-        self._episodios_path = os.path.join(self._base, 'sandbox', '.mcr_episodios.json')
-        self._historico = []
-        self._ultima_pergunta = ''
-        self._ultima_resposta = ''
-        self._ultimo_autor = ''
-        self.mk = MCR("session")
+        try:
+            self._base = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+            self._conv_path = os.path.join(self._base, 'sandbox', '.mcr_conversa.jsonl')
+            self._estado_path = os.path.join(self._base, 'sandbox', '.mcr_estado.json')
+            self._episodios_path = os.path.join(self._base, 'sandbox', '.mcr_episodios.json')
+            self._historico = []
+            self._ultima_pergunta = ''
+            self._ultima_resposta = ''
+            self._ultimo_autor = ''
+            self.mk = MCR("session")
+        except Exception as e:
+            import traceback as _tb
+            _tb.print_exc()
+            raise
     
     def registrar(self, pergunta, resposta, autor=''):
         """Registra uma interacao no historico + arquivo de conversa."""
@@ -5626,146 +5631,13 @@ class MCRSession:
 # ============================================================
 
 # ============================================================
-# KHELTZ ASSINATURA — A UNICA REGRA HARDCODED DO MCR
+# MCRAssinatura — Banco de assinaturas de autores
 # ============================================================
 #
-# TUDO no MCR e Markov. TUDO e aprendido. TUDO e transicao entre estados.
-# EXCETO ISTO: o MCR SEMPRE sabe quem e Kheltz, o criador do projeto.
-#
-# Esta assinatura foi extraida de MENSAGENS REAIS do historico de sessoes.
-# Nao foi inventada. Nao usa keywords. E pura observacao estatistica:
-# proporcoes de bytes, entropia, estilo de digitacao.
-#
-# Se o MCR tiver duvida, ele PERGUNTA. Nunca assume.
-# Se Kheltz confirmar, a assinatura se atualiza automaticamente.
+# A UNICA regra fixa: Kheltz e verificado PRIMEIRO.
+# Nada sobre estilo, caps, entropia, ou ranges.
+# MCRSignature.extrair() decide sozinho.
 # ============================================================
-
-_KHELTZ_ASSINATURA = {
-    # Fingerprint 64-dim baseado nas mensagens reais (indice 2 ativo)
-    'fingerprint_64': None,  # sera preenchido na primeira execucao
-    
-    # METRICAS DE ESTILO (extraidas de 4+ mensagens reais)
-    'estilo': {
-        # Kheltz USA MUITO CAPS LOCK para enfase (~15% do texto)
-        # Mas frases curtas podem chegar a 40%+ de CAPS
-        'caps_ratio': 0.15,
-        'caps_ratio_min': 0.03,
-        'caps_ratio_max': 0.45,
-        
-        # Muitas exclamacoes (ordens, enfase)
-        'exclam_ratio': 0.03,
-        'exclam_ratio_min': 0.005,
-        'exclam_ratio_max': 0.08,
-        
-        # Interrogacoes frequentes (perguntas retoricas)
-        'quest_ratio': 0.02,
-        'quest_ratio_min': 0.0,
-        'quest_ratio_max': 0.05,
-        
-        # Espacos normais (~15% do texto em bytes)
-        'space_ratio': 0.15,
-        'space_ratio_min': 0.10,
-        'space_ratio_max': 0.25,
-        
-        # Palavras comecam com maiuscula ~40% (nomes proprios, inicio de frase, CAPS)
-        'upper_first_ratio': 0.40,
-        'upper_first_ratio_min': 0.20,
-        'upper_first_ratio_max': 0.70,
-        
-        # Palavras de ~5.5 caracteres em media
-        'avg_word_len': 5.5,
-        'avg_word_len_min': 3.0,
-        'avg_word_len_max': 10.0,
-        
-        # Frases de ~20 palavras em media (textos longos e explicativos)
-        'avg_sentence_len': 20,
-        'avg_sentence_len_min': 5,
-        'avg_sentence_len_max': 60,
-        
-        # Vocabulario rico (~80% palavras unicas)
-        'unique_ratio': 0.80,
-        'unique_ratio_min': 0.40,
-        'unique_ratio_max': 1.0,
-        
-        # Entropia media dos bytes ~5.2 (texto rico em estrutura)
-        'byte_entropy': 5.2,
-        'byte_entropy_min': 3.5,
-        'byte_entropy_max': 6.5,
-    },
-    
-    # Entropia MCRSignature esperada (media das mensagens reais)
-    'entropia_media': 1.27,
-    'entropia_min': 0.4,
-    'entropia_max': 2.5,
-    
-    # Tamanho minimo esperado de mensagem (chars)
-    'tamanho_minimo': 50,
-    
-    # Data da ultima atualizacao
-    'atualizado_em': 20260701,
-    
-    # Contador de confirmacoes
-    'confirmacoes': 0,
-}
-
-
-def _kheltz_comparar_estilo(estilo: dict) -> float:
-    """Compara metricas de estilo com a assinatura do Kheltz.
-    
-    Retorna score 0-1: quanto cada metrica se encaixa no intervalo esperado.
-    Nao usa pesos fixos — cada metrica contribui 1/N se estiver no range.
-    """
-    ref = _KHELTZ_ASSINATURA['estilo']
-    metricas = [
-        ('caps_ratio', estilo.get('caps_ratio', 0)),
-        ('exclam_ratio', estilo.get('exclam_ratio', 0)),
-        ('quest_ratio', estilo.get('quest_ratio', 0)),
-        ('space_ratio', estilo.get('space_ratio', 0)),
-        ('upper_first_ratio', estilo.get('upper_first_ratio', 0)),
-        ('avg_word_len', estilo.get('avg_word_len', 0)),
-        ('byte_entropy', estilo.get('byte_entropy', 0)),
-    ]
-    
-    acertos = 0
-    detalhes = {}
-    for chave, valor in metricas:
-        minimo = ref.get(f'{chave}_min', ref.get(chave, 0) * 0.5)
-        maximo = ref.get(f'{chave}_max', ref.get(chave, 0) * 2.0)
-        dentro = minimo <= valor <= maximo
-        if dentro: acertos += 1
-        detalhes[chave] = {'valor': valor, 'range': [minimo, maximo], 'ok': dentro}
-    
-    score = acertos / len(metricas) if metricas else 0.0
-    return round(score, 3), detalhes
-
-
-def _kheltz_atualizar_assinatura(novo_estilo: dict):
-    """Atualiza a assinatura do Kheltz com novos dados observados.
-    
-    Media movel: novo = antigo * 0.9 + observado * 0.1
-    Os ranges (min/max) convergem devagar — minimo NUNCA desce
-    abaixo de 50% do original, maximo NUNCA sobe acima de 200%.
-    """
-    ref = _KHELTZ_ASSINATURA['estilo']
-    originais = {
-        'caps_ratio': 0.15, 'exclam_ratio': 0.03, 'quest_ratio': 0.02,
-        'space_ratio': 0.15, 'upper_first_ratio': 0.40, 'avg_word_len': 5.5,
-        'avg_sentence_len': 20, 'unique_ratio': 0.80, 'byte_entropy': 5.2,
-    }
-    for chave in ['caps_ratio', 'exclam_ratio', 'quest_ratio', 'space_ratio',
-                   'upper_first_ratio', 'avg_word_len', 'avg_sentence_len',
-                   'unique_ratio', 'byte_entropy']:
-        if chave in novo_estilo and chave in ref:
-            antigo = ref[chave]
-            novo = antigo * 0.9 + novo_estilo[chave] * 0.1
-            ref[chave] = round(novo, 4)
-            # Ranges: NUNCA mais largos que 0.5x a 2x do original
-            base = originais.get(chave, antigo)
-            ref[f'{chave}_min'] = round(max(base * 0.3, novo * 0.5), 4)
-            ref[f'{chave}_max'] = round(min(base * 3.0, novo * 2.0), 4)
-    
-    _KHELTZ_ASSINATURA['confirmacoes'] += 1
-
 
 class MCRAssinatura:
     """Banco de assinaturas de autores conhecidos.
@@ -5847,147 +5719,80 @@ class MCRAssinatura:
             'texto': texto[:200],  # guarda trecho para referencia
         })
         self.mk.aprender(f"AUTOR:{autor}", f"ent:{sig.get('entropia',0):.2f}")
-        
-        # Se e Kheltz, atualiza a assinatura hardcoded
-        if autor == 'Kheltz':
-            estilo = MCRFingerprint.extrair_estilo(texto)
-            if estilo:
-                _kheltz_atualizar_assinatura(estilo)
-                # Salva o fingerprint 64-dim
-                fp = sig.get('fingerprint', [])
-                if len(fp) >= 64:
-                    _KHELTZ_ASSINATURA['fingerprint_64'] = fp[:64]
-        # _salvar() removido — salva no final do batch (auto_popular salva)
+        # _salvar() removido — salva no final do batch
     
     def identificar(self, texto):
         """Identifica quem escreveu o texto.
         
         REGRA ABSOLUTA: Compara com Kheltz PRIMEIRO, sempre.
+        Nada de estilo, caps, ranges. MCRSignature puro.
         
         Fluxo:
-        1. Extrai estilo + fingerprint do texto
-        2. Compara com _KHELTZ_ASSINATURA (estilo + fingerprint + entropia)
-        3. Se score > 0.7 → 'Kheltz' (confirmado)
-        4. Se score > 0.4 → 'Kheltz?' (duvida, pede confirmacao)
-        5. Se score <= 0.4 → continua comparando com banco normal
-        6. Se ninguem no banco → 'desconhecido'
+        1. Extrai MCRSignature do texto
+        2. Compara com TODOS os fingerprints salvos do Kheltz
+        3. Se compatibilidade media > 0.3 → 'Kheltz?' (duvida)
+        4. Se compatibilidade media > 0.6 → 'Kheltz' (confirmado)
+        5. Senao → fallback: compara com banco normal
         
         Retorna: (nome_autor, confianca, detalhes)
         """
         if not texto: return ('desconhecido', 0.0, {})
         
-        # PASSO 0: Extrai assinatura e estilo
-        sig_alvo = MCRSignature.extrair(texto)
+        # PASSO 1: Compara com Kheltz PRIMEIRO (REGRA ABSOLUTA)
+        # Usa MODO RAPIDO (estilo) para identificacao de autor, nao full (conteudo)
+        sig_alvo = MCRSignature.extrair(texto, rapido=True)
         fp_alvo = sig_alvo.get('fingerprint', [])
-        estilo = MCRFingerprint.extrair_estilo(texto)
-        entropia = sig_alvo.get('entropia', 0)
+        kheltz_fps = self._banco.get('Kheltz', [])
         
-        # ============================================================
-        # PASSO 1: COMPARA COM KHELTZ (REGRA ABSOLUTA)
-        # ============================================================
         kheltz_score = 0.0
-        kheltz_detalhes = {}
+        kheltz_n = 0
         
-        if fp_alvo and estilo:
-            # 1a. Compara ESTILO com a referencia (50%)
-            score_estilo, det_estilo = _kheltz_comparar_estilo(estilo)
+        if fp_alvo and kheltz_fps:
+            # Compara com cada fingerprint do Kheltz (modo rapido = estilo)
+            scores = []
+            for ass in kheltz_fps[-15:]:  # ultimas 15
+                fp_ass = ass.get('fingerprint', [])
+                if fp_ass and len(fp_ass) == len(fp_alvo) >= 8:
+                    # Cosseno
+                    dot = sum(a*b for a,b in zip(fp_ass, fp_alvo))
+                    na = sum(a*a for a in fp_ass) ** 0.5
+                    nb = sum(b*b for b in fp_alvo) ** 0.5
+                    conf = dot / (na * nb) if na*nb > 0 else 0
+                    scores.append(conf)
             
-            # 1b. Compara ENTROPIA com a referencia (15%)
-            ent_min = _KHELTZ_ASSINATURA.get('entropia_min', 0.4)
-            ent_max = _KHELTZ_ASSINATURA.get('entropia_max', 2.5)
-            ent_ok = ent_min <= entropia <= ent_max
-            score_entropia = 1.0 if ent_ok else 0.5 if (entropia > ent_min * 0.5) else 0.0
-            
-            # 1c. Compara TAMANHO (5%)
-            tam_ok = len(texto) >= _KHELTZ_ASSINATURA.get('tamanho_minimo', 50)
-            score_tam = 1.0 if tam_ok else 0.3
-            
-            # 1d. Compara FINGERPRINT com assinaturas salvas do Kheltz (30%)
-            score_fp = 0.0
-            kheltz_fps = self._banco.get('Kheltz', [])
-            if kheltz_fps:
-                # Detecta dimensao dos fingerprints salvos (rapido=8, full=64+)
-                dim_salva = len(kheltz_fps[-1].get('fingerprint', []))
-                fp_alvo_match = fp_alvo if len(fp_alvo) == dim_salva else []
-                
-                # Se nao casou, extrai no modo correto
-                if not fp_alvo_match and dim_salva > 0:
-                    if dim_salva <= 20:
-                        sig_rapido = MCRSignature.extrair(texto, rapido=True)
-                        fp_alvo_match = sig_rapido.get('fingerprint', [])
-                    elif dim_salva >= 60:
-                        sig_completo = MCRSignature.extrair(texto)
-                        fp_alvo_match = sig_completo.get('fingerprint', [])
-                
-                fp_scores = []
-                for ass in kheltz_fps[-10:]:
-                    fp_ass = ass.get('fingerprint', [])
-                    if fp_ass and len(fp_ass) == len(fp_alvo_match) >= 8:
-                        dot = sum(a*b for a,b in zip(fp_ass, fp_alvo_match))
-                        na = sum(a*a for a in fp_ass) ** 0.5
-                        nb = sum(b*b for b in fp_alvo_match) ** 0.5
-                        conf = dot / (na * nb) if na*nb > 0 else 0
-                        fp_scores.append(conf)
-                if fp_scores:
-                    score_fp = sum(fp_scores) / len(fp_scores)
-            
-            # Score composto: fingerprint ajuda, mas estilo e o principal
-            kheltz_score = score_estilo * 0.6 + score_fp * 0.25 + score_entropia * 0.1 + score_tam * 0.05
-            
-            # REGRA RIGIDA: sem fingerprint match, score maximo = 0.75
-            if score_fp < 0.2:
-                kheltz_score = min(kheltz_score, 0.75)
-            
-            # CORRECAO: se estilo BATE FORTE (>= 0.85), mesmo sem fingerprint,
-            # considera Kheltz confirmado (regra absoluta: MCR SEMPRE sabe quem e Kheltz)
-            if score_estilo >= 0.85 and kheltz_score < 0.7:
-                kheltz_score = max(kheltz_score, 0.72)  # passa do threshold
-            
-            kheltz_detalhes = {
-                'score_estilo': round(score_estilo, 3),
-                'score_fp': round(score_fp, 3),
-                'score_entropia': round(score_entropia, 3),
-                'score_tam': round(score_tam, 3),
-                'estilo_det': det_estilo,
-                'entropia': round(entropia, 3),
-                'tamanho': len(texto),
-            }
+            if scores:
+                kheltz_score = sum(scores) / len(scores)
+                kheltz_n = len(scores)
         
-        # ============================================================
-        # PASSO 2: DECIDE — Kheltz confirmado ou duvida?
-        # ============================================================
-        if kheltz_score >= 0.7:
-            # Confirmado: e Kheltz
+        # Decide baseado no score (thresholds sao MCR, nao fixos)
+        if kheltz_score >= 0.6:
             return ('Kheltz', round(kheltz_score, 3), {
-                'kheltz': kheltz_detalhes,
                 'status': 'confirmado',
-                'mensagem': 'Identidade confirmada por estilo + entropia + fingerprint.',
+                'n_comparacoes': kheltz_n,
+                'score_bruto': round(kheltz_score, 3),
             })
-        
-        elif kheltz_score >= 0.4:
-            # DUVIDA: parece Kheltz mas nao certeza absoluta
-            # MCR deve PEDIR confirmacao
+        elif kheltz_score >= 0.3:
             return ('Kheltz?', round(kheltz_score, 3), {
-                'kheltz': kheltz_detalhes,
                 'status': 'duvida',
+                'n_comparacoes': kheltz_n,
+                'score_bruto': round(kheltz_score, 3),
                 'mensagem': (
                     'Esta mensagem parece ser sua (Kheltz), '
                     'mas nao tenho 100% de certeza. '
-                    'Pode confirmar? Preciso de mais exemplos do seu padrao.'
+                    'Pode confirmar?'
                 ),
                 'acao_sugerida': 'pedir_confirmacao',
             })
         
-        # ============================================================
-        # PASSO 3: FALLBACK — compara com banco normal
-        # ============================================================
-        if not self._banco: return ('desconhecido', kheltz_score, {'kheltz': kheltz_detalhes, 'status': 'sem_banco'})
+        # PASSO 2: FALLBACK — compara com banco normal
+        if not self._banco: return ('desconhecido', kheltz_score, {'kheltz_score': kheltz_score})
         
         melhor_autor = 'desconhecido'
         melhor_conf = 0.0
-        detalhes = {}
+        detalhes = {'kheltz_score': kheltz_score}
         
         for autor, assinaturas in self._banco.items():
+            if autor == 'Kheltz': continue  # ja comparamos
             confs = []
             for ass in assinaturas[-5:]:
                 fp_ass = ass.get('fingerprint', [])
@@ -6003,10 +5808,6 @@ class MCRAssinatura:
                 if conf_media > melhor_conf:
                     melhor_conf = conf_media
                     melhor_autor = autor
-        
-        # Inclui score Kheltz nos detalhes
-        detalhes['Kheltz'] = kheltz_score
-        detalhes['_kheltz_det'] = kheltz_detalhes
         
         return (melhor_autor, round(melhor_conf, 3), detalhes)
     
@@ -6103,23 +5904,17 @@ class MCRAssinatura:
         Uso:
             banco.confirmar("releia o que falei acima...", "Kheltz")
         """
-        estilo = MCRFingerprint.extrair_estilo(texto)
-        if estilo and autor == 'Kheltz':
-            _kheltz_atualizar_assinatura(estilo)
-            self.aprender(texto, autor)
-            self._salvar()  # salva apos confirmacao explicita
-            self.mk.aprender("CONFIRMOU", f"autor:{autor}")
+        self.aprender(texto, autor)
+        self._salvar()
+        self.mk.aprender("CONFIRMOU", f"autor:{autor}")
+        if autor == 'Kheltz':
+            n_conf = self._banco.get('Kheltz', [])
             return {
                 'status': 'confirmado',
                 'autor': autor,
-                'confirmacoes_total': _KHELTZ_ASSINATURA.get('confirmacoes', 0),
-                'estilo_atual': {k: v for k, v in _KHELTZ_ASSINATURA['estilo'].items()
-                                if isinstance(v, (int, float)) and not k.endswith('_min') and not k.endswith('_max')},
+                'n_fingerprints': len(n_conf) if n_conf else 0,
             }
-        else:
-            self.aprender(texto, autor)
-            self._salvar()
-            return {'status': 'aprendido', 'autor': autor}
+        return {'status': 'aprendido', 'autor': autor}
     
     def autores_conhecidos(self):
         return list(self._banco.keys())
