@@ -2811,12 +2811,25 @@ class MCRFuel:
         self.motor = motor
         self.total_encontrados = 0
 
-    def buscar_arquivos(self, diretorio: str, ext: str = '*.lua', max_n: int = 20) -> int:
-        """Busca arquivos por extensao e alimenta no motor."""
+    def buscar_arquivos(self, diretorio: str, ext: str = '', max_n: int = 20) -> int:
+        """Busca arquivos por extensao e alimenta no motor.
+        Se ext for vazio, DESCOBRE as extensoes do diretorio."""
         import glob as _glob
         encontrados = 0
-        padrao = os.path.join(diretorio, f'**/*.{ext}') if ext != '*' else os.path.join(diretorio, '**/*')
-        for fpath in sorted(_glob.glob(padrao, recursive=True))[:max_n]:
+
+        if not ext:
+            # Auto-descobre extensoes do diretorio
+            exts = set()
+            for f in os.listdir(diretorio)[:200]:
+                if '.' in f:
+                    exts.add(f.split('.')[-1].lower())
+            exts = list(exts)[:10]  # Top 10
+        else:
+            exts = [ext]
+
+        for e in exts:
+            padrao = os.path.join(diretorio, f'**/*.{e}')
+            for fpath in sorted(_glob.glob(padrao, recursive=True))[:max_n]:
             try:
                 with open(fpath, 'r', encoding='utf-8', errors='replace') as f:
                     conteudo = f.read(3000)
@@ -2846,10 +2859,16 @@ class MCRFuel:
         return encontrados
 
     def buscar_conceito(self, termo: str, diretorio_base: str) -> int:
-        """Busca um conceito especifico em todos os arquivos."""
+        """Busca um conceito especifico em todos os arquivos — sem extensoes fixas."""
         import glob as _glob
         encontrados = 0
-        for ext in ['*.py', '*.lua', '*.md', '*.txt']:
+        # Auto-descobre extensoes do diretorio
+        exts_vistas = set()
+        for f in os.listdir(diretorio_base)[:100]:
+            if '.' in f:
+                exts_vistas.add(f'*.{f.split(\".\")[-1].lower()}')
+        exts = list(exts_vistas)[:8] if exts_vistas else ['*']
+        for ext in exts:
             padrao = os.path.join(diretorio_base, f'**/{ext}')
             for fpath in sorted(_glob.glob(padrao, recursive=True))[:30]:
                 try:
@@ -3706,28 +3725,28 @@ class MCRComandos:
         fuel = MCRFuel(self.motor)
         projeto = os.path.join(os.path.dirname(__file__), '..')
 
-        # Varre MULTIPLAS extensoes em MULTIPLOS diretorios
-        extensoes = ['py', 'lua', 'txt', 'md', 'json', 'xml', 'html', 'cpp', 'c', 'h', 'js', 'css', 'yaml', 'yml', 'cfg', 'ini', 'conf', 'sh', 'bat', 'sql']
+        # Varre TODOS os diretorios, descobre extensoes automaticamente
         diretorios_alvo = []
         for item in os.listdir(projeto):
             caminho = os.path.join(projeto, item)
-            if os.path.isdir(caminho) and not item.startswith('.'):
+            if os.path.isdir(caminho) and not item.startswith('.') and not item.startswith('__'):
                 diretorios_alvo.append(caminho)
 
-        for raiz in diretorios_alvo[:10]:  # Top 10 diretorios
-            for ext in extensoes:
-                if self.motor.mk_palavra.total > 5000:
-                    return encontrados
-                n = fuel.buscar_arquivos(raiz, ext, 20)
-                encontrados += n
+        for raiz in diretorios_alvo[:15]:
+            if self.motor.mk_palavra.total > 5000:
+                return encontrados
+            # Passa ext vazio para auto-descobrir
+            n = fuel.buscar_arquivos(raiz, '', 30)
+            encontrados += n
 
         return encontrados
 
     # ─── COMANDOS DE EXPLORACAO ─────────────────────────────
 
-    def explorar(self, diretorio: str = '.', ext: str = '*.py') -> Dict:
+    def explorar(self, diretorio: str = '', ext: str = '') -> Dict:
+        diretorio = diretorio or os.path.join(os.path.dirname(__file__), '..')
         fuel = MCRFuel(self.motor)
-        n = fuel.buscar_arquivos(diretorio, ext)
+        n = fuel.buscar_arquivos(diretorio, ext, 50)
         return {'encontrados': n, 'topicos': len(self.motor.topicos)}
 
     def weblearn(self, termo: str = '') -> Dict:
