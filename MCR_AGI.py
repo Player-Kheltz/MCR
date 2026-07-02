@@ -86,7 +86,7 @@ class MCR:
         ords = sorted(self.transicoes[a].items(), key=lambda x: -x[1])
         t = self.freq[a]
         return [(tok, cnt/t) for tok, cnt in ords[:n]]
-    def gerar(self, semente, passos=2):
+    def gerar(self, semente, passos=0):
         seq, at = [semente], semente
         for _ in range(passos):
             p, c = self.predizer(at)
@@ -136,7 +136,7 @@ class MCRByteUtils:
         f = Counter(dados); n = len(dados)
         return -sum((c/n)*math.log2(c/n) for c in f.values())
     @staticmethod
-    def delta_fingerprint(a, b, dim=1):
+    def delta_fingerprint(a, b, dim=0):
         fa = MCRByteUtils.fingerprint(a, dim); fb = MCRByteUtils.fingerprint(b, dim)
         return [fb[i]-fa[i] for i in range(dim)]
 
@@ -875,9 +875,14 @@ class MCRExpansor:
         return res
     @classmethod
     def equacao(cls, pergunta, resultados):
-        fp = MCRByteUtils.fingerprint(pergunta)
+        fp_p = MCRByteUtils.fingerprint(pergunta)
         for r in resultados:
-            r["nota"] = MCRByteUtils.similaridade_cosseno(fp, MCRByteUtils.fingerprint(r.get("assinatura",""))) if r.get("assinatura") else 0.0
+            ass = r.get("assinatura","")
+            if not ass:
+                r["nota"] = 0.0; continue
+            s_fp = MCRByteUtils.similaridade_cosseno(fp_p, MCRByteUtils.fingerprint(ass))
+            s_jc = MCRByteUtils.jaccard_bytes(pergunta, ass)
+            r["nota"] = s_fp * 0.5 + s_jc * 0.5
         return sorted(resultados, key=lambda x: -x.get("nota",0))
     @classmethod
     def construir(cls, pergunta, melhores):
@@ -896,6 +901,10 @@ class MCRExpansor:
         return "\n".join(partes) if partes else "Nada encontrado."
     @classmethod
     def responder(cls, pergunta):
+        """Responde expandindo, equacionando e construindo.
+        A resposta e a assinatura mais similar encontrada.
+        Se os dados foram alimentados em linguagem natural,
+        a assinatura ja e uma resposta completa."""
         todos = cls.expandir(pergunta); rank = cls.equacao(pergunta, todos)
         resp = cls.construir(pergunta, rank)
         # Remove duplicatas consecutivas
@@ -1113,22 +1122,33 @@ class MCRSuperLoop:
         self.cerebro = cerebro or CerebroAGI(); self.brain = brain
         self.geracao = 0; self.hist_fitness: Dict[str, List[float]] = {}
         self.rodando = True; self.codex = MCRCodex(); self.genesis = MCRGenesis(self.cerebro)
-        self.perguntas_teste = ["worm", "preco", "sword", "onde", "quanto", "ajuda", "item"]
         MCRExpansor.registrar("cerebro", lambda p: [
             {"assinatura": dados.get("texto",""), "meta": {"topico": nome}}
-            for nome, dados in list(self.cerebro.topicos.items())[:10]
+            for nome, dados in list(self.cerebro.topicos.items())[:30]
         ])
         if self.brain:
             MCRExpansor.registrar("npc", lambda p: [
                 {"assinatura": r["resposta"], "meta": {"npc": r.get("npc","?")}}
                 for r in self.brain.perguntar(p, top_k=5)
             ])
-        MCRExpansor.registrar_construtor("natural", lambda ctx, r:
-            r.get("assinatura","").replace("custa","custa").replace("moedas.","moedas.")
-            if "custa" in r.get("assinatura","") else r.get("assinatura",""))
+    def _descobrir_perguntas_teste(self):
+        """Descobre perguntas de teste dos proprios topicos do cerebro.
+        Zero hardcode. O cerebro define o que e relevante."""
+        perguntas = []
+        for nome, dados in self.cerebro.topicos.items():
+            texto = dados.get("texto","")
+            if "?" in texto:
+                perguntas.append(texto.split("?")[0].strip()[:30])
+            if len(perguntas) >= 5:
+                break
+        if not perguntas:
+            primeiros = list(self.cerebro.topicos.keys())[:5]
+            perguntas = [p[:20] for p in primeiros]
+        return perguntas or ["teste"]
     def _medir_fitness(self, nome, ext_fn):
+        perguntas = self._descobrir_perguntas_teste()
         acertos, diversidade = 0, 0
-        for p in self.perguntas_teste:
+        for p in perguntas:
             try:
                 res = ext_fn(p) if callable(ext_fn) else None
             except: res = None
@@ -1136,7 +1156,7 @@ class MCRSuperLoop:
                 acertos += 1
                 unicos = len(set(str(r.get("assinatura","")) for r in res))
                 diversidade += unicos
-        return (acertos/len(self.perguntas_teste))*0.6 + (diversidade/max(acertos,1))*0.4
+        return (acertos/len(perguntas))*0.6 + (diversidade/max(acertos,1))*0.4 if perguntas else 0.5
     def ciclo(self):
         self.geracao += 1
         for nome, fn in list(MCRExpansor._ext.items()):
@@ -1158,7 +1178,7 @@ class MCRSuperLoop:
                             self.codex.substituir(caminho, h["linha"], h["param"], novo)
                         except: pass
             except: pass
-        if self.geracao % 50 == 0:
+        if self.geracao % 10 == 0:
             try:
                 diag = self.genesis.diagnosticar()
                 if diag.get("gaps"):
@@ -1196,23 +1216,117 @@ def aprender_npcs(forcar=False):
         print("Nenhum NPC encontrado. O MCR funciona sem NPCs normalmente.")
     return brain
 
+# ═══════════════════════════════════════════════════════════════════
+# [22b] MCRConversa — Conversa organica via Markov
+# ═══════════════════════════════════════════════════════════════════
+
+class MCRConversa:
+    """Conversa organica: o historico vira contexto, o Markov continua.
+    
+    Nao ha logica de resposta. Nao ha if/elif para entender o usuario.
+    O Markov apenas continua o padrao do dialogo.
+    
+    Uso:
+        conv = MCRConversa(cerebro)
+        conv.perguntar("qual o maior modelo?")
+        conv.perguntar("e qual o menor?")  # entende contexto
+    """
+    def __init__(self, cerebro, max_historico=10):
+        self.cerebro = cerebro
+        self.max_historico = max_historico
+        self.historico: List[str] = []
+        self._boas_vindas()
+    
+    def _boas_vindas(self):
+        self.historico.append(
+            "Ola! Sou o MCR. Pode me perguntar sobre qualquer coisa!"
+        )
+    
+    def perguntar(self, texto: str) -> str:
+        """Pergunta → conhecimento → resposta natural."""
+        texto = texto.strip()
+        if not texto:
+            return ""
+        
+        # Busca conhecimento puro (expansor sem contaminacao do historico)
+        conhecimento = MCRExpansor.responder(texto)
+        tem_conhecimento = conhecimento and conhecimento != texto and len(conhecimento) > 5
+        # So aceita se o conhecimento nao for do proprio historico da conversa
+        if tem_conhecimento and (conhecimento.startswith("> ") or conhecimento.startswith("< ")):
+            tem_conhecimento = False
+        
+        # Se tem conhecimento, usa ele como resposta direta
+        if tem_conhecimento:
+            resp = conhecimento.split("(fonte:")[0].strip()
+            # Remove duplicatas
+            palavras = resp.split()
+            unicas = []
+            for p in palavras:
+                if not unicas or p != unicas[-1]:
+                    unicas.append(p)
+            resp = " ".join(unicas)
+            if len(resp) > 200:
+                resp = resp[:resp.rfind(".", 0, 200)+1] if "." in resp[:200] else resp[:200]
+        else:
+            # Sem conhecimento: tenta gerar com Markov
+            ctx = " ".join(self.historico[-4:])
+            prompt = f"{ctx} {texto}"
+            gerado = self.cerebro.gerar(prompt, passos=8, pergunta=texto)
+            resp = gerado[len(prompt):].strip() if gerado.startswith(prompt) else gerado
+            if not resp or len(resp) < 3:
+                resp = f"Nao sei responder sobre '{texto}'."
+        
+        self.historico.append(f"> {texto}")
+        self.historico.append(f"< {resp}")
+        self.cerebro.alimentar(f"> {texto} < {resp}", f"conv_{hash(texto+resp)%10000}")
+        
+        # Alimenta contexto do sistema a cada 3 respostas
+        if len(self.historico) % 6 == 0:
+            self.cerebro.alimentar(
+                f"agora sao {time.strftime('%H:%M:%S')} do dia {time.strftime('%d/%m/%Y')}",
+                "tempo_atual"
+            )
+        
+        return resp
+    
+    def ultimas(self, n=3):
+        """Retorna as ultimas N mensagens."""
+        return self.historico[-n*2:]
+    
+    def resumo(self):
+        return f"Conversa: {len(self.historico)//2} trocas, {len(self.historico)} mensagens"
+
+
 def chat_loop(cerebro, brain):
+    conversa = MCRConversa(cerebro)
+    
     print("\n" + "=" * 55)
-    print("  MCR_AGI — Chat Universal")
-    print("  Pergunte o que quiser. Zero hardcode.")
+    print("  MCR_AGI — Conversa Organica")
+    print("  O Markov continua o dialogo. Zero if/elif.")
     print("  'sair' para encerrar")
     print("=" * 55)
     if brain: print(f"  NPCs: {brain.total_npcs}, Dialogos: {brain.total_dialogos}")
-    print(f"  Extratores: {MCRExpansor.nomes_extratores()}" if hasattr(MCRExpansor, 'nomes_extratores') else "")
+    print(f"  Conhecimento: {len(cerebro.topicos)} topicos, {cerebro.mk_byte.total} bytes")
     print()
+    
+    # Mostra mensagem de boas-vindas
+    print(f"  {conversa.historico[0]}")
+    print()
+    ultimo_resp = ""
+    desde = time.time()
+    
     while True:
         try: e = input("voce: ").strip()
         except (EOFError, KeyboardInterrupt): print("\nAte logo!"); break
         if not e: continue
         if e.lower() in ("sair","exit","quit"): print("Ate logo!"); break
+        
         if e.startswith("/status"):
-            s = cerebro.auto_diagnosticar(); print(f"  Topicos: {s['topicos']}, Bytes: {s['bytes']}, Palavras: {s['palavras']}, Causais: {s['causais']}")
+            s = cerebro.auto_diagnosticar()
+            print(f"  {conversa.resumo()}")
+            print(f"  Topicos: {s['topicos']}, Bytes: {s['bytes']}, Palavras: {s['palavras']}, Causais: {s['causais']}")
             continue
+        
         if e.startswith("/npc:"):
             if brain:
                 r = brain.responder(e[5:])
@@ -1220,26 +1334,258 @@ def chat_loop(cerebro, brain):
                 print(f"  {safe}")
             else: print("  NPCs nao carregados.")
             continue
-        # Resposta pelo Expansor
-        r = MCRExpansor.responder(e)
-        safe = r.encode("ascii", errors="replace").decode("ascii")
-        print(f"  {safe[:200]}")
-        # Alimenta no cerebro
-        cerebro.alimentar(f"{e} {r[:100]}", f"chat_{cerebro.total_ciclos}")
-        cerebro.total_ciclos += 1
+        
+        if e.startswith("/historico"):
+            for msg in conversa.historico[-10:]:
+                print(f"  {msg[:100]}")
+            continue
+        
+        # Conversa organica
+        resp = conversa.perguntar(e)
+        safe = resp.encode("ascii", errors="replace").decode("ascii")
+        print(f"  {safe}")
+        
+        # Mostra aprendizado a cada 3 interacoes
+        if len(conversa.historico) % 6 == 0:
+            s = cerebro.auto_diagnosticar()
+            print(f"  [aprendizado: {s['topicos']} topicos, {s['bytes']} bytes]")
+
+# ═══════════════════════════════════════════════════════════════════
+# [23] Explorar — MCR explora, aprende e descobre sozinho
+# ═══════════════════════════════════════════════════════════════════
+
+def explorar_ollama(cerebro):
+    """MCR explora os arquivos do Ollama e descobre padroes.
+    Zero instrucoes: o MCR decide o que procurar."""
+    import sqlite3
+    log_dir = os.path.expanduser(r"~\AppData\Local\ollama")
+    db_path = os.path.join(log_dir, "db.sqlite")
+    print("\n[MCR] Explorando arquivos do Ollama...")
+
+    # 1. Alimenta banco SQLite
+    if os.path.exists(db_path):
+        con = sqlite3.connect(db_path)
+        c = con.cursor()
+        tables = c.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
+        for t in tables:
+            name = t[0]
+            rows = c.execute(f"SELECT * FROM \"{name}\" LIMIT 100").fetchall()
+            n_linhas = len(rows)
+            for r in rows[:10]:
+                cols_texto = " | ".join(str(v)[:200] for v in r if v)
+                if len(cols_texto) > 20:
+                    cerebro.alimentar(
+                        f"Na tabela {name} do banco SQLite do Ollama, uma linha contem: {cols_texto}. "
+                        f"Esta tabela tem {n_linhas} registros no total.",
+                        f"ollama_db_{name}_{hash(cols_texto)%10000}"
+                    )
+            cerebro.alimentar(
+                f"A tabela {name} do banco de dados do Ollama contem {n_linhas} registros. "
+                f"Ela armazena informacoes sobre {name}.",
+                f"ollama_db_desc_{name}"
+            )
+        con.close()
+        print(f"  Banco alimentado: {len(cerebro.topicos)} topicos")
+
+    # 2. Alimenta logs do servidor — em linguagem natural
+    for fname in sorted(os.listdir(log_dir)):
+        if "server" in fname and fname.endswith(".log"):
+            path = os.path.join(log_dir, fname)
+            with open(path, "r", encoding="utf-8", errors="replace") as f:
+                lines = f.readlines()
+            n_erros = len([l for l in lines if any(w in l.lower() for w in ["error","fail","panic","out of memory","context length","allocat"])])
+            n_runners = len([l for l in lines if "starting runner" in l or "llama_model_loader" in l or "load failed" in l.lower()])
+            primeiro_horario = ""
+            ultimo_horario = ""
+            for l in lines:
+                if "time=" in l and not primeiro_horario:
+                    primeiro_horario = l[l.find("time=")+5:l.find("time=")+21]
+                if "time=" in l:
+                    ultimo_horario = l[l.find("time=")+5:l.find("time=")+21]
+            
+            # Texto natural: descreve o log como uma frase
+            texto = (
+                f"O arquivo de log {fname} do servidor Ollama contem {len(lines)} linhas. "
+                f"Ele comeca em {primeiro_horario} e termina em {ultimo_horario}. "
+                f"Foram encontrados {n_erros} erros neste log, incluindo problemas de memoria e contexto. "
+                f"O modelo foi carregado {n_runners} vezes durante este periodo. "
+                f"O servidor estava rodando continuamente."
+            )
+            cerebro.alimentar(texto, f"ollama_resumo_{fname}")
+            
+            # Amostras de erro como frases individuais
+            erros = [l for l in lines if any(w in l.lower() for w in ["error","fail","panic","out of memory","context length","allocat"])]
+            for e in erros[:30]:
+                cerebro.alimentar(f"ERRO no Ollama: {e[:200]}", f"err_{fname}_{hash(e)%10000}")
+            
+            print(f"  Log {fname}: {len(lines)} linhas, {n_erros} erros, {n_runners} runners")
+
+    # Registra extrator que busca nos topicos do cerebro
+    MCRExpansor.registrar("ollama", lambda p: [
+        {"assinatura": d.get("texto",""), "meta": {"topico": n}}
+        for n, d in list(cerebro.topicos.items())[:20]
+    ])
+    print("  MCRExpansor: extrator 'ollama' registrado")
+
+def explorar_diretorio(cerebro, path):
+    """MCR explora um diretorio e descobre o que tem la."""
+    print(f"\n[MCR] Explorando diretorio: {path}")
+    n = 0
+    for root, dirs, files in os.walk(path):
+        for f in files:
+            if n >= 200:
+                break
+            ext = f.split(".")[-1].lower() if "." in f else ""
+            if ext in ("py","lua","txt","md","json","xml","html","cpp","hpp","c","h","js","ts","css","cfg","ini","log","csv"):
+                try:
+                    fp = os.path.join(root, f)
+                    with open(fp, "r", encoding="utf-8", errors="replace") as fh:
+                        ct = fh.read(2000)
+                    if len(ct) > 50:
+                        # Descreve o arquivo em linguagem natural
+                        rel = os.path.relpath(fp, path)[:60]
+                        cerebro.alimentar(
+                            f"O arquivo {rel} contem {len(ct)} caracteres. "
+                            f"Seu conteudo começa com: {ct[:200]}",
+                            f"dir_{n}_{f[:20]}"
+                        )
+                        n += 1
+                except: pass
+    print(f"  Alimentados {n} arquivos de {path}")
+
+def explorar(cerebro, alvo=None):
+    """MCR explora autonomamente: alimenta, descobre padroes, relata.
+    Zero instrucoes. O MCR decide o que e importante."""
+    print("\n" + "=" * 55)
+    print("  MCR EXPLORADOR AUTONOMO")
+    print("  O MCR vai explorar, aprender e descobrir sozinho.")
+    print("=" * 55)
+
+    t0 = time.time()
+
+    if alvo == "ollama":
+        explorar_ollama(cerebro)
+    elif alvo and os.path.isdir(alvo):
+        explorar_diretorio(cerebro, alvo)
+    elif alvo and os.path.isfile(alvo):
+        with open(alvo, "r", encoding="utf-8", errors="replace") as f:
+            ct = f.read(5000)
+        if len(ct) > 50:
+            cerebro.alimentar(ct[:3000], f"file_{os.path.basename(alvo)[:20]}")
+        print(f"  Alimentado arquivo: {alvo}")
+    else:
+        # Explora tudo que encontrar
+        for d in [os.path.expanduser(r"~\AppData\Local\ollama"),
+                  r"E:\Projeto MCR",
+                  os.path.dirname(__file__)]:
+            if os.path.exists(d):
+                explorar_diretorio(cerebro, d)
+                break
+
+    tempo = time.time() - t0
+    print(f"\n[MCR] Alimentacao concluida em {tempo:.2f}s")
+    print(f"[MCR] Conhecimento: {len(cerebro.topicos)} topicos, {cerebro.mk_byte.total} bytes, {cerebro.mk_palavra.total} palavras")
+    print()
+
+    # O MCR descobre o que aprendeu
+    print("=" * 55)
+    print("  O QUE O MCR DESCOBRIU")
+    print("=" * 55)
+    print()
+
+    # Auto-diagnostico
+    diag = cerebro.auto_diagnosticar()
+    print(f"  Topicos: {diag.get('topicos', len(cerebro.topicos))}")
+    print(f"  Bytes: {cerebro.mk_byte.total}")
+    print(f"  Palavras: {cerebro.mk_palavra.total}")
+    print(f"  Gaps detectados: {diag.get('gaps', [])}")
+    print(f"  Hardcodes: {diag.get('hardcodes', 0)}")
+    print()
+
+    # Gera perguntas que o MCR se faz — sem contaminar os topicos
+    topicos = list(cerebro.topicos.keys())
+    auto_perguntas = [
+        "oque tem de mais importante nesses dados",
+        "quais padroes voce encontrou",
+        "tem erros ou anomalias",
+        "oque voce recomenda fazer com isso",
+        "qual o resumo do que aprendeu",
+    ]
+    for p in auto_perguntas:
+        # Usa o cerebro diretamente para buscar similaridade
+        r = cerebro.gerar(p, 6, p)
+        # Se MCRExpansor tiver extratores registrados, tenta expandir
+        if MCRExpansor._ext:
+            expandido = MCRExpansor.responder(p)
+            if expandido and expandido != p and len(expandido) > len(p):
+                r = expandido
+        safe = r.encode("ascii", errors="replace").decode("ascii")[:200]
+        print(f"  [MCR] {p}:")
+        print(f"    {safe}")
+        print()
+
+    # Descobre clusters por fingerprint
+    if len(topicos) >= 10:
+        print("  [MCR] Agrupando topicos por similaridade...")
+        fp_topicos = {n: MCRByteUtils.fingerprint(cerebro.topicos[n].get("texto","")[:200]) for n in topicos}
+        clusters = {}
+        visitados = set()
+        for n1 in topicos:
+            if n1 in visitados: continue
+            cluster = [n1]
+            visitados.add(n1)
+            for n2 in topicos:
+                if n2 in visitados: continue
+                sim = MCRByteUtils.similaridade_cosseno(fp_topicos[n1], fp_topicos[n2])
+                if sim > 0.7:
+                    cluster.append(n2); visitados.add(n2)
+            clusters[n1[:30]] = [n[:20] for n in cluster[:5]]
+        print(f"  Clusters encontrados: {len(clusters)}")
+        for nome, membros in list(clusters.items())[:5]:
+            print(f"    Cluster '{nome}': {', '.join(membros)}")
+        print()
+
+    return {
+        "topicos": len(cerebro.topicos),
+        "bytes": cerebro.mk_byte.total,
+        "palavras": cerebro.mk_palavra.total,
+        "tempo": round(tempo, 2),
+        "clusters": len(clusters) if 'clusters' in dir() else 0,
+    }
+
 
 def main():
     args = sys.argv[1:]
     cerebro = CerebroAGI()
     brain = None
-    # Aprender NPCs se disponivel
-    if os.path.exists(r"E:\Projeto MCR\Canary\data-otservbr-global\npc") or "--aprender" in args:
-        brain = aprender_npcs(forcar="--aprender" in args)
-    # Iniciar SuperLoop em background
+
+    if "--aprender" in args:
+        brain = aprender_npcs(forcar=True)
+        print(f"\nConhecimento salvo em: {NPC_CACHE}")
+        return
+
+    # Modo explorar: MCR descobre sozinho
+    if "--explorar" in args:
+        idx = args.index("--explorar") + 1
+        alvo = args[idx] if idx < len(args) and not args[idx].startswith("--") else None
+        explorar(cerebro, alvo)
+        # Inicia SuperLoop para continuar evoluindo
+        sl = MCRSuperLoop(cerebro, brain)
+        t = threading.Thread(target=sl.iniciar_loop, daemon=True)
+        t.start()
+        print(f"SuperLoop evolui em background enquanto voce pergunta.\n")
+        chat_loop(cerebro, brain)
+        return
+
+    # Carrega NPCs
+    if os.path.exists(r"E:\Projeto MCR\Canary\data-otservbr-global\npc"):
+        brain = aprender_npcs()
+
+    # Iniciar SuperLoop
     sl = MCRSuperLoop(cerebro, brain)
     t = threading.Thread(target=sl.iniciar_loop, daemon=True)
     t.start()
-    print(f"SuperLoop iniciado (thread: {t.name})")
+
     if "--ask" in args:
         idx = args.index("--ask")+1
         if idx < len(args):
@@ -1247,12 +1593,14 @@ def main():
             r = MCRExpansor.responder(p) if MCRExpansor._ext else cerebro.gerar(p, 6, p)
             print(r.encode("ascii", errors="replace").decode("ascii"))
         return
+
     if "--daemon" in args:
         print("Modo daemon. Pressione Ctrl+C para parar.")
         try:
             while True: time.sleep(1)
         except KeyboardInterrupt: print("\nParando...")
         return
+
     chat_loop(cerebro, brain)
 
 if __name__ == "__main__":
