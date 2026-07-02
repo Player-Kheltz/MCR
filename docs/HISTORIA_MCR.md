@@ -8,7 +8,7 @@
 
 Tudo começou com um servidor customizado de Tibia (OTServ Canary). O Projeto MCR era um ecossistema completo: NPCs, quests, sistemas de progressão (SPA), habilidades contextuais (SHC), montarias combatentes (MountSummon), tradução C++ para português, sistema de pronomes, e dezenas de guias de documentação.
 
-Dentro desse ecossistema, um arquivo começou a crescer: `MCR.py`. Inicialmente era apenas mais um módulo — MarkovUniversal, algumas classes para análise de padrões. Mas algo nele era diferente dos outros módulos.
+Dentro desse ecossistema, nasceu a necessidade de criar um sistema inteligente para automatizar NPCs, diálogos, e conhecimento. Surgiu o **MCR-DevIA** — um sistema AGI que usava LLM como cérebro. Inicialmente era apenas uma ideia: "e se eu pudesse ter um assistente que entende o projeto inteiro?". Dessa ideia, o arquivo `MCR.py` começou a crescer dentro do MCR-DevIA.
 
 ---
 
@@ -85,11 +85,13 @@ MCR-DevIA foi descontinuado como sistema LLM. Mas:
 MCR.py: 7043 linhas, 40+ classes
 ```
 
-O MCR original tinha classes para tudo: `MCRSystem`, `MCRDecisor`, `MCRGeracao`, `MCRSession`, `MCRSignature`, `MCRSelfHeal`, `MCRWebLearn`. Era um sistema AGI-like que usava Markov em múltiplos níveis — bytes, palavras, tokens, intenções, decisões, ações.
+O MCR.py original (dentro do MCR-DevIA) tinha classes para tudo: `MCRSystem`, `MCRDecisor`, `MCRGeracao`, `MCRSession`, `MCRSignature`, `MCRSelfHeal`, `MCRWebLearn`. Era um sistema AGI-like que usava Markov em múltiplos níveis — bytes, palavras, tokens, intenções, decisões, ações — MAS ainda dependia de LLM (DeepSeek/Ollama) para as decisões mais complexas.
 
-Mas era um sistema **fragmentado**. Dependia de LLM (via Ollama), de PatternEngine, de módulos externos. Cada classe era uma ilha. O código tinha 7043 linhas, cheio de hardcodes, dependências, e sistemas que só funcionavam juntos por acidente.
+O Markov era usado como apoio: pré-processamento, classificação rápida, geração de candidatos. O LLM ainda era o cérebro principal. Cada pergunta passava por um pipeline que chamava o LLM, e o Markov apenas auxiliava.
 
-Um dia, o autor olhou para aquele sistema e perguntou: **"E se tudo fosse a mesma equação?"**
+Mas o sistema era **fragmentado**. Dependia de LLM (via Ollama), de PatternEngine, de módulos externos. Cada classe era uma ilha. O código tinha 7043 linhas, cheio de hardcodes, dependências, e sistemas que só funcionavam juntos por acidente. O autoteste levava 165 segundos e frequêntemente timeoutava.
+
+Um dia, o autor olhou para aquele sistema e perguntou: **"E se o Markov fizesse TUDO? E se a gnt substituísse o LLM inteiro?"**
 
 ---
 
@@ -127,7 +129,9 @@ Commits: 8ac69f5d → b0845ebb
 
 O salto: unificar tudo num arquivo só, com uma única equação.
 
-### Nascimento da Equação MCR
+### Primeira Versão da Equação
+
+No protótipo, a equação era uma fórmula ponderada:
 
 ```python
 PONTE_OTIMA = (5D + 3E + 2P) / 10
@@ -421,33 +425,31 @@ Ciclo 3: 0 hardcodes — MCR puro
 
 ## O Estado Atual
 
-### Arquivo: `MCR.py` (~3100 linhas, 129KB)
+### Arquivo: `MCR_AGI.py` (~950 linhas, 40KB)
 
 | Métrica | Valor |
 |---|---|
-| Linhas de código | ~3100 |
-| Classes | 1 (MCR + módulos função) |
+| Linhas de código | ~950 |
+| Classes | 1 (MCR) + módulos utilitários |
 | Dependências | **0** (stdlib puro) |
 | GPU necessária? | **Não** |
-| Tamanho | **129KB** (17KB sem comentários) |
+| Tamanho | **40KB** |
 | Custo operacional | **R$ 0** |
-| Formatos suportados | **Qualquer** (texto, áudio, imagem, binário, código) |
-| Collatz vs baseline | **10x melhor** |
-| Primos vs baseline | **44x melhor** |
+| Níveis registrados | byte, palavra, decisao, threshold, assinatura, qualidade |
+| Módulos construídos sobre a equação | Mundo, Ações, NLP, Atenção, Planejamento, Q-Learning, Memória, Auto-modificação |
 
 ### O que o MCR faz (sumário):
 
-1. **Analisa** qualquer dado com `entropia_bytes()` + `fingerprint()` + `dimensionalidade_ideal()`
-2. **Conecta** tópicos distantes com `MCRConexao` (ponte ótima entre cadeias Markov)
-3. **Gera** conteúdo novo com `gerar_por_assinatura()` (cada token maximiza a Equação MCR)
-4. **Autoavalia** com a mesma equação que gerou
-5. **Decide** os próprios parâmetros com `MCRDecisorUniversal` + `MCRThreshold`
-6. **Persiste** a própria experiência com `salvar()` + `carregar()`
-7. **Escaneia** o próprio código com `mcr_detectar_hardcodes()`
-8. **Diagnostica** os próprios gaps com `MCRMeta.diagnosticar()`
-9. **Aprende** com feedback do usuário com `MCRFeedback`
-10. **Busca** conhecimento ativamente com `MCRFuel` + `MCRWebLearn`
-11. **Quebra loops** com `MCRRadar` (pulsos omnidirecionais avaliados pela Equação MCR)
+1. **Aprende** QUALQUER sequência com `MCR(nivel).aprender(a, b)`
+2. **Prediz** o próximo estado com `MCR(nivel).predizer(a)`
+3. **Gera** novas sequências com `MCR(nivel).gerar(semente, passos)`
+4. **Compara** qualquer texto com `MCR.jaccard_bytes(a, b)`
+5. **Mede** incerteza com `MCR.entropia(a)`
+6. **Classifica** tokens com `MCR.classificar_token(t)`
+7. **Registra** novos níveis com `MCR.registrar_nivel(nome, config)`
+8. **Persiste** estado com `MCRSession`
+9. **Descobre** o próprio código com `MCRSegmentador`
+10. **Paraleliza** tarefas com `MCRSpawner`
 
 ---
 
