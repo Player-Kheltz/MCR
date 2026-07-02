@@ -3695,34 +3695,32 @@ class MCRComandos:
     # ─── AUTO-CACA (MCR busca conhecimento sozinho) ────────
 
     def _auto_cacar_conhecimento(self, termo: str = '') -> int:
-        """MCR caca conhecimento automaticamente se estiver 'faminto'.
-        Busca .lua em CLIENTE/SERVIDOR, depois termos especificos."""
+        """MCR caca QUALQUER conhecimento disponivel — sem pastas ou extensoes fixas.
+        Varre todos os diretorios do projeto, todos os tipos de arquivo.
+        A Equacao MCR decide o que e util pelo Jaccard com o termo."""
         encontrados = 0
-        if self.motor.mk_palavra.total > 2000:
+        if self.motor.mk_palavra.total > 5000:
             return 0
 
         import glob as _glob
         fuel = MCRFuel(self.motor)
         projeto = os.path.join(os.path.dirname(__file__), '..')
 
-        # Busca .lua nos diretorios com CODIGO FONTE real
-        for nome_dir in ['Canary', 'data', 'OTClient', 'Scripts']:
-            raiz = os.path.join(projeto, nome_dir)
-            if os.path.exists(raiz):
-                n = fuel.buscar_arquivos(raiz, 'lua', 200 if nome_dir == 'Canary' else 50)
+        # Varre MULTIPLAS extensoes em MULTIPLOS diretorios
+        extensoes = ['py', 'lua', 'txt', 'md', 'json', 'xml', 'html', 'cpp', 'c', 'h', 'js', 'css', 'yaml', 'yml', 'cfg', 'ini', 'conf', 'sh', 'bat', 'sql']
+        diretorios_alvo = []
+        for item in os.listdir(projeto):
+            caminho = os.path.join(projeto, item)
+            if os.path.isdir(caminho) and not item.startswith('.'):
+                diretorios_alvo.append(caminho)
+
+        for raiz in diretorios_alvo[:10]:  # Top 10 diretorios
+            for ext in extensoes:
+                if self.motor.mk_palavra.total > 5000:
+                    return encontrados
+                n = fuel.buscar_arquivos(raiz, ext, 20)
                 encontrados += n
 
-        if self.motor.mk_palavra.total > 800:
-            return encontrados
-
-        # Se ainda faminto, busca termos
-        for t in ([termo] if termo else ['function', 'local', 'npc']):
-            if self.motor.mk_palavra.total > 1200:
-                break
-            for nome_dir in ['Canary', 'data', 'Scripts']:
-                raiz = os.path.join(projeto, nome_dir)
-                if os.path.exists(raiz):
-                    encontrados += fuel.buscar_conceito(t, raiz)
         return encontrados
 
     # ─── COMANDOS DE EXPLORACAO ─────────────────────────────
