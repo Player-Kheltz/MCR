@@ -247,8 +247,11 @@ class MCRByteUtils:
         return dot / (na * nb)
 
     @staticmethod
-    def entropia_bytes(texto: str) -> float:
-        dados = texto.encode('utf-8')[:500]
+    def entropia_bytes(dados) -> float:
+        if isinstance(dados, str):
+            dados = dados.encode('utf-8')[:500]
+        else:
+            dados = bytes(dados)[:500]
         if len(dados) < 2:
             return 0.0
         freq = Counter(dados)
