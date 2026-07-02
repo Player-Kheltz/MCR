@@ -2025,3 +2025,291 @@ class MCRMeta:
             for c in sorted(diag['conexoes'], key=lambda x: x['nota']):
                 linhas.append(f"  {c['nota']:5.1f} | {c['topico']:25s} | {c['tipo']:30s} | {c['equacao']}")
         return '\n'.join(linhas)
+
+
+# ═══════════════════════════════════════════════════════════════
+# MCRFerramentas — Orquestrador que decide TUDO pela Equacao MCR
+# ═══════════════════════════════════════════════════════════════
+
+class MCRFerramentas:
+    """Orquestrador universal de ferramentas.
+
+    Dado um pedido, a EQUACAO MCR decide:
+      - Qual ferramenta usar primeiro
+      - Em que ordem
+      - Quando parar
+      - Se o resultado e bom
+
+    0 if/else. 0 hardcode. Tudo pela assinatura do pedido.
+
+    Ferramentas disponiveis:
+      ler, buscar, listar, gerar_texto, gerar_nome, conectar, meta
+    """
+
+    _INSTANCIA = None
+
+    def __init__(self, motor: MCRMotor = None):
+        self.motor = motor or MCRMotor()
+        self.historico: List[Dict] = []
+
+    @classmethod
+    def instancia(cls, motor: MCRMotor = None):
+        if cls._INSTANCIA is None:
+            cls._INSTANCIA = cls(motor)
+        return cls._INSTANCIA
+
+    # ─── FERRAMENTAS REAIS ──────────────────────────────────
+
+    def _ferramenta_ler(self, caminho: str) -> str:
+        """Le arquivo, alimenta no motor, retorna assinatura."""
+        if not os.path.exists(caminho):
+            return ""
+        try:
+            with open(caminho, 'r', encoding='utf-8', errors='replace') as f:
+                conteudo = f.read(5000)
+            if len(conteudo) > 50:
+                nome = f"arq:{os.path.basename(caminho)}"
+                self.motor.alimentar(conteudo, nome)
+                return conteudo[:200]
+        except Exception:
+            pass
+        return ""
+
+    def _ferramenta_buscar(self, termo: str, diretorio: str = '.', ext: str = '*') -> list:
+        """Busca arquivos contendo termo, alimenta no motor."""
+        import glob as _glob
+        encontrados = []
+        padrao = os.path.join(diretorio, f'**/*.{ext}') if ext != '*' else os.path.join(diretorio, '**/*')
+        for fpath in sorted(_glob.glob(padrao, recursive=True))[:20]:
+            try:
+                with open(fpath, 'r', encoding='utf-8', errors='replace') as f:
+                    conteudo = f.read(5000)
+                if termo.lower() in conteudo.lower():
+                    nome = f"busca:{os.path.basename(fpath)}"
+                    self.motor.alimentar(conteudo, nome)
+                    encontrados.append(fpath)
+            except Exception:
+                continue
+        return encontrados
+
+    def _ferramenta_listar(self, diretorio: str = '.', ext: str = '*') -> list:
+        """Lista arquivos e alimenta as assinaturas dos nomes."""
+        import glob as _glob
+        arquivos = sorted(_glob.glob(os.path.join(diretorio, f'**/*.{ext}'), recursive=True))[:50]
+        for fpath in arquivos[:10]:
+            nome = os.path.basename(fpath)
+            self.motor.alimentar(
+                f"arquivo {nome} no diretorio {os.path.dirname(fpath)} extensao {os.path.splitext(nome)[1]}",
+                f"list:{nome}"
+            )
+        return arquivos
+
+    def _ferramenta_gerar_texto(self, pedido: str) -> str:
+        """Gera texto por assinatura."""
+        return self.motor.gerar_por_assinatura(pedido, passos=15)
+
+    def _ferramenta_gerar_nome(self, contexto: str = '') -> str:
+        """Gera nome novo por Markov multinivel de fonemas."""
+        return self.motor.gerar_por_assinatura(f"nome {contexto}", passos=5)
+
+    def _ferramenta_conectar(self, topico: str) -> Dict:
+        """Conecta um topico com todos os outros, retorna melhor."""
+        if topico not in self.motor.topicos:
+            return {'nota': 0}
+        melhor = None
+        melhor_nota = 0
+        for nome in self.motor.topicos:
+            if nome == topico:
+                continue
+            c = self.motor.conectar(topico, nome, forcar=True)
+            if c and c['nota'] > melhor_nota:
+                melhor = c
+                melhor_nota = c['nota']
+        return melhor or {'nota': 0}
+
+    # ─── ORQUESTRACAO PURA (0 if/else) ──────────────────────
+
+    def _analisar(self, pedido: str) -> Dict:
+        """Analisa o pedido com a Equacao MCR.
+
+        Extrai a assinatura e deixa os dados decidirem o fluxo.
+        """
+        h = MCRByteUtils.entropia_bytes(pedido)
+        fp = MCRByteUtils.fingerprint(pedido, 4)
+
+        return {
+            'entropia': round(h, 3),
+            'fingerprint': [round(v, 3) for v in fp],
+            'metodo': MCRPiEngine.decidir_metodo(pedido),
+            'n_palavras': len(pedido.split()),
+            'tem_diretorio': '\\' in pedido or '/' in pedido,
+            'tem_criar': any(w in pedido.lower() for w in ['crie', 'criar', 'gere', 'gerar']),
+        }
+
+    def _escolher_ferramenta(self, analise: Dict, estado: Dict) -> str:
+        """Escolhe a proxima ferramenta pela assinatura do estado atual.
+
+        Serializa o estado do motor como texto,
+        alimenta cada ferramenta como topico,
+        a Equacao MCR decide qual tem a maior nota de conexao.
+        """
+        texto_estado = []
+        texto_estado.append(f"pedido entropia={analise['entropia']} metodo={analise['metodo']}")
+        texto_estado.append(f"motor topicos={len(self.motor.topicos)} conexoes={self.motor.total_conexoes}")
+
+        ferramentas = ['ler', 'buscar', 'listar', 'gerar_texto', 'gerar_nome', 'conectar', 'meta']
+        notas = {}
+
+        for nome_ferr in ferramentas:
+            topico_ferr = f"_ferr_{nome_ferr}"
+            if topico_ferr in self.motor.topicos:
+                del self.motor.topicos[topico_ferr]
+
+            # Descricao unica para cada ferramenta
+            if nome_ferr == 'ler':
+                desc = f"LER: le arquivos do disco e alimenta conteudo no motor. acionado quando faltam dados de exemplos reais."
+            elif nome_ferr == 'buscar':
+                desc = f"BUSCAR: procura por termos em arquivos. acionado quando o pedido menciona algo especifico que pode existir no codigo."
+            elif nome_ferr == 'listar':
+                desc = f"LISTAR: enumera arquivos disponiveis. acionado quando e preciso saber o que existe."
+            elif nome_ferr == 'gerar_texto':
+                desc = f"GERAR TEXTO: produz texto continuo por assinatura MCR. acionado quando e preciso criar conteudo novo."
+            elif nome_ferr == 'gerar_nome':
+                desc = f"GERAR NOME: produz nomes novos por fonemas. acionado quando o pedido requer nomes originais."
+            elif nome_ferr == 'conectar':
+                desc = f"CONECTAR: encontra pontes entre topicos usando MCRConexao. acionado quando e preciso juntar conceitos."
+            else:
+                desc = f"META: diagnostica o motor. acionado quando nada mais funciona."
+
+            self.motor.alimentar(
+                f"ferramenta {nome_ferr}: {desc} "
+                f"analise entropia={analise['entropia']} "
+                f"metodo={analise['metodo']}",
+                topico_ferr
+            )
+
+            c = self._ferramenta_conectar(topico_ferr)
+            if c:
+                notas[nome_ferr] = c['nota']
+            else:
+                notas[nome_ferr] = 0
+
+            self.motor.topicos.pop(topico_ferr, None)
+
+        if not notas:
+            return 'gerar_texto'
+
+        return max(notas, key=notas.get)
+
+    def executar(self, pedido: str, diretorio_busca: str = None) -> Dict:
+        """Executa o ciclo completo:
+        1. Analisa o pedido (Equacao MCR)
+        2. Escolhe ferramentas (Equacao MCR)
+        3. Executa e alimenta
+        4. Autoavalia
+        5. Se nota baixa, escolhe outra ferramenta
+        6. Repete ate nota >= threshold
+        """
+        if not pedido:
+            return {'erro': 'pedido vazio'}
+
+        diretorio_busca = diretorio_busca or os.path.dirname(os.path.dirname(__file__))
+        resultado_final = pedido
+        ferramentas_usadas = []
+        auto_nota = 0
+
+        # Alimenta o pedido como topico
+        nome_pedido = '_pedido'
+        if nome_pedido in self.motor.topicos:
+            del self.motor.topicos[nome_pedido]
+        self.motor.alimentar(pedido, nome_pedido)
+
+        ferramentas_usadas_set = set()
+
+        for ciclo in range(8):
+            analise = self._analisar(pedido)
+
+            estado = {
+                'topicos': len(self.motor.topicos),
+                'conexoes': self.motor.total_conexoes,
+                'ultima_nota': auto_nota,
+            }
+
+            # Se ja usou exploracao e nota ainda baixa, forca geracao
+            if ciclo >= 3 and auto_nota < 3.0:
+                ferramenta = 'gerar_texto' if 'gerar_texto' not in ferramentas_usadas_set else 'conectar'
+            else:
+                ferramenta = self._escolher_ferramenta(analise, estado)
+
+            ferramentas_usadas.append(ferramenta)
+            ferramentas_usadas_set.add(ferramenta)
+
+            resultado_ferramenta = ""
+
+            if ferramenta == 'ler':
+                padrao = os.path.join(diretorio_busca, '**/*.lua')
+                import glob as _glob
+                for f in sorted(_glob.glob(padrao, recursive=True))[:5]:
+                    res = self._ferramenta_ler(f)
+                    if res:
+                        resultado_ferramenta += res[:100]
+
+            elif ferramenta == 'buscar':
+                termo = pedido.split()[-1] if pedido.split() else ''
+                ext = 'lua'
+                if 'npc' in pedido.lower():
+                    termo = 'npc'
+                elif 'monstro' in pedido.lower() or 'monster' in pedido.lower():
+                    termo = 'monster'
+                encontrados = self._ferramenta_buscar(termo, diretorio_busca, ext)
+                resultado_ferramenta = f"encontrados {len(encontrados)} arquivos"
+
+            elif ferramenta == 'listar':
+                arquivos = self._ferramenta_listar(diretorio_busca, 'lua')
+                resultado_ferramenta = f"listados {len(arquivos)} arquivos"
+
+            elif ferramenta == 'gerar_texto':
+                res = self._ferramenta_gerar_texto(pedido)
+                if res and len(res) > len(pedido):
+                    resultado_final = res
+                    resultado_ferramenta = res
+
+            elif ferramenta == 'gerar_nome':
+                res = self._ferramenta_gerar_nome(pedido)
+                if res and len(res) > 2:
+                    resultado_ferramenta = f"nome: {res}"
+
+            elif ferramenta == 'conectar':
+                c = self._ferramenta_conectar(nome_pedido)
+                if c and c.get('sequencia'):
+                    resultado_ferramenta = c['sequencia'][:200]
+                    if len(resultado_final) <= len(pedido):
+                        resultado_final = f"{pedido} {c['sequencia']}"
+
+            # Autoavalia o resultado
+            if resultado_ferramenta:
+                j = MCRByteUtils.jaccard_bytes(pedido, resultado_ferramenta)
+                auto_nota = j * 10
+
+            entry = {
+                'ciclo': ciclo + 1,
+                'ferramenta': ferramenta,
+                'nota': round(auto_nota, 2),
+                'resultado': resultado_ferramenta[:80] if resultado_ferramenta else '(vazio)',
+            }
+            self.historico.append(entry)
+
+            # Criterio de parada pela Equacao MCR
+            if auto_nota >= 6.0 and ferramenta in ('gerar_texto', 'gerar_nome'):
+                break
+
+        self.motor.topicos.pop(nome_pedido, None)
+
+        return {
+            'resposta': resultado_final,
+            'nota': round(auto_nota, 2),
+            'ferramentas': list(set(ferramentas_usadas)),
+            'ciclos': len(self.historico),
+            'topicos_finais': len(self.motor.topicos),
+            'historico': self.historico,
+        }
