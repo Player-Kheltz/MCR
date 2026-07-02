@@ -3596,11 +3596,13 @@ class MCRComandos:
         return {'resposta': resultado, 'formato': formato}
 
     def gerar_npc(self, pedido: str = 'NPC') -> Dict:
+        self._auto_cacar_conhecimento('npc')
         resultado = self.gerador.gerar(f'crie um NPC {pedido}', 'codigo')
         v = self.validador.validar(resultado, 'function onSay')
         return {'resposta': resultado, 'valido': v['valido'], 'nota': v['nota']}
 
     def build(self, pedido: str = '') -> Dict:
+        self._auto_cacar_conhecimento('function')
         resultado = self.gerador.gerar(f'codigo {pedido}', 'codigo')
         blocos = self.builder.extrair(resultado)
         caminho = f'build_{self.total_execucoes}.txt'
@@ -3689,6 +3691,39 @@ class MCRComandos:
         return {'sugestao': diag.get('sugestao', 'alimentar mais dados'),
                 'gap': diag.get('gap_principal', 'desconhecido'),
                 'nota': diag.get('nota_geral', 0)}
+
+    # ─── AUTO-CACA (MCR busca conhecimento sozinho) ────────
+
+    def _auto_cacar_conhecimento(self, termo: str = '') -> int:
+        """MCR caca conhecimento automaticamente se estiver 'faminto'.
+        Busca .lua em CLIENTE/SERVIDOR, depois termos especificos."""
+        encontrados = 0
+        if self.motor.mk_palavra.total > 2000:
+            return 0
+
+        import glob as _glob
+        fuel = MCRFuel(self.motor)
+        projeto = os.path.join(os.path.dirname(__file__), '..')
+
+        # Busca .lua nos diretorios com CODIGO FONTE real
+        for nome_dir in ['Canary', 'data', 'OTClient', 'Scripts']:
+            raiz = os.path.join(projeto, nome_dir)
+            if os.path.exists(raiz):
+                n = fuel.buscar_arquivos(raiz, 'lua', 200 if nome_dir == 'Canary' else 50)
+                encontrados += n
+
+        if self.motor.mk_palavra.total > 800:
+            return encontrados
+
+        # Se ainda faminto, busca termos
+        for t in ([termo] if termo else ['function', 'local', 'npc']):
+            if self.motor.mk_palavra.total > 1200:
+                break
+            for nome_dir in ['Canary', 'data', 'Scripts']:
+                raiz = os.path.join(projeto, nome_dir)
+                if os.path.exists(raiz):
+                    encontrados += fuel.buscar_conceito(t, raiz)
+        return encontrados
 
     # ─── COMANDOS DE EXPLORACAO ─────────────────────────────
 

@@ -467,6 +467,15 @@ class Reconstructor:
         # 2. Remove paragrafos duplicados (similaridade > 0.7)
         if len(paragrafos) >= 2:
             from difflib import SequenceMatcher
+# MCRzificado: usa MCR quando disponivel, fallback para LLM
+import sys as _sys, os as _os
+_sys.path.insert(0, _os.path.join(_os.path.dirname(__file__), '..', '..', '..'))
+try:
+    from MCR import MCRMotor, MCRGenerator, MCRValidator, MCRBuilder, MCRPreencher, MCRReconstructor
+    _mcr = MCRMotor()
+    _TEM_MCR = True
+except ImportError:
+    _TEM_MCR = False
             unicos = [paragrafos[0]]
             for p in paragrafos[1:]:
                 eh_repetido = False

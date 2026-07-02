@@ -13,6 +13,15 @@ Uso:
 """
 import os, re, json, subprocess, tempfile
 from typing import Dict, List, Optional
+# MCRzificado: usa MCR quando disponivel, fallback para LLM
+import sys as _sys, os as _os
+_sys.path.insert(0, _os.path.join(_os.path.dirname(__file__), '..', '..', '..'))
+try:
+    from MCR import MCRMotor, MCRGenerator, MCRValidator, MCRBuilder, MCRPreencher, MCRReconstructor
+    _mcr = MCRMotor()
+    _TEM_MCR = True
+except ImportError:
+    _TEM_MCR = False
 
 BASE = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
 

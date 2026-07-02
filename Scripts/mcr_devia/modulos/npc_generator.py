@@ -421,6 +421,15 @@ class NPCGenerator:
         }
         sufixos = tipo_map.get(tipo, ['NPC'])
         import random
+# MCRzificado: usa MCR quando disponivel, fallback para LLM
+import sys as _sys, os as _os
+_sys.path.insert(0, _os.path.join(_os.path.dirname(__file__), '..', '..', '..'))
+try:
+    from MCR import MCRMotor, MCRGenerator, MCRValidator, MCRBuilder, MCRPreencher, MCRReconstructor
+    _mcr = MCRMotor()
+    _TEM_MCR = True
+except ImportError:
+    _TEM_MCR = False
         return random.choice(sufixos) + ' ' + random.choice(nomes_fallback)
     
     def _placeholders_por_tipo(self, tipo: str, descricao: str, base: Dict,
