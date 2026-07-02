@@ -1847,3 +1847,223 @@ class MCRBusca:
         if len(resposta) > 100:
             nota += 2
         return min(10, max(0, nota))
+
+
+# ═══════════════════════════════════════════════════════════════
+# MCRMeta — O MCR aplica a Equacao MCR sobre si mesmo
+# ═══════════════════════════════════════════════════════════════
+
+class MCRMeta:
+    """MCR aplicado sobre o PROPRIO MCR.
+
+    Usa a Equacao MCR para:
+      1. Diagnosticar gaps na propria arquitetura (byte/palavra/token)
+      2. Gerar melhorias (o que estudar, o que ajustar)
+      3. Validar as melhorias com a mesma equacao
+
+    Fluxo:
+        meta = MCRMeta()
+        diag = meta.diagnosticar(motor)
+        # → {'byte': {...}, 'palavra': {...}, 'token': {...},
+        #     'gap_principal': 'palavra', 'sugestao': 'estudar mais textos'}
+    """
+
+    PESOS_NIVEL = {'byte': 2, 'palavra': 5, 'token': 3}
+
+    @staticmethod
+    def diagnosticar(motor: MCRMotor) -> Dict:
+        """Aplica Equacao MCR no estado do motor.
+        
+        Cada nivel e avaliado em 3 metricas:
+          - cobertura: quantos estados unicos (0-10)
+          - entropia: imprevisibilidade (0-10, invertido)
+          - diversidade: transicoes por estado (0-10)
+        
+        Retorna dict com a nota de cada nivel e o gap principal.
+        """
+        if not motor:
+            return {'erro': 'motor vazio'}
+
+        resultados = {}
+        penalidade_total = 0.0
+
+        for nivel in ['byte', 'palavra', 'token']:
+            mk = getattr(motor, f'mk_{nivel}', None)
+            if not mk or mk.total == 0:
+                resultados[nivel] = {
+                    'nota': 0, 'cobertura': 0, 'entropia': 0,
+                    'diversidade': 0, 'diagnostico': 'vazio'
+                }
+                penalidade_total += 1.0
+                continue
+
+            peso = MCRMeta.PESOS_NIVEL.get(nivel, 1)
+
+            # Cobertura: quantos estados unicos tem (0-10)
+            n_estados = len(mk.freq)
+            cobertura = min(10, n_estados / 10) if nivel != 'byte' else min(10, n_estados / 5)
+
+            # Entropia: quanto menor, mais estruturado (0-10, invertido)
+            h = mk.entropia_media()
+            entropia = max(0, 10 - h * 3)
+
+            # Diversidade: transicoes por estado (0-10)
+            n_trans = sum(len(t) for t in mk.transicoes.values())
+            diver = min(10, n_trans / max(n_estados, 1) * 2)
+
+            nota_nivel = (cobertura + entropia + diver) / 3
+            nota_nivel = min(10, max(0, nota_nivel))
+
+            # Penalidade: se entropia muito alta ou muito baixa
+            penalidade_nivel = 0.0
+            if nivel == 'byte' and h < 0.5:
+                penalidade_nivel = 0.3  # muito repetitivo
+            elif nivel == 'byte' and h > 6:
+                penalidade_nivel = 0.3  # muito aleatorio
+            if nivel == 'palavra' and n_estados < 10:
+                penalidade_nivel = 0.3  # vocabulario pobre
+
+            penalidade_total += penalidade_nivel * peso / 10
+
+            resultados[nivel] = {
+                'nota': round(nota_nivel, 2),
+                'cobertura': round(cobertura, 2),
+                'entropia': round(entropia, 2),
+                'diversidade': round(diver, 2),
+                'peso': peso,
+                'estados': n_estados,
+                'transicoes': n_trans,
+                'entropia_bruta': round(h, 3),
+                'diagnostico': MCRMeta._diagnostico_nivel(nivel, nota_nivel, h, n_estados),
+            }
+
+        # Gap principal: nivel com menor nota
+        niveis_ordenados = sorted(resultados.items(), key=lambda x: x[1]['nota'])
+        gap_principal = niveis_ordenados[0][0] if niveis_ordenados else 'desconhecido'
+
+        # Nota geral do motor (Equacao MCR aplicada ao proprio motor)
+        notas_motor = sum(r['nota'] * r['peso'] for r in resultados.values())
+        pesos_total = sum(r['peso'] for r in resultados.values()) or 1
+        nota_geral = (notas_motor / pesos_total) * (1 - penalidade_total / 3)
+        nota_geral = min(10, max(0, nota_geral))
+
+        return {
+            'niveis': resultados,
+            'gap_principal': gap_principal,
+            'nota_geral': round(nota_geral, 2),
+            'penalidade_media': round(penalidade_total / 3, 3),
+            'sugestao': MCRMeta._gerar_sugestao(resultados, gap_principal),
+            'topico_mais_rico': MCRMeta._topico_mais_rico(motor),
+            'topico_mais_pobre': MCRMeta._topico_mais_pobre(motor),
+        }
+
+    @staticmethod
+    def _diagnostico_nivel(nivel: str, nota: float, entropia: float,
+                           estados: int) -> str:
+        """Gera diagnostico textual para um nivel."""
+        if nota >= 8:
+            return "EXCELENTE"
+        if nota >= 6:
+            gap = []
+            if nivel == 'byte' and entropia > 4:
+                gap.append("entropia alta — dados muito variados")
+            if nivel == 'palavra' and estados < 30:
+                gap.append("vocabulario pequeno — faltam palavras")
+            if nivel == 'token' and estados < 10:
+                gap.append("poucos tipos — estrutura repetitiva")
+            return "REGULAR: " + ', '.join(gap) if gap else "REGULAR"
+        if nota >= 3:
+            return "FRACO: precisa de mais dados"
+        return "CRITICO: nivel sem dados suficientes"
+
+    @staticmethod
+    def _gerar_sugestao(niveis: Dict, gap: str) -> str:
+        """Gera sugestao de melhoria baseada no gap."""
+        sugestoes = {
+            'byte': "Alimentar mais variedade de dados (diferentes fontes, formatos)",
+            'palavra': "Alimentar mais textos longos para expandir vocabulario",
+            'token': "Alimentar textos com estruturas variadas (perguntas, comandos, narrativas)",
+        }
+        return sugestoes.get(gap, "Alimentar mais dados em todas as dimensoes")
+
+    @staticmethod
+    def _topico_mais_rico(motor: MCRMotor) -> str:
+        """Topico com maior diversidade de estados."""
+        if not motor.topicos:
+            return "(nenhum)"
+        return max(motor.topicos.keys(),
+                   key=lambda n: motor.topicos[n]['markov'].stats()['transicoes'])
+
+    @staticmethod
+    def _topico_mais_pobre(motor: MCRMotor) -> str:
+        """Topico com menor diversidade de estados."""
+        if not motor.topicos:
+            return "(nenhum)"
+        return min(motor.topicos.keys(),
+                   key=lambda n: motor.topicos[n]['markov'].stats()['transicoes'])
+
+    @staticmethod
+    def auto_melhoria(motor: MCRMotor, max_iter: int = 5) -> Dict:
+        """Ciclo de auto-melhoria: diagnostica, sugere, o motor aprende.
+
+        Fluxo:
+          1. Diagnostica o motor atual
+          2. Identifica o gap principal
+          3. Sugere o que fazer
+          4. Se gap for 'palavra' e houver topicos pobres,
+             realimenta o topico pobre com mais contexto
+          5. Reavalia
+        """
+        historico = []
+        for ciclo in range(max_iter):
+            diag = MCRMeta.diagnosticar(motor)
+            nota_atual = diag['nota_geral']
+            historico.append({'ciclo': ciclo, 'nota': nota_atual, 'gap': diag['gap_principal']})
+
+            if nota_atual >= 9.0:
+                break
+
+            gap = diag['gap_principal']
+            if gap == 'palavra':
+                topico_pobre = diag['topico_mais_pobre']
+                if topico_pobre != '(nenhum)' and topico_pobre in motor.topicos:
+                    texto = motor.topicos[topico_pobre]['texto']
+                    motor.alimentar(texto * 2, f"{topico_pobre}_ref")
+            elif gap == 'byte':
+                pass  # precisa de dados externos
+            elif gap == 'token':
+                for nome in list(motor.topicos.keys())[:2]:
+                    orig = motor.topicos[nome]['texto']
+                    motor.alimentar("? " + orig, f"{nome}_q")
+
+        diag_final = MCRMeta.diagnosticar(motor)
+        return {
+            'historico': historico,
+            'nota_inicial': historico[0]['nota'] if historico else 0,
+            'nota_final': diag_final['nota_geral'],
+            'diagnostico_final': diag_final,
+            'melhoria': round(diag_final['nota_geral'] - (historico[0]['nota'] if historico else 0), 2),
+        }
+
+    @staticmethod
+    def relatorio(motor: MCRMotor) -> str:
+        """Relatorio completo do meta-diagnostico."""
+        diag = MCRMeta.diagnosticar(motor)
+        linhas = []
+        linhas.append("MCR META-DIAGNOSTICO")
+        linhas.append("=" * 50)
+        linhas.append(f"Nota geral do motor: {diag['nota_geral']}/10")
+        linhas.append(f"Gap principal: {diag['gap_principal']}")
+        linhas.append(f"Penalidade media: {diag['penalidade_media']}")
+        linhas.append(f"Sugestao: {diag['sugestao']}")
+        linhas.append("")
+        for nivel, dados in diag['niveis'].items():
+            linhas.append(f"  {nivel.upper()}: nota={dados['nota']}/10 | "
+                          f"estados={dados['estados']} | "
+                          f"transicoes={dados['transicoes']} | "
+                          f"H={dados['entropia_bruta']} | "
+                          f"diagnostico={dados['diagnostico']}")
+        linhas.append(f"")
+        linhas.append(f"Topico mais rico: {diag['topico_mais_rico']}")
+        linhas.append(f"Topico mais pobre: {diag['topico_mais_pobre']}")
+        return '\n'.join(linhas)
