@@ -1463,3 +1463,180 @@ class MCRPiEngine:
             f"  Modo predominante: "
             f"{'markov' if h_byte < 0.4 else 'byte' if h_byte < 0.65 else 'emergencia'}"
         )
+
+
+# ═══════════════════════════════════════════════════════════════
+# MCRBusca — Orquestrador de busca + geracao por assinatura
+# ═══════════════════════════════════════════════════════════════
+
+class MCRBusca:
+    """Orquestrador de busca multi-fonte + geracao por assinatura.
+
+    Dada uma pergunta:
+      1. Avalia entropia — se baixa, gera direto
+      2. Busca em todas as fontes disponiveis (sessao, topicos, arquivos)
+      3. Ranqueia por Jaccard de bytes
+      4. Alimenta conhecimento no motor
+      5. Gera resposta maximizando Equacao MCR
+      6. Autoavalia — se nota baixa, busca mais e regenera
+      7. Aprende — registra na sessao
+
+    Uso:
+        motor = MCRMotor()
+        motor.alimentar_json("dados.json")
+        session = MCRSession()
+        busca = MCRBusca()
+        resposta = busca.perguntar("Explique o que e SPA", motor, session)
+    """
+
+    def __init__(self):
+        self.fragmentador = MCRFragmentador("busca")
+        self.total_consultas = 0
+
+    def perguntar(self, texto: str, motor: MCRMotor,
+                  session: MCRSession = None, max_iter: int = 3) -> Dict:
+        """Responde a uma pergunta usando busca + geracao por assinatura.
+
+        Fluxo:
+          1. Entropia baixa (< 0.4): gera direto por assinatura
+          2. Entropia media/alta: busca em fontes, ranqueia, alimenta, gera
+          3. Autoavalia — se nota < 5, expande busca e regenera
+          4. Registra na sessao
+
+        Returns:
+            {'resposta': str, 'nota': float, 'fontes': List[str], 'ciclos': int}
+        """
+        self.total_consultas += 1
+        fontes_usadas = []
+        resposta = ""
+        melhor_nota = 0.0
+
+        for ciclo in range(max_iter):
+            self.fragmentador.limpar()
+
+            # 1. Avalia entropia
+            h = MCRPiEngine.avaliar_entropia(texto)
+
+            if h < 0.4:
+                # Entropia baixa: gera direto
+                self.fragmentador.adicionar("gerar_direto",
+                    MCRPiEngine._modo_markov, {'texto': texto, 'motor': motor, 'passos': 12})
+                self.fragmentador.executar_todos()
+                frag = self.fragmentador.fragmentos[0]
+                if frag.sucesso and frag.resultado:
+                    resposta = frag.resultado
+                    fontes_usadas.append('geracao_direta')
+            else:
+                # 2. Busca em multiplas fontes
+                resultados = self._buscar_tudo(texto, motor, session)
+
+                # 3. Ranqueia por assinatura (Jaccard)
+                top = self._ranquear(texto, resultados)
+
+                # 4. Alimenta os melhores no motor
+                for r in top[:3]:
+                    nome_fonte = f"busca_{r['fonte']}_{self.total_consultas}"
+                    if nome_fonte not in motor.topicos:
+                        motor.alimentar(r['texto'], nome_fonte)
+                        fontes_usadas.append(r['fonte'])
+
+                # 5. Gera resposta por assinatura
+                self.fragmentador.adicionar("gerar_resposta",
+                    motor.gerar_por_assinatura, {'texto': texto, 'passos': 15})
+                self.fragmentador.executar_todos()
+                frag = self.fragmentador.fragmentos[0]
+                if frag.sucesso and frag.resultado:
+                    resposta = frag.resultado
+
+            # 6. Autoavalia
+            nota = self._autoavaliar_resposta(texto, resposta, motor)
+            if nota > melhor_nota:
+                melhor_nota = nota
+
+            # Se ja esta bom, entrega
+            if nota >= 5.0 or resposta == texto:
+                break
+
+            # Se nota baixa, expande a pergunta com o que ja gerou
+            if ciclo < max_iter - 1 and resposta and len(resposta) > len(texto):
+                texto = resposta
+
+        result = {
+            'resposta': resposta if resposta and resposta != texto else texto,
+            'nota': round(melhor_nota, 2),
+            'fontes': list(set(fontes_usadas)),
+            'ciclos': ciclo + 1,
+        }
+
+        # 7. Aprende
+        if session:
+            session.registrar(texto, result['resposta'], {'nota': result['nota']})
+
+        return result
+
+    def _buscar_tudo(self, texto: str, motor: MCRMotor,
+                     session: MCRSession = None) -> List[Dict]:
+        """Busca em todas as fontes disponiveis."""
+        resultados = []
+
+        # Fonte 1: topicos carregados no motor
+        for nome, dados in motor.topicos.items():
+            resultados.append({
+                'texto': dados['texto'],
+                'fonte': f"topico:{nome}",
+                '_peso': 3,
+            })
+
+        # Fonte 2: historico da sessao
+        if session:
+            for h in session.historico_recente(15):
+                if h.get('resposta') and len(h['resposta']) > 20:
+                    resultados.append({
+                        'texto': h['resposta'],
+                        'fonte': 'sessao',
+                        '_peso': 2,
+                    })
+
+        # Fonte 3: arquivos .txt no diretorio atual
+        try:
+            import glob as _glob
+            for fpath in _glob.glob("*.txt")[:5]:
+                with open(fpath, 'r', encoding='utf-8', errors='replace') as f:
+                    conteudo = f.read(2000)
+                if len(conteudo) > 50:
+                    resultados.append({
+                        'texto': conteudo,
+                        'fonte': f"arquivo:{os.path.basename(fpath)}",
+                        '_peso': 1,
+                    })
+        except Exception:
+            pass
+
+        return resultados
+
+    @staticmethod
+    def _ranquear(texto: str, resultados: List[Dict]) -> List[Dict]:
+        """Ranqueia resultados por similaridade de assinatura de bytes."""
+        for r in resultados:
+            j = MCRByteUtils.jaccard_bytes(texto[:500], r['texto'][:500])
+            c = MCRByteUtils.similaridade_cosseno(texto[:500], r['texto'][:500])
+            r['_score'] = round(j * 0.6 + c * 0.4 + r.get('_peso', 1) * 0.05, 4)
+        return sorted(resultados, key=lambda x: -x['_score'])
+
+    @staticmethod
+    def _autoavaliar_resposta(pergunta: str, resposta: str, motor: MCRMotor) -> float:
+        """Autoavalia a resposta usando Equacao MCR.
+
+        Usa jaccard entre pergunta e resposta como proxy de relevancia,
+        e coerencia Markov para medir fluencia.
+        """
+        if not resposta or len(resposta) < 10:
+            return 0.0
+
+        j = MCRByteUtils.jaccard_bytes(pergunta, resposta)
+        coer = motor._coerencia_palavra(resposta) if hasattr(motor, '_coerencia_palavra') else 0.5
+
+        nota = (j * 5 + coer * 3)
+        if len(resposta) > 100:
+            nota += 2
+        return min(10, max(0, nota))
