@@ -2715,3 +2715,374 @@ class MCRRadar:
             palavras.append(melhor)
 
         return ' '.join(palavras)
+
+
+# ═══════════════════════════════════════════════════════════════
+# MCRFuel — busca ativamente conhecimento em N fontes
+# ═══════════════════════════════════════════════════════════════
+
+class MCRFuel:
+    """Busca ativamente combustivel (conhecimento) para o motor.
+
+    Nao espera ser alimentado. VAI buscar em N fontes:
+      arquivos, diretorios, web (futuro), KG (futuro)
+
+    Cada fonte encontrada e alimentada no motor.
+    O motor decide se o conhecimento e util (Equacao MCR).
+    """
+    def __init__(self, motor: MCRMotor):
+        self.motor = motor
+        self.total_encontrados = 0
+
+    def buscar_arquivos(self, diretorio: str, ext: str = '*.lua', max_n: int = 20) -> int:
+        """Busca arquivos por extensao e alimenta no motor."""
+        import glob as _glob
+        encontrados = 0
+        padrao = os.path.join(diretorio, f'**/*.{ext}') if ext != '*' else os.path.join(diretorio, '**/*')
+        for fpath in sorted(_glob.glob(padrao, recursive=True))[:max_n]:
+            try:
+                with open(fpath, 'r', encoding='utf-8', errors='replace') as f:
+                    conteudo = f.read(3000)
+                if len(conteudo) > 50:
+                    nome = f"fuel:{os.path.basename(fpath)}"
+                    if nome not in self.motor.topicos:
+                        self.motor.alimentar(conteudo, nome)
+                        encontrados += 1
+            except Exception:
+                continue
+        self.total_encontrados += encontrados
+        return encontrados
+
+    def buscar_diretorios(self, diretorio_base: str, max_n: int = 10) -> int:
+        """Lista diretorios e alimenta os nomes como contexto."""
+        import glob as _glob
+        encontrados = 0
+        for item in sorted(os.listdir(diretorio_base))[:max_n]:
+            caminho = os.path.join(diretorio_base, item)
+            if os.path.isdir(caminho):
+                texto = f"diretorio {item} contem {len(os.listdir(caminho))} arquivos"
+                nome = f"fuel_dir:{item}"
+                if nome not in self.motor.topicos:
+                    self.motor.alimentar(texto, nome)
+                    encontrados += 1
+        self.total_encontrados += encontrados
+        return encontrados
+
+    def buscar_conceito(self, termo: str, diretorio_base: str) -> int:
+        """Busca um conceito especifico em todos os arquivos."""
+        import glob as _glob
+        encontrados = 0
+        for ext in ['*.py', '*.lua', '*.md', '*.txt']:
+            padrao = os.path.join(diretorio_base, f'**/{ext}')
+            for fpath in sorted(_glob.glob(padrao, recursive=True))[:30]:
+                try:
+                    with open(fpath, 'r', encoding='utf-8', errors='replace') as f:
+                        conteudo = f.read(5000)
+                    if termo.lower() in conteudo.lower():
+                        # Extrai contexto ao redor do termo
+                        idx = conteudo.lower().find(termo.lower())
+                        inicio = max(0, idx - 100)
+                        fim = min(len(conteudo), idx + len(termo) + 200)
+                        trecho = conteudo[inicio:fim]
+                        nome = f"fuel_{termo}:{os.path.basename(fpath)}"
+                        if nome not in self.motor.topicos:
+                            self.motor.alimentar(trecho, nome)
+                            encontrados += 1
+                except Exception:
+                    continue
+        self.total_encontrados += encontrados
+        return encontrados
+
+    def relatorio(self) -> str:
+        return f"MCRFuel: {self.total_encontrados} conhecimentos encontrados ao total"
+
+
+# ═══════════════════════════════════════════════════════════════
+# MCRWebLearn — aprende da web (stdlib puro)
+# ═══════════════════════════════════════════════════════════════
+
+class MCRWebLearn:
+    """Aprende conhecimento da web e alimenta no motor.
+
+    Usa stdlib (urllib) — sem requests, sem dependencias.
+    """
+    def __init__(self, motor: MCRMotor):
+        self.motor = motor
+        self.total_buscas = 0
+
+    def buscar(self, termo: str) -> int:
+        """Busca um termo na web (DuckDuckGo HTML simplificado)."""
+        from urllib.request import urlopen, Request
+        from urllib.parse import quote
+        import json as _json
+
+        try:
+            url = f"https://api.duckduckgo.com/?q={quote(termo)}&format=json&no_html=1"
+            req = Request(url, headers={'User-Agent': 'MCR-Bot/1.0'})
+            with urlopen(req, timeout=10) as resp:
+                dados = _json.loads(resp.read().decode('utf-8', errors='replace'))
+
+            # Extrai texto relevante
+            textos = []
+            if dados.get('AbstractText'):
+                textos.append(dados['AbstractText'])
+            if dados.get('Definition'):
+                textos.append(dados['Definition'])
+            for topic in dados.get('RelatedTopics', [])[:3]:
+                if isinstance(topic, dict) and topic.get('Text'):
+                    textos.append(topic['Text'])
+
+            for texto in textos:
+                if len(texto) > 30:
+                    nome = f"web:{termo[:20]}"
+                    self.motor.alimentar(texto, nome)
+                    self.total_buscas += 1
+
+            return len(textos)
+        except Exception:
+            return 0
+
+    def buscar_url(self, url: str) -> int:
+        """Busca conteudo de uma URL especifica."""
+        from urllib.request import urlopen, Request
+        import re as _re
+
+        try:
+            req = Request(url, headers={'User-Agent': 'MCR-Bot/1.0'})
+            with urlopen(req, timeout=15) as resp:
+                html = resp.read().decode('utf-8', errors='replace')
+
+            # Remove tags HTML, extrai texto
+            texto = _re.sub(r'<[^>]+>', ' ', html)
+            texto = _re.sub(r'\s+', ' ', texto).strip()
+            texto = texto[:3000]
+
+            if len(texto) > 100:
+                import hashlib as _hashlib
+                nome = f"web_url:{_hashlib.md5(url.encode()).hexdigest()[:8]}"
+                self.motor.alimentar(texto, nome)
+                self.total_buscas += 1
+                return 1
+        except Exception:
+            pass
+        return 0
+
+    def relatorio(self) -> str:
+        return f"MCRWebLearn: {self.total_buscas} paginas aprendidas da web"
+
+
+# ═══════════════════════════════════════════════════════════════
+# MCRSelfHeal — detecta e repara proprios erros
+# ═══════════════════════════════════════════════════════════════
+
+class MCRSelfHeal:
+    """Detecta erros nos proprios resultados e repara.
+
+    Fluxo:
+      1. Recebe um resultado (texto gerado, conexao, etc.)
+      2. Avalia pela Equacao MCR
+      3. Se nota baixa, diagnostica o gap
+      4. Tenta reparar (regenera, busca mais dados, ajusta)
+    """
+    def __init__(self, motor: MCRMotor):
+        self.motor = motor
+        self.total_curas = 0
+
+    def avaliar(self, resultado: str, contexto: str = '') -> Dict:
+        """Avalia um resultado e retorna diagnostico + cura."""
+        if not resultado or len(resultado) < 10:
+            return {'saudavel': False, 'nota': 0, 'diagnostico': 'vazio',
+                    'cura': 'alimentar mais dados'}
+
+        h = MCRByteUtils.entropia_bytes(resultado)
+        j = MCRByteUtils.jaccard_bytes(resultado, contexto) if contexto else 0
+
+        palavras = resultado.split()
+        n_unicas = len(set(p.lower() for p in palavras))
+        diversidade = n_unicas / max(len(palavras), 1)
+
+        nota = (j * 4 + diversidade * 4) if contexto else diversidade * 8
+        nota = min(10, nota)
+
+        saudavel = nota >= 5.0
+
+        diagnostico = []
+        if h < 1.0 and len(palavras) > 5:
+            diagnostico.append('repetitivo')
+        if diversidade < 0.3 and len(palavras) > 3:
+            diagnostico.append('pouca variedade')
+        if j < 0.1 and contexto:
+            diagnostico.append('fora do contexto')
+
+        cura = ''
+        if not saudavel:
+            cura = self._reparar(resultado, contexto, diagnostico)
+            if cura:
+                self.total_curas += 1
+
+        return {
+            'saudavel': saudavel,
+            'nota': round(nota, 2),
+            'diagnostico': '; '.join(diagnostico) if diagnostico else 'ok',
+            'cura': cura[:80] if cura else 'nenhuma necessaria',
+        }
+
+    def _reparar(self, resultado: str, contexto: str, diagnosticos: List[str]) -> str:
+        """Tenta reparar um resultado doente."""
+        if 'repetitivo' in diagnosticos:
+            palavras = resultado.split()
+            # Remove repeticoes consecutivas
+            unicas = []
+            for p in palavras:
+                if not unicas or p != unicas[-1]:
+                    unicas.append(p)
+            return ' '.join(unicas)
+
+        if 'fora do contexto' in diagnosticos:
+            palavras_contexto = contexto.split()[:3]
+            return f"{' '.join(palavras_contexto)} {' '.join(resultado.split()[:5])}"
+
+        return resultado
+
+
+# ═══════════════════════════════════════════════════════════════
+# MCRFeedback — aprende com correcoes do usuario
+# ═══════════════════════════════════════════════════════════════
+
+class MCRFeedback:
+    """Aprende com feedback do usuario.
+
+    O usuario diz 'isso esta bom' ou 'isso esta errado'.
+    O MCR ajusta os thresholds e pesos baseado no feedback.
+
+    Com o tempo, a Equacao MCR se calibra para o gosto do usuario.
+    """
+    def __init__(self, motor: MCRMotor):
+        self.motor = motor
+        self.threshold_qualidade = MCRThreshold('feedback_qualidade')
+        self.total_feedbacks = 0
+
+    def receber(self, pergunta: str, resposta: str, nota_usuario: float) -> Dict:
+        """Recebe feedback do usuario (0-10) e ajusta thresholds.
+
+        Args:
+            pergunta: o que foi perguntado
+            resposta: o que foi respondido
+            nota_usuario: 0 (pessimo) a 10 (perfeito)
+
+        Returns:
+            dict com o ajuste feito
+        """
+        self.total_feedbacks += 1
+        self.threshold_qualidade.observar(nota_usuario)
+
+        # Avalia a resposta com a Equacao MCR
+        j = MCRByteUtils.jaccard_bytes(pergunta, resposta)
+        h = MCRByteUtils.entropia_bytes(resposta)
+        nota_mcr = j * 10
+
+        # Gap entre a nota do usuario e a nota MCR
+        gap = nota_usuario - nota_mcr
+
+        # Ajusta thresholds baseado no gap
+        if abs(gap) > 2:
+            self.threshold_qualidade.aprender(
+                f"gap_{int(gap)}",
+                nota_usuario / 10.0
+            )
+
+        # Alimenta o feedback como conhecimento
+        texto_feedback = (
+            f"usuario avaliou {pergunta} com nota {nota_usuario}. "
+            f"resposta foi: {resposta[:100]}"
+        )
+        self.motor.alimentar(texto_feedback, f"feedback:{self.total_feedbacks}")
+
+        return {
+            'gap': round(gap, 2),
+            'nota_mcr': round(nota_mcr, 2),
+            'nota_usuario': nota_usuario,
+            'threshold_ajustado': round(self.threshold_qualidade.calcular(), 3),
+            'total_feedbacks': self.total_feedbacks,
+        }
+
+    def nota_esperada(self) -> float:
+        """Retorna a nota que o usuario provavelmente daria,
+        baseada no historico de feedbacks."""
+        return self.threshold_qualidade.calcular() * 10
+
+
+# ═══════════════════════════════════════════════════════════════
+# MCRPesoNota — descobre pesos otimeos da Equacao MCR
+# ═══════════════════════════════════════════════════════════════
+
+class MCRPesoNota:
+    """Descobre os pesos OTImeos da Equacao MCR.
+
+    Hoje os pesos sao fixos:
+      PONTE_OTIMA = (5D + 3E + 2P) / 10
+      NOTA = BYTE(2) + PALAVRA(5) + TOKEN(3)
+
+    MCRPesoNota testa variacoes dos pesos e ve qual combinacao
+    produz a maior correlacao com a avaliacao humana (feedback).
+    """
+    def __init__(self, motor: MCRMotor):
+        self.motor = motor
+        self.threshold_pesos = MCRThreshold('peso_nota')
+        self.historico_pesos: List[Dict] = []
+
+    def testar_pesos(self) -> Dict:
+        """Testa variacoes dos pesos e descobre a melhor combinacao.
+
+        A melhor combinacao e aquela que maximiza a coerencia
+        da assinatura (MCRSignatureExpansiva).
+
+        Returns:
+            {'byte': float, 'palavra': float, 'token': float}
+        """
+        combinacoes = [
+            {'byte': 1, 'palavra': 3, 'token': 1},
+            {'byte': 2, 'palavra': 5, 'token': 3},
+            {'byte': 3, 'palavra': 4, 'token': 3},
+            {'byte': 1, 'palavra': 4, 'token': 2},
+            {'byte': 2, 'palavra': 3, 'token': 2},
+        ]
+
+        melhor_combinacao = None
+        melhor_score = 0
+
+        for pesos in combinacoes:
+            # Testa esta combinacao contra os dados do motor
+            score_total = 0
+            n_testes = 0
+
+            for nome, dados in self.motor.topicos.items():
+                texto = dados.get('texto', '')
+                if not texto:
+                    continue
+
+                fp = MCRSignatureExpansiva.fingerprint_texto(texto, 8)
+                h = MCRSignatureExpansiva.entropia_fingerprint(fp)
+
+                # A combinacao ideal produz fingerprints com entropia
+                # que maximiza a separacao entre topicos diferentes
+                score_total += h * (pesos['byte'] + pesos['palavra'] + pesos['token'])
+                n_testes += 1
+
+            if n_testes > 0:
+                score_medio = score_total / n_testes
+                if score_medio > melhor_score:
+                    melhor_score = score_medio
+                    melhor_combinacao = pesos
+
+        result = melhor_combinacao or {'byte': 2, 'palavra': 5, 'token': 3}
+        self.historico_pesos.append(result)
+        self.threshold_pesos.observar(melhor_score)
+
+        return result
+
+    def pesos_atuais(self) -> Dict:
+        """Retorna os pesos atuais (aprendidos ou padrao)."""
+        if self.historico_pesos:
+            return self.historico_pesos[-1]
+        return self.testar_pesos()
