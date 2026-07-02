@@ -792,8 +792,8 @@ class MCRConexao:
         especificidade = 1.0 - min(1.0, freq_global / max(1, len(self.motor.topicos) * 0.5))
 
         # PROFUNDIDADE (peso 2)
-        cadeia_a = len(mk_a.gerar(palavra, passos=5))
-        cadeia_b = len(mk_b.gerar(palavra, passos=5))
+        cadeia_a = len(mk_a.gerar(palavra, passos=None))
+        cadeia_b = len(mk_b.gerar(palavra, passos=None))
         profundidade = min(1.0, (cadeia_a + cadeia_b) / 10)
 
         score = (divergencia * 5 + especificidade * 3 + profundidade * 2) / 10
@@ -982,7 +982,7 @@ class MCRMotor:
         mk_a = self.topicos[topico_a]['markov']
         mk_b = self.topicos[topico_b]['markov']
         texto_a = self.topicos[topico_a]['texto']
-        seq_a = mk_a.gerar(f"B:{texto_a.encode('utf-8')[0]:02x}", passos=8)
+        seq_a = mk_a.gerar(f"B:{texto_a.encode('utf-8')[0]:02x}", passos=None)
         estados_b = set(mk_b.freq.keys())
         for e in seq_a:
             if e in estados_b:
@@ -1034,7 +1034,7 @@ class MCRMotor:
                     break
                 atual = prox
             if not atingiu:
-                seq_gerada = mk_pal_a.gerar(semente, passos=10)
+                seq_gerada = mk_pal_a.gerar(semente, passos=None)
             sequencia = ' '.join(seq_gerada)
             if len(sequencia.strip()) < 10:
                 sequencia = ''
@@ -1044,7 +1044,7 @@ class MCRMotor:
             mk_a = ta['markov']
             mk_b = tb['markov']
             inicio_a = f"B:{ta['texto'].encode('utf-8')[0]:02x}"
-            seq_a = mk_a.gerar(inicio_a, passos=8)
+            seq_a = mk_a.gerar(inicio_a, passos=None)
             estados_b = set(mk_b.freq.keys())
             ponte = None
             for e in seq_a:
@@ -1058,7 +1058,7 @@ class MCRMotor:
                             ponte = e; break
             if ponte is None:
                 return None
-            seq_b = mk_b.gerar(ponte, passos=8)
+            seq_b = mk_b.gerar(ponte, passos=None)
             sequencia = self._reconstruir(seq_a, seq_b)
 
         if not sequencia or len(sequencia.strip()) < 3:
