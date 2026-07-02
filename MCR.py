@@ -1376,27 +1376,25 @@ class MCRMotor:
 
         return melhor_candidato
 
-    def gerar_por_assinatura(self, texto: str, passos: int = 10,
-                             conf_min: float = 0.15) -> str:
+    def gerar_por_assinatura(self, texto: str, passos: int = None,
+                             conf_min: float = None) -> str:
         """Gera sequência escolhendo cada token por assinatura MCR.
         
-        Diferente de MCR.gerar() (Markov puro), aqui CADA passo
-        avalia múltiplos candidatos pela Equação MCR e escolhe
-        o que MAXIMIZA a assinatura em byte + palavra + token.
-        
-        Args:
-            texto: semente inicial
-            passos: máximo de tokens a gerar
-            conf_min: nota mínima para aceitar um token
-        Returns:
-            texto original + tokens gerados
+        passos e conf_min sao DECIDIDOS pela Equacao MCR
+        (MCRDecisorUniversal), nao fixos.
         """
+        params = MCRDecisorUniversal.decidir(self, 'gerar_texto')
+        if passos is None:
+            passos = params['passos']
+        if conf_min is None:
+            conf_min = params['conf_min']
+
         palavras = texto.split()
         if not palavras:
             return texto
 
         for _ in range(passos):
-            candidatos = self._coletar_candidatos(palavras)
+            candidatos = self._coletar_candidatos(palavras, params['max_candidatos'])
             if not candidatos:
                 break
 
@@ -2467,6 +2465,85 @@ class MCRFerramentas:
             'salvo_em': estado_path if os.path.exists(estado_path) else '',
             'historico': self.historico,
         }
+
+
+# ═══════════════════════════════════════════════════════════════
+# MCRDecisorUniversal — decide parametros pela Equacao MCR
+# ═══════════════════════════════════════════════════════════════
+
+class MCRDecisorUniversal:
+    """Decide QUALQUER parametro pela Equacao MCR.
+
+    Em vez de passos=10, conf_min=0.15, max_candidatos=10 (fixos),
+    este decisor usa o estado do motor + MCRThreshold para
+    determinar o valor IDEAL no momento.
+
+    Uso:
+        params = MCRDecisorUniversal.decidir(motor, 'gerar_texto')
+        # → {'passos': 7, 'conf_min': 0.22, 'max_candidatos': 5}
+        # → OS VALORES EMERGEM dos dados
+    """
+
+    _th = MCRThreshold('decisor_universal')
+
+    @classmethod
+    def decidir(cls, motor: 'MCRMotor', contexto: str = '') -> Dict:
+        """Decide parametros otimos baseado no estado do motor.
+
+        Usa entropia do byte, entropia da palavra, e dimensionalidade
+        ideal para calcular cada parametro.
+        """
+        h_byte = motor.mk_byte.entropia_media() if motor.mk_byte.total > 0 else 1
+        h_pal = motor.mk_palavra.entropia_media() if motor.mk_palavra.total > 0 else 1
+
+        cls._th.observar(h_byte + h_pal)
+
+        # passos: entropia alta = mais passos (dados ricos precisam explorar)
+        # entropia baixa = menos passos (dados repetitivos sao previsiveis)
+        passos = max(3, min(25, int((h_byte + h_pal) * 5)))
+
+        # conf_min: entropia alta = confianca menor (precisa tolerar variacao)
+        # entropia baixa = confianca maior (padrao claro)
+        conf_min = max(0.05, min(0.5, (h_byte + h_pal) / 20))
+
+        # max_candidatos: dimensionalidade ideal define quantos candidatos
+        dim = 10
+        if motor.topicos:
+            try:
+                texto_exemplo = list(motor.topicos.values())[0].get('texto', '')
+                if texto_exemplo:
+                    dim = MCRSignatureExpansiva.dimensionalidade_ideal(
+                        texto_exemplo.encode('utf-8')[:500], max_dims=32
+                    )
+            except Exception:
+                pass
+        max_candidatos = max(3, min(20, dim // 2))
+
+        # max_pulsos (radar): proporcional a entropia
+        max_pulsos = max(5, min(30, int(h_byte * 5)))
+
+        return {
+            'passos': passos,
+            'conf_min': round(conf_min, 3),
+            'max_candidatos': max_candidatos,
+            'dimensao': dim,
+            'max_pulsos': max_pulsos,
+            'entropia_byte': round(h_byte, 3),
+            'entropia_palavra': round(h_pal, 3),
+        }
+
+    @classmethod
+    def decidir_len(cls, motor: 'MCRMotor', contexto: str = '',
+                    fallback: int = 3) -> int:
+        """Decide o tamanho minimo aceitavel para uma entidade.
+
+        Substitui todos os 'len(x) < N' do codigo.
+        """
+        params = cls.decidir(motor, contexto)
+        h = params['entropia_byte'] + params['entropia_palavra']
+        # Quanto maior a entropia, menor pode ser o minimo
+        # (dados ricos merecem tolerancia)
+        return max(1, int(fallback - h * 0.3))
 
 
 # ═══════════════════════════════════════════════════════════════
