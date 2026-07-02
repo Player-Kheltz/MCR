@@ -1176,3 +1176,155 @@ class MCRAutoLoop:
                 self.motor.alimentar(combinado, nome)
                 print(f"  Combinado: {nome} ({len(combinado)} chars)")
                 return
+
+
+# ═══════════════════════════════════════════════════════════════
+# MCRPiEngine — Preditor universal de padrões
+# ═══════════════════════════════════════════════════════════════
+
+class MCRPiEngine:
+    """Preditor universal de padrões baseado no MCR.
+
+    Decide qual nível usar baseado na entropia do texto:
+      - < 0.4:  Markov nível PALAVRA (extrapolação direta, alta confiança)
+      - 0.4-0.65: Markov nível BYTE (busca ponte entre bytes no repertório)
+      - > 0.65: MCRConexao (emergência entre tópicos, baixa confiança)
+
+    Substitui pi_engine.py sem depender de PatternEngine ou Knowledge Graph.
+    """
+    THRESHOLD_MARKOV = 0.4
+    THRESHOLD_BYTE = 0.65
+
+    @staticmethod
+    def avaliar_entropia(texto: str) -> float:
+        """Entropia do texto normalizada (0-1). Quanto menor, mais previsível.
+        
+        Divide por log2(256) = 8 para normalizar entropia de bytes 0-1.
+        """
+        if not texto or len(texto) < 3:
+            return 0.5
+        return min(1.0, MCRByteUtils.entropia_bytes(texto) / 8.0)
+
+    @staticmethod
+    def decidir_metodo(texto: str) -> str:
+        """Decide qual método usar: 'markov', 'byte', ou 'emergencia'."""
+        h = MCRPiEngine.avaliar_entropia(texto)
+        if h < MCRPiEngine.THRESHOLD_MARKOV:
+            return 'markov'
+        elif h < MCRPiEngine.THRESHOLD_BYTE:
+            return 'byte'
+        else:
+            return 'emergencia'
+
+    @staticmethod
+    def continuar_padrao(texto: str, motor: MCRMotor, max_passos: int = 10) -> str:
+        """Continua um padrão usando o melhor método para a entropia atual.
+
+        Args:
+            texto: texto inicial para continuar
+            motor: MCRMotor com o repertório carregado
+            max_passos: máximo de tokens a gerar
+        Returns:
+            texto original + continuação prevista
+        """
+        if not texto:
+            return texto
+        metodo = MCRPiEngine.decidir_metodo(texto)
+
+        if metodo == 'markov':
+            return MCRPiEngine._modo_markov(texto, motor, max_passos)
+        elif metodo == 'byte':
+            return MCRPiEngine._modo_byte(texto, motor, max_passos)
+        else:
+            return MCRPiEngine._modo_emergencia(texto, motor, max_passos)
+
+    # ─── MODO MARKOV (entropia baixa) ─────────────────────────
+
+    @staticmethod
+    def _modo_markov(texto: str, motor: MCRMotor, passos: int) -> str:
+        """Extrapola usando MCR nível palavra. Rápido, determinístico."""
+        palavras = texto.split()
+        if not palavras:
+            return texto
+        ultima = palavras[-1]
+        mk = motor.mk_palavra
+        seq = mk.gerar(ultima, passos)
+        if len(seq) <= 1:
+            return texto
+        return texto + ' ' + ' '.join(seq[1:])
+
+    # ─── MODO BYTE (entropia média) ──────────────────────────
+
+    @staticmethod
+    def _modo_byte(texto: str, motor: MCRMotor, passos: int) -> str:
+        """Busca ponte byte entre o texto e tópicos conhecidos."""
+        nome_temp = f"_pi_b_{int(_time.time() * 1000000) % 99999}"
+        motor.alimentar(texto, nome_temp)
+
+        try:
+            melhor_conexao = None
+            melhor_nota = 3.0
+            for nome in list(motor.topicos.keys()):
+                if nome == nome_temp:
+                    continue
+                c = motor.conectar(nome_temp, nome, forcar=True)
+                if c and c['nota'] > melhor_nota:
+                    melhor_conexao = c
+                    melhor_nota = c['nota']
+
+            if melhor_conexao:
+                seq = melhor_conexao.get('sequencia', '')
+                if seq and len(seq) > 5:
+                    return texto + ' ' + seq
+        finally:
+            motor.topicos.pop(nome_temp, None)
+
+        return MCRPiEngine._modo_markov(texto, motor, passos)
+
+    # ─── MODO EMERGÊNCIA (entropia alta) ─────────────────────
+
+    @staticmethod
+    def _modo_emergencia(texto: str, motor: MCRMotor, passos: int) -> str:
+        """Usa MCRConexao para encontrar ponte emergente entre tópicos."""
+        nome_temp = f"_pi_e_{int(_time.time() * 1000000) % 99999}"
+        motor.alimentar(texto, nome_temp)
+
+        try:
+            cx = MCRConexao(motor)
+            melhor_nome = None
+            melhor_score = 0.5
+
+            for nome in list(motor.topicos.keys()):
+                if nome == nome_temp:
+                    continue
+                r = cx.analisar(nome_temp, nome)
+                m = r.get('melhor')
+                if m and m.get('score', 0) > melhor_score:
+                    melhor_nome = nome
+                    melhor_score = m['score']
+
+            if melhor_nome:
+                c = motor.conectar(nome_temp, melhor_nome, forcar=True)
+                if c:
+                    seq = c.get('sequencia', '')
+                    if seq and len(seq) > 5:
+                        return texto + ' ' + seq
+        finally:
+            motor.topicos.pop(nome_temp, None)
+
+        return MCRPiEngine._modo_byte(texto, motor, passos)
+
+    @staticmethod
+    def relatorio(motor: MCRMotor) -> str:
+        """Estatísticas do PiEngine sobre o motor atual."""
+        n = len(motor.topicos)
+        h_byte = motor.mk_byte.entropia_media()
+        h_pal = motor.mk_palavra.entropia_media()
+        return (
+            f"MCR PiEngine\n"
+            f"  Topicos: {n}\n"
+            f"  Entropia byte media: {h_byte:.3f}\n"
+            f"  Entropia palavra media: {h_pal:.3f}\n"
+            f"  Modo predominante: "
+            f"{'markov' if h_byte < 0.4 else 'byte' if h_byte < 0.65 else 'emergencia'}"
+        )
