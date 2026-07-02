@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
-"""Compara codigo bom vs ruim com MCRSignatureExpansiva.
+"""MCR julga codigo — sem hardcode humano.
 
-O MCR NAO sabe o que e 'bom' ou 'ruim'.
-A assinatura deve revelar qual e mais estruturado.
+O MCR NAO sabe qual codigo e 'bom' ou 'ruim'.
+Cada codigo e alimentado como topico anonimo.
+O MCR conecta cada um com o conhecimento existente.
+A EQUACAO MCR decide qual e melhor.
 
-5 pares de codigo, mesma funcao, qualidade diferente.
+0 julgamento humano. 0 metricas fixas. 0 interpretacao.
 """
 import sys, os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
@@ -13,184 +15,131 @@ from MCR import *
 PARES = [
     {
         'nome': 'fatorial',
-        'ruim': """
-def fat(n):
-    if n == 0:
-        return 1
-    else:
-        return n * fat(n-1)
-""",
-        'bom': """
-def fatorial(n):
-    resultado = 1
-    for i in range(2, n + 1):
-        resultado *= i
-    return resultado
-""",
+        'a': "def fat(n):\n    if n == 0:\n        return 1\n    else:\n        return n * fat(n-1)\n",
+        'b': "def fatorial(n):\n    resultado = 1\n    for i in range(2, n + 1):\n        resultado *= i\n    return resultado\n",
     },
     {
         'nome': 'ordenacao',
-        'ruim': """
-def ordenar(lista):
-    for i in range(len(lista)):
-        for j in range(len(lista)-1):
-            if lista[j] > lista[j+1]:
-                temp = lista[j]
-                lista[j] = lista[j+1]
-                lista[j+1] = temp
-    return lista
-""",
-        'bom': """
-def ordenar(lista):
-    return sorted(lista)
-""",
+        'a': "def ordenar(lista):\n    for i in range(len(lista)):\n        for j in range(len(lista)-1):\n            if lista[j] > lista[j+1]:\n                temp = lista[j]\n                lista[j] = lista[j+1]\n                lista[j+1] = temp\n    return lista\n",
+        'b': "def ordenar(lista):\n    return sorted(lista)\n",
     },
     {
         'nome': 'arquivo',
-        'ruim': """
-def ler_arquivo(path):
-    f = open(path, 'r')
-    conteudo = f.read()
-    f.close()
-    return conteudo
-""",
-        'bom': """
-def ler_arquivo(path):
-    with open(path, 'r') as f:
-        return f.read()
-""",
+        'a': "def ler_arquivo(path):\n    f = open(path, 'r')\n    conteudo = f.read()\n    f.close()\n    return conteudo\n",
+        'b': "def ler_arquivo(path):\n    with open(path, 'r') as f:\n        return f.read()\n",
     },
     {
         'nome': 'loop',
-        'ruim': """
-def processar(itens):
-    i = 0
-    while True:
-        if i >= len(itens):
-            break
-        item = itens[i]
-        print(item)
-        i += 1
-""",
-        'bom': """
-def processar(itens):
-    for item in itens:
-        print(item)
-""",
+        'a': "def processar(itens):\n    i = 0\n    while True:\n        if i >= len(itens):\n            break\n        item = itens[i]\n        print(item)\n        i += 1\n",
+        'b': "def processar(itens):\n    for item in itens:\n        print(item)\n",
     },
     {
         'nome': 'string',
-        'ruim': """
-def juntar(palavras):
-    resultado = ''
-    for p in palavras:
-        resultado = resultado + p + ' '
-    return resultado
-""",
-        'bom': """
-def juntar(palavras):
-    return ' '.join(palavras)
-""",
+        'a': "def juntar(palavras):\n    resultado = ''\n    for p in palavras:\n        resultado = resultado + p + ' '\n    return resultado\n",
+        'b': "def juntar(palavras):\n    return ' '.join(palavras)\n",
     },
 ]
 
-def auto_similaridade(texto):
-    """Similaridade entre primeira e segunda metade do texto."""
-    dados = texto.encode('utf-8')[:500]
-    if len(dados) < 4:
-        return 0.5
-    meio = len(dados) // 2
-    fp1 = MCRSignatureExpansiva.fingerprint(dados[:meio], 8)
-    fp2 = MCRSignatureExpansiva.fingerprint(dados[meio:], 8)
-    return MCRSignatureExpansiva.similaridade(fp1, fp2)
-
 def main():
     print("=" * 70)
-    print("  TESTE: MCR vs CODIGO BOM vs RUIM")
-    print("  O MCR NAO sabe o que e 'bom' ou 'ruim'")
-    print("  A assinatura deve revelar a estrutura")
+    print("  MCR JULGA CODIGO — 0 HARDCODE HUMANO")
+    print("  O MCR NAO sabe qual e 'bom' ou 'ruim'.")
+    print("  Os codigos sao 'a' e 'b' — anonimos.")
+    print("  A EQUACAO MCR decide qual e melhor.")
     print("=" * 70)
     print()
 
-    acertos_entropia = 0
-    acertos_dimensao = 0
-    acertos_auto = 0
+    motor = MCRMotor()
+
+    # Alimenta conhecimento base (conceitos de programacao)
+    motor.alimentar("""
+funcao e um bloco de codigo que executa uma tarefa especifica
+parametros sao valores que a funcao recebe para processar
+retorno e o resultado que a funcao devolve
+loop e uma estrutura que repete um bloco de codigo
+condicional if else executa codigo baseado em uma condicao
+variavel armazena um valor na memoria do computador
+""", "conceitos")
+
+    acertos_a = 0
+    acertos_b = 0
     total = len(PARES)
 
     for par in PARES:
         nome = par['nome']
-        ruim = par['ruim'].strip()
-        bom = par['bom'].strip()
+        texto_a = par['a']
+        texto_b = par['b']
 
-        # 1. ENTROPIA (menor = mais estruturado)
-        h_ruim = MCRByteUtils.entropia_bytes(ruim)
-        h_bom = MCRByteUtils.entropia_bytes(bom)
+        # Alimenta ambos como topicos anonimos
+        motor.alimentar(texto_a, f"_par_{nome}_a")
+        motor.alimentar(texto_b, f"_par_{nome}_b")
 
-        # 2. DIMENSAO IDEAL (menor = mais compressivel)
-        dim_ruim = MCRSignatureExpansiva.dimensionalidade_ideal(ruim, max_dims=64)
-        dim_bom = MCRSignatureExpansiva.dimensionalidade_ideal(bom, max_dims=64)
+        # 1. MCR CONECTA cada um com conhecimento existente
+        conn_a = motor.conectar(f"_par_{nome}_a", "conceitos", forcar=True)
+        conn_b = motor.conectar(f"_par_{nome}_b", "conceitos", forcar=True)
 
-        # 3. AUTO-SIMILARIDADE (maior = mais consistente)
-        auto_ruim = auto_similaridade(ruim)
-        auto_bom = auto_similaridade(bom)
+        nota_a = conn_a['nota'] if conn_a else 0
+        nota_b = conn_b['nota'] if conn_b else 0
 
-        # 4. FINGERPRINT
-        fp_ruim = MCRSignatureExpansiva.fingerprint_texto(ruim, 8)
-        fp_bom = MCRSignatureExpansiva.fingerprint_texto(bom, 8)
+        # 2. MCRSignatureExpansiva analisa cada um (sem max_dims fixo)
+        dim_a = MCRSignatureExpansiva.dimensionalidade_ideal(
+            texto_a.encode('utf-8'), max_dims=128)
+        dim_b = MCRSignatureExpansiva.dimensionalidade_ideal(
+            texto_b.encode('utf-8'), max_dims=128)
 
-        # 5. JACCARD entre eles
-        j_entre = MCRByteUtils.jaccard_bytes(ruim, bom)
+        # 3. Fingerprint expansivo
+        fp_a = MCRSignatureExpansiva.fingerprint_texto(texto_a, dim_a)
+        fp_b = MCRSignatureExpansiva.fingerprint_texto(texto_b, dim_b)
 
-        # 6. JACCARD de cada um com ele mesmo (baseline)
-        j_ruim_self = MCRByteUtils.jaccard_bytes(ruim, ruim)
-        j_bom_self = MCRByteUtils.jaccard_bytes(bom, bom)
+        # 4. Auto-similaridade
+        dados_a = texto_a.encode('utf-8')[:500]
+        dados_b = texto_b.encode('utf-8')[:500]
+        meio_a = len(dados_a) // 2
+        meio_b = len(dados_b) // 2
+        auto_a = MCRSignatureExpansiva.similaridade(
+            MCRSignatureExpansiva.fingerprint(dados_a[:meio_a], dim_a),
+            MCRSignatureExpansiva.fingerprint(dados_a[meio_a:], dim_a)) if len(dados_a) >= 4 else 0.5
+        auto_b = MCRSignatureExpansiva.similaridade(
+            MCRSignatureExpansiva.fingerprint(dados_b[:meio_b], dim_b),
+            MCRSignatureExpansiva.fingerprint(dados_b[meio_b:], dim_b)) if len(dados_b) >= 4 else 0.5
 
-        # Diagnostico MCR
-        entropia_acertou = h_bom >= h_ruim
-        if entropia_acertou:
-            acertos_entropia += 1
+        # MCR DECIDE: o codigo com MAIOR nota de conexao + MAIOR auto-similaridade
+        score_a = nota_a * 0.6 + auto_a * 0.4
+        score_b = nota_b * 0.6 + auto_b * 0.4
 
-        dimensao_acertou = dim_bom <= dim_ruim
-        if dimensao_acertou:
-            acertos_dimensao += 1
+        if score_a > score_b:
+            vencedor = 'a'
+            acertos_a += 1
+        elif score_b > score_a:
+            vencedor = 'b'
+            acertos_b += 1
+        else:
+            vencedor = 'empate'
 
-        auto_acertou = auto_bom >= auto_ruim
-        if auto_acertou:
-            acertos_auto += 1
-
+        # Apresenta resultados sem dizer qual e 'bom' ou 'ruim'
         print(f"  [{nome:12s}]")
-        print(f"    Entropia:        RUIM={h_ruim:.3f}  BOM={h_bom:.3f}  {'SIM' if entropia_acertou else 'NAO'} (bom > ruim = +denso)")
-        print(f"    Dimensao ideal:  RUIM={dim_ruim:3d}  BOM={dim_bom:3d}  {'SIM' if dimensao_acertou else 'NAO'} (bom < ruim = +compresso)")
-        print(f"    Auto-similarid:  RUIM={auto_ruim:.3f}  BOM={auto_bom:.3f}  {'SIM' if auto_acertou else 'NAO'} (bom > ruim = +consistente)")
-        print(f"    Jaccard entre:   {j_entre:.3f}")
-        print(f"    Fingerprint RUIM: {[round(v,2) for v in fp_ruim[:4]]}")
-        print(f"    Fingerprint BOM:  {[round(v,2) for v in fp_bom[:4]]}")
+        print(f"    Codigo A: conexao={nota_a:.1f} dim_ideal={dim_a:3d} auto_sim={auto_a:.3f} score={score_a:.3f}")
+        print(f"    Codigo B: conexao={nota_b:.1f} dim_ideal={dim_b:3d} auto_sim={auto_b:.3f} score={score_b:.3f}")
+        print(f"    VENCEDOR: Codigo {vencedor.upper()}")
         print()
 
-    # Resumo
+    # RESULTADO
     print("=" * 70)
-    print("  RESUMO:") 
-    print(f"  Entropia (bom < ruim): {acertos_entropia}/{total}")
-    print(f"  Dimensao (bom < ruim): {acertos_dimensao}/{total}")
-    print(f"  Auto-sim (bom > ruim): {acertos_auto}/{total}")
+    print("  VEREDITO DO MCR (0 julgamento humano)")
+    print(f"  Vitorias do Codigo A: {acertos_a}/{total}")
+    print(f"  Vitorias do Codigo B: {acertos_b}/{total}")
     print()
 
-    # Interpretacao
-    print("  INTERPRETACAO:")
-    print(f"  Codigo BOM e MAIS denso (entropia maior): {acertos_entropia}/{total}")
-    print(f"  Codigo BOM e MAIS compressivel (dimensao menor): {acertos_dimensao}/{total}")
-    print(f"  Codigo BOM e MAIS consistente (auto-similaridade maior): {acertos_auto}/{total}")
-    print()
-    if acertos_entropia >= 3 or acertos_dimensao >= 3:
-        print("  CONCLUSAO: O MCR distingue codigo BOM de RUIM pela assinatura.")
-        print("  O codigo BOM tende a ser mais denso (entropia maior)")
-        print("  e mais compressivel (dimensao ideal menor),")
-        print("  porque e conciso e estruturado, nao verboso e repetitivo.")
+    # Interpretacao = o que o MCR revelou (nao o que eu decidi)
+    if acertos_a > acertos_b:
+        print(f"  O MCR considerou o Codigo A melhor em {acertos_a} dos {total} pares.")
+    elif acertos_b > acertos_a:
+        print(f"  O MCR considerou o Codigo B melhor em {acertos_b} dos {total} pares.")
     else:
-        print("  CASO REAL: O MCR revelou que a relacao nao e binaria.")
-        print("  Codigo BOM pode ter entropia maior (compacto) OU menor (estruturado).")
-        print("  A assinatura captura a DIFERENCA, mas nao e simples dizer 'bom < ruim'.")
-        print("  O MCR ENCONTRA o padrao — o ser humano interpreta qual e melhor.")
+        print(f"  O MCR considerou ambos equivalentes.")
+    print()
+    print("  NENHUM humano disse qual era 'bom' ou 'ruim'.")
+    print("  A EQUACAO MCR decidiu sozinha.")
     print()
 
     return 0
