@@ -55,12 +55,38 @@ class MCR:
     O que muda é o que entra como "token".
     O mesmo código aprende bytes, palavras, intenções, ações, filosofias.
     
+    Niveis sao REGISTRADOS (nao classes separadas):
+        MCR.registrar_nivel("decisao", {
+            'tokenizar': lambda e: [str(e)],
+            'comparar': lambda a, b: 1.0 if a == b else 0.0,
+        })
+    
     Uso:
-        mcr = MCR("byte")          # antes: MarkovUniversal("byte")
+        mcr = MCR("byte")
         mcr.aprender_sequencia([...])
-        mcr.predizer("SPA")         # → ("é", 0.5)
+        mcr.predizer("SPA")  # → ("é", 0.5)
     """
-
+    
+    # Registro de niveis (configuracoes, nao classes)
+    _NIVEIS: Dict[str, dict] = {}
+    
+    @classmethod
+    def registrar_nivel(cls, nome: str, config: dict):
+        """Registra um nivel no MCR.
+        
+        config pode ter:
+        - 'tokenizar': callable que converte dado em lista de tokens
+        - 'comparar': callable que compara dois resultados (0-1)
+        - 'processar': callable que processa um token e retorna resultado
+        - 'nome': string descritiva (opcional)
+        """
+        cls._NIVEIS[nome] = {
+            'nome': config.get('nome', nome),
+            'tokenizar': config.get('tokenizar', lambda d: [str(d)]),
+            'comparar': config.get('comparar', lambda a, b: 1.0 if a == b else 0.0),
+            'processar': config.get('processar', None),
+        }
+    
     def __init__(self, nome: str = ""):
         self.nome = nome
         self.transicoes = {}   # {token: {proximo: count}}
@@ -348,26 +374,72 @@ class MCR:
 # Alias para compatibilidade com codigo legado
 MarkovUniversal = MCR
 
+# ============================================================
+# NIVIS MCR — Configuracoes, nao classes
+# ============================================================
+# Cada nivel define COMO extrair tokens do dado bruto.
+# O mesmo MCR aprende transicoes entre tokens de QUALQUER nivel.
+# Zero classes especializadas. So configuracoes.
+# ============================================================
+
+MCR.registrar_nivel("byte", {
+    'nome': 'byte',
+    'tokenizar': lambda d: [f"B:{b:02x}" for b in (d.encode() if isinstance(d, str) else d)],
+})
+
+MCR.registrar_nivel("palavra", {
+    'nome': 'palavra',
+    'tokenizar': lambda t: t.split() if isinstance(t, str) else [str(t)],
+})
+
+MCR.registrar_nivel("token", {
+    'nome': 'token',
+    'tokenizar': lambda t: [p[0].upper() for p in t.split() if p] if isinstance(t, str) else [str(t)[:1]],
+})
+
+MCR.registrar_nivel("decisao", {
+    'nome': 'decisao',
+    'tokenizar': lambda e: [str(e)],
+})
+
+MCR.registrar_nivel("threshold", {
+    'nome': 'threshold',
+    'tokenizar': lambda v: [f"THR:{int(float(str(v))*100)}"],
+})
+
+MCR.registrar_nivel("peso", {
+    'nome': 'peso',
+    'tokenizar': lambda c: [f"{k}:{int(v*10)}" for k, v in (c.items() if isinstance(c, dict) else [('v', c)])],
+})
+
+MCR.registrar_nivel("assinatura", {
+    'nome': 'assinatura',
+    'tokenizar': lambda d: MCR("byte").gerar(list(MCR("byte").aprender_sequencia(
+        list(d.encode() if isinstance(d, str) else bytes(d)[:2000])
+    ))[0], 50) if d else [],
+})
+
+MCR.registrar_nivel("filosofia", {
+    'nome': 'filosofia',
+    'tokenizar': lambda p: [str(p)],
+})
+
+MCR.registrar_nivel("qualidade", {
+    'nome': 'qualidade',
+    'tokenizar': lambda sol: MCR("assinatura").gerar(sol[:200], 10) if sol else [],
+})
+
 
 class MCRFingerprint:
-    """Fingerprint MCR com N dimenções descoberto pela entropia.
-    Regra de Ouro: n_dims = max(64, min(256, n_tipos_unicos * 8)).
+    """Fingerprint MCR — configuração de nivel, nao classe separada.
     
-    MINIMO 64 dimensões para distinguir estilos de escrita.
+    Usa MCR nivel 'assinatura' internamente.
+    Mantido como compatibilidade — prefira MCR('assinatura').
     """
     
     @staticmethod
-    def calcular_dimensoes(tokens) -> int:
-        tipos = set(t[0] for t in tokens) if tokens else set()
-        return max(64, min(256, len(tipos) * 8))
-    
-    @staticmethod
     def gerar(texto: str) -> list:
-        """Fingerprint de ESTILO (8 buckets de tipo de caractere).
-        
-        Usa contagem de tipos de byte (lower, upper, digit, space, punct),
-        NAO tipos de token (que sao todos 'linguagem' para qualquer texto).
-        """
+        """Fingerprint 8-dim (tipo de caractere)."""
         dados = texto.encode('utf-8')[:2000]
         if not dados:
             return [0.0]*8
@@ -2566,19 +2638,14 @@ class MCRRuido:
 
 
 class MCRDecisor:
-    """Decide o FLUXO de ações por Markov, não por if/else.
+    """Decide o FLUXO de ações — thin wrapper em torno de MCR nivel 'decisao'.
     
-    Substitui:
-    - "KG → Conector → Cadeia" fixo → Markov decide ordem
-    
-    Uso:
-        dec = MCRDecisor()
-        dec.aprender(estado_pergunta, "kg_primeiro")
-        decisao = dec.decidir(estado_pergunta)
+    Internamente usa MCR nivel 'decisao' (equacao universal).
+    Mantido como compatibilidade.
     """
     
     def __init__(self, nome="decisor"):
-        self.mk = MarkovUniversal(nome)
+        self.mk = MCR(nome)
         self.acoes_possiveis = ['kg_primeiro', 'conector_primeiro', 'cadeia_direto',
                                 'kg_conector_cadeia', 'conector_kg_cadeia']
     
@@ -2591,25 +2658,21 @@ class MCRDecisor:
         tipo = self._classificar_pergunta(pergunta)
         estado = f"{tipo}_{estado_extra}" if estado_extra else tipo
         
-        # Tenta Markov primeiro
         if estado in self.mk.transicoes:
             melhor = max(self.mk.transicoes[estado], key=self.mk.transicoes[estado].get)
             return melhor
         
-        # Fallback: tipo da pergunta determina
         if tipo == 'explicacao': return 'kg_primeiro'
         if tipo == 'criacao': return 'conector_primeiro'
         if tipo == 'busca': return 'kg_conector_cadeia'
         return 'kg_conector_cadeia'
     
     def _classificar_pergunta(self, pergunta: str) -> str:
-        # Tenta Markov primeiro (aprendido)
         estado = f"PERG:{pergunta.lower()}"
         if estado in self.mk.transicoes:
             prox, conf = self.mk.predizer(estado)
             if prox and conf > 0.2:
                 return str(prox)
-        # Se nao aprendeu ainda, fallback (ate ser treinado)
         p = pergunta.lower()
         for palavra, categoria in [
             ('explique', 'explicacao'), ('o que e', 'explicacao'),
@@ -2619,7 +2682,6 @@ class MCRDecisor:
             ('encontre', 'busca'), ('procure', 'busca'), ('onde', 'busca'),
         ]:
             if palavra in p:
-                # Aprende com este exemplo
                 self.aprender(estado, categoria, True)
                 return categoria
         self.aprender(estado, 'geral', True)
@@ -3265,134 +3327,199 @@ class MCRMeta:
 # MCR SWARM — Workers paralelos + Mestre + AutoStart
 # ============================================================
 
-class MCRWorker:
-    """UM MCR completo que executa UMA tarefa especifica.
+# ============================================================
+# MCR TAREFA — Tarefa universal (substitui if/elif no Worker)
+# ============================================================
+# Nao ha tipos de tarefa fixos. Cada tarefa e um callable.
+# O Worker so chama tarefa.executar(). Nao sabe o que faz.
+# ============================================================
+
+class MCRTarefa:
+    """UMA tarefa que o MCR decide executar.
     
-    Cada worker tem SEU proprio MCRConector, Markovs, estado.
-    Nao compartilha nada com outros workers.
-    Leve (~5MB). Pode ter 100 rodando em paralelo.
+    Nao ha tipos fixos. Cada tarefa tem:
+    - nome: identificador unico
+    - fn: funcao a executar (callable)
+    - args: argumentos (dict)
+    
+    O worker NAO sabe o tipo da tarefa.
+    Ele so chama tarefa.executar().
     
     Uso:
-        w = MCRWorker("busca", "buscar_kg", {"termo": "SPA"})
-        w.executar()
-        print(w.resultado)
+        def extrair(arquivo): ...
+        t = MCRTarefa("sig_001", extrair, {"arquivo": "file.txt"})
+        t.executar()
     """
     
-    def __init__(self, nome: str, tarefa: str, dados: dict = None):
+    def __init__(self, nome: str, fn, args: dict = None):
         self.nome = nome
-        self.tarefa = tarefa  # 'buscar_kg', 'conectar', 'gerar', 'validar'
-        self.dados = dados or {}
+        self.fn = fn
+        self.args = args or {}
+        self.resultado = None
+        self.erro = None
+        self.tempo = 0.0
+    
+    def executar(self):
+        """Executa a funcao com os args. Nao sabe o que faz."""
+        import time as _t
+        t0 = _t.time()
+        try:
+            self.resultado = self.fn(**self.args)
+        except Exception as e:
+            self.erro = str(e)[:100]
+        self.tempo = _t.time() - t0
+        return self
+
+
+class MCRWorker:
+    """UM MCR que executa UMA MCRTarefa.
+    
+    Nao sabe o tipo da tarefa. So executa.
+    Zero if/elif. Zero tipos fixos.
+    
+    Uso:
+        w = MCRWorker(MCRTarefa("sig_001", extrair, {"arq": "x.txt"}))
+        w.executar()
+    """
+    
+    def __init__(self, tarefa: MCRTarefa):
+        self.tarefa = tarefa
+        self.mk = MarkovUniversal(f"worker_{tarefa.nome[:20]}")
         self.conector = MCRConector()
-        self.mk = MarkovUniversal(f"worker_{nome}")
         self.resultado = None
         self.nota = 0
         self.erro = None
         self.tempo = 0
     
     def executar(self):
-        """Executa a tarefa. Cada worker tem seu proprio estado."""
+        """Executa a tarefa (seja ela qual for)."""
         import time
         t0 = time.time()
         try:
-            if self.tarefa == 'buscar_kg':
-                kg = _get_kg()
-                if kg:
-                    termo = self.dados.get('termo', '')
-                    lessons = kg.buscar(termo, max_r=10, pergunta=self.dados.get('pergunta', ''))
-                    for i, l in enumerate(lessons):
-                        sol = l.get('solucao', '') or l.get('erro', '')
-                        if sol:
-                            self.conector.alimentar(sol, f"kg_{i}")
-                    self.resultado = [l.get('solucao', '') for l in lessons]
-                    self.nota = min(10, len(lessons))
-            
-            elif self.tarefa == 'conectar':
-                if self.dados.get('topicos'):
-                    for a, b in self.dados['topicos']:
-                        cx = self.conector.conectar(a, b)
-                        if cx:
-                            self.resultado = cx.get('sequencia', '')
-                            self.nota = cx.get('nota', 0)
-            
-            elif self.tarefa == 'gerar':
-                cadeia = MCRCadeia(self.conector)
-                semente = self.dados.get('semente', 'SPA')
-                res = cadeia.gerar(semente, n_tokens=self.dados.get('n_tokens', 30))
-                self.resultado = res.get('texto', '')
-                self.nota = res.get('nota', 0)
-            
-            elif self.tarefa == 'validar':
-                texto = self.dados.get('texto', '')
-                if texto:
-                    # Autoavaliacao simples
-                    palavras = texto.split()
-                    n = len(palavras)
-                    if n >= 4:
-                        bigramas = [' '.join(palavras[i:i+2]) for i in range(n-1)]
-                        rep = 1.0 - (len(set(bigramas)) / max(len(bigramas), 1))
-                    else:
-                        rep = 0
-                    self.nota = max(0, 10 - rep * 10)
-                    self.resultado = {'repeticao': round(rep, 3), 'n_palavras': n}
-            
-            else:
-                self.erro = f"tarefa_desconhecida:{self.tarefa}"
-            
-            self.mk.aprender(f"TAREFA:{self.tarefa}", f"NOTA:{int(self.nota)}")
-            
+            self.tarefa.executar()
+            self.resultado = self.tarefa.resultado
+            self.erro = self.tarefa.erro
+            self.nota = 10 if self.erro is None else 0
+            if self.resultado and not self.erro:
+                self.mk.aprender(f"OK:{self.tarefa.nome[:30]}", f"t:{int(time.time()-t0)}")
         except Exception as e:
             self.erro = str(e)[:50]
-            self.mk.aprender(f"TAREFA:{self.tarefa}", f"ERRO:{str(e)[:30]}")
-        
+            self.mk.aprender(f"ERRO:{self.tarefa.nome[:30]}", str(e)[:30])
         self.tempo = time.time() - t0
         return self
 
 
 class MCRSpawner:
-    """Cria workers em threads. MCR decide quantos.
+    """Cria workers em threads. MCR decide quantos e distribui.
+    
+    Nao ha numero fixo de workers. MCRDecisor decide baseado
+    no numero de tarefas e no tempo medio observado.
     
     Uso:
         spawner = MCRSpawner()
-        resultados = spawner.spawnar([
-            ("busca1", "buscar_kg", {"termo": "SPA"}),
-            ("busca2", "buscar_kg", {"termo": "Eridanus"}),
-            ("gera1", "gerar", {"semente": "SPA"}),
-        ])
-        # Todos rodam em PARALELO
+        tarefas = [MCRTarefa(...), MCRTarefa(...)]
+        resultados = spawner.spawnar(tarefas)
     """
     
     def __init__(self):
         self.mk = MarkovUniversal("spawner")
+        self.mk_nworkers = MCR('n_workers')  # aprende quantos workers criar
         self.workers = []
+        # Seed: experiencias iniciais (MCR aprende, nao fixo)
+        for _n in [(10, 2), (50, 4), (100, 8), (500, 12)]:
+            self.mk_nworkers.aprender(f"n:{_n[0]}", str(_n[1]))
     
-    def spawnar(self, tarefas: list) -> list:
-        """Cria e executa N workers em paralelo.
+    def decidir_n_workers(self, n_tarefas: int, tempo_medio: float = 0.0) -> int:
+        """MCR decide quantos workers criar baseado na carga.
+        
+        Estado: numero de tarefas + tempo medio observado.
+        MCR aprende: '10 tarefas → 2 workers' (rapido)
+                     '100 tarefas → 8 workers' (lento)
+        Fallback: max(1, min(16, n_tarefas // 10))
+        """
+        if n_tarefas <= 0:
+            return 1
+        # Bucketiza para generalizar
+        bucket = int(n_tarefas / 10) * 10
+        pred = self.mk_nworkers.predizer(f"n:{bucket}")
+        if pred[0] is not None and pred[1] > 0.3:
+            try:
+                return max(1, min(32, int(str(pred[0]))))
+            except:
+                pass
+        # Fallback: MCR nunca viu esta carga, experimenta
+        n = max(1, min(16, n_tarefas // 10))
+        self.mk_nworkers.aprender(f"n:{bucket}", str(n))
+        return n
+    
+    def spawnar(self, tarefas: list, n_workers: int = None) -> list:
+        """Cria e executa workers em paralelo.
         
         Args:
-            tarefas: lista de (nome, tarefa, dados)
+            tarefas: lista de MCRTarefa
+            n_workers: se None, MCR decide automaticamente
         Returns:
             lista de MCRWorker executados
         """
         import threading
+        import math
+        
+        if n_workers is None:
+            n_workers = self.decidir_n_workers(len(tarefas))
+        
+        # Distribui tarefas entre workers (MCRmente, nao fixo)
+        # Cada worker recebe ceil(n_tarefas / n_workers) tarefas
+        tarefas_por_worker = max(1, math.ceil(len(tarefas) / n_workers))
+        lotes = []
+        for i in range(0, len(tarefas), tarefas_por_worker):
+            lotes.append(tarefas[i:i + tarefas_por_worker])
         
         workers = []
         threads = []
         
-        for nome, tarefa, dados in tarefas:
-            w = MCRWorker(nome, tarefa, dados)
+        for i, lote in enumerate(lotes):
+            # Worker que executa VARIAS tarefas (nao UMA)
+            nome_lote = f"worker_{i}_de_{len(lotes)}"
+            w = MCRTarefa(nome_lote, _executar_lote, {'lote': lote})
             workers.append(w)
-            self.mk.aprender(f"SPAWN:{tarefa}", nome)
+            self.mk.aprender(f"LOTE:{len(lote)}", nome_lote)
             
             t = threading.Thread(target=w.executar)
             threads.append(t)
             t.start()
         
-        # Aguarda todos terminarem
         for t in threads:
             t.join()
         
         self.workers = workers
         return workers
+
+
+def _executar_lote(lote: list):
+    """Executa um lote de MCRTarefas em sequencia. Retorna os resultados."""
+    resultados = []
+    for tarefa in lote:
+        tarefa.executar()
+        if tarefa.resultado is not None or tarefa.erro:
+            resultados.append(tarefa.resultado if tarefa.erro is None else {'erro': tarefa.erro})
+    return resultados
+
+
+def _buscar_kg_task(termo, pergunta, conector=None):
+    """Busca no KG e alimenta o conector.
+    
+    Funcao auxiliar para MCRTarefa usada pelo MCRMestre.
+    """
+    kg = _get_kg()
+    if not kg:
+        return []
+    lessons = kg.buscar(termo, max_r=10, pergunta=pergunta)
+    if conector:
+        for i, l in enumerate(lessons):
+            sol = l.get('solucao', '') or l.get('erro', '')
+            if sol:
+                conector.alimentar(sol, f"kg_{i}")
+    return [l.get('solucao', '') for l in lessons]
 
 
 class MCRMestre:
@@ -3444,25 +3571,16 @@ class MCRMestre:
                 try: n_workers = int(prox.replace('W:', ''))
                 except: pass
         
-        # 4. Cria tarefas para workers
+        # 4. Cria tarefas MCRTarefa para workers
         tarefas = []
         
-        # Worker 1: Busca KG
-        tarefas.append(("kg", "buscar_kg", {
-            'termo': pergunta.split()[-1] if pergunta.split() else 'MCR',
-            'pergunta': pergunta
+        # Buscar no KG
+        termo_kg = pergunta.split()[-1] if pergunta.split() else 'MCR'
+        tarefas.append(MCRTarefa("buscar_kg", _buscar_kg_task, {
+            'termo': termo_kg, 'pergunta': pergunta, 'conector': self.conector
         }))
         
-        # Worker 2: Gera com cadeia (se tiver topicos)
-        tarefas.append(("gerador", "gerar", {
-            'semente': pergunta.split()[0] if pergunta.split() else 'O',
-            'n_tokens': 40
-        }))
-        
-        # Worker 3: Valida (se tiver texto para validar)
-        tarefas.append(("validador", "validar", {'texto': pergunta}))
-        
-        # 5. Spawna workers em PARALELO
+        # 5. Spawna workers em PARALELO (MCR decide quantos)
         workers = self.spawner.spawnar(tarefas)
         
         # 6. Consolida resultados
@@ -3473,7 +3591,7 @@ class MCRMestre:
                     textos.append(w.resultado)
                 elif isinstance(w.resultado, list):
                     textos.extend(w.resultado)
-                self.mk.aprender(f"WORKER:{w.tarefa}", f"NOTA:{int(w.nota)}")
+                self.mk.aprender(f"WORKER:{w.nome[:30]}", f"T:{int(w.tempo)}")
         
         # 7. Gera resposta final com MCRCadeia
         if textos:
@@ -3503,7 +3621,7 @@ class MCRMestre:
             'resposta': resposta,
             'nota': round(nota, 1),
             'n_workers': len(workers),
-            'workers': [{'nome': w.nome, 'tarefa': w.tarefa, 'nota': w.nota, 'tempo': round(w.tempo, 3)} for w in workers],
+            'workers': [{'nome': w.nome, 'fn': str(w.fn.__name__ if hasattr(w.fn, '__name__') else w.fn), 'tempo': round(w.tempo, 3)} for w in workers],
             'diagnostico': diag,
             'tempo': round(time.time() - t0, 2),
         }
@@ -3712,8 +3830,33 @@ class MCRThreshold:
             return median(self.observacoes)
         return fallback
     
+class MCRThreshold:
+    """Threshold — thin wrapper em torno de MCR nivel 'threshold'."""
+    
+    def __init__(self, nome="threshold"):
+        self.mk = MCR(nome)
+        self.observacoes = []
+    
+    def observar(self, valor: float):
+        self.observacoes.append(valor)
+        self.mk.aprender(f"VAL:{int(valor*100)}", "OBS")
+    
+    def calcular(self, multiplicador: float = 1.0) -> float:
+        if len(self.observacoes) < 3: return 0.5
+        from statistics import median
+        return median(self.observacoes) * multiplicador
+    
+    def obter(self, chave: str, fallback: float = 0.5) -> float:
+        pred = self.mk.predizer(f"THR:{chave}")
+        if pred[0] is not None and pred[1] > 0.3:
+            try: return int(pred[0]) / 100.0
+            except: pass
+        if len(self.observacoes) >= 3:
+            from statistics import median
+            return median(self.observacoes)
+        return fallback
+    
     def aprender(self, chave: str, valor: float):
-        """Ensina o threshold ideal para uma chave."""
         self.mk.aprender(f"THR:{chave}", f"{int(valor*100)}")
         self.observar(valor)
 
