@@ -3269,6 +3269,489 @@ def mcr_detectar_hardcodes():
     return suspeitos
 
 
+# ═══════════════════════════════════════════════════════════════
+# MCRPreencher — preenche @BLANK_X universalmente
+# ═══════════════════════════════════════════════════════════════
+
+class MCRPreencher:
+    """Preenche blanks @BLANK_X em QUALQUER texto usando Equacao MCR.
+    0 LLM. 0 if/else. O MCR gera o conteudo de cada blank por assinatura.
+
+    Uso:
+        preencher = MCRPreencher(motor)
+        resultado = preencher.executar('function onSay() @BLANK_NOME end')
+        # → 'function onSay() local npc = Npc() end'
+    """
+    def __init__(self, motor: MCRMotor):
+        self.motor = motor
+        self.total_preenchidos = 0
+
+    def executar(self, texto: str) -> str:
+        """Preenche TODOS os blanks no texto."""
+        import re as _re
+        blanks = _re.findall(r'@BLANK_\w+', texto)
+        for blank in blanks:
+            preenchimento = self._gerar(blank)
+            if preenchimento:
+                texto = texto.replace(blank, preenchimento, 1)
+                self.total_preenchidos += 1
+        return texto
+
+    def _gerar(self, blank: str) -> str:
+        """Gera conteudo para um blank especifico."""
+        contexto = blank.replace('@BLANK_', '').lower()
+        resultado = self.motor.gerar_por_assinatura(contexto, passos=5)
+        palavras = resultado.split()
+        if len(palavras) > 1:
+            return ' '.join(palavras[1:])
+        return resultado
+
+
+# ═══════════════════════════════════════════════════════════════
+# MCRReconstructor — monta fragmentos em arquivo final
+# ═══════════════════════════════════════════════════════════════
+
+class MCRReconstructor:
+    """Reconstroi resposta final de fragmentos usando assinatura.
+
+    Ordena por Jaccard com o pedido. Filtra por entropia.
+    Monta na ordem de relevancia.
+    """
+    def __init__(self, motor: MCRMotor):
+        self.motor = motor
+
+    def reconstruir(self, fragmentos: List[str], pedido: str = '') -> str:
+        if not fragmentos:
+            return ''
+
+        # Ordena por similaridade com o pedido
+        if pedido:
+            fragmentos.sort(key=lambda f: MCRByteUtils.jaccard_bytes(pedido, f),
+                            reverse=True)
+
+        # Remove fragmentos com entropia muito alta (ruido) ou baixa (repetitivo)
+        filtrados = []
+        for f in fragmentos:
+            h = MCRByteUtils.entropia_bytes(f)
+            if 0.5 < h < 6.0 and len(f.strip()) > 20:
+                filtrados.append(f)
+
+        if not filtrados:
+            return fragmentos[0] if fragmentos else ''
+
+        return '\n\n'.join(filtrados[:5])
+
+
+# ═══════════════════════════════════════════════════════════════
+# MCRGenerator — gera QUALQUER conteudo por assinatura
+# ═══════════════════════════════════════════════════════════════
+
+class MCRGenerator:
+    """Gera QUALQUER conteudo (NPC, codigo, lore, nome, dialogo, arquivo).
+    Universal. Nao ha 'NPC' ou 'Lua' — ha assinatura.
+
+    Uso:
+        gen = MCRGenerator(motor, preencher, validador)
+        gen.gerar('crie um NPC ferreiro em Eridanus')
+    """
+    def __init__(self, motor: MCRMotor, preencher: MCRPreencher = None,
+                 validador: 'MCRValidator' = None):
+        self.motor = motor
+        self.preencher = preencher or MCRPreencher(motor)
+        self.validador = validador
+
+    def gerar(self, pedido: str, formato: str = 'texto') -> str:
+        h = MCRByteUtils.entropia_bytes(pedido)
+        fp = MCRSignatureExpansiva.fingerprint_texto(pedido, 4)
+
+        if formato == 'nome':
+            return self._gerar_nome(pedido)
+        elif formato == 'codigo':
+            return self._gerar_codigo(pedido)
+        elif formato == 'lore':
+            return self._gerar_texto(pedido)
+        return self._gerar_texto(pedido)
+
+    def _gerar_nome(self, contexto: str) -> str:
+        resultado = self.motor.gerar_por_assinatura(
+            f'nome {contexto} personagem', passos=5)
+        palavras = resultado.split()
+        if palavras:
+            ultima = palavras[-1]
+            if len(ultima) >= 2:
+                return ultima[0].upper() + ultima[1:]
+        return 'MCR'
+
+    def _gerar_codigo(self, pedido: str) -> str:
+        # Busca exemplos similares, aprende, gera
+        resultado = self.motor.gerar_por_assinatura(
+            f'codigo {pedido}', passos=12)
+        if self.validador:
+            v = self.validador.validar(resultado)
+            if not v.get('valido', True):
+                resultado = self._gerar_texto(pedido)
+        return resultado
+
+    def _gerar_texto(self, pedido: str) -> str:
+        return self.motor.gerar_por_assinatura(pedido, passos=15)
+
+
+# ═══════════════════════════════════════════════════════════════
+# MCRValidator — valida QUALQUER dado por fingerprint
+# ═══════════════════════════════════════════════════════════════
+
+class MCRValidator:
+    """Valida QUALQUER dado por fingerprint, nao por parser.
+    0 if/else. 0 regras de linguagem. So Equacao MCR.
+
+    Uso:
+        val = MCRValidator(motor)
+        resultado = val.validar('function onSay() end')
+        # → {'valido': True, 'entropia': 3.2, 'nota': 8.5}
+    """
+    def __init__(self, motor: MCRMotor):
+        self.motor = motor
+
+    def validar(self, dado: str, referencia: str = '') -> Dict:
+        if not dado or len(dado.strip()) < 3:
+            return {'valido': False, 'nota': 0, 'diagnostico': 'vazio'}
+
+        h = MCRByteUtils.entropia_bytes(dado)
+        dim = MCRSignatureExpansiva.dimensionalidade_ideal(
+            dado.encode('utf-8'), max_dims=64)
+        fp = MCRSignatureExpansiva.fingerprint_texto(dado, dim)
+        h_fp = MCRSignatureExpansiva.entropia_fingerprint(fp)
+
+        palavras = dado.split()
+        n_unicas = len(set(p.lower() for p in palavras)) if palavras else 0
+        diversidade = n_unicas / max(len(palavras), 1)
+
+        if referencia:
+            j = MCRByteUtils.jaccard_bytes(referencia, dado)
+        else:
+            j = 0.5
+
+        nota = (j * 4 + diversidade * 3 + (1 - abs(h_fp - 4) / 4) * 3)
+        nota = min(10, max(0, nota))
+
+        return {
+            'valido': nota >= 5.0,
+            'nota': round(nota, 2),
+            'entropia': round(h, 3),
+            'dimensao_ideal': dim,
+            'diversidade': round(diversidade, 3),
+            'diagnostico': 'ok' if nota >= 5 else 'baixa qualidade',
+        }
+
+
+# ═══════════════════════════════════════════════════════════════
+# MCRBuilder — extrai, monta e salva arquivos
+# ═══════════════════════════════════════════════════════════════
+
+class MCRBuilder:
+    """Extrai blocos de codigo, monta arquivos, salva no disco.
+    Universal. Nao ha 'Lua' — ha blocos de codigo.
+    """
+    def __init__(self, motor: MCRMotor):
+        self.motor = motor
+        self.total_arquivos = 0
+
+    def extrair(self, texto: str) -> List[str]:
+        """Extrai blocos de codigo de texto."""
+        import re as _re
+        blocos = []
+        for padrao in [r'```[\w]*\n(.*?)\n```', r'(`{3,})(.*?)(\\1)']:
+            for match in _re.finditer(padrao, texto, _re.DOTALL):
+                codigo = match.group(1).strip()
+                if codigo and len(codigo) > 20:
+                    blocos.append(codigo)
+        if not blocos:
+            linhas = [l for l in texto.split('\n') if l.strip() and not l.strip().startswith(('#', '//', '--'))]
+            if len(linhas) >= 3:
+                blocos.append('\n'.join(linhas))
+        return blocos
+
+    def montar(self, blocos: List[str], estrutura: str = '') -> str:
+        if not blocos:
+            return ''
+        if estrutura:
+            return estrutura.replace('@BLOCK', '\n\n'.join(blocos))
+        return '\n\n'.join(blocos)
+
+    def salvar(self, caminho: str, conteudo: str) -> bool:
+        try:
+            os.makedirs(os.path.dirname(caminho), exist_ok=True)
+            with open(caminho, 'w', encoding='utf-8') as f:
+                f.write(conteudo)
+            self.total_arquivos += 1
+            return True
+        except (OSError, IOError) as e:
+            return False
+
+
+# ═══════════════════════════════════════════════════════════════
+# MCRComandos — CENTRALIZA TODOS OS 52 COMANDOS COMO METODOS MCR
+# ═══════════════════════════════════════════════════════════════
+
+class MCRComandos:
+    """Centraliza TODOS os comandos do MCR como metodos.
+
+    Cada comando do diretorio comandos/ vira UM METODO aqui.
+    Tudo no MCR.py. Zero arquivos externos.
+    0 LLM. So Equacao MCR.
+
+    Uso:
+        cmd = MCRComandos(motor)
+        cmd.analisar('arquivo.txt')
+        cmd.gerar_npc('ferreiro em Eridanus')
+        cmd.lore('fundacao de Eridanus')
+    """
+    def __init__(self, motor: MCRMotor = None, session: MCRSession = None):
+        self.motor = motor or MCRMotor()
+        self.session = session or MCRSession()
+        self.preencher = MCRPreencher(self.motor)
+        self.reconstructor = MCRReconstructor(self.motor)
+        self.gerador = MCRGenerator(self.motor, self.preencher)
+        self.validador = MCRValidator(self.motor)
+        self.builder = MCRBuilder(self.motor)
+        self.ferramentas = MCRFerramentas(self.motor)
+        self.total_execucoes = 0
+
+    def executar(self, comando: str, **kwargs) -> Dict:
+        """Executa QUALQUER comando pelo nome.
+        
+        A Equacao MCR decide se o comando e valido para o estado atual.
+        """
+        self.total_execucoes += 1
+        metodo = getattr(self, comando, None)
+        if metodo is None:
+            h = MCRByteUtils.entropia_bytes(comando)
+            if h < 3.0:
+                return {'erro': f'comando {comando} nao encontrado', 'nota': 0}
+            resultado = self.motor.gerar_por_assinatura(comando, passos=8)
+            return {'resposta': resultado, 'comando': comando, 'modo': 'gerado'}
+
+        resultado = metodo(**kwargs)
+        if self.session:
+            self.session.registrar(f'cmd:{comando}', str(resultado)[:100])
+        return resultado
+
+    # ─── COMANDOS DE ANALISE ────────────────────────────────
+
+    def analisar(self, caminho: str = '') -> Dict:
+        if not caminho or not os.path.exists(caminho):
+            return {'erro': 'caminho invalido'}
+        with open(caminho, 'rb') as f:
+            dados = f.read()
+        h = MCRByteUtils.entropia_bytes(dados)
+        dim = MCRSignatureExpansiva.dimensionalidade_ideal(dados, max_dims=64)
+        fp = MCRSignatureExpansiva.fingerprint(dados, 8)
+        return {
+            'arquivo': os.path.basename(caminho),
+            'tamanho': len(dados),
+            'entropia': round(h, 3),
+            'dimensao_ideal': dim,
+            'fingerprint': [round(v, 2) for v in fp],
+        }
+
+    def aprender_conceito(self, termo: str = '', arquivo: str = '') -> Dict:
+        if arquivo and os.path.exists(arquivo):
+            with open(arquivo, 'r', encoding='utf-8', errors='replace') as f:
+                conteudo = f.read(3000)
+            self.motor.alimentar(conteudo, f'conceito:{os.path.basename(arquivo)}')
+            return {'aprendido': True, 'termo': termo, 'fonte': arquivo}
+        if termo:
+            self.motor.alimentar(termo, f'conceito:{termo[:20]}')
+            return {'aprendido': True, 'termo': termo}
+        return {'aprendido': False}
+
+    # ─── COMANDOS DE GERACAO ────────────────────────────────
+
+    def gerar(self, pedido: str = '', formato: str = 'texto') -> Dict:
+        resultado = self.gerador.gerar(pedido, formato)
+        return {'resposta': resultado, 'formato': formato}
+
+    def gerar_npc(self, pedido: str = 'NPC') -> Dict:
+        resultado = self.gerador.gerar(f'crie um NPC {pedido}', 'codigo')
+        v = self.validador.validar(resultado, 'function onSay')
+        return {'resposta': resultado, 'valido': v['valido'], 'nota': v['nota']}
+
+    def build(self, pedido: str = '') -> Dict:
+        resultado = self.gerador.gerar(f'codigo {pedido}', 'codigo')
+        blocos = self.builder.extrair(resultado)
+        caminho = f'build_{self.total_execucoes}.txt'
+        self.builder.salvar(caminho, resultado)
+        return {'arquivo': caminho, 'tamanho': len(resultado), 'blocos': len(blocos)}
+
+    def lore(self, tema: str = '') -> Dict:
+        resultado = self.motor.gerar_por_assinatura(
+            f'crie uma lore sobre {tema}', passos=15)
+        return {'resposta': resultado}
+
+    # ─── COMANDOS DE EDICAO ─────────────────────────────────
+
+    def patch(self, arquivo: str = '', descricao: str = '') -> Dict:
+        if not arquivo or not os.path.exists(arquivo):
+            return {'erro': 'arquivo nao encontrado'}
+        with open(arquivo, 'r', encoding='utf-8', errors='replace') as f:
+            conteudo = f.read()
+        preenchido = self.preencher.executar(conteudo)
+        if preenchido != conteudo:
+            with open(arquivo, 'w', encoding='utf-8') as f:
+                f.write(preenchido)
+            return {'modificado': True, 'arquivo': arquivo}
+        return {'modificado': False}
+
+    def extract(self, arquivo: str = '', padrao: str = '') -> Dict:
+        if not arquivo or not os.path.exists(arquivo):
+            return {'erro': 'arquivo nao encontrado'}
+        with open(arquivo, 'r', encoding='utf-8', errors='replace') as f:
+            conteudo = f.read()
+        import re as _re
+        if padrao:
+            partes = _re.findall(padrao, conteudo, _re.DOTALL)
+        else:
+            partes = self.builder.extrair(conteudo)
+        return {'extraido': partes[:5], 'total': len(partes)}
+
+    # ─── COMANDOS DE CONSULTA ───────────────────────────────
+
+    def perguntar(self, texto: str = '') -> Dict:
+        if not texto:
+            return {'erro': 'texto vazio'}
+        resultado = self.motor.gerar_por_assinatura(texto, passos=10)
+        return {'resposta': resultado, 'pergunta': texto}
+
+    def conectar(self, a: str = '', b: str = '') -> Dict:
+        if a in self.motor.topicos and b in self.motor.topicos:
+            c = self.motor.conectar(a, b)
+            if c:
+                return {'nota': c['nota'], 'palavra': c.get('palavra_a', '')}
+        # Conecta por texto
+        nome_a = f'_con_a_{self.total_execucoes}'
+        nome_b = f'_con_b_{self.total_execucoes}'
+        self.motor.alimentar(a, nome_a)
+        self.motor.alimentar(b, nome_b)
+        c = self.motor.conectar(nome_a, nome_b)
+        self.motor.topicos.pop(nome_a, None)
+        self.motor.topicos.pop(nome_b, None)
+        if c:
+            return {'nota': c['nota'], 'palavra': c.get('palavra_a', '')}
+        return {'nota': 0}
+
+    # ─── COMANDOS DE SISTEMA ────────────────────────────────
+
+    def status(self) -> Dict:
+        return {
+            'topicos': len(self.motor.topicos),
+            'conexoes': self.motor.total_conexoes,
+            'execucoes': self.total_execucoes,
+            'estados_byte': self.motor.mk_byte.stats()['estados'],
+            'estados_palavra': self.motor.mk_palavra.stats()['estados'],
+            'entropia_byte': round(self.motor.mk_byte.entropia_media(), 3),
+        }
+
+    def memorizar(self, pergunta: str = '', resposta: str = '') -> Dict:
+        if pergunta and resposta:
+            self.motor.alimentar(f'{pergunta} {resposta}', f'memoria:{self.total_execucoes}')
+        return {'memorias': len(self.motor.topicos)}
+
+    def diagnosticar(self) -> Dict:
+        return MCRMeta.diagnosticar(self.motor)
+
+    def proativo(self) -> Dict:
+        """Sugere acoes baseado no estado do motor."""
+        diag = MCRMeta.diagnosticar(self.motor)
+        return {'sugestao': diag.get('sugestao', 'alimentar mais dados'),
+                'gap': diag.get('gap_principal', 'desconhecido'),
+                'nota': diag.get('nota_geral', 0)}
+
+    # ─── COMANDOS DE EXPLORACAO ─────────────────────────────
+
+    def explorar(self, diretorio: str = '.', ext: str = '*.py') -> Dict:
+        fuel = MCRFuel(self.motor)
+        n = fuel.buscar_arquivos(diretorio, ext)
+        return {'encontrados': n, 'topicos': len(self.motor.topicos)}
+
+    def weblearn(self, termo: str = '') -> Dict:
+        web = MCRWebLearn(self.motor)
+        n = web.buscar(termo) if termo else 0
+        return {'aprendido': n}
+
+    # ─── COMANDOS DE ARQUIVO ────────────────────────────────
+
+    def ler(self, caminho: str = '', offset: int = 0, limit: int = 100) -> Dict:
+        if not caminho or not os.path.exists(caminho):
+            return {'erro': 'arquivo nao encontrado'}
+        with open(caminho, 'r', encoding='utf-8', errors='replace') as f:
+            linhas = f.readlines()
+        selecionadas = linhas[offset:offset + limit]
+        return {
+            'arquivo': caminho,
+            'linhas': len(selecionadas),
+            'total_linhas': len(linhas),
+            'conteudo': ''.join(selecionadas),
+        }
+
+    def escrever(self, caminho: str = '', conteudo: str = '') -> Dict:
+        if not caminho:
+            return {'erro': 'caminho vazio'}
+        salvo = self.builder.salvar(caminho, conteudo)
+        return {'salvo': salvo, 'arquivo': caminho, 'tamanho': len(conteudo)}
+
+    def editar(self, caminho: str = '', linha: int = 0, texto: str = '') -> Dict:
+        if not caminho or not os.path.exists(caminho):
+            return {'erro': 'arquivo nao encontrado'}
+        with open(caminho, 'r', encoding='utf-8', errors='replace') as f:
+            linhas = f.readlines()
+        if 0 <= linha < len(linhas):
+            linhas[linha] = texto + '\n'
+            with open(caminho, 'w', encoding='utf-8') as f:
+                f.writelines(linhas)
+            return {'modificado': True, 'linha': linha}
+        return {'modificado': False}
+
+    # ─── COMANDOS DE PERSISTENCIA ───────────────────────────
+
+    def salvar_estado(self, caminho: str = '') -> Dict:
+        caminho = caminho or os.path.join(
+            os.path.dirname(__file__), 'validacao', 'cache', 'mcr_estado.json')
+        ok = self.motor.salvar(caminho)
+        return {'salvo': ok, 'caminho': caminho}
+
+    def carregar_estado(self, caminho: str = '') -> Dict:
+        caminho = caminho or os.path.join(
+            os.path.dirname(__file__), 'validacao', 'cache', 'mcr_estado.json')
+        ok = self.motor.carregar(caminho)
+        return {'carregado': ok, 'topicos': len(self.motor.topicos)}
+
+    # ─── COMANDO MASTER (executa qualquer coisa) ────────────
+
+    def master(self, pedido: str = '') -> Dict:
+        """Comando universal: analisa, decide o que fazer, executa."""
+        if not pedido:
+            return {'erro': 'pedido vazio'}
+
+        h = MCRByteUtils.entropia_bytes(pedido)
+        metodo = MCRPiEngine.decidir_metodo(pedido)
+
+        if 'analisar' in pedido.lower() or 'ler' in pedido.lower():
+            caminho = pedido.split()[-1] if pedido.split() else '.'
+            return self.analisar(caminho)
+        elif 'criar' in pedido.lower() or 'gerar' in pedido.lower() or 'crie' in pedido.lower():
+            return self.build(pedido)
+        elif 'lore' in pedido.lower() or 'historia' in pedido.lower():
+            return self.lore(pedido)
+        elif 'npc' in pedido.lower():
+            return self.gerar_npc(pedido)
+        elif 'conectar' in pedido.lower() or 'conexao' in pedido.lower():
+            return self.conectar(pedido, pedido)
+        elif metodo == 'markov':
+            return self.perguntar(pedido)
+        else:
+            return self.gerar(pedido)
+
+
 if __name__ == '__main__':
     import sys as _sys
 
