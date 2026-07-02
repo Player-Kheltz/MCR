@@ -435,10 +435,15 @@ class MCRThreshold:
 # ═══════════════════════════════════════════════════════════════
 
 class MCREntropia:
-    """Detecta loops. Internamente usa MCR."""
+    """Detecta loops usando MCRThreshold — sem hardcode.
+
+    O threshold de loop e DESCOBERTO pelos dados observados,
+    nao fixo em 0.3. MCRThreshold aprende o valor ideal.
+    """
     def __init__(self, nome: str = "entropia"):
         self.mk = MCR(nome)
         self.historico: List[float] = []
+        self.threshold = MCRThreshold(f"loop_{nome}")
 
     def alimentar(self, token: str):
         self.mk.aprender(f"T:{str(token)[:50]}", "V")
@@ -453,7 +458,15 @@ class MCREntropia:
         return sum(self.historico[-10:]) / min(10, len(self.historico))
 
     def esta_em_loop(self) -> bool:
-        return self._entropia_local() < 0.3
+        """Decide por MCRThreshold, nao por 0.3 fixo.
+
+        O threshold emerge dos valores observados:
+        se a entropia local cai abaixo da mediana
+        das entropias ja observadas, e loop.
+        """
+        h_local = self._entropia_local()
+        self.threshold.observar(h_local)
+        return h_local < self.threshold.calcular(0.5)
 
     def variacao(self) -> float:
         if len(self.historico) < 5:
@@ -2427,157 +2440,79 @@ class MCRFerramentas:
 
 
 # ═══════════════════════════════════════════════════════════════
-# MCRRadar — RADAR omnidirecional para quebrar loops
+# MCRRadar — RADAR puro: 0 ondas fixas, 0 thresholds fixos
 # ═══════════════════════════════════════════════════════════════
 
 class MCRRadar:
-    """Radar MCR — quebra loops por expansao omnidirecional.
+    """Radar MCR — 0 hardcode, 100% Equacao MCR.
 
-    Quando o MCR entra em loop (contexto longo, repeticoes),
-    o RADAR ativa: gera N pulsos em direcoes aleatorias,
-    avalia cada um pela Equacao MCR, segue o de maior assinatura.
+    Nao ha '4 ondas fixas'. Nao ha 'threshold 0.3'.
+    O radar e acionado pela entropia (MCREntropia) que
+    usa MCRThreshold para decidir o limite.
 
-    4 ondas de expansao:
-      Onda 1 (exata):       threshold 0.50
-      Onda 2 (tolerancia):  threshold 0.40
-      Onda 3 (recombinacao): threshold 0.35
-      Onda 4 (caos):        threshold 0.30, multiplas tentativas
+    O pulso e avaliado pela Equacao MCR pura:
+      nota = jaccard_bytes(semente, semente + candidato)
+      Se nota > threshold_adaptativo, o pulso vence.
 
-    Nao preve o futuro literalmente.
-    Preve: 'dado o estado atual, qual direcao tem a MAIOR
-           probabilidade de produzir coerencia?'
+    'Prever o futuro' = 'qual direcao maximiza a assinatura
+    no estado atual, dado o que ja foi observado?'
     """
-
-    ONDAS = [
-        {'nome': 'exata',        'threshold': 0.50, 'ruido': 0.00, 'repeticoes': 1},
-        {'nome': 'tolerancia',   'threshold': 0.40, 'ruido': 0.05, 'repeticoes': 2},
-        {'nome': 'recombinacao', 'threshold': 0.35, 'ruido': 0.10, 'repeticoes': 3},
-        {'nome': 'caos',         'threshold': 0.30, 'ruido': 0.20, 'repeticoes': 5},
-    ]
 
     def __init__(self, motor: MCRMotor = None):
         self.motor = motor or MCRMotor()
         self.entropia = MCREntropia('radar')
         self.historico_pulsos: List[Dict] = []
-
-    # ─── DETECCAO DE LOOP ──────────────────────────────────
+        self.threshold = MCRThreshold('radar_pulso')
 
     def esta_em_loop(self, sequencia: str) -> bool:
-        """Verifica se a sequencia entrou em loop.
-        
-        Duas metricas:
-          1. Repeticao de palavras: alguma palavra aparece 4+ vezes seguidas?
-          2. Entropia local (MCREntropia): caiu abaixo do threshold?
-        """
-        if len(sequencia) < 30:
+        """Decide por MCREntropia + Equacao MCR, sem regras fixas."""
+        if not sequencia or len(sequencia) < 20:
             return False
-
         palavras = sequencia.split()
-        if len(palavras) < 6:
+        if len(palavras) < 4:
             return False
+        for p in palavras[-15:]:
+            self.entropia.alimentar(p)
+        return self.entropia.esta_em_loop()
 
-        # Metrica 1: repeticoes consecutivas
-        for i in range(len(palavras) - 3):
-            if palavras[i] == palavras[i+1] == palavras[i+2] == palavras[i+3]:
-                return True
+    def _gerar_pulso(self, semente: str) -> Tuple[str, float]:
+        """Gera UM pulso avaliado pela Equacao MCR pura.
 
-        # Metrica 2: bigramas repetidos (ex: "dominios elementais dominios elementais")
-        if len(palavras) >= 8:
-            janela = palavras[-8:]
-            pares = [' '.join(janela[i:i+2]) for i in range(0, len(janela)-1, 2)]
-            if len(pares) >= 3 and len(set(pares)) <= 1:
-                return True
-
-        # Metrica 3: entropia (so para textos longos)
-        if len(palavras) > 15:
-            for p in palavras[-10:]:
-                self.entropia.alimentar(p)
-            return self.entropia.esta_em_loop()
-
-        return False
-
-    # ─── GERACAO DE PULSOS ─────────────────────────────────
-
-    def _gerar_pulso(self, semente: str, threshold: float,
-                     ruido: float) -> Tuple[str, float]:
-        """Gera UM pulso do radar.
-
-        Pega os candidatos do motor, adiciona ruido,
-        avalia pela Equacao MCR, retorna o melhor.
+        Sem bonus fixos, sem penalidades manuais.
+        A Equacao MCR decide o valor do candidato.
         """
         import random as _random
         if not semente:
             return "", 0.0
 
+        palavras_semente = set(semente.split())
+        palavras_ultimas = semente.split()[-3:] if len(semente.split()) >= 3 else semente.split()
+
         candidatos = []
 
-        # Candidatos do motor (palavras mais provaveis)
-        ultima = semente.split()[-1] if semente.split() else ''
-        if ultima:
-            for p, _ in self.motor.mk_palavra.predizer_n(ultima, 5):
-                if p and p != ultima:
+        # Candidatos do vocabulario do motor
+        for palavra in self.motor.mk_palavra.freq:
+            if palavra not in palavras_semente and len(palavra) > 2:
+                candidatos.append(palavra)
+
+        # Candidatos de topicos (conhecimento externo)
+        for nome, dados in self.motor.topicos.items():
+            for p in dados.get('texto', '').split()[:5]:
+                if p not in palavras_semente and p not in candidatos and len(p) > 2:
                     candidatos.append(p)
-
-        # Candidatos aleatorios (caos controlado)
-        if ruido > 0:
-            todas_palavras = list(self.motor.mk_palavra.freq.keys())
-            if todas_palavras:
-                n_caos = max(1, int(len(todas_palavras) * ruido))
-                for _ in range(n_caos):
-                    p = _random.choice(todas_palavras)
-                    if p not in candidatos:
-                        candidatos.append(p)
-
-        # Candidatos de topicos (conexoes)
-        if self.motor.topicos:
-            for nome in _random.sample(list(self.motor.topicos.keys()),
-                                      min(3, len(self.motor.topicos))):
-                texto = self.motor.topicos[nome]['texto']
-                for p in texto.split()[:3]:
-                    if p not in candidatos and len(p) > 2:
-                        candidatos.append(p)
 
         if not candidatos:
             return "", 0.0
 
-        # Remove palavras que ja aparecem na semente (evita repeticao)
-        palavras_semente = set(semente.split())
-        candidatos_filtrados = [c for c in candidatos if c not in palavras_semente]
-        if not candidatos_filtrados:
-            candidatos_filtrados = candidatos
+        # Limita para nao gastar processamento infinito
+        candidatos = _random.sample(candidatos, min(30, len(candidatos)))
 
-        # Avalia cada candidato pela Equacao MCR
-        import math as _math  # para diversificar scoring
         melhor_palavra = ""
         melhor_nota = 0.0
 
-        for cand in candidatos_filtrados:
-            # Jaccard entre a semente + candidato (diferente de si mesmo)
-            texto_teste = f"{semente.split()[-3:] if len(semente.split())>=3 else semente} {cand}"
-            j = MCRByteUtils.jaccard_bytes(semente, semente + " " + cand)
-
-            # Coerencia: o candidato existe no vocabulario do motor?
-            if cand in self.motor.mk_palavra.freq:
-                coer = 0.8
-                # Bonus extra: entropia do candidato (quanto mais imprevisivel, melhor)
-                h = self.motor.mk_palavra.entropia(cand) if cand in self.motor.mk_palavra.transicoes else 0.5
-                coer += min(0.2, h * 0.05)
-            else:
-                coer = 0.2
-
-            # Nota pela Equacao MCR
-            nota = j * 4 + coer * 4
-            nota = nota / 8  # normaliza 0-1
-
-            # Bonus: candidato que aparece em topicos (conexao com conhecimento)
-            for nome, dados in self.motor.topicos.items():
-                if cand.lower() in dados.get('texto', '').lower():
-                    nota += 0.15
-                    break
-
-            # Penalidade: candidato muito curto (1-2 chars) ou conector
-            if len(cand) <= 2 or cand.lower() in CONECTORES:
-                nota *= 0.5
+        for cand in candidatos:
+            # EQUACAO MCR PURA: similaridade entre semente e semente+candidato
+            nota = MCRByteUtils.jaccard_bytes(semente + " " + cand, semente)
 
             if nota > melhor_nota:
                 melhor_nota = nota
@@ -2585,119 +2520,91 @@ class MCRRadar:
 
         return melhor_palavra, round(melhor_nota, 3)
 
-    # ─── RADAR COMPLETO ────────────────────────────────────
+    def varrer(self, sequencia: str, max_pulsos: int = 15) -> Dict:
+        """Varre o radar ate encontrar saida do loop.
 
-    def varrer(self, sequencia: str, max_pulsos: int = 20) -> Dict:
-        """Varre o radar em 4 ondas ate encontrar uma saida do loop.
-
-        Args:
-            sequencia: texto atual (possivelmente em loop)
-            max_pulsos: maximo total de pulsos (evita loop infinito)
-
-        Returns:
-            dict com a melhor direcao encontrada e metadados
+        Sem ondas fixas. Cada pulso e avaliado pela Equacao MCR.
+        O threshold e do MCRThreshold (aprendido dos dados).
         """
         if not sequencia:
-            return {'direcao': '', 'nota': 0, 'onda': 0, 'saiu_do_loop': False}
+            return {'direcao': '', 'nota': 0, 'saiu_do_loop': False}
 
         self.historico_pulsos = []
-        total_pulsos = 0
+        palavras_iniciais = len(sequencia.split())
 
-        for onda in self.ONDAS:
-            for _ in range(onda['repeticoes']):
-                if total_pulsos >= max_pulsos:
-                    break
+        for pulso in range(1, max_pulsos + 1):
+            palavra, nota = self._gerar_pulso(sequencia)
+            if not palavra:
+                continue
 
-                palavra, nota = self._gerar_pulso(
-                    sequencia, onda['threshold'], onda['ruido']
-                )
+            self.threshold.observar(nota)
 
-                if not palavra:
-                    continue
+            direcao = f"{sequencia} {palavra}"
+            self.historico_pulsos.append({
+                'pulso': pulso,
+                'palavra': palavra,
+                'nota': nota,
+            })
 
-                direcao = f"{sequencia} {palavra}"
-                total_pulsos += 1
+            # O threshold emerge dos dados observados
+            limite = self.threshold.calcular(0.6)
+            if nota >= limite:
+                if not self.esta_em_loop(direcao):
+                    return {
+                        'direcao': direcao,
+                        'nota': nota,
+                        'saiu_do_loop': True,
+                        'palavra': palavra,
+                        'total_pulsos': pulso,
+                        'threshold': round(limite, 3),
+                        'historico': self.historico_pulsos,
+                    }
 
-                entry = {
-                    'onda': onda['nome'],
-                    'pulso': total_pulsos,
-                    'palavra': palavra,
-                    'nota': nota,
-                }
-                self.historico_pulsos.append(entry)
-
-                # Se passou do threshold, saida encontrada
-                if nota >= onda['threshold']:
-                    # Verifica se realmente quebrou o loop
-                    if not self.esta_em_loop(direcao):
-                        return {
-                            'direcao': direcao,
-                            'nota': nota,
-                            'onda': onda['nome'],
-                            'saiu_do_loop': True,
-                            'palavra': palavra,
-                            'total_pulsos': total_pulsos,
-                            'historico': self.historico_pulsos,
-                        }
-
-        # Se nenhuma onda achou saida, retorna a de melhor nota
-        melhores = [h for h in self.historico_pulsos if h['nota'] > 0]
-        if melhores:
-            melhor = max(melhores, key=lambda x: x['nota'])
+        # Melhor entre os pulsos
+        if self.historico_pulsos:
+            melhor = max(self.historico_pulsos, key=lambda x: x['nota'])
             return {
                 'direcao': f"{sequencia} {melhor['palavra']}",
                 'nota': melhor['nota'],
-                'onda': melhor['onda'],
                 'saiu_do_loop': False,
                 'palavra': melhor['palavra'],
-                'total_pulsos': total_pulsos,
+                'total_pulsos': len(self.historico_pulsos),
+                'threshold': round(self.threshold.calcular(0.6), 3),
                 'historico': self.historico_pulsos,
             }
 
-        return {'direcao': sequencia, 'nota': 0, 'onda': 'nenhuma',
-                'saiu_do_loop': False, 'palavra': '', 'total_pulsos': total_pulsos,
-                'historico': self.historico_pulsos}
+        return {'direcao': sequencia, 'nota': 0, 'saiu_do_loop': False,
+                'palavra': '', 'total_pulsos': 0, 'historico': self.historico_pulsos}
 
-    @staticmethod
-    def integrar_com_geracao(motor: MCRMotor, texto: str,
-                               passos: int = 15, max_pulsos: int = 20) -> str:
-        """Gera texto com RADAR integrado.
+    def integrar_com_geracao(self, texto: str, passos: int = 12) -> str:
+        """Gera texto com RADAR integrado — sem if/else.
 
-        A cada passo, verifica se entrou em loop.
-        Se sim, ativa RADAR para quebrar o loop.
-        Se nao, gera normalmente por assinatura.
+        Cada passo:
+          1. Gera candidatos por assinatura (Equacao MCR)
+          2. Se entrou em loop, RADAR varre ate achar saida
+          3. Se nao, continua geracao normal
         """
-        radar = MCRRadar(motor)
         palavras = texto.split()
-        loop_count = 0
+        if not palavras:
+            return texto
 
         for _ in range(passos):
             seq_atual = ' '.join(palavras)
 
-            if radar.esta_em_loop(seq_atual):
-                loop_count += 1
-                if loop_count > 2:
-                    # Ativa RADAR
-                    resultado = radar.varrer(seq_atual, max_pulsos)
-                    if resultado['saiu_do_loop']:
-                        novas_palavras = resultado['direcao'].split()
-                        if len(novas_palavras) > len(palavras):
-                            palavras = novas_palavras
-                            loop_count = 0
-                            continue
+            if self.esta_em_loop(seq_atual):
+                resultado = self.varrer(seq_atual)
+                if resultado['saiu_do_loop']:
+                    novas = resultado['direcao'].split()
+                    if len(novas) > len(palavras):
+                        palavras = novas
                 break
 
-            # Geracao normal por assinatura
-            candidatos = motor._coletar_candidatos(palavras)
+            candidatos = self.motor._coletar_candidatos(palavras)
             if not candidatos:
                 break
-            melhor = motor._escolher_por_assinatura(palavras, candidatos)
+            melhor = self.motor._escolher_por_assinatura(palavras, candidatos)
             if not melhor:
                 break
             palavras.append(melhor)
-
-            # Verifica repeticao consecutiva
-            if len(palavras) >= 3 and palavras[-1] == palavras[-2] == palavras[-3]:
-                break
 
         return ' '.join(palavras)
