@@ -12,7 +12,74 @@ Dentro desse ecossistema, um arquivo começou a crescer: `MCR.py`. Inicialmente 
 
 ---
 
-## Fase 1: O Gênesis (antes desta conversa)
+## Fase 1: A Era MCR-DevIA (o precursor esquecido)
+
+```
+MCR-DevIA — um sistema AGI que usava LLM como cerebro
+Antes da equacao, existiu o MCR-DevIA...
+```
+
+Antes da Equacao MCR ser purificada, existiu um sistema chamado **MCR-DevIA**. Ele era uma tentativa de criar uma inteligencia artificial geral usando um LLM local (DeepSeek via Ollama) como nucleo de processamento.
+
+### A Arquitetura
+
+O MCR-DevIA tinha 7+ modulos especializados:
+
+| Componente | Funcao |
+|------------|--------|
+| **MasterAgent** | Orquestrava 7 subagentes (emergir, self-study, task-executor) |
+| **ContextCrew** | Buscava contexto de 5 fontes (KG, Web, Docs, Codigo, WebLearn) |
+| **PipelineExecutor** | Executava cascade fixo: Sense → Think → Validate → Learn |
+| **Supervisor** | Classificava perguntas e roteava para o modulo certo |
+| **IntentionEngine** | Detectava intencao do usuario por keywords |
+| **PatternEngine** | Analisava padroes em tokens |
+| **KnowledgeGraph** | Gerenciava 1600+ lessons em 98 arquivos JSON |
+
+Tudo dependia de um LLM rodando localmente (DeepSeek, Qwen, via Ollama). O sistema ocupava ~12 modulos, 52 comandos, e milhares de linhas.
+
+### O Problema
+
+| Metrica | Valor |
+|---------|-------|
+| Tempo por pergunta | 30-165 segundos |
+| GPU necessaria | Sim (quando disponivel) |
+| Dependencias | Ollama, JSON, modulos externos |
+| Consistencia | LLM alucinava, ignorava contexto, era imprevisivel |
+| Custo operacional | Alto (GPU ligada hora tras) |
+
+O sistema funcionava, mas era lento, caro, e fragil. Cada pergunta passava por um pipeline fixo de 5 fases que demorava ate 165 segundos — e mesmo assim o LLM frequentemente ignorava o contexto fornecido e alucinava respostas.
+
+### A Semente
+
+Dentro do MCR-DevIA, um modulo chamado `MCR.py` crescia silenciosamente. Inicialmente era apenas `MarkovUniversal` — uma implementacao simples de Cadeias de Markov — mais algumas classes para analise de padroes. Ele era usado como apoio ao LLM, nunca como substituto.
+
+Mas algo nele era diferente:
+
+- **Nunca alucinava** — Markov sempre retorna o que aprendeu, nada mais
+- **Era deterministico** — mesma entrada, mesma saida, sempre
+- **Era rapido** — microssegundos, nao segundos
+- **Nao precisava de GPU** — rodava em qualquer maquina
+
+A pergunta que mudou tudo:
+
+> *"E se o Markov fizer TUDO? E se a gnt substituir o LLM inteiro por Markov?"*
+
+Ninguem tinha respondido essa pergunta antes porque Markov de primeira ordem e "burro" — so olha o ultimo token. Mas o MCR-DevIA ja tinha 6 niveis de Markov rodando em paralelo. E se eles trabalhassem juntos?
+
+### O Legado
+
+MCR-DevIA foi descontinuado como sistema LLM. Mas:
+
+- Suas classes viraram o nucleo do `MCR.py`
+- Sua pergunta fundamental levou a Equacao MCR
+- Seus 1600+ lessons no KG se tornaram a base de conhecimento
+- Sua arquitetura de niveis inspirou o registro de niveis universal
+
+**MCR-DevIA nao foi um erro. Foi o LABORATORIO onde a equacao nasceu.**
+
+---
+
+## Fase 2: O Gênesis (antes desta conversa)
 
 ```
 MCR.py: 7043 linhas, 40+ classes
@@ -26,7 +93,7 @@ Um dia, o autor olhou para aquele sistema e perguntou: **"E se tudo fosse a mesm
 
 ---
 
-## Fase 2: O Protótipo da Prova
+## Fase 3: O Protótipo da Prova
 
 ```
 E:\MCR Protótipos\ — 5 arquivos, 0 LLM
@@ -52,7 +119,7 @@ Nenhum nome existia em nenhum arquivo do projeto. O Markov multinível (fonema +
 
 ---
 
-## Fase 3: A Equação Universal
+## Fase 4: A Equação Universal
 
 ```
 Commits: 8ac69f5d → b0845ebb
@@ -94,7 +161,7 @@ Tudo com o mesmo código. Zero hardcode. Zero dependências externas.
 
 ---
 
-## Fase 4: A Geração por Assinatura
+## Fase 5: A Geração por Assinatura
 
 ```
 Commit: 22423eb8
@@ -124,7 +191,7 @@ A geração não é mais "seguir a probabilidade mais alta". É **otimizar a ass
 
 ---
 
-## Fase 5: A Validação Contra o Mundo Real
+## Fase 6: A Validação Contra o Mundo Real
 
 ### Experimento 1: 12 formatos de arquivo
 
@@ -181,7 +248,7 @@ Sem nunca ter visto um exemplo classificado, a Equação MCR detectou que códig
 
 ---
 
-## Fase 6: O Auto-Diagnóstico
+## Fase 7: O Auto-Diagnóstico
 
 ```
 Commits: e916dbb2 → ea7c7f63
@@ -199,7 +266,7 @@ Sem niveis fixos, pesos fixos, thresholds fixos. O estado do motor é serializad
 
 ---
 
-## Fase 7: Os Componentes AGI
+## Fase 8: Os Componentes AGI
 
 ```
 Commit: f31b19ef
@@ -227,7 +294,7 @@ MCRFuel + MCRWebLearn → buscam conhecimento
 
 ---
 
-## Fase 8: O RADAR — Quebrando o Desconhecido
+## Fase 9: O RADAR — Quebrando o Desconhecido
 
 ```
 Commits: 9476c077 → d17ec3b1
@@ -241,7 +308,7 @@ Sem ondas fixas, sem thresholds fixos, sem bônus manuais. 100% Equação MCR.
 
 ---
 
-## Fase 9: A Assinatura Expansiva
+## Fase 10: A Assinatura Expansiva
 
 ```
 Commit: 9ec12bc3
@@ -272,7 +339,7 @@ Sem dimensões fixas. A assinatura se expande até a dimensionalidade que o dado
 
 ---
 
-## Fase 10: MCR Sobre MCR
+## Fase 11: MCR Sobre MCR
 
 ```
 Commits: e0816320 → cdbf7bf2
