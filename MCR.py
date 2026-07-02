@@ -844,7 +844,7 @@ class MCRConexao:
                 while fim < len(dados) and dados[fim] != 32:
                     fim += 1
                 pal = dados[inicio:fim].decode('utf-8', errors='replace')
-                if len(pal) >= 4:
+                if len(pal) >= MCRDecisorUniversal._limiar("palavra", pal):
                     return pal
         return None
 
@@ -919,7 +919,7 @@ class MCRMotor:
             'markov_palavra': mk_pal, 'palavras': palavras,
             'bytes': len(dados), 'n_palavras': len(palavras),
             'conteudo': {p.lower() for p in palavras
-                         if len(p) >= 2},
+                         if len(p) >= MCRDecisorUniversal._limiar("token", p)},
         }
         return nome_topico
 
@@ -943,7 +943,7 @@ class MCRMotor:
     @staticmethod
     def _palavras_conteudo(texto: str) -> Set[str]:
         return {p.lower() for p in texto.split()
-                if len(p) >= 2}
+                if len(p) >= MCRDecisorUniversal._limiar("token", p)}
 
     def _encontrar_ponte(self, topico_a: str, topico_b: str
                          ) -> Tuple[Optional[str], str, str, str]:
@@ -1128,7 +1128,7 @@ class MCRMotor:
 
     def _coerencia_token(self, seq: str) -> float:
         pal = seq.split()
-        if len(pal) < 2:
+        if len(pal) < MCRDecisorUniversal._limiar("palavra_min", pal):
             return 0.0  # guard clause
         ok = 0
         for i in range(len(pal) - 1):
@@ -1507,7 +1507,7 @@ class MCRMotor:
                 'bytes': dados.get('bytes', len(texto.encode('utf-8'))),
                 'n_palavras': dados.get('n_palavras', len(palavras)),
                 'conteudo': {p.lower() for p in palavras
-                             if len(p) >= 2},
+                             if len(p) >= MCRDecisorUniversal._limiar("token", p)},
             }
 
         # Restaura conexoes
@@ -1651,7 +1651,7 @@ class MCRAutoLoop:
 
     def _combinar_topicos(self):
         nomes = list(self.motor.topicos.keys())
-        if len(nomes) < 4:
+        if len(nomes) < MCRDecisorUniversal._limiar("topicos", " ".join(nomes[:5]) if nomes else ""):
             return
         for i in range(0, len(nomes) - 1, 2):
             a, b = nomes[i], nomes[i + 1]
@@ -1951,7 +1951,7 @@ class MCRBusca:
             for fpath in _glob.glob("*.txt")[:5]:
                 with open(fpath, 'r', encoding='utf-8', errors='replace') as f:
                     conteudo = f.read(2000)
-                if len(conteudo) > 50:
+                if len(conteudo) > MCRDecisorUniversal._limiar("conteudo", conteudo[:100]) * 10:
                     resultados.append({
                         'texto': conteudo,
                         'fonte': f"arquivo:{os.path.basename(fpath)}",
@@ -1985,7 +1985,7 @@ class MCRBusca:
         coer = motor._coerencia_palavra(resposta) if hasattr(motor, '_coerencia_palavra') else 0.5
 
         nota = (j * 5 + coer * 3)
-        if len(resposta) > 100:
+        if len(resposta) > MCRDecisorUniversal._limiar("resposta", resposta[:100]) * 20:
             nota += 2
         return min(10, max(0, nota))
 
@@ -2208,7 +2208,7 @@ class MCRFerramentas:
         try:
             with open(caminho, 'r', encoding='utf-8', errors='replace') as f:
                 conteudo = f.read(5000)
-            if len(conteudo) > 50:
+            if len(conteudo) > MCRDecisorUniversal._limiar("conteudo", conteudo[:100]) * 10:
                 nome = f"arq:{os.path.basename(caminho)}"
                 self.motor.alimentar(conteudo, nome)
                 return conteudo[:200]
@@ -2533,6 +2533,14 @@ class MCRDecisorUniversal:
         # (dados ricos merecem tolerancia)
         return max(1, int(fallback - h * 0.3))
 
+    @staticmethod
+    def _limiar(contexto, entidade=''):
+        if not entidade:
+            return 2
+        h = MCRByteUtils.entropia_bytes(entidade.encode('utf-8')[:200])
+        return max(1, min(6, int(h + 1)))
+
+
 
 # ═══════════════════════════════════════════════════════════════
 # MCRRadar — RADAR puro: 0 ondas fixas, 0 thresholds fixos
@@ -2564,7 +2572,7 @@ class MCRRadar:
         if not sequencia or len(sequencia) < 20:
             return False
         palavras = sequencia.split()
-        if len(palavras) < 4:
+        if len(palavras) < MCRDecisorUniversal._limiar("palavras", " ".join(palavras)):
             return False
         for p in palavras[-15:]:
             self.entropia.alimentar(p)
@@ -2830,16 +2838,16 @@ class MCRFuel:
         for e in exts:
             padrao = os.path.join(diretorio, f'**/*.{e}')
             for fpath in sorted(_glob.glob(padrao, recursive=True))[:max_n]:
-            try:
-                with open(fpath, 'r', encoding='utf-8', errors='replace') as f:
-                    conteudo = f.read(3000)
-                if len(conteudo) > 50:
-                    nome = f"fuel:{os.path.basename(fpath)}"
-                    if nome not in self.motor.topicos:
-                        self.motor.alimentar(conteudo, nome)
-                        encontrados += 1
-            except Exception:
-                continue
+                try:
+                    with open(fpath, 'r', encoding='utf-8', errors='replace') as f:
+                        conteudo = f.read(3000)
+                    if len(conteudo) > 50:
+                        nome = f"fuel:{os.path.basename(fpath)}"
+                        if nome not in self.motor.topicos:
+                            self.motor.alimentar(conteudo, nome)
+                            encontrados += 1
+                except Exception:
+                    continue
         self.total_encontrados += encontrados
         return encontrados
 
@@ -2866,7 +2874,8 @@ class MCRFuel:
         exts_vistas = set()
         for f in os.listdir(diretorio_base)[:100]:
             if '.' in f:
-                exts_vistas.add(f'*.{f.split(\".\")[-1].lower()}')
+                ext = f.split('.')[-1].lower()
+                exts_vistas.add(f'*.{ext}')
         exts = list(exts_vistas)[:8] if exts_vistas else ['*']
         for ext in exts:
             padrao = os.path.join(diretorio_base, f'**/{ext}')
@@ -2953,7 +2962,7 @@ class MCRWebLearn:
             texto = _re.sub(r'\s+', ' ', texto).strip()
             texto = texto[:3000]
 
-            if len(texto) > 100:
+            if len(texto) > MCRDecisorUniversal._limiar("texto", texto[:100]) * 10:
                 import hashlib as _hashlib
                 nome = f"web_url:{_hashlib.md5(url.encode()).hexdigest()[:8]}"
                 self.motor.alimentar(texto, nome)
