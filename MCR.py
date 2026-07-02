@@ -2704,6 +2704,95 @@ class MCRRadar:
 
         return ' '.join(palavras)
 
+    # ─── RADAR NUMERICO (delta fingerprint) ───────────────────
+
+    @staticmethod
+    def delta_fingerprint(a, b, dim=16):
+        """Transformacao entre duas strings como delta de fingerprint."""
+        import math as _m
+        if dim > 16:
+            dim = 16
+        fa = MCRSignatureExpansiva.fingerprint_texto(str(a), dim)
+        fb = MCRSignatureExpansiva.fingerprint_texto(str(b), dim)
+        return [fb[i] - fa[i] for i in range(dim)]
+
+    @staticmethod
+    def _mag(delta):
+        import math as _m
+        return _m.sqrt(sum(d*d for d in delta))
+
+    @staticmethod
+    def _sim_delta(d1, d2):
+        """Similaridade entre dois deltas (cosseno)."""
+        m1 = MCRRadar._mag(d1)
+        m2 = MCRRadar._mag(d2)
+        if m1 == 0 or m2 == 0:
+            return 0.0
+        dot = sum(d1[i] * d2[i] for i in range(len(d1)))
+        return dot / (m1 * m2)
+
+    def predizer_sequencia(self, elementos, max_candidato=2000):
+        """Preve o proximo elemento por consistencia de transformacao.
+
+        Cada par (a,b) tem um delta de fingerprint.
+        A sequencia de deltas tem uma assinatura.
+        O melhor candidato e o que mantem essa assinatura.
+        """
+        elementos_str = [str(e) for e in elementos]
+
+        # Calcula deltas entre consecutivos
+        deltas = []
+        for i in range(len(elementos_str) - 1):
+            d = MCRRadar.delta_fingerprint(elementos_str[i], elementos_str[i+1])
+            deltas.append(d)
+
+        if not deltas:
+            return 0, 0.0
+
+        # O ultimo elemento
+        ultimo = elementos_str[-1]
+
+        # Testa candidatos
+        melhores = []
+        for cand in range(1, max_candidato + 1):
+            # So numeros que estao no mesmo padrao de digitos ou +1
+            str_cand = str(cand)
+            len_ultimo = len(ultimo)
+            len_cand = len(str_cand)
+
+            # Filtro: nao aceita candidatos que encurtam muito
+            if len_cand < len_ultimo - 1:
+                continue
+
+            d_cand = MCRRadar.delta_fingerprint(ultimo, str_cand)
+            mag_cand = MCRRadar._mag(d_cand)
+            if mag_cand == 0:
+                continue
+
+            # Similaridade com CADA delta anterior
+            sims = [MCRRadar._sim_delta(d_cand, d_ant) for d_ant in deltas if MCRRadar._mag(d_ant) > 0]
+            if not sims:
+                continue
+            sim_media = sum(sims) / len(sims)
+
+            # Consistencia de magnitude
+            mags_anteriores = [MCRRadar._mag(d) for d in deltas if MCRRadar._mag(d) > 0]
+            if mags_anteriores:
+                mag_med = sum(mags_anteriores) / len(mags_anteriores)
+                razao = min(mag_cand, mag_med) / max(mag_cand, mag_med) if mag_med > 0 else 0
+            else:
+                razao = 1
+
+            score = sim_media * razao
+
+            if score > 0:
+                melhores.append((round(score, 4), cand))
+
+        melhores.sort(key=lambda x: -x[0])
+        if not melhores:
+            return 0, 0.0
+        return melhores[0][1], melhores[0][0]
+
 
 # ═══════════════════════════════════════════════════════════════
 # MCRFuel — busca ativamente conhecimento em N fontes
