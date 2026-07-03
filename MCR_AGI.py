@@ -1695,64 +1695,64 @@ _registrar_registry()
 # ═══════════════════════════════════════════════════════════════════
 
 class MCRResposta:
-    """Resposta universal: distribuicao decide confianca, ferramentas aprendem.
-    Zero thresholds fixos. Zero if/elif. So a Equacao."""
+    """Resposta: distribuicao decide, MCR filtra, cerebro decide.
+    Zero if/elif fixos. Tudo via MCR + thresholds aprendidos."""
+    
+    _thr_conf = MCRThreshold("resposta_conf")
+    _thr_tipo = MCRThreshold("resposta_tipo")
     
     @staticmethod
     def _buscar(pergunta, cerebro, max_iter=3):
-        """Busca com confianca pela distribuicao dos scores.
+        """Busca com filtro por tipo de topico + confianca por MCRThreshold.
         
-        1. Coleta scores de TODOS os topicos (jaccard com pergunta)
-        2. Ordena do maior para o menor
-        3. Confianca = o quanto o top se destaca da mediana
-        4. Se nao se destaca: re-alimenta e tenta de novo
+        Nao responde com gaps, nao usa formatacao no aprendizado.
+        Se confianca < threshold, retorna vazio para web search.
         """
         for i in range(max_iter):
             if not cerebro.topicos:
-                return cerebro.gerar(pergunta, passos=6, pergunta=pergunta)
+                return ""
             
-            # Coleta scores de todos os topicos
+            # Coleta scores filtrando gaps (tipo != 'gap')
             scores = []
             for nome, dados in cerebro.topicos.items():
                 texto = dados.get("texto", "")
-                if not texto:
-                    continue
+                tipo = dados.get("tipo", "conv")
+                if not texto or tipo == "gap" or nome.startswith("gap_"):
+                    continue  # Fix 1: gaps nunca viram resposta
                 s = MCRByteUtils.jaccard_bytes(pergunta, texto)
-                scores.append((s, nome, texto))
+                scores.append((s, nome, texto, tipo))
             
             if not scores:
-                return cerebro.gerar(pergunta, passos=6, pergunta=pergunta)
+                return ""
             
             scores.sort(key=lambda x: -x[0])
-            melhor_score, melhor_nome, melhor_texto = scores[0]
+            melhor_score, melhor_nome, melhor_texto, melhor_tipo = scores[0]
             
-            # Confianca pela distribuicao dos gaps
+            # Threshold de confianca MINIMO (Fix 3)
+            conf_min = MCRResposta._thr_conf.obter("conf_min", 0.1)
+            if melhor_score < conf_min:
+                return ""  # confianca baixa → web search ou geracao
+            
+            # Distribuicao dos gaps (confianca relativa)
             top_n = min(10, len(scores))
             top_scores = [s[0] for s in scores[:top_n]]
-            gaps = [top_scores[i] - top_scores[i+1] for i in range(len(top_scores)-1)] if len(top_scores) > 1 else [0]
-            media_gap = sum(gaps) / len(gaps) if gaps else 0
-            primeiro_gap = gaps[0] if gaps else 0
-            
-            # Confiante se o primeiro gap e maior que a media dos gaps
-            # e o score do top e > 0 (nao e ruido)
-            confiante = primeiro_gap > media_gap and melhor_score > 0
+            gaps_list = [top_scores[i] - top_scores[i+1] for i in range(len(top_scores)-1)] if len(top_scores) > 1 else [0]
+            media_gap = sum(gaps_list) / len(gaps_list) if gaps_list else 0
+            primeiro_gap = gaps_list[0] if gaps_list else 0
+            confiante = primeiro_gap > media_gap and melhor_score > conf_min
             
             if confiante or i == max_iter - 1:
                 return melhor_texto[:300]
             
-            # Confianca baixa: alimenta contexto e tenta de novo
+            # Confianca baixa: tenta gerar por Markov (Fix 5)
             try:
-                from MCR_AGI import MCRGenesis
-                genesis = MCRGenesis(cerebro)
-                diag = genesis.diagnosticar()
-                if diag.get("gaps"):
-                    g = diag["gaps"][0]
-                    cerebro.alimentar(f"gap: {g['nome']}. {g['sugestao']}", f"gap_{hash(pergunta)%10000}")
-            except Exception:
-                import time as _t
-                cerebro.alimentar(f"{_t.strftime('%H:%M:%S')} {_t.strftime('%d/%m/%Y')}", f"ctx_{_t.time()}")
+                gerado = cerebro.gerar(pergunta, passos=6, pergunta=pergunta)
+                if gerado and len(gerado) > 20:
+                    return gerado[:300]
+            except:
+                pass
         
-        return melhor_texto[:300] if melhor_texto else ""
+        return "Nao sei responder sobre isso." if melhor_texto else ""
     
     @staticmethod
     def responder(pergunta, cerebro):
@@ -2099,7 +2099,7 @@ class CerebroAGI:
     def genesis(self):
         if self._genesis is None: self._genesis = MCRGenesis(self)
         return self._genesis
-    def alimentar(self, texto, nome=None):
+    def alimentar(self, texto, nome=None, tipo="conv"):
         if nome is None: nome = f"top_{len(self.topicos)+1}"
         dados = texto.encode(); palavras = texto.split()
         
@@ -2157,7 +2157,7 @@ class CerebroAGI:
                 self.coupling.alimentar("byte","palavra",bt,pt); self.coupling.alimentar("palavra","tven",pt,tt); self.coupling.alimentar("tven","byte",tt,bt)
         self.coupling.recalcular()
         
-        self.topicos[nome] = {'texto': texto, 'bytes': len(dados), 'n_palavras': len(palavras), 'conteudo': list({p.lower() for p in palavras if len(p) >= 2})}
+        self.topicos[nome] = {'texto': texto, 'bytes': len(dados), 'n_palavras': len(palavras), 'conteudo': list({p.lower() for p in palavras if len(p) >= 2}), 'tipo': tipo}
         return nome
     
     def salvar(self, caminho=None):
@@ -2171,6 +2171,7 @@ class CerebroAGI:
                 'bytes': t['bytes'],
                 'n_palavras': t['n_palavras'],
                 'conteudo': list(t.get('conteudo', set())) if isinstance(t.get('conteudo'), (set, list)) else [],
+                'tipo': t.get('tipo', 'conv'),
             }
         dados = {
             'topicos': topicos_serial,
@@ -2223,6 +2224,7 @@ class CerebroAGI:
                     'bytes': top.get('bytes', 0),
                     'n_palavras': top.get('n_palavras', 0),
                     'conteudo': conteudo,
+                    'tipo': top.get('tipo', 'conv'),
                 }
             # Restaura dimensoes da hiperesfera
             hiper_dims = dados.get('hiper_dims', {})
@@ -2793,25 +2795,47 @@ class MCRConversa:
         # Tenta responder com conhecimento atual
         resp = MCRResposta.responder(texto, self.cerebro)
         
-        # Se nao sabe, busca na web (Passo 1)
+        # Se nao sabe ou confianca baixa: fluxo decidido pelo MCR (Fix 3)
         if not resp or resp == texto or resp == "Nao sei responder sobre isso.":
-            max_web = max(1, int(self.thr_web.obter("max_resultados", 3)))
-            resultados = self._buscar_web(texto)
-            for i, snippet in enumerate(resultados[:max_web]):
-                self.cerebro.alimentar(snippet, f"web_{hash(texto)}_{i}")
-            if resultados:
-                resp = MCRResposta.responder(texto, self.cerebro)
-                if not resp or resp == texto:
-                    resp = resultados[0][:200]
+            # MCR decide qual acao tomar: web_search, diagnosticar, ou gerar
+            dec_ctx = MCRDecisorUniversal.decidir(ctx="resposta_fallback")
+            acao_fallback = "web" if dec_ctx.get("passos", 1) > 3 else "gerar"
+            
+            if acao_fallback == "web":
+                # Fonte de busca decidida por MCRDecisor (Fix 4)
+                fonte = MCRDecisorUniversal.decidir(ctx="fonte_busca").get("fonte", "duckduckgo")
+                if fonte == "duckduckgo":
+                    max_web = max(1, int(self.thr_web.obter("max_resultados", 3)))
+                    resultados = self._buscar_web(texto)
+                    for i, snippet in enumerate(resultados[:max_web]):
+                        self.cerebro.alimentar(snippet, f"web_{hash(texto)}_{i}", tipo="web")
+                    if resultados:
+                        resp = MCRResposta.responder(texto, self.cerebro)
+                        if not resp or resp == texto:
+                            resp = resultados[0][:200]
+                    else:
+                        # Fallback: gera via Markov (Fix 5)
+                        try:
+                            resp = self.cerebro.gerar(texto, passos=6)
+                            resp = resp if len(resp) > 20 else "Nao sei responder sobre isso."
+                        except:
+                            resp = "Nao sei responder sobre isso."
             else:
-                resp = "Nao sei responder sobre isso."
+                try:
+                    resp = self.cerebro.gerar(texto, passos=6)
+                    resp = resp if len(resp) > 20 else "Nao sei responder sobre isso."
+                except:
+                    resp = "Nao sei responder sobre isso."
         
-        # Aprende com a interacao
+        # Aprende como PAR separado (Fix 2 + Fix 6)
         self.historico.append(f"> {texto}")
         self.historico.append(f"< {resp}")
-        self.cerebro.alimentar(f"> {texto} < {resp}", f"conv_{hash(texto+resp)%10000}")
+        # Pergunta e resposta sao aprendidos SEPARADAMENTE, nao como string unica
+        self.cerebro.alimentar(texto, f"perg_{hash(texto)%10000}", tipo="conv")
+        if resp and resp != "Nao sei responder sobre isso.":
+            self.cerebro.alimentar(resp, f"resp_{hash(resp)%10000}", tipo="conv")
         
-        # Ciclo autonomo apos cada pergunta (Passo 3)
+        # Ciclo autonomo apos cada pergunta
         try:
             self.cerebro.ciclo_autonomo(texto, max_passos=MCRDecisorUniversal.decidir_passos("pos_pergunta", {"tamanho_bytes": len(texto)}))
         except:
