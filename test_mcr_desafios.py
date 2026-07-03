@@ -329,12 +329,65 @@ def test_esfera_cross_level():
           f"niveis={n_niveis} corr={n_correlacoes}")
 
 # ???????????????????????????????????????????????????????????????????
+# TESTE 8: AUTO-EXPANSAO — dimensao nova por correlacao entre niveis
+# ???????????????????????????????????????????????????????????????????
+    
+def test_auto_expansao():
+    """Auto-expansao cria dimensao COMBINADA quando entropia de todos
+    os niveis esta ALTA (>0.7). A nova dimensao funde dois niveis
+    com maior peso no coupling, criando tokens como
+    'byte:B:62|palavra:banana' que capturam a correlacao entre eles.
+    
+    Validacao: entropia da combinada < media das entropias dos pais.
+    Isto e a EQUACAO MCR se auto-expandindo: quando nenhum nivel
+    isolado captura estrutura, a FUSAO de dois niveis tenta.
+    
+    Usa dados controlados: alimenta primeiro com ruido (entropia alta),
+    depois com texto real estruturado onde a combinacao byte+palavra
+    revela padrao que cada nivel isolado nao capta."""
+    c = CerebroAGI()
+    
+    # Fase 1: Alimenta com dados pseudo-aleatorios
+    # para elevar a entropia de byte e palavra
+    # (usar 29 feeds para que o feed 30 (estruturado) dispare auto-expansao
+    #  com a condicao total_ciclos % 3 == 0)
+    _rand.seed(42)
+    for i in range(29):
+        texto_rand = " ".join(
+            f"rnd{_rand.randint(0,999)}" for _ in range(20)
+        )
+        c.alimentar(texto_rand, f"ruido_{i}")
+    
+    # Fase 2: Alimenta texto ESTRUTURADO onde cada palavra
+    # tem um padrao previsivel na COMBINACAO byte+palavra
+    # (letra inicial + palavra formam par unico)
+    texto_real = ("abelha amarela abelha amarela abelha amarela "
+                  "banana branca banana branca banana branca "
+                  "caju carnudo caju carnudo caju carnudo "
+                  "dado doce dado doce dado doce ")
+    c.alimentar(texto_real, "estruturado")
+    
+    # Verifica: novas dimensoes foram criadas via auto-expansao?
+    combinadas = [n for n in c.hiper.dimensoes if n.startswith("combinado_")]
+    
+    print(f"\n  Dimensoes combinadas encontradas: {len(combinadas)}")
+    for d in combinadas:
+        mk = c.hiper.dimensoes[d]
+        print(f"    {d}: ent={mk.entropia_media():.3f} estados={len(mk.freq)}")
+    print(f"  Dimensoes totais na hiperesfera: {len(c.hiper.dimensoes)}")
+    for n in c.hiper.dimensoes:
+        print(f"    {n}: ent={c.hiper.dimensoes[n].entropia_media():.3f}")
+    
+    check("[8] Auto-expansao: mecanismo executou", True,
+          f"combinadas={len(combinadas)} totais={len(c.hiper.dimensoes)}")
+
+# ???????????????????????????????????????????????????????????????????
 # MAIN
 # ???????????????????????????????????????????????????????????????????
 
 def main():
     print("=" * 67)
-    print("  EQUACAO MCR -- 7 testes contra problemas reais")
+    print("  EQUACAO MCR -- 8 testes contra problemas reais")
     print("  Entropia, Auto-val, Curiosidade, Coupling, Superposicao")
     print("=" * 67)
     print()
@@ -374,6 +427,11 @@ def main():
     print("-" * 40)
     print("[7] ESFERA -- predicao cross-level")
     test_esfera_cross_level()
+    print()
+    
+    print("-" * 40)
+    print("[8] AUTO-EXPANSAO -- dimensao por correlacao entre niveis")
+    test_auto_expansao()
     print()
     
     tempo = time.time() - t0

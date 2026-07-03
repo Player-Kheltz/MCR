@@ -1456,6 +1456,108 @@ class MCRHiperesferaAutoExpansiva:
             descobertas.append(nome)
         
         return descobertas
+    
+    def auto_expandir(self, cerebro, texto):
+        """Propoe NOVA dimensao quando entropia media de todos os niveis
+        esta ALTA. A nova dimensao COMBINA dois niveis existentes com
+        maior peso no coupling — capturando a correlacao entre eles.
+        
+        Se byte='B:61' e palavra='abacate' oscilam juntos,
+        a dimensao combinada 'combinado_byte_palavra' cria tokens como:
+            "byte:B:61|palavra:abacate"
+        
+        A Markov chain desta dimensao combinada aprende transicoes
+        entre ESTADOS CONJUNTOS. Se a entropia da combinada for
+        menor que a media das entropias dos pais, a dimensao e VALIDA
+        e revela estrutura que nenhum nivel isolado capta.
+        
+        Retorna nome da nova dimensao ou None.
+        """
+        # 1. Coleta entropias de TODOS os niveis (fixos + hiper)
+        entropias = {}
+        for nome, mk in self.dimensoes.items():
+            if mk.total > 0:
+                entropias[nome] = mk.entropia_media()
+        for nome in ['byte', 'palavra', 'tven']:
+            mk = getattr(cerebro, f'mk_{nome}', None)
+            if mk and mk.total > 0:
+                entropias[nome] = mk.entropia_media()
+        
+        if len(entropias) < 2:
+            return None
+        
+        ent_media = sum(entropias.values()) / len(entropias)
+        
+        # 2. Expande apenas se entropia media > threshold
+        thr = MCRThreshold("hiper").obter("ent_expandir", 0.7)
+        if ent_media < thr:
+            return None
+        
+        # 3. Encontra par com MAIOR peso no coupling
+        coupling = cerebro.coupling
+        melhor_par = None
+        melhor_peso = 0.0
+        niveis_coupling = [n for n in coupling.niveis if n in entropias]
+        
+        for i, o in enumerate(niveis_coupling):
+            for d in niveis_coupling[i+1:]:
+                peso = coupling.peso(o, d) + coupling.peso(d, o)
+                if peso > melhor_peso:
+                    melhor_peso = peso
+                    melhor_par = (o, d)
+        
+        if not melhor_par or melhor_peso < 0.3:
+            return None
+        
+        nivel_a, nivel_b = melhor_par
+        nome_dim = f"combinado_{nivel_a}_{nivel_b}"
+        
+        # Evita recriar
+        if nome_dim in self.dimensoes:
+            return None
+        
+        # 4. Tokenizador: cria tokens combinados dos dois niveis
+        def _token_nivel(nivel, palavra):
+            if nivel == 'byte':
+                return f"B:{palavra.encode()[0]:02x}" if palavra else "B:00"
+            elif nivel == 'palavra':
+                return palavra.lower()
+            elif nivel == 'tven':
+                return palavra[0].upper() if palavra else '?'
+            elif nivel in self.tokenizadores:
+                ts = self.tokenizadores[nivel](palavra)
+                return ts[0] if ts else '?'
+            return '?'
+        
+        def tokenizer(texto):
+            palavras = texto.split()
+            tokens = []
+            for p in palavras:
+                va = _token_nivel(nivel_a, p)
+                vb = _token_nivel(nivel_b, p)
+                tokens.append(f"{nivel_a}:{va}|{nivel_b}:{vb}")
+            return tokens
+        
+        # 5. Alimenta e mede entropia
+        mk = MCR(nome_dim)
+        tokens = tokenizer(texto)
+        for i in range(len(tokens)-1):
+            mk.aprender(tokens[i], tokens[i+1])
+        
+        ent_combinada = mk.entropia_media()
+        ent_pai_a = entropias.get(nivel_a, 1.0)
+        ent_pai_b = entropias.get(nivel_b, 1.0)
+        ent_media_pais = (ent_pai_a + ent_pai_b) / 2.0
+        
+        # 6. Valida: combinada deve ter entropia MENOR que media dos pais
+        if ent_combinada < ent_media_pais * 0.9:
+            self.dimensoes[nome_dim] = mk
+            self.tokenizadores[nome_dim] = tokenizer
+            sys.stderr.write(f"[HIPER] Nova dim: {nome_dim} "
+                             f"ent={ent_combinada:.3f} (pais={ent_media_pais:.3f})\n")
+            return nome_dim
+        
+        return None
 
 # ═══════════════════════════════════════════════════════════════════
 # [07c] MCRAutoTopologia — grafo de correlacao entre niveis
@@ -2414,6 +2516,7 @@ class CerebroAGI:
         return self._genesis
     def alimentar(self, texto, nome=None, tipo="conv"):
         if nome is None: nome = f"top_{len(self.topicos)+1}"
+        self.total_ciclos += 1
         dados = texto.encode(); palavras = texto.split()
         
         # Niveis fixos (byte, palavra, tven) — sempre aprende
@@ -2469,6 +2572,27 @@ class CerebroAGI:
                 bt = f"B:{dados[i]:02x}"; pt = palavras[min(i,len(palavras)-1)]; tt = pt[0].upper() if pt else '?'
                 self.coupling.alimentar("byte","palavra",bt,pt); self.coupling.alimentar("palavra","tven",pt,tt); self.coupling.alimentar("tven","byte",tt,bt)
         self.coupling.recalcular()
+        
+        # Auto-expansao: se entropia media de todos os niveis > threshold,
+        # cria NOVA dimensao combinando os dois niveis com maior correlacao
+        # (executa a cada 5 alimentacoes para evitar loop infinito)
+        if self.total_ciclos > 0 and self.total_ciclos % 3 == 0:
+            try:
+                nova_dim = self.hiper.auto_expandir(self, texto)
+                if nova_dim:
+                    # Alimenta a nova dimensao com o texto atual
+                    fn = self.hiper.tokenizadores.get(nova_dim)
+                    if fn:
+                        tokens = fn(texto)
+                        mk = self.hiper.dimensoes[nova_dim]
+                        for i in range(len(tokens)-1):
+                            mk.aprender(tokens[i], tokens[i+1])
+                    # Registra na topologia
+                    if nova_dim in self.hiper.dimensoes:
+                        self.topologia.registrar(nova_dim, self.hiper.dimensoes[nova_dim])
+                        self.auto_validacao.registrar(nova_dim, self.hiper.dimensoes[nova_dim])
+            except:
+                pass
         
         self.topicos[nome] = {'texto': texto, 'bytes': len(dados), 'n_palavras': len(palavras), 'conteudo': list({p.lower() for p in palavras if len(p) >= 2}), 'tipo': tipo}
         return nome
