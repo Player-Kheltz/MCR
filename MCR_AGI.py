@@ -195,9 +195,33 @@ class MCREntropia:
 
 class MCRDecisorUniversal:
     _th = MCRThreshold("decisor")
+    _cache: Dict[str, dict] = {}
     @classmethod
     def decidir(cls, motor=None, ctx=""):
         return {"passos": max(1, int(cls._th.obter("passos",6))), "threshold": cls._th.obter("thr",0.5), "dim": max(4, int(cls._th.obter("dim",8)))}
+    @classmethod
+    def decidir_passos(cls, ctx="default", estado=None):
+        """Decide quantas iteracoes executar — zero hardcode.
+        ctx: contexto (ex: 'test_coupling', 'auto_diag', 'descobrir_drives')
+        estado: dict opcional com estado real (ex: {'n_topicos': 10, 'tamanho_bytes': 2000})
+        MCRThreshold aprende com o tempo qual numero e ideal.
+        """
+        chave = f"passos_{ctx}"
+        # Padrao por contexto (aprendido via MCRThreshold, estes sao seeds iniciais apenas)
+        padrao = {
+            "test_coupling": 5,
+            "auto_diag": 5,
+            "descobrir_drives": 2,
+            "ler_entropia": 4,
+        }.get(ctx, 6)
+        # Se tem estado real, ajusta baseado na necessidade
+        if estado:
+            if "n_topicos" in estado and estado["n_topicos"] > 0:
+                padrao = max(2, min(20, estado["n_topicos"] // 2))
+            if "tamanho_bytes" in estado and estado["tamanho_bytes"] > 0:
+                padrao = max(1, min(10, estado["tamanho_bytes"] // 500 + 1))
+        passos = max(1, int(cls._th.obter(chave, padrao)))
+        return passos
 
 # ═══════════════════════════════════════════════════════════════════
 # [04] Entidade + EstadoMundo + MotorFisica
@@ -733,7 +757,7 @@ class MCRSelfTest:
                 return 10.0 if w.predizer_acao(e, e2) == "andar_dir" else 5.0
             if modulo == "coupling":
                 cp = MCRCoupling()
-                for _ in range(5): cp.alimentar("byte","palavra","B:41","Fogo")
+                for _ in range(MCRDecisorUniversal.decidir_passos("test_coupling")): cp.alimentar("byte","palavra","B:41","Fogo")
                 cp.recalcular(); return 10.0 if cp.peso("byte","palavra") > 0 else 0.0
             if modulo == "planner":
                 w = MCRWorld(); p = MCRPlanner(w)
@@ -1059,23 +1083,34 @@ class CerebroAGI:
                 bt = f"B:{dados[i]:02x}"; pt = palavras[min(i,len(palavras)-1)]; tt = pt[0].upper() if pt else '?'
                 self.coupling.alimentar("byte","palavra",bt,pt); self.coupling.alimentar("palavra","tven",pt,tt); self.coupling.alimentar("tven","byte",tt,bt)
         self.coupling.recalcular()
-        self.topicos[nome] = {'texto': texto, 'bytes': len(dados), 'n_palavras': len(palavras), 'conteudo': {p.lower() for p in palavras if len(p) >= 2}}
+        self.topicos[nome] = {'texto': texto, 'bytes': len(dados), 'n_palavras': len(palavras), 'conteudo': list({p.lower() for p in palavras if len(p) >= 2})}
         return nome
     
     def salvar(self, caminho=None):
-        """Salva cerebro em disco (topicos + markov)."""
+        """Salva cerebro em disco (topicos + markov).
+        Usa arquivo temporario + os.replace para evitar corrupcao."""
         caminho = caminho or os.path.join(CACHE_DIR, "cerebro.json")
+        # conteudo convertido para lista (serializavel em JSON)
+        topicos_serial = {}
+        for n, t in self.topicos.items():
+            topicos_serial[n] = {
+                'texto': t['texto'][:500],
+                'bytes': t['bytes'],
+                'n_palavras': t['n_palavras'],
+                'conteudo': list(t.get('conteudo', set())) if isinstance(t.get('conteudo'), (set, list)) else [],
+            }
         dados = {
-            'topicos': {n: {'texto': t['texto'][:500], 'bytes': t['bytes'], 'n_palavras': t['n_palavras']}
-                       for n, t in self.topicos.items()},
+            'topicos': topicos_serial,
             'byte_trans': {str(k): v for k, v in self.mk_byte.transicoes.items()},
             'palavra_trans': {str(k): v for k, v in self.mk_palavra.transicoes.items()},
             'timestamp': time.time(),
         }
         try:
             os.makedirs(os.path.dirname(caminho), exist_ok=True)
-            with open(caminho, 'w', encoding='utf-8') as f:
+            tmp = caminho + '.tmp'
+            with open(tmp, 'w', encoding='utf-8') as f:
                 json.dump(dados, f, ensure_ascii=False)
+            os.replace(tmp, caminho)  # atomico: nao corrompe se falhar no meio
             return True
         except: return False
     
@@ -1087,11 +1122,17 @@ class CerebroAGI:
             with open(caminho, 'r', encoding='utf-8') as f:
                 dados = json.load(f)
             for nome, top in dados.get('topicos', {}).items():
+                # Tenta usar 'conteudo' salvo (lista -> set); fallback para texto
+                conteudo_salvo = top.get('conteudo')
+                if isinstance(conteudo_salvo, list):
+                    conteudo = set(conteudo_salvo)
+                else:
+                    conteudo = {p.lower() for p in top.get('texto', '').split() if len(p) >= 2}
                 self.topicos[nome] = {
                     'texto': top.get('texto', ''),
                     'bytes': top.get('bytes', 0),
                     'n_palavras': top.get('n_palavras', 0),
-                    'conteudo': {p.lower() for p in top.get('texto', '').split() if len(p) >= 2},
+                    'conteudo': conteudo,
                 }
             return True
         except: return False
@@ -1136,8 +1177,9 @@ class CerebroAGI:
     def auto_diagnosticar(self):
         gaps = []
         tlist = list(self.topicos.keys())
-        for i in range(min(len(tlist),5)):
-            for j in range(i+1, min(len(tlist),5)):
+        n_amostras = MCRDecisorUniversal.decidir_passos("auto_diag", {"n_topicos": len(tlist)})
+        for i in range(min(len(tlist), n_amostras)):
+            for j in range(i+1, min(len(tlist), n_amostras)):
                 a, b = tlist[i], tlist[j]
                 ja = MCRByteUtils.jaccard_bytes(self.topicos[a]['texto'], self.topicos[b]['texto'])
                 if ja < 0.1: gaps.append(f"{a}<->{b}: j={ja:.3f}")
@@ -1322,7 +1364,8 @@ class MCRCuriosidade:
     def _descobrir_drives() -> List[str]:
         """Descobre drives sem hardcode de letra.
         Se falhar, retorna lista vazia — MCR tenta de novo depois."""
-        for tentativa in range(2):
+        n_tentativas = MCRDecisorUniversal.decidir_passos("descobrir_drives")
+        for tentativa in range(n_tentativas):
             try:
                 import string as _string
                 if os.name == 'nt':
@@ -1433,11 +1476,12 @@ class MCRCuriosidade:
     
     def _entropia_do_arquivo(self, caminho: str) -> float:
         """Entropia dos primeiros bytes — sem tamanho fixo.
-        Le ate 2000 bytes ou ate a entropia se repetir, o que vier primeiro."""
+        MCRDecisor decide quantos chunks ler baseado no tamanho do arquivo."""
         try:
+            n_chunks = MCRDecisorUniversal.decidir_passos("ler_entropia", {"tamanho_bytes": os.path.getsize(caminho) if os.path.exists(caminho) else 2000})
             dados = b""
             with open(caminho, 'rb') as f:
-                for _ in range(4):  # 4 chunks de 500 = 2000 max
+                for _ in range(n_chunks):
                     chunk = f.read(500)
                     if not chunk:
                         break
@@ -1564,52 +1608,6 @@ class MCRCuriosidade:
         else:
             self.mk_dec.aprender(estado_str, "DORMIU")
             return {'acao': 'dormiu', 'descobertas': self.descobertas}
-        
-        # Estado serializado para o MCRDecisor
-        estado_str = (
-            f"top:{min(estado['topicos']//100, 20)}_"
-            f"pal:{min(estado['palavras']//1000, 10)}_"
-            f"ent:{int(estado['entropia']*10)}_"
-            f"desc:{min(estado['descobertas'], 10)}"
-        )
-        
-        # MCRDecisor decide: explorar ou nao?
-        decisao = self.mk_dec.predizer(estado_str)
-        
-        # Se MCR nunca viu este estado, tenta explorar (curiosidade padrao)
-        # Nao e "regra" — e o estado natural de CONHECIMENTO ZERO
-        if decisao[0] is None:
-            if estado['topicos'] == 0:
-                # Nunca explorou → explorar AGORA
-                self.mk_dec.aprender(estado_str, "explorar_primeira_vez")
-                decisao = ("explorar_primeira_vez", 1.0)
-            else:
-                decisao = (None, 0.0)
-        
-        if decisao[0] is not None and ('explorar' in str(decisao[0]) or estado['topicos'] == 0):
-            # Descobre drives (sem hardcode)
-            drives = self._descobrir_drives()
-            
-            for drive in drives:
-                amostras = self._coletar_amostras(drive, max_amostras=20)
-                for am in amostras:
-                    # MCRThreshold decide: entropia vale a pena?
-                    # Nao ha limiar fixo — o proprio threshold decide
-                    if am['entropia'] > 0:
-                        self.aprender_com_arquivo(am['caminho'], am['entropia'])
-                        self.mk_disco.aprender(f"DRIVE:{drive[0]}", f"ENT:{int(am['entropia']*10)}")
-                
-                if self.descobertas > 5:
-                    break  # ja aprendeu o suficiente por agora
-            
-            # Aprende: "neste estado → explorei → resultado X"
-            self.mk_dec.aprender(estado_str, f"explorei_{self.descobertas}")
-            return {'acao': 'explorou', 'descobertas': self.descobertas}
-        
-        else:
-            # Nao explorou — processa o que tem ou dorme
-            self.mk_dec.aprender(estado_str, "dormiu")
-            return {'acao': 'dormiu', 'descobertas': self.descobertas}
 
 
 class MCRConversa:
@@ -1662,17 +1660,8 @@ def chat_loop(cerebro):
         if r['descobertas'] > 0:
             print(f"[MCR] Aprendi {r['descobertas']} novas informacoes!\n")
     
-    # Aprende fingerprint do usuario (dado, nao codigo)
-    identidade.aprender(
-        'MCR deve prioriar a ASSINATURA correta, o MCR e CAPAZ DE CRIAR! '
-        'analisar o MCR (Markov, intencao, ASSINATURA) para PREDIZER o que deve vir depois',
-        'Kheltz'
-    )
-    identidade.aprender(
-        'TODOS resolva TODOS conecte TODOS! remova todos os hardcodes '
-        'decisao por MCRDecisor nao por if fixo criado pelo proprio MCR',
-        'Kheltz'
-    )
+    # Aprende fingerprint APENAS por conversa real, nao por seed artificial
+    # (reconhecer_e_aprender dentro do loop faz isso naturalmente)
     
     print("\n" + "=" * 55)
     print("  MCR_AGI — Conversa")
@@ -2021,26 +2010,27 @@ def main():
     # Padrao: MCRDecisor decide o que fazer
     mk_main = MCR("main_dec")
     
-    # Estado natural: conhecimento zero → explorar (aprendido, nao regra)
+    # Seed natural: conhecimento_zero → explorar (aprendido, nao regra fixa)
+    # Se cerebro vazio, MCR aprende que deve explorar primeiro.
+    # Nas proximas execucoes, esta transicao ja esta na cadeia Markov.
     if cerebro.topicos == 0:
         mk_main.aprender("conhecimento_zero", "explorar_primeiro")
-        estado_str = "conhecimento_zero"
-    else:
-        estado_str = f"exec:{estado.get('execucoes',0)}_ultima:{estado.get('ultima_acao','nenhuma')}"
     
+    estado_str = "conhecimento_zero" if cerebro.topicos == 0 else f"exec:{estado.get('execucoes',0)}_ultima:{estado.get('ultima_acao','nenhuma')}"
     dec = mk_main.predizer(estado_str)
     
-    # Se MCRDecisor decidiu explorar, ou estado e conhecimento_zero
-    if (dec[0] is not None and 'explorar' in str(dec[0]).lower()) or 'conhecimento_zero' in estado_str:
+    # Se MCRDecisor decidiu explorar, explora.
+    # Sem fallback extra — a transicao foi aprendida acima.
+    if dec[0] is not None and 'explorar' in str(dec[0]).lower():
         cur = MCRCuriosidade(cerebro)
         r = cur.ciclo()
         if r['descobertas'] > 0:
             print(f"[MCR] Explorei e aprendi {r['descobertas']} novas informacoes")
         else:
             print("[MCR] Nada novo para aprender agora.")
-        # Aprende: conhecimento_zero → explorou → proxima vez pode decidir diferente
-        if 'conhecimento_zero' in estado_str:
-            mk_main.aprender("conhecimento_zero", "explorou_primeiro")
+        # Aprende o resultado: conhecimento_zero → explorou_com_X_descobertas
+        if cerebro.topicos == 0 or 'conhecimento_zero' in estado_str:
+            mk_main.aprender("conhecimento_zero", f"explorou_com_{r['descobertas']}")
         # Salva estado
         try:
             with open(estado_path, 'w') as f:
@@ -2048,9 +2038,8 @@ def main():
         except: pass
         # Salva cerebro apos explorar
         cerebro.salvar(cerebro_path)
-        chat_loop(cerebro)
-    else:
-        chat_loop(cerebro)
+    
+    chat_loop(cerebro)
     
     # Salva cerebro apos chat (se chat_loop retornar)
     cerebro.salvar(cerebro_path)

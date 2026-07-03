@@ -21,3 +21,17 @@ Thumbs.db
 # Git
 *.bak
 *.orig
+
+# Development tools
+scan_security*.py
+teste_persistencia.py
+
+# Prototypes and backups
+agi_prototipo/
+backup_final/
+backup_universal/
+validacao/
+
+# Temp
+*.tmp
+*.temp
