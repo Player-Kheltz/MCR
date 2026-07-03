@@ -453,7 +453,103 @@ class MCRHDCOperation:
                                                 vb[:min(len(va), len(vb))])
 
 # ═══════════════════════════════════════════════════════════════════
-# [01c] MCREntropicSearch — MCTS com entropia como metrica (F3)
+# [01c] MCRSuperposicao — colisao de rotas Markov gera algo novo
+# ═══════════════════════════════════════════════════════════════════
+
+class MCRSuperposicao:
+    """Superposicao de rotas Markov: colisao entre cadeias gera algo novo.
+    
+    O conceito:
+    1. Duas rotas (cadeias Markov) convergem no mesmo ponto
+    2. Cada rota prediz seu proximo estado (caminho mais provavel)
+    3. A COLISAO gera multiplos resultados possiveis (superposicao)
+    4. A entropia de CADA resultado decide qual e o "novo"
+    5. O resultado e algo que nenhuma rota individual previu
+    
+    Exemplo:
+      rota_byte = MCR("byte").predizer("B:3D")    # → B:20 (espaco)
+      rota_palavra = MCR("palavra").predizer("=")  # → None (366 opcoes)
+      colisao = superposicao.colidir("byte", "B:3D", "palavra", "=")
+      # → "self" — byte previu "espaco", palavra previu nada
+      #   A colisao gerou "self" que e o que realmente vem depois de "= "
+    """
+    
+    def __init__(self, coupling):
+        self.coupling = coupling
+        self.mk_colisoes = MCR("superposicao")
+        self.total = 0
+    
+    def colidir(self, nivel_a, valor_a, nivel_b, valor_b, mk_a=None, mk_b=None):
+        """Colide duas rotas no mesmo ponto e retorna o resultado.
+        
+        A colisao funciona assim:
+        1. Rota A prediz proximo estado (se possivel)
+        2. Rota B prediz proximo estado (se possivel)
+        3. Se AMBAS tem candidatos, usa a ESFERA para encontrar o
+           ponto de menor entropia entre eles — o "novo" resultado
+        4. Se UMA falha, usa a outra como fallback
+        5. Se AMBAS falham, a esfera tenta inferir de outros niveis
+        """
+        self.total += 1
+        
+        # 1. Rota A
+        pred_a = None
+        conf_a = 0.0
+        if mk_a:
+            pred_a, conf_a = mk_a.predizer(valor_a)
+        
+        # 2. Rota B
+        pred_b = None
+        conf_b = 0.0
+        if mk_b:
+            pred_b, conf_b = mk_b.predizer(valor_b)
+        
+        resultados = {}
+        
+        # 3. Se ambas tem candidatos — SUPERPOSICAO
+        if pred_a and pred_b:
+            # Esfera avalia qual e o ponto de menor entropia
+            for ctx_nivel, ctx_valor in [(nivel_a, valor_a), (nivel_b, valor_b)]:
+                r, c = self.coupling.esfera.predizer_cross(ctx_nivel, **{ctx_nivel: ctx_valor})
+                if r and c > 0:
+                    resultados[r] = resultados.get(r, 0) + c
+            # Aprende: colisao A+B gerou estes resultados
+            self.mk_colisoes.aprender(f"COL:{nivel_a}:{nivel_b}:{str(valor_a)[:5]}:{str(valor_b)[:5]}",
+                                     str(list(resultados.keys())[:3]))
+        
+        # 4. Se uma falhou, usa a outra como fallback
+        if not resultados:
+            if pred_a:
+                resultados[pred_a] = conf_a
+            if pred_b:
+                resultados[pred_b] = conf_b
+        
+        # 5. Se ambas falharam, tenta esfera cross-dimensional
+        if not resultados:
+            for ctx_nivel in ["byte", "palavra", "token_tipo", "linha", "hash_curto"]:
+                if ctx_nivel not in [nivel_a, nivel_b]:
+                    r, c = self.coupling.esfera.predizer_cross(nivel_a, **{ctx_nivel: valor_a})
+                    if r and c > 0.1:
+                        resultados[r] = c
+                        break
+        
+        if not resultados:
+            return None, 0.0, {"colisao": "vazia", "total": self.total}
+        
+        # Escolhe o melhor resultado
+        melhor = max(resultados, key=resultados.get)
+        conf = resultados[melhor]
+        
+        return melhor, round(conf, 3), {
+            "colisao": f"{nivel_a}({valor_a}) x {nivel_b}({valor_b})",
+            "pred_a": pred_a,
+            "pred_b": pred_b,
+            "resultados": resultados,
+            "total": self.total,
+        }
+
+# ═══════════════════════════════════════════════════════════════════
+# [01d] MCREntropicSearch — MCTS com entropia como metrica (F3)
 # ═══════════════════════════════════════════════════════════════════
 
 class MCREntropicSearch:
@@ -2107,6 +2203,7 @@ class CerebroAGI:
         self.topicos: Dict[str, Dict] = {}
         self.world = MCRWorld(); self.coupling = MCRCoupling(); self.planner = MCRPlanner(self.world)
         self.hdc = MCRHDCOperation(self.reservoir, coupling=self.coupling, niveis_ctx=["byte", "palavra", "tven", "intencao", "acao"])
+        self.superposicao = MCRSuperposicao(self.coupling)
         self.total_ciclos = 0; self.thr = MCRThreshold("cerebro"); self.entropia = MCREntropia("cerebro")
         self._rl, self._bridge, self._genesis = None, None, None
         self.entropic_search = MCREntropicSearch(self.world, self.rl)
