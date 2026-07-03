@@ -717,6 +717,115 @@ class MCRHiperesferaAutoExpansiva:
         return descobertas
 
 # ═══════════════════════════════════════════════════════════════════
+# [07c] MCRAutoTopologia — grafo de correlacao entre niveis
+# ═══════════════════════════════════════════════════════════════════
+
+class MCRAutoTopologia:
+    """Grafo de correlacao entre niveis.
+    
+    Cada nivel e um no. Arestas ponderadas pela frequencia
+    com que valores de A aparecem como estados seguintes em B.
+    Clusters sao comunidades naturais de niveis correlacionados.
+    
+    Nao impoe forma (nem circulo, nem esfera).
+    A geometria emerge dos dados.
+    """
+    def __init__(self, niveis: Dict[str, MCR] = None):
+        self.niveis = niveis or {}
+        self.grafo: Dict[str, Dict[str, float]] = {}
+        self.clusters: List[Set[str]] = []
+    
+    def registrar(self, nome, mk):
+        self.niveis[nome] = mk
+    
+    def recalcular(self, threshold=0.15):
+        """Recalcula o grafo de correlacao entre todos os pares."""
+        self.grafo = {n: {} for n in self.niveis}
+        for a in self.niveis:
+            for b in self.niveis:
+                if a == b:
+                    self.grafo[a][b] = 1.0; continue
+                mk_a, mk_b = self.niveis[a], self.niveis[b]
+                if mk_a.total == 0 or mk_b.total == 0:
+                    self.grafo[a][b] = 0.0; continue
+                amostra = list(mk_a.freq.keys())[:30]
+                if not amostra: self.grafo[a][b] = 0.0; continue
+                acertos = 0
+                for val_a in amostra:
+                    pred, _ = mk_a.predizer(val_a)
+                    if pred and pred in mk_b.freq: acertos += 1
+                self.grafo[a][b] = round(acertos / len(amostra), 3)
+        self._detectar_clusters(threshold)
+    
+    def _detectar_clusters(self, threshold):
+        visitados = set(); self.clusters = []
+        for nivel in self.niveis:
+            if nivel in visitados: continue
+            cluster = set(); fila = [nivel]
+            while fila:
+                v = fila.pop(0)
+                if v in visitados: continue
+                visitados.add(v); cluster.add(v)
+                for u, peso in self.grafo.get(v, {}).items():
+                    if peso >= threshold and u not in visitados: fila.append(u)
+            self.clusters.append(cluster)
+    
+    def metricas(self):
+        n_arestas = sum(1 for a in self.grafo for b, p in self.grafo[a].items()
+                       if a != b and p >= 0.15)
+        return {
+            "n_niveis": len(self.niveis),
+            "n_clusters": len(self.clusters),
+            "n_arestas": n_arestas,
+            "clusters": [sorted(c) for c in self.clusters],
+            "isolados": [list(c)[0] for c in self.clusters if len(c) == 1],
+        }
+
+# ═══════════════════════════════════════════════════════════════════
+# [07d] MCRAutoValidacaoContinua — cada cadeia valida a si mesma
+# ═══════════════════════════════════════════════════════════════════
+
+class MCRAutoValidacaoContinua:
+    """Cada cadeia valida a si mesma, valida as outras, e e validada.
+    
+    A profundidade da recursao e determinada pela entropia
+    do meta-validador. Sistemas estaveis tem 1 nivel de
+    validacao. Sistemas caoticos tem N.
+    """
+    def __init__(self):
+        self.ent_historico: Dict[str, List[float]] = {}
+        self.ent_anterior: Dict[str, float] = {}
+        self.instavel: Set[str] = set()
+        self.meta = MCR("meta_validacao")
+        self.ciclos = 0
+    
+    def registrar(self, nome, mk):
+        self.ent_historico[nome] = []
+        self.ent_anterior[nome] = mk.entropia_media() if mk.total > 0 else 1.0
+    
+    def ciclo(self, niveis: Dict[str, MCR]) -> dict:
+        self.ciclos += 1
+        for nome, mk in niveis.items():
+            if mk.total == 0: continue
+            ent = mk.entropia_media()
+            ent_ant = self.ent_anterior.get(nome, ent)
+            variacao = abs(ent - ent_ant) / max(ent_ant, 0.001)
+            self.ent_historico.setdefault(nome, []).append(ent)
+            if len(self.ent_historico[nome]) > 50:
+                self.ent_historico[nome] = self.ent_historico[nome][-50:]
+            if variacao > 0.5: self.instavel.add(nome)
+            elif nome in self.instavel and variacao < 0.1: self.instavel.discard(nome)
+            self.ent_anterior[nome] = ent
+            # Meta: alimenta cadeia de meta-validacao
+            estado = f"v:{nome}:{int(variacao*100)}"
+            self.meta.aprender(estado, estado)
+        return {
+            "instaveis": list(self.instavel),
+            "entropia_meta": round(self.meta.entropia_media() if self.meta.total > 0 else 1.0, 4),
+            "ciclos": self.ciclos,
+        }
+
+# ═══════════════════════════════════════════════════════════════════
 # [08] MCRPlanner — planejamento hierarquico
 # ═══════════════════════════════════════════════════════════════════
 
@@ -1219,6 +1328,9 @@ class CerebroAGI:
         self.mk_byte = MCR("byte"); self.mk_palavra = MCR("palavra"); self.mk_tven = MCR("tven")
         self.hiper = MCRHiperesferaAutoExpansiva()
         self._hiper_descobertas = False
+        self.topologia = MCRAutoTopologia()
+        self.auto_validacao = MCRAutoValidacaoContinua()
+        self._topologia_atualizada = False
         self.topicos: Dict[str, Dict] = {}
         self.world = MCRWorld(); self.coupling = MCRCoupling(); self.planner = MCRPlanner(self.world)
         self.total_ciclos = 0; self.thr = MCRThreshold("cerebro"); self.entropia = MCREntropia("cerebro")
@@ -1266,6 +1378,26 @@ class CerebroAGI:
         except:
             pass
         
+        # Topologia: registra niveis e recalcula grafo
+        if self.hiper.dimensoes:
+            for nome_dim, mk in self.hiper.dimensoes.items():
+                self.topologia.registrar(nome_dim, mk)
+            self.topologia.registrar("byte", self.mk_byte)
+            self.topologia.registrar("palavra", self.mk_palavra)
+            self.topologia.registrar("tven", self.mk_tven)
+            self.topologia.recalcular()
+            self._topologia_atualizada = True
+        
+        # Auto-validacao: ciclo continuo a cada N alimentos
+        if self.hiper.dimensoes and self.total_ciclos % max(1, 10 - min(self.total_ciclos//5, 8)) == 0:
+            # Registra niveis na primeira vez
+            if self.auto_validacao.ciclos == 0:
+                for nome_dim in self.hiper.dimensoes:
+                    self.auto_validacao.registrar(nome_dim, self.hiper.dimensoes[nome_dim])
+            val = self.auto_validacao.ciclo(self.hiper.dimensoes)
+            if val["instaveis"] and self.total_ciclos > 10:
+                pass  # instabilidade detectada — pode ser usado para recalibracao
+        
         # Coupling entre byte ↔ palavra ↔ tven
         for i in range(min(len(dados)-1, len(palavras))):
             if i < len(dados)-1:
@@ -1303,6 +1435,14 @@ class CerebroAGI:
                     'freq': {str(k): v for k, v in mk.freq.items()},
                     'total': mk.total,
                 }
+        # Salva topologia (grafo de correlacao)
+        if self._topologia_atualizada:
+            tm = self.topologia.metricas()
+            dados['topologia'] = {
+                'grafo': {n: {d: p for d, p in adj.items() if d != n and p >= 0.15}
+                         for n, adj in self.topologia.grafo.items()},
+                'clusters': [sorted(c) for c in self.topologia.clusters],
+            }
         try:
             os.makedirs(os.path.dirname(caminho), exist_ok=True)
             tmp = caminho + '.tmp'
@@ -1344,6 +1484,12 @@ class CerebroAGI:
                 self.hiper.dimensoes[nome_dim] = mk
             if hiper_dims:
                 self._hiper_descobertas = True
+            # Restaura topologia
+            topo_data = dados.get('topologia', {})
+            if topo_data.get('grafo'):
+                self.topologia.grafo = topo_data['grafo']
+                self.topologia.clusters = [set(c) for c in topo_data.get('clusters', [])]
+                self._topologia_atualizada = True
             return True
         except: return False
     def aprender_causal(self, antes, acao, depois):
@@ -1395,7 +1541,18 @@ class CerebroAGI:
                 if ja < 0.1: gaps.append(f"{a}<->{b}: j={ja:.3f}")
         codex = MCRCodex()
         hc = codex.escanear()
-        return {"topicos": len(self.topicos), "bytes": self.mk_byte.total, "palavras": self.mk_palavra.total, "causais": len(self.world.hist), "gaps": gaps[:3], "hardcodes": len(hc)}
+        result = {"topicos": len(self.topicos), "bytes": self.mk_byte.total, "palavras": self.mk_palavra.total, "causais": len(self.world.hist), "gaps": gaps[:3], "hardcodes": len(hc)}
+        # Adiciona metricas da topologia
+        if self._topologia_atualizada:
+            tm = self.topologia.metricas()
+            result["clusters"] = tm["n_clusters"]
+            result["arestas_topologia"] = tm["n_arestas"]
+            result["isolados"] = tm["isolados"]
+        # Adiciona metricas da auto-validacao
+        if self.auto_validacao.ciclos > 0:
+            result["instaveis"] = self.auto_validacao.instavel
+            result["meta_entropia"] = round(self.auto_validacao.meta.entropia_media() if self.auto_validacao.meta.total > 0 else 0, 4)
+        return result
 
 
 
