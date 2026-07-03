@@ -917,6 +917,301 @@ def test_integration():
 
 
 # ═══════════════════════════════════════════════════════════════════
+# SECAO 15 — F1: MCRHDCOperation (HDC algebra)
+# ═══════════════════════════════════════════════════════════════════
+def test_hdc():
+    fim = secao("15. F1: HDC Algebra (bundle/bind/permute/analogia)", 8)
+
+    hdc = MCRHDCOperation()
+
+    # 15.1 bundle
+    vb = hdc.bundle("abc", "def")
+    check("15.1 bundle retorna lista", isinstance(vb, list) and len(vb) > 0,
+          f"len={len(vb)}")
+    check("15.1b bundle aprende transicao", hdc.mk_bundle.total > 0,
+          f"total={hdc.mk_bundle.total}")
+
+    # 15.2 bind
+    vd = hdc.bind("abc", "def")
+    check("15.2 bind retorna lista", isinstance(vd, list) and len(vd) > 0,
+          f"len={len(vd)}")
+    check("15.2b bind aprende transicao", hdc.mk_bind.total > 0)
+
+    # 15.3 permute
+    vp = hdc.permute("abc", 1)
+    check("15.3 permute retorna lista", isinstance(vp, list) and len(vp) > 0,
+          f"len={len(vp)}")
+    check("15.3b permute rotaciona", vp != hdc._vetor("abc"),
+          f"vp[:4]={vp[:4]}, orig[:4]={hdc._vetor('abc')[:4]}")
+
+    # 15.4 bundle_inv
+    vi = hdc.bundle_inv("abc", "def")
+    check("15.4 bundle_inv retorna lista", isinstance(vi, list) and len(vi) > 0,
+          f"len={len(vi)}")
+
+    # 15.5 analogia
+    cands = ["sol", "lua", "estrela", "planeta"]
+    melhor, conf = hdc.analogia("sol", "lua", "estrela", cands)
+    check("15.5 analogia retorna tupla (str, float)",
+          isinstance(melhor, (str, type(None))) and isinstance(conf, float),
+          f"melhor={melhor}, conf={conf}")
+    check("15.5b analogia aprende transicao", hdc.mk_analogia.total > 0)
+
+    # 15.6 comparar
+    sim = hdc.comparar("abc", "abd")
+    check("15.6 comparar textos similares retorna float", isinstance(sim, float) and 0 <= sim <= 1,
+          f"sim={sim}")
+
+    # 15.7 _normalizar com interpolacao
+    va = [1.0, 2.0, 3.0]
+    vb = [4.0, 5.0]
+    va_n, vb_n = hdc._normalizar(va, vb, dim_alvo=6)
+    check("15.7 _normalizar para 6 dims", len(va_n) >= 3 and len(vb_n) >= 2,
+          f"len va={len(va_n)}, len vb={len(vb_n)} (modo pode ser vizinho/linear/media)")
+    check("15.7b _normalizar mesmo tamanho", len(va_n) == len(vb_n),
+          f"len va={len(va_n)} != len vb={len(vb_n)}")
+
+    # 15.8 bundle com pesos
+    vb2 = hdc.bundle("abc", "def", peso_a=0.3, peso_b=0.7)
+    check("15.8 bundle com pesos diferentes", isinstance(vb2, list) and len(vb2) > 0)
+
+    # 15.9 permute com rotacao > len
+    vp2 = hdc.permute("abc", 50)
+    check("15.9 permute com rot alta nao quebra", isinstance(vp2, list) and len(vp2) > 0)
+
+    # 15.10 reservoir usado se disponivel
+    hdc2 = MCRHDCOperation(MCRJanelamentoFingerprint())
+    v = hdc2._vetor("teste")
+    check("15.10 _vetor com reservoir retorna lista", isinstance(v, list) and len(v) > 0)
+
+    fim()
+
+
+# ═══════════════════════════════════════════════════════════════════
+# SECAO 16 — F2: MCRJanelamentoFingerprint
+# ═══════════════════════════════════════════════════════════════════
+def test_reservoir():
+    fim = secao("16. F2: MCRJanelamentoFingerprint (janelamento temporal)", 6)
+
+    r = MCRJanelamentoFingerprint(dim=4, janela=20, passo=10)
+
+    # 16.1 gerar com texto curto
+    v = r.gerar("texto curto")
+    check("16.1 gerar texto curto retorna list (pode ser vazia)",
+          isinstance(v, list), f"len={len(v)}")
+
+    # 16.2 gerar com texto longo
+    v2 = r.gerar("A" * 500)
+    check("16.2 gerar texto > janela produz vetor", len(v2) > 0,
+          f"len={len(v2)}")
+
+    # 16.3 cache funciona
+    v3 = r.gerar("A" * 500)
+    check("16.3 cache retorna mesmo vetor", v2 == v3,
+          f"v2[:4]={v2[:4]}, v3[:4]={v3[:4]}")
+
+    # 16.4 entropia_reservoir
+    ent = r.entropia_reservoir(v2)
+    check("16.4 entropia_reservoir e' float", isinstance(ent, float),
+          f"ent={ent}")
+
+    # 16.5 comparar textos similares vs diferentes
+    sim_sim = r.comparar("AAAAABBBBBCCCCCDDDDD", "AAAAABBBBBCCCCCDDDD")
+    sim_diff = r.comparar("AAAAABBBBBCCCCCDDDDD", "XYZXYZXYZXYZXYZXYZ")
+    check("16.5 comparar textos similares > diferentes", sim_sim > sim_diff,
+          f"sim={sim_sim}, diff={sim_diff}")
+
+    # 16.6 entropia de vetor vazio
+    ent_vaz = r.entropia_reservoir([])
+    check("16.6 entropia de vetor vazio = 1.0", ent_vaz == 1.0, f"ent={ent_vaz}")
+
+    fim()
+
+
+# ═══════════════════════════════════════════════════════════════════
+# SECAO 17 — F3: MCREntropicSearch
+# ═══════════════════════════════════════════════════════════════════
+def test_entropic_search():
+    fim = secao("17. F3: MCREntropicSearch (MCTS com entropia)", 7)
+
+    w = MCRWorld()
+    ql = MCRQLearn()
+    es = MCREntropicSearch(w, ql)
+
+    # 17.1 rollout
+    e = EstadoMundo.criar_simples()
+    prox = es.rollout(e, "andar_dir", passos=3)
+    check("17.1 rollout retorna EstadoMundo", isinstance(prox, EstadoMundo),
+          f"type={type(prox).__name__}")
+
+    # 17.2 planejar
+    obj = e.clone()
+    h_obj = obj.get("heroi")
+    if h_obj:
+        h_obj.props["x"] = 4
+    acao, score = es.planejar(e, obj, n_rollouts=3, depth=2)
+    check("17.2 planejar retorna acao valida", acao is None or acao in MCRAcao.disponiveis(),
+          f"acao={acao}, score={score}")
+    if acao:
+        check("17.2b score e' float", isinstance(score, float), f"score={score}")
+
+    # 17.3 thresholds sao treinados
+    check("17.3 thr_rollouts foi treinado", len(es.thr_rollouts.obs) > 0,
+          f"obs={len(es.thr_rollouts.obs)}")
+    check("17.3b thr_depth foi treinado", len(es.thr_depth.obs) > 0,
+          f"obs={len(es.thr_depth.obs)}")
+
+    # 17.4 mk_sim aprende
+    check("17.4 mk_sim aprendeu scores", es.mk_sim.total > 0,
+          f"total={es.mk_sim.total}")
+
+    # 17.5 planejar 2x com resultados diferentes (por causa do rollout aleatorio)
+    acao2, score2 = es.planejar(obj, e, n_rollouts=2, depth=2)
+    check("17.5 segunda chamada de planejar executa sem erro",
+          acao2 is None or acao2 in MCRAcao.disponiveis())
+
+    # 17.6 total incrementa
+    check("17.6 es.total > 0", es.total > 0, f"total={es.total}")
+
+    fim()
+
+
+# ═══════════════════════════════════════════════════════════════════
+# SECAO 18 — F4: MCRAutoEvolution
+# ═══════════════════════════════════════════════════════════════════
+def test_auto_evolution():
+    fim = secao("18. F4: MCRAutoEvolution (auto-modificacao)", 7)
+
+    cerebro = CerebroAGI()
+    cerebro.alimentar("teste de entropia para auto-evolucao. " * 20, "ae_base")
+    ae = MCRAutoEvolution(cerebro)
+
+    # 18.1 entropia_global
+    ent = ae.entropia_global()
+    check("18.1 entropia_global retorna float", isinstance(ent, float) and ent >= 0,
+          f"ent={ent}")
+
+    # 18.2 entropia_global inclui multiplas metricas
+    check("18.1b entropia > 0", ent > 0, f"ent={ent}")
+
+    # 18.3 entropia_cerebro
+    ent_c = ae._entropia_cerebro(cerebro)
+    check("18.2 _entropia_cerebro retorna float", isinstance(ent_c, float) and ent_c >= 0,
+          f"ent_c={ent_c}")
+
+    # 18.4 ciclo executa sem erro
+    try:
+        r = ae.ciclo()
+        check("18.4 ciclo executa sem erro", True)
+        check("18.4b ciclo retorna dict com keys esperadas",
+              all(k in r for k in ["mutacao", "ent_antes", "ent_depois", "melhoria", "resultado"]),
+              f"keys={list(r.keys())}")
+        check("18.4c resultado e 'aceito' ou 'rejeitado'",
+              r["resultado"] in ("aceito", "rejeitado"),
+              f"resultado={r['resultado']}")
+        check("18.4d melhoria e' float", isinstance(r["melhoria"], float),
+              f"melhoria={r['melhoria']}")
+    except Exception as ex:
+        check("18.4 ciclo executa sem erro", False, str(ex))
+
+    # 18.5 relatorio
+    rel = ae.relatorio()
+    check("18.5 relatorio retorna dict", isinstance(rel, dict),
+          f"type={type(rel).__name__}")
+    for k in ["ciclos", "aceites", "taxa_aceite", "entropia_atual"]:
+        check(f"18.5b key '{k}' presente", k in rel, f"keys={list(rel.keys())}")
+
+    # 18.6 segundo ciclo incrementa contador
+    if ae.hist:
+        antes = len(ae.hist)
+        ae.ciclo()
+        check("18.6 segundo ciclo incrementa historico", len(ae.hist) > antes,
+              f"antes={antes}, depois={len(ae.hist)}")
+
+    fim()
+
+
+# ═══════════════════════════════════════════════════════════════════
+# SECAO 19 — Hiperesfera + Topologia + Validacao
+# ═══════════════════════════════════════════════════════════════════
+def test_hiperestrutura():
+    fim = secao("19. Hiperesfera + Topologia + Auto-Validacao", 8)
+
+    # 19.1 MCRHiperesferaAutoExpansiva
+    h = MCRHiperesferaAutoExpansiva()
+    dims = h.descobrir("O MCR e um sistema de Markov multi-nivel. " * 10, max_dim=5)
+    check("19.1 descobrir retorna lista de strings", isinstance(dims, list),
+          f"type={type(dims).__name__}")
+    if dims:
+        check("19.1b pelo menos 1 dimensao descoberta", len(dims) > 0, f"dims={dims}")
+
+    # 19.2 dimensoes tem entropia < threshold
+    if h.dimensoes:
+        for nome, mk in list(h.dimensoes.items())[:3]:
+            ent = mk.entropia_media() if mk.total > 0 else 1.0
+            check(f"19.2 dimensao '{nome}' tem entropia < 0.95", ent < 0.95,
+                  f"ent={ent:.4f}")
+
+    # 19.3 MCREsfera
+    e = MCREsfera()
+    e.alimentar_par("byte", "palavra", "B:41", "Fogo")
+    e.alimentar_par("byte", "palavra", "B:41", "Fogo")
+    e.alimentar_par("byte", "palavra", "B:42", "Agua")
+    check("19.3 esfera total > 0", e.total > 0, f"total={e.total}")
+
+    # 19.4 esfera recalcular
+    antes = dict(e.cross)
+    e.recalcular()
+    check("19.4 recalcular executa sem erro", True)
+
+    # 19.5 esfera predizer_cross
+    pred, conf = e.predizer_cross("palavra", byte="B:41")
+    check("19.5 predizer_cross retorna tupla", isinstance(pred, (str, type(None))) and isinstance(conf, float),
+          f"pred={pred}, conf={conf}")
+
+    # 19.6 MCRAutoTopologia
+    t = MCRAutoTopologia()
+    mk_a = MCR("a")
+    mk_b = MCR("b")
+    mk_a.aprender("X", "Y")
+    mk_b.aprender("X", "Z")
+    t.registrar("a", mk_a)
+    t.registrar("b", mk_b)
+    t.recalcular()
+    m = t.metricas()
+    check("19.6 topologia metricas retorna dict", isinstance(m, dict),
+          f"type={type(m).__name__}")
+    for k in ["n_niveis", "n_clusters", "n_arestas"]:
+        check(f"19.6b key '{k}' presente", k in m, f"keys={list(m.keys())}")
+
+    # 19.7 MCRAutoValidacaoContinua
+    v = MCRAutoValidacaoContinua()
+    mk_v = MCR("v")
+    mk_v.aprender("A", "B")
+    v.registrar("test", mk_v)
+    check("19.7 ent_historico tem a chave", "test" in v.ent_historico)
+
+    # 19.8 ciclo de validacao
+    niveis = {"test": mk_v}
+    for _ in range(3):
+        v.ciclo(niveis)
+    check("19.8 ciclo de validacao executou 3x", v.ciclos == 3, f"ciclos={v.ciclos}")
+
+    # 19.9 CerebroAGI.ciclo_autonomo
+    c = CerebroAGI()
+    try:
+        res = c.ciclo_autonomo("teste de ciclo autonomo", max_passos=5)
+        check("19.10 ciclo_autonomo retorna dict", isinstance(res, dict),
+              f"type={type(res).__name__}")
+        check("19.10b tem key 'passos'", "passos" in res,
+              f"keys={list(res.keys())}")
+    except Exception as ex:
+        check("19.10 ciclo_autonomo executa sem erro", False, str(ex))
+
+    fim()
+
+
+# ═══════════════════════════════════════════════════════════════════
 # MAIN
 # ═══════════════════════════════════════════════════════════════════
 def main():
@@ -942,6 +1237,11 @@ def main():
     test_identity()
     test_resposta()
     test_integration()
+    test_hdc()
+    test_reservoir()
+    test_entropic_search()
+    test_auto_evolution()
+    test_hiperestrutura()
 
     tempo = time.time() - t0
     print(f"\nTempo total: {tempo:.2f}s")

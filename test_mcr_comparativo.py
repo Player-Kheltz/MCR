@@ -60,7 +60,7 @@ resultados.append({"teste": "T2_bundle_inv", "passou": not tem_padrao_repetido})
 # T3: Reservoir sem recorrencia
 print()
 print("[T3] Reservoir sem recorrencia (deterministico)")
-res = _mcr.MCRReservoir(dim=8, janela=200, passo=100)
+res = _mcr.MCRJanelamentoFingerprint(dim=8, janela=200, passo=100)
 texto_teste = "O MCR e um experimento em minimalismo computacional " * 20
 v1 = res.gerar(texto_teste)
 v2 = res.gerar(texto_teste)

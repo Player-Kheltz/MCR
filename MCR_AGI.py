@@ -164,7 +164,7 @@ class MCRSignatureExpansiva:
             if abs(hb-ha)/max(ha,0.01) < thr: return db
         return es[-1][0] if es else 8
 
-class MCRReservoir:
+class MCRJanelamentoFingerprint:
     """Vetor de fingerprint com janelamento temporal e estado interno.
     
     Divide o texto em janelas e gera fingerprints de cada janela.
@@ -247,7 +247,7 @@ class MCRHDCOperation:
     permute(v):   rotacao — marca ordem temporal
     
     Cada operacao tem seu proprio MCR que aprende quando aplica-la.
-    Usa MCRReservoir para vetores mais longos quando disponivel.
+        Usa MCRJanelamentoFingerprint para vetores mais longos quando disponivel.
     """
     def __init__(self, reservoir=None):
         self.reservoir = reservoir
@@ -262,7 +262,10 @@ class MCRHDCOperation:
             v = self.reservoir.gerar(texto)
             if v:
                 return v
-        return MCRByteUtils.fingerprint(texto, 8)
+        # Descobre dim ideal para este texto (F4)
+        dados = texto.encode()[:2000] if isinstance(texto, str) else bytes(texto)[:2000]
+        dim = MCRSignatureExpansiva.dimensionalidade_ideal(dados, mx=256, thr=0.05)
+        return MCRByteUtils.fingerprint(texto, max(dim, 8))
     
     def _normalizar(self, va, vb, dim_alvo=None):
         """Normaliza dois vetores para o MESMO tamanho.
@@ -289,10 +292,17 @@ class MCRHDCOperation:
                 return [v[min(int(i * len(v) / n), len(v)-1)] for i in range(n)]
             elif modo == "vizinho":
                 # Vizinho mais proximo (amostragem pura)
+                # Se n > len(v), faz upsample (repete cada elemento)
+                if n > len(v):
+                    indices = [min(int(i * len(v) / n), len(v)-1) for i in range(n)]
+                    return [v[idx] for idx in indices]
                 passo = max(1, len(v) // n)
                 return [v[i] for i in range(0, len(v), passo)][:n]
             else:
                 # Media de janelas
+                if n > len(v):
+                    indices = [min(int(i * len(v) / n), len(v)-1) for i in range(n)]
+                    return [v[idx] for idx in indices]
                 janela = max(1, len(v) // n)
                 result = []
                 for i in range(0, len(v), janela):
@@ -499,10 +509,10 @@ class MCRAutoEvolution:
         self.mk_mutacoes = MCR("ae_mutacoes")
         self.mk_resultados = MCR("ae_resultados")
         self.thr_aceitacao = MCRThreshold("ae_aceite")
-        self.codex = MCRCodex()
         self.hist: List[Dict] = []
-        self._cache_dir = os.path.join(CACHE_DIR, "ae_temp")
-        os.makedirs(self._cache_dir, exist_ok=True)
+        self._alvos_mutacao = [
+            ("threshold_byte", lambda: cerebro.mk_byte.thr if hasattr(cerebro.mk_byte, 'thr') else None),
+        ]
     
     def entropia_global(self):
         entropias = []
@@ -539,122 +549,53 @@ class MCRAutoEvolution:
     def ciclo(self):
         """Um ciclo de auto-evolucao: medir → mutar → validar → aceitar/rejeitar.
         
-        A mutacao e REAL: cria copia do MCR_AGI.py, modifica um parametro,
-        recarrega o modulo, mede entropia real, decide. Reverte se rejeitado."""
+        Muta um MCRThreshold em memoria (nao codigo fonte).
+        A mutacao afeta DIRETAMENTE as metricas de entropia_global().
+        """
         ent_antes = self.entropia_global()
-        hcs = self.codex.escanear()
         
-        if not hcs:
-            return {"acao": "nada_para_mutar"}
+        # Encontra MCRThresholds no cerebro para mutar
+        alvos = []
+        for attr_name in ['thr', 'thr_entropia', 'thr_tamanho', 'thr_palavras',
+                          'thr_visitas', 'thr_amostras', 'thr_por_pasta']:
+            if hasattr(self.cerebro, attr_name):
+                attr = getattr(self.cerebro, attr_name)
+                if isinstance(attr, MCRThreshold):
+                    alvos.append((attr_name, attr))
         
-        # Propoe mutacao: parametro + direcao decididos por MCRDecisor (HC #2)
-        hc = hcs[0]
-        if hc['valor'].lstrip('-').isdigit():
-            dec = MCRDecisorUniversal.decidir(ctx="ae_mutacao")
-            delta = max(1, int(dec.get("passos", 1)))
-            direcao = _rand.choice([-1, 1])
-            novo_valor = str(max(1, int(hc['valor']) + direcao * delta))
-        else:
-            novo_valor = "10"
-        mutacao = {'tipo': 'parametro', 'param': hc['param'], 'linha': hc['linha'],
-                   'valor_original': hc['valor'], 'novo_valor': novo_valor}
+        if not alvos:
+            return {"acao": "nada_para_mutar", "motivo": "nenhum_threshold"}
         
-        # Aplica mutacao REAL em copia temp e mede entropia
-        import re as _re, tempfile as _tf
-        src_path = os.path.abspath(__file__)
-        tmp_path = _tf.mktemp(suffix='_ae_mutacao.py', dir=self._cache_dir)
-        mutacao_aplicada = False
-        linha_modificada = -1
-        linha_original_conteudo = ""
+        # Escolhe threshold + delta via MCRDecisor
+        nome_alvo, thr = _rand.choice(alvos)
+        dec = MCRDecisorUniversal.decidir(ctx="ae_delta")
+        delta = dec.get("threshold", 0.05)
+        if _rand.random() < 0.5:
+            delta = -delta
         
-        try:
-            with open(src_path, 'r', encoding='utf-8') as f:
-                codigo = f.readlines()
-            
-            # Mutacao na LISTA em memoria (SEM tocar no disco) — Etapa 1
-            if 0 < hc['linha'] <= len(codigo):
-                linha_original_conteudo = codigo[hc['linha'] - 1]
-                nova_linha = _re.sub(
-                    rf'(.*{_re.escape(str(hc["param"]))}\s*=\s*)\d+\.?\d*',
-                    rf'\g<1>{novo_valor}',
-                    linha_original_conteudo
-                )
-                if nova_linha != linha_original_conteudo:
-                    codigo[hc['linha'] - 1] = nova_linha
-                    mutacao_aplicada = True
-                    linha_modificada = hc['linha'] - 1
-            
-            if not mutacao_aplicada:
-                raise ValueError("mutacao_nao_aplicada")
-            
-            # Salva APENAS no temporario
-            with open(tmp_path, 'w', encoding='utf-8') as f:
-                f.writelines(codigo)
-            
-            # Compila e testa
-            import py_compile as _pyc
-            _pyc.compile(tmp_path, doraise=True)
-            
-            import importlib.util as _iu
-            _spec = _iu.spec_from_file_location('mcr_ae_tmp', tmp_path)
-            _mod = _iu.module_from_spec(_spec)
-            _mod.__file__ = tmp_path
-            sys.modules['mcr_ae_tmp'] = _mod
-            _spec.loader.exec_module(_mod)
-            
-            _c2 = _mod.CerebroAGI()
-            for nome, mk in self.cerebro.hiper.dimensoes.items():
-                if nome in _c2.hiper.dimensoes:
-                    _c2.hiper.dimensoes[nome] = mk
-            _c2.topicos = dict(self.cerebro.topicos)
-            ent_depois = self._entropia_cerebro(_c2)
-            
-        except Exception:
-            ent_depois = ent_antes * self.thr_aceitacao.obter("fallback_ent", 1.1)
+        valor_original = thr.obter("valor", 0.5)
+        novo_valor = max(0.01, min(1.0, valor_original + delta))
         
-        finally:
-            # Cleanup: remove temporario
-            try: os.unlink(tmp_path)
-            except: pass
-            try: sys.modules.pop('mcr_ae_tmp', None)
-            except: pass
+        mutacao = {'tipo': 'threshold', 'alvo': nome_alvo,
+                   'valor_original': round(valor_original, 4),
+                   'novo_valor': round(novo_valor, 4)}
         
+        # Aplica mutacao no threshold (em memoria)
+        thr.obs = thr.obs + [novo_valor]
+        ent_depois = self.entropia_global()
         melhoria = ent_antes - ent_depois
-        limiar = self.thr_aceitacao.obter("limiar", 0.01)
+        
+        limiar = self.thr_aceitacao.obter("limiar", 0.001)
         aceite = melhoria > limiar
+        if not aceite:
+            thr.obs = thr.obs[:-1]  # reverte
         
-        # Se aceito, APENAS AGORA modifica o arquivo real
-        if aceite and linha_modificada >= 0:
-            try:
-                with open(src_path, 'r', encoding='utf-8') as f:
-                    codigo_real = f.readlines()
-                codigo_real[linha_modificada] = _re.sub(
-                    rf'(.*{_re.escape(str(hc["param"]))}\s*=\s*)\d+\.?\d*',
-                    rf'\g<1>{novo_valor}',
-                    codigo_real[linha_modificada]
-                )
-                with open(src_path, 'w', encoding='utf-8') as f:
-                    f.writelines(codigo_real)
-            except:
-                pass
+        self.mk_resultados.aprender(f"{'ACEITE' if aceite else 'REJEITE'}:{mutacao['tipo']}", f"{melhoria:.4f}")
+        self.mk_mutacoes.aprender(f"AE:{mutacao['tipo']}:{'ACEITE' if aceite else 'REJEITE'}", f"{melhoria:.4f}")
         
-        self.mk_resultados.aprender(
-            f"{'ACEITE' if aceite else 'REJEITE'}:{mutacao['tipo']}",
-            f"{melhoria:.4f}"
-        )
-        self.mk_mutacoes.aprender(
-            f"AE:{mutacao['tipo']}:{'ACEITE' if aceite else 'REJEITE'}",
-            f"{melhoria:.4f}"
-        )
-        
-        r = {
-            "timestamp": time.time(),
-            "mutacao": mutacao,
-            "ent_antes": round(ent_antes, 4),
-            "ent_depois": round(ent_depois, 4),
-            "melhoria": round(melhoria, 4),
-            "resultado": "aceito" if aceite else "rejeitado",
-        }
+        r = {"timestamp": time.time(), "mutacao": mutacao,
+             "ent_antes": round(ent_antes, 4), "ent_depois": round(ent_depois, 4),
+             "melhoria": round(melhoria, 4), "resultado": "aceito" if aceite else "rejeitado"}
         self.hist.append(r)
         self.thr_aceitacao.observar(abs(melhoria))
         return r
@@ -892,6 +833,33 @@ class MCRNLP:
         ords = sorted(scores.items(), key=lambda x: -x[1])
         limiar = MCRThreshold("nlp_entender").obter("limiar", 0.3)
         return [acao for acao, score in ords[:top_k] if score > limiar]
+    @classmethod
+    def auto_expandir(cls, cerebro):
+        """Expande exemplos de treino usando topicos do cerebro (F3).
+        
+        Para cada acao com poucos exemplos, busca topicos similares
+        no cerebro e extrai novas frases como exemplos adicionais.
+        """
+        thr_min = MCRThreshold("nlp_expandir").obter("min_exemplos", 3)
+        thr_jac = MCRThreshold("nlp_expandir").obter("jac_min", 0.2)
+        thr_pal = MCRThreshold("nlp_expandir").obter("palavras_min", 3)
+        for acao, exs in list(cls._ex.items()):
+            if len(exs) >= thr_min:
+                continue
+            for ex in exs:
+                if not cerebro.topicos:
+                    continue
+                for nome, dados in cerebro.topicos.items():
+                    texto = dados.get("texto", "")
+                    j = MCRByteUtils.jaccard_bytes(ex, texto[:500])
+                    if j < thr_jac:
+                        continue
+                    palavras = texto.split()[:10]
+                    if len(palavras) < thr_pal:
+                        continue
+                    nova = " ".join(palavras[:thr_pal])
+                    if nova not in exs:
+                        cls.aprender(nova, acao)
     @classmethod
     def detectar_dominio(cls, texto):
         texto = texto.lower()
@@ -1913,7 +1881,7 @@ class CerebroAGI:
         self._seed_orquestrador()
         self._acoes_internas = {}
         self._registrar_acoes_internas()
-        self.reservoir = MCRReservoir()
+        self.reservoir = MCRJanelamentoFingerprint()
         self.hdc = MCRHDCOperation(self.reservoir)
         self.topicos: Dict[str, Dict] = {}
         self.world = MCRWorld(); self.coupling = MCRCoupling(); self.planner = MCRPlanner(self.world)
