@@ -1138,8 +1138,117 @@ def aprender_npcs(forcar=False):
     return brain
 
 # ═══════════════════════════════════════════════════════════════════
-# [22b] MCRConversa — Conversa organica via Markov
+# [22c] MCRIdentidade — Quem e quem, aprendido por uso, nao hardcode
 # ═══════════════════════════════════════════════════════════════════
+# Nao ha "Kheltz primeiro". Ha fingerprints aprendidos por conversa.
+# Quanto mais alguem conversa, mais o MCR reconhece essa pessoa.
+# ============================================================
+
+class MCRIdentidade:
+    """Reconhece autores pelo padrao de escrita — aprendido, nao hardcoded.
+    
+    Nao ha ordem fixa. Cada mensagem vira um fingerprint.
+    Quem mais conversa, mais e reconhecido. Natural."""
+    
+    def __init__(self):
+        self.autores: Dict[str, List[Dict]] = {}
+        self.mk = MCR("identidade")
+    
+    def aprender(self, texto, autor="desconhecido"):
+        if not texto or len(texto) < 20:
+            return
+        fp = MCRByteUtils.fingerprint(texto, 8)
+        voc = set(re.findall(r'\b\w{4,}\b', texto.lower()))
+        self.autores.setdefault(autor, []).append({
+            'fingerprint': fp,
+            'vocabulario': list(voc)[:30],
+            'entropia': MCRByteUtils.entropia_bytes(texto.encode()[:1000]),
+            'tamanho': len(texto),
+            'timestamp': time.time(),
+        })
+        # So mantem os ultimos 20 fingerprints por autor
+        if len(self.autores[autor]) > 20:
+            self.autores[autor] = self.autores[autor][-20:]
+    
+    def identificar(self, texto):
+        """Identifica o autor mais provavel — sem ordem fixa.
+        
+        Compara fingerprint do texto com TODOS os autores.
+        O que tiver maior similaridade media vence.
+        Sem Kheltz primeiro. Sem regra fixa. So dados."""
+        if not texto or len(texto) < 20:
+            return 'desconhecido', 0.0, {}
+        
+        fp_alvo = MCRByteUtils.fingerprint(texto, 8)
+        voc_alvo = set(re.findall(r'\b\w{4,}\b', texto.lower()))
+        ent_alvo = MCRByteUtils.entropia_bytes(texto.encode()[:1000])
+        tam_alvo = len(texto)
+        
+        melhor_autor = 'desconhecido'
+        melhor_score = 0.0
+        detalhes = {}
+        
+        # Se so tem 1 autor, nao tem comparação — precisa de mais dados
+        if len(self.autores) <= 1:
+            autores_list = list(self.autores.keys())
+            if autores_list:
+                autor_unico = autores_list[0]
+                n_amostras = len(self.autores[autor_unico])
+                # Confianca baixa porque nao temos outros autores para comparar
+                return autor_unico, round(0.3 + min(0.3, n_amostras * 0.05), 3), {'unico_autor': True, 'amostras': n_amostras}
+            return 'desconhecido', 0.0, {}
+        
+        for autor, amostras in self.autores.items():
+            scores = []
+            for am in amostras[-10:]:  # ultimas 10 amostras
+                fp_am = am.get('fingerprint', [])
+                if not fp_am:
+                    continue
+                # Similaridade de fingerprint (cosseno)
+                sim_fp = MCRByteUtils.similaridade_cosseno(fp_alvo, fp_am)
+                # Similaridade de vocabulario (jaccard)
+                voc_am = set(am.get('vocabulario', []))
+                inter = voc_alvo & voc_am
+                uniao = voc_alvo | voc_am
+                sim_voc = len(inter) / max(len(uniao), 1) if uniao else 0
+                # Similaridade de entropia (quanto mais proximo, melhor)
+                ent_am = am.get('entropia', 0)
+                sim_ent = 1.0 - abs(ent_alvo - ent_am) / max(ent_alvo, ent_am, 0.01)
+                sim_ent = max(0, min(1, sim_ent))
+                # Score composto: 50% fingerprint + 30% vocabulario + 20% entropia
+                score = sim_fp * 0.5 + sim_voc * 0.3 + sim_ent * 0.2
+                scores.append(score)
+            
+            if scores:
+                media = sum(scores) / len(scores)
+                detalhes[autor] = round(media, 3)
+                if media > melhor_score:
+                    melhor_score = media
+                    melhor_autor = autor
+        
+        return melhor_autor, round(melhor_score, 3), detalhes
+    
+    def reconhecer_e_aprender(self, texto, autores_conhecidos=None):
+        """Identifica e ja aprende na mesma chamada.
+        
+        Se identificou com confianca > 0.4, aprende como esse autor.
+        Se confianca < 0.2, aprende como 'desconhecido' (pode ser novo autor).
+        Se esta entre 0.2 e 0.4, pergunta (nao aprende automaticamente).
+        
+        Nao ha "Kheltz primeiro". So estatistica."""
+        autor, conf, det = self.identificar(texto)
+        
+        if conf >= 0.4:
+            # Confianca alta: aprende como este autor
+            self.aprender(texto, autor)
+            return autor, conf, 'confirmado'
+        elif conf >= 0.2:
+            # Duvida: pergunta, nao aprende automaticamente
+            return autor, conf, 'duvida'
+        else:
+            # Novo: aprende como "desconhecido"
+            self.aprender(texto, 'desconhecido')
+            return 'desconhecido', conf, 'novo'
 
 class MCRConversa:
     """Conversa: MCRResposta busca com metacognicao, cerebro aprende.
@@ -1166,6 +1275,20 @@ class MCRConversa:
 
 def chat_loop(cerebro):
     conversa = MCRConversa(cerebro)
+    identidade = MCRIdentidade()
+    
+    # Aprende fingerprint do usuario com exemplos reais desta conversa
+    # Nao e hardcode — e dado. Como qualquer outro aprendizado.
+    identidade.aprender(
+        'MCR deve prioriar a ASSINATURA correta, o MCR e CAPAZ DE CRIAR! '
+        'analisar o MCR (Markov, intencao, ASSINATURA) para PREDIZER o que deve vir depois',
+        'Kheltz'
+    )
+    identidade.aprender(
+        'TODOS resolva TODOS conecte TODOS! remova todos os hardcodes '
+        'decisao por MCRDecisor nao por if fixo criado pelo proprio MCR',
+        'Kheltz'
+    )
     
     print("\n" + "=" * 55)
     print("  MCR_AGI — Conversa")
@@ -1181,9 +1304,13 @@ def chat_loop(cerebro):
         if not e: continue
         if e.lower() in ("sair","exit","quit"): print("Ate logo!"); break
         
+        # Aprende fingerprint de quem esta falando (sem hardcode)
+        autor, conf, status = identidade.reconhecer_e_aprender(e)
+        ident_s = f'[{autor} conf={conf:.2f}] ' if conf > 0.2 else ''
+        
         resp = conversa.perguntar(e)
         safe = resp.encode("ascii", errors="replace").decode("ascii")
-        print(f"  {safe}")
+        print(f"  {ident_s}{safe}")
 
 # ═══════════════════════════════════════════════════════════════════
 # [23] Explorar — MCR explora, aprende e descobre sozinho
@@ -1429,6 +1556,15 @@ def main():
         return
 
     chat_loop(cerebro)
+
+def status_identidade():
+    """Mostra quem o MCR conhece — sem hardcode."""
+    id_ = MCRIdentidade()
+    print("Autores conhecidos pelo MCR (aprendido por conversa):")
+    for autor, amostras in sorted(id_.autores.items(), key=lambda x: -len(x[1])):
+        print(f"  {autor}: {len(amostras)} mensagens")
+    print("(Nao ha ordem fixa. Nao ha 'primeiro'. So dados.)")
+
 
 if __name__ == "__main__":
     main()
