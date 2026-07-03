@@ -72,7 +72,7 @@ A diferença é ARQUITETURAL: em vez de criar 50 classes diferentes, registramos
 | Nível | Entrada | Resultado |
 |-------|---------|-----------|
 | Byte | "Olá MCR!" | Aprende que 'O' → 'l' |
-| Palavra | "MCR é uma equação universal" | Gera: "MCR é uma equação universal que aprende" |
+| Palavra | "MCR é uma equação multi-nível" | Gera: "MCR é uma equação multi-nível que aprende" |
 | Decisão | explicacao → buscar_kg → conectar → gerar → entregar | Prediz: "explicacao" → "buscar_kg" |
 | Mundo | estado + ação → próximo estado | Aprende causalidade |
 | Q-Learning | estado + ação → recompensa | Aprende por tentativa e erro |
@@ -88,7 +88,7 @@ A diferença é ARQUITETURAL: em vez de criar 50 classes diferentes, registramos
 
 Se o universo é informação (como disse John Wheeler, "it from bit"),  
 e toda informação pode ser representada como transições de estado,  
-então a equação MCR é um **processador universal de informação**.
+então a equação MCR é um **processador multi-nível de informação**.
 
 Não é uma "teoria de tudo" no sentido físico.  
 É uma "TEORIA DE PROCESSAMENTO DE TUDO".

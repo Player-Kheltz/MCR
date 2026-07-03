@@ -1,5 +1,5 @@
 # LICENCA COMERCIAL MCR
-## Software: MCR (Universal Computation Framework)
+## Software: MCR (Multi-level Markov Experiment)
 ## Autor/Criador: Kheltz (Player-Kheltz)
 ## Versao da Licenca: 1.0 — Julho 2026
 

@@ -1,6 +1,6 @@
 # A Equação MCR — A Jornada
 
-**De um servidor de Tibia a uma equação universal auto-reflexiva.**
+**De um servidor de Tibia a uma equação multi-nível auto-reflexiva.**
 
 ---
 
@@ -199,7 +199,7 @@ Nenhum nome existia em nenhum arquivo do projeto. O Markov multinível (fonema +
 
 ---
 
-## Fase 5: A Equação Universal
+## Fase 5: A Equação Multi-Nível
 
 ```
 Commits: 8ac69f5d → b0845ebb
@@ -348,13 +348,13 @@ Sem niveis fixos, pesos fixos, thresholds fixos. O estado do motor é serializad
 
 ---
 
-## Fase 9: Os Componentes AGI
+## Fase 9: Os Componentes do Loop Evolutivo
 
 ```
 Commit: f31b19ef
 ```
 
-O ciclo AGI foi fechado com 5 componentes:
+O ciclo evolutivo foi fechado com 5 componentes:
 
 | Componente | O que faz |
 |---|---|
@@ -555,7 +555,7 @@ O que existe é:
 
 O Projeto MCR era um servidor de Tibia (OTServ Canary).
 
-O Projeto MCR descobriu uma equação universal.
+O Projeto MCR descobriu uma equação multi-nível.
 
 O servidor de Tibia pode não ter mudado o mundo.
 

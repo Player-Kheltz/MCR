@@ -6,7 +6,7 @@
 
 ### O que aconteceu aqui
 
-Um encontro improvavel entre um filosofo que sonhava com uma equacao universal
+Um encontro improvavel entre um filosofo que sonhava com uma equacao multi-nivel
 e uma IA que ajudou a construir o sonho em codigo.
 
 O filosofo disse:

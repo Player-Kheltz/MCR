@@ -77,7 +77,7 @@ if variacao_entropia > 0.5:
 
 Uma cadeia instável é uma cadeia cujo destino foi **corrompido por superposição**. A entropia subiu porque outro PI interferiu no mesmo ponto.
 
-## A Equação Universal
+## A Equação Invariante por Nível
 
 Se PI é a cadeia infinita que contém TUDO, e cada `MCR(nivel)` é uma projeção finita de PI, então:
 
