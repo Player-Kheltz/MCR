@@ -531,6 +531,8 @@ class MCRCoupling:
         self.matriz = {o: {d: 0.0 for d in self.niveis} for o in self.niveis}
         self.cooc = {o: {d: 0 for d in self.niveis} for o in self.niveis}
         self.total_cooc = 0; self.mk = MCR("coupling")
+        # MCREsfera: aprendizado N-dimensional (evolucao do coupling 2D)
+        self.esfera = MCREsfera()
     @staticmethod
     def _descobrir_niveis():
         base = ["byte","palavra","tven"]
@@ -539,12 +541,15 @@ class MCRCoupling:
         if origem not in self.niveis or destino not in self.niveis: return
         self.cooc[origem][destino] += 1; self.total_cooc += 1
         self.mk.aprender(f"CP:{origem}->{destino}:{str(to)[:10]}", str(td)[:10])
+        # Alimenta a esfera N-dimensional com pares de niveis
+        self.esfera.alimentar_par(origem, destino, str(to)[:10], str(td)[:10])
     def recalcular(self):
         for o in self.niveis:
             for d in self.niveis:
                 if o == d: self.matriz[o][d] = 1.0; continue
                 c = self.cooc[o][d]
                 self.matriz[o][d] = round(c/self.total_cooc*len(self.niveis), 3) if c >= 3 and self.total_cooc else 0.0
+        self.esfera.recalcular()
     def peso(self, origem, destino): return self.matriz.get(origem,{}).get(destino,0.0)
     def modular(self, nivel, probs):
         res = dict(probs)
@@ -554,6 +559,89 @@ class MCRCoupling:
             if p > 0.1:
                 for ch in res: res[ch] *= (1 + p * 0.1)
         return res
+
+class MCREsfera:
+    """Aprendizado N-dimensional de correlacoes entre niveis.
+    
+    Diferenca do MCRCoupling (2D pairwise):
+    - Coupling: matriz NxN de pesos entre pares de niveis
+    - Esfera: aprende correlacoes entre VARIOS niveis simultaneamente
+    
+    Permite predicao cross-level que o coupling 2D nao faz.
+    Usa dict de dicts aninhados (matriz N-dimensional esparsa).
+    """
+    def __init__(self):
+        # cross[nivel_a][valor_a][nivel_b][valor_b] = contagem
+        self.cross: Dict[str, Dict] = {}
+        # freq[nivel_a][valor_a] = total de ocorrencias
+        self.freq_nivel: Dict[str, Dict[str, int]] = {}
+        self.total = 0
+    
+    def _init_nivel(self, nivel):
+        if nivel not in self.cross:
+            self.cross[nivel] = {}
+            self.freq_nivel[nivel] = {}
+    
+    def alimentar_par(self, nivel_a, nivel_b, valor_a, valor_b):
+        """Alimenta correlacao entre dois niveis.
+        
+        Registra que quando nivel_a=valor_a, nivel_b tende a ser valor_b.
+        """
+        self._init_nivel(nivel_a)
+        if valor_a not in self.cross[nivel_a]:
+            self.cross[nivel_a][valor_a] = {}
+        if nivel_b not in self.cross[nivel_a][valor_a]:
+            self.cross[nivel_a][valor_a][nivel_b] = {}
+        chave = valor_b
+        self.cross[nivel_a][valor_a][nivel_b][chave] = (
+            self.cross[nivel_a][valor_a][nivel_b].get(chave, 0) + 1
+        )
+        self.freq_nivel[nivel_a][valor_a] = self.freq_nivel[nivel_a].get(valor_a, 0) + 1
+        self.total += 1
+        
+        # Alimenta tambem o inverso (nivel_b → nivel_a) para simetria
+        self._init_nivel(nivel_b)
+        if valor_b not in self.cross[nivel_b]:
+            self.cross[nivel_b][valor_b] = {}
+        if nivel_a not in self.cross[nivel_b][valor_b]:
+            self.cross[nivel_b][valor_b][nivel_a] = {}
+        chave_a = valor_a
+        self.cross[nivel_b][valor_b][nivel_a][chave_a] = (
+            self.cross[nivel_b][valor_b][nivel_a].get(chave_a, 0) + 1
+        )
+        self.freq_nivel[nivel_b][valor_b] = self.freq_nivel[nivel_b].get(valor_b, 0) + 1
+        self.total += 1
+    
+    def recalcular(self):
+        pass
+    
+    def predizer_cross(self, nivel_alvo, **contexto):
+        """Prediz valor em nivel_alvo dado contexto em QUALQUER nivel.
+        
+        Ex: esfera.predizer_cross('palavra', byte='B:41')
+            → qual palavra ocorre quando byte=B:41?
+        """
+        candidatos = {}
+        
+        for nivel_ctx, valor_ctx in contexto.items():
+            if nivel_ctx not in self.cross:
+                continue
+            if valor_ctx not in self.cross[nivel_ctx]:
+                continue
+            if nivel_alvo not in self.cross[nivel_ctx][valor_ctx]:
+                continue
+            
+            freq_total = self.freq_nivel[nivel_ctx].get(valor_ctx, 1)
+            for valor_b, contagem in self.cross[nivel_ctx][valor_ctx][nivel_alvo].items():
+                score = contagem / freq_total
+                candidatos[valor_b] = candidatos.get(valor_b, 0) + score
+        
+        if not candidatos:
+            return None, 0.0
+        
+        melhor = max(candidatos, key=candidatos.get)
+        conf = candidatos[melhor]
+        return melhor, min(conf, 1.0)
 
 # ═══════════════════════════════════════════════════════════════════
 # [08] MCRPlanner — planejamento hierarquico
