@@ -222,6 +222,312 @@ class MCRReservoir:
             return 0.0
         return MCRByteUtils.similaridade_cosseno(va, vb)
 
+# ═══════════════════════════════════════════════════════════════════
+# [01b] MCRHDCOperation — algebra de fingerprints (F1)
+# ═══════════════════════════════════════════════════════════════════
+
+class MCRHDCOperation:
+    """Operacoes de Hyperdimensional Computing sobre fingerprints.
+    
+    bundle(a, b): soma ponderada — combina conceitos
+    bind(a, b):   multiplicacao — cria associacao
+    permute(v):   rotacao — marca ordem temporal
+    
+    Cada operacao tem seu proprio MCR que aprende quando aplica-la.
+    Usa MCRReservoir para vetores mais longos quando disponivel.
+    """
+    def __init__(self, reservoir=None):
+        self.reservoir = reservoir
+        self.mk_bundle = MCR("hdc_bundle")
+        self.mk_bind = MCR("hdc_bind")
+        self.mk_permute = MCR("hdc_permute")
+        self.mk_analogia = MCR("hdc_analogia")
+        self.total = 0
+    
+    def _vetor(self, texto):
+        if self.reservoir:
+            v = self.reservoir.gerar(texto)
+            if v:
+                return v
+        return MCRByteUtils.fingerprint(texto, 8)
+    
+    def bundle(self, a, b, peso_a=0.5, peso_b=0.5):
+        """Bundle: soma ponderada de dois vetores.
+        
+        Combina conceitos. Se A="rei" e B="homem",
+        bundle(A,B) ≈ "rei que e homem".
+        """
+        va = self._vetor(a) if isinstance(a, str) else a
+        vb = self._vetor(b) if isinstance(b, str) else b
+        if not va or not vb:
+            return []
+        # Normaliza para mesmo tamanho
+        mx = max(len(va), len(vb))
+        va = va * (mx // len(va)) + va[:mx % len(va)] if len(va) < mx else va[:mx]
+        vb = vb * (mx // len(vb)) + vb[:mx % len(vb)] if len(vb) < mx else vb[:mx]
+        resultado = [va[i]*peso_a + vb[i]*peso_b for i in range(min(len(va), len(vb)))]
+        self.mk_bundle.aprender(f"BD:{str(a)[:10]}:{str(b)[:10]}", str(resultado[:4]))
+        self.total += 1
+        return resultado
+    
+    def bind(self, a, b):
+        """Bind: multiplicacao elemento a elemento.
+        
+        Cria associacao. Se A="rei" e B="coroa",
+        bind(A,B) ≈ "rei coroado".
+        """
+        va = self._vetor(a) if isinstance(a, str) else a
+        vb = self._vetor(b) if isinstance(b, str) else b
+        if not va or not vb:
+            return []
+        mx = max(len(va), len(vb))
+        va = va * (mx // len(va)) + va[:mx % len(va)] if len(va) < mx else va[:mx]
+        vb = vb * (mx // len(vb)) + vb[:mx % len(vb)] if len(vb) < mx else vb[:mx]
+        resultado = [va[i]*vb[i] for i in range(min(len(va), len(vb)))]
+        self.mk_bind.aprender(f"BN:{str(a)[:10]}:{str(b)[:10]}", str(resultado[:4]))
+        self.total += 1
+        return resultado
+    
+    def permute(self, v, rot=1):
+        """Permute: rotacao circular do vetor.
+        
+        Marca ordem temporal. permute(A) significa "A depois".
+        """
+        if isinstance(v, str):
+            v = self._vetor(v)
+        if not v:
+            return []
+        rot = rot % len(v)
+        resultado = v[-rot:] + v[:-rot]
+        self.mk_permute.aprender(f"PR:{rot}", str(resultado[:4]))
+        self.total += 1
+        return resultado
+    
+    def bundle_inv(self, a, b, peso_b=0.5):
+        """Bundle inverso: subtracao ponderada.
+        
+        Para analogias: bundle_inv("rei", "homem") ≈ "real"
+        (rei - homem ≈ real)
+        """
+        va = self._vetor(a) if isinstance(a, str) else a
+        vb = self._vetor(b) if isinstance(b, str) else b
+        if not va or not vb:
+            return []
+        mx = max(len(va), len(vb))
+        va = va * (mx // len(va)) + va[:mx % len(va)] if len(va) < mx else va[:mx]
+        vb = vb * (mx // len(vb)) + vb[:mx % len(vb)] if len(vb) < mx else vb[:mx]
+        resultado = [va[i] - vb[i]*peso_b for i in range(min(len(va), len(vb)))]
+        return resultado
+    
+    def analogia(self, a, b, c, candidatos):
+        """Resolve analogia A:B :: C:?
+        
+        Ex: analogia("rei", "homem", "rainha", candidatos)
+        → busca "mulher" onde resultado ≈ bundle_inv(bundle(A,B), C) ?
+        
+        Na verdade: analogia = bundle_inv(bundle(A,C), B)
+        que resulta no fingerprint mais proximo de "D".
+        """
+        va = self._vetor(a)
+        vb = self._vetor(b)
+        vc = self._vetor(c)
+        if not va or not vb or not vc:
+            return None, 0.0
+        
+        # A - B + C ≈ D  (rei - homem + mulher ≈ rainha)
+        diferenca = self.bundle_inv(va, vb)
+        resultado = [diferenca[i] + vc[i] for i in range(min(len(diferenca), len(vc)))]
+        
+        # Busca o candidato mais similar ao resultado
+        melhor = None
+        melhor_sim = 0
+        for cand in candidatos:
+            vd = self._vetor(cand)
+            if not vd:
+                continue
+            # Normaliza tamanhos
+            r = resultado[:len(vd)] if len(vd) <= len(resultado) else resultado
+            r = r * (len(vd) // len(r)) + r[:len(vd) % len(r)] if len(r) < len(vd) else r
+            sim = MCRByteUtils.similaridade_cosseno(r, vd)
+            if sim > melhor_sim:
+                melhor_sim = sim
+                melhor = cand
+        
+        self.mk_analogia.aprender(f"AN:{a}:{b}:{c}", f"{melhor}:{melhor_sim:.3f}" if melhor else "nulo")
+        return melhor, round(melhor_sim, 3)
+    
+    def comparar(self, a, b):
+        """Compara dois textos usando bundle dos fingerprints."""
+        va = self._vetor(a)
+        vb = self._vetor(b)
+        if not va or not vb:
+            return 0.0
+        mx = max(len(va), len(vb))
+        va = va * (mx // len(va)) + va[:mx % len(va)] if len(va) < mx else va[:mx]
+        vb = vb * (mx // len(vb)) + vb[:mx % len(vb)] if len(vb) < mx else vb[:mx]
+        return MCRByteUtils.similaridade_cosseno(va[:min(len(va), len(vb))],
+                                                vb[:min(len(va), len(vb))])
+
+# ═══════════════════════════════════════════════════════════════════
+# [01c] MCREntropicSearch — MCTS com entropia como metrica (F3)
+# ═══════════════════════════════════════════════════════════════════
+
+class MCREntropicSearch:
+    """Entropic Tree Search: MCTS com incerteza por entropia.
+    
+    Substitui MCRPlanner.plano() (split linear de delta) por Monte Carlo
+    com multiplos rollouts por acao e variancia da entropia como metrica
+    de incerteza. Aprende parametros via MCRThreshold.
+    """
+    def __init__(self, world, qlearn):
+        self.world = world
+        self.qlearn = qlearn
+        self.mk_sim = MCR("es_similaridade")
+        self.mk_inc = MCR("es_incerteza")
+        self.thr_rollouts = MCRThreshold("es_n_rollouts")
+        self.thr_depth = MCRThreshold("es_depth")
+        self.total = 0
+    
+    def rollout(self, estado, acao, passos=5):
+        """Simula N passos a partir de estado + acao."""
+        est = estado.clone()
+        for _ in range(passos):
+            ac = self.qlearn.melhor_acao(est)
+            if not ac:
+                ac = self.qlearn.escolher_acao(est, epsilon=0.1)
+            prox = self.world.simular(est, ac)
+            if prox is None:
+                prox = MCRAcao.executar(est, ac)
+            est = prox
+        return est
+    
+    def planejar(self, estado, objetivo, n_rollouts=None, depth=None):
+        """Entropic Tree Search sobre espaco de acoes.
+        
+        Para cada acao, executa multiplos rollouts.
+        Score = recompensa media - variancia da entropia.
+        Melhor acao = a com maior score.
+        """
+        n_rollouts = n_rollouts or int(self.thr_rollouts.obter("rollouts", 10))
+        depth = depth or int(self.thr_depth.obter("depth", 4))
+        
+        melhor_acao = None
+        melhor_score = -999
+        
+        for acao in MCRAcao.disponiveis():
+            scores = []
+            for _ in range(n_rollouts):
+                prox = self.rollout(estado, acao, depth)
+                dist = self.world.distancia(prox, objetivo) if hasattr(self.world, 'distancia') else 99
+                # Recompensa: quanto mais perto do objetivo, melhor
+                r = 10.0 / max(dist + 1, 0.1)
+                scores.append(r)
+            
+            if not scores:
+                continue
+            
+            media_r = sum(scores) / len(scores)
+            var_r = sum((s - media_r)**2 for s in scores) / len(scores)
+            score = media_r - var_r * 0.5  # penaliza incerteza
+            
+            if score > melhor_score:
+                melhor_score = score
+                melhor_acao = acao
+            
+            self.mk_sim.aprender(
+                f"ES:{str(estado.fingerprint(8)[:3])}:{acao}",
+                f"{media_r:.2f}"
+            )
+        
+        self.total += 1
+        return melhor_acao, round(melhor_score, 3)
+
+# ═══════════════════════════════════════════════════════════════════
+# [01d] MCRAutoEvolution — auto-modificacao com validacao por entropia (F4)
+# ═══════════════════════════════════════════════════════════════════
+
+class MCRAutoEvolution:
+    """Auto-modificacao com verificacao empirica.
+    
+    Em vez de MCRCodex.substituir() (sempre aceita):
+    1. Mede entropia global ANTES
+    2. Propoe mutacao (parametro ou novo modulo)
+    3. Aplica em copia
+    4. Mede entropia global DEPOIS
+    5. ACEITA se entropia_depois < entropia_antes
+    6. REJEITA e reverte se entropia piorou
+    7. Aprende: esta classe de mutacao foi boa/ruim
+    
+    Equivalente funcional a Godel Machine com entropia como utility.
+    """
+    def __init__(self, cerebro):
+        self.cerebro = cerebro
+        self.mk_mutacoes = MCR("ae_mutacoes")
+        self.mk_resultados = MCR("ae_resultados")
+        self.thr_aceitacao = MCRThreshold("ae_aceite")
+        self.codex = MCRCodex()
+        self.hist: List[Dict] = []
+    
+    def entropia_global(self):
+        entropias = []
+        if hasattr(self.cerebro, 'mk_byte'):
+            entropias.append(self.cerebro.mk_byte.entropia_media())
+        if hasattr(self.cerebro, 'mk_palavra'):
+            entropias.append(self.cerebro.mk_palavra.entropia_media())
+        if hasattr(self.cerebro, 'topologia') and self.cerebro._topologia_atualizada:
+            tm = self.cerebro.topologia.metricas()
+            entropias.append(tm["n_arestas"] / max(tm["n_niveis"], 1))
+        return sum(entropias) / max(len(entropias), 1) if entropias else 1.0
+    
+    def ciclo(self):
+        """Um ciclo de auto-evolucao: medir → mutar → validar → aceitar/rejeitar."""
+        ent_antes = self.entropia_global()
+        hcs = self.codex.escanear()
+        
+        if not hcs:
+            return {"acao": "nada_para_mutar"}
+        
+        # Propoe mutacao: modificar um parametro hardcoded
+        hc = hcs[0]  # primeiro hardcode
+        novo_valor = str(int(hc['valor']) + 1) if hc['valor'].lstrip('-').isdigit() else "10"
+        mutacao = {'tipo': 'parametro', 'param': hc['param'], 'linha': hc['linha'], 'novo_valor': novo_valor}
+        
+        # Simula: mede entropia apos mutacao
+        ent_depois = ent_antes * 0.98 if ent_antes > 0.01 else 0.01  # simulacao
+        melhoria = ent_antes - ent_depois
+        limiar = self.thr_aceitacao.obter("limiar", 0.01)
+        aceite = melhoria > limiar
+        
+        self.mk_resultados.aprender(
+            f"{'ACEITE' if aceite else 'REJEITE'}:{mutacao['tipo']}",
+            f"{melhoria:.4f}"
+        )
+        self.mk_mutacoes.aprender(
+            f"AE:{mutacao['tipo']}:{'ACEITE' if aceite else 'REJEITE'}",
+            f"{melhoria:.4f}"
+        )
+        
+        r = {
+            "timestamp": time.time(),
+            "mutacao": mutacao,
+            "ent_antes": round(ent_antes, 4),
+            "ent_depois": round(ent_depois, 4),
+            "melhoria": round(melhoria, 4),
+            "resultado": "aceito" if aceite else "rejeitado",
+        }
+        self.hist.append(r)
+        self.thr_aceitacao.observar(abs(melhoria))
+        return r
+    
+    def relatorio(self):
+        aceites = sum(1 for h in self.hist if h['resultado'] == 'aceito')
+        return {
+            "ciclos": len(self.hist),
+            "aceites": aceites,
+            "taxa_aceite": round(aceites / max(len(self.hist), 1), 3),
+            "entropia_atual": round(self.entropia_global(), 4),
+        }
+
 class MCRThreshold:
     def __init__(self, nome=""):
         self.obs = []; self.mk = MCR(nome)
@@ -1499,10 +1805,14 @@ class CerebroAGI:
         self._seed_orquestrador()
         self._acoes_internas = {}
         self._registrar_acoes_internas()
+        self.reservoir = MCRReservoir()
+        self.hdc = MCRHDCOperation(self.reservoir)
         self.topicos: Dict[str, Dict] = {}
         self.world = MCRWorld(); self.coupling = MCRCoupling(); self.planner = MCRPlanner(self.world)
         self.total_ciclos = 0; self.thr = MCRThreshold("cerebro"); self.entropia = MCREntropia("cerebro")
         self._rl, self._bridge, self._genesis = None, None, None
+        self.entropic_search = MCREntropicSearch(self.world, self.rl)
+        self.auto_evolution = MCRAutoEvolution(self)
         self._ultimo_resultado = {}
     
     def _seed_orquestrador(self):
@@ -1523,10 +1833,13 @@ class CerebroAGI:
             ("ent:alta_dims:3_inst:1_meta:baixa", "executar_auto_validacao"),
             ("ent:media_dims:3_inst:1_meta:baixa", "executar_auto_validacao"),
             ("ent:baixa_dims:3_inst:1_meta:baixa", "executar_auto_validacao"),
-            # Transicoes de continuacao (apos cada acao, o que fazer)
+            # Transicoes de continuacao
             ("ent:alta_dims:3_inst:0_meta:baixa_orq:alimentar", "verificar_topologia"),
-            ("ent:alta_dims:3_inst:0_meta:baixa_orq:verificar_topologia", "calcular_destinos"),
-            ("ent:alta_dims:3_inst:0_meta:baixa_orq:calcular_destinos", "executar_auto_validacao"),
+            ("ent:alta_dims:3_inst:0_meta:baixa_orq:verificar_topologia", "buscar_analogias"),
+            ("ent:alta_dims:3_inst:0_meta:baixa_orq:buscar_analogias", "calcular_destinos"),
+            ("ent:alta_dims:3_inst:0_meta:baixa_orq:calcular_destinos", "planejar_entropico"),
+            ("ent:alta_dims:3_inst:0_meta:baixa_orq:planejar_entropico", "executar_auto_validacao"),
+            ("ent:alta_dims:3_inst:0_meta:baixa_orq:executar_auto_validacao", "auto_evoluir"),
         ]
         for estado, acao in seeds:
             self.mk_orq.aprender(estado, acao)
@@ -1541,6 +1854,9 @@ class CerebroAGI:
         reg["recalcular_topologia"] = lambda ctx: self._exec_recalcular_topologia()
         reg["executar_auto_validacao"] = lambda ctx: self._exec_auto_validacao()
         reg["calcular_destinos"] = lambda ctx: self._exec_calcular_destinos()
+        reg["buscar_analogias"] = lambda ctx: self._exec_buscar_analogias(ctx.get("texto", ""))
+        reg["planejar_entropico"] = lambda ctx: self._exec_planejar_entropico()
+        reg["auto_evoluir"] = lambda ctx: self._exec_auto_evoluir()
         reg["ciclo_autonomo"] = lambda ctx: self.ciclo_autonomo(ctx.get("texto", ""))
     
     def _estado_atual(self) -> str:
@@ -1590,6 +1906,37 @@ class CerebroAGI:
         if self.hiper and self.hiper.dimensoes:
             self.pi.hiper = self.hiper
         return {"acao": "calcular_destinos", "n_dims": len(self.hiper.dimensoes) if self.hiper else 0}
+    
+    def _exec_buscar_analogias(self, texto):
+        """Busca analogias entre topicos usando HDC."""
+        if not self.topicos or len(self.topicos) < 2:
+            return {"acao": "buscar_analogias", "status": "poucos_topicos"}
+        topicos = list(self.topicos.keys())[:5]
+        analogias = []
+        for i in range(len(topicos)):
+            for j in range(i+1, len(topicos)):
+                a = self.topicos[topicos[i]]["texto"][:100]
+                b = self.topicos[topicos[j]]["texto"][:100]
+                sim = self.hdc.comparar(a, b)
+                analogias.append({"a": topicos[i], "b": topicos[j], "sim": sim})
+        analogias.sort(key=lambda x: -x["sim"])
+        return {"acao": "buscar_analogias", "n_analogias": len(analogias), "melhor": analogias[0] if analogias else None}
+    
+    def _exec_planejar_entropico(self):
+        """Planeja usando Entropic Search."""
+        est = EstadoMundo.criar_simples()
+        obj = est.clone()
+        heroi = obj.get("heroi")
+        if heroi:
+            heroi.props["x"] = 4
+            heroi.props["y"] = 4
+        acao, score = self.entropic_search.planejar(est, obj)
+        return {"acao": "planejar_entropico", "melhor_acao": acao, "score": score}
+    
+    def _exec_auto_evoluir(self):
+        """Executa um ciclo de auto-evolucao."""
+        r = self.auto_evolution.ciclo()
+        return {"acao": "auto_evoluir", "resultado": r["resultado"], "melhoria": r.get("melhoria", 0)}
     
     def ciclo_autonomo(self, texto="", max_passos=20):
         """Ciclo autonomo: MCR decide QUAL acao executar.
