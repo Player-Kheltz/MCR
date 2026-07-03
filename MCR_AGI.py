@@ -2653,28 +2653,48 @@ class MCRCuriosidade:
             return -1.0
     
     def diagnosticar_fome(self) -> dict:
-        """Diagnostica o que esta faltando.
+        """Diagnostica conhecimento por ASSINATURA, nao por contagem.
         
-        'fome' nao e n_top < 100. E aprendido por experiencia:
-        - Se explorou e aprendeu MUITO → nao esta com fome
-        - Se explorou e aprendeu POUCO → talvez esteja com fome
-        - Se nunca explorou → esta com fome
-        - Se entropia dos dados esta baixa e repetitiva → precisa de variedade
+        'fome' = similaridade media entre assinaturas dos topicos < threshold.
+        Um topico e' seu contexto (assinatura em N dimensoes).
+        Quanto mais similares as assinaturas, mais denso o conhecimento.
+        Quanto mais dispersas, mais gaps existem.
         """
         n_top = len(self.cerebro.topicos) if hasattr(self.cerebro, 'topicos') else 0
         n_pal = self.cerebro.mk_palavra.total if hasattr(self.cerebro, 'mk_palavra') else 0
         ent_media = self.cerebro.mk_byte.entropia_media() if hasattr(self.cerebro, 'mk_byte') else 0
         
-        # Aprende o que e "fome" por experiencia, nao por regra
-        estado_fome = f"TOP:{n_top}_PAL:{n_pal}_ENT:{int(ent_media*10)}_DESC:{self.descobertas}"
-        fome_pred = self.mk_dec.predizer(estado_fome + "_FOME")
+        # Similaridade entre topicos por assinatura (N dimensoes)
+        sim_media = 0.0
+        dim_ideal = 8
+        if n_top >= 2:
+            # Junta TUDO o que MCR sabe como uma string de conhecimento
+            conhecimento_str = " ".join(
+                t.get("texto", "") for t in self.cerebro.topicos.values()
+            )[:5000]
+            # Dimensionalidade ideal do CONHECIMENTO (contexto = tamanho da assinatura)
+            dim_ideal = MCRSignatureExpansiva.dimensionalidade_ideal(
+                conhecimento_str.encode()[:5000], mx=128, thr=0.05
+            ) if conhecimento_str else 8
+            dim_ideal = max(4, dim_ideal)
+            
+            # Fingerprint de cada topico na dim ideal do conhecimento
+            textos = list(self.cerebro.topicos.values())[:50]
+            fps = [MCRByteUtils.fingerprint(t.get("texto", ""), dim_ideal) for t in textos]
+            fps = [f for f in fps if any(v != 0 for v in f)]
+            
+            if len(fps) >= 2:
+                sims = [MCRByteUtils.similaridade_cosseno(fps[i], fps[j])
+                       for i in range(len(fps)) for j in range(i+1, len(fps))]
+                sim_media = sum(sims) / len(sims)
         
-        if fome_pred[0] is not None:
-            tem_fome = 'SIM' in str(fome_pred[0])
-        else:
-            # Nunca viu este estado — primeira vez
-            tem_fome = (n_top < 10) or (n_top > 0 and self.descobertas == 0)
-            self.mk_dec.aprender(estado_fome + "_FOME", "SIM" if tem_fome else "NAO")
+        # Threshold de fome baseado na assinatura do conhecimento
+        thr_fome = MCRThreshold("fome").obter("sim_min", 0.3)
+        tem_fome = sim_media < thr_fome if n_top >= 2 else (n_top == 0)
+        
+        # Aprende: estado → SENTE_FOME ou NAO
+        estado_fome = f"SIM:{int(sim_media*100)}_DIM:{dim_ideal}_TOP:{n_top}"
+        self.mk_dec.aprender(estado_fome + "_FOME", "SIM" if tem_fome else "NAO")
         
         return {
             'topicos': n_top,
@@ -2682,6 +2702,8 @@ class MCRCuriosidade:
             'entropia': round(ent_media, 2),
             'descobertas': self.descobertas,
             'fome': tem_fome,
+            'sim_media': round(sim_media, 4),
+            'dim_ideal': dim_ideal,
         }
     
     def aprender_com_arquivo(self, caminho: str, entropia: float):
