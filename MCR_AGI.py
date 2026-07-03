@@ -164,6 +164,64 @@ class MCRSignatureExpansiva:
             if abs(hb-ha)/max(ha,0.01) < thr: return db
         return es[-1][0] if es else 8
 
+class MCRReservoir:
+    """Vetor de fingerprint com janelamento temporal.
+    
+    Em vez de um fingerprint 8D unico para o texto TODO,
+    divide o texto em janelas e gera fingerprints de CADA janela.
+    O vetor resultante captura estrutura LOCAL — nao apenas global.
+    
+    Permite diferenciar textos que tem o mesmo fingerprint global
+    mas estrutura local diferente.
+    """
+    def __init__(self, dim=8, janela=200, passo=100):
+        self.dim = dim
+        self.janela = janela
+        self.passo = passo
+        self.cache: Dict[str, List[float]] = {}
+        self.coupling = MCRCoupling()
+    
+    def gerar(self, texto):
+        """Gera vetor de fingerprints de janelas do texto.
+        
+        1. Divide texto em janelas sobrepostas (tamanho=janela, passo=passo)
+        2. Gera fingerprint de cada janela (dimensao=dim)
+        3. Concatena em vetor unico
+        4. Cada janela captura o padrao LOCAL do texto naquela regiao
+        
+        O resultado e um vetor que preserva informacao POSICIONAL.
+        """
+        if texto in self.cache:
+            return self.cache[texto]
+        
+        dados = texto.encode('utf-8')[:5000] if isinstance(texto, str) else bytes(texto)[:5000]
+        if not dados or len(dados) < self.dim:
+            return []
+        
+        vetor = []
+        for inicio in range(0, len(dados), self.passo):
+            janela = dados[inicio:inicio + self.janela]
+            if len(janela) < self.dim:
+                break
+            fp = MCRByteUtils.fingerprint(janela, self.dim)
+            vetor.extend(fp)
+        
+        self.cache[texto] = vetor
+        return vetor
+    
+    def entropia_reservoir(self, vetor=None):
+        if not vetor or len(vetor) < 2:
+            return 1.0
+        total = sum(abs(v) for v in vetor) or 1
+        return -sum((abs(v)/total)*math.log2(max(abs(v)/total, 0.001)) for v in vetor if abs(v) > 0)
+    
+    def comparar(self, texto_a, texto_b):
+        va = self.gerar(texto_a)
+        vb = self.gerar(texto_b)
+        if not va or not vb:
+            return 0.0
+        return MCRByteUtils.similaridade_cosseno(va, vb)
+
 class MCRThreshold:
     def __init__(self, nome=""):
         self.obs = []; self.mk = MCR(nome)
