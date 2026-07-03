@@ -1436,10 +1436,149 @@ class CerebroAGI:
         self.topologia = MCRAutoTopologia()
         self.auto_validacao = MCRAutoValidacaoContinua()
         self._topologia_atualizada = False
+        self.pi = PIFilosofia()
+        self.mk_orq = MCR("orquestrador")
+        self._seed_orquestrador()
+        self._acoes_internas = {}
+        self._registrar_acoes_internas()
         self.topicos: Dict[str, Dict] = {}
         self.world = MCRWorld(); self.coupling = MCRCoupling(); self.planner = MCRPlanner(self.world)
         self.total_ciclos = 0; self.thr = MCRThreshold("cerebro"); self.entropia = MCREntropia("cerebro")
         self._rl, self._bridge, self._genesis = None, None, None
+        self._ultimo_resultado = {}
+    
+    def _seed_orquestrador(self):
+        """Sementes para o orquestrador comecar a decidir.
+        Nao e regra fixa — e bootstrap. O MCR aprendera
+        novas transicoes com o uso."""
+        seeds = [
+            ("ent:alta_dims:0_inst:0_meta:alta", "alimentar"),
+            ("ent:alta_dims:3_inst:0_meta:alta", "verificar_topologia"),
+            ("ent:media_dims:3_inst:0_meta:alta", "calcular_destinos"),
+            ("ent:baixa_dims:3_inst:0_meta:alta", "calcular_destinos"),
+            ("ent:alta_dims:3_inst:0_meta:baixa", "verificar_topologia"),
+            ("ent:media_dims:3_inst:0_meta:baixa", "calcular_destinos"),
+            ("ent:baixa_dims:3_inst:0_meta:baixa", "calcular_destinos"),
+            ("ent:alta_dims:3_inst:1_meta:alta", "executar_auto_validacao"),
+            ("ent:media_dims:3_inst:1_meta:alta", "executar_auto_validacao"),
+            ("ent:baixa_dims:3_inst:1_meta:alta", "executar_auto_validacao"),
+            ("ent:alta_dims:3_inst:1_meta:baixa", "executar_auto_validacao"),
+            ("ent:media_dims:3_inst:1_meta:baixa", "executar_auto_validacao"),
+            ("ent:baixa_dims:3_inst:1_meta:baixa", "executar_auto_validacao"),
+            # Transicoes de continuacao (apos cada acao, o que fazer)
+            ("ent:alta_dims:3_inst:0_meta:baixa_orq:alimentar", "verificar_topologia"),
+            ("ent:alta_dims:3_inst:0_meta:baixa_orq:verificar_topologia", "calcular_destinos"),
+            ("ent:alta_dims:3_inst:0_meta:baixa_orq:calcular_destinos", "executar_auto_validacao"),
+        ]
+        for estado, acao in seeds:
+            self.mk_orq.aprender(estado, acao)
+    
+    def _registrar_acoes_internas(self):
+        """Registra acoes internas do sistema (registry dispatch)."""
+        reg = self._acoes_internas
+        
+        reg["alimentar"] = lambda ctx: self._exec_alimentar(ctx.get("texto", ""))
+        reg["descobrir_dimensoes"] = lambda ctx: self._exec_descobrir(ctx.get("texto", ""))
+        reg["verificar_topologia"] = lambda ctx: self._exec_verificar_topologia()
+        reg["recalcular_topologia"] = lambda ctx: self._exec_recalcular_topologia()
+        reg["executar_auto_validacao"] = lambda ctx: self._exec_auto_validacao()
+        reg["calcular_destinos"] = lambda ctx: self._exec_calcular_destinos()
+        reg["ciclo_autonomo"] = lambda ctx: self.ciclo_autonomo(ctx.get("texto", ""))
+    
+    def _estado_atual(self) -> str:
+        """Serializa o estado do sistema para o MCR decidir a proxima acao."""
+        ent = self.mk_byte.entropia_media() if self.mk_byte.total > 0 else 1.0
+        n_dims = len(self.hiper.dimensoes) if hasattr(self, 'hiper') else 0
+        n_inst = len(self.auto_validacao.instavel) if hasattr(self, 'auto_validacao') else 0
+        meta_ent = (self.auto_validacao.meta.entropia_media()
+                    if hasattr(self, 'auto_validacao') and self.auto_validacao.meta.total > 0
+                    else 1.0)
+        ent_tag = "alta" if ent > 0.7 else "baixa" if ent < 0.4 else "media"
+        meta_tag = "alta" if meta_ent > 0.3 else "baixa"
+        ultima = self._ultimo_resultado.get("ultima_acao", "") if self._ultimo_resultado else ""
+        sufixo = f"_orq:{ultima}" if ultima else ""
+        return f"ent:{ent_tag}_dims:{n_dims}_inst:{n_inst}_meta:{meta_tag}{sufixo}"
+    
+    def _exec_alimentar(self, texto):
+        self.alimentar(texto)
+        return {"acao": "alimentar", "status": "ok"}
+    
+    def _exec_descobrir(self, texto):
+        if not self._hiper_descobertas and len(texto) > 100:
+            self.hiper.descobrir(texto)
+            self._hiper_descobertas = True
+        return {"acao": "descobrir", "dims": len(self.hiper.dimensoes)}
+    
+    def _exec_verificar_topologia(self):
+        self.topologia.recalcular()
+        self._topologia_atualizada = True
+        return {"acao": "verificar_topologia", "clusters": self.topologia.metricas()["n_clusters"]}
+    
+    def _exec_recalcular_topologia(self):
+        self.topologia.recalcular()
+        self._topologia_atualizada = True
+        return {"acao": "recalcular_topologia", "clusters": self.topologia.metricas()["n_clusters"]}
+    
+    def _exec_auto_validacao(self):
+        if self.hiper.dimensoes:
+            if self.auto_validacao.ciclos == 0:
+                for nome_dim in self.hiper.dimensoes:
+                    self.auto_validacao.registrar(nome_dim, self.hiper.dimensoes[nome_dim])
+            r = self.auto_validacao.ciclo(self.hiper.dimensoes)
+            return {"acao": "auto_validacao", "instaveis": r["instaveis"], "meta": r["entropia_meta"]}
+        return {"acao": "auto_validacao", "status": "sem_dimensoes"}
+    
+    def _exec_calcular_destinos(self):
+        if self.hiper and self.hiper.dimensoes:
+            self.pi.hiper = self.hiper
+        return {"acao": "calcular_destinos", "n_dims": len(self.hiper.dimensoes) if self.hiper else 0}
+    
+    def ciclo_autonomo(self, texto="", max_passos=20):
+        """Ciclo autonomo: MCR decide QUAL acao executar.
+        
+        Nao ha ordem fixa. O MCR orquestrador decide baseado
+        no estado atual do sistema. Cada acao e registrada,
+        dispatch via dicionario (zero if/elif).
+        """
+        historico = []
+        estado_anterior = ""
+        
+        for passo in range(max_passos):
+            estado_str = self._estado_atual()
+            
+            if estado_str == estado_anterior:
+                break  # entropia estabilizou — nao precisa mais
+            estado_anterior = estado_str
+            
+            # MCR decide a proxima acao
+            acao, conf = self.mk_orq.predizer(estado_str)
+            if acao is None:
+                acao, conf = self.mk_orq.predizer("ent:baixa_dims:0_inst:0_meta:0")
+            if acao is None:
+                break  # nao sabe o que fazer
+            
+            # Executa via registry (zero if/elif)
+            fn = self._acoes_internas.get(acao)
+            if not fn:
+                break
+            
+            resultado = fn({"texto": texto})
+            resultado["acao"] = acao
+            resultado["confianca"] = round(conf, 3)
+            historico.append(resultado)
+            
+            # Aprende: neste estado, esta acao levou a este resultado
+            self.mk_orq.aprender(estado_str, f"{acao}:{resultado.get('status','ok')}")
+            self._ultimo_resultado = {"ultima_acao": acao}
+        
+        self._ultimo_resultado = {
+            "passos": len(historico),
+            "acoes": [h["acao"] for h in historico],
+            "resultados": historico,
+            "ultima_acao": historico[-1]["acao"] if historico else "",
+        }
+        return self._ultimo_resultado
+    
     @property
     def rl(self):
         if self._rl is None: self._rl = MCRQLearn()
