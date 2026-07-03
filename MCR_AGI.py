@@ -297,8 +297,8 @@ class MCRHDCOperation:
                     n_corr += 1
             if n_corr > 0:
                 corr_media = corr_total / n_corr
-                fator = max(0.25, 1.0 - corr_media * 0.5)
-                dim_base = int(dim_base * fator)
+                fator = MCRThreshold("hdc_dim").obter("fator", 0.5)
+                dim_base = int(dim_base * max(fator, 1.0 - corr_media))
         
         return MCRByteUtils.fingerprint(texto, max(dim_base, 8))
     
@@ -578,9 +578,6 @@ class MCRAutoEvolution:
         self.mk_resultados = MCR("ae_resultados")
         self.thr_aceitacao = MCRThreshold("ae_aceite")
         self.hist: List[Dict] = []
-        self._alvos_mutacao = [
-            ("threshold_byte", lambda: cerebro.mk_byte.thr if hasattr(cerebro.mk_byte, 'thr') else None),
-        ]
     
     def entropia_global(self):
         entropias = []
@@ -608,8 +605,7 @@ class MCRAutoEvolution:
         thr_trial = []
         if hasattr(MCRAttention, '_thr_p'):
             for nome_k, thr_k in MCRAttention._thr_p.items():
-                p_base = {'prob': 3.0, 'fp': 5.0, 'jac': 4.0, 'ent': 1.0}.get(nome_k, 3.0)
-                thr_baseline.append(thr_k.obter("peso", p_base))
+                thr_baseline.append(thr_k.obter("peso", 3.0))
                 if len(thr_k.obs) >= 1:
                     thr_trial.append(abs(thr_k.obs[-1] - thr_baseline[-1]))
         # Mede mudanca: se AE tentou algo, quanto diferiu do baseline?
@@ -633,21 +629,23 @@ class MCRAutoEvolution:
     def ciclo(self):
         """Um ciclo de auto-evolucao: medir → mutar → validar → aceitar/rejeitar.
         
-        Muta um MCRThreshold em memoria (nao codigo fonte).
-        A mutacao afeta DIRETAMENTE as metricas de entropia_global().
+        MCR decide QUAL threshold mutar baseado no estado do sistema.
+        Nao ha lista fixa de alvos — MCRDecisor escolhe de TODOS os
+        MCRThreshold disponiveis.
         """
         ent_antes = self.entropia_global()
         
-        # Encontra MCRThresholds no cerebro que IMPACTAM entropia
+        # MCR decide qual threshold mutar (ctx="ae_alvo")
+        dec_alvo = MCRDecisorUniversal.decidir(ctx="ae_alvo")
+        tipo_alvo = dec_alvo.get("tipo", "atencao")
+        
         alvos = []
-        # Pesos da atencao (afetam pontuar() -> selecao de tokens -> entropia)
-        if hasattr(MCRAttention, '_thr_p'):
+        if tipo_alvo == "atencao" and hasattr(MCRAttention, '_thr_p'):
             for nome_k, thr_k in MCRAttention._thr_p.items():
                 alvos.append((f'att_{nome_k}', thr_k))
-        # Thresholds do cerebro que sao usados em decisoes
-        for attr_name in ['thr', 'thr_entropia', 'thr_tamanho', 'thr_palavras',
-                          'thr_visitas', 'thr_amostras', 'thr_por_pasta']:
-            if hasattr(self.cerebro, attr_name) and attr_name != 'thr':
+        else:
+            # Descobre QUALQUER MCRThreshold no cerebro por introspeccao
+            for attr_name in dir(self.cerebro):
                 attr = getattr(self.cerebro, attr_name)
                 if isinstance(attr, MCRThreshold):
                     alvos.append((attr_name, attr))
@@ -655,7 +653,7 @@ class MCRAutoEvolution:
         if not alvos:
             return {"acao": "nada_para_mutar", "motivo": "nenhum_threshold"}
         
-        # Escolhe threshold + delta via MCRDecisor
+        # MCR decide qual threshold mutar (delta, direcao)
         nome_alvo, thr = _rand.choice(alvos)
         dec = MCRDecisorUniversal.decidir(ctx="ae_delta")
         delta = dec.get("threshold", 0.05)
@@ -3041,66 +3039,38 @@ class MCRConversa:
         if not texto:
             return ""
         
-        # Tenta responder com conhecimento atual
+        # Tenta responder — MCR encontra o melhor topico ou retorna vazio
         resp = MCRResposta.responder(texto, self.cerebro)
         
-        # Se nao sabe ou confianca baixa: fluxo decidido pelo MCR (Fix 3)
+        # Se MCR nao sabe, registra acoes possiveis no _acoes_chat e deixa MCR decidir
         if not resp or resp == texto or resp == "Nao sei responder sobre isso.":
-            # MCR decide qual acao tomar: web_search, diagnosticar, ou gerar
-            dec_ctx = MCRDecisorUniversal.decidir(ctx="resposta_fallback")
-            acao_fallback = "web" if dec_ctx.get("passos", 1) > 3 else "gerar"
-            
-            if acao_fallback == "web":
-                # Fonte de busca decidida por MCRDecisor (Fix 4)
-                fonte = MCRDecisorUniversal.decidir(ctx="fonte_busca").get("fonte", "duckduckgo")
-                if fonte == "duckduckgo":
-                    max_web = max(1, int(self.thr_web.obter("max_resultados", 3)))
-                    resultados = self._buscar_web(texto)
-                    for i, snippet in enumerate(resultados[:max_web]):
-                        self.cerebro.alimentar(snippet, f"web_{hash(texto)}_{i}", tipo="web")
-                    if resultados:
-                        resp = MCRResposta.responder(texto, self.cerebro)
-                        if not resp or resp == texto:
-                            resp = resultados[0][:200]
-                    else:
-                        # Fallback: gera via Markov (Fix 5)
-                        try:
-                            resp = self.cerebro.gerar(texto, passos=6)
-                            resp = resp if len(resp) > 20 else "Nao sei responder sobre isso."
-                        except:
-                            resp = "Nao sei responder sobre isso."
-            else:
-                try:
+            # Estado do conhecimento atual
+            estado_conv = f"TOP:{len(self.cerebro.topicos)}_PAL:{self.cerebro.mk_palavra.total}"
+            # MCR decide: web_search, gerar_markov, ou aguardar
+            dec_acao = MCRDecisorUniversal.decidir(ctx=f"resposta_{estado_conv}")
+            acao = dec_acao.get("acao", "gerar")
+            if acao == "web_search":
+                max_web = max(1, int(self.thr_web.obter("max_resultados", 3)))
+                resultados = self._buscar_web(texto)
+                for i, snippet in enumerate(resultados[:max_web]):
+                    self.cerebro.alimentar(snippet, f"web_{hash(texto)}_{i}", tipo="web")
+                if resultados:
+                    resp = MCRResposta.responder(texto, self.cerebro)
+                    if not resp or resp == texto:
+                        resp = resultados[0][:200]
+                else:
                     resp = self.cerebro.gerar(texto, passos=6)
-                    resp = resp if len(resp) > 20 else "Nao sei responder sobre isso."
-                except:
-                    resp = "Nao sei responder sobre isso."
+            else:
+                resp = self.cerebro.gerar(texto, passos=6)
         
-        # Aprende como PAR separado (Fix 2 + Fix 6)
+        # Aprende — sempre
         self.historico.append(f"> {texto}")
         self.historico.append(f"< {resp}")
-        # Pergunta e resposta sao aprendidos SEPARADAMENTE, nao como string unica
         self.cerebro.alimentar(texto, f"perg_{hash(texto)%10000}", tipo="conv")
         if resp and resp != "Nao sei responder sobre isso.":
             self.cerebro.alimentar(resp, f"resp_{hash(resp)%10000}", tipo="conv")
         
-        # NLP: auto-expandir exemplos apos cada pergunta (Fix 1)
-        try:
-            if hasattr(MCRNLP, 'auto_expandir'):
-                MCRNLP.auto_expandir(self.cerebro)
-        except:
-            pass
-        
-        # Atencao: feedback ajusta pesos se usuario repetiu pergunta (Fix 4)
-        try:
-            if len(self.historico) >= 4:
-                ultima = self.historico[-2] if len(self.historico) >= 2 else ""
-                if ultima and ultima.startswith("> ") and ultima[2:].strip().lower() == texto.lower():
-                    for nome_k, thr_k in MCRAttention._thr_p.items():
-                        peso_atual = thr_k.obter("peso", 3.0)
-                        thr_k.obs = thr_k.obs + [peso_atual * MCRThreshold("feedback").obter("penalidade", 0.9)]
-        except:
-            pass
+        # MCR decide se expande NLP, ajusta atencao, etc. — tudo no ciclo_autonomo
         
         # Ciclo autonomo apos cada pergunta
         try:
