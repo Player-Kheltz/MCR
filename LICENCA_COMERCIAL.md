@@ -102,5 +102,5 @@ O Criador se reserva o direito de atualizar estes termos a qualquer momento, med
 
 ---
 
-**MCR — 1 Equation, N Levels, 0 GPU. Universal Computation Framework.**
+**MCR — 1 Equation, N Levels, 0 GPU. Multi-level Markov Experiment.**
 **Criado por Kheltz (Player-Kheltz), 2026.**
