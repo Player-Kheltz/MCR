@@ -1,0 +1,49 @@
+{
+  "ctx": "gap_sessao",
+  "licoes": [
+    {
+      "erro": "sessao:LEGACY_md",
+      "causa": "conceito: sessao:LEGACY_md",
+      "solucao": "[Fonte: docs\\LEGACY.md]\n referência histórica.\n\n---\n\n## Legado/engine/ — Pipeline engine experimental\n\n**5 arquivos, ~1.457 linhas, 11 classes** — marcado EXPERIMENTAL.\n\nO sistema `engine/` era uma tentativa de criar um pipeline paralelo ao\n`agent_loop.py`. A correção real foi de ~30 linhas no `agent_loop.py`,\ntornando o engine/ obsoleto.\n\nArquivos:\n- `executor.py` — Executor do pipeline\n- `gap_detector.py` — Detector de",
+      "ctx": "gap_sessao",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782938045.0773377,
+      "id": "L1726"
+    },
+    {
+      "erro": "sessao:IMPLEMENTACAO_MANIFEST_md",
+      "causa": "conceito: sessao:IMPLEMENTACAO_MANIFEST_md",
+      "solucao": "[Fonte: docs\\IMPLEMENTACAO_MANIFEST.md]\n funções | `tool_orchestrator.py` | 30/06 | 8.0/10 | § Ferramentas |\n| 8 | **MANIFEST.md v2** — 400 linhas, 12 seções, tudo mapeado | `docs/MANIFEST.md` | 30/06 | - | § Este arquivo |\n\n---\n\n## 🔥 Próximas Etapas\n\n### FASE A1 — ROTEAMENTO APR",
+      "ctx": "gap_sessao",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782938049.1280873,
+      "id": "L1727"
+    },
+    {
+      "erro": "sessao:2026-06-23_anti-hallucination_md",
+      "causa": "conceito: sessao:2026-06-23_anti-hallucination_md",
+      "solucao": "[Fonte: docs\\lessons\\2026-06-23_anti-hallucination.md]\n\n- .gitignore cobre arquivos sensiveis (bridge_*.txt, chat_*.txt, .rag_db)\n- RAG sanitizado: remove linhas com password=, apiKey=, etc antes de indexar\n\n## Alternativas rejeitadas\n- Confiar apenas no prompt: insuficiente para modelo pequeno (1.5b)\n- Remover IA totalmente: perderia qualidade das respostas\n- Usar modelo maior sempre: 7b reduz mas nao elimina alucinacao\n\n## Referencias\n- `scripts/bri",
+      "ctx": "gap_sessao",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782938053.1822622,
+      "id": "L1728"
+    },
+    {
+      "erro": "sessao:PATTERN_GATEKEEPER_md",
+      "causa": "conceito: sessao:PATTERN_GATEKEEPER_md",
+      "solucao": "[Fonte: docs\\plano\\PATTERN_GATEKEEPER.md]\nnão caiu\n4. Caso contrário, REVERTE automaticamente\n\n## Arquivos modificados\n\n| Arquivo | Mudança | Linhas |\n|---------|---------|:------:|\n| `modulos/util.py` | +`reparar_com_validacao()` wrapper | ~20 |\n| `modulos/diagnostic_engine.py` `remediar()` | Usar `reparar_com_validacao()` | ~8 |\n| `modulos/master_agent.py` `_gerar_e_aplicar()` | Usar `reparar_com_validacao()` | ~5 |\n| `modulos/self_stud",
+      "ctx": "gap_sessao",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782938057.2384436,
+      "id": "L1729"
+    }
+  ]
+}

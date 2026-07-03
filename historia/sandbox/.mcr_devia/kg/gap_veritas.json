@@ -1,0 +1,38 @@
+{
+  "ctx": "gap_veritas",
+  "licoes": [
+    {
+      "erro": "veritas:EMERGIR_V5_md",
+      "causa": "conceito: veritas:EMERGIR_V5_md",
+      "solucao": "[Fonte: docs\\plano\\EMERGIR_V5.md]\n — verifica expansões erradas de siglas MCR |\n| **Zero hardcoded [:N]** | ✅ | Todos os truncamentos removidos em `kg.py`, `master_agent.py`, `decider.py` |\n| **SSE Server** | ✅ | Event bus HTTP puro na porta 8765 — distribui eventos para o dashboard |\n| **Dashboard HTML** | ✅ | Timeline + narrador + prompt expansível + log completo + reconexão automática |\n| **Heartbeat** | ✅ | Mantém conexão SSE ",
+      "ctx": "gap_veritas",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782939073.438775,
+      "id": "L1779"
+    },
+    {
+      "erro": "veritas:Sistema de Codificação_md",
+      "causa": "conceito: veritas:Sistema de Codificação_md",
+      "solucao": "[Fonte: docs\\MCR - Instruções\\DevLog\\Sistema de Codificação.md]\nais convertidos para UTF-8 literal | `player.cpp` |\n| `mount_summon.lua` | Unicode escapes `\\u{e3}` removidos, UTF-8 literal | `mount_summon.lua` |\n\n## O que não precisa mais ser feito\n- Escapes octais em C++ (opcionais)\n- ISO-8859-1 em Lua (obsoleto)\n- Conversão Latin-1→UTF-8 no OTClient (`mcr_name_fix.otmod` pode ser removido)\n\n## Regras para o futuro\n1. C++: escrever acentos diretamente (\"Você\"",
+      "ctx": "gap_veritas",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782939077.4907439,
+      "id": "L1780"
+    },
+    {
+      "erro": "veritas:AGI_ARCHITECTURE_md",
+      "causa": "conceito: veritas:AGI_ARCHITECTURE_md",
+      "solucao": "[Fonte: docs\\plano\\AGI_ARCHITECTURE.md]\nevisor | ❌ | Detectar alucinacoes pos-LLM |\n| Tradutor | ❌ | Garantir PT-BR (resolver encoding) |\n| TruncationFixer Fix | ❌ | Impedir que remova `str(...)[:N]` do codigo |\n\n### FASE 4 — LEARN + BACKGROUND (PENDENTE)\n| Componente | Status | Detalhes |\n|------------|--------|----------|\n| EpisodicMemory (LEARN) | ❌ | Registrar experiencia apos cada resposta |\n| LessonsBuffer | ❌ | Bufferizar antes d",
+      "ctx": "gap_veritas",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782943690.8142486,
+      "id": "L1951"
+    }
+  ]
+}

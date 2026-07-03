@@ -1,0 +1,44 @@
+[
+  {
+    "pergunta": "Crie um NPC vendedor em Eridanus",
+    "desc": "similar a 'Crie um NPC ferreiro'",
+    "reconstruida": false,
+    "tamanho": 0,
+    "tempo": 0.0001
+  },
+  {
+    "pergunta": "Explique o SPA",
+    "desc": "similar a 'Explique o sistema SPA do MCR'",
+    "reconstruida": false,
+    "tamanho": 0,
+    "tempo": 0.0001
+  },
+  {
+    "pergunta": "O que e Canary no MCR?",
+    "desc": "similar a 'O que e Canary'",
+    "reconstruida": false,
+    "tamanho": 0,
+    "tempo": 0.0
+  },
+  {
+    "pergunta": "Crie um NPC mestre em Eridanus",
+    "desc": "similar a 'Crie um NPC guia'",
+    "reconstruida": false,
+    "tamanho": 0,
+    "tempo": 0.0
+  },
+  {
+    "pergunta": "Explique as camadas do SHC",
+    "desc": "similar a 'Explique o SHC'",
+    "reconstruida": false,
+    "tamanho": 0,
+    "tempo": 0.0
+  },
+  {
+    "pergunta": "Crie a historia de Eridanus",
+    "desc": "similar a 'Crie uma lore sobre Eridanus'",
+    "reconstruida": false,
+    "tamanho": 0,
+    "tempo": 0.0
+  }
+]

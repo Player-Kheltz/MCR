@@ -1,0 +1,230 @@
+{
+  "ctx": "gap_fenix",
+  "licoes": [
+    {
+      "erro": "fenix:recentes_md",
+      "causa": "conceito: fenix:recentes_md",
+      "solucao": "[Fonte: docs\\lessons\\recentes.md]\ncompleta: ReAct + Busca Estrategica + BlankFiller + 5 camadas\n\n### Resumo\nSessao mais produtiva ate agora. Implementamos a arquitetura AGI completa em 5 camadas, substituimos o pipeline cascade fixo por ReAct loop dinamico, criamos busca estrategica para descoberta de codigo real, e integramos BlankFiller para criacao segura.\n\n### O que foi feito\n\n1. **FASE 1 — SENSE** (completa):\n   - Security: f",
+      "ctx": "gap_fenix",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782936765.8404503,
+      "id": "L1676",
+      "inactive": true
+    },
+    {
+      "erro": "fenix:reparado_txt",
+      "causa": "conceito: fenix:reparado_txt",
+      "solucao": "[Fonte: docs\\Localizador Projeto MCR\\Server (Data)\\reparado.txt]\n isso, sim. Custa 5.000 ouro, no entanto. Você ainda está interessado?\n137_4_say=E aqui estão eles! Agora esqueça de onde você os tirou.\n139_4_say=Você não tem dinheiro suficiente.\n151_4_say=ÓTIMO! Se você precisar de um emprego como meu segurança pessoal, me avise. Aqui está a recompensa que prometi a você.\n157_4_say=Volte Quando Encontrar Minhas Coisas.\n171_5_say=Você precisa de 5.000 GPS e rese",
+      "ctx": "gap_fenix",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782936770.7006824,
+      "id": "L1677",
+      "inactive": true
+    },
+    {
+      "erro": "fenix:traduzido_txt",
+      "causa": "conceito: fenix:traduzido_txt",
+      "solucao": "[Fonte: docs\\Localizador Projeto MCR\\Server (Data)\\traduzido.txt]\n isso, sim. Custa 5.000 ouro, no entanto. Você ainda está interessado?\n137_4_say=E aqui estão eles! Agora esqueça de onde você os tirou.\n139_4_say=Você não tem dinheiro suficiente.\n151_4_say=ÓTIMO! Se você precisar de um emprego como meu segurança pessoal, me avise. Aqui está a recompensa que prometi a você.\n157_4_say=Volte quando encontrar minhas coisas.\n171_5_say=Você precisa de 5.000 GPS e rese",
+      "ctx": "gap_fenix",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782936774.770226,
+      "id": "L1678",
+      "inactive": true
+    },
+    {
+      "erro": "fenix:[6] MCR - Guia de Narrativa e Diálogos_txt",
+      "causa": "conceito: fenix:[6] MCR - Guia de Narrativa e Diálogos_txt",
+      "solucao": "[Fonte: docs\\MCR - Instruções\\[6] MCR - Guia de Narrativa e Diálogos.txt]\nNPCs sobre os Domínios (incluindo os novos Summon (28) e Sobrevivência (400)), níveis de afinidade (agora traduzidos em níveis de maestria), Lampejos, Vínculos, Maestria (Vínculo permanente no nível 20), Sinergia Elemental, Arremesso de Escudo, Posturas de Combate e o novo sistema de bónus percentuais de vida, mana e velocidade de movimento. Integra também as novas funções centrais de recálculo (r",
+      "ctx": "gap_fenix",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782936778.82779,
+      "id": "L1679",
+      "inactive": true
+    },
+    {
+      "erro": "fenix:[8] MCR - Guia de Criação de Conta e Personagem_txt",
+      "causa": "conceito: fenix:[8] MCR - Guia de Criação de Conta e Personagem_txt",
+      "solucao": "[Fonte: docs\\MCR - Instruções\\[8] MCR - Guia de Criação de Conta e Personagem.txt]\nlha de vocação — o\npersonagem é sempre um Aventureiro (vocation = 0). A benção narrativa do\nOráculo agora ecoa o despertar dos Domínios que ocorrerá em Eridanus.\n\nComponentes abordados:\n\nBotão \"Salão dos Destinos\" (entrada única para novos jogadores e\ngerenciamento).\n\nContas guest temporárias e personagem Alma descartável.\n\nNPC Oráculo como central de autoatendimento (criação de conta, criação de\n",
+      "ctx": "gap_fenix",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782936782.8877358,
+      "id": "L1680",
+      "inactive": true
+    },
+    {
+      "erro": "fenix:[7] MCR - Guia de Quests (Sistema Híbrido SQH)_txt",
+      "causa": "conceito: fenix:[7] MCR - Guia de Quests (Sistema Híbrido SQH)_txt",
+      "solucao": "[Fonte: docs\\MCR - Instruções\\[7] MCR - Guia de Quests (Sistema Híbrido SQH).txt]\nicial de Afinidade, o aprendizado de habilidades, a\nintrodução à Maestria e à Sinergia Elemental, e agora também ao Domínio Summon\ne à Sobrevivência. O guia reflecte a propagação de afinidade 4:2:1, o conceito\nde níveis efetivos (que bloqueiam a Maestria até que os domínios filhos estejam\ncompletos) e o feedback visual temático suportado pelo motor de habilidades\nv2.0 (mapeamento central de efeito",
+      "ctx": "gap_fenix",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782936786.9499443,
+      "id": "L1681",
+      "inactive": true
+    },
+    {
+      "erro": "fenix:extraido_txt",
+      "causa": "conceito: fenix:extraido_txt",
+      "solucao": "[Fonte: docs\\Localizador Projeto MCR\\Server (CodigoFonte)\\extraido.txt]\nrmal.\n100_91=Projeto MCR\n107_21=Inicializado em modo de manutenção!\n108_29=:yellow_square: Servidor agora **online** _(acesso restrito à equipe)_\n111_29=:green_circle: Servidor agora **online**\n146_15=Inicialização ainda em andamento ({} s)...\n151_16=Inicialização excedeu {} minutos - abortando.\n160_15=Nenhum serviço em execução. O servidor NÃO está online!\n161_15=O programa será fechado após pres",
+      "ctx": "gap_fenix",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782936790.9860244,
+      "id": "L1682",
+      "inactive": true
+    },
+    {
+      "erro": "fenix:reparado_txt",
+      "causa": "conceito: fenix:reparado_txt",
+      "solucao": "[Fonte: docs\\Localizador Projeto MCR\\Server (CodigoFonte)\\reparado.txt]\nrmal.\n100_91=Projeto MCR\n107_21=Inicializado em modo de manutenção!\n108_29=:yellow_square: Servidor agora **online** _(acesso restrito à equipe)_\n111_29=:green_circle: Servidor agora **online**\n146_15=Inicialização ainda em andamento ({} s)...\n151_16=Inicialização excedeu {} minutos - abortando.\n160_15=Nenhum serviço em execução. O servidor NÃO está online!\n161_15=O programa será fechado após pres",
+      "ctx": "gap_fenix",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782936795.0354722,
+      "id": "L1683",
+      "inactive": true
+    },
+    {
+      "erro": "fenix:traduzido_txt",
+      "causa": "conceito: fenix:traduzido_txt",
+      "solucao": "[Fonte: docs\\Localizador Projeto MCR\\Server (CodigoFonte)\\traduzido.txt]\nrmal.\n100_91=Projeto MCR\n107_21=Inicializado em modo de manutenção!\n108_29=:yellow_square: Servidor agora **online** _(acesso restrito à equipe)_\n111_29=:green_circle: Servidor agora **online**\n146_15=Inicialização ainda em andamento ({} s)...\n151_16=Inicialização excedeu {} minutos - abortando.\n160_15=Nenhum serviço em execução. O servidor NÃO está online!\n161_15=O programa será fechado após pres",
+      "ctx": "gap_fenix",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782936799.0694082,
+      "id": "L1684",
+      "inactive": true
+    },
+    {
+      "erro": "fenix:autonomia_md",
+      "causa": "conceito: fenix:autonomia_md",
+      "solucao": "[Fonte: docs\\rules\\autonomia.md]\n, `write` — manipulação de arquivos\n- `auto_revisor` — revisão heurística pós-resposta (embutido no Supervisor)\n- `mente` — ciclo Mente-Corpo (think → learn → score)\n- `compilar` — compilação de Canary e OTClient\n- `system_scan`, `bugfinder` — diagnóstico do sistema\n\n### Cloud (assume quando MCR falha 3x)\n- `edit`, `write` — edição cirúrgica (quando MCR falha)\n- `webfetch` — fallback quando `weble",
+      "ctx": "gap_fenix",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782937986.7823236,
+      "id": "L1712"
+    },
+    {
+      "erro": "fenix:MANIFEST_md",
+      "causa": "conceito: fenix:MANIFEST_md",
+      "solucao": "[Fonte: docs\\MANIFEST.md]\n Entry point | Carregador de comandos, bus de eventos | Core |\n| `pipeline_executor.py` | ✅ Ciclo | Supervisor | Pipeline ReAct + VALIDATE + LEARN | Core |\n| `kg.py` | ✅ Ciclo | pipeline_executor | Knowledge Graph (buscar, aprender) | Core |\n| `ia.py` | ✅ Ciclo | pipeline_executor | Interface Ollama + Router de modelos | Core |\n| `tool_orchestrator.py` | ✅ Ciclo | pipeline_executor | 30 ferramenta",
+      "ctx": "gap_fenix",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782937990.831116,
+      "id": "L1713"
+    },
+    {
+      "erro": "fenix:PENDENCIA_REVAMP_SCRIPTS_LEGADOS_md",
+      "causa": "conceito: fenix:PENDENCIA_REVAMP_SCRIPTS_LEGADOS_md",
+      "solucao": "[Fonte: docs\\PENDENCIA_REVAMP_SCRIPTS_LEGADOS.md]\nipeline |\n| 5 | `mcr_autobuild.py` | qwen2.5-coder:7b | Auto build | Legado, não usado |\n| 6 | `mcr_supervisor.py` | qwen2.5-coder:7b | Supervisor antigo | Substituído por supervisor.py |\n| 7 | `mcr_observatory_v2.py` | qwen2.5-coder:7b | Observatório | Legado? |\n| 8 | `super_fragmentador.py` | Multi-modelos | Fragmentação de texto | **Pode ser útil** — integrar ao Orquestrador |\n| 9 | `mcr_learni",
+      "ctx": "gap_fenix",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782937994.8959157,
+      "id": "L1714"
+    },
+    {
+      "erro": "fenix:mod_supervisor",
+      "causa": "conceito: fenix:mod_supervisor",
+      "solucao": "[Modulo: supervisor]\nModulo: Supervisor - V12 Contexto Agregado + Roteador Inteligente de Tarefas.\nClassifica a intencao da pergunta e roteia para:\n  - V12 Contexto Agregado (factual/definicao)\n  - Orquestrador (codigo, revisao, criacao, planejamento)\n  - Fallback para IA generica\n",
+      "ctx": "gap_fenix",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782937998.957799,
+      "id": "L1715"
+    },
+    {
+      "erro": "fenix:[9] MCR - Guia de Banco de Dados e Infraestrutura_txt",
+      "causa": "conceito: fenix:[9] MCR - Guia de Banco de Dados e Infraestrutura_txt",
+      "solucao": "[Fonte: docs\\MCR - Instruções\\[9] MCR - Guia de Banco de Dados e Infraestrutura.txt]\n),\naplicado a todos os novos personagens.\n\nAs colunas accounts.created_at e accounts.player_pronoun existem e são\nusadas pelo Login Server e Oráculo.\n\nA coluna lastlogin existe na tabela players (confirmado no schema actual\ndo Canary 3.4.1 utilizado pelo projecto).\n\nTodos os métodos C++ que alimentam as tabelas de progressão\n(addDominioAfinidade, addDominioAfinidadeBatch, learnHabilidade, etc.)\nes",
+      "ctx": "gap_fenix",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782943470.603769,
+      "id": "L1898",
+      "inactive": true
+    },
+    {
+      "erro": "fenix:Sistema de Montarias_md",
+      "causa": "conceito: fenix:Sistema de Montarias_md",
+      "solucao": "[Fonte: docs\\MCR - Instruções\\DevLog\\Sistema de Montarias.md]\nador ignorando colisão |\n| **teleportTo** | Move para tile livre (em vez de `startAutoWalk` que não existe na API) |\n| **Persistência expandida** | KV salva mount-state (mounted/summoned), mount-hp, pet-id |\n\n### O que tentamos e não deu certo\n- `startAutoWalk` no summon — API não existe em `Monster`, deu erro \"attempt to call method 'startAutoWalk' (a nil value)\"\n- `isWalkingToPosition` para foll",
+      "ctx": "gap_fenix",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782943474.6488936,
+      "id": "L1899",
+      "inactive": true
+    },
+    {
+      "erro": "fenix:IMPLEMENTACAO_MANIFEST_md",
+      "causa": "conceito: fenix:IMPLEMENTACAO_MANIFEST_md",
+      "solucao": "[Fonte: docs\\IMPLEMENTACAO_MANIFEST.md]\nIZE** ao concluir cada etapa — status, data e observações.\n> **PONTE** entre o `MANIFEST.md` (o que existe) e a AGI real (o que está rodando).\n> Versão: 1.0 | Data: 2026-06-30\n\n---\n\n## Sumário\n\n1. [Etapas Concluídas](#-etapas-concluidas)\n2. [Próximas Etapas](#-proximas-etapas)\n3. [Barreiras / Bloqueios](#-barreiras--bloqueios)\n4. [Testes de Validação](#-testes-de-validacao)\n5. [Decisões de Impleme",
+      "ctx": "gap_fenix",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [
+        "stress_test"
+      ],
+      "timestamp": 1782943479.4303722,
+      "id": "L1900",
+      "inactive": true
+    },
+    {
+      "erro": "fenix:[9] MCR - Guia de Banco de Dados e Infraestrutura_txt",
+      "causa": "conceito: fenix:[9] MCR - Guia de Banco de Dados e Infraestrutura_txt",
+      "solucao": "[Fonte: docs\\MCR - Instruções\\[9] MCR - Guia de Banco de Dados e Infraestrutura.txt]\n),\naplicado a todos os novos personagens.\n\nAs colunas accounts.created_at e accounts.player_pronoun existem e são\nusadas pelo Login Server e Oráculo.\n\nA coluna lastlogin existe na tabela players (confirmado no schema actual\ndo Canary 3.4.1 utilizado pelo projecto).\n\nTodos os métodos C++ que alimentam as tabelas de progressão\n(addDominioAfinidade, addDominioAfinidadeBatch, learnHabilidade, etc.)\nes",
+      "ctx": "gap_fenix",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782944405.3329666,
+      "id": "L2012"
+    },
+    {
+      "erro": "fenix:Sistema de Montarias_md",
+      "causa": "conceito: fenix:Sistema de Montarias_md",
+      "solucao": "[Fonte: docs\\MCR - Instruções\\DevLog\\Sistema de Montarias.md]\nador ignorando colisão |\n| **teleportTo** | Move para tile livre (em vez de `startAutoWalk` que não existe na API) |\n| **Persistência expandida** | KV salva mount-state (mounted/summoned), mount-hp, pet-id |\n\n### O que tentamos e não deu certo\n- `startAutoWalk` no summon — API não existe em `Monster`, deu erro \"attempt to call method 'startAutoWalk' (a nil value)\"\n- `isWalkingToPosition` para foll",
+      "ctx": "gap_fenix",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782944409.3901649,
+      "id": "L2013"
+    },
+    {
+      "erro": "fenix:IMPLEMENTACAO_MANIFEST_md",
+      "causa": "conceito: fenix:IMPLEMENTACAO_MANIFEST_md",
+      "solucao": "[Fonte: docs\\IMPLEMENTACAO_MANIFEST.md]\nIZE** ao concluir cada etapa — status, data e observações.\n> **PONTE** entre o `MANIFEST.md` (o que existe) e a AGI real (o que está rodando).\n> Versão: 1.0 | Data: 2026-06-30\n\n---\n\n## Sumário\n\n1. [Etapas Concluídas](#-etapas-concluidas)\n2. [Próximas Etapas](#-proximas-etapas)\n3. [Barreiras / Bloqueios](#-barreiras--bloqueios)\n4. [Testes de Validação](#-testes-de-validacao)\n5. [Decisões de Impleme",
+      "ctx": "gap_fenix",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [
+        "stress_test"
+      ],
+      "timestamp": 1782944413.454289,
+      "id": "L2014"
+    }
+  ]
+}

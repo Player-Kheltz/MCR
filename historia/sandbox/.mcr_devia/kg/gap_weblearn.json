@@ -1,0 +1,28 @@
+{
+  "ctx": "gap_weblearn",
+  "licoes": [
+    {
+      "erro": "weblearn:TROUBLESHOOTING_md",
+      "causa": "conceito: weblearn:TROUBLESHOOTING_md",
+      "solucao": "[Fonte: docs\\TROUBLESHOOTING.md]\nd.\n**Solução:** Use `auto.py compile --client` ou `--server` que já chama o vcvars.\n\n### OTClient: \"error MSB4126: configuração inválida\"\n**Causa:** Usou `otclient.sln` em vez de `otclient.vcxproj` direto.\n**Solução:** Compile o `.vcxproj`, não o `.sln`. `auto.py` já faz isso.\n\n### Canary: \"fatal error C1083\" (arquivo .h não encontrado)\n**Causa:** Caminho de include faltando ou vcpkg não configura",
+      "ctx": "gap_weblearn",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782939081.5365536,
+      "id": "L1781",
+      "inactive": true
+    },
+    {
+      "erro": "weblearn:TROUBLESHOOTING_md",
+      "causa": "conceito: weblearn:TROUBLESHOOTING_md",
+      "solucao": "[Fonte: docs\\TROUBLESHOOTING.md]\nd.\n**Solução:** Use `auto.py compile --client` ou `--server` que já chama o vcvars.\n\n### OTClient: \"error MSB4126: configuração inválida\"\n**Causa:** Usou `otclient.sln` em vez de `otclient.vcxproj` direto.\n**Solução:** Compile o `.vcxproj`, não o `.sln`. `auto.py` já faz isso.\n\n### Canary: \"fatal error C1083\" (arquivo .h não encontrado)\n**Causa:** Caminho de include faltando ou vcpkg não configura",
+      "ctx": "gap_weblearn",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782943645.4097462,
+      "id": "L1940"
+    }
+  ]
+}

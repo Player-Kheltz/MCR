@@ -1,0 +1,1115 @@
+{
+  "ctx": "estudo_modelos",
+  "licoes": [
+    {
+      "erro": "estudo_modelos:test_payload.json",
+      "causa": "conceito: estudo_modelos:test_payload.json",
+      "solucao": "MCR estudou test_payload.json: 113 bytes, entropia=4.73, estados=38, niveis=6\n---\n{\"model\":\"qwen2.5:14b-q3\",\"prompt\":\"SIM\",\"stream\":false,\"options\":{\"temperature\":0.1,\"num_ctx\":256,\"num_gpu\":30}}",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [
+        "stress_test"
+      ],
+      "timestamp": 1782954207.077949,
+      "id": "L2146"
+    },
+    {
+      "erro": "estudo_modelos:bridge_debug.log",
+      "causa": "conceito: estudo_modelos:bridge_debug.log",
+      "solucao": "MCR estudou bridge_debug.log: 2520 bytes, entropia=5.29, estados=69, niveis=6\n---\n1782352802.8329349|Conhecimento carregado (2956 bytes)\r\n1782352802.8336837|last_in_size=6821\r\n1782352802.8343368|Thread IA iniciada\r\n1782352802.8367882|ENVIADO #1782352802834: Ola Criador! Recebi sua mensagem 'testando' pelo bridge auto\r\n1782352802.9110518|RAG carregado\r\n1782352802.911332|Cache quen",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [
+        "stress_test"
+      ],
+      "timestamp": 1782954212.288093,
+      "id": "L2147"
+    },
+    {
+      "erro": "estudo_modelos:bridge_err.log",
+      "causa": "conceito: estudo_modelos:bridge_err.log",
+      "solucao": "MCR estudou bridge_err.log: 93 bytes, entropia=4.66, estados=35, niveis=6\n---\nC:\\Python314\\python.exe: can't open file 'E:\\\\Projeto': [Errno 2] No such file or directory\r\n",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782954216.365611,
+      "id": "L2148"
+    },
+    {
+      "erro": "estudo_modelos:bridge_pending.txt",
+      "causa": "conceito: estudo_modelos:bridge_pending.txt",
+      "solucao": "MCR estudou bridge_pending.txt: 5731 bytes, entropia=5.00, estados=63, niveis=6\n---\n1782221297|Criador|testando\r\n1782221374|Criador|me resposnda\r\n99999999|Criador|teste automatico bridge\r\n1782226759|Criador|ola\r\n99999998|Criador|ping\r\n1782227187|Criador|teste funcionou\r\n1782227578|Criador|ola\r\n1782228327|Criador|ola\r\n1782228434|Criador|n�o recebi sua resposta.\r\n1782228447|Criador|e",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [
+        "stress_test"
+      ],
+      "timestamp": 1782954220.4666405,
+      "id": "L2149"
+    },
+    {
+      "erro": "estudo_modelos:bridge_response.txt",
+      "causa": "conceito: estudo_modelos:bridge_response.txt",
+      "solucao": "MCR estudou bridge_response.txt: 121 bytes, entropia=4.32, estados=29, niveis=6\n---\nOla Criador! Recebi sua mensagem 'testando' pelo bridge automatico. O sistema esta funcionando! O que voce quer testar?\r\n",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [
+        "stress_test"
+      ],
+      "timestamp": 1782954224.5501964,
+      "id": "L2150"
+    },
+    {
+      "erro": "estudo_modelos:bridge_watchdog.log",
+      "causa": "conceito: estudo_modelos:bridge_watchdog.log",
+      "solucao": "MCR estudou bridge_watchdog.log: 1974 bytes, entropia=5.14, estados=48, niveis=6\n---\n1782249783|WATCHDOG|Watchdog iniciado (monitorando a cada 10s)\r\n1782249783|WATCHDOG|Bridge MORTO! Reiniciando...\r\n1782249783|WATCHDOG|Iniciando bridge...\r\n1782249783|WATCHDOG|Bridge iniciado\r\n1782249799|WATCHDOG|Bridge MORTO! Reiniciando...\r\n1782249799|WATCHDOG|Iniciando bridge...\r\n1782249799|WATCHD",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782954228.6594062,
+      "id": "L2151"
+    },
+    {
+      "erro": "estudo_modelos:sha256-0578f229f23ad620e123654fd0b4708405e7af3629ec1aecf3f553f54e06bc40",
+      "causa": "conceito: estudo_modelos:sha256-0578f229f23ad620e123654fd0b4708405e7af3629ec1aecf3f553f54e06bc40",
+      "solucao": "MCR estudou sha256-0578f229f23ad620e123654fd0b4708405e7af3629ec1aecf3f553f54e06bc40: 488 bytes, entropia=4.94, estados=46, niveis=6\n---\n{\"model_format\":\"gguf\",\"model_family\":\"qwen2\",\"model_families\":[\"qwen2\"],\"model_type\":\"14.8B\",\"file_type\":\"Q4_K_M\",\"architecture\":\"amd64\",\"os\":\"linux\",\"rootfs\":{\"type\":\"layers\",\"diff_ids\":[\"sha256:ac9bc7a69dab38da1c790838955f1293420b55ab555ef6b4615efa1c1507b1ed\",\"sha256:66b9ea09bd5b7099cbb4fc820f31b",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782954232.7494266,
+      "id": "L2152"
+    },
+    {
+      "erro": "estudo_modelos:sha256-0ba8f0e314b4264dfd19df045cde9d4c394a52474bf92ed6a3de22a4ca31a177",
+      "causa": "conceito: estudo_modelos:sha256-0ba8f0e314b4264dfd19df045cde9d4c394a52474bf92ed6a3de22a4ca31a177",
+      "solucao": "MCR estudou sha256-0ba8f0e314b4264dfd19df045cde9d4c394a52474bf92ed6a3de22a4ca31a177: 10000 bytes, entropia=4.71, estados=63, niveis=6\n---\nLLAMA 3.1 COMMUNITY LICENSE AGREEMENT\nLlama 3.1 Version Release Date: July 23, 2024\n\n“Agreement” means the terms and conditions for use, reproduction, distribution and modification of the\nLlama Materials set forth herein.\n\n“Documentation” means the specifications, manuals and documentation accompany",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782954236.8487215,
+      "id": "L2153"
+    },
+    {
+      "erro": "estudo_modelos:sha256-1064e17101bdd2460dd5c4e03e4f5cc1b38a4dee66084dc91faba294ccb64a92",
+      "causa": "conceito: estudo_modelos:sha256-1064e17101bdd2460dd5c4e03e4f5cc1b38a4dee66084dc91faba294ccb64a92",
+      "solucao": "MCR estudou sha256-1064e17101bdd2460dd5c4e03e4f5cc1b38a4dee66084dc91faba294ccb64a92: 487 bytes, entropia=4.88, estados=44, niveis=6\n---\n{\"model_format\":\"gguf\",\"model_family\":\"llama\",\"model_families\":[\"llama\"],\"model_type\":\"7.2B\",\"file_type\":\"Q4_K_M\",\"architecture\":\"amd64\",\"os\":\"linux\",\"rootfs\":{\"type\":\"layers\",\"diff_ids\":[\"sha256:f5074b1221da0f5a2910d33b642efa5b9eb58cfdddca1c79e16d7ad28aa2b31f\",\"sha256:43070e2d4e532684de521b885f385d",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782954240.9299448,
+      "id": "L2154"
+    },
+    {
+      "erro": "estudo_modelos:sha256-152cb442202b836b5415fe4397169982b74dc3bdbb06b9777a126e0161c740da",
+      "causa": "conceito: estudo_modelos:sha256-152cb442202b836b5415fe4397169982b74dc3bdbb06b9777a126e0161c740da",
+      "solucao": "MCR estudou sha256-152cb442202b836b5415fe4397169982b74dc3bdbb06b9777a126e0161c740da: 487 bytes, entropia=4.93, estados=46, niveis=6\n---\n{\"model_format\":\"gguf\",\"model_family\":\"qwen2\",\"model_families\":[\"qwen2\"],\"model_type\":\"1.5B\",\"file_type\":\"Q4_K_M\",\"architecture\":\"amd64\",\"os\":\"linux\",\"rootfs\":{\"type\":\"layers\",\"diff_ids\":[\"sha256:29d8c98fa6b098e200069bfb88b9508dc3e85586d20cba59f8dda9a808165104\",\"sha256:66b9ea09bd5b7099cbb4fc820f31b5",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782954245.796742,
+      "id": "L2155"
+    },
+    {
+      "erro": "estudo_modelos:sha256-1e65450c30670713aa47fe23e8b9662bdf4065e81cc8e3cbfaa98924fcc0d320",
+      "causa": "conceito: estudo_modelos:sha256-1e65450c30670713aa47fe23e8b9662bdf4065e81cc8e3cbfaa98924fcc0d320",
+      "solucao": "MCR estudou sha256-1e65450c30670713aa47fe23e8b9662bdf4065e81cc8e3cbfaa98924fcc0d320: 1615 bytes, entropia=4.87, estados=58, niveis=6\n---\n{{- if .Suffix }}<|fim_prefix|>{{ .Prompt }}<|fim_suffix|>{{ .Suffix }}<|fim_middle|>\n{{- else if .Messages }}\n{{- if or .System .Tools }}<|im_start|>system\n{{- if .System }}\n{{ .System }}\n{{- end }}\n{{- if .Tools }}\n\n# Tools\n\nYou may call one or more functions to assist with the user query.\n\nYou ar",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782954249.893995,
+      "id": "L2156"
+    },
+    {
+      "erro": "estudo_modelos:sha256-1ff5b64b61b9a63146475a24f70d3ca2fd6fdeec44247987163479968896fc0b",
+      "causa": "conceito: estudo_modelos:sha256-1ff5b64b61b9a63146475a24f70d3ca2fd6fdeec44247987163479968896fc0b",
+      "solucao": "MCR estudou sha256-1ff5b64b61b9a63146475a24f70d3ca2fd6fdeec44247987163479968896fc0b: 799 bytes, entropia=4.92, estados=55, niveis=6\n---\n{{- if .Messages }}\n{{- range $index, $_ := .Messages }}\n{{- if eq .Role \"user\" }}\n{{- if and (eq (len (slice $.Messages $index)) 1) $.Tools }}[AVAILABLE_TOOLS] {{ $.Tools }}[/AVAILABLE_TOOLS]\n{{- end }}[INST] {{ if and $.System (eq (len (slice $.Messages $index)) 1) }}{{ $.System }}\n\n{{ end }}{{ .C",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782954253.9600894,
+      "id": "L2157"
+    },
+    {
+      "erro": "estudo_modelos:sha256-29d8c98fa6b098e200069bfb88b9508dc3e85586d20cba59f8dda9a808165104",
+      "causa": "conceito: estudo_modelos:sha256-29d8c98fa6b098e200069bfb88b9508dc3e85586d20cba59f8dda9a808165104",
+      "solucao": "MCR estudou sha256-29d8c98fa6b098e200069bfb88b9508dc3e85586d20cba59f8dda9a808165104: 10000 bytes, entropia=3.84, estados=118, niveis=6\n---\nGGUF\u0003\u0000\u0000\u0000R\u0001\u0000\u0000\u0000\u0000\u0000\u0000\"\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0014\u0000\u0000\u0000\u0000\u0000\u0000\u0000general.architecture\b\u0000\u0000\u0000\u0005\u0000\u0000\u0000\u0000\u0000\u0000\u0000qwen2\f\u0000\u0000\u0000\u0000\u0000\u0000\u0000general.type\b\u0000\u0000\u0000\u0005\u0000\u0000\u0000\u0000\u0000\u0000\u0000model\f\u0000\u0000\u0000\u0000\u0000\u0000\u0000general.name\b\u0000\u0000\u0000\u001b\u0000\u0000\u0000\u0000\u0000\u0000\u0000Qwen2.5 Coder 1.5B Instruct\u0010\u0000\u0000\u0000\u0000\u0000\u0000\u0000general.finetune\b\u0000\u0000\u0000\b\u0000\u0000\u0000\u0000\u0000\u0000\u0000Instruct\u0010\u0000\u0000\u0000\u0000\u0000\u0000\u0000general.basename\b\u0000\u0000\u0000\r\u0000\u0000\u0000\u0000\u0000\u0000\u0000Qwen2.5-Coder\u0012\u0000\u0000\u0000\u0000\u0000\u0000\u0000general.size_label\b\u0000\u0000\u0000\u0004\u0000\u0000\u0000\u0000\u0000\u0000\u00001.5B",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782954258.020397,
+      "id": "L2158"
+    },
+    {
+      "erro": "estudo_modelos:sha256-31df23ea7daa448f9ccdbbcecce6c14689c8552222b80defd3830707c0139d4f",
+      "causa": "conceito: estudo_modelos:sha256-31df23ea7daa448f9ccdbbcecce6c14689c8552222b80defd3830707c0139d4f",
+      "solucao": "MCR estudou sha256-31df23ea7daa448f9ccdbbcecce6c14689c8552222b80defd3830707c0139d4f: 420 bytes, entropia=4.93, estados=42, niveis=6\n---\n{\"model_format\":\"gguf\",\"model_family\":\"nomic-bert\",\"model_families\":[\"nomic-bert\"],\"model_type\":\"137M\",\"file_type\":\"F16\",\"architecture\":\"amd64\",\"os\":\"linux\",\"rootfs\":{\"type\":\"layers\",\"diff_ids\":[\"sha256:970aa74c0a90ef7482477cf803618e776e173c007bf957f635f1015bfcfef0e6\",\"sha256:c71d239df91726fc519c6eb",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782954262.106419,
+      "id": "L2159"
+    },
+    {
+      "erro": "estudo_modelos:sha256-3c24b0c80794f0eb6e0de0033f8e3203075db1c4640e837e097712a4b88d393b",
+      "causa": "conceito: estudo_modelos:sha256-3c24b0c80794f0eb6e0de0033f8e3203075db1c4640e837e097712a4b88d393b",
+      "solucao": "MCR estudou sha256-3c24b0c80794f0eb6e0de0033f8e3203075db1c4640e837e097712a4b88d393b: 488 bytes, entropia=4.93, estados=46, niveis=6\n---\n{\"model_format\":\"gguf\",\"model_family\":\"qwen2\",\"model_families\":[\"qwen2\"],\"model_type\":\"14.8B\",\"file_type\":\"Q4_K_M\",\"architecture\":\"amd64\",\"os\":\"linux\",\"rootfs\":{\"type\":\"layers\",\"diff_ids\":[\"sha256:6e9f90f02bb3b39b59e81916e8cfce9deb45aeaeb9a54a5be4414486b907dc1e\",\"sha256:369ca498f347f710d068cbb38bf0b",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782954266.1827426,
+      "id": "L2160"
+    },
+    {
+      "erro": "estudo_modelos:sha256-40fb844194b25e429204e5163fb379ab462978a262b86aadd73d8944445c09fd",
+      "causa": "conceito: estudo_modelos:sha256-40fb844194b25e429204e5163fb379ab462978a262b86aadd73d8944445c09fd",
+      "solucao": "MCR estudou sha256-40fb844194b25e429204e5163fb379ab462978a262b86aadd73d8944445c09fd: 487 bytes, entropia=4.94, estados=46, niveis=6\n---\n{\"model_format\":\"gguf\",\"model_family\":\"qwen2\",\"model_families\":[\"qwen2\"],\"model_type\":\"7.6B\",\"file_type\":\"Q4_K_M\",\"architecture\":\"amd64\",\"os\":\"linux\",\"rootfs\":{\"type\":\"layers\",\"diff_ids\":[\"sha256:96c415656d377afbff962f6cdb2394ab092ccbcbaab4b82525bc4ca800fe8a49\",\"sha256:369ca498f347f710d068cbb38bf0b8",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782954270.2635362,
+      "id": "L2161"
+    },
+    {
+      "erro": "estudo_modelos:sha256-43070e2d4e532684de521b885f385d0841030efa2b1a20bafb76133a5e1379c1",
+      "causa": "conceito: estudo_modelos:sha256-43070e2d4e532684de521b885f385d0841030efa2b1a20bafb76133a5e1379c1",
+      "solucao": "MCR estudou sha256-43070e2d4e532684de521b885f385d0841030efa2b1a20bafb76133a5e1379c1: 10000 bytes, entropia=4.38, estados=61, niveis=6\n---\n                                 Apache License\n                           Version 2.0, January 2004\n                        http://www.apache.org/licenses/\n\n   TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION\n\n   1. Definitions.\n\n      \"License\" shall mean the terms and conditions for u",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782954274.354185,
+      "id": "L2162"
+    },
+    {
+      "erro": "estudo_modelos:sha256-455f34728c9b5dd3376378bfb809ee166c145b0b4c1f1a6feca069055066ef9a",
+      "causa": "conceito: estudo_modelos:sha256-455f34728c9b5dd3376378bfb809ee166c145b0b4c1f1a6feca069055066ef9a",
+      "solucao": "MCR estudou sha256-455f34728c9b5dd3376378bfb809ee166c145b0b4c1f1a6feca069055066ef9a: 487 bytes, entropia=4.88, estados=44, niveis=6\n---\n{\"model_format\":\"gguf\",\"model_family\":\"llama\",\"model_families\":[\"llama\"],\"model_type\":\"8.0B\",\"file_type\":\"Q4_K_M\",\"architecture\":\"amd64\",\"os\":\"linux\",\"rootfs\":{\"type\":\"layers\",\"diff_ids\":[\"sha256:667b0c1932bc6ffc593ed1d03f895bf2dc8dc6df21db3042284a6f4416b06a29\",\"sha256:11ce4ee3e170f6adebac9a991c22e2",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782954279.2114556,
+      "id": "L2163"
+    },
+    {
+      "erro": "estudo_modelos:sha256-56bb8bd477a519ffa694fc449c2413c6f0e1d3b1c88fa7e3c9d88d3ae49d4dcb",
+      "causa": "conceito: estudo_modelos:sha256-56bb8bd477a519ffa694fc449c2413c6f0e1d3b1c88fa7e3c9d88d3ae49d4dcb",
+      "solucao": "MCR estudou sha256-56bb8bd477a519ffa694fc449c2413c6f0e1d3b1c88fa7e3c9d88d3ae49d4dcb: 96 bytes, entropia=4.30, estados=26, niveis=6\n---\n{\"stop\":[\"\\u003c|start_header_id|\\u003e\",\"\\u003c|end_header_id|\\u003e\",\"\\u003c|eot_id|\\u003e\"]}\n",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782954283.3091922,
+      "id": "L2164"
+    },
+    {
+      "erro": "estudo_modelos:sha256-60e05f2100071479f596b964f89f510f057ce397ea22f2833a0cfe029bfc2463",
+      "causa": "conceito: estudo_modelos:sha256-60e05f2100071479f596b964f89f510f057ce397ea22f2833a0cfe029bfc2463",
+      "solucao": "MCR estudou sha256-60e05f2100071479f596b964f89f510f057ce397ea22f2833a0cfe029bfc2463: 10000 bytes, entropia=3.82, estados=118, niveis=6\n---\nGGUF\u0003\u0000\u0000\u0000S\u0001\u0000\u0000\u0000\u0000\u0000\u0000\"\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0014\u0000\u0000\u0000\u0000\u0000\u0000\u0000general.architecture\b\u0000\u0000\u0000\u0005\u0000\u0000\u0000\u0000\u0000\u0000\u0000qwen2\f\u0000\u0000\u0000\u0000\u0000\u0000\u0000general.type\b\u0000\u0000\u0000\u0005\u0000\u0000\u0000\u0000\u0000\u0000\u0000model\f\u0000\u0000\u0000\u0000\u0000\u0000\u0000general.name\b\u0000\u0000\u0000\u0019\u0000\u0000\u0000\u0000\u0000\u0000\u0000Qwen2.5 Coder 7B Instruct\u0010\u0000\u0000\u0000\u0000\u0000\u0000\u0000general.finetune\b\u0000\u0000\u0000\b\u0000\u0000\u0000\u0000\u0000\u0000\u0000Instruct\u0010\u0000\u0000\u0000\u0000\u0000\u0000\u0000general.basename\b\u0000\u0000\u0000\r\u0000\u0000\u0000\u0000\u0000\u0000\u0000Qwen2.5-Coder\u0012\u0000\u0000\u0000\u0000\u0000\u0000\u0000general.size_label\b\u0000\u0000\u0000\u0002\u0000\u0000\u0000\u0000\u0000\u0000\u00007B\u000f\u0000\u0000\u0000",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782954287.3969822,
+      "id": "L2165"
+    },
+    {
+      "erro": "estudo_modelos:sha256-667b0c1932bc6ffc593ed1d03f895bf2dc8dc6df21db3042284a6f4416b06a29",
+      "causa": "conceito: estudo_modelos:sha256-667b0c1932bc6ffc593ed1d03f895bf2dc8dc6df21db3042284a6f4416b06a29",
+      "solucao": "MCR estudou sha256-667b0c1932bc6ffc593ed1d03f895bf2dc8dc6df21db3042284a6f4416b06a29: 10000 bytes, entropia=3.35, estados=121, niveis=6\n---\nGGUF\u0003\u0000\u0000\u0000$\u0001\u0000\u0000\u0000\u0000\u0000\u0000\u001d\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0014\u0000\u0000\u0000\u0000\u0000\u0000\u0000general.architecture\b\u0000\u0000\u0000\u0005\u0000\u0000\u0000\u0000\u0000\u0000\u0000llama\f\u0000\u0000\u0000\u0000\u0000\u0000\u0000general.type\b\u0000\u0000\u0000\u0005\u0000\u0000\u0000\u0000\u0000\u0000\u0000model\f\u0000\u0000\u0000\u0000\u0000\u0000\u0000general.name\b\u0000\u0000\u0000\u001a\u0000\u0000\u0000\u0000\u0000\u0000\u0000Meta Llama 3.1 8B Instruct\u0010\u0000\u0000\u0000\u0000\u0000\u0000\u0000general.finetune\b\u0000\u0000\u0000\b\u0000\u0000\u0000\u0000\u0000\u0000\u0000Instruct\u0010\u0000\u0000\u0000\u0000\u0000\u0000\u0000general.basename\b\u0000\u0000\u0000\u000e\u0000\u0000\u0000\u0000\u0000\u0000\u0000Meta-Llama-3.1\u0012\u0000\u0000\u0000\u0000\u0000\u0000\u0000general.size_label\b\u0000\u0000\u0000\u0002\u0000\u0000\u0000\u0000\u0000\u0000\u00008B\u000f\u0000",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782954291.5232816,
+      "id": "L2166"
+    },
+    {
+      "erro": "estudo_modelos:sha256-66b9ea09bd5b7099cbb4fc820f31b575c0366fa439b08245566692c6784e281e",
+      "causa": "conceito: estudo_modelos:sha256-66b9ea09bd5b7099cbb4fc820f31b575c0366fa439b08245566692c6784e281e",
+      "solucao": "MCR estudou sha256-66b9ea09bd5b7099cbb4fc820f31b575c0366fa439b08245566692c6784e281e: 68 bytes, entropia=4.21, estados=25, niveis=6\n---\nYou are Qwen, created by Alibaba Cloud. You are a helpful assistant.",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782954295.6180956,
+      "id": "L2167"
+    },
+    {
+      "erro": "estudo_modelos:sha256-6e4c38e1172f42fdbff13edf9a7a017679fb82b0fde415a3e8b3c31c6ed4a4e4",
+      "causa": "conceito: estudo_modelos:sha256-6e4c38e1172f42fdbff13edf9a7a017679fb82b0fde415a3e8b3c31c6ed4a4e4",
+      "solucao": "MCR estudou sha256-6e4c38e1172f42fdbff13edf9a7a017679fb82b0fde415a3e8b3c31c6ed4a4e4: 1065 bytes, entropia=5.10, estados=58, niveis=6\n---\nMIT License\n\nCopyright (c) 2023 DeepSeek\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merg",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782954299.7168186,
+      "id": "L2168"
+    },
+    {
+      "erro": "estudo_modelos:sha256-6e9f90f02bb3b39b59e81916e8cfce9deb45aeaeb9a54a5be4414486b907dc1e",
+      "causa": "conceito: estudo_modelos:sha256-6e9f90f02bb3b39b59e81916e8cfce9deb45aeaeb9a54a5be4414486b907dc1e",
+      "solucao": "MCR estudou sha256-6e9f90f02bb3b39b59e81916e8cfce9deb45aeaeb9a54a5be4414486b907dc1e: 10000 bytes, entropia=3.27, estados=159, niveis=6\n---\nGGUF\u0003\u0000\u0000\u0000C\u0002\u0000\u0000\u0000\u0000\u0000\u0000\u001a\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0014\u0000\u0000\u0000\u0000\u0000\u0000\u0000general.architecture\b\u0000\u0000\u0000\u0005\u0000\u0000\u0000\u0000\u0000\u0000\u0000qwen2\f\u0000\u0000\u0000\u0000\u0000\u0000\u0000general.type\b\u0000\u0000\u0000\u0005\u0000\u0000\u0000\u0000\u0000\u0000\u0000model\f\u0000\u0000\u0000\u0000\u0000\u0000\u0000general.name\b\u0000\u0000\u0000\u001c\u0000\u0000\u0000\u0000\u0000\u0000\u0000DeepSeek R1 Distill Qwen 14B\u0010\u0000\u0000\u0000\u0000\u0000\u0000\u0000general.basename\b\u0000\u0000\u0000\u0018\u0000\u0000\u0000\u0000\u0000\u0000\u0000DeepSeek-R1-Distill-Qwen\u0012\u0000\u0000\u0000\u0000\u0000\u0000\u0000general.size_label\b\u0000\u0000\u0000\u0003\u0000\u0000\u0000\u0000\u0000\u0000\u000014B\u0011\u0000\u0000\u0000\u0000\u0000\u0000\u0000qwen2.block_count\u0004\u0000\u0000\u00000\u0000\u0000\u0000",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782954303.8377666,
+      "id": "L2169"
+    },
+    {
+      "erro": "estudo_modelos:sha256-832dd9e00a68dd83b3c3fb9f5588dad7dcf337a0db50f7d9483f310cd292e92e",
+      "causa": "conceito: estudo_modelos:sha256-832dd9e00a68dd83b3c3fb9f5588dad7dcf337a0db50f7d9483f310cd292e92e",
+      "solucao": "MCR estudou sha256-832dd9e00a68dd83b3c3fb9f5588dad7dcf337a0db50f7d9483f310cd292e92e: 10000 bytes, entropia=4.38, estados=61, niveis=6\n---\n\n                                 Apache License\n                           Version 2.0, January 2004\n                        http://www.apache.org/licenses/\n\n   TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION\n\n   1. Definitions.\n\n      \"License\" shall mean the terms and conditions for ",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782954307.9282198,
+      "id": "L2170"
+    },
+    {
+      "erro": "estudo_modelos:sha256-948af2743fc78a328dcb3b0f5a31b3d75f415840fdb699e8b1235978392ecf85",
+      "causa": "conceito: estudo_modelos:sha256-948af2743fc78a328dcb3b0f5a31b3d75f415840fdb699e8b1235978392ecf85",
+      "solucao": "MCR estudou sha256-948af2743fc78a328dcb3b0f5a31b3d75f415840fdb699e8b1235978392ecf85: 1481 bytes, entropia=4.79, estados=59, niveis=6\n---\n{{- if or .System .Tools }}<|start_header_id|>system<|end_header_id|>\n{{- if .System }}\n\n{{ .System }}\n{{- end }}\n{{- if .Tools }}\n\nCutting Knowledge Date: December 2023\n\nWhen you receive a tool call response, use the output to format an answer to the orginal user question.\n\nYou are a helpful assist",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782954312.8585045,
+      "id": "L2171"
+    },
+    {
+      "erro": "estudo_modelos:sha256-96c415656d377afbff962f6cdb2394ab092ccbcbaab4b82525bc4ca800fe8a49",
+      "causa": "conceito: estudo_modelos:sha256-96c415656d377afbff962f6cdb2394ab092ccbcbaab4b82525bc4ca800fe8a49",
+      "solucao": "MCR estudou sha256-96c415656d377afbff962f6cdb2394ab092ccbcbaab4b82525bc4ca800fe8a49: 10000 bytes, entropia=3.26, estados=160, niveis=6\n---\nGGUF\u0003\u0000\u0000\u0000S\u0001\u0000\u0000\u0000\u0000\u0000\u0000\u001a\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0014\u0000\u0000\u0000\u0000\u0000\u0000\u0000general.architecture\b\u0000\u0000\u0000\u0005\u0000\u0000\u0000\u0000\u0000\u0000\u0000qwen2\f\u0000\u0000\u0000\u0000\u0000\u0000\u0000general.type\b\u0000\u0000\u0000\u0005\u0000\u0000\u0000\u0000\u0000\u0000\u0000model\f\u0000\u0000\u0000\u0000\u0000\u0000\u0000general.name\b\u0000\u0000\u0000\u001b\u0000\u0000\u0000\u0000\u0000\u0000\u0000DeepSeek R1 Distill Qwen 7B\u0010\u0000\u0000\u0000\u0000\u0000\u0000\u0000general.basename\b\u0000\u0000\u0000\u0018\u0000\u0000\u0000\u0000\u0000\u0000\u0000DeepSeek-R1-Distill-Qwen\u0012\u0000\u0000\u0000\u0000\u0000\u0000\u0000general.size_label\b\u0000\u0000\u0000\u0002\u0000\u0000\u0000\u0000\u0000\u0000\u00007B\u0011\u0000\u0000\u0000\u0000\u0000\u0000\u0000qwen2.block_count\u0004\u0000\u0000\u0000\u001c\u0000\u0000\u0000\u0014\u0000",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782954316.940021,
+      "id": "L2172"
+    },
+    {
+      "erro": "estudo_modelos:sha256-970aa74c0a90ef7482477cf803618e776e173c007bf957f635f1015bfcfef0e6",
+      "causa": "conceito: estudo_modelos:sha256-970aa74c0a90ef7482477cf803618e776e173c007bf957f635f1015bfcfef0e6",
+      "solucao": "MCR estudou sha256-970aa74c0a90ef7482477cf803618e776e173c007bf957f635f1015bfcfef0e6: 10000 bytes, entropia=4.04, estados=74, niveis=6\n---\nGGUF\u0003\u0000\u0000\u0000p\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0018\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0014\u0000\u0000\u0000\u0000\u0000\u0000\u0000general.architecture\b\u0000\u0000\u0000\n\u0000\u0000\u0000\u0000\u0000\u0000\u0000nomic-bert\f\u0000\u0000\u0000\u0000\u0000\u0000\u0000general.name\b\u0000\u0000\u0000\u0015\u0000\u0000\u0000\u0000\u0000\u0000\u0000nomic-embed-text-v1.5\u0016\u0000\u0000\u0000\u0000\u0000\u0000\u0000nomic-bert.block_count\u0004\u0000\u0000\u0000\f\u0000\u0000\u0000\u0019\u0000\u0000\u0000\u0000\u0000\u0000\u0000nomic-bert.context_length\u0004\u0000\u0000\u0000\u0000\b\u0000\u0000\u001b\u0000\u0000\u0000\u0000\u0000\u0000\u0000nomic-bert.embedding_length\u0004\u0000\u0000\u0000\u0000\u0003\u0000\u0000\u001e\u0000\u0000\u0000\u0000\u0000\u0000\u0000nomic-bert.feed_forward_length\u0004\u0000\u0000\u0000\u0000\f\u0000\u0000\u001f\u0000\u0000\u0000\u0000",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782954321.0252256,
+      "id": "L2173"
+    },
+    {
+      "erro": "estudo_modelos:sha256-ac9bc7a69dab38da1c790838955f1293420b55ab555ef6b4615efa1c1507b1ed",
+      "causa": "conceito: estudo_modelos:sha256-ac9bc7a69dab38da1c790838955f1293420b55ab555ef6b4615efa1c1507b1ed",
+      "solucao": "MCR estudou sha256-ac9bc7a69dab38da1c790838955f1293420b55ab555ef6b4615efa1c1507b1ed: 10000 bytes, entropia=3.84, estados=116, niveis=6\n---\nGGUF\u0003\u0000\u0000\u0000C\u0002\u0000\u0000\u0000\u0000\u0000\u0000\"\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0014\u0000\u0000\u0000\u0000\u0000\u0000\u0000general.architecture\b\u0000\u0000\u0000\u0005\u0000\u0000\u0000\u0000\u0000\u0000\u0000qwen2\f\u0000\u0000\u0000\u0000\u0000\u0000\u0000general.type\b\u0000\u0000\u0000\u0005\u0000\u0000\u0000\u0000\u0000\u0000\u0000model\f\u0000\u0000\u0000\u0000\u0000\u0000\u0000general.name\b\u0000\u0000\u0000\u001a\u0000\u0000\u0000\u0000\u0000\u0000\u0000Qwen2.5 Coder 14B Instruct\u0010\u0000\u0000\u0000\u0000\u0000\u0000\u0000general.finetune\b\u0000\u0000\u0000\b\u0000\u0000\u0000\u0000\u0000\u0000\u0000Instruct\u0010\u0000\u0000\u0000\u0000\u0000\u0000\u0000general.basename\b\u0000\u0000\u0000\r\u0000\u0000\u0000\u0000\u0000\u0000\u0000Qwen2.5-Coder\u0012\u0000\u0000\u0000\u0000\u0000\u0000\u0000general.size_label\b\u0000\u0000\u0000\u0003\u0000\u0000\u0000\u0000\u0000\u0000\u000014B\u000f\u0000",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782954325.1534548,
+      "id": "L2174"
+    },
+    {
+      "erro": "estudo_modelos:sha256-c5ad996bda6eed4df6e3b605a9869647624851ac248209d22fd5e2c0cc1121d3",
+      "causa": "conceito: estudo_modelos:sha256-c5ad996bda6eed4df6e3b605a9869647624851ac248209d22fd5e2c0cc1121d3",
+      "solucao": "MCR estudou sha256-c5ad996bda6eed4df6e3b605a9869647624851ac248209d22fd5e2c0cc1121d3: 556 bytes, entropia=4.80, estados=51, niveis=6\n---\n{{- if .System }}{{ .System }}{{ end }}\n{{- range $i, $_ := .Messages }}\n{{- $last := eq (len (slice $.Messages $i)) 1}}\n{{- if eq .Role \"user\" }}<｜User｜>{{ .Content }}\n{{- else if eq .Role \"assistant\" }}<｜Assistant｜>\n  {{- if and $.IsThinkSet (and $last .Thinking) -}}\n<think>\n{{ .Thinking }}\n</thin",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782954329.226075,
+      "id": "L2175"
+    },
+    {
+      "erro": "estudo_modelos:sha256-c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+      "causa": "conceito: estudo_modelos:sha256-c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+      "solucao": "MCR estudou sha256-c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4: 10000 bytes, entropia=4.38, estados=61, niveis=6\n---\n                                 Apache License\n                           Version 2.0, January 2004\n                        http://www.apache.org/licenses/\n\n   TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION\n\n   1. Definitions.\n\n      \"License\" shall mean the terms and conditions for u",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782954333.3249977,
+      "id": "L2176"
+    },
+    {
+      "erro": "estudo_modelos:sha256-d9bb33f2786931fea42f50936a2424818aa2f14500638af2f01861eb2c8fb446",
+      "causa": "conceito: estudo_modelos:sha256-d9bb33f2786931fea42f50936a2424818aa2f14500638af2f01861eb2c8fb446",
+      "solucao": "MCR estudou sha256-d9bb33f2786931fea42f50936a2424818aa2f14500638af2f01861eb2c8fb446: 487 bytes, entropia=4.93, estados=46, niveis=6\n---\n{\"model_format\":\"gguf\",\"model_family\":\"qwen2\",\"model_families\":[\"qwen2\"],\"model_type\":\"7.6B\",\"file_type\":\"Q4_K_M\",\"architecture\":\"amd64\",\"os\":\"linux\",\"rootfs\":{\"type\":\"layers\",\"diff_ids\":[\"sha256:60e05f2100071479f596b964f89f510f057ce397ea22f2833a0cfe029bfc2463\",\"sha256:66b9ea09bd5b7099cbb4fc820f31b5",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782954337.4197927,
+      "id": "L2177"
+    },
+    {
+      "erro": "estudo_modelos:sha256-f4d24e9138dd4603380add165d2b0d970bef471fac194b436ebd50e6147c6588",
+      "causa": "conceito: estudo_modelos:sha256-f4d24e9138dd4603380add165d2b0d970bef471fac194b436ebd50e6147c6588",
+      "solucao": "MCR estudou sha256-f4d24e9138dd4603380add165d2b0d970bef471fac194b436ebd50e6147c6588: 148 bytes, entropia=4.55, estados=34, niveis=6\n---\n{\"stop\":[\"\\u003c｜begin▁of▁sentence｜\\u003e\",\"\\u003c｜end▁of▁sentence｜\\u003e\",\"\\u003c｜User｜\\u003e\",\"\\u003c｜Assistant｜\\u003e\"]}\n",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782954341.527363,
+      "id": "L2178"
+    },
+    {
+      "erro": "estudo_modelos:sha256-f5074b1221da0f5a2910d33b642efa5b9eb58cfdddca1c79e16d7ad28aa2b31f",
+      "causa": "conceito: estudo_modelos:sha256-f5074b1221da0f5a2910d33b642efa5b9eb58cfdddca1c79e16d7ad28aa2b31f",
+      "solucao": "MCR estudou sha256-f5074b1221da0f5a2910d33b642efa5b9eb58cfdddca1c79e16d7ad28aa2b31f: 10000 bytes, entropia=4.22, estados=90, niveis=6\n---\nGGUF\u0003\u0000\u0000\u0000#\u0001\u0000\u0000\u0000\u0000\u0000\u0000\u0019\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0014\u0000\u0000\u0000\u0000\u0000\u0000\u0000general.architecture\b\u0000\u0000\u0000\u0005\u0000\u0000\u0000\u0000\u0000\u0000\u0000llama\f\u0000\u0000\u0000\u0000\u0000\u0000\u0000general.name\b\u0000\u0000\u0000\u0018\u0000\u0000\u0000\u0000\u0000\u0000\u0000Mistral-7B-Instruct-v0.3\u0011\u0000\u0000\u0000\u0000\u0000\u0000\u0000llama.block_count\u0004\u0000\u0000\u0000 \u0000\u0000\u0000\u0014\u0000\u0000\u0000\u0000\u0000\u0000\u0000llama.context_length\u0004\u0000\u0000\u0000\u0000�\u0000\u0000\u0016\u0000\u0000\u0000\u0000\u0000\u0000\u0000llama.embedding_length\u0004\u0000\u0000\u0000\u0000\u0010\u0000\u0000\u0019\u0000\u0000\u0000\u0000\u0000\u0000\u0000llama.feed_forward_length\u0004\u0000\u0000\u0000\u00008\u0000\u0000\u001a\u0000\u0000\u0000\u0000\u0000\u0000\u0000llama.attention.hea",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782954346.400223,
+      "id": "L2179"
+    },
+    {
+      "erro": "estudo_modelos:14b",
+      "causa": "conceito: estudo_modelos:14b",
+      "solucao": "MCR estudou 14b: 857 bytes, entropia=5.02, estados=45, niveis=6\n---\n{\"schemaVersion\":2,\"mediaType\":\"application/vnd.docker.distribution.manifest.v2+json\",\"config\":{\"mediaType\":\"application/vnd.docker.container.image.v1+json\",\"digest\":\"sha256:3c24b0c80794f0eb6e0de0033f8e3203075db1c4640e837e097712a4b88d393b\",\"size\":488},\"layers\":[{\"mediaType\":\"application/vnd.ollama.i",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782954350.501848,
+      "id": "L2180"
+    },
+    {
+      "erro": "estudo_modelos:7b",
+      "causa": "conceito: estudo_modelos:7b",
+      "solucao": "MCR estudou 7b: 857 bytes, entropia=5.02, estados=45, niveis=6\n---\n{\"schemaVersion\":2,\"mediaType\":\"application/vnd.docker.distribution.manifest.v2+json\",\"config\":{\"mediaType\":\"application/vnd.docker.container.image.v1+json\",\"digest\":\"sha256:40fb844194b25e429204e5163fb379ab462978a262b86aadd73d8944445c09fd\",\"size\":487},\"layers\":[{\"mediaType\":\"application/vnd.ollama.i",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782954354.5961285,
+      "id": "L2181"
+    },
+    {
+      "erro": "estudo_modelos:8b",
+      "causa": "conceito: estudo_modelos:8b",
+      "solucao": "MCR estudou 8b: 858 bytes, entropia=5.04, estados=45, niveis=6\n---\n{\"schemaVersion\":2,\"mediaType\":\"application/vnd.docker.distribution.manifest.v2+json\",\"config\":{\"mediaType\":\"application/vnd.docker.container.image.v1+json\",\"digest\":\"sha256:455f34728c9b5dd3376378bfb809ee166c145b0b4c1f1a6feca069055066ef9a\",\"size\":487},\"layers\":[{\"mediaType\":\"application/vnd.ollama.i",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782954358.691998,
+      "id": "L2182"
+    },
+    {
+      "erro": "estudo_modelos:7b",
+      "causa": "conceito: estudo_modelos:7b",
+      "solucao": "MCR estudou 7b: 857 bytes, entropia=5.03, estados=45, niveis=6\n---\n{\"schemaVersion\":2,\"mediaType\":\"application/vnd.docker.distribution.manifest.v2+json\",\"config\":{\"mediaType\":\"application/vnd.docker.container.image.v1+json\",\"digest\":\"sha256:1064e17101bdd2460dd5c4e03e4f5cc1b38a4dee66084dc91faba294ccb64a92\",\"size\":487},\"layers\":[{\"mediaType\":\"application/vnd.ollama.i",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782954362.7899406,
+      "id": "L2183"
+    },
+    {
+      "erro": "estudo_modelos:latest",
+      "causa": "conceito: estudo_modelos:latest",
+      "solucao": "MCR estudou latest: 708 bytes, entropia=5.04, estados=45, niveis=6\n---\n{\"schemaVersion\":2,\"mediaType\":\"application/vnd.docker.distribution.manifest.v2+json\",\"config\":{\"mediaType\":\"application/vnd.docker.container.image.v1+json\",\"digest\":\"sha256:31df23ea7daa448f9ccdbbcecce6c14689c8552222b80defd3830707c0139d4f\",\"size\":420},\"layers\":[{\"mediaType\":\"application/vnd.ollama.i",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [
+        "stress_test"
+      ],
+      "timestamp": 1782954366.896617,
+      "id": "L2184"
+    },
+    {
+      "erro": "estudo_modelos:1.5b",
+      "causa": "conceito: estudo_modelos:1.5b",
+      "solucao": "MCR estudou 1.5b: 857 bytes, entropia=5.04, estados=45, niveis=6\n---\n{\"schemaVersion\":2,\"mediaType\":\"application/vnd.docker.distribution.manifest.v2+json\",\"config\":{\"mediaType\":\"application/vnd.docker.container.image.v1+json\",\"digest\":\"sha256:152cb442202b836b5415fe4397169982b74dc3bdbb06b9777a126e0161c740da\",\"size\":487},\"layers\":[{\"mediaType\":\"application/vnd.ollama.i",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782954370.9868581,
+      "id": "L2185"
+    },
+    {
+      "erro": "estudo_modelos:14b",
+      "causa": "conceito: estudo_modelos:14b",
+      "solucao": "MCR estudou 14b: 858 bytes, entropia=5.04, estados=45, niveis=6\n---\n{\"schemaVersion\":2,\"mediaType\":\"application/vnd.docker.distribution.manifest.v2+json\",\"config\":{\"mediaType\":\"application/vnd.docker.container.image.v1+json\",\"digest\":\"sha256:0578f229f23ad620e123654fd0b4708405e7af3629ec1aecf3f553f54e06bc40\",\"size\":488},\"layers\":[{\"mediaType\":\"application/vnd.ollama.i",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782954375.074101,
+      "id": "L2186"
+    },
+    {
+      "erro": "estudo_modelos:bridge_err.log",
+      "causa": "conceito: estudo_modelos:bridge_err.log",
+      "solucao": "[Grupo 0_3] bridge_err.log: 93 bytes, ent=4.66, est=35, niveis=6\n---\nC:\\Python314\\python.exe: can't open file 'E:\\\\Projeto': [Errno 2] No such file or directory\r\n",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782955197.3412998,
+      "id": "L2187"
+    },
+    {
+      "erro": "estudo_modelos:bridge_response.txt",
+      "causa": "conceito: estudo_modelos:bridge_response.txt",
+      "solucao": "[Grupo 0_3] bridge_response.txt: 121 bytes, ent=4.32, est=29, niveis=6\n---\nOla Criador! Recebi sua mensagem 'testando' pelo bridge automatico. O sistema esta funcionando! O que voce quer testar?\r\n",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [
+        "stress_test"
+      ],
+      "timestamp": 1782955203.1612575,
+      "id": "L2188"
+    },
+    {
+      "erro": "estudo_modelos:sha256-0ba8f0e314b4264dfd19df045cde9d4c394a52474bf92ed6a3de22a4ca31a177",
+      "causa": "conceito: estudo_modelos:sha256-0ba8f0e314b4264dfd19df045cde9d4c394a52474bf92ed6a3de22a4ca31a177",
+      "solucao": "[Grupo 0_3] sha256-0ba8f0e314b4264dfd19df045cde9d4c394a52474bf92ed6a3de22a4ca31a177: 12320 bytes, ent=4.71, est=63, niveis=6\n---\nLLAMA 3.1 COMMUNITY LICENSE AGREEMENT\nLlama 3.1 Version Release Date: July 23, 2024\n\n“Agreement” means the terms and conditions for use, reproduction, distribution and modification of the\nLlama Materials set forth herein.\n\n“Documentation” means the specifications, manuals and documentation accompany",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782955207.2369046,
+      "id": "L2189"
+    },
+    {
+      "erro": "estudo_modelos:sha256-43070e2d4e532684de521b885f385d0841030efa2b1a20bafb76133a5e1379c1",
+      "causa": "conceito: estudo_modelos:sha256-43070e2d4e532684de521b885f385d0841030efa2b1a20bafb76133a5e1379c1",
+      "solucao": "[Grupo 0_3] sha256-43070e2d4e532684de521b885f385d0841030efa2b1a20bafb76133a5e1379c1: 11356 bytes, ent=4.38, est=61, niveis=6\n---\n                                 Apache License\n                           Version 2.0, January 2004\n                        http://www.apache.org/licenses/\n\n   TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION\n\n   1. Definitions.\n\n      \"License\" shall mean the terms and conditions for u",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782955211.3360667,
+      "id": "L2190"
+    },
+    {
+      "erro": "estudo_modelos:sha256-66b9ea09bd5b7099cbb4fc820f31b575c0366fa439b08245566692c6784e281e",
+      "causa": "conceito: estudo_modelos:sha256-66b9ea09bd5b7099cbb4fc820f31b575c0366fa439b08245566692c6784e281e",
+      "solucao": "[Grupo 0_3] sha256-66b9ea09bd5b7099cbb4fc820f31b575c0366fa439b08245566692c6784e281e: 68 bytes, ent=4.21, est=25, niveis=6\n---\nYou are Qwen, created by Alibaba Cloud. You are a helpful assistant.",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782955215.4291933,
+      "id": "L2191"
+    },
+    {
+      "erro": "estudo_modelos:sha256-832dd9e00a68dd83b3c3fb9f5588dad7dcf337a0db50f7d9483f310cd292e92e",
+      "causa": "conceito: estudo_modelos:sha256-832dd9e00a68dd83b3c3fb9f5588dad7dcf337a0db50f7d9483f310cd292e92e",
+      "solucao": "[Grupo 0_3] sha256-832dd9e00a68dd83b3c3fb9f5588dad7dcf337a0db50f7d9483f310cd292e92e: 11343 bytes, ent=4.38, est=61, niveis=6\n---\n\n                                 Apache License\n                           Version 2.0, January 2004\n                        http://www.apache.org/licenses/\n\n   TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION\n\n   1. Definitions.\n\n      \"License\" shall mean the terms and conditions for ",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782955219.5211532,
+      "id": "L2192"
+    },
+    {
+      "erro": "estudo_modelos:sha256-c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+      "causa": "conceito: estudo_modelos:sha256-c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+      "solucao": "[Grupo 0_3] sha256-c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4: 11357 bytes, ent=4.38, est=61, niveis=6\n---\n                                 Apache License\n                           Version 2.0, January 2004\n                        http://www.apache.org/licenses/\n\n   TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION\n\n   1. Definitions.\n\n      \"License\" shall mean the terms and conditions for u",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782955223.6070454,
+      "id": "L2193"
+    },
+    {
+      "erro": "estudo_modelos:.backup_resolver_ultra.py",
+      "causa": "conceito: estudo_modelos:.backup_resolver_ultra.py",
+      "solucao": "[Grupo 0_3] .backup_resolver_ultra.py: 8430 bytes, ent=4.80, est=69, niveis=6\n---\n\"\"\"MCR-DevIA escaneia e resolve TESTE CEGO ULTRA\"\"\"\r\nimport os, re, json, urllib.request, sys\r\n\r\n# === DETECTORES AUTO-GERADOS ===\r\n\r\ndef detectar_loot_invalido(texto):\r\n    for m in re.finditer(r'addLoot\\((\\d+),\\s*([\\d.]+)\\)', texto):\r\n        if float(m.group(2)) > 1.0:\r\n            return True\r\n ",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [
+        "stress_test"
+      ],
+      "timestamp": 1782955227.6960988,
+      "id": "L2194"
+    },
+    {
+      "erro": "estudo_modelos:.crew_v18_cerebro.json",
+      "causa": "conceito: estudo_modelos:.crew_v18_cerebro.json",
+      "solucao": "[Grupo 0_3] .crew_v18_cerebro.json: 818 bytes, ent=4.56, est=50, niveis=6\n---\n{\r\n  \"versoes\": 4,\r\n  \"acertos\": 3,\r\n  \"erros\": 0,\r\n  \"modulos\": {\r\n    \"npc_O Legado Perdido de Erid\": {\r\n      \"nome\": \"O Legado Perdido de Erid\",\r\n      \"saudacao\": \"\\\"Estranho! Como você encontrou meu legado?\\\"\",\r\n      \"item_id\": \"1001\",\r\n      \"item_preco\": \"50\"\r\n    },\r\n    \"npc_Legado Perdid",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782955231.7724001,
+      "id": "L2195"
+    },
+    {
+      "erro": "estudo_modelos:.mcr_agent_log.json",
+      "causa": "conceito: estudo_modelos:.mcr_agent_log.json",
+      "solucao": "[Grupo 0_3] .mcr_agent_log.json: 210 bytes, ent=4.62, est=43, niveis=6\n---\n{\r\n  \"execucoes\": 1,\r\n  \"acoes\": 1,\r\n  \"problemas\": [\r\n    {\r\n      \"problema\": \"clavas_leves_original.lua: chaves desbalanceadas (92/87)\",\r\n      \"data\": \"2026-06-25 02:06:16\"\r\n    }\r\n  ],\r\n  \"solucoes\": []\r\n}",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782955236.62069,
+      "id": "L2196"
+    },
+    {
+      "erro": "estudo_modelos:.mcr_auto_log.json",
+      "causa": "conceito: estudo_modelos:.mcr_auto_log.json",
+      "solucao": "[Grupo 0_3] .mcr_auto_log.json: 603 bytes, ent=4.23, est=42, niveis=6\n---\n{\r\n  \"versoes\": 6,\r\n  \"reparos\": [\r\n    {\r\n      \"versao\": 3,\r\n      \"tipo\": \"monster\",\r\n      \"funcoes_adicionadas\": [\r\n        \"setMaster\",\r\n        \"setOutfit\"\r\n      ],\r\n      \"resultado\": \"falha\",\r\n      \"motivo\": \"formato do arquivo diferente do esperado\",\r\n      \"data\": \"2026-06-25 03:10:00\"\r",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782955240.7194002,
+      "id": "L2197"
+    },
+    {
+      "erro": "estudo_modelos:.mcr_auto_melhoria_log.json",
+      "causa": "conceito: estudo_modelos:.mcr_auto_melhoria_log.json",
+      "solucao": "[Grupo 0_3] .mcr_auto_melhoria_log.json: 1068 bytes, ent=4.44, est=53, niveis=6\n---\n{\r\n  \"versoes\": 1,\r\n  \"melhorias\": [\r\n    {\r\n      \"versao\": 0,\r\n      \"timestamp\": \"2026-06-26 13:53:15\",\r\n      \"tipo\": \"kg_limpio\",\r\n      \"descricao\": \"Removidas 2057 lessons inativas do KG\",\r\n      \"detalhes\": {\r\n        \"acao\": \"aplicado\",\r\n        \"removidas\": 2057,\r\n        \"tamanho_antes\": ",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782955244.8012743,
+      "id": "L2198"
+    },
+    {
+      "erro": "estudo_modelos:.mcr_cache_decisao.json",
+      "causa": "conceito: estudo_modelos:.mcr_cache_decisao.json",
+      "solucao": "[Grupo 0_3] .mcr_cache_decisao.json: 13740 bytes, ent=3.91, est=32, niveis=6\n---\n{\r\n  \"decisoes\": [],\r\n  \"conexoes\": [\r\n    {\r\n      \"origem\": \"fixer_codigo morto\",\r\n      \"destino\": \"fixer_codigo morto\",\r\n      \"palavras_comuns\": [\r\n        \"param\",\r\n        \"nfunction\",\r\n        \"grouptype\",\r\n        \"nreturn\",\r\n        \"ipairs\"\r\n      ],\r\n      \"forca\": 22\r\n    },\r\n    {\r\n   ",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782955248.8880146,
+      "id": "L2199"
+    },
+    {
+      "erro": "estudo_modelos:.mcr_cmd.json",
+      "causa": "conceito: estudo_modelos:.mcr_cmd.json",
+      "solucao": "[Grupo 0_3] .mcr_cmd.json: 62 bytes, ent=4.46, est=30, niveis=6\n---\n{\"cmd\": \"perguntar\", \"args\": [\"O que e .lua no projeto MCR?\"]}",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782955252.9753377,
+      "id": "L2200"
+    },
+    {
+      "erro": "estudo_modelos:.mcr_cmd_fix.py",
+      "causa": "conceito: estudo_modelos:.mcr_cmd_fix.py",
+      "solucao": "[Grupo 0_3] .mcr_cmd_fix.py: 3471 bytes, ent=4.76, est=70, niveis=6\n---\n#!/usr/bin/env python3\n\"\"\"Adiciona leitura de contexto .mcr_conversa.jsonl no kernel.\"\"\"\nimport sys, os, json\n\n# 1. Restaura kernel.py removendo duplicacao\nkpath = r'E:\\Projeto MCR\\scripts\\mcr_devia\\kernel.py'\nwith open(kpath, 'r', encoding='utf-8') as f:\n    lines = f.readlines()\n\n# Remove linhas c",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782955257.0643036,
+      "id": "L2201"
+    },
+    {
+      "erro": "estudo_modelos:.mcr_conversa.jsonl",
+      "causa": "conceito: estudo_modelos:.mcr_conversa.jsonl",
+      "solucao": "[Grupo 0_3] .mcr_conversa.jsonl: 19196 bytes, ent=4.71, est=67, niveis=6\n---\n{\"role\": \"cloud\", \"msg\": \"Testando o novo sistema de contexto compartilhado\", \"ts\": 1782518412.4031243}\r\n{\"role\": \"cloud\", \"msg\": \"Estou implementando o sistema de pensamentos completos. Decidi: (1) Atualizar o LEMBRETE no kernel.py para incluir a mensagem sobre escrever pensamentos. (2) Escrever pe",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [
+        "stress_test"
+      ],
+      "timestamp": 1782955261.1513593,
+      "id": "L2202"
+    },
+    {
+      "erro": "estudo_modelos:.mcr_knowledge.json",
+      "causa": "conceito: estudo_modelos:.mcr_knowledge.json",
+      "solucao": "[Grupo 0_3] .mcr_knowledge.json: 452 bytes, ent=5.00, est=49, niveis=6\n---\n{\r\n  \"vs_paths\": {},\r\n  \"msbuild_path\": \"C:\\\\Program Files\\\\Microsoft Visual Studio\\\\2022\\\\Community\\\\MSBuild\\\\Current\\\\Bin\\\\amd64\\\\MSBuild.exe\",\r\n  \"vcvars_path\": null,\r\n  \"tentativas\": 1,\r\n  \"sucessos\": 0,\r\n  \"historico\": [\r\n    {\r\n      \"acao\": \"procurar_msbuild\",\r\n      \"resultado\": \"C:\\\\Program",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782955265.2443955,
+      "id": "L2203"
+    },
+    {
+      "erro": "estudo_modelos:.mcr_learning_scan.json",
+      "causa": "conceito: estudo_modelos:.mcr_learning_scan.json",
+      "solucao": "[Grupo 0_3] .mcr_learning_scan.json: 1974 bytes, ent=4.19, est=65, niveis=6\n---\n{\r\n  \"universal\": true,\r\n  \"total_arquivos\": 103,\r\n  \"linguagens\": [\r\n    \"javascript\",\r\n    \"python\",\r\n    \"typescript\",\r\n    \"lua\"\r\n  ],\r\n  \"ruido_filtrado\": 168,\r\n  \"padroes\": {\r\n    \"lua\": {\r\n      \"funcoes\": {\r\n        \"ensureFiles\": 3,\r\n        \"utf8ToLatin1\": 2,\r\n        \"aplicarPostura\": 2\r\n",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782955270.0741825,
+      "id": "L2204"
+    },
+    {
+      "erro": "estudo_modelos:.mcr_metricas.json",
+      "causa": "conceito: estudo_modelos:.mcr_metricas.json",
+      "solucao": "[Grupo 0_3] .mcr_metricas.json: 7825 bytes, ent=4.39, est=42, niveis=6\n---\n{\r\n  \"total_calls\": 275,\r\n  \"erros\": 0,\r\n  \"cache_hits\": 0,\r\n  \"cache_misses\": 0,\r\n  \"tempo_medio\": 33.0,\r\n  \"templates_usados\": {\r\n    \"lore\": 19,\r\n    \"perguntar\": 123,\r\n    \"analisar_codigo\": 37,\r\n    \"conceito\": 17,\r\n    \"planejamento_arquitetura\": 26,\r\n    \"diagnostico_problema\": 10,\r\n    \"expl",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782955274.1573904,
+      "id": "L2205"
+    },
+    {
+      "erro": "estudo_modelos:.mcr_resposta.txt",
+      "causa": "conceito: estudo_modelos:.mcr_resposta.txt",
+      "solucao": "[Grupo 0_3] .mcr_resposta.txt: 299 bytes, ent=4.40, est=39, niveis=6\n---\nO arquivo `.lua` no Projeto MCR é uma linguagem de programação usada para criar scripts personalizados e funções dentro do servidor. Lua é conhecida por sua simplicidade e eficiência, tornando-a ideal para desenvolver funcionalidades adicionais ou modificar comportamentos existentes do jogo.",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782955278.2461407,
+      "id": "L2206"
+    },
+    {
+      "erro": "estudo_modelos:.mcr_review_crew.log",
+      "causa": "conceito: estudo_modelos:.mcr_review_crew.log",
+      "solucao": "[Grupo 0_3] .mcr_review_crew.log: 4764 bytes, ent=5.02, est=67, niveis=6\n---\n[10:01:51] Crew acionada para buscar_item.lua\r\n[10:01:51] Problemas: ['codigo morto apos return', 'codigo morto']\r\n[10:01:51] Analista: diagnosticando...\r\n[10:01:54] Causa: ** O código após o `return item` é considerado \"código morto\" porque nunca será \r\n[10:01:54] Estrategia: ** Remova a linha de r",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782955282.343726,
+      "id": "L2207"
+    },
+    {
+      "erro": "estudo_modelos:.mcr_todo.json",
+      "causa": "conceito: estudo_modelos:.mcr_todo.json",
+      "solucao": "[Grupo 0_3] .mcr_todo.json: 72 bytes, ent=4.04, est=24, niveis=6\n---\n[\r\n  {\r\n    \"tarefa\": \"Testar novos comandos\",\r\n    \"done\": true\r\n  }\r\n]",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [
+        "stress_test"
+      ],
+      "timestamp": 1782955286.4253612,
+      "id": "L2208"
+    },
+    {
+      "erro": "estudo_modelos:.mcr_watchdog_novo.py",
+      "causa": "conceito: estudo_modelos:.mcr_watchdog_novo.py",
+      "solucao": "[Grupo 0_3] .mcr_watchdog_novo.py: 4863 bytes, ent=4.53, est=58, niveis=6\n---\n\"\"\"Modulo: Watchdog - Monitora comandos/ + sandbox/ para auto-revisao.\r\n- Hot-reload de comandos quando comandos/ muda\r\n- Auto-revisao de respostas quando sandbox/ muda\r\n\"\"\"\r\nimport os, time, threading\r\n\r\ndef init_module(contexto):\r\n    kernel = contexto.get('kernel')\r\n    if kernel:\r\n        w = Wa",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782955290.5164607,
+      "id": "L2209"
+    },
+    {
+      "erro": "estudo_modelos:add_domains.py",
+      "causa": "conceito: estudo_modelos:add_domains.py",
+      "solucao": "[Grupo 0_3] add_domains.py: 1875 bytes, ent=4.78, est=71, niveis=6\n---\n\"\"\"Add arcos and lutador domains to mcr_crew.py\"\"\"\nwith open(r'E:\\Projeto MCR\\sandbox\\mcr_crew.py', 'r', encoding='utf-8') as f:\n    c = f.read()\n\n# Find the DOMINIOS dict and add new entries after clavas_leves\nold = \"\"\"    DOMINIOS = {\n        'clavas_leves': {\"\"\"\nnew = \"\"\"    DOMINIOS = {\n        ",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782955294.6103592,
+      "id": "L2210"
+    },
+    {
+      "erro": "estudo_modelos:add_meta_lesson.py",
+      "causa": "conceito: estudo_modelos:add_meta_lesson.py",
+      "solucao": "[Grupo 0_3] add_meta_lesson.py: 1216 bytes, ent=5.25, est=77, niveis=6\n---\n\"\"\"Add V12 meta-lesson to KG\"\"\"\nimport json\n\npath = r'E:\\Projeto MCR\\sandbox\\.mcr_devia\\knowledge.json'\nwith open(path, 'r', encoding='utf-8') as f:\n    kg = json.load(f)\n\nlesson = {\n    'id': f'M{len(kg[\"licoes\"])+1:04d}',\n    'erro': 'V12 Pattern: Python estrutura, IA preenche blanks - aplicavel a",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782955298.6981575,
+      "id": "L2211"
+    },
+    {
+      "erro": "estudo_modelos:analisador_multi_estagio.py",
+      "causa": "conceito: estudo_modelos:analisador_multi_estagio.py",
+      "solucao": "[Grupo 0_3] analisador_multi_estagio.py: 8575 bytes, ent=4.16, est=67, niveis=6\n---\n\"\"\"MCR-DevIA — Teste Cego: Analisador Multi-Estagio\nEU (70B) crio algo complexo. ELE tenta copiar. Se falhar, eu refaco enquanto ele observa.\"\"\"\nimport os, sys, ast, json\nfrom collections import defaultdict\n\nclass AnalisadorCodigo:\n    \"\"\"Analisa codigo Python em multi-estagios: extrai, grafa, docum",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [
+        "stress_test"
+      ],
+      "timestamp": 1782955303.5426996,
+      "id": "L2212"
+    },
+    {
+      "erro": "estudo_modelos:analisar_detector.py",
+      "causa": "conceito: estudo_modelos:analisar_detector.py",
+      "solucao": "[Grupo 0_3] analisar_detector.py: 741 bytes, ent=5.02, est=60, niveis=6\n---\n\"\"\"MCR-DevIA: Descubra e corrija o detector de variavel global\"\"\"\nimport subprocess, sys\n\n# Pergunta 1: Analisar o problema\nprompt = \"\"\"O detector de variavel global esta quebrado. Ele usa regex que pega TUDO que parece \"nome = valor\" identado.\n\nMas em Lua, isso e normal dentro de tabelas:\nHABILIDAD",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782955307.626146,
+      "id": "L2213"
+    },
+    {
+      "erro": "estudo_modelos:analise_analisador_multi_estagio.py.json",
+      "causa": "conceito: estudo_modelos:analise_analisador_multi_estagio.py.json",
+      "solucao": "[Grupo 0_3] analise_analisador_multi_estagio.py.json: 2385 bytes, ent=4.83, est=66, niveis=6\n---\n{\r\n  \"arquivo\": \"E:\\\\Projeto MCR\\\\sandbox\\\\analisador_multi_estagio.py\",\r\n  \"funcoes\": 9,\r\n  \"classes\": 1,\r\n  \"dependencias\": {\r\n    \"executar\": [\r\n      \"_estagio1_extrair\",\r\n      \"_estagio2_grafar\",\r\n      \"_estagio3_documentar\",\r\n      \"_estagio4_diagnosticar\",\r\n      \"_estagio5_sugerir\",\r\n     ",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782955311.6994152,
+      "id": "L2214"
+    },
+    {
+      "erro": "estudo_modelos:aprender_formato.py",
+      "causa": "conceito: estudo_modelos:aprender_formato.py",
+      "solucao": "[Grupo 0_3] aprender_formato.py: 2001 bytes, ent=4.71, est=67, niveis=6\n---\n\"\"\"MCR-DevIA: formato diferente = aprender, nao ignorar\"\"\"\nimport json, os\n\npath = r'E:\\Projeto MCR\\sandbox\\.mcr_devia\\knowledge.json'\n\nwith open(path, 'r', encoding='utf-8', errors='replace') as f:\n    kg = json.load(f)\n\n# Le o formato REAL do mcr_ultimate.py\nult_path = r'E:\\Projeto MCR\\sandbox\\mcr",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782955315.7828963,
+      "id": "L2215"
+    },
+    {
+      "erro": "estudo_modelos:arquivo.py",
+      "causa": "conceito: estudo_modelos:arquivo.py",
+      "solucao": "[Grupo 0_3] arquivo.py: 821 bytes, ent=4.83, est=72, niveis=6\n---\nimport json\r\n\r\ndef criar_arquivo_json():\r\n    \"\"\"\r\n    Cria um arquivo .mcr_cmd_update.json no sandbox com o conteúdo especificado.\r\n    \"\"\"\r\n    # Define o conteúdo a ser escrito no arquivo JSON\r\n    conteudo = {\r\n        'cmd': 'edit',\r\n        'args': [\r\n            'E:\\\\Projeto MCR\\\\AGENTS.md',\r",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782955319.8705125,
+      "id": "L2216"
+    },
+    {
+      "erro": "estudo_modelos:auditoria_ia.py",
+      "causa": "conceito: estudo_modelos:auditoria_ia.py",
+      "solucao": "[Grupo 0_3] auditoria_ia.py: 2724 bytes, ent=4.95, est=81, niveis=6\n---\n\"\"\"Auditoria: encontrar todas as chamadas de IA e classificar como:\n- [IA] = precisa de IA (geracao, interpretacao)\n- [V12] = Python estrutura + IA preenche (pode ser otimizado)\n- [PY] = pode virar Python puro\n\nDepois aplicar as substituicoes [PY] e [V12] automaticamente.\n\"\"\"\nimport re, ast\n\ncode = ",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782955323.9547474,
+      "id": "L2217"
+    },
+    {
+      "erro": "estudo_modelos:auditor_cloud.py",
+      "causa": "conceito: estudo_modelos:auditor_cloud.py",
+      "solucao": "[Grupo 0_3] auditor_cloud.py: 6613 bytes, ent=4.67, est=78, niveis=6\n---\n#!/usr/bin/env python3\n\"\"\"\nAUDITORIA CLOUD — Independente, sem ver resultados do MCR-DevIA\n================================================================\nEu (cloud) vasculho o projeto com MEUS proprios criterios.\n\"\"\"\n\nimport sys, os, json, re, datetime\n\nBASE = r'E:\\Projeto MCR'\nSANDBOX = r'E:\\Proj",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782955328.0483673,
+      "id": "L2218"
+    },
+    {
+      "erro": "estudo_modelos:autoavaliacao.py",
+      "causa": "conceito: estudo_modelos:autoavaliacao.py",
+      "solucao": "[Grupo 0_3] autoavaliacao.py: 7613 bytes, ent=4.61, est=78, niveis=6\n---\n#!/usr/bin/env python3\r\n\"\"\"\r\nAUTO-AVALIACAO: Cloud vs MCR-DevIA (Local)\r\n=============================================\r\nCada um se avalia em 10 dimensoes.\r\nNota 0-10. Depois compara.\r\n\"\"\"\r\n\r\nimport json, os, re, urllib.request\r\n\r\nOLLAMA_URL = 'http://localhost:11434/api/generate'\r\nSANDBOX = r'E:\\Pro",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782955332.1398156,
+      "id": "L2219"
+    },
+    {
+      "erro": "estudo_modelos:auto_analise.py",
+      "causa": "conceito: estudo_modelos:auto_analise.py",
+      "solucao": "[Grupo 0_3] auto_analise.py: 2027 bytes, ent=4.81, est=69, niveis=6\n---\n\"\"\"Ensinar MCR-DevIA a se auto-analisar antes de se auto-reparar\"\"\"\nimport json, os\n\npath = r'E:\\Projeto MCR\\sandbox\\.mcr_devia\\knowledge.json'\nwith open(path, 'r', encoding='utf-8', errors='replace') as f:\n    kg = json.load(f)\n\nlicao = {\n    'id': f'S{len(kg[\"licoes\"])+1:04d}',\n    'erro': 'Reparo",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782955337.035962,
+      "id": "L2220"
+    },
+    {
+      "erro": "estudo_modelos:auto_aprender_detector.py",
+      "causa": "conceito: estudo_modelos:auto_aprender_detector.py",
+      "solucao": "[Grupo 0_3] auto_aprender_detector.py: 4290 bytes, ent=5.25, est=82, niveis=6\n---\n#!/usr/bin/env python3\n\"\"\"\nMCR-DevIA — AUTO-APRENDIZADO DE DETECTORES\n=============================================\nQuando ele PERDE um problema, ele:\n  1. Analisa o arquivo que deveria ter detectado\n  2. Identifica o padrao unico\n  3. Gera UMA FUNCAO DE DETECCAO nova\n  4. ADICIONA no proprio codigo",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782955341.1174977,
+      "id": "L2221"
+    },
+    {
+      "erro": "estudo_modelos:auto_correcao.py",
+      "causa": "conceito: estudo_modelos:auto_correcao.py",
+      "solucao": "[Grupo 0_3] auto_correcao.py: 7509 bytes, ent=4.83, est=86, niveis=6\n---\n\"\"\"MCR-DevIA — Auto-Limpeza + Auto-Correção V12.3\nNÃO é só limpar. É CORRIGIR o que está errado:\n- Arquivos com API errada (Item no lugar de NPC) → corrige\n- Arquivos temporários que já cumpriram papel → apaga\n- Tudo validado pelo detector de consistência\"\"\"\nimport os, json, shutil, re, sys\nsys.path",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782955345.208701,
+      "id": "L2222"
+    },
+    {
+      "erro": "estudo_modelos:auto_fixer.py",
+      "causa": "conceito: estudo_modelos:auto_fixer.py",
+      "solucao": "[Grupo 0_3] auto_fixer.py: 8681 bytes, ent=4.22, est=71, niveis=6\n---\n\"\"\"MCR-DevIA Auto-Fixer — Corrige problemas automaticamente em ambiente fechado\"\"\"\nimport os, re, shutil, json\nfrom datetime import datetime\n\nclass AutoFixer:\n    def __init__(self, sandbox_root):\n        self.root = sandbox_root\n        self.log = []\n        self.fixes_aplicados = 0\n    \n    def lo",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782955349.288673,
+      "id": "L2223"
+    },
+    {
+      "erro": "estudo_modelos:auto_fixer_v12.py",
+      "causa": "conceito: estudo_modelos:auto_fixer_v12.py",
+      "solucao": "[Grupo 0_3] auto_fixer_v12.py: 15036 bytes, ent=4.67, est=73, niveis=6\n---\n\"\"\"MCR-DevIA Auto-Fixer V12.3 — IA com validacao, fallback deterministico e KG\"\"\"\nimport os, re, json, urllib.request, shutil\n\nOLLAMA_URL = \"http://localhost:11434/api/generate\"\n\nclass AutoFixerV12:\n    def __init__(self, sandbox_path):\n        self.sandbox = sandbox_path\n        self.kg_path = os.p",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782955353.3836098,
+      "id": "L2224"
+    },
+    {
+      "erro": "estudo_modelos:auto_template_v2.py",
+      "causa": "conceito: estudo_modelos:auto_template_v2.py",
+      "solucao": "[Grupo 0_3] auto_template_v2.py: 11456 bytes, ent=4.23, est=76, niveis=6\n---\n\"\"\"Auto-Template V2 — Aprende a pensar como o assistente cloud\"\"\"\r\nimport re, os, json\r\nfrom collections import Counter\r\n\r\nclass AutoTemplateV2:\r\n    \"\"\"\r\n    Cria templates como EU faria:\r\n    1. Coleta VARIOS exemplos do mesmo tipo\r\n    2. Compara (diff) linha a linha\r\n    3. O que é IGUAL em todo",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782955357.480449,
+      "id": "L2225"
+    },
+    {
+      "erro": "estudo_modelos:benchmark2.py",
+      "causa": "conceito: estudo_modelos:benchmark2.py",
+      "solucao": "[Grupo 0_3] benchmark2.py: 4353 bytes, ent=4.79, est=76, niveis=6\n---\n#!/usr/bin/env python3\n\"\"\"Benchmark REAL — testa o bridge_auto.py de verdade.\"\"\"\nimport sys, os, json, time\n\nsys.path.insert(0, r\"E:\\Projeto MCR\\scripts\")\nsys.path.insert(0, r\"E:\\Projeto MCR\\Scripts\")\n\n# Importa as funcoes REAIS do bridge\nfrom bridge_auto import template_reply, route_intent, exact_c",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [
+        "stress_test"
+      ],
+      "timestamp": 1782955361.5721362,
+      "id": "L2226"
+    },
+    {
+      "erro": "estudo_modelos:benchmark_antes.json",
+      "causa": "conceito: estudo_modelos:benchmark_antes.json",
+      "solucao": "[Grupo 0_3] benchmark_antes.json: 5838 bytes, ent=4.55, est=60, niveis=6\n---\n{\r\n  \"mode\": \"antes\",\r\n  \"timestamp\": 1782323183.3731081,\r\n  \"summary\": {\r\n    \"total_queries\": 16,\r\n    \"template_hits\": 4,\r\n    \"router_hits\": 8,\r\n    \"ai_calls\": 4,\r\n    \"total_model_calls\": 16,\r\n    \"total_tokens_input\": 439,\r\n    \"total_tokens_output\": 287\r\n  },\r\n  \"results\": [\r\n    {\r\n      \"i",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [
+        "stress_test"
+      ],
+      "timestamp": 1782955365.666635,
+      "id": "L2227"
+    },
+    {
+      "erro": "estudo_modelos:benchmark_depois.json",
+      "causa": "conceito: estudo_modelos:benchmark_depois.json",
+      "solucao": "[Grupo 0_3] benchmark_depois.json: 5931 bytes, ent=4.55, est=60, niveis=6\n---\n{\r\n  \"mode\": \"depois\",\r\n  \"timestamp\": 1782323308.5413032,\r\n  \"summary\": {\r\n    \"total_queries\": 16,\r\n    \"template_hits\": 4,\r\n    \"router_hits\": 8,\r\n    \"ai_calls\": 4,\r\n    \"total_model_calls\": 16,\r\n    \"total_tokens_input\": 439,\r\n    \"total_tokens_output\": 247\r\n  },\r\n  \"results\": [\r\n    {\r\n      \"",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [
+        "stress_test"
+      ],
+      "timestamp": 1782955370.6015306,
+      "id": "L2228"
+    },
+    {
+      "erro": "estudo_modelos:benchmark_otimizado.py",
+      "causa": "conceito: estudo_modelos:benchmark_otimizado.py",
+      "solucao": "[Grupo 0_3] benchmark_otimizado.py: 4735 bytes, ent=5.16, est=85, niveis=6\n---\n\"\"\"benchmark_otimizado.py - Com fragmentacao forçada para caber na VRAM\"\"\"\nimport urllib.request, json, time, os, sys\n\nOLLAMA_URL = \"http://localhost:11434/api/generate\"\n\n# Modelos com contexto reduzido via fragmentador (2048 em vez de 4096 para 14b)\nMODELOS = [\n    (\"qwen2.5-coder:1.5b\", 2048, \"Lev",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [
+        "stress_test"
+      ],
+      "timestamp": 1782955374.6795774,
+      "id": "L2229"
+    },
+    {
+      "erro": "estudo_modelos:benchmark_rapido.py",
+      "causa": "conceito: estudo_modelos:benchmark_rapido.py",
+      "solucao": "[Grupo 0_3] benchmark_rapido.py: 4920 bytes, ent=5.09, est=79, niveis=6\n---\n\"\"\"benchmark_rapido.py - Benchmark rapido de modelos x cargos\"\"\"\nimport urllib.request, json, time, os, sys, threading, queue\n\nOLLAMA_URL = \"http://localhost:11434/api/generate\"\n\nMODELOS = [\n    \"qwen2.5-coder:1.5b\",\n    \"qwen2.5-coder:7b\",\n    \"deepseek-r1:7b\",\n    \"llama3.1:8b\",\n    \"qwen2.5:14b\",",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [
+        "stress_test"
+      ],
+      "timestamp": 1782955378.778177,
+      "id": "L2230"
+    },
+    {
+      "erro": "estudo_modelos:benchmark_real.json",
+      "causa": "conceito: estudo_modelos:benchmark_real.json",
+      "solucao": "[Grupo 0_3] benchmark_real.json: 4516 bytes, ent=4.57, est=57, niveis=6\n---\n{\r\n  \"mode\": \"pos_otimizacao\",\r\n  \"timestamp\": 1782324061.2315078,\r\n  \"results\": [\r\n    {\r\n      \"id\": \"saudacao_1\",\r\n      \"pergunta\": \"ola\",\r\n      \"esperado\": \"template\",\r\n      \"caminho\": \"template_blocked\",\r\n      \"resposta\": \"Ola Testador! Sou o assistente MCR. Como posso ajudar?\",\r\n      \"tem",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [
+        "stress_test"
+      ],
+      "timestamp": 1782955382.8768353,
+      "id": "L2231"
+    },
+    {
+      "erro": "estudo_modelos:check_kg.py",
+      "causa": "conceito: estudo_modelos:check_kg.py",
+      "solucao": "[Grupo 0_3] check_kg.py: 321 bytes, ent=5.00, est=55, niveis=6\n---\n\"\"\"Verificar entradas sem 'erro' no KG\"\"\"\nimport json\n\nkg = json.load(open(\"E:\\\\Projeto MCR\\\\sandbox\\\\.mcr_devia\\\\knowledge.json\", \"r\", encoding=\"utf-8\"))\nfor i, l in enumerate(kg[\"licoes\"]):\n    if \"erro\" not in l:\n        print(f\"IDX {i}: id={l.get('id','?')} keys={list(l.keys())}\")\n        print(",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782955386.971564,
+      "id": "L2232"
+    },
+    {
+      "erro": "estudo_modelos:clavas_leves_original.lua",
+      "causa": "conceito: estudo_modelos:clavas_leves_original.lua",
+      "solucao": "[Grupo 0_3] clavas_leves_original.lua: 4613 bytes, ent=4.71, est=73, niveis=6\n---\n--[[\r\n    Projeto MCR — SPA — CLAVAS LEVES (112)\r\n    Perfil: Especialidade (Clavas 12 -> Combate 1)\r\n    SHC: 5 camadas contextuais\r\n    IDs: 11201-11220\r\n--]]\r\n-- Traco: \"Toque Rapido\" — Nv5: velocidade+5% | Nv10: atordoamento+5% | Nv15: combo | Nv20: mestre do ritmo\r\n\r\nHABILIDADES[11201] = {\r\n   ",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782955391.061764,
+      "id": "L2233"
+    },
+    {
+      "erro": "estudo_modelos:comparacao_cargos.py",
+      "causa": "conceito: estudo_modelos:comparacao_cargos.py",
+      "solucao": "[Grupo 0_3] comparacao_cargos.py: 6303 bytes, ent=5.02, est=72, niveis=6\n---\n\"\"\"\nCOMPARACAO DIRETA: MCR-DevIA vs Cloud 70B em cada cargo do Model Router\nCada cargo faz a MESMA tarefa. Resultado lado a lado.\n\"\"\"\nimport subprocess, json, urllib.request, time, os, sys\n\nOLLAMA_URL = \"http://localhost:11434/api/generate\"\nSANDBOX = \"E:\\\\Projeto MCR\\\\sandbox\"\nCORRIDA = \"E:\\\\Projeto",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782955395.1556482,
+      "id": "L2234"
+    },
+    {
+      "erro": "estudo_modelos:corrida2_cru_npc1_inicio.lua",
+      "causa": "conceito: estudo_modelos:corrida2_cru_npc1_inicio.lua",
+      "solucao": "[Grupo 0_3] corrida2_cru_npc1_inicio.lua: 907 bytes, ent=4.73, est=62, niveis=6\n---\n-- CRU: NPC Iniciador — Guardiao das Profecias\r\n-- Criado manualmente, sem scripts\r\nlocal npc = NPC(\"Guardiao das Profecias\")\r\n\r\nnpc:setSaudacao(\"A profecia se cumpre. Voce e o escolhido? O tempo e curto.\")\r\nnpc:setAdeus(\"Que a luz de Eridanus te guie.\")\r\n\r\nnpc:addDialog(\"quest\", {\r\n    {\"O que esta",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782955399.2464807,
+      "id": "L2235"
+    },
+    {
+      "erro": "estudo_modelos:corrida2_cru_npc2_meio.lua",
+      "causa": "conceito: estudo_modelos:corrida2_cru_npc2_meio.lua",
+      "solucao": "[Grupo 0_3] corrida2_cru_npc2_meio.lua: 758 bytes, ent=4.80, est=60, niveis=6\n---\n-- CRU: NPC Meio — Sabia Anciã\r\n-- Criado manualmente\r\nlocal npc = NPC(\"Sabia Ancia\")\r\n\r\nnpc:setSaudacao(\"Ah, o Guardiao me enviou? Entao e serio. Sente-se, vamos conversar.\")\r\n\r\nnpc:addDialog(\"quest_progress\", {\r\n    {\"Onde estao os artefatos?\", \"O Selo do Guardiao esta na torre norte, guardado pel",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782955404.1871464,
+      "id": "L2236"
+    },
+    {
+      "erro": "estudo_modelos:corrida2_cru_quest.lua",
+      "causa": "conceito: estudo_modelos:corrida2_cru_quest.lua",
+      "solucao": "[Grupo 0_3] corrida2_cru_quest.lua: 2152 bytes, ent=4.54, est=63, niveis=6\n---\n-- CRU: Quest — O Despertar de Eridanus\nlocal quest = Quest(\"O Despertar de Eridanus\")\nquest:setDescricao(\"Uma antiga profecia esta se cumprindo. Os tres pilares de Eridanus foram abalados e alguem tenta despertar um poder antigo. Voce deve encontrar o Guardiao das Profecias e impedir o despertar.\")",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782955408.2678347,
+      "id": "L2237"
+    },
+    {
+      "erro": "estudo_modelos:corrida2_cru_spell.lua",
+      "causa": "conceito: estudo_modelos:corrida2_cru_spell.lua",
+      "solucao": "[Grupo 0_3] corrida2_cru_spell.lua: 331 bytes, ent=4.83, est=49, niveis=6\n---\n-- CRU: Spell — Luz de Eridanus (recompensa por completar a quest)\nlocal spell = Spell(\"Luz de Eridanus\", \"holy\")\nspell:setDamage(150)\nspell:setManaCost(60)\nspell:setCooldown(8)\nspell:setDescription(\"Invoca a luz ancestral de Eridanus para purificar as trevas.\")\nspell:setMagicLevel(15)\nprint(\"Spell ",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782955412.3570287,
+      "id": "L2238"
+    },
+    {
+      "erro": "estudo_modelos:corrida2_cru_talkaction.lua",
+      "causa": "conceito: estudo_modelos:corrida2_cru_talkaction.lua",
+      "solucao": "[Grupo 0_3] corrida2_cru_talkaction.lua: 1246 bytes, ent=4.59, est=59, niveis=6\n---\n-- CRU: TalkAction — !profecia (verificar progresso da quest)\nlocal talk = TalkAction(\"!profecia\")\nfunction talk.onSay(player, words, param)\n    local quest = player:getQuest(\"O Despertar de Eridanus\")\n    if not quest then\n        player:sendTextMessage(27, \"Voce nao iniciou a profecia. Procure o G",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782955416.441919,
+      "id": "L2239"
+    },
+    {
+      "erro": "estudo_modelos:corrida_cru_items.lua",
+      "causa": "conceito: estudo_modelos:corrida_cru_items.lua",
+      "solucao": "[Grupo 0_3] corrida_cru_items.lua: 1070 bytes, ent=4.82, est=54, niveis=6\n---\n-- Itens do Sistema: O Legado Perdido de Eridanus\n-- Criado pelo MCR CRU (factory default)\n\n-- Itens de Quest\nlocal mapa = Item(30001, \"Mapa do Legado\")\nmapa:setType(\"quest\")\nmapa:setDescription(\"Um mapa antigo mostrando a localizacao dos tres artefatos perdidos de Eridanus.\")\n\nlocal olho = Item(300",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782955420.5298002,
+      "id": "L2240"
+    },
+    {
+      "erro": "estudo_modelos:corrida_cru_npc.lua",
+      "causa": "conceito: estudo_modelos:corrida_cru_npc.lua",
+      "solucao": "[Grupo 0_3] corrida_cru_npc.lua: 1170 bytes, ent=4.84, est=62, niveis=6\n---\n-- NPC: Velho Sabio de Eridanus\r\n-- Criado pelo MCR CRU (factory default)\r\n-- Sistema: O Legado Perdido de Eridanus\r\n\r\nlocal npc = NPC(\"Velho Sabio\")\r\n\r\nnpc:setSaudacao(\"Ah, um aventureiro! Vejo que seus olhos brilham com curiosidade. Sente-se, vamos conversar.\")\r\nnpc:setAdeus(\"Que os ventos te leve",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782955424.6218786,
+      "id": "L2241"
+    },
+    {
+      "erro": "estudo_modelos:corrida_cru_quest.lua",
+      "causa": "conceito: estudo_modelos:corrida_cru_quest.lua",
+      "solucao": "[Grupo 0_3] corrida_cru_quest.lua: 1726 bytes, ent=4.61, est=59, niveis=6\n---\n-- Quest: O Legado Perdido de Eridanus\n-- Criado pelo MCR CRU (factory default)\n\nlocal quest = Quest(\"O Legado Perdido de Eridanus\")\n\nquest:setDescricao(\"Ajude o Velho Sabio a recuperar os tres artefatos perdidos que protegem Eridanus.\")\nquest:setNivelMinimo(10)\nquest:setNpcIniciador(\"Velho Sabio\")\n",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782955428.7200375,
+      "id": "L2242"
+    },
+    {
+      "erro": "estudo_modelos:corrida_thinker_v3.py",
+      "causa": "conceito: estudo_modelos:corrida_thinker_v3.py",
+      "solucao": "[Grupo 0_3] corrida_thinker_v3.py: 9465 bytes, ent=4.96, est=77, niveis=6\n---\n\"\"\"Grande Corrida V12_THINKER — Criada pelo Thinker V3\r\nTodos os 3 competidores recebem o MESMO ambiente poluido:\r\n15 arquivos gerados com API errada (Monster no lugar de Item, etc.)\r\nCada um lida do seu jeito. Vamos ver quem se vira melhor.\"\"\"\r\nimport os, sys, json, time, subprocess, shutil\r\n\r\nRESU",
+      "ctx": "estudo_modelos",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782955432.8123636,
+      "id": "L2243"
+    }
+  ]
+}

@@ -1,0 +1,62 @@
+{
+  "ctx": "gap_token",
+  "licoes": [
+    {
+      "erro": "token:2026-06-23_teste-bridge-alucinacoes_md",
+      "causa": "conceito: token:2026-06-23_teste-bridge-alucinacoes_md",
+      "solucao": "[Fonte: docs\\lessons\\2026-06-23_teste-bridge-alucinacoes.md]\nareça\n   na chave do cache para evitar falsos-positivos.\n2. **Knowledge Base** (mcr_knowledge.txt): Adicionado:\n   - Sistema de TalkActions (revscript, NÃO XML)\n   - APIs Lua reais (sendMagicEffect, say, sendTextMessage, sendCancelMessage)\n   - Lista de constantes CONST_ME_* para efeitos\n   - Seção \"O que o MCR NÃO é\" para evitar alucinações\n3. **Prompt** (bridge_auto.py): Adicionadas regras:\n   -",
+      "ctx": "gap_token",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [
+        "stress_test"
+      ],
+      "timestamp": 1782943624.357305,
+      "id": "L1935"
+    },
+    {
+      "erro": "token:[5] MCR - Guia de Interface (OTUI e Lua Cliente)_txt",
+      "causa": "conceito: token:[5] MCR - Guia de Interface (OTUI e Lua Cliente)_txt",
+      "solucao": "[Fonte: docs\\MCR - Instruções\\[5] MCR - Guia de Interface (OTUI e Lua Cliente).txt]\ni, lua-client updated=2026-06-23\n﻿PROJETO MCR – GUIA DE INTERFACE (OTUI E LUA CLIENTE)\nVersão 3.2 – Adicionado: sistema Toast, formato de cores expandido, novos módulos cliente (item_translator, mcr_name_fix, guest_mask)\nArquivo: [5] MCR - Guia de Interface (OTUI e Lua Cliente).txt\n\n🎯 OBJETIVO DESTE GUIA\nEste documento é a autoridade máxima sobre a criação e modificação de interfaces no OTClient R",
+      "ctx": "gap_token",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782943628.4191988,
+      "id": "L1936"
+    },
+    {
+      "erro": "token:Sistema Multi-Piso_md",
+      "causa": "conceito: token:Sistema Multi-Piso_md",
+      "solucao": "[Fonte: docs\\MCR - Instruções\\DevLog\\Sistema Multi-Piso.md]\n summons vs hostis\n- Sistema híbrido (replaneia rota após transição se 20% mais curta)\n\n**O que foi adicionado recentemente:**\n- **Pensamento do monstro** (`m_thinkCycle`, `m_thinkDirs`): ao chegar no destino da escada sem ver o líder, olha para direções candidatas (escadas próximas, última posição do líder) antes de decidir\n- **Movimento nativo**: `getNextStep` só usa `isWalkingToPosition` quando",
+      "ctx": "gap_token",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782943632.4655929,
+      "id": "L1937"
+    },
+    {
+      "erro": "token:[2] MCR - Guia de Compilação (Cliente)_txt",
+      "causa": "conceito: token:[2] MCR - Guia de Compilação (Cliente)_txt",
+      "solucao": "[Fonte: docs\\MCR - Instruções\\[2] MCR - Guia de Compilação (Cliente).txt]\n client, otclient, build updated=2026-06-23\nPROJETO MCR – GUIA DE COMPILAÇÃO (CLIENTE)\nVersão 4.1 – Adicionado: documentação de módulos cliente (mcr_modules, toast, charactercreation, item_translator), modificações C++ específicas (protocolgameparse, uiwidgettext, uimap, map, missile, mapview, creature), FastNoiseLite e Tibia/ no RME\nArquivo: [2] MCR - Guia de Compilação (Cliente).txt\n\n🎯 OBJETIVO ",
+      "ctx": "gap_token",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782943636.5195222,
+      "id": "L1938"
+    },
+    {
+      "erro": "token:Sistema de Codificação_md",
+      "causa": "conceito: token:Sistema de Codificação_md",
+      "solucao": "[Fonte: docs\\MCR - Instruções\\DevLog\\Sistema de Codificação.md]\nva `toLatin1()` — só não estava sendo chamado em `sendTextMessage`\n- ProtocolGame::sendTextMessage: adicionado `toLatin1(message.text)` na linha 4796\n\n## O que foi corrigido\n\n| Local | O que mudou | Arquivo |\n|---|---|---|\n| `sendTextMessage` | Adicionado `toLatin1(message.text)` | `protocolgame.cpp:4796` |\n| `player.cpp:7636` | \"Não\" literal → funcionou com `/utf-8` + `toLatin1()` | `player.cpp` ",
+      "ctx": "gap_token",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782943640.5732255,
+      "id": "L1939"
+    }
+  ]
+}

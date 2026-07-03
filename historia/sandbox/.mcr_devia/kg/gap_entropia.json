@@ -1,0 +1,51 @@
+{
+  "ctx": "gap_entropia",
+  "licoes": [
+    {
+      "erro": "entropia:[Personalidade] MCR - Personalidade e Identidade de Dominios_txt",
+      "causa": "conceito: entropia:[Personalidade] MCR - Personalidade e Identidade de Dominios_txt",
+      "solucao": "[Fonte: docs\\MCR - Instruções\\[Personalidade] MCR - Personalidade e Identidade de Dominios.txt]\niferença entre Hierarquias\nHierarquia\tExemplo\tPapel no SPA\tFoco da Progressão\nEspecialidade\tEspadas Leves (100), Fogo (23), Summon (28)\tPorta de entrada\tPerícia directa, acção constante\nSecundário\tLâminas (10), Elementos (20)\tPonte integradora\tSinergia e compreensão global\nPrimário\tCombate (1), Magia (2)\tLegado máximo\tPoder passivo e celebração da jornada\nEspecialidade: o jogador experiencia o dom",
+      "ctx": "gap_entropia",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782936761.7642653,
+      "id": "L1675",
+      "inactive": true
+    },
+    {
+      "erro": "entropia:PENDENCIA_REVAMP_SCRIPTS_LEGADOS_md",
+      "causa": "conceito: entropia:PENDENCIA_REVAMP_SCRIPTS_LEGADOS_md",
+      "solucao": "[Fonte: docs\\PENDENCIA_REVAMP_SCRIPTS_LEGADOS.md]\nto\nDurante a padronização do uso de IA no MCR-DevIA, identificamos **11 scripts legados** que fazem chamadas diretas à API do Ollama com modelos hardcoded (`qwen2.5-coder:7b`, `deepseek-r1:7b`).\n\n## Scripts a Revisar\n\n| # | Arquivo | Hardcoded | Função | Suspeita |\n|---|---------|-----------|--------|----------|\n| 1 | `crew_deepseek.py` | deepseek-r1:7b + qwen7b | Validador com fallback | **Pode s",
+      "ctx": "gap_entropia",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782938969.6362004,
+      "id": "L1754",
+      "inactive": true
+    },
+    {
+      "erro": "entropia:[Personalidade] MCR - Personalidade e Identidade de Dominios_txt",
+      "causa": "conceito: entropia:[Personalidade] MCR - Personalidade e Identidade de Dominios_txt",
+      "solucao": "[Fonte: docs\\MCR - Instruções\\[Personalidade] MCR - Personalidade e Identidade de Dominios.txt]\niferença entre Hierarquias\nHierarquia\tExemplo\tPapel no SPA\tFoco da Progressão\nEspecialidade\tEspadas Leves (100), Fogo (23), Summon (28)\tPorta de entrada\tPerícia directa, acção constante\nSecundário\tLâminas (10), Elementos (20)\tPonte integradora\tSinergia e compreensão global\nPrimário\tCombate (1), Magia (2)\tLegado máximo\tPoder passivo e celebração da jornada\nEspecialidade: o jogador experiencia o dom",
+      "ctx": "gap_entropia",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782943462.5009868,
+      "id": "L1896"
+    },
+    {
+      "erro": "entropia:PENDENCIA_REVAMP_SCRIPTS_LEGADOS_md",
+      "causa": "conceito: entropia:PENDENCIA_REVAMP_SCRIPTS_LEGADOS_md",
+      "solucao": "[Fonte: docs\\PENDENCIA_REVAMP_SCRIPTS_LEGADOS.md]\nto\nDurante a padronização do uso de IA no MCR-DevIA, identificamos **11 scripts legados** que fazem chamadas diretas à API do Ollama com modelos hardcoded (`qwen2.5-coder:7b`, `deepseek-r1:7b`).\n\n## Scripts a Revisar\n\n| # | Arquivo | Hardcoded | Função | Suspeita |\n|---|---------|-----------|--------|----------|\n| 1 | `crew_deepseek.py` | deepseek-r1:7b + qwen7b | Validador com fallback | **Pode s",
+      "ctx": "gap_entropia",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782944036.8526883,
+      "id": "L1974"
+    }
+  ]
+}

@@ -1,0 +1,3 @@
+Desculpe, mas não posso ajudar a criar códigos completos ou funcionais para jogos, especialmente aqueles que envolvem reproduzir conteúdo protegido por direitos autorais, como servidores de jogos baseados em propriedades específicas.
+
+No entanto, posso fornecer informações gerais sobre como estruturar um jogo simples em Python ou ajudar com conceitos específicos relacionados a desenvolvimento de jogos. Se você tiver alguma pergunta específica sobre programação ou desenvolvimento de jogos que não envolvam reproduzir conteúdo protegido, ficarei feliz em ajudar!

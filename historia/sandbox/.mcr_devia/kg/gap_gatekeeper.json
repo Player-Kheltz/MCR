@@ -1,0 +1,116 @@
+{
+  "ctx": "gap_gatekeeper",
+  "licoes": [
+    {
+      "erro": "gatekeeper:[3] MCR - Guia de Configuração (Servidor e Rede)_txt",
+      "causa": "conceito: gatekeeper:[3] MCR - Guia de Configuração (Servidor e Rede)_txt",
+      "solucao": "[Fonte: docs\\MCR - Instruções\\[3] MCR - Guia de Configuração (Servidor e Rede).txt]\n tradução).\n\nVersionamento com Git (boas práticas).\n\nToda vez que for necessário ajustar uma porta, adicionar uma flag ou depurar um erro de conexão, este guia é a referência primária. A versão 4.4 atualiza as faixas de opcodes e storages para acomodar o SPA v4.6.0, documenta os novos métodos C++ (incluindo a perseguição multi‑piso com fila de transições, storeFloorChange, followTargetAcrossFloor,",
+      "ctx": "gap_gatekeeper",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782936803.8737612,
+      "id": "L1685",
+      "inactive": true
+    },
+    {
+      "erro": "gatekeeper:PLANO_FINAL_MCR_DevIA_md",
+      "causa": "conceito: gatekeeper:PLANO_FINAL_MCR_DevIA_md",
+      "solucao": "[Fonte: docs\\plano\\PLANO_FINAL_MCR_DevIA.md]\nss_test` poluem a busca semântica |\n| **Onde** | `sandbox/.mcr_devia/knowledge.json` |\n| **Como** | Adicionar campo `\"tipo\": \"benchmark\"` nas 100 lessons de stress. Modificar `kg.buscar()` para filtrar `tipo=benchmark` em consultas normais |\n| **Codigo** | `if l.get('tipo') == 'benchmark' and not query_benc",
+      "ctx": "gap_gatekeeper",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [
+        "stress_test"
+      ],
+      "timestamp": 1782936807.9202278,
+      "id": "L1686",
+      "inactive": true
+    },
+    {
+      "erro": "gatekeeper:05 - GUIAS DE CRIACAO_txt",
+      "causa": "conceito: gatekeeper:05 - GUIAS DE CRIACAO_txt",
+      "solucao": "[Fonte: docs\\MCR - Instruções\\Sistema de Habilidades Contextuais\\05 - GUIAS DE CRIACAO.txt]\nnome, tipo, domínio, cooldown\n    ☐ Criar efeitoConfig BASE (comportamento padrão)\n    ☐ [OPCIONAL] Adicionar bloco postura para variações por postura\n    ☐ [OPCIONAL] Adicionar bloco niveis para melhorias automáticas\n    ☐ [OPCIONAL] Adicionar bloco sinergias para interações com outros domínios\n    ☐ [OPCIONAL] Adicionar bloco estados para Vínculo/Lampejo\n    ☐ [OPCIONAL] Adicionar bloco condicoe",
+      "ctx": "gap_gatekeeper",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782936811.9828649,
+      "id": "L1687",
+      "inactive": true
+    },
+    {
+      "erro": "gatekeeper:[3] MCR - Guia de Configuração (Servidor e Rede)_txt",
+      "causa": "conceito: gatekeeper:[3] MCR - Guia de Configuração (Servidor e Rede)_txt",
+      "solucao": "[Fonte: docs\\MCR - Instruções\\[3] MCR - Guia de Configuração (Servidor e Rede).txt]\n tradução).\n\nVersionamento com Git (boas práticas).\n\nToda vez que for necessário ajustar uma porta, adicionar uma flag ou depurar um erro de conexão, este guia é a referência primária. A versão 4.4 atualiza as faixas de opcodes e storages para acomodar o SPA v4.6.0, documenta os novos métodos C++ (incluindo a perseguição multi‑piso com fila de transições, storeFloorChange, followTargetAcrossFloor,",
+      "ctx": "gap_gatekeeper",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782938011.870406,
+      "id": "L1718",
+      "inactive": true
+    },
+    {
+      "erro": "gatekeeper:PLANO_FINAL_MCR_DevIA_md",
+      "causa": "conceito: gatekeeper:PLANO_FINAL_MCR_DevIA_md",
+      "solucao": "[Fonte: docs\\plano\\PLANO_FINAL_MCR_DevIA.md]\nss_test` poluem a busca semântica |\n| **Onde** | `sandbox/.mcr_devia/knowledge.json` |\n| **Como** | Adicionar campo `\"tipo\": \"benchmark\"` nas 100 lessons de stress. Modificar `kg.buscar()` para filtrar `tipo=benchmark` em consultas normais |\n| **Codigo** | `if l.get('tipo') == 'benchmark' and not query_benc",
+      "ctx": "gap_gatekeeper",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [
+        "stress_test"
+      ],
+      "timestamp": 1782938015.9318595,
+      "id": "L1719",
+      "inactive": true
+    },
+    {
+      "erro": "gatekeeper:05 - GUIAS DE CRIACAO_txt",
+      "causa": "conceito: gatekeeper:05 - GUIAS DE CRIACAO_txt",
+      "solucao": "[Fonte: docs\\MCR - Instruções\\Sistema de Habilidades Contextuais\\05 - GUIAS DE CRIACAO.txt]\nnome, tipo, domínio, cooldown\n    ☐ Criar efeitoConfig BASE (comportamento padrão)\n    ☐ [OPCIONAL] Adicionar bloco postura para variações por postura\n    ☐ [OPCIONAL] Adicionar bloco niveis para melhorias automáticas\n    ☐ [OPCIONAL] Adicionar bloco sinergias para interações com outros domínios\n    ☐ [OPCIONAL] Adicionar bloco estados para Vínculo/Lampejo\n    ☐ [OPCIONAL] Adicionar bloco condicoe",
+      "ctx": "gap_gatekeeper",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782938019.996786,
+      "id": "L1720",
+      "inactive": true
+    },
+    {
+      "erro": "gatekeeper:[3] MCR - Guia de Configuração (Servidor e Rede)_txt",
+      "causa": "conceito: gatekeeper:[3] MCR - Guia de Configuração (Servidor e Rede)_txt",
+      "solucao": "[Fonte: docs\\MCR - Instruções\\[3] MCR - Guia de Configuração (Servidor e Rede).txt]\n tradução).\n\nVersionamento com Git (boas práticas).\n\nToda vez que for necessário ajustar uma porta, adicionar uma flag ou depurar um erro de conexão, este guia é a referência primária. A versão 4.4 atualiza as faixas de opcodes e storages para acomodar o SPA v4.6.0, documenta os novos métodos C++ (incluindo a perseguição multi‑piso com fila de transições, storeFloorChange, followTargetAcrossFloor,",
+      "ctx": "gap_gatekeeper",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782943491.563544,
+      "id": "L1903"
+    },
+    {
+      "erro": "gatekeeper:PLANO_FINAL_MCR_DevIA_md",
+      "causa": "conceito: gatekeeper:PLANO_FINAL_MCR_DevIA_md",
+      "solucao": "[Fonte: docs\\plano\\PLANO_FINAL_MCR_DevIA.md]\nss_test` poluem a busca semântica |\n| **Onde** | `sandbox/.mcr_devia/knowledge.json` |\n| **Como** | Adicionar campo `\"tipo\": \"benchmark\"` nas 100 lessons de stress. Modificar `kg.buscar()` para filtrar `tipo=benchmark` em consultas normais |\n| **Codigo** | `if l.get('tipo') == 'benchmark' and not query_benc",
+      "ctx": "gap_gatekeeper",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [
+        "stress_test"
+      ],
+      "timestamp": 1782943495.6095202,
+      "id": "L1904"
+    },
+    {
+      "erro": "gatekeeper:05 - GUIAS DE CRIACAO_txt",
+      "causa": "conceito: gatekeeper:05 - GUIAS DE CRIACAO_txt",
+      "solucao": "[Fonte: docs\\MCR - Instruções\\Sistema de Habilidades Contextuais\\05 - GUIAS DE CRIACAO.txt]\nnome, tipo, domínio, cooldown\n    ☐ Criar efeitoConfig BASE (comportamento padrão)\n    ☐ [OPCIONAL] Adicionar bloco postura para variações por postura\n    ☐ [OPCIONAL] Adicionar bloco niveis para melhorias automáticas\n    ☐ [OPCIONAL] Adicionar bloco sinergias para interações com outros domínios\n    ☐ [OPCIONAL] Adicionar bloco estados para Vínculo/Lampejo\n    ☐ [OPCIONAL] Adicionar bloco condicoe",
+      "ctx": "gap_gatekeeper",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782943499.6661043,
+      "id": "L1905"
+    }
+  ]
+}

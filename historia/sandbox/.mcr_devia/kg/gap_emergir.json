@@ -1,0 +1,125 @@
+{
+  "ctx": "gap_emergir",
+  "licoes": [
+    {
+      "erro": "emergir:LEGACY_md",
+      "causa": "conceito: emergir:LEGACY_md",
+      "solucao": "[Fonte: E:\\Projeto MCR\\docs\\LEGACY.md]\ngos |\n| Outros `.py` | ~360 | Scripts diversos de uso único |\n| `.txt` | ~46 | Logs, análises, lore gerada |\n| `.json` | ~24 | Dados de benchmark e cache |\n| `.lua` | 3 | NPCs gerados (mergulhador, comerciante, vendedor) |\n\n**Motivo**: Poluição do diretório de runtime. Esses scripts foram executados\numa vez e nunca mais usados. Mantidos em Legado para referência histórica.\n\n---\n\n## Legado/engine/ ",
+      "ctx": "gap_emergir",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [
+        "stress_test"
+      ],
+      "timestamp": 1782920996.9987402,
+      "id": "L1212"
+    },
+    {
+      "erro": "emergir:[2] MCR - Guia de Compilação (Cliente)_txt",
+      "causa": "conceito: emergir:[2] MCR - Guia de Compilação (Cliente)_txt",
+      "solucao": "[Fonte: E:\\Projeto MCR\\docs\\MCR - Instruções\\[2] MCR - Guia de Compilação (Cliente).txt]\n sem necessidade de novas interfaces; e o cliente está preparado para exibir as mensagens coloridas geradas pelo servidor (canal 24) através da função c() e da tabela COR v10.0. As novas APIs de atributos base e velocidade do SPA v4.5 são suportadas nativamente pelo protocolo.\n\n🚧 ESTADO ATUAL DA IMPLEMENTAÇÃO\n\nO SPA v4.5 está totalmente funcional no servidor. No cliente, a situação é a seguinte:\n\n",
+      "ctx": "gap_emergir",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782921001.0562465,
+      "id": "L1213"
+    },
+    {
+      "erro": "emergir:PENDENCIA_REVAMP_SCRIPTS_LEGADOS_md",
+      "causa": "conceito: emergir:PENDENCIA_REVAMP_SCRIPTS_LEGADOS_md",
+      "solucao": "[Fonte: E:\\Projeto MCR\\docs\\PENDENCIA_REVAMP_SCRIPTS_LEGADOS.md]\nvisor.py |\n| 7 | `mcr_observatory_v2.py` | qwen2.5-coder:7b | Observatório | Legado? |\n| 8 | `super_fragmentador.py` | Multi-modelos | Fragmentação de texto | **Pode ser útil** — integrar ao Orquestrador |\n| 9 | `mcr_learning_scan.py` | qwen2.5-coder:7b | Scan de aprendizado | Legado |\n| 10 | `mcr_scriptbuilder.py` | qwen2.5-coder:7b | Builder de scripts | Legado |\n| 11 | `mcr_ultimate_upgrade.py`",
+      "ctx": "gap_emergir",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782921148.0567248,
+      "id": "L1232",
+      "inactive": true
+    },
+    {
+      "erro": "emergir:EMERGIR_V5_md",
+      "causa": "conceito: emergir:EMERGIR_V5_md",
+      "solucao": "[Fonte: E:\\Projeto MCR\\docs\\plano\\EMERGIR_V5.md]\n(V4)\n\n| Componente | Status | Descrição |\n|-----------|--------|-----------|\n| **EMERGIR V4** | ✅ | Fragmentador 4 seções + Z expandido com 3 visões críticas (cenário, padrão, potencial) |\n| **ContextCrew** | ✅ | Enriquece tópicos com 5 fontes (KG, Web, Docs, Código, WebLearn) |\n| **Anti-alucinação** | ✅ | Regex + FAST (Nível 1 + Nível 2) — verifica expansões erradas de siglas MCR |\n| **Zero hardc",
+      "ctx": "gap_emergir",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782921152.118047,
+      "id": "L1233",
+      "inactive": true
+    },
+    {
+      "erro": "emergir:PENDENCIA_REVAMP_SCRIPTS_LEGADOS_md",
+      "causa": "conceito: emergir:PENDENCIA_REVAMP_SCRIPTS_LEGADOS_md",
+      "solucao": "[Fonte: E:\\Projeto MCR\\docs\\PENDENCIA_REVAMP_SCRIPTS_LEGADOS.md]\nvisor.py |\n| 7 | `mcr_observatory_v2.py` | qwen2.5-coder:7b | Observatório | Legado? |\n| 8 | `super_fragmentador.py` | Multi-modelos | Fragmentação de texto | **Pode ser útil** — integrar ao Orquestrador |\n| 9 | `mcr_learning_scan.py` | qwen2.5-coder:7b | Scan de aprendizado | Legado |\n| 10 | `mcr_scriptbuilder.py` | qwen2.5-coder:7b | Builder de scripts | Legado |\n| 11 | `mcr_ultimate_upgrade.py`",
+      "ctx": "gap_emergir",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782921262.3971763,
+      "id": "L1259"
+    },
+    {
+      "erro": "emergir:EMERGIR_V5_md",
+      "causa": "conceito: emergir:EMERGIR_V5_md",
+      "solucao": "[Fonte: E:\\Projeto MCR\\docs\\plano\\EMERGIR_V5.md]\n(V4)\n\n| Componente | Status | Descrição |\n|-----------|--------|-----------|\n| **EMERGIR V4** | ✅ | Fragmentador 4 seções + Z expandido com 3 visões críticas (cenário, padrão, potencial) |\n| **ContextCrew** | ✅ | Enriquece tópicos com 5 fontes (KG, Web, Docs, Código, WebLearn) |\n| **Anti-alucinação** | ✅ | Regex + FAST (Nível 1 + Nível 2) — verifica expansões erradas de siglas MCR |\n| **Zero hardc",
+      "ctx": "gap_emergir",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782921266.4544938,
+      "id": "L1260"
+    },
+    {
+      "erro": "emergir:LEGACY_md",
+      "causa": "conceito: emergir:LEGACY_md",
+      "solucao": "[Fonte: docs\\LEGACY.md]\ngos |\n| Outros `.py` | ~360 | Scripts diversos de uso único |\n| `.txt` | ~46 | Logs, análises, lore gerada |\n| `.json` | ~24 | Dados de benchmark e cache |\n| `.lua` | 3 | NPCs gerados (mergulhador, comerciante, vendedor) |\n\n**Motivo**: Poluição do diretório de runtime. Esses scripts foram executados\numa vez e nunca mais usados. Mantidos em Legado para referência histórica.\n\n---\n\n## Legado/engine/ ",
+      "ctx": "gap_emergir",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [
+        "stress_test"
+      ],
+      "timestamp": 1782938965.5702696,
+      "id": "L1753",
+      "inactive": true
+    },
+    {
+      "erro": "emergir:EMERGIR_V5_md",
+      "causa": "conceito: emergir:EMERGIR_V5_md",
+      "solucao": "[Fonte: docs\\plano\\EMERGIR_V5.md]\n(V4)\n\n| Componente | Status | Descrição |\n|-----------|--------|-----------|\n| **EMERGIR V4** | ✅ | Fragmentador 4 seções + Z expandido com 3 visões críticas (cenário, padrão, potencial) |\n| **ContextCrew** | ✅ | Enriquece tópicos com 5 fontes (KG, Web, Docs, Código, WebLearn) |\n| **Anti-alucinação** | ✅ | Regex + FAST (Nível 1 + Nível 2) — verifica expansões erradas de siglas MCR |\n| **Zero hardc",
+      "ctx": "gap_emergir",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782941223.3691347,
+      "id": "L1847",
+      "inactive": true
+    },
+    {
+      "erro": "emergir:LEGACY_md",
+      "causa": "conceito: emergir:LEGACY_md",
+      "solucao": "[Fonte: docs\\LEGACY.md]\ngos |\n| Outros `.py` | ~360 | Scripts diversos de uso único |\n| `.txt` | ~46 | Logs, análises, lore gerada |\n| `.json` | ~24 | Dados de benchmark e cache |\n| `.lua` | 3 | NPCs gerados (mergulhador, comerciante, vendedor) |\n\n**Motivo**: Poluição do diretório de runtime. Esses scripts foram executados\numa vez e nunca mais usados. Mantidos em Legado para referência histórica.\n\n---\n\n## Legado/engine/ ",
+      "ctx": "gap_emergir",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [
+        "stress_test"
+      ],
+      "timestamp": 1782943458.4430833,
+      "id": "L1895"
+    },
+    {
+      "erro": "emergir:EMERGIR_V5_md",
+      "causa": "conceito: emergir:EMERGIR_V5_md",
+      "solucao": "[Fonte: docs\\plano\\EMERGIR_V5.md]\n(V4)\n\n| Componente | Status | Descrição |\n|-----------|--------|-----------|\n| **EMERGIR V4** | ✅ | Fragmentador 4 seções + Z expandido com 3 visões críticas (cenário, padrão, potencial) |\n| **ContextCrew** | ✅ | Enriquece tópicos com 5 fontes (KG, Web, Docs, Código, WebLearn) |\n| **Anti-alucinação** | ✅ | Regex + FAST (Nível 1 + Nível 2) — verifica expansões erradas de siglas MCR |\n| **Zero hardc",
+      "ctx": "gap_emergir",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782944032.0121334,
+      "id": "L1973"
+    }
+  ]
+}

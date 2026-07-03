@@ -1,0 +1,278 @@
+{
+  "ctx": "gap_inception",
+  "licoes": [
+    {
+      "erro": "inception:[12] MCR - Guia de Conteúdo Inicial e Tutorial_txt",
+      "causa": "conceito: inception:[12] MCR - Guia de Conteúdo Inicial e Tutorial_txt",
+      "solucao": "[Fonte: docs\\MCR - Instruções\\[12] MCR - Guia de Conteúdo Inicial e Tutorial.txt]\n>> CATALOG tags=tutorial, eridanus, new-player updated=2026-06-23\nPROJETO MCR – GUIA DE CONTEÚDO INICIAL E TUTORIAL\n(Versão 5.0 – Integração total com o SPA v3.2.0, sistema de cores, missões e progressão em Eridanus)\nArquivo: [12] MCR - Guia de Conteúdo Inicial e Tutorial.txt\n\n🎯 OBJETIVO DESTE GUIA\nDescrever, passo a passo, ",
+      "ctx": "gap_inception",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782936816.051283,
+      "id": "L1688",
+      "inactive": true
+    },
+    {
+      "erro": "inception:[4] MCR - Guia do Login Server_txt",
+      "causa": "conceito: inception:[4] MCR - Guia do Login Server_txt",
+      "solucao": "[Fonte: docs\\MCR - Instruções\\[4] MCR - Guia do Login Server.txt]\ncontinue a posicionar o personagem Alma no Salão dos Destinos, de onde o Oráculo o encaminhará para Eridanus após a criação da conta permanente.\n\n🚧 ESTADO ATUAL DA IMPLEMENTAÇÃO\n\nO SPA v4.2 está totalmente funcional no servidor, mas o Login Server permanece inalterado. Pontos importantes:\n\nOs endpoints /register, /login e /guest_login estão implementados e operacionais.\n\nA variável de ambiente VOC",
+      "ctx": "gap_inception",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782936820.1023943,
+      "id": "L1689",
+      "inactive": true
+    },
+    {
+      "erro": "inception:[8] MCR - Guia de Criação de Conta e Personagem_txt",
+      "causa": "conceito: inception:[8] MCR - Guia de Criação de Conta e Personagem_txt",
+      "solucao": "[Fonte: docs\\MCR - Instruções\\[8] MCR - Guia de Criação de Conta e Personagem.txt]\no (vocation = 0). A benção narrativa do\nOráculo agora ecoa o despertar dos Domínios que ocorrerá em Eridanus.\n\nComponentes abordados:\n\nBotão \"Salão dos Destinos\" (entrada única para novos jogadores e\ngerenciamento).\n\nContas guest temporárias e personagem Alma descartável.\n\nNPC Oráculo como central de autoatendimento (criação de conta, criação de\npersonagem, gerenciamento de conta existente).\n\nDefi",
+      "ctx": "gap_inception",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782936824.1603854,
+      "id": "L1690",
+      "inactive": true
+    },
+    {
+      "erro": "inception:[7] MCR - Guia de Quests (Sistema Híbrido SQH)_txt",
+      "causa": "conceito: inception:[7] MCR - Guia de Quests (Sistema Híbrido SQH)_txt",
+      "solucao": "[Fonte: docs\\MCR - Instruções\\[7] MCR - Guia de Quests (Sistema Híbrido SQH).txt]\nnas subpastas apropriadas\ndentro de data-canary/scripts/MCR/ (ex.: MCR/Tutorial/ para as missões de\nEridanus, MCR/Geral/ para utilitários). O Revscript carrega automaticamente\ncada ficheiro, permitindo que as quests sejam auto‑suficientes e modulares.\n\n🚧 ESTADO ATUAL DA IMPLEMENTAÇÃO\n\nO SPA v4.6.0 está totalmente implementado, incluindo todas as APIs C++ descritas\nna documentação do sistema. Conse",
+      "ctx": "gap_inception",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782936828.216005,
+      "id": "L1691",
+      "inactive": true
+    },
+    {
+      "erro": "inception:CATALOG_md",
+      "causa": "conceito: inception:CATALOG_md",
+      "solucao": "[Fonte: docs\\CATALOG.md]\nndice Geral) |\n| Tarefas pendentes, estado atual, planejamento | DevLog/Pendencias.md |\n| Tutorial, Eridanus, novo jogador | Guia [12] |\n\n## Indice Completo\n\n| Arquivo | Tags | Atualizado | Resumo |\n|---|---|---|---|\n| `DevLog\\Pendências.md` | `todo, next-steps, roadmap, pendencias` | 2026-06-24 | Estado atual do projeto, tarefas pendentes e decisoes em aberto |\n| `DevLog\\Sistema ",
+      "ctx": "gap_inception",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782936832.2745705,
+      "id": "L1692",
+      "inactive": true
+    },
+    {
+      "erro": "inception:00 - INDICE_txt",
+      "causa": "conceito: inception:00 - INDICE_txt",
+      "solucao": "[Fonte: docs\\MCR - Instruções\\Sistema de Habilidades Contextuais\\00 - INDICE.txt]\n→ Regras de diferenciação\n\n06 - REFERENCIAS POP.txt\n    → Referências da cultura pop adaptadas para Eridanus\n    → Regra de ouro: recontextualização para high fantasy\n\n\nARQUIVOS DO CÓDIGO FONTE (Canary Server):\n───────────────────────────────────\nCanary/data-canary/scripts/MCR/SPA/core/contexto.lua\n    → Resolvedor Contextual (NOVO, v1.0)\n    → Aplica as 5 camadas: postura → nível → sinergias → es",
+      "ctx": "gap_inception",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782936837.103293,
+      "id": "L1693",
+      "inactive": true
+    },
+    {
+      "erro": "inception:MCR_IDENTITY_md",
+      "causa": "conceito: inception:MCR_IDENTITY_md",
+      "solucao": "[Fonte: docs\\MCR_IDENTITY.md]\nservidor MCR.\nDominios = áreas de conhecimento do SPA (ex: Fogo 23, Gelo 24, Terra 25, Energia 26).\nEridanus = Cidade inicial do projeto MCR, ponto de partida dos aventureiros.\nProjeto MCR = servidor customizado de Tibia, parte da comunidade OTServ.\n",
+      "ctx": "gap_inception",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782936841.1625977,
+      "id": "L1694",
+      "inactive": true
+    },
+    {
+      "erro": "inception:MCR_IDENTITY_md",
+      "causa": "conceito: inception:MCR_IDENTITY_md",
+      "solucao": "[Fonte: docs\\MCR_IDENTITY.md]\nR.\nDominios = áreas de conhecimento do SPA (ex: Fogo 23, Gelo 24, Terra 25, Energia 26).\nEridanus = Cidade inicial do projeto MCR, ponto de partida dos aventureiros.\nProjeto MCR = servidor customizado de Tibia, parte da comunidade OTServ.\n",
+      "ctx": "gap_inception",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782938024.0435429,
+      "id": "L1721",
+      "inactive": true
+    },
+    {
+      "erro": "inception:diag_capacidades_py",
+      "causa": "conceito: inception:diag_capacidades_py",
+      "solucao": "[Prototipo: diag_capacidades.py]\n#!/usr/bin/env python3\n\"\"\"Diagnostico real das capacidades do MCR.\"\"\"\nimport sys, os\nsys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'scripts', 'mcr_devia'))\nsys.stdout.reconfigure(encoding='utf-8', errors='replace')\n\nprint('=== 1. CACHE ===')\nfrom modulos.MCR import MCRDocIndex\nidx = MCRDocIndex()\nprint(f'MCRDocIndex: existe')\nprint(f'Cache salvo em: sandbox/.mcr_docs_index.json')\nprint(f'Cache existe: {os.path.exists(\"sandbox/.mcr_docs_index.json\")}')\n\nprint()\nprint('=== 2. KNOWLEDGE GRAPH ===')\nfrom modulos.kg import KnowledgeGraph\nkg = KnowledgeGraph()\nlicoes = kg._get_licoes()\nprint(f'KnowledgeGraph: {len(licoes)} lessons')\nprint(f'Salvo em: sandbox/.mcr_devia/kg/')\nkg_files = [f for f in os.listdir(\"sandbox/.mcr_devia/kg/\") if f.endswith(\".json\")]\nprint(f'  {len(kg_files)} arquivos JSON')\n\nprint()\nprint('=== 3. HISTORICO / MEMORIA ===')\nfrom modulos.episodic_memory import EpisodicMemory\nmem = EpisodicMemory()\nprint(f'EpisodicMemory: existe')\nprint(f'Salvo em: san",
+      "ctx": "gap_inception",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782938028.0826914,
+      "id": "L1722",
+      "inactive": true
+    },
+    {
+      "erro": "inception:teste_capacidade_real_py",
+      "causa": "conceito: inception:teste_capacidade_real_py",
+      "solucao": "[Prototipo: teste_capacidade_real.py]\n#!/usr/bin/env python3\n\"\"\"TESTE REAL DE CAPACIDADE — MCR Unificado\nTesta: Alimentacao, Emergencia, Autoavaliacao MultiNivel, Geracao, Debug\nCompara MCR vs LLM. Nota final ponderada.\n\"\"\"\nimport sys, os, math, json, time as _time\nfrom collections import Counter\n\nBASE = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))\nsys.path.insert(0, os.path.join(BASE, 'scripts', 'mcr_devia'))\nsys.stdout.reconfigure(encoding='utf-8', errors='replace')\n\nfrom modulos.MCR import (MCRConector, AutoavaliadorSemantico, GeradorNarrativa,\n                          MarkovUniversal, MCRAutoLoop)\nfrom modulos.kg import KnowledgeGraph\n\nkg = KnowledgeGraph()\n\n# ============================================================\n# DADOS REAIS DO PROJETO\n# ============================================================\nTOPICOS_REAIS = [\n    (\"spa\", \"SPA = Sistema de Progressao do Aventureiro, que gerencia habilidades e progressao em dominios elementais como Fogo, Gelo, Terra e Energia. O SPA permite que o jogador",
+      "ctx": "gap_inception",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [
+        "stress_test"
+      ],
+      "timestamp": 1782938032.1467538,
+      "id": "L1723",
+      "inactive": true
+    },
+    {
+      "erro": "inception:MCR_IDENTITY_md",
+      "causa": "conceito: inception:MCR_IDENTITY_md",
+      "solucao": "[Fonte: docs\\MCR_IDENTITY.md]\nR.\nDominios = áreas de conhecimento do SPA (ex: Fogo 23, Gelo 24, Terra 25, Energia 26).\nEridanus = Cidade inicial do projeto MCR, ponto de partida dos aventureiros.\nProjeto MCR = servidor customizado de Tibia, parte da comunidade OTServ.\n",
+      "ctx": "gap_inception",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782938994.7823076,
+      "id": "L1760",
+      "inactive": true
+    },
+    {
+      "erro": "inception:diag_capacidades_py",
+      "causa": "conceito: inception:diag_capacidades_py",
+      "solucao": "[Prototipo: diag_capacidades.py]\n#!/usr/bin/env python3\n\"\"\"Diagnostico real das capacidades do MCR.\"\"\"\nimport sys, os\nsys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'scripts', 'mcr_devia'))\nsys.stdout.reconfigure(encoding='utf-8', errors='replace')\n\nprint('=== 1. CACHE ===')\nfrom modulos.MCR import MCRDocIndex\nidx = MCRDocIndex()\nprint(f'MCRDocIndex: existe')\nprint(f'Cache salvo em: sandbox/.mcr_docs_index.json')\nprint(f'Cache existe: {os.path.exists(\"sandbox/.mcr_docs_index.json\")}')\n\nprint()\nprint('=== 2. KNOWLEDGE GRAPH ===')\nfrom modulos.kg import KnowledgeGraph\nkg = KnowledgeGraph()\nlicoes = kg._get_licoes()\nprint(f'KnowledgeGraph: {len(licoes)} lessons')\nprint(f'Salvo em: sandbox/.mcr_devia/kg/')\nkg_files = [f for f in os.listdir(\"sandbox/.mcr_devia/kg/\") if f.endswith(\".json\")]\nprint(f'  {len(kg_files)} arquivos JSON')\n\nprint()\nprint('=== 3. HISTORICO / MEMORIA ===')\nfrom modulos.episodic_memory import EpisodicMemory\nmem = EpisodicMemory()\nprint(f'EpisodicMemory: existe')\nprint(f'Salvo em: san",
+      "ctx": "gap_inception",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782938998.841032,
+      "id": "L1761",
+      "inactive": true
+    },
+    {
+      "erro": "inception:teste_capacidade_real_py",
+      "causa": "conceito: inception:teste_capacidade_real_py",
+      "solucao": "[Prototipo: teste_capacidade_real.py]\n#!/usr/bin/env python3\n\"\"\"TESTE REAL DE CAPACIDADE — MCR Unificado\nTesta: Alimentacao, Emergencia, Autoavaliacao MultiNivel, Geracao, Debug\nCompara MCR vs LLM. Nota final ponderada.\n\"\"\"\nimport sys, os, math, json, time as _time\nfrom collections import Counter\n\nBASE = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))\nsys.path.insert(0, os.path.join(BASE, 'scripts', 'mcr_devia'))\nsys.stdout.reconfigure(encoding='utf-8', errors='replace')\n\nfrom modulos.MCR import (MCRConector, AutoavaliadorSemantico, GeradorNarrativa,\n                          MarkovUniversal, MCRAutoLoop)\nfrom modulos.kg import KnowledgeGraph\n\nkg = KnowledgeGraph()\n\n# ============================================================\n# DADOS REAIS DO PROJETO\n# ============================================================\nTOPICOS_REAIS = [\n    (\"spa\", \"SPA = Sistema de Progressao do Aventureiro, que gerencia habilidades e progressao em dominios elementais como Fogo, Gelo, Terra e Energia. O SPA permite que o jogador",
+      "ctx": "gap_inception",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [
+        "stress_test"
+      ],
+      "timestamp": 1782939002.9031756,
+      "id": "L1762",
+      "inactive": true
+    },
+    {
+      "erro": "inception:[12] MCR - Guia de Conteúdo Inicial e Tutorial_txt",
+      "causa": "conceito: inception:[12] MCR - Guia de Conteúdo Inicial e Tutorial_txt",
+      "solucao": "[Fonte: docs\\MCR - Instruções\\[12] MCR - Guia de Conteúdo Inicial e Tutorial.txt]\n>> CATALOG tags=tutorial, eridanus, new-player updated=2026-06-23\nPROJETO MCR – GUIA DE CONTEÚDO INICIAL E TUTORIAL\n(Versão 5.0 – Integração total com o SPA v3.2.0, sistema de cores, missões e progressão em Eridanus)\nArquivo: [12] MCR - Guia de Conteúdo Inicial e Tutorial.txt\n\n🎯 OBJETIVO DESTE GUIA\nDescrever, passo a passo, ",
+      "ctx": "gap_inception",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782943503.7167091,
+      "id": "L1906",
+      "inactive": true
+    },
+    {
+      "erro": "inception:[4] MCR - Guia do Login Server_txt",
+      "causa": "conceito: inception:[4] MCR - Guia do Login Server_txt",
+      "solucao": "[Fonte: docs\\MCR - Instruções\\[4] MCR - Guia do Login Server.txt]\ncontinue a posicionar o personagem Alma no Salão dos Destinos, de onde o Oráculo o encaminhará para Eridanus após a criação da conta permanente.\n\n🚧 ESTADO ATUAL DA IMPLEMENTAÇÃO\n\nO SPA v4.2 está totalmente funcional no servidor, mas o Login Server permanece inalterado. Pontos importantes:\n\nOs endpoints /register, /login e /guest_login estão implementados e operacionais.\n\nA variável de ambiente VOC",
+      "ctx": "gap_inception",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782943507.767038,
+      "id": "L1907"
+    },
+    {
+      "erro": "inception:[8] MCR - Guia de Criação de Conta e Personagem_txt",
+      "causa": "conceito: inception:[8] MCR - Guia de Criação de Conta e Personagem_txt",
+      "solucao": "[Fonte: docs\\MCR - Instruções\\[8] MCR - Guia de Criação de Conta e Personagem.txt]\no (vocation = 0). A benção narrativa do\nOráculo agora ecoa o despertar dos Domínios que ocorrerá em Eridanus.\n\nComponentes abordados:\n\nBotão \"Salão dos Destinos\" (entrada única para novos jogadores e\ngerenciamento).\n\nContas guest temporárias e personagem Alma descartável.\n\nNPC Oráculo como central de autoatendimento (criação de conta, criação de\npersonagem, gerenciamento de conta existente).\n\nDefi",
+      "ctx": "gap_inception",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782943512.5882154,
+      "id": "L1908"
+    },
+    {
+      "erro": "inception:[7] MCR - Guia de Quests (Sistema Híbrido SQH)_txt",
+      "causa": "conceito: inception:[7] MCR - Guia de Quests (Sistema Híbrido SQH)_txt",
+      "solucao": "[Fonte: docs\\MCR - Instruções\\[7] MCR - Guia de Quests (Sistema Híbrido SQH).txt]\nnas subpastas apropriadas\ndentro de data-canary/scripts/MCR/ (ex.: MCR/Tutorial/ para as missões de\nEridanus, MCR/Geral/ para utilitários). O Revscript carrega automaticamente\ncada ficheiro, permitindo que as quests sejam auto‑suficientes e modulares.\n\n🚧 ESTADO ATUAL DA IMPLEMENTAÇÃO\n\nO SPA v4.6.0 está totalmente implementado, incluindo todas as APIs C++ descritas\nna documentação do sistema. Conse",
+      "ctx": "gap_inception",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782943516.6371198,
+      "id": "L1909"
+    },
+    {
+      "erro": "inception:CATALOG_md",
+      "causa": "conceito: inception:CATALOG_md",
+      "solucao": "[Fonte: docs\\CATALOG.md]\nndice Geral) |\n| Tarefas pendentes, estado atual, planejamento | DevLog/Pendencias.md |\n| Tutorial, Eridanus, novo jogador | Guia [12] |\n\n## Indice Completo\n\n| Arquivo | Tags | Atualizado | Resumo |\n|---|---|---|---|\n| `DevLog\\Pendências.md` | `todo, next-steps, roadmap, pendencias` | 2026-06-24 | Estado atual do projeto, tarefas pendentes e decisoes em aberto |\n| `DevLog\\Sistema ",
+      "ctx": "gap_inception",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782943520.7026904,
+      "id": "L1910"
+    },
+    {
+      "erro": "inception:00 - INDICE_txt",
+      "causa": "conceito: inception:00 - INDICE_txt",
+      "solucao": "[Fonte: docs\\MCR - Instruções\\Sistema de Habilidades Contextuais\\00 - INDICE.txt]\n→ Regras de diferenciação\n\n06 - REFERENCIAS POP.txt\n    → Referências da cultura pop adaptadas para Eridanus\n    → Regra de ouro: recontextualização para high fantasy\n\n\nARQUIVOS DO CÓDIGO FONTE (Canary Server):\n───────────────────────────────────\nCanary/data-canary/scripts/MCR/SPA/core/contexto.lua\n    → Resolvedor Contextual (NOVO, v1.0)\n    → Aplica as 5 camadas: postura → nível → sinergias → es",
+      "ctx": "gap_inception",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782943524.759329,
+      "id": "L1911"
+    },
+    {
+      "erro": "inception:MCR_IDENTITY_md",
+      "causa": "conceito: inception:MCR_IDENTITY_md",
+      "solucao": "[Fonte: docs\\MCR_IDENTITY.md]\nservidor MCR.\nDominios = áreas de conhecimento do SPA (ex: Fogo 23, Gelo 24, Terra 25, Energia 26).\nEridanus = Cidade inicial do projeto MCR, ponto de partida dos aventureiros.\nProjeto MCR = servidor customizado de Tibia, parte da comunidade OTServ.\n",
+      "ctx": "gap_inception",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782943528.8068402,
+      "id": "L1912"
+    },
+    {
+      "erro": "inception:MCR_IDENTITY_md",
+      "causa": "conceito: inception:MCR_IDENTITY_md",
+      "solucao": "[Fonte: docs\\MCR_IDENTITY.md]\nR.\nDominios = áreas de conhecimento do SPA (ex: Fogo 23, Gelo 24, Terra 25, Energia 26).\nEridanus = Cidade inicial do projeto MCR, ponto de partida dos aventureiros.\nProjeto MCR = servidor customizado de Tibia, parte da comunidade OTServ.\n",
+      "ctx": "gap_inception",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782944040.9274824,
+      "id": "L1975"
+    },
+    {
+      "erro": "inception:diag_capacidades_py",
+      "causa": "conceito: inception:diag_capacidades_py",
+      "solucao": "[Prototipo: diag_capacidades.py]\n#!/usr/bin/env python3\n\"\"\"Diagnostico real das capacidades do MCR.\"\"\"\nimport sys, os\nsys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'scripts', 'mcr_devia'))\nsys.stdout.reconfigure(encoding='utf-8', errors='replace')\n\nprint('=== 1. CACHE ===')\nfrom modulos.MCR import MCRDocIndex\nidx = MCRDocIndex()\nprint(f'MCRDocIndex: existe')\nprint(f'Cache salvo em: sandbox/.mcr_docs_index.json')\nprint(f'Cache existe: {os.path.exists(\"sandbox/.mcr_docs_index.json\")}')\n\nprint()\nprint('=== 2. KNOWLEDGE GRAPH ===')\nfrom modulos.kg import KnowledgeGraph\nkg = KnowledgeGraph()\nlicoes = kg._get_licoes()\nprint(f'KnowledgeGraph: {len(licoes)} lessons')\nprint(f'Salvo em: sandbox/.mcr_devia/kg/')\nkg_files = [f for f in os.listdir(\"sandbox/.mcr_devia/kg/\") if f.endswith(\".json\")]\nprint(f'  {len(kg_files)} arquivos JSON')\n\nprint()\nprint('=== 3. HISTORICO / MEMORIA ===')\nfrom modulos.episodic_memory import EpisodicMemory\nmem = EpisodicMemory()\nprint(f'EpisodicMemory: existe')\nprint(f'Salvo em: san",
+      "ctx": "gap_inception",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782944044.9855998,
+      "id": "L1976"
+    },
+    {
+      "erro": "inception:teste_capacidade_real_py",
+      "causa": "conceito: inception:teste_capacidade_real_py",
+      "solucao": "[Prototipo: teste_capacidade_real.py]\n#!/usr/bin/env python3\n\"\"\"TESTE REAL DE CAPACIDADE — MCR Unificado\nTesta: Alimentacao, Emergencia, Autoavaliacao MultiNivel, Geracao, Debug\nCompara MCR vs LLM. Nota final ponderada.\n\"\"\"\nimport sys, os, math, json, time as _time\nfrom collections import Counter\n\nBASE = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))\nsys.path.insert(0, os.path.join(BASE, 'scripts', 'mcr_devia'))\nsys.stdout.reconfigure(encoding='utf-8', errors='replace')\n\nfrom modulos.MCR import (MCRConector, AutoavaliadorSemantico, GeradorNarrativa,\n                          MarkovUniversal, MCRAutoLoop)\nfrom modulos.kg import KnowledgeGraph\n\nkg = KnowledgeGraph()\n\n# ============================================================\n# DADOS REAIS DO PROJETO\n# ============================================================\nTOPICOS_REAIS = [\n    (\"spa\", \"SPA = Sistema de Progressao do Aventureiro, que gerencia habilidades e progressao em dominios elementais como Fogo, Gelo, Terra e Energia. O SPA permite que o jogador",
+      "ctx": "gap_inception",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [
+        "stress_test"
+      ],
+      "timestamp": 1782944049.057408,
+      "id": "L1977"
+    }
+  ]
+}

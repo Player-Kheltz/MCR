@@ -1,0 +1,31 @@
+{
+  "ctx": "gap_planejamento",
+  "licoes": [
+    {
+      "erro": "planejamento:prototipo_ciclo_completo_py",
+      "causa": "conceito: planejamento:prototipo_ciclo_completo_py",
+      "solucao": "[Prototipo: prototipo_ciclo_completo.py]\n#!/usr/bin/env python3\n\"\"\"CICLO COMPLETO: MCR sem LLM — Testa TODAS as ferramentas em 8 fases.\n\n1. PERCEPÇÃO: IE + TokenizerMultinivel\n2. CONTEXTO: AutoTrigger + ferramentas (buscar, ler, KG)\n3. GERAÇÃO: GeradorTexto + Markov do corpus\n4. CRIAÇÃO: escrever_artefato\n5. BUG: Criar arquivo .lua com erro de sintaxe\n6. CORREÇÃO: validar_codigo + auto_repair\n7. VALIDAÇÃO: AutoRevisor + ValidationPipeline\n8. APRENDIZADO: KG + AprendizDePadroes\n\n0 LLM. 0 GPU. 0 modificação no MCR.\n\"\"\"\nimport sys, os, re, json, math, random, time as _time\nfrom collections import Counter\n\nsys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'scripts', 'mcr_devia'))\n\nfrom modulos.pattern_engine import PatternEngine\nfrom modulos.intention_engine import IntentionEngine\nfrom modulos.kg import KnowledgeGraph\nfrom modulos.aprendiz_de_padroes import AprendizDePadroes\nfrom modulos.tool_orchestrator import ToolOrchestrator\n\nBASE = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))\nSANDBOX = os.pat",
+      "ctx": "gap_planejamento",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [
+        "stress_test"
+      ],
+      "timestamp": 1782943607.3478875,
+      "id": "L1931"
+    },
+    {
+      "erro": "planejamento:validacao_ciclo_completo_py",
+      "causa": "conceito: planejamento:validacao_ciclo_completo_py",
+      "solucao": "[Prototipo: validacao_ciclo_completo.py]\n#!/usr/bin/env python3\n\"\"\"VALIDAÇÃO COMPLETA: Ciclo Aprendizado por Uso de Ferramentas.\n\nFASE 1: Executa pipeline 6x → popula KG com fingerprints\nFASE 2: Verifica fingerprints e similaridade entre perguntas\nFASE 3: Testa reconstrução para perguntas similares\nFASE 4: Relatório final com métricas\n\"\"\"\nimport sys, os, json, time as _time\nsys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'scripts', 'mcr_devia'))\n\nfrom modulos.pipeline_executor import PipelineExecutor\nfrom modulos.kg import KnowledgeGraph\nfrom modulos.ia import IA\nfrom modulos.tool_orchestrator import ToolOrchestrator\nfrom modulos.pattern_engine import PatternEngine\nfrom modulos.pi_engine import PiEngine\nfrom modulos.intention_engine import IntentionEngine\nfrom modulos.aprendiz_de_padroes import AprendizDePadroes\n\n\ndef fase1_popular_kg():\n    \"\"\"Executa pipeline 6x com perguntas variadas para popular KG.\"\"\"\n    print(f\"\\n{'='*70}\")\n    print(f\"  FASE 1: Popular KG — 6 execuções do pipeline\")\n    print(f\"{'='*7",
+      "ctx": "gap_planejamento",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [
+        "stress_test"
+      ],
+      "timestamp": 1782943612.1971886,
+      "id": "L1932"
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "ctx": "gap_dashboard",
+  "licoes": [
+    {
+      "erro": "dashboard:EMERGIR_V5_md",
+      "causa": "conceito: dashboard:EMERGIR_V5_md",
+      "solucao": "[Fonte: E:\\Projeto MCR\\docs\\plano\\EMERGIR_V5.md]\nrd HTML** | ✅ | Timeline + narrador + prompt expansível + log completo + reconexão automática |\n| **Heartbeat** | ✅ | Mantém conexão SSE viva a cada 10s |\n| **Resultado** | ✅ | EMERGIR gera ~21.000 chars, 10/10 nos testes de qualidade, zero alucinações |\n\n### Pipeline V4 completo\n\n```\n0. Amostra 2-3 tópicos distantes do KG\n1. Fingerprint dedup (MD5 ordem-independente)\n2. Decider gera pergunta \"E s",
+      "ctx": "gap_dashboard",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [
+        "stress_test"
+      ],
+      "timestamp": 1782921131.8060122,
+      "id": "L1228",
+      "inactive": true
+    },
+    {
+      "erro": "dashboard:EMERGIR_V5_md",
+      "causa": "conceito: dashboard:EMERGIR_V5_md",
+      "solucao": "[Fonte: E:\\Projeto MCR\\docs\\plano\\EMERGIR_V5.md]\nrd HTML** | ✅ | Timeline + narrador + prompt expansível + log completo + reconexão automática |\n| **Heartbeat** | ✅ | Mantém conexão SSE viva a cada 10s |\n| **Resultado** | ✅ | EMERGIR gera ~21.000 chars, 10/10 nos testes de qualidade, zero alucinações |\n\n### Pipeline V4 completo\n\n```\n0. Amostra 2-3 tópicos distantes do KG\n1. Fingerprint dedup (MD5 ordem-independente)\n2. Decider gera pergunta \"E s",
+      "ctx": "gap_dashboard",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [
+        "stress_test"
+      ],
+      "timestamp": 1782921245.3703759,
+      "id": "L1255"
+    }
+  ]
+}

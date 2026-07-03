@@ -1,0 +1,319 @@
+[
+  {
+    "frase": "Crie um NPC Ferreiro em Eridanus",
+    "intencao": "CREATE/npc",
+    "conf_ie": 0.983,
+    "tokens_v2": [
+      "INTENT_CREATE",
+      "PAL_CURTA",
+      "DOM_NPC",
+      "PREP_IN",
+      "PAL_LONGA"
+    ],
+    "taxa_markov": 0.688,
+    "peso_markov": 2.0,
+    "hits": [
+      [
+        "INTENT_CREATE",
+        0.95
+      ],
+      [
+        "DOM_NPC",
+        0.9
+      ],
+      [
+        "PREP_IN",
+        0.35
+      ]
+    ],
+    "misses": [
+      "PAL_CURTA",
+      "PAL_LONGA"
+    ],
+    "penalidade": 0,
+    "bonus": 0.15,
+    "entropia_sugerida": 0.163,
+    "confianca_final": 1.0,
+    "decisao": "✅ CONFIRMADA"
+  },
+  {
+    "frase": "Explique o sistema SPA do MCR",
+    "intencao": "EXPLAIN/conceito",
+    "conf_ie": 0.891,
+    "tokens_v2": [
+      "INTENT_EXPLAIN",
+      "PAL_CURTA",
+      "DOM_SYSTEM",
+      "PROPER_NOUN",
+      "PREP_OF"
+    ],
+    "taxa_markov": 0.719,
+    "peso_markov": 2.0,
+    "hits": [
+      [
+        "INTENT_EXPLAIN",
+        0.95
+      ],
+      [
+        "DOM_SYSTEM",
+        0.7
+      ],
+      [
+        "PROPER_NOUN",
+        0.35
+      ],
+      [
+        "PREP_OF",
+        0.3
+      ]
+    ],
+    "misses": [
+      "PAL_CURTA"
+    ],
+    "penalidade": 0,
+    "bonus": 0.1,
+    "entropia_sugerida": 0.181,
+    "confianca_final": 1.0,
+    "decisao": "✅ CONFIRMADA"
+  },
+  {
+    "frase": "O que e Canary no contexto do MCR?",
+    "intencao": "EXPLAIN/servidor",
+    "conf_ie": 0.371,
+    "tokens_v2": [
+      "PAL_CURTA",
+      "INTENT_EXPLAIN",
+      "CONJUNCTION",
+      "DOM_SERVER",
+      "PREP_IN",
+      "PAL_LONGA",
+      "PREP_OF",
+      "PROPER_NOUN"
+    ],
+    "taxa_markov": 0.708,
+    "peso_markov": 1.8,
+    "hits": [
+      [
+        "INTENT_EXPLAIN",
+        0.95
+      ],
+      [
+        "CONJUNCTION",
+        0.15
+      ],
+      [
+        "DOM_SERVER",
+        0.3
+      ],
+      [
+        "PREP_OF",
+        0.4
+      ],
+      [
+        "PROPER_NOUN",
+        0.5
+      ]
+    ],
+    "misses": [
+      "PAL_CURTA",
+      "PREP_IN",
+      "PAL_LONGA"
+    ],
+    "penalidade": 0,
+    "bonus": 0.0,
+    "entropia_sugerida": 0.292,
+    "confianca_final": 0.695,
+    "decisao": "⚠️ DUVIDOSA"
+  },
+  {
+    "frase": "Crie uma lore sobre a fundacao de Eridanus",
+    "intencao": "CREATE/lore",
+    "conf_ie": 0.98,
+    "tokens_v2": [
+      "INTENT_CREATE",
+      "PAL_CURTA",
+      "DOM_LORE",
+      "PAL_MEDIA",
+      "PAL_LONGA",
+      "PREP_OF"
+    ],
+    "taxa_markov": 0.783,
+    "peso_markov": 2.0,
+    "hits": [
+      [
+        "INTENT_CREATE",
+        0.95
+      ],
+      [
+        "DOM_LORE",
+        0.9
+      ],
+      [
+        "PREP_OF",
+        0.5
+      ]
+    ],
+    "misses": [
+      "PAL_CURTA",
+      "PAL_MEDIA",
+      "PAL_LONGA"
+    ],
+    "penalidade": 0,
+    "bonus": 0.15,
+    "entropia_sugerida": 0.1,
+    "confianca_final": 1.0,
+    "decisao": "✅ CONFIRMADA"
+  },
+  {
+    "frase": "Busque a definicao de SPA no codigo",
+    "intencao": "EXPLAIN/codigo",
+    "conf_ie": 0.334,
+    "tokens_v2": [
+      "INTENT_SEARCH",
+      "PAL_CURTA",
+      "INTENT_EXPLAIN",
+      "PREP_OF",
+      "PROPER_NOUN",
+      "PREP_IN",
+      "DOM_CODE"
+    ],
+    "taxa_markov": 0.569,
+    "peso_markov": 1.8,
+    "hits": [
+      [
+        "INTENT_EXPLAIN",
+        0.95
+      ],
+      [
+        "PREP_OF",
+        0.4
+      ],
+      [
+        "PROPER_NOUN",
+        0.5
+      ]
+    ],
+    "misses": [
+      "INTENT_SEARCH",
+      "PAL_CURTA",
+      "PREP_IN",
+      "DOM_CODE"
+    ],
+    "penalidade": 0,
+    "bonus": 0.0,
+    "entropia_sugerida": 0.431,
+    "confianca_final": 0.576,
+    "decisao": "⚠️ DUVIDOSA"
+  },
+  {
+    "frase": "Adicione 'Eridanus = Cidade Inicial' ao arquivo TESTE.md",
+    "intencao": "EDIT/lore",
+    "conf_ie": 0.386,
+    "tokens_v2": [
+      "INTENT_EDIT",
+      "PAL_LONGA",
+      "DOM_LORE",
+      "PAL_MEDIA",
+      "PAL_CURTA",
+      "DOM_CODE",
+      "PROPER_NOUN"
+    ],
+    "taxa_markov": 0.782,
+    "peso_markov": 1.5,
+    "hits": [
+      [
+        "INTENT_EDIT",
+        0.95
+      ],
+      [
+        "DOM_LORE",
+        0.7
+      ],
+      [
+        "DOM_CODE",
+        0.5
+      ]
+    ],
+    "misses": [
+      "PAL_LONGA",
+      "PAL_MEDIA",
+      "PAL_CURTA",
+      "PROPER_NOUN"
+    ],
+    "penalidade": 0,
+    "bonus": 0.0,
+    "entropia_sugerida": 0.218,
+    "confianca_final": 0.662,
+    "decisao": "⚠️ DUVIDOSA"
+  },
+  {
+    "frase": "Implemente um sistema de combate elemental",
+    "intencao": "CREATE/conceito",
+    "conf_ie": 0.32,
+    "tokens_v2": [
+      "INTENT_CREATE",
+      "PAL_CURTA",
+      "DOM_SYSTEM",
+      "PREP_OF",
+      "PAL_MEDIA",
+      "PAL_LONGA"
+    ],
+    "taxa_markov": 0.619,
+    "peso_markov": 1.5,
+    "hits": [
+      [
+        "INTENT_CREATE",
+        0.9
+      ],
+      [
+        "DOM_SYSTEM",
+        0.4
+      ]
+    ],
+    "misses": [
+      "PAL_CURTA",
+      "PREP_OF",
+      "PAL_MEDIA",
+      "PAL_LONGA"
+    ],
+    "penalidade": 0,
+    "bonus": 0.0,
+    "entropia_sugerida": 0.381,
+    "confianca_final": 0.531,
+    "decisao": "⚠️ DUVIDOSA"
+  },
+  {
+    "frase": "Revise o arquivo data/npc/ferreiro.lua",
+    "intencao": "REVIEW/codigo",
+    "conf_ie": 0.82,
+    "tokens_v2": [
+      "INTENT_REVIEW",
+      "PAL_CURTA",
+      "DOM_CODE",
+      "PAL_MEDIA",
+      "DOM_NPC"
+    ],
+    "taxa_markov": 0.756,
+    "peso_markov": 1.5,
+    "hits": [
+      [
+        "INTENT_REVIEW",
+        0.95
+      ],
+      [
+        "DOM_CODE",
+        0.6
+      ]
+    ],
+    "misses": [
+      "PAL_CURTA",
+      "PAL_MEDIA",
+      "DOM_NPC"
+    ],
+    "penalidade": 0,
+    "bonus": 0.0,
+    "entropia_sugerida": 0.244,
+    "confianca_final": 0.864,
+    "decisao": "✅ CONFIRMADA"
+  }
+]
