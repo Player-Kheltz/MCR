@@ -1605,18 +1605,30 @@ def chat_loop(cerebro):
     conversa = MCRConversa(cerebro)
     identidade = MCRIdentidade()
     curiosidade = MCRCuriosidade(cerebro)
+    estado_path = os.path.join(CACHE_DIR, "mcr_estado.json")
     
-    # Primeiro ciclo de curiosidade — antes mesmo de conversar
-    if not curiosidade.descobertas:
-        print("\n[MCR] Deixe-me explorar um pouco antes de conversarmos...")
+    # Carrega estado anterior (se existir)
+    estado_anterior = {}
+    if os.path.exists(estado_path):
+        try:
+            with open(estado_path, 'r') as f:
+                estado_anterior = json.load(f)
+        except: pass
+    
+    # MCRDecisor decide: devo explorar agora?
+    n_exec_anteriores = estado_anterior.get('execucoes', 0)
+    ultima_acao = estado_anterior.get('ultima_acao', 'nenhuma')
+    estado_str = f"exec:{n_exec_anteriores}_ultima:{ultima_acao}_desc:{curiosidade.descobertas}"
+    decisor_explorar = MCR("decidir_explorar")
+    dec = decisor_explorar.predizer(estado_str)
+    
+    if dec[0] is not None and 'explorar' in str(dec[0]).lower():
+        print("\n[MCR] Vou explorar um pouco...")
         r = curiosidade.ciclo()
         if r['descobertas'] > 0:
-            print(f"[MCR] Explorei e aprendi {r['descobertas']} novas informacoes!\n")
-        else:
-            print("[MCR] Nao encontrei nada novo por agora.\n")
+            print(f"[MCR] Aprendi {r['descobertas']} novas informacoes!\n")
     
-    # Aprende fingerprint do usuario com exemplos reais desta conversa
-    # Nao e hardcode — e dado. Como qualquer outro aprendizado.
+    # Aprende fingerprint do usuario (dado, nao codigo)
     identidade.aprender(
         'MCR deve prioriar a ASSINATURA correta, o MCR e CAPAZ DE CRIAR! '
         'analisar o MCR (Markov, intencao, ASSINATURA) para PREDIZER o que deve vir depois',
@@ -1636,19 +1648,44 @@ def chat_loop(cerebro):
     print(f"  Conhecimento: {len(cerebro.topicos)} topicos, {cerebro.mk_byte.total} bytes, {cerebro.mk_palavra.total} palavras")
     print()
     
+    n_mensagens = 0
     while True:
         try: e = input("voce: ").strip()
         except (EOFError, KeyboardInterrupt): print("\nAte logo!"); break
         if not e: continue
         if e.lower() in ("sair","exit","quit"): print("Ate logo!"); break
         
-        # Aprende fingerprint de quem esta falando (sem hardcode)
+        n_mensagens += 1
+        
+        # Aprende fingerprint (sem hardcode)
         autor, conf, status = identidade.reconhecer_e_aprender(e)
         ident_s = f'[{autor} conf={conf:.2f}] ' if conf > 0.2 else ''
         
         resp = conversa.perguntar(e)
         safe = resp.encode("ascii", errors="replace").decode("ascii")
         print(f"  {ident_s}{safe}")
+        
+        # A cada 3 mensagens, MCRDecisor decide se deve explorar
+        if n_mensagens % 3 == 0:
+            est = curiosidade.diagnosticar_fome()
+            dec_est = f"top:{est['topicos']//10}_pal:{est['palavras']//500}_desc:{curiosidade.descobertas}"
+            dec2 = decisor_explorar.predizer(dec_est)
+            if dec2[0] is not None and 'explorar' in str(dec2[0]).lower():
+                r = curiosidade.ciclo()
+                if r['descobertas'] > 0:
+                    print(f"  [MCR] Aprendi {r['descobertas']} novas informacoes enquanto conversavamos!")
+    
+    # Salva estado antes de sair
+    try:
+        os.makedirs(CACHE_DIR, exist_ok=True)
+        with open(estado_path, 'w') as f:
+            json.dump({
+                'execucoes': n_exec_anteriores + 1,
+                'ultima_acao': 'chat',
+                'descobertas': curiosidade.descobertas,
+                'topicos': len(cerebro.topicos),
+            }, f)
+    except: pass
 
 # ═══════════════════════════════════════════════════════════════════
 # [23] Explorar — MCR explora, aprende e descobre sozinho
@@ -1852,7 +1889,17 @@ def main():
     args = sys.argv[1:]
     cerebro = CerebroAGI()
     brain = None
+    estado_path = os.path.join(CACHE_DIR, "mcr_estado.json")
 
+    # Carrega estado anterior
+    estado = {}
+    if os.path.exists(estado_path):
+        try:
+            with open(estado_path, 'r') as f:
+                estado = json.load(f)
+        except: pass
+
+    # --aprender: modo explicito
     if "--aprender" in args:
         brain = aprender_npcs(forcar=True)
         if brain and brain.dialogos:
@@ -1862,22 +1909,14 @@ def main():
         print(f"\nAprendidos {len(cerebro.topicos)} topicos no cerebro")
         return
 
-    # Modo explorar
+    # --explorar: modo explicito
     if "--explorar" in args:
         idx = args.index("--explorar") + 1
         alvo = args[idx] if idx < len(args) and not args[idx].startswith("--") else None
         explorar(cerebro, alvo)
-        chat_loop(cerebro)
         return
 
-    # Carrega NPCs e alimenta TUDO no cerebro — sem categorias, sem limites
-    if os.path.exists(r"E:\Projeto MCR\Canary\data-otservbr-global\npc"):
-        brain = aprender_npcs()
-        if brain and brain.dialogos:
-            for palavra, respostas in brain.dialogos.items():
-                for resposta, _, _ in respostas:
-                    cerebro.alimentar(f"{resposta}", f"{palavra[:30]}")
-
+    # --ask: pergunta direta
     if "--ask" in args:
         idx = args.index("--ask")+1
         if idx < len(args):
@@ -1886,6 +1925,7 @@ def main():
             print(r.encode("ascii", errors="replace").decode("ascii"))
         return
 
+    # --daemon: servidor
     if "--daemon" in args:
         print("Modo daemon. Pressione Ctrl+C para parar.")
         try:
@@ -1893,6 +1933,36 @@ def main():
         except KeyboardInterrupt: print("\nParando...")
         return
 
+    # --status: mostra estado
+    if "--status" in args:
+        print(f"Execucoes: {estado.get('execucoes', 0)}")
+        print(f"Ultima acao: {estado.get('ultima_acao', 'nenhuma')}")
+        print(f"Cache: {CACHE_DIR}")
+        return
+
+    # Se tem pergunta direta via args (sem --ask), responde
+    if args and not args[0].startswith('--'):
+        p = " ".join(args)
+        r = MCRResposta.responder(p, cerebro)
+        print(r.encode("ascii", errors="replace").decode("ascii"))
+        return
+
+    # Padrao: MCRDecisor decide o que fazer
+    estado_str = f"exec:{estado.get('execucoes',0)}_ultima:{estado.get('ultima_acao','nenhuma')}"
+    dec = MCR("main_dec").predizer(estado_str)
+    
+    if dec[0] is not None and 'explorar' in str(dec[0]).lower():
+        cur = MCRCuriosidade(cerebro)
+        r = cur.ciclo()
+        print(f"[MCR] Explorei e aprendi {r['descobertas']} novas informacoes")
+        # Salva estado
+        try:
+            with open(estado_path, 'w') as f:
+                json.dump({'execucoes': estado.get('execucoes',0)+1, 'ultima_acao': 'explorou'}, f)
+        except: pass
+        return
+
+    # Se nao decidiu nada, vai pro chat
     chat_loop(cerebro)
 
 def status_identidade():
