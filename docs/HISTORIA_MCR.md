@@ -8,18 +8,96 @@
 
 Tudo começou com um servidor customizado de Tibia (OTServ Canary). O Projeto MCR era um ecossistema completo: NPCs, quests, sistemas de progressão (SPA), habilidades contextuais (SHC), montarias combatentes (MountSummon), tradução C++ para português, sistema de pronomes, e dezenas de guias de documentação.
 
-Dentro desse ecossistema, nasceu a necessidade de criar um sistema inteligente para automatizar NPCs, diálogos, e conhecimento. Surgiu o **MCR-DevIA** — um sistema AGI que usava LLM como cérebro. Inicialmente era apenas uma ideia: "e se eu pudesse ter um assistente que entende o projeto inteiro?". Dessa ideia, o arquivo `MCR.py` começou a crescer dentro do MCR-DevIA.
+Dentro desse ecossistema, nasceu a necessidade de criar um sistema inteligente para automatizar NPCs, diálogos, e conhecimento. O primeiro passo foi o **MCR-Dev** — um assistente local que usava LLM via Ollama para responder perguntas e gerar código. Era simples, direto, e rodava no terminal. Dele evoluiu o **MCR-DevIA** — um sistema AGI completo com módulos, pipeline, e conhecimento estruturado. E dentro do MCR-DevIA, o arquivo `MCR.py` começou a crescer.
 
 ---
 
-## Fase 1: A Era MCR-DevIA (o precursor esquecido)
+## Fase 1: MCR-Dev — O Primeiro Assistente Local
+
+```
+MCR-Dev v1.0 — Assistente Local Autonomo para Terminal
+4 modelos LLM, GPU RTX 3080, engine + router + memoria
+```
+
+Antes do MCR-DevIA ser concebido, existiu o **MCR-Dev**. Era um assistente de terminal — simples, direto, e pragmatico. Enquanto o MCR-DevIA seria uma arquitetura AGI completa, o MCR-Dev era apenas um chat inteligente que rodava `python mcr-dev.py` e abria um REPL colorido.
+
+### A Arquitetura
+
+O MCR-Dev era enxuto: 3 modulos, 1 entry point.
+
+```
+mcr-dev.py → engine.py → router.py → LLM (Ollama) → validador.py → memoria.py
+```
+
+| Componente | Arquivo | Funcao |
+|------------|---------|--------|
+| **Entry point** | `mcr-dev.py` | REPL interativo, historico de comandos, banner |
+| **Engine** | `engine.py` | Motor central: coordena router → LLM → valida → salva |
+| **Router** | `router.py` | Classifica intencao por keywords (sem LLM para routing) |
+| **Validador** | `validador.py` | Valida saidas do LLM |
+| **Memoria** | `memoria.py` | Aprendizado continuo entre sessoes |
+
+### Os 4 Modelos
+
+O MCR-Dev carregava **4 modelos LLM diferentes** via Ollama, cada um especializado:
+
+| Modelo | Tamanho | Funcao | Temperatura |
+|--------|---------|--------|-------------|
+| **Qwen 2.5 Coder** | 7B | Geracao de codigo | 0.1 |
+| **Llama 3.1** | 8B | Conversa geral | 0.1 |
+| **DeepSeek R1** | 8B | Analise profunda | 0.1 |
+| **Phi 3.5** | 3.8B | Tarefas rapidas | 0.0 |
+
+Dependencia total de **GPU (RTX 3080 10GB)**. Sem GPU, o sistema simplesmente nao funcionava.
+
+### O Router Inteligente
+
+Diferente do MCR-DevIA que usaria LLM para classificar, o MCR-Dev usava **keywords** — um mapa de 32 padroes regex que classificavam a intencao do usuario em <1ms, sem chamar modelo nenhum:
+
+```python
+(r"cri(a|r|e|ar)\s+(um|uma|o|a)?\s*(npc|personagem)", "CRIAR_NPC", 90),
+(r"(npc|personagem|vendedor|trader|shop)", "CRIAR_NPC", 50),
+(r"cri(a|r|e|ar)\s+(um|uma|o|a)?\s*(habilidade|skill|poder)", "CRIAR_HABILIDADE", 90),
+# ... 32 padroes no total
+```
+
+Se o score da keyword fosse baixo (<40), o router chamava o modelo 1.5b como fallback. Mas 90% das vezes as keywords bastavam.
+
+### Os Problemas
+
+| Metrica | Valor |
+|---------|-------|
+| Tempo por resposta | 30-120 segundos |
+| GPU necessaria | **Sim** (RTX 3080 10GB) |
+| Dependencias | Ollama, 4 modelos carregados |
+| Consistencia | LLM alucinava, ignorava contexto |
+| Custo operacional | GPU ligada hora tras, 4 modelos em RAM |
+
+O sistema funcionava — e era util — mas cada interacao demorava de 30 segundos a 2 minutos. O LLM frequentemente ignorava o contexto, inventava codigo quebrado, e exigia supervisao constante.
+
+### O Legado
+
+MCR-Dev foi substituido pelo MCR-DevIA, que era uma arquitetura mais robusta. Mas o MCR-Dev deixou licoes importantes:
+
+- **Router por keywords** → 90% preciso, 0 chamadas de API. Inspirou o classificador do MCR-DevIA
+- **Engine modular** → coordenacao router → LLM → valida → salva → aprende. Base para o PipelineExecutor
+- **Memoria continua** → aprendizado entre sessoes. Base para o KG e EpisodicMemory
+- **4 modelos especializados** → mostrou que um modelo unico nao serve para tudo
+
+**MCR-Dev foi o PROTOTIPO que provou que um assistente LLM local era viavel. MCR-DevIA foi a ARQUITETURA que mostrou como fazer direito.**
+
+---
+
+## Fase 2: A Era MCR-DevIA (o precursor esquecido)
 
 ```
 MCR-DevIA — um sistema AGI que usava LLM como cerebro
 Antes da equacao, existiu o MCR-DevIA...
 ```
 
-Antes da Equacao MCR ser purificada, existiu um sistema chamado **MCR-DevIA**. Ele era uma tentativa de criar uma inteligencia artificial geral usando um LLM local (DeepSeek via Ollama) como nucleo de processamento.
+O MCR-Dev era util, mas limitado — um chat simples nao era suficiente para automatizar NPCs, dialogos, e conhecimento do projeto. Precisava de uma arquitetura mais robusta. Surgiu o **MCR-DevIA**, uma evolucao natural que transformou o assistente de terminal em um sistema AGI completo.
+
+Enquanto o MCR-Dev era "apenas" um chat com LLM, o MCR-DevIA tinha orquestracao, pipeline, conhecimento estruturado, e 52 comandos modulares.
 
 ### A Arquitetura
 
@@ -31,7 +109,7 @@ O MCR-DevIA tinha 7+ modulos especializados:
 | **ContextCrew** | Buscava contexto de 5 fontes (KG, Web, Docs, Codigo, WebLearn) |
 | **PipelineExecutor** | Executava cascade fixo: Sense → Think → Validate → Learn |
 | **Supervisor** | Classificava perguntas e roteava para o modulo certo |
-| **IntentionEngine** | Detectava intencao do usuario por keywords |
+| **IntentionEngine** | Detectava intencao do usuario por keywords (herdado do MCR-Dev) |
 | **PatternEngine** | Analisava padroes em tokens |
 | **KnowledgeGraph** | Gerenciava 1600+ lessons em 98 arquivos JSON |
 
@@ -79,7 +157,7 @@ MCR-DevIA foi descontinuado como sistema LLM. Mas:
 
 ---
 
-## Fase 2: O Gênesis (antes desta conversa)
+## Fase 3: O Gênesis (antes desta conversa)
 
 ```
 MCR.py: 7043 linhas, 40+ classes
@@ -95,7 +173,7 @@ Um dia, o autor olhou para aquele sistema e perguntou: **"E se o Markov fizesse 
 
 ---
 
-## Fase 3: O Protótipo da Prova
+## Fase 4: O Protótipo da Prova
 
 ```
 E:\MCR Protótipos\ — 5 arquivos, 0 LLM
@@ -121,7 +199,7 @@ Nenhum nome existia em nenhum arquivo do projeto. O Markov multinível (fonema +
 
 ---
 
-## Fase 4: A Equação Universal
+## Fase 5: A Equação Universal
 
 ```
 Commits: 8ac69f5d → b0845ebb
@@ -165,7 +243,7 @@ Tudo com o mesmo código. Zero hardcode. Zero dependências externas.
 
 ---
 
-## Fase 5: A Geração por Assinatura
+## Fase 6: A Geração por Assinatura
 
 ```
 Commit: 22423eb8
@@ -195,7 +273,7 @@ A geração não é mais "seguir a probabilidade mais alta". É **otimizar a ass
 
 ---
 
-## Fase 6: A Validação Contra o Mundo Real
+## Fase 7: A Validação Contra o Mundo Real
 
 ### Experimento 1: 12 formatos de arquivo
 
@@ -252,7 +330,7 @@ Sem nunca ter visto um exemplo classificado, a Equação MCR detectou que códig
 
 ---
 
-## Fase 7: O Auto-Diagnóstico
+## Fase 8: O Auto-Diagnóstico
 
 ```
 Commits: e916dbb2 → ea7c7f63
@@ -270,7 +348,7 @@ Sem niveis fixos, pesos fixos, thresholds fixos. O estado do motor é serializad
 
 ---
 
-## Fase 8: Os Componentes AGI
+## Fase 9: Os Componentes AGI
 
 ```
 Commit: f31b19ef
@@ -298,7 +376,7 @@ MCRFuel + MCRWebLearn → buscam conhecimento
 
 ---
 
-## Fase 9: O RADAR — Quebrando o Desconhecido
+## Fase 10: O RADAR — Quebrando o Desconhecido
 
 ```
 Commits: 9476c077 → d17ec3b1
@@ -312,7 +390,7 @@ Sem ondas fixas, sem thresholds fixos, sem bônus manuais. 100% Equação MCR.
 
 ---
 
-## Fase 10: A Assinatura Expansiva
+## Fase 11: A Assinatura Expansiva
 
 ```
 Commit: 9ec12bc3
@@ -343,7 +421,7 @@ Sem dimensões fixas. A assinatura se expande até a dimensionalidade que o dado
 
 ---
 
-## Fase 11: MCR Sobre MCR
+## Fase 12: MCR Sobre MCR
 
 ```
 Commits: e0816320 → cdbf7bf2
