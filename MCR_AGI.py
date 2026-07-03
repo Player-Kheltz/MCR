@@ -2238,6 +2238,15 @@ class CerebroAGI:
                 self.hiper.dimensoes[nome_dim] = mk
             if hiper_dims:
                 self._hiper_descobertas = True
+            # Restaura transicoes byte e palavra (Fix 1)
+            for chave_a, trans in dados.get('byte_trans', {}).items():
+                self.mk_byte.transicoes[chave_a] = dict(trans)
+                self.mk_byte.freq[chave_a] = sum(trans.values())
+            self.mk_byte.total = sum(len(t) for t in self.mk_byte.transicoes.values())
+            for chave_a, trans in dados.get('palavra_trans', {}).items():
+                self.mk_palavra.transicoes[chave_a] = dict(trans)
+                self.mk_palavra.freq[chave_a] = sum(trans.values())
+            self.mk_palavra.total = sum(len(t) for t in self.mk_palavra.transicoes.values())
             # Restaura topologia
             topo_data = dados.get('topologia', {})
             if topo_data.get('grafo'):
@@ -2845,18 +2854,26 @@ class MCRConversa:
 
 
 def _explorar_fundo(cerebro, curiosidade):
-    """Thread de exploracao proativa em background (Passo 2).
+    """Thread de exploracao proativa em background (Fix 3).
     
-    Verifica periodicamente se o cerebro esta com fome
-    e explora em segundo plano sem travar o chat."""
+    Explora sempre que o cerebro estiver com fome,
+    com pausa adaptativa. Nao espera o usuario pedir."""
     thr_pausa = MCRThreshold("explorar_fundo")
+    vezes_sem_nada = 0
     while True:
         try:
-            pausa = max(1.0, thr_pausa.obter("pausa_segundos", 5.0))
+            pausa = max(0.5, thr_pausa.obter("pausa_segundos", 2.0))
             time.sleep(pausa)
             est_fome = curiosidade.diagnosticar_fome()
-            if est_fome['fome']:
-                curiosidade.ciclo()
+            if est_fome['fome'] or cerebro.mk_byte.total == 0:
+                r = curiosidade.ciclo()
+                if r.get('descobertas', 0) > 0:
+                    vezes_sem_nada = 0
+                else:
+                    vezes_sem_nada += 1
+            # Se ja tentou muito sem sucesso, aumenta pausa
+            if vezes_sem_nada > 5:
+                thr_pausa.observar(pausa * 1.5)
         except:
             pass
 
@@ -2881,13 +2898,29 @@ def chat_loop(cerebro):
     decisor_explorar = MCR("decidir_explorar")
     dec = decisor_explorar.predizer(estado_str)
     
+    # EXPLORACAO NO STARTUP: se conhecimento = 0, explora AGORA (Fix 2)
+    if cerebro.mk_byte.total == 0:
+        print("\n[MCR] Conhecimento vazio. Explorando ambiente...")
+        thr_exp = MCRThreshold("startup_explorar")
+        max_tentativas = max(1, int(thr_exp.obter("max_ciclos", 3)))
+        for tentativa in range(max_tentativas):
+            r = curiosidade.ciclo()
+            if r.get('descobertas', 0) > 0:
+                print(f"  Aprendi {r['descobertas']} novas informacoes!")
+            if cerebro.mk_byte.total > 0:
+                break
+        if cerebro.mk_byte.total > 0:
+            print(f"[MCR] Conhecimento inicial: {cerebro.mk_byte.total} bytes, {cerebro.mk_palavra.total} palavras\n")
+        else:
+            print("[MCR] Nada encontrado por enquanto.\n")
+    
+    # MCRDecisor decide: devo explorar agora?
     if dec[0] is not None and 'explorar' in str(dec[0]).lower():
-        print("\n[MCR] Vou explorar um pouco...")
         r = curiosidade.ciclo()
         if r['descobertas'] > 0:
             print(f"[MCR] Aprendi {r['descobertas']} novas informacoes!\n")
     
-    # Exploracao proativa em background (Passo 2)
+    # Exploracao proativa em background (Fix 3)
     _thread_curiosidade = threading.Thread(target=_explorar_fundo, args=(cerebro, curiosidade), daemon=True)
     _thread_curiosidade.start()
     
