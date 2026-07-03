@@ -1061,6 +1061,40 @@ class CerebroAGI:
         self.coupling.recalcular()
         self.topicos[nome] = {'texto': texto, 'bytes': len(dados), 'n_palavras': len(palavras), 'conteudo': {p.lower() for p in palavras if len(p) >= 2}}
         return nome
+    
+    def salvar(self, caminho=None):
+        """Salva cerebro em disco (topicos + markov)."""
+        caminho = caminho or os.path.join(CACHE_DIR, "cerebro.json")
+        dados = {
+            'topicos': {n: {'texto': t['texto'][:500], 'bytes': t['bytes'], 'n_palavras': t['n_palavras']}
+                       for n, t in self.topicos.items()},
+            'byte_trans': {str(k): v for k, v in self.mk_byte.transicoes.items()},
+            'palavra_trans': {str(k): v for k, v in self.mk_palavra.transicoes.items()},
+            'timestamp': time.time(),
+        }
+        try:
+            os.makedirs(os.path.dirname(caminho), exist_ok=True)
+            with open(caminho, 'w', encoding='utf-8') as f:
+                json.dump(dados, f, ensure_ascii=False)
+            return True
+        except: return False
+    
+    def carregar(self, caminho=None):
+        """Carrega cerebro do disco."""
+        caminho = caminho or os.path.join(CACHE_DIR, "cerebro.json")
+        if not os.path.exists(caminho): return False
+        try:
+            with open(caminho, 'r', encoding='utf-8') as f:
+                dados = json.load(f)
+            for nome, top in dados.get('topicos', {}).items():
+                self.topicos[nome] = {
+                    'texto': top.get('texto', ''),
+                    'bytes': top.get('bytes', 0),
+                    'n_palavras': top.get('n_palavras', 0),
+                    'conteudo': {p.lower() for p in top.get('texto', '').split() if len(p) >= 2},
+                }
+            return True
+        except: return False
     def aprender_causal(self, antes, acao, depois):
         self.world.aprender(antes, acao, depois); self.coupling.alimentar("intencao","acao",str(antes.fingerprint(8)[:3]),acao)
         self.coupling.alimentar("acao","intencao",acao,str(depois.fingerprint(8)[:3])); self.coupling.recalcular()
@@ -1890,6 +1924,10 @@ def main():
     cerebro = CerebroAGI()
     brain = None
     estado_path = os.path.join(CACHE_DIR, "mcr_estado.json")
+    
+    # Carrega cerebro do disco (se existir)
+    cerebro_path = os.path.join(CACHE_DIR, "cerebro.json")
+    cerebro.carregar(cerebro_path)
 
     # Carrega estado anterior
     estado = {}
@@ -1948,20 +1986,42 @@ def main():
         return
 
     # Padrao: MCRDecisor decide o que fazer
-    estado_str = f"exec:{estado.get('execucoes',0)}_ultima:{estado.get('ultima_acao','nenhuma')}"
-    dec = MCR("main_dec").predizer(estado_str)
+    mk_main = MCR("main_dec")
     
-    if dec[0] is not None and 'explorar' in str(dec[0]).lower():
+    # Estado natural: conhecimento zero → explorar (aprendido, nao regra)
+    if cerebro.topicos == 0:
+        mk_main.aprender("conhecimento_zero", "explorar_primeiro")
+        estado_str = "conhecimento_zero"
+    else:
+        estado_str = f"exec:{estado.get('execucoes',0)}_ultima:{estado.get('ultima_acao','nenhuma')}"
+    
+    dec = mk_main.predizer(estado_str)
+    
+    # Se MCRDecisor decidiu explorar, ou estado e conhecimento_zero
+    if (dec[0] is not None and 'explorar' in str(dec[0]).lower()) or 'conhecimento_zero' in estado_str:
         cur = MCRCuriosidade(cerebro)
         r = cur.ciclo()
-        print(f"[MCR] Explorei e aprendi {r['descobertas']} novas informacoes")
+        if r['descobertas'] > 0:
+            print(f"[MCR] Explorei e aprendi {r['descobertas']} novas informacoes")
+        else:
+            print("[MCR] Nada novo para aprender agora.")
+        # Aprende: conhecimento_zero → explorou → proxima vez pode decidir diferente
+        if 'conhecimento_zero' in estado_str:
+            mk_main.aprender("conhecimento_zero", "explorou_primeiro")
         # Salva estado
         try:
             with open(estado_path, 'w') as f:
                 json.dump({'execucoes': estado.get('execucoes',0)+1, 'ultima_acao': 'explorou'}, f)
         except: pass
-        return
-
+        # Salva cerebro apos explorar
+        cerebro.salvar(cerebro_path)
+        chat_loop(cerebro)
+    else:
+        chat_loop(cerebro)
+    
+    # Salva cerebro apos chat (se chat_loop retornar)
+    cerebro.salvar(cerebro_path)
+    
     # Se nao decidiu nada, vai pro chat
     chat_loop(cerebro)
 
