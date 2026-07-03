@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-MCR_AGI.py — UNIVERSAL. 0 HARDCODE. 0 GPU. 0 LLM.
-===================================================
-Unico arquivo. Tudo que o MCR precisa.
-Primitivas, mundo, acoes, linguagem, atencao, causalidade,
-planejamento, reforco, memoria, pontes, codigo, expansao,
-orquestracao, loop evolutivo, chat, daemon.
+MCR_AGI.py — Experimento em minimalismo computacional com Markov multi-nivel.
+============================================================================
+Unico arquivo. Markov em N niveis: byte, palavra, token, decisao, acao.
+Primitivas, mundo, acoes, NLP (Jaccard), atencao (heuristicas),
+planejamento (grid 5x5), Q-Learning, SQLite, auto-parametrizacao,
+curiosidade, identidade (fingerprint), chat, daemon.
+
+0 GPU. 0 LLM. 0 dependencias externas. Python stdlib apenas.
 
 Uso:
     python MCR_AGI.py                            # chat
