@@ -257,8 +257,10 @@ class MCRHDCOperation:
     Cada operacao tem seu proprio MCR que aprende quando aplica-la.
         Usa MCRJanelamentoFingerprint para vetores mais longos quando disponivel.
     """
-    def __init__(self, reservoir=None):
+    def __init__(self, reservoir=None, coupling=None, niveis_ctx=None):
         self.reservoir = reservoir
+        self.coupling = coupling
+        self.niveis_ctx = niveis_ctx or []
         self.mk_bundle = MCR("hdc_bundle")
         self.mk_bind = MCR("hdc_bind")
         self.mk_permute = MCR("hdc_permute")
@@ -266,14 +268,39 @@ class MCRHDCOperation:
         self.total = 0
     
     def _vetor(self, texto):
+        """Gera vetor fingerprint com dimensionalidade adaptativa.
+        
+        A dimensionalidade e REDUZIDA quando ha correlacao forte entre
+        niveis — pois a informacao ja esta distribuida entre eles.
+        Usa self.coupling e self.niveis_ctx se disponiveis.
+        """
         if self.reservoir:
             v = self.reservoir.gerar(texto)
             if v:
                 return v
-        # Descobre dim ideal para este texto (F4)
+        
         dados = texto.encode()[:2000] if isinstance(texto, str) else bytes(texto)[:2000]
-        dim = MCRSignatureExpansiva.dimensionalidade_ideal(dados, mx=256, thr=0.05)
-        return MCRByteUtils.fingerprint(texto, max(dim, 8))
+        dim_base = MCRSignatureExpansiva.dimensionalidade_ideal(dados, mx=256, thr=0.05)
+        
+        # Reducao por correlacao cross-level
+        if self.coupling and self.niveis_ctx:
+            corr_total = 0.0
+            n_corr = 0
+            for ctx_nivel in self.niveis_ctx:
+                p = self.coupling.peso(ctx_nivel, "fingerprint")
+                if p > 0:
+                    corr_total += p
+                    n_corr += 1
+                p_inv = self.coupling.peso("fingerprint", ctx_nivel)
+                if p_inv > 0:
+                    corr_total += p_inv
+                    n_corr += 1
+            if n_corr > 0:
+                corr_media = corr_total / n_corr
+                fator = max(0.25, 1.0 - corr_media * 0.5)
+                dim_base = int(dim_base * fator)
+        
+        return MCRByteUtils.fingerprint(texto, max(dim_base, 8))
     
     def _normalizar(self, va, vb, dim_alvo=None):
         """Normaliza dois vetores para o MESMO tamanho.
@@ -1113,7 +1140,7 @@ class MCRCoupling:
         self.esfera = MCREsfera()
     @staticmethod
     def _descobrir_niveis():
-        base = ["byte","palavra","tven"]
+        base = ["byte","palavra","tven","fingerprint"]
         return base + ["intencao","acao"]
     def alimentar(self, origem, destino, to, td):
         if origem not in self.niveis or destino not in self.niveis: return
@@ -2079,9 +2106,9 @@ class CerebroAGI:
         self._acoes_internas = {}
         self._registrar_acoes_internas()
         self.reservoir = MCRJanelamentoFingerprint()
-        self.hdc = MCRHDCOperation(self.reservoir)
         self.topicos: Dict[str, Dict] = {}
         self.world = MCRWorld(); self.coupling = MCRCoupling(); self.planner = MCRPlanner(self.world)
+        self.hdc = MCRHDCOperation(self.reservoir, coupling=self.coupling, niveis_ctx=["byte", "palavra", "tven", "intencao", "acao"])
         self.total_ciclos = 0; self.thr = MCRThreshold("cerebro"); self.entropia = MCREntropia("cerebro")
         self._rl, self._bridge, self._genesis = None, None, None
         self.entropic_search = MCREntropicSearch(self.world, self.rl)
