@@ -2249,12 +2249,44 @@ class CerebroAGI:
             if semente not in self.mk_palavra.freq:
                 if len(palavras) > 1: semente = palavras[-2]
                 else: break
+            
+            # Tenta Markov puro primeiro (dimensao palavra)
             cands = self.mk_palavra.predizer_n(semente, 5)
+            pred = None
+            conf = 0.0
+            
             if cands:
-                probs = {c: conf for c, conf in cands}
+                probs = {c: cf for c, cf in cands}
                 mod = self.coupling.modular("palavra", probs)
-                palavras.append(max(mod, key=mod.get))
-            else: break
+                melhor = max(mod, key=mod.get)
+                if mod[melhor] > 0.01:
+                    pred = melhor
+                    conf = mod[melhor]
+            
+            # Fallback: esfera cross-dimensional quando Markov falha
+            if pred is None or conf < 0.05:
+                ultimo_byte = f"B:{ord(semente[-1]):02x}" if semente else "B:00"
+                for n in ["token_tipo", "linha", "byte_delta", "hash_curto", "byte"]:
+                    if n in self.hiper.dimensoes or n == "byte":
+                        ctx = {"palavra": semente}
+                        if n == "byte":
+                            ctx["byte"] = ultimo_byte
+                        pred_esf, conf_esf = self.coupling.esfera.predizer_cross("palavra", **ctx)
+                        if pred_esf and conf_esf > conf:
+                            pred = pred_esf
+                            conf = conf_esf
+                            if conf > 0.3:
+                                break  # confianca alta, aceita
+            
+            # Ultimo fallback: byte puro
+            if pred is None or conf < 0.01:
+                ultimo_byte = f"B:{ord(semente[-1]):02x}" if semente else "B:00"
+                pred, conf = self.mk_byte.predizer(ultimo_byte)
+            
+            if pred:
+                palavras.append(pred)
+            else:
+                break
             self.entropia.alimentar(palavras[-1])
             if self.entropia.esta_em_loop(): break
         return " ".join(palavras)
