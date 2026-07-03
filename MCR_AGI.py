@@ -665,9 +665,7 @@ class MCRHiperesferaAutoExpansiva:
             'M' if c.isupper() else 'm' if c.islower() else 'd' if c.isdigit() else 'o'
             for c in t[:1000]], "tipo do caractere"),
         ("linha", lambda t: [l[:30] for l in t.split('\n') if l.strip()][:200], "linhas do texto"),
-        ("byte_delta", lambda t: [
-            f"Δ:{abs(t.encode()[i+1]-t.encode()[i]):02x}"
-            for i in range(min(len(t), 999))], "diferenca entre bytes"),
+        ("byte_delta", lambda t: [f"Δ:{abs(d[i+1]-d[i]):02x}" for d in (t.encode()[:1000],) for i in range(len(d)-1)], "diferenca entre bytes"),
         ("hash_curto", lambda t: [
             f"H:{abs(hash(p))%1000:03d}"
             for p in re.findall(r'\b\w+\b', t.lower())[:300]], "hash de palavras"),
@@ -1219,6 +1217,8 @@ class MCRNPCBrain:
 class CerebroAGI:
     def __init__(self):
         self.mk_byte = MCR("byte"); self.mk_palavra = MCR("palavra"); self.mk_tven = MCR("tven")
+        self.hiper = MCRHiperesferaAutoExpansiva()
+        self._hiper_descobertas = False
         self.topicos: Dict[str, Dict] = {}
         self.world = MCRWorld(); self.coupling = MCRCoupling(); self.planner = MCRPlanner(self.world)
         self.total_ciclos = 0; self.thr = MCRThreshold("cerebro"); self.entropia = MCREntropia("cerebro")
@@ -1238,24 +1238,48 @@ class CerebroAGI:
     def alimentar(self, texto, nome=None):
         if nome is None: nome = f"top_{len(self.topicos)+1}"
         dados = texto.encode(); palavras = texto.split()
+        
+        # Niveis fixos (byte, palavra, tven) — sempre aprende
         for i in range(len(dados)-1): self.mk_byte.aprender(f"B:{dados[i]:02x}", f"B:{dados[i+1]:02x}")
         for i in range(len(palavras)-1): self.mk_palavra.aprender(palavras[i], palavras[i+1])
         for i in range(len(palavras)-1):
             ta = palavras[i][0].upper() if palavras[i] else '?'; tb = palavras[i+1][0].upper() if palavras[i+1] else '?'
             self.mk_tven.aprender(ta, tb)
+        
+        # Hiperesfera: descobre dimensoes na primeira alimentacao
+        # (protegido — falha nao quebra o pipeline)
+        try:
+            if not self._hiper_descobertas and len(texto) > 100:
+                dims = self.hiper.descobrir(texto)
+                self._hiper_descobertas = True
+                for nome_dim, mk in self.hiper.dimensoes.items():
+                    tokens = self.hiper.tokenizadores[nome_dim](texto)
+                    for i in range(len(tokens)-1):
+                        mk.aprender(tokens[i], tokens[i+1])
+            else:
+                for nome_dim, mk in self.hiper.dimensoes.items():
+                    fn = self.hiper.tokenizadores.get(nome_dim)
+                    if fn:
+                        tokens = fn(texto)
+                        for i in range(len(tokens)-1):
+                            mk.aprender(tokens[i], tokens[i+1])
+        except:
+            pass
+        
+        # Coupling entre byte ↔ palavra ↔ tven
         for i in range(min(len(dados)-1, len(palavras))):
             if i < len(dados)-1:
                 bt = f"B:{dados[i]:02x}"; pt = palavras[min(i,len(palavras)-1)]; tt = pt[0].upper() if pt else '?'
                 self.coupling.alimentar("byte","palavra",bt,pt); self.coupling.alimentar("palavra","tven",pt,tt); self.coupling.alimentar("tven","byte",tt,bt)
         self.coupling.recalcular()
+        
         self.topicos[nome] = {'texto': texto, 'bytes': len(dados), 'n_palavras': len(palavras), 'conteudo': list({p.lower() for p in palavras if len(p) >= 2})}
         return nome
     
     def salvar(self, caminho=None):
-        """Salva cerebro em disco (topicos + markov).
+        """Salva cerebro em disco (topicos + markov + hiper-dimensoes).
         Usa arquivo temporario + os.replace para evitar corrupcao."""
         caminho = caminho or os.path.join(CACHE_DIR, "cerebro.json")
-        # conteudo convertido para lista (serializavel em JSON)
         topicos_serial = {}
         for n, t in self.topicos.items():
             topicos_serial[n] = {
@@ -1270,12 +1294,21 @@ class CerebroAGI:
             'palavra_trans': {str(k): v for k, v in self.mk_palavra.transicoes.items()},
             'timestamp': time.time(),
         }
+        # Salva dimensoes descobertas pela hiperesfera
+        if self.hiper.dimensoes:
+            dados['hiper_dims'] = {}
+            for nome, mk in self.hiper.dimensoes.items():
+                dados['hiper_dims'][nome] = {
+                    'trans': {str(k): v for k, v in mk.transicoes.items()},
+                    'freq': {str(k): v for k, v in mk.freq.items()},
+                    'total': mk.total,
+                }
         try:
             os.makedirs(os.path.dirname(caminho), exist_ok=True)
             tmp = caminho + '.tmp'
             with open(tmp, 'w', encoding='utf-8') as f:
                 json.dump(dados, f, ensure_ascii=False)
-            os.replace(tmp, caminho)  # atomico: nao corrompe se falhar no meio
+            os.replace(tmp, caminho)
             return True
         except: return False
     
@@ -1299,6 +1332,18 @@ class CerebroAGI:
                     'n_palavras': top.get('n_palavras', 0),
                     'conteudo': conteudo,
                 }
+            # Restaura dimensoes da hiperesfera
+            hiper_dims = dados.get('hiper_dims', {})
+            for nome_dim, dim_data in hiper_dims.items():
+                mk = MCR(nome_dim)
+                for chave_a, trans in dim_data.get('trans', {}).items():
+                    mk.transicoes[chave_a] = dict(trans)
+                for chave_a, freq_val in dim_data.get('freq', {}).items():
+                    mk.freq[chave_a] = int(freq_val) if isinstance(freq_val, (int, float)) else 0
+                mk.total = dim_data.get('total', 0)
+                self.hiper.dimensoes[nome_dim] = mk
+            if hiper_dims:
+                self._hiper_descobertas = True
             return True
         except: return False
     def aprender_causal(self, antes, acao, depois):
