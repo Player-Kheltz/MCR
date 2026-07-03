@@ -3057,6 +3057,24 @@ class MCRConversa:
         if resp and resp != "Nao sei responder sobre isso.":
             self.cerebro.alimentar(resp, f"resp_{hash(resp)%10000}", tipo="conv")
         
+        # NLP: auto-expandir exemplos apos cada pergunta (Fix 1)
+        try:
+            if hasattr(MCRNLP, 'auto_expandir'):
+                MCRNLP.auto_expandir(self.cerebro)
+        except:
+            pass
+        
+        # Atencao: feedback ajusta pesos se usuario repetiu pergunta (Fix 4)
+        try:
+            if len(self.historico) >= 4:
+                ultima = self.historico[-2] if len(self.historico) >= 2 else ""
+                if ultima and ultima.startswith("> ") and ultima[2:].strip().lower() == texto.lower():
+                    for nome_k, thr_k in MCRAttention._thr_p.items():
+                        peso_atual = thr_k.obter("peso", 3.0)
+                        thr_k.obs = thr_k.obs + [peso_atual * MCRThreshold("feedback").obter("penalidade", 0.9)]
+        except:
+            pass
+        
         # Ciclo autonomo apos cada pergunta
         try:
             self.cerebro.ciclo_autonomo(texto, max_passos=MCRDecisorUniversal.decidir_passos("pos_pergunta", {"tamanho_bytes": len(texto)}))
