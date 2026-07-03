@@ -1,0 +1,7 @@
+python 1-extrator.py "E:\Projeto MCR\Canary\src" extraido.txt 
+python 2-tradutor.py extraido.txt traduzido.txt  
+python 3-removedor.py traduzido.txt    
+python 4-reparador.py extraido.txt traduzido.txt reparado.txt   
+python 5-corretor.py extraido.txt traduzido.txt reparado.txt  
+python 6-aplicador.py extraido.txt reparado.txt      
+python 7-acentos.py "E:\Projeto MCR\Canary\src" ficheiros_modificados.txt

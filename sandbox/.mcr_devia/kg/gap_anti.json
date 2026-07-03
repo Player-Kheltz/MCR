@@ -1,0 +1,226 @@
+{
+  "ctx": "gap_anti",
+  "licoes": [
+    {
+      "erro": "anti:[Personalidade] MCR - Personalidade e Identidade de Dominios_txt",
+      "causa": "conceito: anti:[Personalidade] MCR - Personalidade e Identidade de Dominios_txt",
+      "solucao": "[Fonte: docs\\MCR - Instruções\\[Personalidade] MCR - Personalidade e Identidade de Dominios.txt]\ncebido, o criador deve preencher o Questionário de Identidade (Secção 2) antes de escrever qualquer linha de código. As respostas orientam os pacotes temáticos, os efeitos visuais, as sinergias e a escolha dos novos tipos modulares do motor v2.0.\n\n📜 1. A FILOSOFIA DO DOMÍNIO\n1.1 O que é um Domínio?\nUm Domínio é uma área de conhecimento ou perícia que o Aventureiro desenvolve ao realizar acções no ",
+      "ctx": "gap_anti",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782924776.3047023,
+      "id": "L1311"
+    },
+    {
+      "erro": "anti:Sistema de Codificação_md",
+      "causa": "conceito: anti:Sistema de Codificação_md",
+      "solucao": "[Fonte: docs\\MCR - Instruções\\DevLog\\Sistema de Codificação.md]\nhamado em `sendTextMessage`\n- ProtocolGame::sendTextMessage: adicionado `toLatin1(message.text)` na linha 4796\n\n## O que foi corrigido\n\n| Local | O que mudou | Arquivo |\n|---|---|---|\n| `sendTextMessage` | Adicionado `toLatin1(message.text)` | `protocolgame.cpp:4796` |\n| `player.cpp:7636` | \"Não\" literal → funcionou com `/utf-8` + `toLatin1()` | `player.cpp` |\n| `items.cpp:276` | Removido `toLatin",
+      "ctx": "gap_anti",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782924780.3795207,
+      "id": "L1312"
+    },
+    {
+      "erro": "anti:AGENT_IDENTITY_md",
+      "causa": "conceito: anti:AGENT_IDENTITY_md",
+      "solucao": "[Fonte: docs\\AGENT_IDENTITY.md]\no e factual.\n- Para codigo: apenas o codigo dentro de ```, sem explicacoes extras.\n- Para analises: LINHA X: tipo - descricao, usando numeros de linha reais.\n- Para conceitos: explique de forma didatica mas tecnica.\n",
+      "ctx": "gap_anti",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782924784.4320638,
+      "id": "L1313"
+    },
+    {
+      "erro": "anti:200 - SAGRADO_MORTE_txt",
+      "causa": "conceito: anti:200 - SAGRADO_MORTE_txt",
+      "solucao": "[Fonte: docs\\MCR - Instruções\\Sistema de Habilidades Contextuais\\02 - CATALOGO DE DOMINIOS\\200 - SAGRADO_MORTE.txt]\nade (Espectro 21 → Magia 2)\n\nEssência: Dualidade entre luz e trevas, cura e destruição.\nTagline: \"A linha entre a vida e a morte é tênue. Eu a atravesso.\"\nForça: Versatilidade entre cura/holy vs dano/Death.\nFraqueza: Especialização dividida, bônus menores que domínios puros.\n\nNicho: Suporte híbrido / Dano contra mortos-vivos / Cura / Drenagem\nIDs: 200001-200030\nElemento: COMBAT_HOLYDAMAGE e COMBAT",
+      "ctx": "gap_anti",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782924788.4864612,
+      "id": "L1314"
+    },
+    {
+      "erro": "anti:relatorio_itens_txt",
+      "causa": "conceito: anti:relatorio_itens_txt",
+      "solucao": "[Fonte: docs\\Localizador Projeto MCR\\Server (Data)\\relatorio_itens.txt]\n43\nOcorrências encontradas: 1595\n\n\nFicheiro: E:\\Projeto MCR\\Canary\\data\\lib\\core\\quests\\catalog.lua\nLinha 35: if type(quest) ~= \"table\" then\n  ❌ 'table' -> ✅ 'Mesa'\n\nFicheiro: E:\\Projeto MCR\\Canary\\data\\lib\\core\\quests\\catalog.lua\nLinha 44: if type(mission) == \"table\" then\n  ❌ 'table' -> ✅ 'Mesa'\n\nFicheiro: E:\\Projeto MCR\\Canary\\data\\libs\\debugging\\dump.lua\nLinha 9: if type(input) == \"table\" then\n",
+      "ctx": "gap_anti",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782924793.2943296,
+      "id": "L1315"
+    },
+    {
+      "erro": "anti:CHECKPOINT_SESSAO_md",
+      "causa": "conceito: anti:CHECKPOINT_SESSAO_md",
+      "solucao": "[Fonte: docs\\CHECKPOINT_SESSAO.md]\nrevisar.py, cmd_processar.py, cmd_aprender_conceito.py,\n    cmd_refresh.py, cmd_????\n  modulos/\n    kg.py                     -- Knowledge Graph\n    ia.py                     -- Interface Ollama (fast, gerar)\n    supervisor.py             -- V12 Cont",
+      "ctx": "gap_anti",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782925124.648068,
+      "id": "L1341",
+      "inactive": true
+    },
+    {
+      "erro": "anti:check_kg_py",
+      "causa": "conceito: anti:check_kg_py",
+      "solucao": "[Prototipo: check_kg.py]\n\"\"\"Check KG for test results.\"\"\"\nimport sys, os\nsys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'scripts', 'mcr_devia'))\nfrom modulos.kg import KnowledgeGraph\nfrom collections import Counter\n\nkg = KnowledgeGraph()\nlicoes = kg._get_licoes()\n\nprint(f\"Total lessons: {len(licoes)}\")\nprint()\n\n# Find inception and criacao_teste lessons\nfor l in licoes:\n    ctx = l.get('ctx', '')\n    if ctx in ('inception_aprendizado', 'criacao_teste'):\n        err = l.get('erro', '')[:80]\n        sol ",
+      "ctx": "gap_anti",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [
+        "stress_test"
+      ],
+      "timestamp": 1782925128.7128928,
+      "id": "L1342",
+      "inactive": true
+    },
+    {
+      "erro": "anti:diag_kg_py",
+      "causa": "conceito: anti:diag_kg_py",
+      "solucao": "[Prototipo: diag_kg.py]\n#!/usr/bin/env python3\n\"\"\"Diagnostico do KG — por que nao expande?\"\"\"\nimport sys, os, json\nfrom collections import Counter\nfrom datetime import datetime\n\nsys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'scripts', 'mcr_devia'))\nsys.stdout.reconfigure(encoding='utf-8', errors='replace')\n\nfrom modulos.kg import KnowledgeGraph\nkg = KnowledgeGraph()\n\nlicoes = kg._get_licoes()\nprint(f'Total de lessons: {len(licoes)}')\n\n# Distribuicao por ctx\nctxs = Counter(l.get('ctx','sem_ctx') for l",
+      "ctx": "gap_anti",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782925132.7676995,
+      "id": "L1343",
+      "inactive": true
+    },
+    {
+      "erro": "anti:[0] MCR - INDICE GERAL_txt",
+      "causa": "conceito: anti:[0] MCR - INDICE GERAL_txt",
+      "solucao": "[Fonte: docs\\MCR - Instruções\\[0] MCR - INDICE GERAL.txt]\ncos e técnicos que NUNCA podem ser violados em nenhuma camada do projecto.\n- ÍNDICE DE GUIAS: lista todos os documentos temáticos que compõem a base de conhecimento do Projeto MCR, com uma breve descrição do conteúdo de cada um.\n- ARQUIVOS COMPLEMENTARES: relação de listas e recursos auxiliares, como a Lista de Itens Úteis.\n- FERRAMENTAS DE AUTOMAÇÃO: scripts Python que compõem a pipeline de tradu",
+      "ctx": "gap_anti",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782925684.3886013,
+      "id": "L1363"
+    },
+    {
+      "erro": "anti:[12] MCR - Guia de Conteúdo Inicial e Tutorial_txt",
+      "causa": "conceito: anti:[12] MCR - Guia de Conteúdo Inicial e Tutorial_txt",
+      "solucao": "[Fonte: docs\\MCR - Instruções\\[12] MCR - Guia de Conteúdo Inicial e Tutorial.txt]\nonal: os despertares de Domínio, o ganho de afinidade, os Lampejos, os Vínculos e as Posturas estão todos activos. Os scripts de Eridanus residem em data-canary/scripts/MCR/Tutorial/ e são carregados automaticamente pelo Revscript.\n\n🚧 ESTADO ATUAL DA IMPLEMENTAÇÃO\nTodo o conteúdo descrito neste guia pode ser implementado imediatamente. Não há dependências de fases futuras. As funções do SPA (adici",
+      "ctx": "gap_anti",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782925688.4484587,
+      "id": "L1364"
+    },
+    {
+      "erro": "anti:Sistema Multi-Piso_md",
+      "causa": "conceito: anti:Sistema Multi-Piso_md",
+      "solucao": "[Fonte: docs\\MCR - Instruções\\DevLog\\Sistema Multi-Piso.md]\n mesma escada, buscam alternativa\n\n**O que tentamos e não deu certo:**\n- `isWalkingToPosition` para TODOS os movimentos (causava movimento robótico)\n- `sendRemoveTileThing` para limpar BattleList (removia sprite do chão, causava erro \"no thing at pos\")\n\n### 2. Navegação do Jogador (PlayerNavigation)\n**Arquivos:** `player.cpp`, `player.hpp`, `game.cpp`, `proto",
+      "ctx": "gap_anti",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782925692.5105743,
+      "id": "L1365"
+    },
+    {
+      "erro": "anti:[6] MCR - Guia de Narrativa e Diálogos_txt",
+      "causa": "conceito: anti:[6] MCR - Guia de Narrativa e Diálogos_txt",
+      "solucao": "[Fonte: docs\\MCR - Instruções\\[6] MCR - Guia de Narrativa e Diálogos.txt]\nma de pets/escudeiro, nomenclatura unificada, remoção de vocações, sistema de cores v10.0 e novos métodos de progressão)\nArquivo: [6] MCR - Guia de Narrativa e Diálogos.txt\n\n🎯 OBJETIVO DESTE GUIA\nEste guia é a bússola narrativa do Projeto MCR. Define como os NPCs devem falar, pensar e reagir dentro do universo de fantasia original \"Aventura Fantasiosa\", utilizando a API real do Canary, a estrutura",
+      "ctx": "gap_anti",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782925696.5859675,
+      "id": "L1366"
+    },
+    {
+      "erro": "anti:[Personalidade] MCR - Personalidade e Identidade de Dominios_txt",
+      "causa": "conceito: anti:[Personalidade] MCR - Personalidade e Identidade de Dominios_txt",
+      "solucao": "[Fonte: docs\\MCR - Instruções\\[Personalidade] MCR - Personalidade e Identidade de Dominios.txt]\nENTO\nEste documento é a fonte primária de inspiração narrativa, mecânica e visual para a criação de todos os domínios do Sistema de Progressão do Aventureiro.\nEle define a alma de um domínio – a sua personalidade, a forma como o mundo o percebe e como ele se manifesta em habilidades, efeitos visuais, sinergias e comportamentos dinâmicos.\n\nNão é um documento de implementação técnica (para isso, vej",
+      "ctx": "gap_anti",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782925701.4428852,
+      "id": "L1367"
+    },
+    {
+      "erro": "anti:CHECKPOINT_SESSAO_md",
+      "causa": "conceito: anti:CHECKPOINT_SESSAO_md",
+      "solucao": "[Fonte: docs\\CHECKPOINT_SESSAO.md]\nrevisar.py, cmd_processar.py, cmd_aprender_conceito.py,\n    cmd_refresh.py, cmd_????\n  modulos/\n    kg.py                     -- Knowledge Graph\n    ia.py                     -- Interface Ollama (fast, gerar)\n    supervisor.py             -- V12 Cont",
+      "ctx": "gap_anti",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782926372.9056504,
+      "id": "L1406",
+      "inactive": true
+    },
+    {
+      "erro": "anti:check_kg_py",
+      "causa": "conceito: anti:check_kg_py",
+      "solucao": "[Prototipo: check_kg.py]\n\"\"\"Check KG for test results.\"\"\"\nimport sys, os\nsys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'scripts', 'mcr_devia'))\nfrom modulos.kg import KnowledgeGraph\nfrom collections import Counter\n\nkg = KnowledgeGraph()\nlicoes = kg._get_licoes()\n\nprint(f\"Total lessons: {len(licoes)}\")\nprint()\n\n# Find inception and criacao_teste lessons\nfor l in licoes:\n    ctx = l.get('ctx', '')\n    if ctx in ('inception_aprendizado', 'criacao_teste'):\n        err = l.get('erro', '')[:80]\n        sol ",
+      "ctx": "gap_anti",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [
+        "stress_test"
+      ],
+      "timestamp": 1782926376.964334,
+      "id": "L1407",
+      "inactive": true
+    },
+    {
+      "erro": "anti:diag_kg_py",
+      "causa": "conceito: anti:diag_kg_py",
+      "solucao": "[Prototipo: diag_kg.py]\n#!/usr/bin/env python3\n\"\"\"Diagnostico do KG — por que nao expande?\"\"\"\nimport sys, os, json\nfrom collections import Counter\nfrom datetime import datetime\n\nsys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'scripts', 'mcr_devia'))\nsys.stdout.reconfigure(encoding='utf-8', errors='replace')\n\nfrom modulos.kg import KnowledgeGraph\nkg = KnowledgeGraph()\n\nlicoes = kg._get_licoes()\nprint(f'Total de lessons: {len(licoes)}')\n\n# Distribuicao por ctx\nctxs = Counter(l.get('ctx','sem_ctx') for l",
+      "ctx": "gap_anti",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782926381.0111418,
+      "id": "L1408",
+      "inactive": true
+    },
+    {
+      "erro": "anti:CHECKPOINT_SESSAO_md",
+      "causa": "conceito: anti:CHECKPOINT_SESSAO_md",
+      "solucao": "[Fonte: docs\\CHECKPOINT_SESSAO.md]\nrevisar.py, cmd_processar.py, cmd_aprender_conceito.py,\n    cmd_refresh.py, cmd_????\n  modulos/\n    kg.py                     -- Knowledge Graph\n    ia.py                     -- Interface Ollama (fast, gerar)\n    supervisor.py             -- V12 Cont",
+      "ctx": "gap_anti",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782927931.061877,
+      "id": "L1421"
+    },
+    {
+      "erro": "anti:check_kg_py",
+      "causa": "conceito: anti:check_kg_py",
+      "solucao": "[Prototipo: check_kg.py]\n\"\"\"Check KG for test results.\"\"\"\nimport sys, os\nsys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'scripts', 'mcr_devia'))\nfrom modulos.kg import KnowledgeGraph\nfrom collections import Counter\n\nkg = KnowledgeGraph()\nlicoes = kg._get_licoes()\n\nprint(f\"Total lessons: {len(licoes)}\")\nprint()\n\n# Find inception and criacao_teste lessons\nfor l in licoes:\n    ctx = l.get('ctx', '')\n    if ctx in ('inception_aprendizado', 'criacao_teste'):\n        err = l.get('erro', '')[:80]\n        sol ",
+      "ctx": "gap_anti",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [
+        "stress_test"
+      ],
+      "timestamp": 1782927935.1349566,
+      "id": "L1422"
+    },
+    {
+      "erro": "anti:diag_kg_py",
+      "causa": "conceito: anti:diag_kg_py",
+      "solucao": "[Prototipo: diag_kg.py]\n#!/usr/bin/env python3\n\"\"\"Diagnostico do KG — por que nao expande?\"\"\"\nimport sys, os, json\nfrom collections import Counter\nfrom datetime import datetime\n\nsys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'scripts', 'mcr_devia'))\nsys.stdout.reconfigure(encoding='utf-8', errors='replace')\n\nfrom modulos.kg import KnowledgeGraph\nkg = KnowledgeGraph()\n\nlicoes = kg._get_licoes()\nprint(f'Total de lessons: {len(licoes)}')\n\n# Distribuicao por ctx\nctxs = Counter(l.get('ctx','sem_ctx') for l",
+      "ctx": "gap_anti",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782927939.1950521,
+      "id": "L1423"
+    }
+  ]
+}

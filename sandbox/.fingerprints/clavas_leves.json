@@ -1,0 +1,195 @@
+{
+  "nome": "CLAVAS LEVES",
+  "descricao": "armas ageis de uma mao, golpes rapidos e precisos",
+  "palavras_obrigatorias": [
+    "clava",
+    "giro",
+    "impacto",
+    "agil",
+    "preciso",
+    "rapido",
+    "bambu",
+    "danca",
+    "trovao"
+  ],
+  "palavras_proibidas": [
+    "punho",
+    "soco",
+    "chute",
+    "espada",
+    "lanca",
+    "machado",
+    "adaga",
+    "flecha",
+    "magia",
+    "arcano",
+    "feiti",
+    "cobra",
+    "aguia",
+    "passaro",
+    "leao",
+    "cobra",
+    "veneno",
+    "sagrado",
+    "dardo",
+    "laminas",
+    "cajado",
+    "bastao"
+  ],
+  "padrao_esperado": "substantivo_adjetivo",
+  "palavras_genericas": [
+    "golpe",
+    "ataque",
+    "poder",
+    "forca",
+    "basico",
+    "comum"
+  ],
+  "exemplos_ruins": [
+    "Punho de Ferro",
+    "Cobra Venenosa",
+    "Garrafa de Fogo",
+    "Agulha Sutil",
+    "Maqueira Enfraquecedora",
+    "Estrela Explodente",
+    "Flecha de Gelo",
+    "Espada Ligeira",
+    "Bastao Arcano"
+  ],
+  "exemplos_bons": [
+    "Giro Agil",
+    "Clava Trovejante",
+    "Bambu Ligeiro",
+    "Danca das Clavas",
+    "Impacto Sonoro",
+    "Redemoinho de Clavas",
+    "Ventania de Golpes",
+    "Combo Crescente",
+    "Golpe Preciso",
+    "Giro Desafiador",
+    "Dança das Clavas"
+  ],
+  "ultimas_rejeicoes": [],
+  "ultimas_aprovacoes": [
+    {
+      "nome": "Giro Agil",
+      "data": "2026-06-25T00:27:10.138279"
+    },
+    {
+      "nome": "Clava Trovejante",
+      "data": "2026-06-25T00:27:10.138796"
+    },
+    {
+      "nome": "Bambu Ligeiro",
+      "data": "2026-06-25T00:27:10.139125"
+    },
+    {
+      "nome": "Dança das Clavas",
+      "data": "2026-06-25T00:27:10.139432"
+    },
+    {
+      "nome": "Impacto Sonoro",
+      "data": "2026-06-25T00:27:10.139736"
+    },
+    {
+      "nome": "Giro Trovão",
+      "data": "2026-06-25T00:27:10.140040"
+    },
+    {
+      "nome": "Clava Ligeira",
+      "data": "2026-06-25T00:27:10.140365"
+    },
+    {
+      "nome": "Bambu Trovão",
+      "data": "2026-06-25T00:27:10.140674"
+    },
+    {
+      "nome": "Dança Ligeira",
+      "data": "2026-06-25T00:27:10.140993"
+    },
+    {
+      "nome": "Giro de Impacto",
+      "data": "2026-06-25T00:27:10.141313"
+    },
+    {
+      "nome": "Giro Agil",
+      "data": "2026-06-25T00:27:50.987652"
+    },
+    {
+      "nome": "Clava Trovejante",
+      "data": "2026-06-25T00:27:50.988140"
+    },
+    {
+      "nome": "Bambu Ligeiro",
+      "data": "2026-06-25T00:27:50.988488"
+    },
+    {
+      "nome": "Dança das Clavas",
+      "data": "2026-06-25T00:27:50.988833"
+    },
+    {
+      "nome": "Impacto Sonoro",
+      "data": "2026-06-25T00:27:50.989162"
+    },
+    {
+      "nome": "Trovão das Clavas",
+      "data": "2026-06-25T00:27:55.976494"
+    },
+    {
+      "nome": "Bambu Voz do Trovão",
+      "data": "2026-06-25T00:27:55.977032"
+    },
+    {
+      "nome": "Agilidade Clavada",
+      "data": "2026-06-25T00:27:55.977432"
+    },
+    {
+      "nome": "Bamboo Blitz",
+      "data": "2026-06-25T00:27:59.495859"
+    },
+    {
+      "nome": "Trovão Desafiador",
+      "data": "2026-06-25T00:27:59.496409"
+    },
+    {
+      "nome": "Giro Agil",
+      "data": "2026-06-25T00:28:38.155481"
+    },
+    {
+      "nome": "Clava Trovejante",
+      "data": "2026-06-25T00:28:38.156026"
+    },
+    {
+      "nome": "Bambu Ligeiro",
+      "data": "2026-06-25T00:28:38.156405"
+    },
+    {
+      "nome": "Dança das Clavas",
+      "data": "2026-06-25T00:28:38.156784"
+    },
+    {
+      "nome": "Impacto Sonoro",
+      "data": "2026-06-25T00:28:38.157162"
+    },
+    {
+      "nome": "Clava Estela",
+      "data": "2026-06-25T00:28:38.157576"
+    },
+    {
+      "nome": "Folha Leve",
+      "data": "2026-06-25T00:28:38.157948"
+    },
+    {
+      "nome": "Lança da Sombra",
+      "data": "2026-06-25T00:28:38.158327"
+    },
+    {
+      "nome": "Clava da Luz",
+      "data": "2026-06-25T00:28:38.158736"
+    },
+    {
+      "nome": "Trovão Ligeiro",
+      "data": "2026-06-25T00:28:38.159128"
+    }
+  ]
+}

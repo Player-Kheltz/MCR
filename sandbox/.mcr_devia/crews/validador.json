@@ -1,0 +1,13 @@
+{
+  "lessons": [
+    {
+      "context": "crew_validador_validar_encoding",
+      "antes": "22 arquivos Latin-1",
+      "depois": "22 arquivos convertidos para UTF-8, 0 restantes",
+      "score": 1.0,
+      "benchmark": 0
+    }
+  ],
+  "dominio": "validacao",
+  "benchmarks": []
+}

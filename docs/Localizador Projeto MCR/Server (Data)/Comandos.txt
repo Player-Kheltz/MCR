@@ -1,0 +1,24 @@
+# 0. Converter loots e addItem para IDs (usa items_original.xml)
+python 0-converter-loot.py "E:\Projeto MCR\Canary"
+python 0-converter-additem.py "E:\Projeto MCR\Canary"
+python 0-converter-custom-loot.py "E:\Projeto MCR\Canary"
+
+# 1. Extrair texto visível (apenas scripts Lua)
+python 1-extrair.py "E:\Projeto MCR\Canary" extraido.txt
+
+# 2. Traduzir (usa cache + dicionário MCR + Google Translate)
+python 2-traduzir.py extraido.txt traduzido.txt
+
+# 3. Reparar (capitalização, dicionário MCR forçado)
+python 3-reparar.py extraido.txt traduzido.txt reparado.txt
+
+# 4. Aplicar traduções (scripts Lua, com segurança Latin‑1)
+python 4-aplicar.py extraido.txt reparado.txt
+
+# 5. Revisar (deteta encoding, loot por nome, etc.)
+python 5-revisar.py "E:\Projeto MCR\Canary"
+
+# 6. Traduzir nomes de monstros
+python 1b-extrair.py "E:\Projeto MCR\Canary" nomes_monstros.txt
+python 2b-traduzir.py nomes_monstros.txt nomes_monstros_traduzidos.txt
+python 3b-aplicar.py nomes_monstros_traduzidos.txt "E:\Projeto MCR\Canary"

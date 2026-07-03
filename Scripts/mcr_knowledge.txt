@@ -1,0 +1,55 @@
+## Sobre o Projeto MCR
+
+O Projeto MCR e um servidor customizado de Tibia, baseado em Canary 3.2.0 + OTClient Redemption.
+
+### Sistema de Progressao do Aventureiro (SPA)
+- Dominios: 10 areas de conhecimento (Laminas, Impacto, Precisao, Artes Marciais, Escudo, Fogo, Gelo, Terra, Sagrado, Runologia)
+- Estados de Alma: Lampejo (nivel 1), Vinculo (nivel 2), Maestria (nivel 3, permanente)
+- Posturas: Impeto (Full Attack), Equilibrio (Balanced), Guarda (Full Defense)
+- Afinidade: progresso numerico invisivel no Dominio
+- Sinergia: habilidade desbloqueada pela combinacao de Dominios
+- Habilidades: 30+ habilidades distribuidas nos dominios
+
+### Perseguicao Multi-Piso
+- Monstros perseguem jogadores entre pisos via Mapa Cognitivo Global
+- Suporte a summons com destravamento silencioso
+
+### Tecnologia
+- Servidor: C++ Canary, protocolo 15.00 | Cliente: OTClient Redemption
+- Banco: MariaDB/MySQL | IA local: Ollama (qwen2.5-coder:7b)
+- Classe unica: Aventureiro (vocacao 0) | Personagens: TestChar (GM), Alma (Guest_)
+- Encodings: UTF-8 em todo lugar, saida protocolo em Latin-1
+
+### Comandos uteis no jogo
+- !assistente <msg>: falar com o assistente IA
+- !pos: mostra posicao atual | !scan: mapa ASCII | !mcrfulldebug: debug
+
+### Termos de Tibia (conhecimento geral)
+- GFB (Great Fire Ball), UE (Ultimate Explosion), SD (Sudden Death), Ava (Avalanche)
+- Spell: exori (ataque), exura (cura), utani hur (haste), utamo vita (shield)
+
+## REGRAS ABSOLUTAS (Nao invente estas)
+- NAO existe addEffect() -- use position:sendMagicEffect()
+- NAO existem constantes CONST_EFFECT_* -- use CONST_ME_*
+- NAO existe PlayerAccess, EffectIds ou "emotes personalizados"
+- NAO usa XML para registrar scripts -- usa revscript Lua
+- MCR scripts retornam `return false` (vanilla Canary retorna `return true`)
+- NAO e TFS -- e Canary. APIs de TFS podem nao existir.
+- NAO compartilhe senhas, usuarios ou configuracoes de servidor.
+- NAO crie, edite ou modifique arquivos. Voce apenas RESPONDE perguntas.
+
+## MAPA DE CONHECIMENTO (onde encontrar cada informacao no codigo fonte)
+- Constantes CONST_ME_*: Canary/src/utils/utils_definitions.hpp (enum MagicEffectClasses)
+- Exemplo real de fogos: Canary/data/scripts/actions/items/fireworks_rocket.lua
+- Talkactions formato MCR: Canary/data-canary/scripts/MCR/SPA/comandos/comandos_spa.lua
+- Talkactions formato vanilla: Canary/data/scripts/talkactions/player/aol.lua
+- Scripts SPA: Canary/data-canary/scripts/MCR/SPA/
+- Bestiary/Charms: Canary/data/scripts/systems/bestiary_charms.lua
+- Mecanicas de monstros: arquivos em Canary/data-canary/scripts/MCR/ (varios)
+- O RAG indexa todos esses diretorios -- consulte o CONTEXTO DO CODIGO para detalhes precisos.
+
+### Formato Talkaction MCR (template minimo)
+- local cmd = TalkAction("!comando")
+- function cmd.onSay(player, words, param) -- codigo; return false end
+- cmd:separator(" "); cmd:groupType(1); cmd:register()
+- groupType(1)=normal, groupType(3)=god | return false, nao true

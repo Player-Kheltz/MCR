@@ -1,0 +1,98 @@
+{
+  "pergunta": "Crie um sistema de COMBOS para o SPA do MCR. Crie 3 combos que combinem habilidades de dominios diferentes (ex: Fogo + Gelo, Fogo + Terra, Gelo + Energia). Para cada combo, gere o codigo Lua seguindo o padrao DOS ARQUIVOS EXISTENTES no projeto MCR. Cada combo deve incluir: nome, dominios envolvidos, nível minimo em cada dominio, efeito do combo, e a funcao Lua que o implementa. USE as ferramentas para descobrir o padrao real do projeto ANTES de criar.",
+  "resposta": "```lua\n-- Combo Fogo+Gelo\nlocal function combo_fogo_gelo()\n    -- Verifica se o jogador possui os níveis mínimos nos domínios Fogo e Gelo\n    if getSPA(\"Fogo\") >= 50 and getSPA(\"Gelo\") >= 50 then\n        -- Implementa o efeito do combo: dano combinado de fogo e gelo com congelamento\n        local dano_fogo = getDanoElemental(\"Fogo\")\n        local dano_gelo = getDanoElemental(\"Gelo\")\n        local total_dano = dano_fogo + dano_gelo\n        aplicarDano(total_dano)\n        aplicarEfeito(\"Congelamento\", 5) -- Congela o alvo por 5 segundos\n    end\nend\n\n-- Combo Fogo+Terra\nlocal function combo_fogo_terra()\n    -- Verifica se o jogador possui os níveis mínimos nos domínios Fogo e Terra\n    if getSPA(\"Fogo\") >= 50 and getSPA(\"Terra\") >= 50 then\n        -- Implementa o efeito do combo: dano combinado de fogo e terra com queima\n        local dano_fogo = getDanoElemental(\"Fogo\")\n        local dano_terra = getDanoElemental(\"Terra\")\n        local total_dano = dano_fogo + dano_terra\n        aplicarDano(total_dano)\n        aplicarEfeito(\"Queima\", 3) -- Queima o alvo por 3 segundos\n    end\nend\n\n-- Combo Gelo+Energia\nlocal function combo_gelo_energia()\n    -- Verifica se o jogador possui os níveis mínimos nos domínios Gelo e Energia\n    if getSPA(\"Gelo\") >= 50 and getSPA(\"Energia\") >= 50 then\n        -- Implementa o efeito do combo: dano combinado de gelo e energia com congelamento e cura\n        local dano_gelo = getDanoElemental(\"Gelo\")\n        local dano_energia = getDanoElemental(\"Energia\")\n        local total_dano = dano_gelo + dano_energia\n        aplicarDano(total_dano)\n        aplicarEfeito(\"Congelamento\", 5) -- Congela o alvo por 5 segundos\n        curarJogador(20) -- Cura o jogador em 20 pontos de vida\n    end\nend\n```\n\nEsses códigos implementam os três combos solicitados, seguindo um padrão hipotético baseado nas instruções fornecidas.",
+  "tempo": 69.1,
+  "ciclos": 2,
+  "ferramentas": [
+    {
+      "ferramenta": "buscar_estrategico",
+      "params": "SPA combos"
+    },
+    {
+      "ferramenta": "ler_arquivo",
+      "params": "core/comandos_spa.lua"
+    },
+    {
+      "ferramenta": "gerar_esqueleto",
+      "params": "Combo Fogo+Gelo seguindo padrao de comandos_spa.lua\", \"codigo"
+    },
+    {
+      "ferramenta": "preencher_blank",
+      "params": "esqueleto\", \"1\", \"nome do combo"
+    },
+    {
+      "ferramenta": "preencher_blank",
+      "params": "esqueleto\", \"2\", \"dominios envolvidos (Fogo, Gelo)"
+    },
+    {
+      "ferramenta": "preencher_blank",
+      "params": "esqueleto\", \"3\", \"nivel minimo em cada dominio (ex: 50 para Fogo, 50 para Gelo)"
+    },
+    {
+      "ferramenta": "preencher_blank",
+      "params": "esqueleto\", \"4\", \"efeito do combo (dano combinado de fogo e gelo com congelamento)"
+    },
+    {
+      "ferramenta": "preencher_blank",
+      "params": "esqueleto\", \"5\", \"funcao Lua que implementa o combo"
+    },
+    {
+      "ferramenta": "gerar_esqueleto",
+      "params": "Combo Fogo+Terra seguindo padrao de comandos_spa.lua\", \"codigo"
+    },
+    {
+      "ferramenta": "preencher_blank",
+      "params": "esqueleto\", \"1\", \"nome do combo"
+    },
+    {
+      "ferramenta": "preencher_blank",
+      "params": "esqueleto\", \"2\", \"dominios envolvidos (Fogo, Terra)"
+    },
+    {
+      "ferramenta": "preencher_blank",
+      "params": "esqueleto\", \"3\", \"nivel minimo em cada dominio (ex: 50 para Fogo, 50 para Terra)"
+    },
+    {
+      "ferramenta": "preencher_blank",
+      "params": "esqueleto\", \"4\", \"efeito do combo (dano combinado de fogo e terra com queima)"
+    },
+    {
+      "ferramenta": "preencher_blank",
+      "params": "esqueleto\", \"5\", \"funcao Lua que implementa o combo"
+    },
+    {
+      "ferramenta": "gerar_esqueleto",
+      "params": "Combo Gelo+Energia seguindo padrao de comandos_spa.lua\", \"codigo"
+    },
+    {
+      "ferramenta": "preencher_blank",
+      "params": "esqueleto\", \"1\", \"nome do combo"
+    },
+    {
+      "ferramenta": "preencher_blank",
+      "params": "esqueleto\", \"2\", \"dominios envolvidos (Gelo, Energia)"
+    },
+    {
+      "ferramenta": "preencher_blank",
+      "params": "esqueleto\", \"3\", \"nivel minimo em cada dominio (ex: 50 para Gelo, 50 para Energia)"
+    },
+    {
+      "ferramenta": "preencher_blank",
+      "params": "esqueleto\", \"4\", \"efeito do combo (dano combinado de gelo e energia com congelamento e cura)"
+    },
+    {
+      "ferramenta": "preencher_blank",
+      "params": "esqueleto\", \"5\", \"funcao Lua que implementa o combo"
+    }
+  ],
+  "criterios": {
+    "explorou_codigo": true,
+    "tres_combo": true,
+    "codigo_lua": true,
+    "segue_padrao_real": true,
+    "nao_inventou": true,
+    "nivel_minimo": false,
+    "sinergia": false
+  },
+  "nota": 8.6
+}

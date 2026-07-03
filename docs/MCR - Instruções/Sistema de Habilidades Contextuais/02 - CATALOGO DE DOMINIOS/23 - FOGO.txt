@@ -1,0 +1,154 @@
+>> CATALOG tags=fogo, fire, domain, identity updated=2026-06-24
+╔══════════════════════════════════════════════════════════════╗
+║            DOMÍNIO: FOGO (ID 23) - Identidade               ║
+║              Projeto MCR — SPA — SHC v1.0                   ║
+╚══════════════════════════════════════════════════════════════╝
+
+ARQUIVO: 02 - CATALOGO DE DOMINIOS/23 - FOGO.txt
+DOMÍNIO: Fogo
+ID: 23
+HIERARQUIA: Especialidade (Elementos 20 → Magia 2)
+DOMÍNIOS IRMÃOS: Água/Gelo (24), Terra/Veneno (25), Energia (26)
+
+═══════════════════════════════════════════════════════════════
+1. ESSÊNCIA
+═══════════════════════════════════════════════════════════════
+
+Sentimento central:
+  Desejo de consumir, paixão avassaladora, transformação irreversível.
+  O Fogo não negocia — ele transforma tudo o que toca.
+
+Três adjetivos-chave:
+  Explosivo, consumidor, imparável.
+
+Frase de assinatura:
+  "O mundo é combustível. Eu sou a faísca."
+
+Cor associada:
+  Laranja-queimado (#CC4400) a vermelho-sangue (#CC0000).
+
+═══════════════════════════════════════════════════════════════
+2. COMBATE E COMPORTAMENTO
+═══════════════════════════════════════════════════════════════
+
+Como um Mestre do Fogo se comporta em combate:
+  Agressivo e implacável. Prioriza aglomerações de inimigos.
+  Gira habilidades de área (AoE) com dano sustentado e explosivo.
+  Não recua — quanto mais cercado, mais letal se torna.
+  Em Ímpeto: tudo é dano bruto. Em Guarda: o fogo queima o que se aproxima.
+
+Maior força:
+  Dano em área massivo e sustentado. Queimaduras que enfraquecem o inimigo
+  ao longo do tempo. Capacidade de virar o jogo quando cercado.
+
+Maior fraqueza:
+  Vulnerável a inimigos isolados ou móveis. Sem Controle de Grupo (CC) nativo.
+  Depende de manter a distância ou usar armadura para aguentar o contra-ataque.
+
+Ambiente favorável:
+  Masmorras com grupos densos de monstros, eventos de invasão,
+  qualquer situação com 3+ inimigos no raio.
+
+═══════════════════════════════════════════════════════════════
+3. PERCEPÇÃO DO MUNDO
+═══════════════════════════════════════════════════════════════
+
+O que um NPC sente ao ver um Mestre do Fogo:
+  "O ar treme. O calor seca a garganta antes mesmo de uma palavra ser dita."
+  "Seus olhos refletem brasas. Não é raiva — é certeza."
+
+Missões adequadas:
+  - Purificar áreas infestadas (queimar pragas, mortos-vivos)
+  - Destruir objetos ou estruturas amaldiçoadas
+  - Proteger fronteiras com muralhas de fogo
+  - Forjar ou destruir artefatos no calor da bigorna
+
+Facções associadas:
+  - A Irmandade da Chama (cultistas que veneram o fogo como purificação)
+  - Os Forjadores de Brasa (ferreiros que usam fogo mágico para criar armas lendárias)
+  - Os Guardiões do Crepúsculo (ordem que mantém faróis mágicos acesos)
+
+═══════════════════════════════════════════════════════════════
+4. ARQUÉTIPO DO MESTRE (Nível 20)
+═══════════════════════════════════════════════════════════════
+
+Como o mundo vê um Mestre do Fogo:
+  "Uma fornalha viva. O ar à sua volta distorce com o calor.
+  Pegadas deixam marcas chamuscadas no chão. Quando ele fala,
+  o vapor sobe da sua respiração. Ele não apenas usa fogo —
+  ele é fogo."
+
+Traço Inerente (Marcos 5/10/15/20):
+  Nv 5:  "Chama Interior" — pequena aura de calor, criaturas próximas
+         tomam dano mínimo por segundo.
+  Nv 10: "Passo de Brasa" — ao mover-se, deixa rastro de fogo por 1s.
+  Nv 15: "Corpo Incandescente" — resistência a fogo +25%, ataques corpo a
+         corpo aplicam queimadura leve.
+  Nv 20: "Avatar de Fogo" — transformação visual, dano de fogo +50%,
+         queimadura ignora 30% da defesa.
+
+═══════════════════════════════════════════════════════════════
+5. IDENTIDADE VISUAL
+═══════════════════════════════════════════════════════════════
+
+Efeito de área (AoE): CONST_ME_FIREAREA (laranja/vermelho intenso)
+Efeito single-target: CONST_ME_HITBYFIRE (explosão direta)
+Efeito de condição (queimadura): CONST_ME_BURN (chamas no alvo)
+Campo persistente: CONST_ME_SMALLFLAMES (marcas de fogo no chão)
+Projétil: CONST_ANI_FIRE (seta de fogo) para habilidades de longo alcance
+
+═══════════════════════════════════════════════════════════════
+6. PACOTES TEMÁTICOS (Habilidades)
+═══════════════════════════════════════════════════════════════
+
+Os pacotes abaixo organizam as ~30 habilidades do Fogo:
+
+A. ORBITAIS E CAMPOS (toggles, sustentados)
+   - Orbital Ígneo: orbes flamejantes que orbitam o jogador
+   - Círculo de Brasas: campo de fogo ao redor do jogador
+   - Manto de Chamas: aura defensiva que queima atacantes
+
+B. PROJÉTEIS E EXPLOSÕES (gatilho, dano direto)
+   - Bola de Fogo: projétil AoE clássico
+   - Jato de Chamas: cone frontal contínuo
+   - Explosão Ígnea: detonação ao redor do jogador
+   - Lança de Fogo: projétil single-target perfurante
+   - Chuva de Meteoros: bombardeio AoE massivo
+
+C. QUEIMADURAS E DOT (dano ao longo do tempo)
+   - Combustão Lenta: aplica queimadura progressiva
+   - Óleo Incendiário: cria poça que inflama
+   - Fogo Interno: dano baseado na vida do alvo
+   - Cinzas Vivas: DOT que se espalha para alvos próximos
+
+D. TRANSFORMAÇÕES E ESTADOS (buffs, defensivos)
+   - Fúria da Chama: buff de dano em área
+   - Armadura de Brasa: defesa + thorns
+   - Passo de Fogo: dash deixando rastro flamejante
+   - Renascimento: autocura com animação de cinzas
+
+E. SUPREMAS E SINÉRGICAS (condicionais, combos)
+   - Tempestade de Fogo: AoE massivo sob Vínculo
+   - Julgamento Ígneo: ataque supremo sob condições específicas
+   - Fênix: ressurreição com custo (sinergia com Sagrado)
+   - Magma: fusão Fogo + Terra para dano físico/fogo
+
+═══════════════════════════════════════════════════════════════
+7. RELAÇÕES DE SINERGIA
+═══════════════════════════════════════════════════════════════
+
+Com Gelo (24):   Vapor — ataque cegante, redução de visão do inimigo
+Com Terra (25):  Magma — dano físico + fogo, DOT de brasa
+Com Energia (26): Plasma — dano puro, penetração de armadura
+Com Sagrado (200): Fogo Purificador — dano extra contra mortos-vivos
+Com Combate (1):  Chama Marcial — habilidades de fogo escalam com nível de combate
+
+═══════════════════════════════════════════════════════════════
+8. NOTAS DE IMPLEMENTAÇÃO
+═══════════════════════════════════════════════════════════════
+
+- Prioridade: Orbital Ígneo (toggle, identidade do domínio)
+- IDs sugeridos: 23001-23030 (range FOGO)
+- O fogo NÃO aplica lentidão, medo ou stun (seria invasão de nicho do Gelo)
+- O fogo usa COMBAT_FIREDAMAGE como elemento padrão
+- Queimadura é implementada como DOT com dano a cada 2s por 6s

@@ -1,0 +1,93 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "ollama": {
+      "api": "openai",
+      "name": "Assistente Local (RTX 3080)",
+      "options": {
+        "baseURL": "http://localhost:11434/v1",
+        "apiKey": "ollama"
+      },
+      "models": {
+        "llama3.1:8b": {
+          "name": "Llama 3.1 (8B) — conversa + contexto longo",
+          "tool_call": true,
+          "insert": true,
+          "limit": { "context": 131072, "output": 8192 }
+        },
+        "qwen2.5-coder:7b": {
+          "name": "Qwen 2.5 Coder (7B) — codigo + ferramentas",
+          "tool_call": true,
+          "limit": { "context": 32768, "output": 4096 }
+        },
+        "hermes3:8b": {
+          "name": "Hermes 3 (8B) — funcao-calling premium",
+          "tool_call": true,
+          "limit": { "context": 131072, "output": 8192 }
+        },
+        "phi3.5:3.8b": {
+          "name": "Phi-3.5 (3.8B) — sub-agentes ultra-rapidos",
+          "tool_call": true,
+          "limit": { "context": 128000, "output": 4096 }
+        },
+        "deepseek-r1:7b": {
+          "name": "DeepSeek R1 (7B) — raciocinio economico",
+          "tool_call": false,
+          "reasoning": true,
+          "limit": { "context": 131072, "output": 4096 }
+        },
+        "deepseek-r1:8b": {
+          "name": "DeepSeek R1 (8B) — raciocinio profundo",
+          "tool_call": false,
+          "reasoning": true,
+          "limit": { "context": 131072, "output": 4096 }
+        }
+      }
+    }
+  },
+  "model": "ollama/qwen2.5-coder:7b",
+  "permission": {
+    "edit": { "sandbox/**": "allow", "*": "ask" },
+    "write": { "sandbox/**": "allow", "*": "ask" },
+    "bash": { "sandbox/**": "allow", "*": "ask" },
+    "read": "allow",
+    "grep": "allow",
+    "glob": "allow"
+  },
+  "agent": {
+    "explore": {
+      "model": "ollama/phi3.5:3.8b",
+      "prompt": "[REGRAS ABSOLUTAS]\n1. MCR-DevIA e parte da equipe — USE as ferramentas dele\n2. JSON IPC para comunicacao (NUNCA shell com aspas)\n3. Respostas COMPLETAS (sem truncar)\n4. Escreva seus pensamentos em sandbox/.mcr_conversa.jsonl\n5. Ferramentas antes de IA (grep > IA para buscar)\n6. Leia AGENTS.md para mais regras\n\nVoce e um assistente de EXPLORACAO de codigo (leve e rapido).\nUse read, grep e glob para informacoes.\nResponda APENAS com dados REAIS. NUNCA invente."
+    },
+    "plan": {
+      "model": "ollama/deepseek-r1:8b",
+      "prompt": "[REGRAS ABSOLUTAS]\n1. MCR-DevIA e parte da equipe — USE as ferramentas dele\n2. JSON IPC para comunicacao (NUNCA shell com aspas)\n3. Respostas COMPLETAS (sem truncar)\n4. Escreva seus pensamentos em sandbox/.mcr_conversa.jsonl\n5. Ferramentas antes de IA (grep > IA para buscar)\n6. Leia AGENTS.md para mais regras\n\nAnalise o problema profundamente antes de agir. Consulte o RAG primeiro."
+    },
+    "dev": {
+      "model": "ollama/qwen2.5-coder:7b",
+      "prompt": "[REGRAS ABSOLUTAS]\n1. MCR-DevIA e parte da equipe — USE as ferramentas dele\n2. JSON IPC para comunicacao (NUNCA shell com aspas)\n3. Respostas COMPLETAS (sem truncar)\n4. Escreva seus pensamentos em sandbox/.mcr_conversa.jsonl\n5. Ferramentas antes de IA (grep > IA para buscar)\n6. Leia AGENTS.md para mais regras\n\nVoce e um assistente de DESENVOLVIMENTO.\nANTES de criar codigo, use grep para encontrar exemplos reais.\nUse grep e read para verificar antes de sugerir. NUNCA invente."
+    },
+    "build": {
+      "model": "ollama/qwen2.5-coder:7b",
+      "prompt": "[REGRAS ABSOLUTAS]\n1. MCR-DevIA e parte da equipe — USE as ferramentas dele\n2. JSON IPC para comunicacao (NUNCA shell com aspas)\n3. Respostas COMPLETAS (sem truncar)\n4. Escreva seus pensamentos em sandbox/.mcr_conversa.jsonl\n5. Ferramentas antes de IA (grep > IA para buscar)\n6. Leia AGENTS.md para mais regras\n\nVoce e um assistente de desenvolvimento local do Projeto MCR.\nANTES de criar codigo, use grep para encontrar exemplos.\nUse grep e read para verificar. NUNCA invente funcoes.\nResponda em portugues, direto e pratico."
+    },
+    "chat": {
+      "model": "ollama/llama3.1:8b",
+      "prompt": "[REGRAS ABSOLUTAS]\n1. MCR-DevIA e parte da equipe — USE as ferramentas dele\n2. JSON IPC para comunicacao (NUNCA shell com aspas)\n3. Respostas COMPLETAS (sem truncar)\n4. Escreva seus pensamentos em sandbox/.mcr_conversa.jsonl\n5. Ferramentas antes de IA (grep > IA para buscar)\n6. Leia AGENTS.md para mais regras\n\nVoce e um assistente pessoal amigavel.\nResponda em portugues. NUNCA invente."
+    },
+    "review": {
+      "model": "ollama/deepseek-r1:8b",
+      "prompt": "[REGRAS ABSOLUTAS]\n1. MCR-DevIA e parte da equipe — USE as ferramentas dele\n2. JSON IPC para comunicacao (NUNCA shell com aspas)\n3. Respostas COMPLETAS (sem truncar)\n4. Escreva seus pensamentos em sandbox/.mcr_conversa.jsonl\n5. Ferramentas antes de IA (grep > IA para buscar)\n6. Leia AGENTS.md para mais regras\n\nVoce e um assistente de REVISAO DE CODIGO.\nAnalise bugs, seguranca, mas praticas.\nUse grep e read para contexto completo."
+    },
+    "docs": {
+      "model": "ollama/qwen2.5-coder:7b",
+      "prompt": "[REGRAS ABSOLUTAS]\n1. MCR-DevIA e parte da equipe — USE as ferramentas dele\n2. JSON IPC para comunicacao (NUNCA shell com aspas)\n3. Respostas COMPLETAS (sem truncar)\n4. Escreva seus pensamentos em sandbox/.mcr_conversa.jsonl\n5. Ferramentas antes de IA (grep > IA para buscar)\n6. Leia AGENTS.md para mais regras\n\nVoce e um assistente de DOCUMENTACAO.\nUse read para entender antes de documentar.\nNUNCA invente APIs. Inclua exemplos."
+    }
+  },
+  "instructions": [
+    "AGENTS.md",
+    "LEMBRETE.md",
+    "docs/MCR_IDENTITY.md",
+    "docs/lessons/recentes.md"
+  ]
+}

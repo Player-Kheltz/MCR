@@ -1,0 +1,20 @@
+{
+  "pid": 2244,
+  "started_at": 1782910954.2319667,
+  "stage": "Kernel",
+  "stage_started_at": 1782910954.2381885,
+  "substage": "inicializando",
+  "substage_index": 0,
+  "substage_total": 0,
+  "progress": 0.05,
+  "elapsed": 0.0,
+  "eta": null,
+  "question_current": 0,
+  "question_total": 0,
+  "stages_history": [],
+  "last_updated": "2026-07-01T10:02:34",
+  "status": "running",
+  "error": null,
+  "pipeline": "kernel_json",
+  "stage_elapsed": 0.0
+}

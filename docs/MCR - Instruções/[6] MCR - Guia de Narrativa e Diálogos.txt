@@ -1,0 +1,591 @@
+>> CATALOG tags=narrative, npc, dialogs updated=2026-06-23
+PROJETO MCR – GUIA DE NARRATIVA E DIÁLOGOS
+(Versão 8.1 – Consolidação SPA v4.6.0, domínios Summon e Sobrevivência, sistema de pets/escudeiro, nomenclatura unificada, remoção de vocações, sistema de cores v10.0 e novos métodos de progressão)
+Arquivo: [6] MCR - Guia de Narrativa e Diálogos.txt
+
+🎯 OBJETIVO DESTE GUIA
+Este guia é a bússola narrativa do Projeto MCR. Define como os NPCs devem falar, pensar e reagir dentro do universo de fantasia original "Aventura Fantasiosa", utilizando a API real do Canary, a estrutura Revscript e o sistema de cores do SPA v10.0. A versão 8.1 consolida a percepção dos NPCs sobre os Domínios (incluindo os novos Summon (28) e Sobrevivência (400)), níveis de afinidade (agora traduzidos em níveis de maestria), Lampejos, Vínculos, Maestria (Vínculo permanente no nível 20), Sinergia Elemental, Arremesso de Escudo, Posturas de Combate e o novo sistema de bónus percentuais de vida, mana e velocidade de movimento. Integra também as novas funções centrais de recálculo (recalcularVidaMana, recalcularVelocidade), a nomenclatura unificada de domínios (Artes Marciais em vez de Desarmado) e o emergente sistema de invocação e pets com IA modular. Ensina como usar as mensagens coloridas e as funções globais actualizadas (COR v10.0, c(), enviarMsgColorida) em cada interacção.
+
+Todos os métodos C++ necessários estão implementados e os diálogos reactivos podem ser escritos imediatamente. A biblioteca npc_utils.lua foi refatorada para usar Pronouns.getSubject e não contém mais referências a vocações. O vocativo padrão é "aventureiro/a/e dos reinos distantes".
+
+🚧 ESTADO ATUAL DA IMPLEMENTAÇÃO
+O SPA v4.6.0 está completamente operacional. Todos os métodos descritos (getDominioAfinidade, getNivelPorAfinidade, getDominioState, getFightMode, getVocationBaseMaxHealth, getVocationBaseMaxMana, getNaturalSpeed, openRemoteContainer, closeRemoteContainer, getInventoryContainer, setCustomName, getCustomName, etc.) estão disponíveis e podem ser usados nos scripts de NPC sem restrições. A estrutura de pastas é Revscript: scripts de NPCs residem em subpastas como MCR/Tutorial/, MCR/Criacao/; os módulos globais (COR v10.0, c(), pronouns, npc_utils) ficam em MCR/Geral/ e são carregados automaticamente. O domínio Arremesso de Escudo (140), a sinergia elemental, os bónus percentuais de vida, mana e velocidade, o sistema de invocação (Summon, 28) e o escudeiro com inventário remoto estão implementados.
+
+Conteúdo:
+
+Esqueleto funcional de NPC actualizado com cores e nomenclatura unificada.
+
+Módulo pronouns.lua (carregamento automático, funções disponíveis).
+
+Biblioteca npc_utils.lua (sinónimos, pronomes, variação, sem vocações).
+
+Uso do sistema de cores (tabela COR v10.0 e função c()).
+
+Personalidade do NPC e progressão de intimidade (com cores).
+
+Reacção narrativa aos Domínios do Aventureiro (usando os IDs actualizados e níveis).
+
+Percepção de Lampejos, Vínculos e Maestria.
+
+Reacção à Sinergia Elemental.
+
+Comentários sobre Posturas de Combate e Arremesso de Escudo.
+
+Como NPCs podem reagir a invocações, pets e ao escudeiro do Aventureiro.
+
+Como NPCs podem reagir a mudanças na velocidade de movimento e à robustez do Aventureiro (bónus de vida/mana).
+
+Regras para criação e modificação de diálogos (totalmente revistas).
+
+⚠️ REGRAS DE REVISÃO PARA O ASSISTENTE (NARRATIVA E DIÁLOGOS)
+Ao criar ou modificar QUALQUER script de NPC (.lua) no servidor, o assistente DEVE:
+
+Todo texto exibido ao jogador em PT‑BR impecável, com acentuação correcta. O arquivo DEVE ser salvo como ISO‑8859‑1 (Latin‑1). Strings com acentos salvos em UTF‑8 PROVOCAM CORRUPÇÃO no cliente.
+
+Usar OBRIGATORIAMENTE a API moderna:
+
+Criar o tipo com Game.createNpcType(npcName)
+
+Atribuir todos os callbacks de engine (onThink, onAppear, onDisappear, onMove, onSay, onCloseChannel) delegando ao npcHandler.
+
+Registrar o NPC com npcType:register(npcConfig).
+
+Usar a assinatura correcta do creatureSayCallback: (npc, player, type, msg).
+
+npcHandler:say aceita string única ou tabela de strings com delay.
+
+Usar o módulo pronouns.lua para obter pronomes do personagem:
+
+O módulo está localizado em data-canary/scripts/MCR/Geral/pronouns.lua e é carregado automaticamente pelo Revscript. NÃO é necessário usar dofile para carregá‑lo; as funções que expõe são globais.
+
+Usar Pronouns.getSubject(player), Pronouns.getObject(player), etc.
+
+NÃO usar storage 100001 para pronome do personagem.
+
+A coluna nativa players.pronoun é preenchida pelo Oráculo e usada automaticamente pelo módulo.
+
+Respeitar a distinção entre:
+
+Pronome da CONTA (jogador/jogadora): usado apenas pelo Oráculo.
+
+Pronome do PERSONAGEM (ele/ela): usado por todos os NPCs e mensagens.
+
+A biblioteca npc_utils.lua já está refatorada. O método NpcUtils.getTratamento(player) usa internamente Pronouns.getSubject(player) e retorna um vocativo genérico de aventureiro. NÃO use mais referências a vocações (Knight, Paladin, etc.).
+
+Palavras importantes no chat DEVEM ser destacadas com {chaves}, que o OTClient Redemption exibe como destaque visual automático. Adicionalmente, usar c() para colorir. Exemplos: c("{aceitar}", COR.NPC_INTENCAO), c("{missão}", COR.MISSAO_MATAR), c("{Lágrimas de Sereia}", COR.NPC_ITEM). NUNCA usar "}?" junto; sempre "} ?" para evitar corrupção visual.
+
+Diálogos NÃO devem usar addEvent manual; para sequências de falas, utilize a capacidade do handler de receber uma tabela de strings.
+
+Toda interação administrativa (loja, banco) pode usar janela modal, mas DEVE ser precedida de uma fala narrativa no chat.
+
+Incluir prints de debug ("DEBUG:") em todos os callbacks do NPC, especialmente em creatureSayCallback, greetCallback e farewellCallback, documentando a entrada de cada bloco condicional, mudanças de tópico e decisões tomadas.
+
+O NPC deve descobrir e respeitar o pronome do personagem através do módulo pronouns.lua, nunca assumindo pelo sexo.
+
+A forma como o NPC pergunta ou infere o pronome do personagem DEVE ser coerente com a personalidade do NPC.
+
+A progressão de intimidade com o NPC deve refletir‑se na linguagem.
+
+Para tradução de diálogos existentes, a pipeline de tradução automática pode ser usada. Após a tradução, os ficheiros Lua devem ser verificados e salvos como ISO‑8859‑1.
+
+⚠️ SPA v4.6.0: O NPC DEVE ser capaz de reconhecer o progresso do jogador nos Domínios (nível da especialização) e reagir narrativamente usando os IDs actualizados e funções.
+
+⚠️ SPA v4.6.0: O NPC pode comentar Lampejos, Vínculos e a Maestria de forma subtil, usando player:getDominioState(dominioId) e player:getDominioAfinidade(dominioId).
+
+⚠️ SPA v4.6.0: NPCs observadores (magos, arcanistas) podem notar a Sinergia Elemental quando o Aventureiro empunha uma arma com elemento (ex.: Espada de Fogo).
+
+⚠️ SPA v4.6.0: Se for instrutor de combate, pode mencionar as Posturas (Ímpeto, Equilíbrio, Guarda) e o Arremesso de Escudo via player:getFightMode() e hasShield(player).
+
+⚠️ SPA v4.6.0: NPCs perceptivos podem fazer alusão ao aumento de vitalidade, mana ou velocidade de movimento do Aventureiro, especialmente se forem resultado de Maestria ou Vínculo.
+
+⚠️ SPA v4.6.0: NPCs podem reagir à presença de criaturas invocadas (Summon) ou do escudeiro, comentando sobre a fidelidade do companheiro ou a mestria do Aventureiro em invocação.
+
+⚠️ REVSCRIPT: Os scripts dos NPCs devem ser colocados em subpastas adequadas (ex.: MCR/Tutorial/ para os habitantes de Eridanus, MCR/Criacao/ para o Oráculo). O motor carrega‑os automaticamente. As dependências (pronouns.lua, npc_utils.lua, texto_colorido.lua v10.0) em MCR/Geral/ são carregadas automaticamente e NÃO precisam de dofile.
+
+🌌 1. TOM DE VOZ E AMBIENTAÇÃO – O UNIVERSO MCR
+O Projeto MCR se passa em um universo de fantasia original. NPCs NÃO são terminais de missão, mas habitantes vivos. Ao criar um NPC, reflita:
+
+Qual a história dele dentro do mundo?
+
+Como ele reage a um Aventureiro com forte afinidade marcial, mágica, elemental, de ofícios, de invocação ou de sobrevivência? (Nota: no MCR não há vocações; o NPC reconhece o Domínio em que o jogador se destaca.)
+
+Qual seu medo, objetivo, mania?
+
+Como a sua personalidade influencia a maneira como se dirige ao jogador? (ex.: um ferreiro rude fala de forma brusca; uma sacerdotisa é calorosa)
+
+Como ele percebe o crescimento do Aventureiro? Um mestre espadachim pode notar a evolução nos Domínios de Combate; um arquivista pode sentir a aura mágica de um Vínculo elemental; um mago ancião pode reconhecer a Sinergia Elemental quando o Aventureiro empunha uma arma imbuída de fogo; um eremita pode notar a criatura invocada que acompanha o Aventureiro.
+
+Como reage ao ver um Aventureiro usando apenas um escudo, arremessando‑o como arma?
+
+Um NPC que observe o Aventureiro movendo‑se com rapidez incomum ou suportando golpes que derrubariam qualquer outro poderia tecer comentários sobre a "bênção dos domínios" ou "a força que emana de sua alma".
+
+📚 2. MÓDULO PRONOUNS.LUA (OBRIGATÓRIO)
+Arquivo: data-canary/scripts/MCR/Geral/pronouns.lua
+Salvar como: ISO‑8859‑1
+
+Este módulo encapsula o sistema nativo de pronomes do Canary e é carregado automaticamente pelo Revscript. NÃO é necessário usar dofile para carregá‑lo. Ele oferece funções simples que automaticamente consultam a coluna players.pronoun e fazem fallback para o sexo do personagem quando o pronome não está definido.
+
+Funções disponíveis:
+
+Pronouns.getSubject(player) → "he", "she", "they"
+
+Pronouns.getObject(player) → "him", "her", "them"
+
+Pronouns.getPossessive(player) → "his", "her", "their"
+
+Pronouns.getReflexive(player) → "himself", "herself", "themself"
+
+Exemplo de uso:
+
+lua
+local subject = Pronouns.getSubject(player)
+npcHandler:say("Que " .. subject .. " seja bem‑vindo" .. (subject == "she" and "a" or "") .. "!", npc, player)
+O módulo utiliza as constantes PLAYERPRONOUN_HE, PLAYERPRONOUN_SHE, etc., que são expostas pelo servidor.
+
+📚 3. BIBLIOTECA NPC_UTILS.LUA (OBRIGATÓRIA)
+Arquivo: data-canary/scripts/MCR/Geral/npc_utils.lua
+Salvar como: ISO‑8859‑1
+
+Funções essenciais: NpcUtils.correspondeAcao, NpcUtils.getTratamento, NpcUtils.escolherFraseVariada.
+A função getTratamento já está refatorada para usar Pronouns.getSubject(player) e não contém mais referências a vocações ou storages manuais. O vocativo padrão é "aventureiro/a/e dos reinos distantes". Para NPCs que desejem um tratamento mais específico (ex.: "jovem espadachim"), pode‑se criar uma função auxiliar local que consulte o domínio de maior afinidade do jogador.
+
+Exemplo da implementação interna actual de getTratamento:
+
+lua
+function NpcUtils.getTratamento(player)
+    local subject = Pronouns.getSubject(player)
+    if subject == "she" then
+        return { artigo = "a", vocativo = "senhora", sufixoVoc = "a", bemVindo = "bem‑vinda" }
+    elseif subject == "he" then
+        return { artigo = "o", vocativo = "senhor", sufixoVoc = "o", bemVindo = "bem‑vindo" }
+    else
+        return { artigo = "a", vocativo = "viajante", sufixoVoc = "e", bemVindo = "bem‑vinde" }
+    end
+end
+🏗️ 4. ESQUELETO FUNCIONAL DE NPC COM SISTEMA DE CORES (v10.0)
+Todo script de NPC deve seguir o modelo abaixo, agora com integração das cores do SPA v10.0, nomenclatura unificada e reacção a novos domínios como Summon. Exemplo de um ferreiro que reconhece o nível de Lâminas, a Sinergia Elemental, o Arremesso de Escudo, comenta a robustez do Aventureiro e nota a presença de um companheiro invocado.
+
+lua
+--[[
+Projeto: MCR
+NPC: Ferreiro de Eridanus (exemplo)
+Descrição: Demonstração com cores v10.0 e reacção a Domínios, Sinergia Elemental,
+           Arremesso de Escudo, vitalidade e Summon.
+--]]
+
+local npcName = "Ferreiro"
+local npcType = Game.createNpcType(npcName)
+local npcConfig = {}
+npcConfig.name = npcName
+npcConfig.outfit = { lookType = 128, lookHead = 0, lookBody = 0, lookLegs = 0, lookFeet = 0, lookAddons = 2 }
+
+local keywordHandler = KeywordHandler:new()
+local npcHandler = NpcHandler:new(keywordHandler)
+
+npcType.onThink = function(npc, interval) npcHandler:onThink(npc, interval) end
+npcType.onAppear = function(npc, creature) npcHandler:onAppear(npc, creature) end
+npcType.onDisappear = function(npc, creature) npcHandler:onDisappear(npc, creature) end
+npcType.onMove = function(npc, creature, from, to) npcHandler:onMove(npc, creature, from, to) end
+npcType.onSay = function(npc, creature, type, msg) npcHandler:onSay(npc, creature, type, msg) end
+npcType.onCloseChannel = function(npc, player) npcHandler:onCloseChannel(npc, player) end
+
+local function greetCallback(npc, player)
+    local subject = Pronouns.getSubject(player)
+    local frase = (subject == "she") and "Bem‑vinda, nobre senhora!" or "Bem‑vindo, nobre senhor!"
+    npcHandler:setMessage(MESSAGE_GREET, frase)
+    return true
+end
+npcHandler:setCallback(CALLBACK_GREET, greetCallback)
+
+local function creatureSayCallback(npc, player, type, msg)
+    if not npcHandler:checkInteraction(npc, player) then return false end
+    local subj = Pronouns.getSubject(player)
+
+    -- Verifica nível de Lâminas (Domínio 10)
+    local afinidadeLaminas = player:getDominioAfinidade(10) or 0
+    local nivelLaminas = getNivelPorAfinidade(afinidadeLaminas)
+
+    if NpcUtils.correspondeAcao(msg, {"missão", "ajuda", "tarefa", "trabalho", "aventura", "desafio"}) then
+        if nivelLaminas >= 20 then
+            npcHandler:say("Ah! Um " .. c("Mestre das Lâminas", COR.RARIDADE_LENDARIO) .. "! O aço reconhece‑vos. Talvez queira forjar uma " .. c("{Lâmina Rúnica}", COR.ITEM_RARO) .. "?", npc, player)
+        elseif nivelLaminas >= 15 then
+            npcHandler:say("Suas mãos já falam com o aço. Talvez queira forjar uma " .. c("{Lâmina Rúnica}", COR.ITEM_RARO) .. "?", npc, player)
+        elseif nivelLaminas >= 5 then
+            npcHandler:say("Vejo que já tem prática com a " .. c("{espada}", COR.DOM_COMBATE_LAMINAS) .. ". Precisa de algo?", npc, player)
+        else
+            npcHandler:say("Preciso de alguém que saiba manejar uma " .. c("{espada}", COR.DOM_COMBATE_LAMINAS) .. ". Você " .. c("{aceita}", COR.NPC_INTENCAO) .. " treinar?", npc, player)
+        end
+    end
+
+    -- Comenta Maestria, Vínculo ou Lampejo
+    local state = player:getDominioState(10) or 0
+    if nivelLaminas >= 20 then
+        npcHandler:say("É uma honra ter um " .. c("Mestre das Lâminas", COR.RARIDADE_LENDARIO) .. " na minha forja. O aço nunca o esquecerá.", npc, player)
+    elseif state == 2 then
+        npcHandler:say("Sinto o Vínculo com as lâminas... o aço estremece à sua passagem.", npc, player)
+    elseif state == 1 then
+        npcHandler:say("Você está em Lampejo com as espadas? O som do metal é mais puro.", npc, player)
+    end
+
+    -- Comenta Sinergia Elemental se o jogador empunha uma arma de fogo
+    local weapon = player:getSlotItem(CONST_SLOT_LEFT) or player:getSlotItem(CONST_SLOT_RIGHT)
+    if weapon then
+        local elemento = nil
+        if weapon.getElementalBond then elemento = weapon:getElementalBond() end
+        if not elemento and weapon.getElementType then elemento = weapon:getElementType() end
+        if elemento == COMBAT_FIREDAMAGE then
+            npcHandler:say("Essa lâmina carrega o " .. c("fogo", COR.ELEM_FOGO) .. "... um poder ancestral.", npc, player)
+        elseif elemento == COMBAT_ICEDAMAGE then
+            npcHandler:say("O " .. c("gelo", COR.ELEM_GELO) .. " na sua arma... respeite o frio, Aventureiro.", npc, player)
+        end
+    end
+
+    -- Comenta Arremesso de Escudo
+    local temEscudo = hasShield and hasShield(player)
+    local temArma = weapon and weapon:getType():getWeaponType() ~= WEAPON_SHIELD
+    if temEscudo and not temArma then
+        npcHandler:say("Você luta apenas com o " .. c("escudo", COR.DOM_ESCUDO) .. "? Conheci um anão que arremessava o dele como uma rocha.", npc, player)
+    end
+
+    -- Comenta a vitalidade do Aventureiro (bónus de vida/mana)
+    local nivelEscudo = getNivelPorAfinidade(player:getDominioAfinidade(15) or 0)
+    if nivelEscudo >= 20 then
+        npcHandler:say("Pela bigorna! Você aguenta mais pancadas do que uma parede de adamantio.", npc, player)
+    elseif nivelEscudo >= 10 then
+        npcHandler:say("Você está mais resistente do que da última vez. O treino com escudo está a dar frutos.", npc, player)
+    end
+
+    -- Comenta se o Aventureiro tem um companheiro invocado (Summon)
+    local nivelSummon = getNivelPorAfinidade(player:getDominioAfinidade(28) or 0)
+    if nivelSummon >= 15 then
+        npcHandler:say("Ah, e vejo que trouxe um amigo! Sua criatura é imponente. Cuidou bem dela?", npc, player)
+    elseif nivelSummon >= 5 then
+        npcHandler:say("Você tem um brilho diferente no olhar... como quem já não luta sozinho.", npc, player)
+    end
+
+    return true
+end
+npcHandler:setCallback(CALLBACK_MESSAGE_DEFAULT, creatureSayCallback)
+
+npcHandler:setMessage(MESSAGE_FAREWELL, "Volte quando precisar de um bom metal.")
+npcHandler:addModule(FocusModule:new(), npcConfig.name, true, true, true)
+npcType:register(npcConfig)
+🔤 5. CODIFICAÇÃO ISO‑8859‑1 (REGRA ABSOLUTA)
+Scripts Lua que exibem texto ao jogador DEVEM ser salvos como ISO‑8859‑1. Ferramentas: Notepad++ → Codificar em ANSI; VS Code → "Western (ISO 8859‑1)".
+
+🎨 6. USO DO SISTEMA DE CORES EM DIÁLOGOS (v10.0)
+A tabela COR (v10.0) e a função c() são globais (definidas em texto_colorido.lua). Regras para NPCs:
+
+Destaque de opções: c("{Aceitar}", COR.NPC_INTENCAO)
+
+Comandos: c("{Senha}", COR.NPC_COMANDO)
+
+Itens: c("{Lágrimas de Sereia}", COR.NPC_ITEM)
+
+Locais: c("{Lago dos Reflexos}", COR.NPC_LOCAL)
+
+Emoções: c("preocupado", COR.NPC_EMOCAO)
+
+Missões: c("{missão}", COR.MISSAO_MATAR) ou conforme o tipo.
+
+Domínios: use as constantes COR.DOM_* (ex.: COR.DOM_COMBATE_LAMINAS, COR.DOM_COMBATE_ARTES_MARCIAIS) e também as cores elementais (COR.ELEM_FOGO, etc.) para coerência com o HUD.
+
+Posturas: COR.POSTURA_IMPETO, COR.POSTURA_EQUILIBRIO, COR.POSTURA_GUARDA.
+
+Summon: utilize COR.DOM_MAGIA_RUNOLOGIA ou crie uma constante específica se necessário.
+
+Exemplo de fala completa:
+
+lua
+npcHandler:say("Você encontrou as " .. c("{5 Lágrimas de Sereia}", COR.NPC_ITEM) .. " no " .. c("{Lago dos Reflexos}", COR.NPC_LOCAL) .. "?", npc, player)
+Importante: enviarMsgColorida(player, mensagem) envia para o canal 24 (mensagens de sistema do SPA). Para o diálogo do NPC, prefira npcHandler:say com texto contendo {chaves} e, quando apropriado, cores inseridas com c() dentro da string.
+
+🗣️ 7. RECONHECIMENTO FLEXÍVEL DE PALAVRAS‑CHAVE
+NUNCA faça if msg == "missao". SEMPRE use:
+
+lua
+if NpcUtils.correspondeAcao(msg, {"missao", "quest", "tarefa", "trabalho", "ajuda", "aventura", "desafio"}) then
+A lista de sinónimos deve ser abundante (mínimo 7, idealmente 15+), incluindo variações regionais e gírias.
+
+Para pronomes do personagem, incluir (adicionar mais se possível):
+
+lua
+{"ele", "masculino", "homem", "macho", "menino", "rapaz", "garoto", "m"}
+{"ela", "feminino", "mulher", "fêmea", "menina", "moça", "garota", "dama", "f"}
+Isto garante que o jogador nunca fique preso por não saber a palavra exata.
+
+👤 8. PERSONALIZAÇÃO POR PRONOME (VIA PRONOUNS.LUA)
+A função NpcUtils.getTratamento usa Pronouns.getSubject(player) para determinar o tratamento correto, sem depender de vocações. O vocativo padrão é "aventureiro/a/e dos reinos distantes", mas pode ser enriquecido localmente com base no domínio dominante do jogador.
+
+Exemplo de uso nos diálogos:
+
+lua
+local trat = NpcUtils.getTratamento(player)
+npcHandler:say("Ah, " .. trat.artigo .. " nobre " .. trat.vocativo .. " voltou! Já sabia que podia confiar em si.", npc, player)
+O assistente deve usar getTratamento sempre que o texto exigir concordância de género que dependa do pronome do personagem.
+
+🎲 9. VARIAÇÃO DE FRASES (escolherFraseVariada)
+Mantenha pelo menos 3 frases diferentes para cada situação (saudação, agradecimento, despedida) e escolha aleatoriamente.
+
+lua
+local frases = {
+    "Ah, você voltou!",
+    "Que bom vê‑lo novamente.",
+    "Sempre uma honra recebê‑lo."
+}
+npcHandler:say(NpcUtils.escolherFraseVariada(frases, player), npc, player)
+🧬 10. PERSONALIDADE DO NPC E PROGRESSÃO DE INTIMIDADE
+Cada NPC no MCR tem uma personalidade definida. Níveis de intimidade (usando storages 100010+):
+
+0: Desconhecido
+
+1: Conhecido
+
+2: Amigo
+
+3: Confidente
+
+Exemplos de personalidades:
+
+Sábio caloroso: pergunta o pronome logo no primeiro encontro.
+
+Guerreiro rude: usa termos neutros, não pergunta.
+
+Místico enigmático: pergunta após intimidade 2.
+
+Comerciante astuto: pergunta subtilmente no meio do diálogo.
+
+A progressão de intimidade deve reflectir‑se na linguagem:
+
+Intimidade 0: "Viajante, preciso de ajuda."
+
+Intimidade 1: "Ah, o nobre senhor voltou! Já sabia que podia confiar em si."
+
+Intimidade 3: "Meu caríssimo amigo! Sempre há lugar para si na minha mesa."
+
+🔑 11. DESTAQUE DE PALAVRAS COM {CHAVES} E CORES
+O OTClient Redemption reconhece palavras entre {chaves} como destaque visual (geralmente azul ou sublinhado), herança do protocolo Tibia. Com o sistema de cores do SPA v10.0, podemos envolver a chave com c() para dar ainda mais significado.
+
+Convenção MCR:
+
+Ações: c("{aceitar}", COR.NPC_INTENCAO), c("{entregar}", COR.NPC_COMANDO), c("{missão}", COR.MISSAO_MATAR)
+
+Itens: c("{5 Lágrimas de Sereia}", COR.NPC_ITEM)
+
+Locais: c("{Lago dos Reflexos}", COR.NPC_LOCAL)
+
+Recompensas: c("{500 pontos de experiência}", COR.RARIDADE_OURO)
+
+⚠️ NUNCA use }?" junto; sempre } ? para evitar erro visual no cliente.
+Exemplo correcto: "Você " .. c("{aceita}", COR.NPC_INTENCAO) .. " ?"
+Exemplo INCORRECTO: "Você {aceita}?"
+
+🌠 12. REACÇÃO NARRATIVA AOS DOMÍNIOS DO AVENTUREIRO (SPA v4.6.0)
+Os NPCs do Projeto MCR estão conscientes dos Domínios que o Aventureiro despertou e do seu progresso. Esta percepção é puramente narrativa e NUNCA expõe números, níveis ou termos técnicos. O NPC reage de forma natural, como alguém que nota a evolução de um artesão, de um guerreiro ou de um estudioso. Com a nova nomenclatura unificada, utilize sempre "Artes Marciais" em vez de "Desarmado".
+
+12.1 COMO OBTER OS DADOS DO JOGADOR
+Nos scripts Lua, utilize os métodos do SPA (todos implementados):
+
+player:getDominioAfinidade(dominioId) — retorna a afinidade bruta (para uso interno).
+
+getNivelPorAfinidade(afinidade) — função global do SPA; retorna o nível (0‑20) correspondente.
+
+player:getDominioState(dominioId) — retorna 0 (normal), 1 (Lampejo) ou 2 (Vínculo).
+
+hasShield(player) — retorna true se o jogador tem escudo equipado (para detectar Arremesso de Escudo).
+
+player:getVocationBaseMaxHealth() / player:getVocationBaseMaxMana() — devolvem a vida/mana base (sem bónus).
+
+player:getNaturalSpeed() — devolve a velocidade natural (base + nível).
+
+As constantes dos Domínios estão definidas em constantes.lua (pasta SPA/core/) e são globais: DOMINIO_LAMINAS = 10, DOMINIO_ESPADAS_LEVES = 100, DOMINIO_ARTES_MARCIAIS = 14, DOMINIO_ESCUDO = 15, DOMINIO_ARREMESSO_ESCUDO = 140, DOMINIO_FOGO = 23, DOMINIO_SUMMON = 28, DOMINIO_SOBREVIVENCIA = 400, etc.
+
+12.2 EXEMPLOS DE DIÁLOGOS REACTIVOS
+Ferreiro (ao notar Lâminas elevado):
+"Vejo que a bigorna já não tem segredos para si. As suas mãos contam histórias que só um verdadeiro artesão entenderia."
+
+Mestre Espadachim (Lâminas Pesadas alto + intimidade):
+"A sua pegada mudou, Aventureiro. O peso da lâmina já não o desequilibra. Se continuar assim, talvez eu lhe ensine o Golpe Dilacerante."
+
+Mestre Espadachim (ao ver Maestria, nível 20):
+"Você não é mais um aprendiz. É um " .. c("Mestre das Lâminas", COR.RARIDADE_LENDARIO) .. ". O aço jamais o esquecerá."
+
+Arcanista (Fogo elevado):
+"Há um calor que emana de si... Não é febre, nem raiva. É poder. O fogo reconhece‑o. Já sentiu isso?"
+
+Arcanista (ao notar Sinergia Elemental com Espada de Fogo):
+"Você empunha uma lâmina de fogo... e o elemento " .. c("Fogo", COR.ELEM_FOGO) .. " já responde aos seus comandos. A alquimia entre aço e chama é rara."
+
+Herbalista (Terra e Magia Natural):
+"Você já não colhe ervas como um novato. As plantas inclinam‑se ligeiramente na sua direcção. A terra confia em si."
+
+Instrutor de Combate (ao ver Arremesso de Escudo):
+"Você luta apenas com o " .. c("escudo", COR.DOM_ESCUDO) .. "? Interessante... Conhece a técnica de " .. c("arremessá‑lo", COR.COMBO_AVISO) .. "? Pode ser letal."
+
+Mestre de Artes Marciais (Domínio 14 elevado):
+"Seus punhos não são apenas carne e osso. Sinto o Chi fluir em cada movimento. Você já não luta — você dança."
+
+Observador atento (comentário sobre vitalidade):
+"Você parece ter a resistência de um touro. Os golpes que derrubariam outros mal o fazem vacilar."
+
+Observador atento (comentário sobre velocidade):
+"Você desloca‑se como uma rajada de vento. A maioria não consegue acompanhar seus passos."
+
+Eremita (ao ver um Aventureiro com afinidade em Summon):
+"Você não está sozinho, está? Sinto uma segunda alma ligada à sua. O vínculo entre vocês é forte."
+
+Caçador (ao notar Sobrevivência elevada):
+"As cicatrizes que carrega contam histórias de invernos rigorosos e noites sem abrigo. Você é difícil de matar."
+
+12.3 REGRAS PARA A REACÇÃO
+NUNCA diga "Você atingiu o nível 15 em Fogo." Use metáforas e observações sensoriais.
+
+A reacção deve ser condizente com a personalidade do NPC.
+
+A progressão de intimidade pode desbloquear comentários mais profundos sobre os Domínios.
+
+Se o jogador ainda não despertou o Domínio relevante, o NPC pode simplesmente não mencioná‑lo, ou fazer um comentário neutro (ex.: "Você tem o olhar de quem ainda não encontrou o seu elemento.").
+
+Para a Maestria (nível 20), os NPCs podem usar títulos honoríficos ("Mestre das Chamas", "Mestre das Lâminas", "Senhor dos Invocados") e notar que o Vínculo é permanente.
+
+🔥 13. PERCEPÇÃO DOS LAMPEJOS, VÍNCULOS E MAESTRIA (ESTADOS DE ALMA)
+Os Lampejos e Vínculos são manifestações visíveis da afinidade do Aventureiro. A Maestria (nível 20) torna o Vínculo permanente. Alguns NPCs, especialmente os de natureza mística ou muito observadores, podem notar quando o jogador está sob um Estado de Alma activo e comentá‑lo.
+
+Exemplos narrativos:
+
+Quando o jogador está em Vínculo com Fogo:
+"Há faíscas nos seus olhos hoje, Aventureiro. O fogo está convosco."
+
+Quando o jogador está em Lampejo com Lâminas Leves:
+"Você move‑se com uma leveza diferente... Como se o ar abrisse caminho para os seus passos."
+
+Quando o jogador atingiu a Maestria (Vínculo permanente):
+"O " .. c("fogo", COR.ELEM_FOGO) .. " nunca mais o abandonará. Você é um verdadeiro " .. c("Mestre das Chamas", COR.RARIDADE_LENDARIO) .. "."
+
+Quando o jogador perde um Vínculo (antes da Maestria):
+"A sintonia com as lâminas se desfez... talvez o foco tenha mudado."
+
+Comentário sobre a rapidez adquirida por um Vínculo:
+"Seus pés mal tocam o chão. O vento deve estar a favor."
+
+Comentário sobre Summon em Lampejo/Vínculo:
+"Sua aura está mais densa... Como se o véu entre os mundos se afinasse ao seu redor."
+
+Regras:
+
+Apenas NPCs com personalidade adequada (místicos, sábios, elementais) devem comentar Lampejos/Vínculos.
+
+O comentário deve ser subtil e ocasional; NÃO deve ocorrer a cada interação (use um cooldown por sessão, ex.: storage temporário).
+
+Nunca usar os termos "Lampejo" ou "Vínculo" no diálogo. Prefira descrições poéticas.
+
+Para a Maestria, o NPC pode usar o título de "Mestre" e reconhecer a permanência do poder.
+
+⚔️ 14. COMENTÁRIOS SOBRE POSTURAS DE COMBATE, ARREMESSO DE ESCUDO, ATRIBUTOS E INVOCAÇÕES
+NPCs instrutores de combate (como Thorne no tutorial) podem comentar a postura actual do Aventureiro, dando dicas narrativas. As Posturas dependem do fightMode nativo, que já é funcional. Os NPCs podem ler o fightMode do jogador via player:getFightMode() e comentar. Também podem detectar o uso exclusivo de escudo (Arremesso de Escudo) via hasShield(player) e ausência de arma. Além disso, podem notar se o Aventureiro está especialmente rápido ou robusto, fruto dos bónus do SPA, ou se está acompanhado por uma criatura invocada.
+
+Exemplos:
+
+Ao adoptar Ímpeto (1):
+"Ah, vejo que prefere a agressividade! Cuidado para não se expor demais."
+
+Ao adoptar Guarda (3):
+"Postura defensiva... Sábio. Mas lembre‑se: uma parede parada acaba por ruir."
+
+Ao ver o jogador apenas com escudo:
+"Sem arma, apenas com o " .. c("escudo", COR.DOM_ESCUDO) .. "? Você luta como um verdadeiro defensor. Sabe arremessá‑lo?"
+
+Ao alternar frequentemente:
+"Você adapta‑se como a água. Isso é raro. A maioria fixa‑se num só estilo."
+
+Ao notar velocidade anormal:
+"Com essa agilidade, você atravessaria Eridanus em um piscar de olhos. O que o torna tão rápido?"
+
+Ao notar uma criatura invocada:
+"Seu companheiro de batalha é impressionante. Vocês lutam como se lessem a mente um do outro."
+
+Estes comentários devem ser raros (ex.: uma vez a cada 10 mudanças de postura) para não poluir o chat, e apenas para NPCs especificamente voltados ao ensino do combate ou à observação atenta.
+
+📖 15. INTEGRAÇÃO COM O SPA v4.6.0 – CHECKLIST NARRATIVO
+Ao criar um NPC, verifique se ele pode interagir com os seguintes elementos do sistema:
+
+☐ O NPC reconhece algum Domínio específico? (ex.: ferreiro → Lâminas; bibliotecário → Runologia; mago → elementos; eremita → Summon; caçador → Sobrevivência)
+☐ Se sim, oferece diálogos diferentes com base no nível do Domínio? (via getNivelPorAfinidade)
+☐ Reage à Maestria (nível 20) com linguagem honorífica e reconhecendo a permanência?
+☐ Comenta Lampejos/Vínculos? (apenas se for místico/sensível)
+☐ Comenta Sinergia Elemental? (se o jogador empunha arma elemental e o NPC é mago/arcanista)
+☐ Comenta Posturas de Combate? (apenas se for instrutor marcial; via getFightMode)
+☐ Comenta Arremesso de Escudo? (se for instrutor e o jogador usa escudo sem arma)
+☐ Comenta a vitalidade ou velocidade do Aventureiro? (se for um NPC observador)
+☐ Comenta a presença de um companheiro invocado ou do escudeiro? (se for um NPC que valoriza a lealdade ou o vínculo)
+☐ A progressão de intimidade desbloqueia novas reacções?
+☐ As reacções NUNCA expõem números, níveis ou termos técnicos?
+☐ Usa as cores apropriadas (COR.NPC_*, COR.DOM_*, COR.ELEM_*, COR.MISSAO_*, etc.) para coerência visual?
+☐ A nomenclatura dos domínios está actualizada? (ex.: Artes Marciais, Lutador, sem "Desarmado"; Summon para 28; Sobrevivência para 400)
+☐ O NPC utiliza NpcUtils.getTratamento (que já não depende de vocações)?
+☐ O script está salvo como ISO‑8859‑1?
+
+⚠️ ARMADILHAS E LIÇÕES APRENDIDAS (ACTUALIZADAS)
+API antiga não funciona. Use Game.createNpcType.
+
+Salvar como UTF‑8 causa corrupção de acentos. Use ISO‑8859‑1.
+
+Use apenas {destaque} padrão, com possibilidade de cores via c().
+
+NUNCA use }?" junto; sempre } ?.
+
+Módulo pronouns.lua é global, não use dofile.
+
+A coluna players.pronoun é nativa do Canary.
+
+O pronome da conta (jogador/jogadora) é exclusivo do Oráculo.
+
+A pipeline de tradução pode ser utilizada para traduzir diálogos em massa, mas a revisão humana é sempre necessária.
+
+NpcUtils.getTratamento já não contém referências a vocações; usar Pronouns.getSubject.
+
+⚠️ SPA v4.6.0 – Evitar spam de comentários sobre Lampejos/Vínculos: implemente cooldowns.
+
+⚠️ SPA v4.6.0 – As funções do SPA (getDominioAfinidade, getNivelPorAfinidade, hasShield, getVocationBaseMaxHealth, getNaturalSpeed, etc.) estão disponíveis globalmente; não é necessário dofile.
+
+⚠️ SPA v4.6.0 – Use c() para colorir partes do diálogo; não use enviarMsgColorida para a fala do NPC (essa função é para o canal 24).
+
+⚠️ SPA v4.6.0 – Para detectar Arremesso de Escudo, verifique hasShield(player) e ausência de arma.
+
+⚠️ SPA v4.6.0 – Para detectar afinidade com Summon, utilize DOMINIO_SUMMON = 28; para Sobrevivência, DOMINIO_SOBREVIVENCIA = 400.
+
+⚠️ SPA v4.6.0 – A tabela COR está na versão 10.0, com constantes para missões, NPCs e os novos domínios unificados.
+
+⚠️ REVSCRIPT – Evite duplicar definições de funções globais; os módulos em Geral/ já as exportam.
+
+🔍 CHECKLIST DE REVISÃO PARA O ASSISTENTE (NPCs)
+☐ Script salvo como ISO‑8859‑1 e colocado na subpasta correcta?
+☐ Usa Game.createNpcType e callbacks obrigatórios?
+☐ Módulo pronouns.lua usado (funções globais, sem dofile)?
+☐ NpcUtils.correspondeAcao com listas abundantes?
+☐ Palavras entre {chaves} com espaço antes da pontuação?
+☐ Cores da tabela COR v10.0 aplicadas de forma consistente?
+☐ Textos em PT‑BR impecável?
+☐ Prints de debug (DEBUG:) em callbacks principais?
+☐ Respeita o pronome do personagem?
+☐ Progressão de intimidade implementada?
+☐ O NPC reage narrativamente aos Domínios do Aventureiro? (usando getDominioAfinidade, getNivelPorAfinidade)
+☐ O NPC reage à Maestria (nível 20) com título honorífico?
+☐ O NPC comenta Lampejos/Vínculos se apropriado, com cooldown?
+☐ O NPC comenta Sinergia Elemental se apropriado?
+☐ O NPC comenta Posturas de Combate se for instrutor? (via getFightMode)
+☐ O NPC comenta Arremesso de Escudo se for instrutor e o jogador usar escudo sem arma?
+☐ O NPC comenta vitalidade ou velocidade se for observador?
+☐ O NPC comenta a presença de um invocado ou escudeiro se apropriado?
+☐ A nomenclatura de domínios está actualizada (Artes Marciais, Lutador, Summon, Sobrevivência)?
+☐ As reacções NUNCA expõem números ou termos técnicos?
+☐ O NPC utiliza NpcUtils.getTratamento (refactorado)?
+
+📤 COMO ATUALIZAR O REPOSITÓRIO GIT
+bash
+git add "<arquivos alterados>"
+git commit -m "feat(npc): Atualiza guia de narrativa com SPA v4.6.0, Summon, Sobrevivência, cores v10.0 e nomenclatura unificada"
+git push origin main
+⚠️ PowerShell: aspas duplas em caminhos com espaços.
+
+FIM DO GUIA DE NARRATIVA E DIÁLOGOS — VERSÃO 8.1

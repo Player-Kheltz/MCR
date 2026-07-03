@@ -1,0 +1,244 @@
+>> CATALOG tags=mounts, summon, pet updated=2026-06-23
+📘 DOCUMENTAÇÃO TÉCNICA – SISTEMA DE MONTARIA COMO SUMMON (MountSummon)
+Projeto MCR – Versão 2.0
+Última atualização: 22 de Junho de 2026
+
+🎯 OBJETIVO
+Permitir que o jogador, ao desmontar da sua montaria, transforme-a num summon (pet)
+persistente com inventário, status, IA de combate e progressão própria. O sistema
+integra-se com o PetSystem (SPA), o sistema de inventário remoto (escudeiro) e o
+sistema de eventos de criatura (CreatureEvents) do servidor Canary.
+
+📚 ÍNDICE
+1. Visão Geral e Fluxo
+2. C++ – Eventos de Criatura (CREATURE_EVENT_DISMOUNT / CREATURE_EVENT_MOUNT)
+3. C++ – Validação de Espaço (hasFreeAdjacentTile) + Dismount Block
+4. C++ – Disparo no playerChangeOutfit (correção do bug da janela de outfit)
+5. Lua – mount_summon.lua (v2.0)
+6. Integração com PetSystem e ActivePets
+7. Persistência (Login/Logout/Morte/HP tracking)
+8. Velocidade do Summon
+9. Spawn Position e Direção (force=true no tile do jogador)
+10. Estado Moribundo
+11. Comandos (!montarias, !portal, !todasmontarias)
+12. Roadmap: Novas Funcionalidades
+
+1. VISÃO GERAL E FLUXO
+O sistema funciona em três momentos principais:
+
+A) DESMONTAR (toggleMount false → dismount())
+   1. toggleMount(false) verifica se há um tile adjacente livre
+      (hasFreeAdjacentTile). Se não houver, bloqueia a desmontagem com a
+      mensagem "Não há espaço para sua montaria descer."
+   2. dismount() é chamado:
+      a. Obtém mountId e mountClientId da montaria atual
+      b. Dispara g_creatureEvents().playerDismount(player, mountId, mountClientId)
+      c. Remove o bónus de velocidade
+      d. Define defaultOutfit.lookMount = 0
+      e. internalCreatureChangeOutfit actualiza o cliente
+   3. O Lua handler onDismount:
+      a. Remove qualquer summon de montaria existente (segurança)
+      b. Cria um monster "CriaturaSPA" no tile adjacente livre
+      c. Define outfit = mountClientId (aparência da montaria)
+      d. Define direção = direção do jogador
+      e. Define velocidade = playerSpeed * 1.1
+      f. Cria inventário (20 slots)
+      g. Regista no PetSystem com isMountSummon = true
+      h. Regista o evento de morte (MountSummonDeath) na criatura
+      i. Salva estado no KV do player (mount-summon scope)
+
+B) MONTAR (toggleMount true ou seleção na janela de outfit)
+   1. toggleMount(true) ou playerChangeOutfit disparam
+      g_creatureEvents().playerMount(player, mountId, mountClientId)
+   2. O Lua handler onMount:
+      a. Procura nos ActivePets por um pet com isMountSummon = true
+      b. Se encontrar: unregisterPet + creature:remove()
+      c. Limpa o KV do player
+
+C) LOGIN / LOGOUT / MORTE
+   - Login: lê KV "mount-summon".active; se true, recria o summon
+   - Logout: remove o summon e limpa KV
+   - Morte do summon: limpa ActivePets e KV para não recriar no próximo login
+
+2. C++ – EVENTOS DE CRIATURA (CREATURE_EVENT_DISMOUNT / CREATURE_EVENT_MOUNT)
+Adicionados em src/lua/lua_definitions.hpp:
+   CREATURE_EVENT_DISMOUNT = 18
+   CREATURE_EVENT_MOUNT    = 19
+
+Declarações em src/lua/creature/creatureevent.hpp:
+   void executeOnDismount(const std::shared_ptr<Player>&, uint8_t mountId, uint16_t mountClientId) const;
+   void executeOnMount(const std::shared_ptr<Player>&, uint8_t mountId, uint16_t mountClientId) const;
+   void playerDismount(...)
+   void playerMount(...)
+
+Implementações em src/lua/creature/creatureevent.cpp:
+   - executeOnDismount: empilha player, mountId (int), mountClientId (int); callFunction(3)
+   - executeOnMount: idem
+   - playerDismount: itera events, filtra CREATURE_EVENT_DISMOUNT, executa
+   - playerMount: itera events, filtra CREATURE_EVENT_MOUNT, executa
+
+Mapeamento Lua (creature_event_functions.cpp):
+   "dismount" → CREATURE_EVENT_DISMOUNT
+   "mount"    → CREATURE_EVENT_MOUNT
+   onDismount / onMount registrados como callbacks Lua
+
+3. C++ – VALIDAÇÃO DE ESPAÇO (hasFreeAdjacentTile)
+Adicionado em src/creatures/players/player.hpp e player.cpp:
+
+   bool Player::hasFreeAdjacentTile() const {
+       Itera dx, dy de -1 a 1 (excluindo 0,0).
+       Verifica se o tile existe, tem chão (getGround()) e não tem criaturas
+       (getCreatures() vazio ou nulo).
+       Retorna true se encontrar qualquer tile adjacente livre.
+   }
+
+Usado em Player::toggleMount(false) antes de chamar dismount():
+   if (!hasFreeAdjacentTile()) {
+       sendCancelMessage("Não há espaço para sua montaria descer.");
+       return false;
+   }
+
+4. C++ – DISPARO NO playerChangeOutfit
+Em src/game/game.cpp, dentro de Game::playerChangeOutfit:
+   Quando o jogador seleciona uma montaria pela janela de outfit (packet 0xD3),
+   o código agora dispara g_creatureEvents().playerMount() após setCurrentMount.
+   Isto garante que o summon antigo é removido mesmo quando a montagem ocorre
+   pela janela de outfit (e não pelo botão de montar).
+
+5. LUA – mount_summon.lua
+Arquivo: data-canary/scripts/MCR/MountSummon/mount_summon.lua
+
+Eventos registrados:
+   "MountDismount"   → type("dismount")   → onDismount(player, mountId, mountClientId)
+   "PlayerMount"     → type("mount")      → onMount(player, mountId, mountClientId)
+   "MountSummonLogin" → type("login")     → onLogin(player) → return true
+   "MountSummonLogout" → type("logout")   → onLogout(player) → return true
+   "MountSummonDeath" → type("death")     → onDeath(creature, ...) → return true
+
+Estrutura de dados (ActivePets):
+   ActivePets[playerId][petId] = {
+       pet = creature,
+       config = {
+           domain = 28,           -- Domínio Summon
+           behavior = 2,          -- DEFENSIVE
+           durationMs = 0,        -- permanente
+           customName = "Montaria",
+           isMountSummon = true,  -- flag de identificação
+       }
+   }
+
+KV do jogador (escopo "mount-summon"):
+   "active"           → boolean (true/false)
+   "mount-id"         → number (ID da montaria)
+   "mount-client-id"  → number (clientId da montaria)
+
+6. INTEGRAÇÃO COM PETSYSTEM E ACTIVEPETS
+O PetSystem (data-canary/scripts/MCR/SPA/core/pet_system.lua) gere a tabela
+global ActivePets. O MountSummon adiciona a flag isMountSummon no config para
+identificar summons de montaria. O método MountSummon.removeMountSummon() itera
+ActivePets[playerId] à procura de data.config.isMountSummon == true.
+
+Fluxo de remoção:
+   1. Itera ActivePets[playerId]
+   2. Se encontrar isMountSummon:
+      a. Chama PetSystem.unregisterPet(player, creature)
+      b. Chama creature:remove()
+      c. Limpa KV do player
+
+7. PERSISTÊNCIA (LOGIN/LOGOUT/MORTE)
+Login (MountSummonLogin):
+   - Lê player:kv():scoped("mount-summon"):get("active")
+   - Se true: lê mount-id e mount-client-id, recria o summon via onDismount
+   - Sempre retorna true para não bloquear outros eventos de login
+
+Logout (MountSummonLogout):
+   - Chama removeMountSummon(player) para limpar o summon
+   - Sempre retorna true
+
+Morte (MountSummonDeath):
+   - Evento registrado individualmente no summon via summon:registerEvent()
+   - Verifica se o petId corresponde a ActivePets[playerId][petId] com
+     isMountSummon
+   - Se sim: limpa a entrada do ActivePets e o KV do jogador
+
+8. VELOCIDADE DO SUMMON
+A velocidade do summon é definida como playerSpeed * 1.1 no momento da criação:
+   summon:setSpeed(math.floor(playerSpeed * 1.1))
+
+Isto garante que o summon (montaria) seja sempre ligeiramente mais rápido que
+o jogador, permitindo que o acompanhe sem esforço.
+
+9. SPAWN POSITION E DIREÇÃO
+O summon nasce no tile adjacente livre mais próximo da direção que o jogador
+está olhando. Se o tile na direção do jogador estiver ocupado, procura nos 8
+tiles adjacentes. Se nenhum estiver livre, a desmontagem é bloqueada.
+
+   local SQ_OFFSETS = {
+       { x = 0, y = -1 },  { x = 1, y = 0 },  { x = 0, y = 1 },  { x = -1, y = 0 },
+       { x = 1, y = -1 },  { x = 1, y = 1 },  { x = -1, y = -1 }, { x = -1, y = 1 },
+   }
+
+O summon nasce com a mesma direção do jogador (summon:setDirection(playerDir)),
+simulando que o jogador "desceu" da montaria e ela está parada ao lado.
+
+10. ROADMAP: NOVAS FUNCIONALIDADES (Decisões 1–7)
+Baseado nas diretrizes do projeto, as seguintes funcionalidades estão planejadas:
+
+1. Domínio de Cavalaria/Montaria
+   - Novo domínio (ou ramificação do Summon 28) focado em vínculo com montarias
+   - Cada nível desbloqueia habilidades específicas: ataque montado, carga,
+     resistência compartilhada
+   - Árvore de progressão própria com 35+ habilidades
+
+2. Vínculo Progressivo (Bonding)
+   - A montaria fica mais forte quanto mais tempo fica como summon ativo
+   - Progressão usando o sistema de passivas existente (HABILIDADES, SKILLTREE)
+   - Bónus por tempo de vínculo: stats, habilidades especiais
+
+3. Personalidade por Tipo de Montaria
+   - Cada tipo de montaria teria IA diferente:
+     * Guerra → agressiva, tanque
+     * Veloz → alto dano, baixa defesa
+     * Carga → foco em inventário (mula)
+     * Arcana → buffs/suporte mágico
+
+4. Equipamento da Montaria
+   - Slots específicos: armadura (visual+stats), selim (velocidade),
+     alforjes (+inventário)
+   - Integração com o sistema de inventário remoto (janela modal flutuante
+     com mochila, armadura, arma, etc.)
+   - O escudeiro segue o mesmo padrão: inventário completo equipável,
+     status próprios, skills
+
+5. Domesticação (Próximo Passo Lógico)
+   - Baseado no sistema mount→summon
+   - Mecânica similar a Pokémon: enfraquecer criatura selvagem → usar item
+     de doma → criatura vira summon do jogador
+   - Criaturas domáveis espalhadas pelo mapa como parte da narrativa
+
+6. Montarias Selvagens vs Compradas
+   - Algumas montarias são monstros no mapa que precisam ser domados
+   - Outras são montarias padrão compradas em NPCs ou obtidas por quests
+   - Ambas compartilham o mesmo sistema de progressão subjacente
+
+7. Ataque Montado e Entidade Composta
+   - Quando montado, a montaria ataca como entidade separada do jogador
+   - Sem barra de vida própria (faz parte do jogador visualmente)
+   - Suporta ranged: se o jogador usa arma de distância, a montaria também
+     dispara projéteis
+   - A montaria mantém IA própria mesmo quando montada, atacando alvos
+     independentemente
+
+IMPLEMENTAÇÃO ATUAL (v2.0, 22/06/2026):
+   - C++: eventos dismount/mount, validação de espaço, disparo no changeOutfit
+   - Lua: criação/remoção/persistência do summon, velocidade 1.1×, spawn
+     adjacente com direção
+   - HP tracking: salva/restaura HP entre sessões
+   - Estado moribundo: 60s de timer antes da morte definitiva
+   - Comandos !montarias, !todasmontarias, !portal (placeholder)
+   - force=true: montaria nasce no tile do jogador ignorando colisão
+   - Pendente para v3.0: equipamento, personalidade por tipo, dominação,
+     ataque montado
+
+Fim do Documento.
+📘 Sistema de Montaria como Summon (MountSummon) v2.0 — 22 de Junho de 2026

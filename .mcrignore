@@ -1,0 +1,12 @@
+# MasterAgent - Archivos relevantes
+Scripts/mcr_devia/modulos/decider.py
+Scripts/mcr_devia/modulos/episodic_memory.py
+Scripts/mcr_devia/modulos/master_agent.py
+Scripts/mcr_devia/modulos/sandbox_executor.py
+Scripts/mcr_devia/modulos/security.py
+Scripts/mcr_devia/modulos/task_planner.py
+Scripts/mcr_devia/modulos/tool_orchestrator.py
+Scripts/mcr_devia/comandos/cmd_master.py
+Scripts/mcr_devia/modulos/ia.py
+Scripts/mcr_devia/modulos/util.py
+docs/PLANO_MASTER_AGENT.md

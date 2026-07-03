@@ -1,0 +1,156 @@
+>> CATALOG tags=gelo, ice, water, domain, identity updated=2026-06-24
+╔══════════════════════════════════════════════════════════════╗
+║         DOMÍNIO: ÁGUA e GELO (ID 24) - Identidade          ║
+║              Projeto MCR — SPA — SHC v1.0                   ║
+╚══════════════════════════════════════════════════════════════╝
+
+ARQUIVO: 02 - CATALOGO DE DOMINIOS/24 - AGUA_GELO.txt
+DOMÍNIO: Água e Gelo
+ID: 24
+HIERARQUIA: Especialidade (Elementos 20 → Magia 2)
+DOMÍNIOS IRMÃOS: Fogo (23), Terra/Veneno (25), Energia (26)
+
+═══════════════════════════════════════════════════════════════
+1. ESSÊNCIA
+═══════════════════════════════════════════════════════════════
+
+Sentimento central:
+  Paciência absoluta, controle implacável, adaptabilidade fluida.
+  A água contorna obstáculos; o gelo não se quebra.
+
+Três adjetivos-chave:
+  Gélido, lento, cristalino.
+
+Frase de assinatura:
+  "A água se adapta. O gelo não quebra. Eu sou ambos."
+
+Cor associada:
+  Azul-céu profundo (#2266CC) a branco-gélido (#CCEEFF).
+
+═══════════════════════════════════════════════════════════════
+2. COMBATE E COMPORTAMENTO
+═══════════════════════════════════════════════════════════════
+
+Como um Mestre do Gelo se comporta em combate:
+  Controlador nato. Prioriza imobilizar e separar grupos.
+  Congela inimigos mais fortes enquanto elimina os fracos.
+  Nunca é atingido se não quiser — barreiras de gelo, lentidão e
+  teletransporte aquático garantem posicionamento perfeito.
+  Em Ímpeto: ofensivo com estalactites e explosões frias.
+  Em Guarda: muralhas de gelo, regeneração, redução de dano.
+
+Maior força:
+  Controle de grupo incomparável. Lentidão, congelamento,
+  barreiras e separação de alvos. Sobrevivência excepcional.
+
+Maior fraqueza:
+  Dano baixo comparado a Fogo ou Energia. Depende de posicionamento
+  e paciência. Inimigos imunes a gelo são contra diretos.
+
+Ambiente favorável:
+  Corredores estreitos, pontes, áreas com água.
+  Situações onde separar o grupo inimigo é vantajoso.
+
+═══════════════════════════════════════════════════════════════
+3. PERCEPÇÃO DO MUNDO
+═══════════════════════════════════════════════════════════════
+
+O que um NPC sente ao ver um Mestre do Gelo:
+  "O ar fica seco. A respiração forma nuvens. Não é frio comum
+  — é a calma antes do congelamento eterno."
+
+Missões adequadas:
+  - Patrulhar regiões congeladas (proteger caravanas)
+  - Apagar incêndios ou conter erupções
+  - Interrogar ou manter prisioneiros (câmaras frias)
+  - Purificar água ou criar rotas sobre gelo
+
+Facções associadas:
+  - A Ordem do Silêncio (monges que usam gelo para meditação)
+  - Os Guardiões do Crepúsculo Polar (defensores das fronteiras geladas)
+  - A Irmandade do Mar Profundo (aquáticos que dominam água e gelo)
+
+═══════════════════════════════════════════════════════════════
+4. ARQUÉTIPO DO MESTRE (Nível 20)
+═══════════════════════════════════════════════════════════════
+
+Como o mundo vê um Mestre do Gelo:
+  "Geleiras vivas. O chão estala onde pisa. Seu olhar é tão frio
+  quanto o vento do norte. Ele não luta — ele congela o campo de
+  batalha até que o tempo pare."
+
+Traço Inerente (Marcos 5/10/15/20):
+  Nv 5:  "Pele de Gelo" — resistência a gelo +15%, Chance de congelar
+         atacantes corpo a corpo (10% por 1s).
+  Nv 10: "Passo Silencioso" — move-se sobre água, criaturas aquáticas
+         não te atacam primeiro.
+  Nv 15: "Coração Glacial" — lentidão aplicada por suas habilidades
+         é 20% mais efetiva.
+  Nv 20: "Avatar Glacial" — transformação visual, habilidades de gelo
+         têm chance de congelamento crítico (25%, 2s).
+
+═══════════════════════════════════════════════════════════════
+5. IDENTIDADE VISUAL
+═══════════════════════════════════════════════════════════════
+
+Efeito de área (AoE): CONST_ME_ICEAREA (azul cristalino)
+Efeito single-target: CONST_ME_ICEHIT (estilhaços)
+Efeito de condição (congelamento): CONST_ME_CRYSTAL (cristais no alvo)
+Campo persistente: CONST_ME_ICE (chão congelado)
+Projétil: CONST_ANI_ICE (seta de gelo)
+
+═══════════════════════════════════════════════════════════════
+6. PACOTES TEMÁTICOS (Habilidades)
+═══════════════════════════════════════════════════════════════
+
+A. PROJÉTEIS E EXPLOSÕES GÉLIDAS (gatilho, dano direto)
+   - Estalactite: projétil perfurante de gelo
+   - Explosão Glacial: AoE ao redor com congelamento
+   - Lança de Gelo: single-target perfurante
+   - Chuva de Granizo: bombardeio AoE
+   - Fragmentos: multi-hit em cone
+
+B. CONTROLE E CONGELAMENTO (CC, debuffs)
+   - Prisão de Diamante: imobiliza alvo
+   - Campo de Lentidão: área que reduz velocidade
+   - Corrente de Gelo: corrente que prende e puxa
+   - Névoa Congelante: cegueira + lentidão
+
+C. CAMPOS E BARREIRAS (toggle, sustentado)
+   - Aura Glacial: toggle que congela ao redor
+   - Muralha de Gelo: barreira que bloqueia passagem
+   - Chão Escorregadio: campo que derruba inimigos
+   - Escudo de Gelo: aura defensiva
+
+D. DEFESA E SOBREVIVÊNCIA (buffs, curas)
+   - Armadura Glacial: buff de defesa
+   - Passo Aquático: mobilidade sobre água/gelo
+   - Regeneração Glacial: cura ao longo do tempo
+   - Forma Líquida: redução de dano + imune a fogo
+
+E. SUPREMAS E SINÉRGICAS (condicionais, combos)
+   - Nevasca: tempestade de gelo massiva
+   - Julgamento Glacial: finisher contra alvos congelados
+   - Sifão de Gelo: rouba vida de alvos lentos
+   - Zero Absoluto: ultimate de congelamento total
+
+═══════════════════════════════════════════════════════════════
+7. RELAÇÕES DE SINERGIA
+═══════════════════════════════════════════════════════════════
+
+Com Fogo (23):      Vapor — ataque cegante, redução de visão do inimigo
+Com Terra (25):     Lodo — lentidão + veneno combinados
+Com Energia (26):   Raio Glacial — paralisia + dano elétrico
+Com Combate (1):    Golpe Glacial — armas congelam ao acertar
+Com Escudo (15):    Barreira Glacial — escudo ganha propriedades de gelo
+
+═══════════════════════════════════════════════════════════════
+8. NOTAS DE IMPLEMENTAÇÃO
+═══════════════════════════════════════════════════════════════
+
+- Prioridade: Estalactite (gatilho, identidade do domínio)
+- IDs sugeridos: 24001-24030 (range GELO)
+- Gelo NÃO causa dano em área massivo como Fogo (seria invasão de nicho)
+- Gelo usa COMBAT_ICEDAMAGE como elemento padrão
+- Congelamento é CC: imobiliza por 1-3s, quebra com dano
+- Lentidão é o debuff primário do gelo (30-60% redução de velocidade)

@@ -1,0 +1,207 @@
+╔══════════════════════════════════════════════════════════════╗
+║        SISTEMA DE HABILIDADES CONTEXTUAIS — ARQUITETURA      ║
+║              Projeto MCR — SPA — v1.0 (24/06/2026)           ║
+╚══════════════════════════════════════════════════════════════╝
+
+1. FILOSOFIA
+═════════════
+O SPA se molda ao jogador, nunca o contrário.
+O jogador não escolhe caminhos — o sistema reflete o que ele faz.
+
+Cada habilidade é um organismo vivo que reage ao estado completo
+do jogador no momento da execução.
+
+2. VISÃO GERAL DO FLUXO
+════════════════════════
+                    ┌──────────────────────┐
+                    │   HABILIDADE BASE     │
+                    │  (efeitoConfig原始)    │
+                    └──────────┬───────────┘
+                               │
+                               ▼
+                    ┌──────────────────────┐
+                    │  1. POSTURA          │
+                    │  Ímpeto / Equilíbrio │
+                    │  / Guarda            │
+                    └──────────┬───────────┘
+                               │
+                               ▼
+                    ┌──────────────────────┐
+                    │  2. NÍVEL            │
+                    │  Marcos 5/10/15/20   │
+                    │  (cumulativo)        │
+                    └──────────┬───────────┘
+                               │
+                               ▼
+                    ┌──────────────────────┐
+                    │  3. SINERGIAS        │
+                    │  Outros domínios     │
+                    │  (requer nívelMin)   │
+                    └──────────┬───────────┘
+                               │
+                               ▼
+                    ┌──────────────────────┐
+                    │  4. ESTADOS          │
+                    │  Vínculo / Lampejo   │
+                    └──────────┬───────────┘
+                               │
+                               ▼
+                    ┌──────────────────────┐
+                    │  5. CONDIÇÕES        │
+                    │  Cercado / vida baixa│
+                    │  / full HP / solo    │
+                    └──────────┬───────────┘
+                               │
+                               ▼
+                    ┌──────────────────────┐
+                    │  efeitoConfig FINAL   │
+                    │  → MOTOR.executar()  │
+                    └──────────────────────┘
+
+3. ARQUIVOS ENVOLVIDOS
+══════════════════════
+ARQUIVO                    STATUS      FUNÇÃO
+───────                    ──────      ──────
+contexto.lua               🆕 NOVO    Resolvedor Contextual (5 camadas)
+executor.lua               🔧 MODIF.  Agora chama CONTEXTO.resolver()
+motor_habilidades.lua      ✅ INALT.   Motor puro, não precisa saber de contexto
+postura.lua                ✅ INALT.   Gerencia as 3 posturas
+sintonia.lua               ✅ INALT.   Gerencia Foco/Vínculo/Lampejo
+constantes.lua             ✅ INALT.   IDs e tabelas de domínio
+
+4. ESTRUTURA DA HABILIDADE (Novo Formato)
+═══════════════════════════════════════════
+HABILIDADES[ID] = {
+    nome = "Nome da Habilidade",
+    tipo = "gatilho",           -- gatilho | passiva | toggle | transformacao
+    dominio = {ID_PRINCIPAL},   -- [domId] ou [domId1, domId2]
+    cooldown = 6,               -- segundos
+    
+    -- Comportamento BASE (sempre executado se nenhuma variação existir)
+    efeitoConfig = {
+        tipo = "area_target",
+        raio = 2,
+        dano = 1.0,
+        elemento = COMBAT_FIREDAMAGE,
+    },
+    
+    ── CAMADA 1: POSTURA ──────────────────────────────────
+    postura = {
+        [1] = { -- ÍMPETO
+            descricao = "Versão agressiva: mais dano, mais custo",
+            efeitoConfig = { raio = 3, dano = 1.3, manaCostMult = 1.3 },
+        },
+        [2] = { -- EQUILÍBRIO (opcional, usa o base se não definido)
+            efeitoConfig = { ... },
+        },
+        [3] = { -- GUARDA
+            descricao = "Versão defensiva: protetiva, dano reduzido",
+            efeitoConfig = { raio = 1.5, dano = 0.6, condicaoExtra = "lentidao" },
+        },
+    },
+    
+    ── CAMADA 2: NÍVEL (marcos, cumulativo) ───────────────
+    niveis = {
+        [5] = {
+            { mod = "efeitoConfig", efeitoConfig = { dano = dano * 1.1 } },
+            { efeito = "adicional", type = "trail", duracao = 2.0 },
+        },
+        [10] = {
+            { mod = "efeitoConfig", efeitoConfig = { raio = raio + 1 } },
+        },
+        [15] = { { mod = "efeitoConfig", efeitoConfig = { onHit = funcaoExtra } } },
+        [20] = { { mod = "efeitoConfig", efeitoConfig = { dano = dano * 1.5 } } },
+    },
+    
+    ── CAMADA 3: SINERGIAS ────────────────────────────────
+    sinergias = {
+        [24] = { -- GELO: nível mínimo 1
+            descricao = "Vapor Escaldante: chance de cegueira",
+            efeitoConfig = { onHit = funcaoCegueira },
+        },
+        [25] = { -- TERRA: nível mínimo 5
+            nivelMin = 5,
+            descricao = "Magma: dano ao longo do tempo",
+            efeitoConfig = { onHit = funcaoDOT },
+        },
+    },
+    
+    ── CAMADA 4: ESTADOS DE ALMA ──────────────────────────
+    estados = {
+        vinculo = {
+            efeitoConfig = { dano = 1.5, elemento = COMBAT_HOLYDAMAGE },
+        },
+        lampejo = {
+            efeitoConfig = { dano = 2.0, damageType = "absolute", manaCost = 0 },
+        },
+    },
+    
+    ── CAMADA 5: CONDIÇÕES SITUACIONAIS ───────────────────
+    condicoes = {
+        cercado = {
+            efeitoConfig = { tipo = "explosion_ring", raio = 5, dano = 1.2 },
+        },
+        vidaBaixa = {
+            efeitoConfig = { lifesteal = 0.4, dano = 1.2 },
+        },
+    },
+}
+
+5. REGRAS DE RESOLUÇÃO
+═══════════════════════
+1. A ordem SEMPRE é: postura → nível → sinergias → estados → condições
+2. Se uma camada não tiver entrada para o estado atual, ela é pulada
+3. Níveis são CUMULATIVOS: todas as melhorias até o nível atual se aplicam
+4. Sinergias são ADITIVAS: múltiplas sinergias podem estar ativas
+5. Estados SUBSTITUEM ou ACRESCENTAM parâmetros (não resetam)
+6. Condições seguem PRIORIDADE: cercado > vidaBaixa > fullHp > singleTarget
+7. Apenas UMA condição é aplicada (a de maior prioridade que estiver ativa)
+8. deepMerge() faz merge recursivo: tabelas aninhadas são mescladas, não substituídas
+
+6. COMPORTAMENTO FALLBACK
+══════════════════════════
+Se a habilidade não tiver configuração para uma camada específica,
+ela simplesmente usa o efeitoConfig base. EXEMPLO:
+
+- Habilidade SEM bloco postura → usa efeitoConfig base em todas as posturas
+- Habilidade SEM bloco niveis → não ganha melhorias automáticas
+- Habilidade SEM bloco sinergias → não reage a outros domínios
+- Habilidade SEM bloco estados → comportamento normal em Vínculo/Lampejo
+- Habilidade SEM bloco condicoes → nunca se adapta ao ambiente
+
+Isso significa que habilidades existentes (formato antigo) continuam
+funcionando PERFEITAMENTE — só não terão as variações contextuais.
+
+7. MIGRAÇÃO DE HABILIDADES EXISTENTES
+══════════════════════════════════════
+Habilidades no formato antigo continuam funcionando.
+Para adicionar variações contextuais, basta adicionar os blocos
+postura, niveis, sinergias, estados e/ou condicoes à definição.
+
+Nenhuma habilidade existente precisa ser reescrita.
+
+8. IDENTIFICAÇÃO DE CONFIGURAÇÃO RESOLVIDA
+═══════════════════════════════════════════
+O efeitoConfig final pode conter metadados de depuração:
+- config._posturaAtiva    → 1, 2 ou 3
+- config._posturaDesc     → descrição textual
+- config._estadoAlma      → "normal", "vinculo", "lampejo"
+- config._condicaoAtiva   → "cercado", "vidaBaixa", etc.
+- config._sinergiasAtivas → tabela com {dominioId, descricao, nivel}
+- config._adicionais      → efeitos adicionais (trail, etc.)
+
+Estes campos são ignorados pelo motor (não afetam a execução),
+mas podem ser usados para logs, debug e narrativa.
+
+9. DIAGRAMA DE DEPENDÊNCIAS
+════════════════════════════
+contexto.lua depende de:
+  → getNivelEfetivo()    (progressao.lua)
+  → getCreaturesInArea() (util_criaturas.lua)
+  → player:getFightMode()
+  → player:getDominioState()
+
+executor.lua depende de:
+  → CONTEXTO.resolver()  (contexto.lua) — NOVO
+  → MOTOR.executar()      (motor_habilidades.lua)
+  → demais dependências existentes

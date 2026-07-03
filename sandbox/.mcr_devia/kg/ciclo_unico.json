@@ -1,0 +1,76 @@
+{
+  "ctx": "ciclo_unico",
+  "licoes": [
+    {
+      "erro": "ciclo:MCR.py",
+      "causa": "conceito: ciclo:MCR.py",
+      "solucao": "Tipo: binario_estruturado, Entropia: 1.49, Bytes: 2000. Estados: 82. Origem: E:\\Projeto MCR\\scripts\\mcr_devia\\modulos\\MCR.py.",
+      "ctx": "ciclo_unico",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782926050.066617,
+      "id": "L1384",
+      "inactive": true
+    },
+    {
+      "erro": "ciclo:MCR.py",
+      "causa": "conceito: ciclo:MCR.py",
+      "solucao": "Tipo: binario_estruturado, Entropia: 1.49, Bytes: 2000. Estados: 82. Origem: E:\\Projeto MCR\\scripts\\mcr_devia\\modulos\\MCR.py.",
+      "ctx": "ciclo_unico",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782926368.575522,
+      "id": "L1405",
+      "inactive": true
+    },
+    {
+      "erro": "ciclo:MCR.py",
+      "causa": "conceito: ciclo:MCR.py",
+      "solucao": "Tipo: binario_estruturado, Entropia: 1.49, Bytes: 2000. Estados: 82. Origem: E:\\Projeto MCR\\scripts\\mcr_devia\\modulos\\MCR.py.",
+      "ctx": "ciclo_unico",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782927926.682656,
+      "id": "L1420",
+      "inactive": true
+    },
+    {
+      "erro": "ciclo:MCR.py",
+      "causa": "conceito: ciclo:MCR.py",
+      "solucao": "Tipo: binario_estruturado, Entropia: 1.49, Bytes: 2000. Estados: 82. Origem: E:\\Projeto MCR\\scripts\\mcr_devia\\modulos\\MCR.py.",
+      "ctx": "ciclo_unico",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782928183.756423,
+      "id": "L1435",
+      "inactive": true
+    },
+    {
+      "erro": "ciclo:MCR.py",
+      "causa": "conceito: ciclo:MCR.py",
+      "solucao": "Tipo: binario_estruturado, Entropia: 1.49, Bytes: 2000. Estados: 82. Origem: E:\\Projeto MCR\\scripts\\mcr_devia\\modulos\\MCR.py.",
+      "ctx": "ciclo_unico",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782928650.5871737,
+      "id": "L1449",
+      "inactive": true
+    },
+    {
+      "erro": "ciclo:MCR.py",
+      "causa": "conceito: ciclo:MCR.py",
+      "solucao": "Tipo: binario_estruturado, Entropia: 1.49, Bytes: 2000. Estados: 82. Origem: E:\\Projeto MCR\\scripts\\mcr_devia\\modulos\\MCR.py.",
+      "ctx": "ciclo_unico",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782929044.6635735,
+      "id": "L1470"
+    }
+  ]
+}

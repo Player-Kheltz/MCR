@@ -1,0 +1,378 @@
+{
+  "total_calls": 437,
+  "erros": 3,
+  "cache_hits": 0,
+  "cache_misses": 0,
+  "tempo_medio": 41.5,
+  "templates_usados": {
+    "lore": 19,
+    "perguntar": 260,
+    "analisar_codigo": 37,
+    "conceito": 17,
+    "planejamento_arquitetura": 26,
+    "diagnostico_problema": 10,
+    "explicacao_conceitual": 7,
+    "analisar_bug": 3,
+    "mega_teste": 20,
+    "analisar_texto": 3,
+    "conselho_critico": 11,
+    "conselho_revisor_codigo": 1,
+    "conselho_arquiteto": 2,
+    "conselho_analista": 11,
+    "analise_melhoria": 3,
+    "conselho_estrategista": 6,
+    "conselho_contador_historias": 1
+  },
+  "ultimas": [
+    {
+      "ts": 1782760886.8034515,
+      "intencao": "perguntar",
+      "tempo": 34.3,
+      "sucesso": true,
+      "tam": 124
+    },
+    {
+      "ts": 1782760917.3917482,
+      "intencao": "perguntar",
+      "tempo": 30.6,
+      "sucesso": true,
+      "tam": 1201
+    },
+    {
+      "ts": 1782760962.398225,
+      "intencao": "perguntar",
+      "tempo": 45.0,
+      "sucesso": true,
+      "tam": 1774
+    },
+    {
+      "ts": 1782760993.5980155,
+      "intencao": "perguntar",
+      "tempo": 31.2,
+      "sucesso": true,
+      "tam": 942
+    },
+    {
+      "ts": 1782761027.7243142,
+      "intencao": "perguntar",
+      "tempo": 34.1,
+      "sucesso": true,
+      "tam": 1552
+    },
+    {
+      "ts": 1782761074.553906,
+      "intencao": "perguntar",
+      "tempo": 46.8,
+      "sucesso": true,
+      "tam": 2616
+    },
+    {
+      "ts": 1782761082.9878411,
+      "intencao": "perguntar",
+      "tempo": 55.2,
+      "sucesso": true,
+      "tam": 1431
+    },
+    {
+      "ts": 1782761086.9193196,
+      "intencao": "perguntar",
+      "tempo": 59.2,
+      "sucesso": true,
+      "tam": 467
+    },
+    {
+      "ts": 1782761129.3763747,
+      "intencao": "perguntar",
+      "tempo": 32.6,
+      "sucesso": true,
+      "tam": 410
+    },
+    {
+      "ts": 1782761170.0234208,
+      "intencao": "perguntar",
+      "tempo": 40.6,
+      "sucesso": true,
+      "tam": 2917
+    },
+    {
+      "ts": 1782761173.223136,
+      "intencao": "perguntar",
+      "tempo": 43.8,
+      "sucesso": true,
+      "tam": 386
+    },
+    {
+      "ts": 1782761177.5861242,
+      "intencao": "perguntar",
+      "tempo": 48.2,
+      "sucesso": true,
+      "tam": 296
+    },
+    {
+      "ts": 1782761226.145599,
+      "intencao": "perguntar",
+      "tempo": 34.4,
+      "sucesso": true,
+      "tam": 565
+    },
+    {
+      "ts": 1782761262.0952523,
+      "intencao": "perguntar",
+      "tempo": 35.9,
+      "sucesso": true,
+      "tam": 742
+    },
+    {
+      "ts": 1782761291.5508196,
+      "intencao": "perguntar",
+      "tempo": 29.4,
+      "sucesso": true,
+      "tam": 394
+    },
+    {
+      "ts": 1782761322.113118,
+      "intencao": "perguntar",
+      "tempo": 30.6,
+      "sucesso": true,
+      "tam": 988
+    },
+    {
+      "ts": 1782761378.3205173,
+      "intencao": "perguntar",
+      "tempo": 36.7,
+      "sucesso": true,
+      "tam": 362
+    },
+    {
+      "ts": 1782761412.83849,
+      "intencao": "perguntar",
+      "tempo": 34.5,
+      "sucesso": true,
+      "tam": 1485
+    },
+    {
+      "ts": 1782761443.7451591,
+      "intencao": "perguntar",
+      "tempo": 30.9,
+      "sucesso": true,
+      "tam": 465
+    },
+    {
+      "ts": 1782761478.057922,
+      "intencao": "perguntar",
+      "tempo": 34.3,
+      "sucesso": true,
+      "tam": 422
+    },
+    {
+      "ts": 1782761513.0731676,
+      "intencao": "perguntar",
+      "tempo": 35.0,
+      "sucesso": true,
+      "tam": 250
+    },
+    {
+      "ts": 1782761559.4547172,
+      "intencao": "perguntar",
+      "tempo": 46.4,
+      "sucesso": true,
+      "tam": 2904
+    },
+    {
+      "ts": 1782761588.5446217,
+      "intencao": "perguntar",
+      "tempo": 29.1,
+      "sucesso": true,
+      "tam": 629
+    },
+    {
+      "ts": 1782762353.3620791,
+      "intencao": "perguntar",
+      "tempo": 44.3,
+      "sucesso": true,
+      "tam": 3385
+    },
+    {
+      "ts": 1782763422.6400065,
+      "intencao": "perguntar",
+      "tempo": 42.6,
+      "sucesso": true,
+      "tam": 1482
+    },
+    {
+      "ts": 1782764112.83686,
+      "intencao": "perguntar",
+      "tempo": 66.4,
+      "sucesso": true,
+      "tam": 3092
+    },
+    {
+      "ts": 1782764636.1439917,
+      "intencao": "perguntar",
+      "tempo": 117.7,
+      "sucesso": true,
+      "tam": 3141
+    },
+    {
+      "ts": 1782764666.5149393,
+      "intencao": "perguntar",
+      "tempo": 148.1,
+      "sucesso": true,
+      "tam": 2858
+    },
+    {
+      "ts": 1782764696.1380277,
+      "intencao": "perguntar",
+      "tempo": 177.7,
+      "sucesso": true,
+      "tam": 2694
+    },
+    {
+      "ts": 1782764745.1307495,
+      "intencao": "perguntar",
+      "tempo": 226.7,
+      "sucesso": false,
+      "tam": 35
+    },
+    {
+      "ts": 1782764750.2797823,
+      "intencao": "perguntar",
+      "tempo": 231.7,
+      "sucesso": false,
+      "tam": 35
+    },
+    {
+      "ts": 1782765553.1902554,
+      "intencao": "perguntar",
+      "tempo": 55.3,
+      "sucesso": true,
+      "tam": 940
+    },
+    {
+      "ts": 1782771384.2476969,
+      "intencao": "conselho_analista",
+      "tempo": 33.6,
+      "sucesso": true,
+      "tam": 1683
+    },
+    {
+      "ts": 1782771396.0723982,
+      "intencao": "conselho_critico",
+      "tempo": 45.5,
+      "sucesso": true,
+      "tam": 304
+    },
+    {
+      "ts": 1782780266.045768,
+      "intencao": "conselho_analista",
+      "tempo": 31.1,
+      "sucesso": true,
+      "tam": 406
+    },
+    {
+      "ts": 1782780275.9713378,
+      "intencao": "conselho_critico",
+      "tempo": 41.0,
+      "sucesso": true,
+      "tam": 305
+    },
+    {
+      "ts": 1782780278.7620635,
+      "intencao": "conselho_arquiteto",
+      "tempo": 43.8,
+      "sucesso": true,
+      "tam": 455
+    },
+    {
+      "ts": 1782780310.2900765,
+      "intencao": "conselho_contador_historias",
+      "tempo": 75.3,
+      "sucesso": true,
+      "tam": 2232
+    },
+    {
+      "ts": 1782780335.2631,
+      "intencao": "conselho_estrategista",
+      "tempo": 100.3,
+      "sucesso": true,
+      "tam": 459
+    },
+    {
+      "ts": 1782791855.144171,
+      "intencao": "conselho_analista",
+      "tempo": 20.4,
+      "sucesso": true,
+      "tam": 318
+    },
+    {
+      "ts": 1782791865.7009542,
+      "intencao": "conselho_critico",
+      "tempo": 30.9,
+      "sucesso": true,
+      "tam": 369
+    },
+    {
+      "ts": 1782791885.9157102,
+      "intencao": "conselho_estrategista",
+      "tempo": 51.2,
+      "sucesso": true,
+      "tam": 596
+    },
+    {
+      "ts": 1782792028.1676183,
+      "intencao": "conselho_analista",
+      "tempo": 15.1,
+      "sucesso": true,
+      "tam": 271
+    },
+    {
+      "ts": 1782792038.7478838,
+      "intencao": "conselho_critico",
+      "tempo": 25.7,
+      "sucesso": true,
+      "tam": 313
+    },
+    {
+      "ts": 1782792197.360775,
+      "intencao": "conselho_analista",
+      "tempo": 22.8,
+      "sucesso": true,
+      "tam": 1161
+    },
+    {
+      "ts": 1782792207.653479,
+      "intencao": "conselho_critico",
+      "tempo": 33.1,
+      "sucesso": true,
+      "tam": 447
+    },
+    {
+      "ts": 1782792227.0230255,
+      "intencao": "conselho_estrategista",
+      "tempo": 52.4,
+      "sucesso": true,
+      "tam": 407
+    },
+    {
+      "ts": 1782839237.2761471,
+      "intencao": "conselho_analista",
+      "tempo": 16.2,
+      "sucesso": true,
+      "tam": 493
+    },
+    {
+      "ts": 1782839246.0069194,
+      "intencao": "conselho_critico",
+      "tempo": 25.0,
+      "sucesso": true,
+      "tam": 321
+    },
+    {
+      "ts": 1782839267.522034,
+      "intencao": "conselho_estrategista",
+      "tempo": 46.5,
+      "sucesso": true,
+      "tam": 250
+    }
+  ]
+}

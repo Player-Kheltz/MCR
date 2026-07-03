@@ -1,0 +1,485 @@
+>> CATALOG tags=translation, localization, pt-br, encoding updated=2026-06-23
+PROJETO MCR – GUIA DE TRADUÇÃO E LOCALIZAÇÃO (PT‑BR)
+(Versão 6.1 – Actualização para o SPA v4.2, novos termos, sistema de cores v9.1 e estrutura Revscript consolidada)
+Arquivo: [10] MCR - Guia de Tradução e Localização (PT‑BR).txt
+
+🎯 OBJETIVO DESTE GUIA
+Este documento é a autoridade máxima sobre a correta aplicação do idioma Português do Brasil em TODAS as camadas do Projeto MCR. Ele define:
+
+Quais elementos DEVEM estar em PT‑BR.
+
+Quais elementos PODEM permanecer em inglês.
+
+A codificação correcta de cada tipo de arquivo (UTF‑8 com BOM, ISO‑8859‑1, UTF‑8 sem BOM).
+
+O protocolo de comunicação entre backend e frontend para evitar corrupção de acentos.
+
+O uso correcto do destaque no chat (apenas {chaves}) e a integração com o sistema de cores do SPA v4.2 (função c() e tabela COR v9.1).
+
+Regras gramaticais e de estilo para manter a qualidade do texto.
+
+A máscara de Alma para mensagens de "look" e outras interacções com personagens convidados.
+
+Uso do módulo pronouns.lua e da coluna players.pronoun para pronomes.
+
+Atualização dos error_codes e mapeamento para PT‑BR.
+
+Pipeline de tradução automática supervisionada para C++.
+
+Encoding: UTF‑8 em todo o código‑fonte (arquivos .cpp, .hpp, .lua, .xml). O compilador MSVC usa a flag `/utf-8` (configurada no .vcxproj) e as strings passam por `toLatin1()` antes de serem enviadas ao protocolo (implementado em `sendCancelMessage` e `sendTextMessage`). Escapes octais continuam a funcionar como alternativa mas não são obrigatórios.
+
+Protecção obrigatória de bindings Lua e ficheiros de cabeçalho (.h/.hpp).
+
+Ajuste do comando look para respeitar o pronome do personagem.
+
+Reforço da máscara de Alma em mensagens do servidor.
+
+Conversão do nome do personagem recebido via JSON de login (HTTP) de UTF‑8 para Latin‑1 no cliente.
+
+⚠️ ACTUALIZADO (SPA v4.2): Terminologia completa do Sistema de Progressão do Aventureiro (Domínios, Lampejo, Vínculo, Maestria, Posturas, Ímpeto, Equilíbrio, Guarda, Afinidade, Sinergia, Sinergia Elemental, Arremesso de Escudo, Chi, Virtudes, Serenidade, Despertar) e sua aplicação narrativa e técnica. As cores da tabela COR v9.1 são agora parte da linguagem visual.
+
+⚠️ ACTUALIZADO (SPA v4.2): Estrutura Revscript — os scripts Lua do servidor são organizados em subpastas dentro de data-canary/scripts/MCR/SPA/ (core/, habilidades/, comandos/). A codificação deve ser UTF‑8 sem BOM (a antiga regra ISO‑8859‑1 foi substituída). O `toLatin1()` no servidor converte para Latin‑1 antes do protocolo.
+
+⚠️ ACTUALIZADO (SPA v4.2): As funções de formatação colorida (c(), enviarMsgColorida) e a tabela COR (v9.1) fazem parte da localização e devem ser usadas de forma consistente. Novas constantes de cor para missões (MISSAO_*) e NPCs (NPC_*) foram adicionadas.
+
+Este guia NÃO é opcional. Toda modificação no projecto DEVE passar por suas regras.
+
+🚧 ESTADO ATUAL DA IMPLEMENTAÇÃO
+
+A infraestrutura de tradução e localização está funcional e consolidada:
+
+A pipeline de tradução automática (scripts Python) está completa e disponível.
+
+O código C++ do servidor e cliente já foi traduzido para PT‑BR utilizando escapes octais Latin‑1.
+
+O padrão error_code no Login Server e o mapeamento no cliente estão implementados e funcionam correctamente.
+
+As regras de codificação de arquivos foram actualizadas: UTF‑8 sem BOM para scripts Lua, UTF‑8 para C++ (com `/utf-8` no MSVC), UTF‑8 para XML. A antiga regra ISO‑8859‑1 foi substituída.
+
+O módulo pronouns.lua está em data-canary/scripts/MCR/Geral/ e é carregado automaticamente pelo Revscript; não se usa dofile.
+
+A máscara de Alma e a conversão de nome (UTF‑8 → Latin‑1) estão aplicadas.
+
+O sistema de cores do SPA v4.2 está em pleno funcionamento: a tabela COR (v9.1) e a função c() são globais e podem ser usadas em qualquer script de NPC, quest ou sistema.
+
+A coluna lastlogin existe na tabela players e pode ser referenciada sem problemas.
+
+As directrizes deste guia são imediatamente aplicáveis a qualquer criação ou modificação de texto no projecto.
+
+⚠️ REGRAS DE REVISÃO PARA O ASSISTENTE (TRADUÇÃO E LOCALIZAÇÃO)
+
+Ao gerar QUALQUER texto, código, comentário ou mensagem para o Projeto MCR, o assistente DEVE:
+
+Escrever em português do Brasil CORRECTO (ortografia, acentuação, pontuação, concordância nominal e verbal).
+
+Identificar a camada em que o texto será usado e aplicar a codificação correcta (ver secção 2 – Codificação por Tipo de Arquivo).
+
+Nunca usar traduções automáticas grosseiras. Preferir linguagem natural, coerente com a ambientação fantasiosa.
+
+Manter a consistência terminológica: usar os mesmos termos para os mesmos conceitos em todo o projecto (ex.: "Aventureiro" não "classe", "personagem" não "boneco").
+
+Respeitar a personalidade do NPC ao redigir diálogos (ver Guia de Narrativa).
+
+Na comunicação backend→frontend, JAMAIS enviar strings acentuadas em JSON. Usar o padrão error_code (ver secção 4).
+
+No chat do jogo, destacar palavras importantes SOMENTE com {chaves}. NÃO usar tags como {{#RRGGBB}} ou HTML. Para cores, utilizar a função c() do SPA, que gera o formato {Texto, #Cor} compatível com o cliente.
+
+Nunca usar "}?" junto; sempre "} ?" para evitar erro visual no cliente.
+
+Em todas as mensagens de sistema que mencionem o personagem convidado, aplicar a máscara de Alma (substituir "Guest_*" por "Alma").
+
+Em todas as mensagens dirigidas ao jogador, utilizar o pronome do personagem obtido via módulo pronouns.lua (Pronouns.getSubject, etc.). NÃO usar storage 100001. O módulo está em data-canary/scripts/MCR/Geral/ e é carregado automaticamente; NÃO use dofile para carregá-lo.
+
+Ao traduzir código C++ (servidor ou cliente), utilizar SEMPRE a pipeline automática supervisionada: ferramentas de tradução automática seguidas de revisão humana. Apenas strings de interface e comentários são traduzidos; nomes de variáveis, funções e bindings Lua permanecem em inglês.
+
+Nos ficheiros .cpp/.h, representar caracteres acentuados OBRIGATORIAMENTE através de escapes octais (\xyz) com os códigos da tabela Latin‑1 (ISO‑8859‑1). Isto evita problemas de BOM, compilador e encoding do sistema de ficheiros. Exemplo: "Nível" → "N\355vel"; "Vocação" → "Voca\347\343o". NÃO use UTF‑8 diretamente.
+
+Jamais alterar assinaturas de funções expostas ao Lua (registerMethod, registerClass). A tradução de strings internas não pode quebrar os nomes dos métodos visíveis nos scripts.
+
+Proteger ficheiros de cabeçalho (.h/.hpp): comentários podem ser traduzidos, mas macros, nomes de classes, enums e inclusões permanecem intactos.
+
+⚠️ ACTUALIZADO (SPA v4.2): Os termos do Sistema de Progressão (Lampejo, Vínculo, Maestria, Ímpeto, Equilíbrio, Guarda, Arremesso de Escudo, Chi, Virtude, Serenidade, Sinergia Elemental) devem ser usados exclusivamente na documentação e em mensagens narrativas quando estritamente necessário. No código, usar os identificadores em inglês (ex.: "lampejo", "vinculo", "maestria", "impeto", "equilibrio", "guarda", "chi", "virtue") como strings internas, sem acentos, para evitar problemas de encoding em comparações. As cores de cada domínio e estado estão definidas na tabela COR v9.1 e devem ser respeitadas.
+
+⚠️ ACTUALIZADO (SPA v4.2): Scripts Lua do servidor que exibem mensagens ao jogador devem ser salvos como ISO‑8859‑1, independentemente da subpasta onde residem (MCR/SPA/core/, MCR/SPA/habilidades/, MCR/SPA/comandos/, MCR/Geral/, etc.). O Revscript não altera a codificação esperada pelo cliente. A função c() e a tabela COR (v9.1) são carregadas globalmente e podem ser usadas sem dofile.
+
+📋 1. ESCOPO DE APLICAÇÃO DO PT‑BR
+
+Devem estar OBRIGATORIAMENTE em português:
+
+Diálogos de NPC (npc:say, sendTextMessage para o jogador).
+
+Descrições de itens (name, description).
+
+Mensagens de sistema (broadcasts, MOTD, mensagens de login/logout).
+
+Textos de janelas modais (títulos, botões, corpo do texto).
+
+Labels em arquivos .otui (interface do cliente).
+
+Notificações toast e HUD de missões.
+
+Comentários em TODOS os arquivos de código (C++, Lua servidor, Lua cliente, Go).
+
+Logs do servidor e do Login Server (mensagens de inicialização, erros).
+
+Nomes de NPCs, monstros, locais e itens no mapa/XML.
+
+Documentação do projecto (guias, DevLog, instruções).
+
+Mensagens de "look" (examinar) para criaturas e itens.
+
+As mensagens narrativas do SPA (feedback de Lampejo, Vínculo, Maestria, despertar de Domínio, sinergia elemental, etc.).
+
+Podem permanecer em INGLÊS:
+
+Nomes de variáveis, funções, classes, enums, namespaces (ex.: getPlayer, onLogin).
+
+Palavras‑chave das linguagens (if, return, function, end, class, package).
+
+Chaves de configuração em tabelas (ex.: modalWindows = true).
+
+Nomes de campos em JSON (ex.: "account", "password", "error_code").
+
+Comandos SQL e nomes de tabelas/colunas (ex.: SELECT * FROM accounts).
+
+Endpoints de API (/register, /login).
+
+Os identificadores internos dos Estados de Alma ("lampejo", "vinculo", "maestria") quando usados em comparações no código.
+
+As constantes da tabela COR (ex.: COR.SISTEMA_INFO, COR.DOM_COMBATE_LAMINAS, COR.MISSAO_MATAR) que são identificadores em inglês, enquanto as strings de texto associadas são em português.
+
+📝 2. CODIFICAÇÃO POR TIPO DE ARQUIVO (REVISADA)
+
+Esta é a secção MAIS CRÍTICA deste guia. A codificação errada é a causa número 1 de bugs visuais (acentos corrompidos) no Projeto MCR.
+
+Tipo de Arquivo | Codificação | BOM? | Exemplo
+Scripts Lua (servidor e cliente) | UTF‑8 | Não | mount_summon.lua, constantes.lua
+Código C++ (servidor e cliente) | UTF‑8 (`/utf-8` no MSVC) | Não | canary_server.cpp, player.cpp
+Código Go (Login Server) | UTF‑8 | Não | register.go, login.go
+Arquivos .otui (interface) | UTF‑8 | Não | register_window.otui
+Arquivos .xml (spawn, itens) | UTF‑8 real | Não | MCR-npc.xml, items.xml
+Arquivos de configuração (.lua, .env) | UTF‑8 | Não | config.lua, .env
+Documentação (.txt) | UTF‑8 | Não | MCR - Guia de *.txt
+
+Detalhamento:
+
+⚠️ CÓDIGO C++ (SERVIDOR E CLIENTE):
+Codificação UTF‑8 com a flag `/utf-8` no compilador MSVC (configurada nas 3 configurações do .vcxproj: Debug, Release, ReleaseDebug). Strings com acentos podem ser escritas como UTF‑8 literal (ex.: "Você", "Configuração"). A função `toLatin1()` (em encoding.hpp) converte UTF‑8 → Latin‑1 antes do envio ao protocolo, e é chamada automaticamente em `sendCancelMessage` e `sendTextMessage`. Escapes octais continuam a funcionar como alternativa segura, mas não são obrigatórios.
+
+⚠️ PROTEÇÃO DE BINDINGS LUA:
+Durante a tradução, foram preservados todos os nomes de funções e classes registados no Lua (ex.: Player::getPronoun, Game::logout). Nomes de parâmetros em C++ podem ser traduzidos nos comentários, mas nunca nos registerMethod ou registerClass.
+
+⚠️ UTF‑8 (SCRIPTS LUA – SERVIDOR E CLIENTE):
+Scripts Lua devem ser salvos como UTF‑8 sem BOM. O `toLatin1()` nas funções do servidor (`sendCancelMessage`, `sendTextMessage`) converte automaticamente para Latin‑1 antes de enviar ao protocolo. No cliente OTClient, o InputMessage::getString() retorna bytes crus, e a renderização usa a codificação configurada (Latin‑1 por padrão). Caracteres como 'ç', 'ã', 'é' (UTF‑8: 2 bytes) são convertidos para Latin‑1 (1 byte) pelo servidor antes da transmissão. A antiga regra ISO‑8859‑1 está obsoleta.
+
+⚠️ IMPACTO NO MAP EDITOR (RME)
+Os scripts de monstros e NPCs salvos como ISO‑8859‑1 causam um problema adicional no Remere's Map Editor (RME). O RME carrega esses ficheiros como bytes e depois assume que são UTF‑8 para criar as strings internas (wxString). Isto faz com que nomes com acentos apareçam em branco nas paletas de monstros e NPCs. Para resolver este problema, o código‑fonte do RME foi modificado para: converter o conteúdo de ISO‑8859‑1 para UTF‑8 ao ler os ficheiros .lua (função latin1_to_utf8 em encoding_utils.h). Estender o parser Lua com as funções resolveLocalVar e parseNpcConfig para reconhecer padrões comuns nos scripts do Projeto MCR. Consulte o Guia [2] para detalhes das modificações e compilação do RME.
+
+⚠️ UTF‑8 COM BOM (C++, GO):
+O compilador C++ e o compilador Go reconhecem o BOM e tratam o arquivo como UTF‑8. Isso garante acentuação correta em logs e mensagens internas.
+
+⚠️ UTF‑8 SEM BOM (OTUI, XML):
+Arquivos .otui e .xml são processados por parsers que podem rejeitar o BOM. Salvar sem BOM, mas manter como UTF‑8.
+
+🌐 3. COMUNICAÇÃO BACKEND → FRONTEND (EVITAR CORRUPÇÃO)
+
+Devido à incompatibilidade entre o backend Go (UTF‑8) e a interpretação do cliente Lua (ISO‑8859‑1 para respostas HTTP), strings acentuadas NÃO devem ser enviadas directamente no JSON de resposta do Login Server.
+
+PROTOCOLO OBRIGATÓRIO (ERROR_CODE):
+
+O backend (Login Server) retorna um código de erro padronizado em INGLÊS, SEM acentos, no campo "error_code". Exemplo: "account_name_taken", "password_too_weak", "invalid_credentials".
+
+O cliente (Lua) possui uma TABELA DE MAPEAMENTO que traduz o error_code para a mensagem em PT‑BR (com acentos). Exemplo:
+
+lua
+local ERROR_MESSAGES = {
+    account_name_taken = "O nome de conta já está em uso.",
+    password_too_weak = "A senha deve ter 8+ caracteres com letras e números.",
+    invalid_credentials = "Nome de conta ou senha incorretos.",
+    registration_success = "Conta criada com sucesso!",
+    guest_creation_failed = "Falha ao criar conta convidada.",
+    alma_creation_failed = "Falha ao criar personagem convidado.",
+}
+Esta tabela EXISTE no script Lua do cliente (registro.lua, entergame.lua, etc.), que está salvo como ISO‑8859‑1. Portanto, as strings em PT‑BR exibidas ao jogador terão os acentos CORRECTOS. NOVOS error_codes devem ser adicionados tanto no backend quanto na tabela de mapeamento do cliente.
+
+🔄 4. NOME DO PERSONAGEM VINDO DO JSON DE LOGIN (HTTP)
+
+O Login Server envia a lista de personagens e a resposta de autenticação em JSON com codificação UTF‑8 (padrão obrigatório do formato). No entanto, o OTClient interpreta strings Lua como ISO‑8859‑1 (Latin‑1) e o protocolo de jogo também utiliza Latin‑1. Para evitar que o nome do próprio jogador apareça corrompido na interface (ex.: JoÃ£o em vez de João), todo o nome de personagem recebido via HTTP deve ser convertido de UTF‑8 para Latin‑1 antes de ser armazenado ou utilizado na interface.
+
+A conversão é feita com a função utf8ToLatin1, que deve ser inserida no módulo entergame.lua (ou num módulo de utilidades carregado antes). O procedimento é:
+
+Adicionar a função utf8ToLatin1 ao ficheiro:
+
+lua
+-- Converte uma string UTF-8 para Latin‑1 (ISO 8859‑1)
+local function utf8ToLatin1(str)
+    local result = {}
+    local i = 1
+    while i <= #str do
+        local c = str:byte(i)
+        if c < 0x80 then
+            result[#result + 1] = string.char(c)
+            i = i + 1
+        elseif c >= 0xC2 and c <= 0xDF then -- sequência de 2 bytes
+            local c2 = str:byte(i + 1)
+            if c2 and c2 >= 0x80 and c2 <= 0xBF then
+                local codepoint = ((c - 0xC0) * 64) + (c2 - 0x80)
+                if codepoint <= 0xFF then
+                    result[#result + 1] = string.char(codepoint)
+                else
+                    result[#result + 1] = '?'
+                end
+                i = i + 2
+            else
+                result[#result + 1] = '?'
+                i = i + 1
+            end
+        else -- sequência inválida ou > 2 bytes
+            result[#result + 1] = '?'
+            i = i + 1
+        end
+    end
+    return table.concat(result)
+end
+Aplicar a conversão em dois pontos dentro do entergame.lua:
+
+Na função onCharacterList, após o loop que aplica a máscara de Alma e antes de entregar os personagens ao módulo de lista:
+
+lua
+for _, characterInfo in pairs(characters) do
+    characterInfo.name = utf8ToLatin1(characterInfo.name)
+end
+Na função doAutoLogin, imediatamente após a construção da tabela characters a partir da resposta HTTP e antes de procurar o personagem alvo:
+
+lua
+for _, char in ipairs(characters) do
+    char.name = utf8ToLatin1(char.name)
+end
+Garantir que o ficheiro entergame.lua está salvo como ISO‑8859‑1 (embora a função só contenha caracteres ASCII, o ficheiro em si pode conter outras strings acentuadas).
+
+Após esta conversão, o nome do personagem fica em Latin‑1, igual aos nomes que chegam via protocolo de jogo, e será exibido corretamente em toda a interface (chat, lista de personagens, etc.).
+
+🔑 5. DESTAQUE NO CHAT E SISTEMA DE CORES (v9.1)
+
+O OTClient suporta exclusivamente o destaque de palavras envolvidas por {chaves}. Esse realce é herdado do protocolo Tibia e não requer nenhuma modificação no cliente.
+
+Regras:
+
+Utilize {chaves} para destacar ações ({aceitar}, {entregar}), itens ({10 Poções de Vida}), locais ({Floresta Sombria}) e recompensas ({500 pontos de experiência}).
+
+Para cores, utilize EXCLUSIVAMENTE a função c() do SPA, definida em texto_colorido.lua v9.1 (MCR/Geral/). Exemplo: c("Texto", COR.SISTEMA_INFO). Isso gera a string "{Texto, #5DADE2}", que é interpretada corretamente pelo OTClient.
+
+NÃO utilize tags {{#RRGGBB}}, HTML, ou qualquer outra sintaxe – elas não produzem efeito visual ou corrompem a exibição.
+
+NUNCA use "}?" junto; sempre "} ?" para evitar corrupção visual no cliente.
+
+As cores devem ser usadas de forma consistente com as constantes da tabela COR v9.1:
+
+Contexto	Constante(s) COR	Exemplo
+Informação do sistema	SISTEMA_INFO, SISTEMA_NEUTRO	"Sua afinidade com Lâminas se aprofunda."
+Sucesso / cura	SUCESSO_CURA	"Você aprendeu Hemorragia!"
+Avisos de combo	COMBO_AVISO	"[Disparo Duplo] Duas flechas partem em uníssono!"
+Dano / inimigos	DANO_FISICO, INIMIGO_MONSTRO	"Centopeia"
+Domínios de combate	DOM_COMBATE_LAMINAS, DOM_COMBATE_IMPACTO, DOM_COMBATE_PRECISAO, DOM_COMBATE_ARTES_MARCIAIS, DOM_ESCUDO	Nome do domínio
+Domínios mágicos	DOM_MAGIA_FOGO, DOM_MAGIA_AGUA_GELO, DOM_MAGIA_TERRA, DOM_MAGIA_SAGRADO, DOM_MAGIA_RUNOLOGIA	Nome do domínio
+Posturas	POSTURA_IMPETO, POSTURA_EQUILIBRIO, POSTURA_GUARDA	"Ímpeto", "Equilíbrio", "Guarda"
+NPCs e interacções	NPC_OPCAO, NPC_COMANDO, NPC_ITEM, NPC_LOCAL, NPC_INTENCAO, NPC_RECUSA, NPC_ALERTA, NPC_NOME, NPC_EMOCAO, NPC_DIALOGO	Opções de diálogo
+Missões	MISSAO_MATAR, MISSAO_COLETAR, MISSAO_ENTREGAR, MISSAO_EXPLORAR, MISSAO_FALAR, MISSAO_ESCORTAR, MISSAO_CRAFT, MISSAO_TEMPO	Tipo de missão
+Raridades	RARIDADE_OURO, ITEM_RARO, ITEM_EPICO, ITEM_LENDARIO	Itens valiosos
+✍️ 6. ESTILO E QUALIDADE DO TEXTO
+
+Além da correcção gramatical, o texto do Projeto MCR deve:
+
+Ser NATURAL: evitar traduções literais do inglês ("você completou a quest" soa artificial; prefira "você concluiu a missão").
+
+Ser COERENTE com o universo: um NPC ancião fala de forma mais formal; um goblin mercador fala de forma mais tosca e coloquial.
+
+Evitar estrangeirismos desnecessários: "missão" em vez de "quest", "elo" em vez de "link", "guardião" em vez de "knight" (em contexto narrativo).
+
+Usar o padrão culto da língua, mas com flexibilidade para personagens caricatos (um bêbado pode falar errado; um dragão ancião pode usar arcaísmos).
+
+Manter consistência: se um termo foi traduzido de uma forma, usar a mesma tradução em todo o projecto.
+
+Lista de termos padronizados (actualizada para SPA v4.2):
+
+"Aventureiro" (não "classe", "vocação", "knight", "druid" – o termo vocação foi abolido do jogo; permanece apenas em contexto técnico residual)
+
+"personagem" (não "char", "boneco")
+
+"missão" (não "quest", embora "quest" possa aparecer em comentários de código)
+
+"servidor" (não "server")
+
+"conta" (não "account")
+
+"senha" (não "password")
+
+"Você vê" (não "You see")
+
+"Vida" (não "Health")
+
+"Mana" (não "Mana" – mantém‑se igual)
+
+"Posição" (não "Position")
+
+"Pronome" (para a identidade do personagem, armazenada em players.pronoun)
+
+"Sexo" (apenas para a escolha biológica do corpo do personagem)
+
+"escapar octal" – representação \ooo para caracteres Latin‑1.
+
+"pipeline de tradução" – processo automático + revisão.
+
+⚠️ TERMOS DO SPA (v4.2):
+
+"Lampejo" – primeiro nível de Estado de Alma.
+
+"Vínculo" – segundo nível de Estado de Alma.
+
+"Maestria" – terceiro nível de Estado de Alma (permanente, nível 20).
+
+"Ímpeto" – postura de combate (Full Attack nativo).
+
+"Equilíbrio" – postura de combate (Balanced nativo).
+
+"Guarda" – postura de combate (Full Defense nativo).
+
+"Domínio" – área de conhecimento (Primário, Secundário ou Especialidade).
+
+"Afinidade" – progresso numérico invisível no Domínio.
+
+"Sinergia" – habilidade desbloqueada pela combinação de Domínios.
+
+"Sinergia Elemental" – desbloqueio automático de habilidades mágicas por armas com elemento.
+
+"Arremesso de Escudo" – domínio de combate com escudo sem arma (ID 140).
+
+"Chi" – energia acumulada no combate de Artes Marciais e suas especialidades.
+
+"Virtude" – filosofia de combate do Artes Marciais (Harmony, Justice, Sustain).
+
+"Serenidade" – estado especial do Artes Marciais.
+
+"Despertar" – acto de iniciar um novo Domínio.
+
+"Postura" – modo de combate seleccionado pelo jogador.
+
+"gatilho" – tipo de habilidade que dispara em eventos de combate.
+
+Estes termos podem aparecer na documentação, em logs de debug e em mensagens narrativas (ex.: "Sentes o Lampejo das chamas..."), mas NUNCA devem ser usados com os seus valores numéricos expostos ao jogador. As cores dos domínios e posturas devem ser sempre utilizadas para reforçar o significado visual.
+
+🎭 7. MÁSCARA DE ALMA EM MENSAGENS DO SERVIDOR (REVISADA)
+
+O personagem convidado (Guest_*) deve ser sempre apresentado como "Alma" para o jogador. Esta substituição deve ser aplicada em TODAS as mensagens de sistema, incluindo:
+
+Mensagens de "look" (examinar personagem)
+
+Mensagens de entrada/saída de jogadores
+
+Qualquer broadcast que mencione o nome do personagem convidado
+
+Descrições em janelas modais ou tooltips
+
+A máscara é implementada nos scripts do servidor substituindo o nome real pelo nome "Alma" antes de enviar a mensagem ao jogador:
+
+lua
+local name = creature:getName()
+if name:sub(1,6) == "Guest_" then
+    name = "Alma"
+end
+Arquivos que já possuem a máscara:
+
+data/creaturescripts/scripts/player.lua (onLookInBattleList)
+
+data/events/scripts/on_look.lua (handleCreatureDescription)
+
+Novos scripts que gerem mensagens com o nome do personagem devem incluir a mesma verificação. Na estrutura Revscript, scripts de progressão que emitam mensagens de sistema também devem aplicar a máscara se mencionarem o nome do Alma.
+
+⚠️ Nota sobre a lista de personagens (cliente): O nome do personagem convidado (Guest_*) é recebido via JSON (UTF‑8) e depois mascarado para "Alma". Após a máscara, também deve ser aplicada a conversão utf8ToLatin1 para garantir que o nome exibido na interface está na codificação correcta.
+
+📌 8. PRONOME DO PERSONAGEM EM MENSAGENS (ACTUALIZADO)
+
+A partir da versão 4.0, todas as mensagens que se dirijam ao personagem devem respeitar o pronome definido na coluna players.pronoun, obtido preferencialmente pelo módulo pronouns.lua. O módulo está em data-canary/scripts/MCR/Geral/pronouns.lua e é carregado automaticamente pelo Revscript; NÃO é necessário usar dofile.
+
+lua
+local subject = Pronouns.getSubject(player) -- "he", "she" ou "they"
+local object = Pronouns.getObject(player) -- "him", "her", "them"
+Exemplos de uso:
+
+Bem‑vindo: "Bem‑vindo" (he), "Bem‑vinda" (she), "Bem‑vinde" (they)
+
+Mensagens de sistema: "Parabéns, você foi promovido/a."
+
+Não definido (0): usar formas neutras ("viajante", "aventureiro(a)") ou perguntar ao jogador qual o pronome desejado e atualizar players.pronoun.
+
+Nos scripts da pasta MCR/SPA/core/, o módulo pronouns.lua está globalmente acessível; basta chamar Pronouns.getSubject(player) directamente.
+
+📋 9. TABELA DE ERROR_CODES (ACTUALIZADA)
+
+error_code	Mensagem em PT‑BR (cliente)
+account_name_taken	O nome de conta já está em uso.
+password_too_weak	A senha deve ter 8+ caracteres com letras e números.
+invalid_fields	Preencha todos os campos correctamente.
+invalid_credentials	Nome de conta ou senha incorretos.
+registration_success	Conta criada com sucesso!
+guest_creation_failed	Falha ao criar conta convidada.
+alma_creation_failed	Falha ao criar personagem convidado.
+⚠️ ARMADILHAS E LIÇÕES APRENDIDAS (ACTUALIZADAS)
+
+Acentos corrompidos no cliente e servidor: Scripts Lua de ambas as pontas DEVEM ser salvos como ISO‑8859‑1 para evitar artefactos.
+
+Mensagens do backend com acentos: Enviar strings acentuadas no JSON do Login Server resultava em "jÃi estÃi" no cliente. A solução foi o padrão error_code com mapeamento no cliente.
+
+Console do Canary com "Vers├úo": Os logs em português apareciam corrompidos porque o console do Windows usava CP 850. A solução foi adicionar SetConsoleOutputCP(CP_UTF8) no main.cpp.
+
+Destaque no chat: Apenas {chaves} são reconhecidas; qualquer tentativa de usar {{#RRGGBB}} falha silenciosamente.
+
+ISO‑8859‑1 vs ANSI: No Windows, "ANSI" é um apelido para a codificação Windows‑1252, que é um superset do ISO‑8859‑1. Salvar como "ANSI" no Notepad++ ou VS Code geralmente funciona, desde que não haja caracteres específicos do Windows‑1252 (como €, ‚, ƒ) nos scripts, o que é raro.
+
+Mensagens de look do servidor estavam em inglês: Foram traduzidas ("You see" → "Você vê") e a máscara de Alma foi aplicada para consistência total.
+
+⚠️ SPA v4.2 – Termos novos: Ao usar "Maestria", "Sinergia Elemental", "Arremesso de Escudo", "Chi", "Virtude", "Serenidade" em mensagens narrativas, assegure‑se de que a string está em ISO‑8859‑1 e que o termo não é confundido com comandos ou variáveis. Use as cores apropriadas da tabela COR para cada estado/domínio.
+
+⚠️ SPA v4.2 – Cores: A função c() está disponível globalmente e deve ser a única forma de gerar texto colorido. Não construa manualmente strings como "{Texto, #Cor}" a menos que esteja a implementar a própria função c(). A tabela COR está na versão 9.1, com novas constantes para missões e NPCs.
+
+⚠️ SPA v4.2 – Estrutura Revscript: Com scripts espalhados por subpastas (core/, habilidades/, comandos/), é fácil esquecer a codificação de um ficheiro. Crie o hábito de verificar a codificação ao criar qualquer novo script .lua que contenha acentos.
+
+⚠️ SPA v4.2 – Coluna lastlogin: Confirmada a existência; sem impacto na localização.
+
+🔍 CHECKLIST DE REVISÃO PARA O ASSISTENTE (TRADUÇÃO E LOCALIZAÇÃO)
+
+Este checklist DEVE ser aplicado a QUALQUER modificação, independentemente da camada, pois a localização é transversal.
+
+☐ Todo texto visível ao jogador está em PT‑BR com acentuação correta?
+☐ Comentários de código estão em PT‑BR (exceto nomes de variáveis)?
+☐ A codificação do arquivo está correta conforme a tabela da Secção 2?
+☐ Scripts Lua (cliente e servidor, em todas as subpastas) estão salvos como ISO‑8859‑1?
+☐ Arquivos .otui estão salvos como UTF‑8 sem BOM?
+☐ Strings enviadas do backend (Go) usam o padrão error_code (sem acentos)?
+☐ O mapeamento error_code → mensagem PT‑BR existe no cliente Lua?
+☐ Destaque no chat usa apenas {chaves} e a função c() para cores, e NUNCA "}?" junto?
+☐ O texto soa NATURAL e COERENTE com o universo MCR?
+☐ A terminologia está padronizada (Aventureiro, personagem, missão)?
+☐ Os termos do SPA v4.2 (Lampejo, Vínculo, Maestria, Ímpeto, Equilíbrio, Guarda, Sinergia Elemental, Arremesso de Escudo, Chi, Virtude, Serenidade) são usados correctamente e sem expor números?
+☐ As cores da tabela COR v9.1 são usadas de forma consistente para domínios, estados, posturas, NPCs, missões?
+☐ Mensagens do servidor aplicam a máscara de Alma para personagens Guest_*?
+☐ Mensagens de look usam "Você vê" (não "You see")?
+☐ Mensagens dirigidas ao personagem respeitam o pronome (via pronouns.lua)?
+☐ Código C++ traduzido seguiu a pipeline automática supervisionada?
+☐ Strings acentuadas em C++ foram convertidas para escapes octais Latin‑1 (OBRIGATÓRIO)?
+☐ Nomes de bindings Lua (métodos, classes) permanecem inalterados?
+☐ Ficheiros de cabeçalho (.h/.hpp) não tiveram macros ou declarações alteradas?
+☐ O comando look (servidor) utiliza o módulo pronouns.lua para personalizar a descrição?
+☐ Os nomes de personagens provenientes do JSON de login são convertidos de UTF‑8 para Latin‑1 no entergame.lua?
+☐ O módulo pronouns.lua é acedido como global (sem dofile) a partir de MCR/Geral/?
+☐ A função c() e a tabela COR v9.1 são usadas correctamente e as strings resultantes estão em ISO‑8859‑1?
+
+📤 COMO ATUALIZAR O REPOSITÓRIO GIT
+
+git add "<arquivos alterados>"
+git commit -m "feat(lang): Atualiza guia de tradução com SPA v4.2 e sistema de cores v9.1"
+git push origin main
+
+⚠️ PowerShell: aspas duplas em caminhos com espaços.
+
+FIM DO GUIA DE TRADUÇÃO E LOCALIZAÇÃO (PT‑BR) — VERSÃO 6.1

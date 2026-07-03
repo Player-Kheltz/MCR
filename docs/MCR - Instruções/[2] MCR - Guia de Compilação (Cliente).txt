@@ -1,0 +1,298 @@
+>> CATALOG tags=compilation, client, otclient, build updated=2026-06-23
+PROJETO MCR – GUIA DE COMPILAÇÃO (CLIENTE)
+Versão 4.1 – Adicionado: documentação de módulos cliente (mcr_modules, toast, charactercreation, item_translator), modificações C++ específicas (protocolgameparse, uiwidgettext, uimap, map, missile, mapview, creature), FastNoiseLite e Tibia/ no RME
+Arquivo: [2] MCR - Guia de Compilação (Cliente).txt
+
+🎯 OBJETIVO DESTE GUIA
+Fornecer todas as instruções, dependências, customizações e verificações necessárias para compilar o OTClient Redemption do Projeto MCR a partir do código‑fonte. Este guia também estabelece as regras que o assistente DEVE seguir ao auxiliar em tarefas relacionadas à compilação, modificação de arquivos C++ do cliente ou ajustes nos módulos Lua que dependem de alterações no motor.
+
+Esta versão atualiza o cliente para o SPA v4.5: os opcodes 182 (ícone de Vínculo), 183 (partículas de Estado de Alma) e 184 (janela de conhecimento) já estão planeados e devem ser implementados conforme descrito; as Posturas de Combate (Ímpeto, Equilíbrio, Guarda) reutilizam os modos de luta nativos sem necessidade de novas interfaces; e o cliente está preparado para exibir as mensagens coloridas geradas pelo servidor (canal 24) através da função c() e da tabela COR v10.0. As novas APIs de atributos base e velocidade do SPA v4.5 são suportadas nativamente pelo protocolo.
+
+🚧 ESTADO ATUAL DA IMPLEMENTAÇÃO
+
+O SPA v4.5 está totalmente funcional no servidor. No cliente, a situação é a seguinte:
+
+A comunicação por opcodes estendidos (extendedOpcode = true) já está habilitada.
+
+O opcode 200 (migração de conta) está implementado e funcional.
+
+Os modos de luta nativos (Full Attack, Balanced, Full Defense) são usados para as Posturas; nenhuma modificação é necessária.
+
+O sistema de cores do SPA v4.5 funciona através do canal 24 (mensagens coloridas); o OTClient Redemption suporta este canal nativamente, sem modificações adicionais.
+
+Os listeners para os opcodes 182, 183 e 184 ainda precisam ser implementados nos módulos Lua do cliente (ex.: em modules/game_spa/). As especificações abaixo servem de guia para essa implementação.
+
+As customizações de máscara de Alma, cache portátil, tradução da interface e conversão de nome (UTF‑8 para Latin‑1) estão aplicadas e em funcionamento.
+
+Qualquer novo módulo Lua para interface deve ser salvo como ISO‑8859‑1.
+
+As directrizes de codificação C++ (escapes octais para strings, comentários em PT‑BR) aplicam‑se integralmente a qualquer modificação no código‑fonte do OTClient.
+
+⚠️ REGRAS DE REVISÃO PARA O ASSISTENTE (C++ CLIENTE / OTCLIENT)
+
+Ao modificar QUALQUER arquivo .cpp/.h no diretório OTClient/src/, o assistente DEVE:
+
+Garantir que TODAS as strings de interface (menus, mensagens de toast, labels) estejam em PT‑BR, com acentuação correcta. Os caracteres acentuados PODEM ser escritos como UTF‑8 literal (ex.: "Configuração"). O compilador MSVC já tem a flag `/utf-8` activa via CMake. Escapes octais continuam a funcionar mas não são obrigatórios.
+
+Manter comentários em PT‑BR; nomes de funções e variáveis em inglês (camelCase).
+
+Verificar se a alteração preserva a compatibilidade com o servidor Canary (protocolo 15.00).
+
+Se modificar a comunicação de rede (HTTP, ProtocolGame, Extended Opcodes), garantir que as portas usadas são 8080 (Login Server) e 7173 (Game), conforme documentado.
+
+Toda nova interface gráfica em C++ deve utilizar os recursos existentes do motor (g_ui, displays) e ser documentada para integração Lua.
+
+Após a edição, listar explicitamente os arquivos modificados para compilação selectiva.
+
+🎯 ENCODING RULES (CLIENTE)
+
+| Tipo | Padrão |
+|---|---|
+| `.cpp`/`.hpp` | UTF-8 literal com `/utf-8` no MSVC |
+| `.lua` (cliente) | UTF-8 sem BOM |
+| `.otui` | UTF-8 sem BOM |
+| `.xml` | UTF-8 real + `encoding="UTF-8"` |
+| Saída protocolo | `toLatin1()` no servidor antes do envio |
+
+📦 DEPENDÊNCIAS (AMBIENTE WINDOWS)
+
+Ferramentas Obrigatórias:
+
+Visual Studio 2022 (Community ou superior) com carga de trabalho "Desenvolvimento para desktop com C++".
+
+CMake 3.20 ou superior.
+
+Git for Windows.
+
+vcpkg (o mesmo utilizado para o servidor, ou um clone separado).
+
+Bibliotecas Requeridas (instalar via vcpkg, para x64-windows):
+.\vcpkg install boost-algorithm:x64-windows boost-asio:x64-windows
+.\vcpkg install boost-beast:x64-windows boost-filesystem:x64-windows
+.\vcpkg install boost-system:x64-windows boost-variant:x64-windows
+.\vcpkg install lua:x64-windows glew:x64-windows
+.\vcpkg install sdl2:x64-windows sdl2-image:x64-windows
+.\vcpkg install sdl2-ttf:x64-windows sdl2-mixer:x64-windows
+.\vcpkg install openal-soft:x64-windows libogg:x64-windows
+.\vcpkg install libvorbis:x64-windows pugixml:x64-windows
+.\vcpkg install fmt:x64-windows spdlog:x64-windows
+.\vcpkg install nlohmann-json:x64-windows zlib:x64-windows
+.\vcpkg install libpng:x64-windows libjpeg-turbo:x64-windows
+.\vcpkg install cryptopp:x64-windows (se suporte a AES for compilado)
+
+Referência completa: README.md do repositório opentibiabr/otclient (branch main).
+
+🔨 PROCEDIMENTO DE COMPILAÇÃO
+
+Clone o repositório MCR (já contém os fontes customizados):
+git clone https://github.com/Player-Kheltz/ProjetoMCR.git
+cd ProjetoMCR\OTClient
+
+Configure o CMake (substitua o caminho do vcpkg):
+mkdir build
+cd build
+cmake .. -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows
+
+Compile:
+cmake --build . --config Release
+
+O executável será gerado em build\Release\otclient.exe.
+
+Copie o otclient.exe para a raiz do diretório do OTClient (onde está o init.lua e as pastas data/, modules/). O cliente NÃO funciona sem os arquivos de configuração. Uma alternativa é executar o cliente a partir do diretório build com os caminhos ajustados, mas a prática recomendada é manter o exe na raiz junto com data/.
+
+🧬 CUSTOMIZAÇÕES MCR JÁ APLICADAS AO CÓDIGO‑FONTE DO OTCLIENT
+
+As seguintes modificações estão presentes nos fontes do repositório ProjetoMCR/OTClient. O assistente NÃO precisa reaplicá‑las, mas deve conhecê‑las para manutenção.
+
+Cache Portátil (init.lua): pasta cache/ local, dispensando %APPDATA%.
+
+Tradução Parcial de Interfaces: módulos entergame, characterlist, registro em PT‑BR.
+
+Máscara de Alma (Guest_ → Alma): implementada em creature.cpp, game.cpp e entergame.lua.
+
+Método Game::logout para migração de conta (opcode 200): implementado em game.h/cpp e registado em luafunctions.cpp.
+
+Tradução do código‑fonte do OTClient para PT‑BR com escapes octais Latin‑1.
+
+Comando look com pronome do personagem (integrado com pronouns.lua).
+
+Conversão de nome do personagem no entergame.lua (UTF‑8 → Latin‑1).
+
+🧩 MÓDULOS ESPECÍFICOS DO CLIENTE (modules/)
+
+Além das modificações C++ listadas acima, o MCR adicionou os seguintes módulos Lua/OTUI ao cliente:
+
+mcr_modules/mcr_name_fix.otmod — Corrige a exibição de nomes no cliente: converte caracteres UTF-8 para Latin-1 nos nomes das criaturas via monkey-patch do método Creature:setName(). Necessário porque o servidor envia nomes em Latin-1, mas o cliente espera UTF-8 internamente.
+
+mcr_modules/guest_mask.lua — Máscara de Alma em Lua: após onGameStart, percorre recursivamente a árvore de widgets da interface e substitui qualquer texto que contenha "Guest_" por "Alma". Complementa a máscara C++ em creature.cpp.
+
+mcr_modules/encoding_fix.otmod / mcr_utf8_fix.lua — Define o encoding padrão do cliente como UTF-8 via g_app.setDefaultEncoding("UTF-8"). Essencial para o funcionamento correcto do módulo de cores e texto acentuado.
+
+mcr_modules/item_translator_pt.lua + mcr_modules/pt_itens.lua (10893 linhas) — Motor de tradução de nomes de itens em tempo real. O item_translator_pt.lua hookeia os eventos onSetItemText e onTextMessage do cliente, consulta o dicionário pt_itens.lua, e substitui nomes de itens em inglês por português. Exemplo: "Dragon Shield" → "Escudo de Dragão". O dicionário também cobre diálogos de quests.
+
+data/scripts/consolefix.lua — Script de inicialização que aplica a conversão Latin-1→UTF-8 nos nomes dos personagens após a seleção na lista de personagens. Garante que a interface exiba nomes acentuados correctamente.
+
+game_toast/ — Sistema de notificações toast (pop-ups temporários não intrusivos). Implementado via game_toast.otmod e init.lua com fila de notificações, duração configurável e tipos (sucesso, erro, info). Estilo: fundo azul, texto branco, cantos arredondados, sombra.
+
+game_charactercreation/ — Módulo de criação de personagem no "Salão dos Destinos". Registra opcodes estendidos 160/161 e envia comandos de criação via NPC talk. Carregado por game_charactercreation.otmod.
+
+register_window.otui + register_window.txt — Interface de registo de conta (modal com campos: nome de conta, password, confirmar password). Estilo escuro do MCR.
+
+mcr_modules/creatureinformation.txt — Documentação da informação de criatura por widget: controlador para renderização de nome, barra de vida, mana, ícones, escudo, crânio, emblema, indicadores de tipo.
+
+⚙️ MODIFICAÇÕES C++ ESPECÍFICAS DO CLIENTE (src/client/)
+
+Para além das alterações C++ gerais listadas acima, as seguintes modificações nos fontes do cliente são específicas do MCR e devem ser preservadas:
+
+protocolgameparse.cpp (missile parsing): A função parseDistanceMissile foi completamente reescrita para ler coordenadas 16-bit X/Y e 8-bit Z directamente do buffer de rede (formato raw), em vez de usar funções de parsing do protocolo padrão. Isto permite que os projéteis funcionem correctamente com coordenadas multi-piso. Também removeu a validação isValiddatId que bloqueava IDs de projétil não reconhecidos. O parseAnthem foi removido por incompatibilidade com o protocolo MCR.
+
+uiwidgettext.cpp (suporte a cores): Adicionado suporte ao formato {texto, #cor} em todos os widgets de texto. Quando setText() detecta a presença de { e , no texto, chama setColoredText() em vez do método padrão. Isto permite que mensagens do servidor com formatação de cor sejam exibidas correctamente em qualquer widget UIText (não apenas no console). UITextEdit (input do console) ignora esta formatação para evitar interferência com digitação.
+
+uimap.cpp/h (isInRange): Adicionada proteção null-safe com try-catch no método isInRange(). O método foi movido de private para public no header para permitir acesso de outros componentes (como o sistema de visibilidade multi-piso do servidor). A verificação de null impede crashes quando o mapview ainda não foi inicializado.
+
+map.cpp/h (isSightClear 3D + gestão global de mísseis): O método isSightClear() foi reescrito para suportar visão entre pisos diferentes (3D line-of-sight). O armazenamento de mísseis foi reorganizado: passou de m_floors[z].missiles (per-piso) para uma única lista global m_missiles, acedida por getMissiles(). Isto permite que projéteis viajem entre pisos sem precisar de armazenamento separado por andar.
+
+missile.cpp/h (trajetória 3D com arco parabólico): O método draw() calcula um arco parabólico vertical usando sin(fraction * PI) para criar uma trajetória curva entre pisos. O método setPath() calcula o delta 3D incluindo o componente Z. Novos métodos: getPosition(), getFraction(), getCurrentZ(), getCurrentPosition() — todos baseados na interpolação linear entre a posição inicial e final do projétil. Isto permite que mísseis sejam renderizados correctamente durante a transição entre pisos.
+
+mapview.cpp (renderização multi-piso): A iteração de mísseis passou a usar a lista global (getMissiles()), filtrando por getCurrentZ() == z para exibir apenas os mísseis no piso actual. O desenho de informações de criatura (drawCreatureInformation) agora verifica isSightClear() 3D e aplica o estado "fantasma"/coberto para criaturas em pisos diferentes. A variável _camera foi removida em favor de cameraPos.
+
+creature.cpp/h (exibição condicional + máscara de Alma): O nome/HP da criatura NÃO faz mais isSightClear() internamente — quem controla a exibição é o mapview.cpp, que aplica o estado "coberto" (semi-transparente) via setCovered(). Isto garante que o nome/HP nunca desaparece completamente; se a linha de visão falha, o texto fica esmaecido (alpha 80). A máscara de Alma (Guest_ → "Alma") foi implementada em getName() no C++, com getDisplayName()/setDisplayName()/clearDisplayName() expostos para uso Lua. O método setName() substitui "Guest_" por "Alma" automaticamente.
+
+game.cpp/h (login HTTP + logout): O método doLogin() foi reescrito para usar HTTP POST para http://<host>:8080/login, parseando a resposta JSON com dados de mundo/personagem. O método logout() foi adicionado para permitir migração de conta via opcode 200 — envia pacote de logout, desconecta imediatamente e limpa o estado do jogo. O processTalk() mascara nomes "Guest_". O loginWorld() armazena o nome mascarado.
+
+luafunctions.cpp: Registradas as funções Lua: g_game.logout(), Creature.setDisplayName(), Creature.getDisplayName(), Creature.clearDisplayName().
+
+init.lua: Nome da aplicação alterado para "MCR Client". Tabela Servers configurada para 127.0.0.1:8080. Diretório de escrita alterado para cache/. Protocolo padrão 1500. Serviços URL comentados.
+
+🖥️ MAP EDITOR (RME) – MODIFICAÇÕES MCR ADICIONAIS
+
+Para além das alterações documentadas na secção anterior, o Map Editor recebeu as seguintes modificações MCR:
+
+FastNoiseLite.h (source/lua/): Biblioteca de geração de ruído procedural (licença MIT, por Jordan Peck, v1.1.1). Suporta OpenSimplex2, Perlin, Cellular, ValueCubic e Value. Fornece tipos fractais (FBm, Ridged, PingPong) e funções de distância celular (Euclidean, Manhattan, Hybrid). Usado para geração procedural de terreno em scripts Lua do editor.
+
+Tibia/ (data directory): Diretório completo com assets de jogo do Canary client, incluindo milhares de ficheiros .ogg de som e índice .dat. Necessário para o editor renderizar sprites e reproduzir sons correctamente.
+
+🎮 REUTILIZAÇÃO DOS MODOS DE LUTA NATIVOS PARA POSTURAS (SPA v4.5)
+
+O cliente já possui nativamente os modos de luta Full Attack, Balanced e Full Defense, acessíveis por hotkeys (Ctrl+A, Ctrl+B, Ctrl+D) e ícones no painel de combate. Para o SPA v4.5, estes mesmos modos representam as Posturas de Combate:
+
+Full Attack → Ímpeto
+
+Balanced → Equilíbrio
+
+Full Defense → Guarda
+
+Nenhuma modificação é necessária no cliente. O servidor interpreta o fightMode recebido e aplica os efeitos correspondentes (danos, alcances, sangramentos, defesas, furtividade, etc.) conforme a arma equipada e a Especialização.
+
+Os ícones e as hotkeys permanecem exactamente os mesmos. O feedback narrativo (ex.: "Postura ajustada: Ímpeto adaptada à sua arma.") é enviado pelo servidor via chat colorido (canal 24) e exibido normalmente pelo cliente.
+
+📡 NOVOS OPCODES PARA O SISTEMA DE PROGRESSÃO (A IMPLEMENTAR NO CLIENTE)
+
+O SPA v4.5 utiliza os seguintes opcodes estendidos para feedback visual. Actualmente, os listeners para estes opcodes ainda não foram implementados no cliente. A descrição abaixo serve de especificação para a implementação, que pode ser feita em módulos Lua (ex.: modules/game_spa/spa_opcodes.lua).
+
+Opcode 182 – Ícone do Vínculo (Estado de Alma): o servidor envia o ID do domínio dominante e uma tooltip poética para actualizar um ícone no HUD. O ícone pode indicar Lampejo, Vínculo ou Maestria (Vínculo permanente).
+Dados (JSON): { "dominioId": 100, "tooltip": "O aço canta nas suas mãos.", "maestria": true }
+
+Opcode 183 – Partículas de Estado de Alma: dispara efeitos visuais temáticos (fagulhas, folhas, brilho) sobre o personagem quando um Lampejo, Vínculo ou Maestria se forma.
+Dados (JSON): { "tipo": "fogo", "intensidade": "maestria" }
+
+Opcode 184 – Examinar Conhecimento (janela modal): acionado quando o jogador clica com o botão direito num item de conhecimento. Exibe a janela modal com título, descrição narrativa, botão "Aprender" e "Fechar". Ao confirmar, envia um pacote de volta ao servidor.
+Dados (JSON): { "titulo": "Livro de Feitiços", "descricao": "Um antigo tratado...", "habilidadeId": 10, "compreensivel": true }
+
+A implementação desses opcodes pode ser feita nos módulos Lua do cliente. Exemplo de registo para o opcode 184:
+
+lua
+ProtocolGame.registerExtendedOpcode(184, function(protocol, opcode, buffer)
+    if not buffer or #buffer == 0 then return end
+    local data = json.decode(buffer)
+    -- exibir janela modal com data.titulo, data.descricao, etc.
+end)
+Para os opcodes 182 e 183, o tratamento será semelhante, atualizando o HUD e disparando sistemas de partículas (se disponíveis).
+
+📟 SISTEMA DE CORES DO SPA v4.5 (CANAL 24)
+
+O SPA v4.5 envia mensagens coloridas através do canal 24 (sendTextMessage(24, texto)), utilizando a função c() para formatar blocos de texto com cores (ex.: "{" .. nome .. ", " .. cor .. "}"). A tabela COR está na versão 10.0, com constantes para missões (MISSAO_*) e NPCs (NPC_*). O OTClient Redemption suporta nativamente a exibição de texto colorido neste canal, herdando a sintaxe de realce com chaves do protocolo Tibia. Nenhuma modificação é necessária no motor do cliente para que as cores sejam exibidas correctamente.
+
+Os módulos Lua do servidor responsáveis por esta funcionalidade são texto_colorido.lua (v10.0) (tabela COR e função c()) e util_armas.lua (funções auxiliares). O cliente apenas precisa garantir que o canal 24 esteja habilitado e que o módulo de chat processe as mensagens recebidas — comportamento padrão do OTClient Redemption.
+
+🖥️ MAP EDITOR (RME) – SUPORTE A LUA ISO‑8859‑1
+
+O Projeto MCR utiliza uma versão modificada do Remere's Map Editor (RME) com suporte a scripts Lua de monstros e NPCs em ISO‑8859‑1. As alterações incluem:
+
+Função de conversão ISO‑8859‑1 → UTF‑8 (encoding_utils.h)
+
+Parser Lua estendido (resolveLocalVar, parseNpcConfig)
+
+Modificações em monsters.cpp e npcs.cpp
+
+Consulte o Guia [2] (este documento) e o repositório para compilar o RME.
+
+🧩 CONFIGURAÇÕES ESPECÍFICAS DO OTCLIENT PÓS‑COMPILAÇÃO
+
+init.lua – Tabela Servers:
+Deve conter a entrada para o Projeto MCR:
+
+lua
+Servers = {
+    {
+        name = "Projeto MCR",
+        host = "127.0.0.1",
+        port = 8080,
+        client = 1500,
+        httpLogin = true,
+        url = "http://127.0.0.1/",
+    }
+}
+OTCFeatures: Não configuráveis directamente no cliente; são recebidas do servidor.
+
+Fontes: O cliente já vem com as fontes bitmap listadas no Guia de Interface.
+
+⚠️ ARMADILHAS E LIÇÕES APRENDIDAS
+
+Cache em %APPDATA%: use a cache local (cache/).
+
+Módulos de bot/walking: remova ou desabilite se causarem travamentos.
+
+Codificação de scripts Lua: salvar como UTF‑8 sem BOM. A antiga regra ISO‑8859‑1 foi substituída; o pipeline `toLatin1()` no servidor converte UTF‑8 → Latin‑1 antes de enviar ao protocolo.
+
+Métodos setModal, center: use propriedades OTML ou cálculo manual.
+
+Login HTTP: use HTTP.post, não ProtocolLogin.
+
+Máscara de nome via Lua: requer modificação em C++ (creature::setName).
+
+Encoding C++: usar UTF‑8 literal com acentos (ex.: "Configuração"). O CMake já passa `/utf-8` ao compilador. Escapes octais continuam a funcionar mas não são obrigatórios.
+
+A coluna lastlogin EXISTE na tabela players do schema actual do Canary (confirmado no banco de dados do projecto). O cliente não interage directamente com ela, mas scripts podem usar essa informação.
+
+As cores do SPA v4.5 são exibidas via canal 24; se não aparecerem, verificar se o módulo de chat do OTClient está a processar mensagens do canal 24 (por padrão, sim).
+
+Os opcodes 182, 183 e 184 precisam de listeners no cliente; se não forem implementados, o feedback visual do SPA ficará limitado ao chat.
+
+As novas APIs de atributos base e velocidade (getVocationBaseMaxHealth, getVocationBaseMaxMana, getNaturalSpeed, setMovementSpeed) são processadas no servidor e não requerem alterações no cliente, pois a comunicação de stats é feita pelo protocolo normal.
+
+🔍 CHECKLIST DE REVISÃO PARA O ASSISTENTE (C++ CLIENTE)
+
+Antes de finalizar qualquer modificação em arquivos .cpp/.h do OTClient, o assistente DEVE verificar:
+
+☐ Strings de interface expostas ao jogador estão em PT‑BR com escapes octais Latin‑1 (OBRIGATÓRIO)?
+☐ Comentários em PT‑BR; nomes de funções/variáveis em inglês?
+☐ A modificação mantém compatibilidade com o servidor Canary (protocolo 15.00)?
+☐ Os opcodes 182, 183 e 184 estão registados no cliente (Lua ou C++)? (Verificar estado actual)
+☐ Os modos de luta nativos permanecem inalterados (Full Attack, Balanced, Full Defense)?
+☐ A máscara de Alma continua funcional?
+☐ O método g_game.logout(false) não foi afectado?
+☐ O nome do personagem recebido via HTTP é convertido de UTF‑8 para Latin‑1?
+☐ O servidor de login está acessível (portas 8080, 7173)?
+☐ O canal 24 exibe as mensagens coloridas do SPA v4.5 correctamente?
+☐ As novas funcionalidades de velocidade e atributos base do servidor não quebram nenhuma interface existente?
+
+📤 COMO ATUALIZAR O REPOSITÓRIO GIT
+
+git add "<arquivos alterados>"
+git commit -m "feat(client): Atualiza guia de compilação cliente com SPA v4.5 (v4.0)"
+git push origin main
+
+⚠️ PowerShell: aspas duplas em caminhos com espaços.
+
+FIM DO GUIA DE COMPILAÇÃO (CLIENTE) — VERSÃO 4.0

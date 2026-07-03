@@ -1,0 +1,60 @@
+╔══════════════════════════════════════════════════════════════╗
+║       SISTEMA DE HABILIDADES CONTEXTUAIS (SHC) — ÍNDICE      ║
+║              Projeto MCR — SPA — v1.0 (24/06/2026)           ║
+╚══════════════════════════════════════════════════════════════╝
+
+ARQUIVOS:
+───────
+00 - INDICE.txt
+    → Este arquivo
+
+01 - ARQUITETURA DO SISTEMA.txt
+    → Visão geral da arquitetura, fluxo de resolução, camadas
+    → Como criar uma habilidade no novo formato
+    → Relação entre contexto.lua, executor.lua, motor.lua
+
+02 - CATALOGO DE DOMINIOS/
+    → Personalidade, nicho principal, grid de variações e traços
+    → Por domínio: FOGO.txt, GELO.txt, TERRA.txt, etc.
+    → Formato: ID - NOME.txt
+
+03 - CATALOGO DE HABILIDADES/
+    → Habilidades por domínio (futuro)
+    → Formato: ID - NOME.lua (ou .txt para documentação)
+
+04 - MATRIZ DE SINERGIAS.txt
+    → Tabela completa de sinergias entre pares de domínios
+    → Efeitos, requisitos de nível, descrições
+
+05 - GUIAS DE CRIACAO.txt
+    → Guia passo-a-passo para criar novas habilidades
+    → Checklist de validação
+    → Regras de diferenciação
+
+06 - REFERENCIAS POP.txt
+    → Referências da cultura pop adaptadas para Eridanus
+    → Regra de ouro: recontextualização para high fantasy
+
+
+ARQUIVOS DO CÓDIGO FONTE (Canary Server):
+───────────────────────────────────
+Canary/data-canary/scripts/MCR/SPA/core/contexto.lua
+    → Resolvedor Contextual (NOVO, v1.0)
+    → Aplica as 5 camadas: postura → nível → sinergias → estados → condições
+
+Canary/data-canary/scripts/MCR/SPA/habilidades/executor.lua
+    → Executor de Habilidades (MODIFICADO, v10.0)
+    → Chama CONTEXTO.resolver() antes de MOTOR.executar()
+
+Canary/data-canary/scripts/MCR/SPA/core/motor_habilidades.lua
+    → Motor de Habilidades (INALTERADO, v2.0)
+    → 27 tipos de efeito suportados
+
+
+CAMADAS DE RESOLUÇÃO (ordem de aplicação):
+─────────────────────────────────────
+1. POSTURA     → Ímpeto (1), Equilíbrio (2), Guarda (3)
+2. NÍVEL       → Marcos 5, 10, 15, 20 (cumulativo)
+3. SINERGIAS   → Outros domínios treinados (requer nível mínimo)
+4. ESTADOS     → Normal, Vínculo, Lampejo
+5. CONDIÇÕES   → Cercado, vida baixa, full HP, single target

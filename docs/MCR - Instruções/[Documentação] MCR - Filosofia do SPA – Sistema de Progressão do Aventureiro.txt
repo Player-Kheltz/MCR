@@ -1,0 +1,422 @@
+>> CATALOG tags=spa, philosophy, design, vision updated=2026-06-23
+📘 Filosofia do SPA – Sistema de Progressão do Aventureiro
+==========================================================
+Projeto MCR – Documento Canónico de Design
+Versão 4.7.1 – Junho de 2026
+
+🌌 1. O Fim das Vocações – O Nascimento do Aventureiro
+
+No Projeto MCR, a primeira escolha que o jogador enfrenta não é uma classe.
+Não há Knight, Paladin, Sorcerer ou Druid. Não há Monk ou qualquer outra
+vocação pré‑definida. Há apenas o Aventureiro – uma tela em branco, um
+espírito curioso que despertou nas areias de Eridanus e cujo destino será
+escrito pelas suas próprias acções.
+
+O Sistema de Progressão do Aventureiro (SPA) é a resposta a uma pergunta
+simples: "E se o teu personagem evoluísse exactamente naquilo que tu fazes?"
+Se passas os dias a minerar, tornas‑te um mestre da rocha. Se enfrentas
+dragões com uma espada longa, o aço reconhece‑te. Se canalizas o fogo através
+de um bastão arcano, as chamas tornam‑se uma extensão da tua vontade. Se
+invocas criaturas mágicas para lutar a teu lado, o vínculo entre conjurador
+e invocação torna‑se indestrutível. Nada é imposto. Tudo é conquistado.
+
+O SPA não é um sistema de progressão vertical tradicional. Não há um "nível
+de classe" que sobe de 1 a 100. Em vez disso, o Aventureiro progride
+horizontalmente, ganhando afinidade em Domínios que reflectem os seus
+interesses e acções. Esta progressão é silenciosa – não há números a poluir
+o ecrã – mas profundamente sentida: os ataques tornam‑se mais fluidos, as
+magias mais poderosas, as ferramentas mais eficazes.
+
+Tecnicamente, a progressão substitui completamente as vocações. Todo
+personagem é criado com vocation = 0 (Aventureiro) e a sua evolução é
+gerida exclusivamente pelas tabelas player_dominios e player_habilidades,
+alimentadas pelos métodos C++ expostos ao Lua. Não há dependência de
+storages manuais para o progresso central. O Oráculo, durante a criação,
+não pergunta por vocação; em vez disso, abençoa o Aventureiro com uma
+bênção narrativa que ecoa o despertar dos Domínios que ocorrerá em Eridanus.
+
+🧭 2. Domínios – O Mapa do Conhecimento
+
+Um Domínio é uma área de conhecimento ou perícia. Eles estão organizados
+numa hierarquia de três camadas, como uma árvore genealógica do saber:
+
+Primários: as grandes famílias (Combate 1, Magia 2, Ofícios 3, Natureza 4).
+
+Secundários: os ramos principais (Lâminas 10, Machados 11, Clavas 12, Precisão 13, Artes Marciais 14, Escudo 15, Elementos 20, Espectro 21, Runologia 22, Summon 28).
+
+Especialidades: as técnicas específicas (Espadas Leves 100, Espadas Pesadas 101, Machados Leves 110, Machados Pesados 111, Clavas Leves 112, Clavas Pesadas 113, Arcos 120, Arremesso 121, Lutador 130, Armas de Punho 132, Bastões Arcanos 133, Arremesso de Escudo 140, Fogo 23, Água e Gelo 24, Terra e Veneno 25, Energia 26, Sagrado e Morte 200, Wands 210, Rods 211, Runas 212).
+
+Complementares: Sobrevivência (400), ramo de Natureza (4).
+
+O domínio Summon (28) representa a arte da invocação. Ligado à árvore de
+Magia (2), permite ao Aventureiro conjurar criaturas mágicas e estabelecer
+um vínculo profundo com os seus servos. É um caminho de poder partilhado,
+onde a força do conjurador se multiplica através dos seus aliados.
+
+Quando um Aventureiro realiza uma acção – atacar com uma espada, lançar uma
+magia de fogo, pescar um peixe, arremessar o escudo – ele ganha Afinidade
+na especialidade correspondente. Essa afinidade espalha‑se automaticamente
+para os níveis superiores da hierarquia, garantindo que o conhecimento
+nunca é estanque. Um mestre das Espadas Leves também será, inevitavelmente,
+um profundo conhecedor das Lâminas e do Combate como um todo.
+
+⚡ Propagação de Afinidade (Rácio 4:2:1)
+Quando um jogador ganha afinidade numa Especialidade, a função
+adicionarAfinidade em progressao.lua acumula os pontos no buffer. A cada
+ciclo de 2 segundos, o descarregarBuffer distribui automaticamente:
+
+100% dos pontos para a Especialidade.
+
+50% (metade) para o Domínio Secundário correspondente.
+
+25% (um quarto) para o Domínio Primário correspondente.
+
+Este rácio garante que a progressão nos níveis superiores seja mais lenta
+e exija dedicação ampla, enquanto recompensa generosamente a especialização.
+Valores são arredondados para baixo (math.floor). A propagação ocorre
+durante o descarregamento do buffer, usando os totais acumulados no ciclo,
+evitando que golpes individuais de baixo dano resultem em zero pontos para
+os domínios pais.
+
+O Arremesso de Escudo (140) é uma especialidade única: nasce do domínio
+Escudo (15) e permite que um Aventureiro sem arma, mas com escudo, lute à
+distância. O escudo deixa de ser apenas defesa e torna‑se um projétil
+contundente, capaz de ricochetear entre inimigos. A função armaCompativeis
+garante que o domínio 140 só esteja acessível quando não há arma equipada.
+
+A beleza do sistema está na sua modularidade. Novos domínios podem ser
+adicionados a qualquer momento – Dobradores de Elementos, Artesãos Rúnicos,
+Domadores de Bestas – sem quebrar a estrutura existente. O motor do SPA foi
+desenhado para ser infinitamente expansível. O SPAManager (C++) regista
+novos domínios em tempo real via Lua, e a tabela dominios_def na base de
+dados é populada automaticamente pelo _init_dominios.lua. A tabela
+domainChildren em constantes.lua mantém a relação de filhos diretos
+para validação da Maestria.
+
+📐 3. Afinidade – A Moeda do Crescimento
+
+Afinidade é a medida do teu envolvimento com um Domínio. Ela é ganha
+automaticamente:
+
+Ao causar dano físico com uma arma (especialidade correspondente).
+
+Ao causar dano mágico (domínio elemental respectivo).
+
+Ao matar criaturas (especialidade da arma usada).
+
+Ao usar ferramentas (mineração, pesca, craft).
+
+Ao receber dano (Sobrevivência).
+
+A taxa de geração base é de 1 ponto de afinidade para cada 30 de dano
+causado (com um mínimo de 1 ponto por golpe), processada no evento
+ProgDano (eventos.lua). Para dano elemental proveniente de armas
+híbridas (ex.: espada de fogo), a parte elemental gera pontos à parte
+com um rácio reduzido (dano/60), permitindo progressão simultânea em
+múltiplos domínios. Para armas puramente elementais (wands, rods, runas),
+o dano primário já é elemental e gera pontos completos (dano/30) tanto para
+o domínio elemental como para a especialidade da arma.
+
+Os pontos são acumulados num buffer em memória (storages 95001+,
+STORAGE.AFINIDADE_BUFFER) e descarregados para a base de dados a cada
+2 segundos pelo think_master, usando operações em lote
+(addDominioAfinidadeBatch) para máxima performance.
+
+Adicionalmente, cada ataque físico bem‑sucedido gera pontos de Chi
+(armazenados em STORAGE.CHI_ACCUMULATED = 97881), que alimentam o sistema
+de Chi do caminho Artes Marciais.
+
+A curva de progressão é cuidadosamente calibrada. Um jogador médio, caçando
+de forma consistente, atingirá o nível 5 de um domínio em cerca de 1 hora,
+o nível 10 em 5 horas, o nível 15 em 30 horas e o nível 20 – a Maestria –
+em 100 horas de dedicação genuína. A tabela NIVEL_PONTOS em constantes.lua
+define os limiares exactos (de 50 a 180.000 pontos). A função global
+getNivelPorAfinidade(acumulado) devolve o nível bruto, enquanto
+getNivelEfetivo(player, domId) bloqueia a Maestria (nível 20) até que
+todos os domínios filhos também tenham atingido o nível 20, reforçando a
+hierarquia.
+
+✨ 4. Lampejos, Vínculos e Maestria – A Sintonia Natural
+
+Quanto mais usas um domínio, mais "sintonizado" ficas com ele. O SPA
+monitoriza as tuas acções recentes e concede estados especiais que
+recompensam a consistência de estilo.
+
+Lampejo: Um momento de brilhantismo. A probabilidade de ocorrer depende
+do teu nível no domínio e de quão preenchida está a barra de foco desse
+domínio. O Lampejo é um estado breve (8 segundos) que concede um bónus
+moderado de velocidade e dano. A fórmula da chance é:
+chance = chanceBase + (chanceMax - chanceBase) × (focoAtual / 99)
+onde chanceBase e chanceMax variam de 0% (níveis 0‑4) a 10%‑35% (níveis 15‑19).
+
+Vínculo: A verdadeira sintonia. Cada domínio tem uma barra de foco
+(0‑100) que se enche a cada acção (+1 ponto) e decai 1 ponto a cada
+2 segundos fora de combate. Enquanto a barra enche, o Aventureiro recebe
+bónus parciais (+1% a +3% dano e velocidade). Quando a barra atinge 100,
+o Vínculo é formado, concedendo bónus significativos e suprimindo Lampejos
+nesse domínio.
+
+Maestria (nível efetivo 20): Quando atinges o máximo de um domínio,
+alcanças a Maestria. A barra de foco nunca decai abaixo de 100%, e o
+Vínculo torna‑se permanente e irrevogável. A partir da v4.7, a Maestria
+é reconhecida imediatamente durante o combate — a barra de foco é mantida
+a 100% para qualquer domínio com nível efetivo ≥20, independentemente de
+estar em combate ou não.
+
+Os Estados de Alma são geridos por sintonia.lua (v6.2) e nunca expõem
+números ao jogador. Apenas mensagens poéticas são enviadas através da
+função enviarMsgColorida (canal 24).
+
+⚔️ 5. Posturas de Combate – A Dança do Aço
+
+A qualquer momento, o Aventureiro pode alternar entre três Posturas,
+usando as hotkeys nativas do Tibia (Ctrl+A, Ctrl+B, Ctrl+D):
+
+Ímpeto (Full Attack): Mais dano, mais velocidade, defesa reduzida.
+
+Equilíbrio (Balanced): Valores intermédios, sem extremos.
+
+Guarda (Full Defense): Menos dano, mas defesa, regeneração e efeitos
+de controlo amplificados.
+
+A postura interage profundamente com o equipamento e o domínio:
+
+Armas de duas mãos → estilo Pesado (mais dano, knockback).
+
+Armas de uma mão sem escudo → estilo Leve (mais velocidade, furtividade).
+
+Com escudo → benefícios defensivos adicionais, chance de empurrar, e acesso
+ao Arremesso de Escudo quando se luta apenas com escudo.
+
+As posturas são aplicadas dinamicamente por aplicarPostura (postura.lua
+v6.2.1), ajustando velocidade de ataque, regeneração, furtividade e leech
+em tempo real.
+
+🛡️ 6. Habilidades – A Essência do Teu Estilo
+
+As habilidades são o coração do SPA. Elas representam técnicas, golpes
+especiais e talentos passivos que o Aventureiro desbloqueia ao progredir
+nos seus domínios. Cada domínio possui 35 a 36 habilidades organizadas
+em pacotes temáticos que definem a sua personalidade.
+
+Nota atual: As habilidades actualmente presentes são placeholders criadas
+para teste do sistema. Todas serão refeitas com base no Documento de
+Personalidade e Identidade de Domínios e no Gabarito de Habilidades,
+seguindo a arquitetura modular e os novos tipos de efeito do motor.
+
+6.1 Arquitetura Modular
+O SPA adopta uma separação em três camadas:
+
+Motor de Habilidades (motor_habilidades.lua v2.0) – lógica central
+de execução. Suporta 20+ tipos de efeitos padronizados, fallback
+automático de efeitos visuais por elemento, suporte a conditionMagicEffect,
+e adaptação elemental para Wands/Rods. Novos efeitos são adicionados sem
+alterar as habilidades existentes.
+
+Definições de Habilidades (habilidades_*.lua) – ficheiros de dados
+que descrevem as habilidades usando parâmetros padronizados (campo
+efeitoConfig para gatilhos; campo efeito vazio para passivas de
+vida/mana/velocidade). Zero lógica manual.
+
+Narrativa (narrativa_habilidades.lua v1.0) – frases de feedback
+organizadas por tipo de efeito, postura e domínio.
+
+6.2 Tipos de Efeito do Motor (v2.0)
+Categoria	Tipos	Descrição
+Clássicos	dano_extra, area_ground, area_target, ricochete, knockback, condicao, buff_speed, buff_damage, life_leech, mana_leech, next_condition, finisher, defesa_cura, defesa_barreira, defesa_contra_ataque, field, sinergia, rajada, corrente	Efeitos diretos e de área com onda expansiva circular e dano sequencial.
+Modulares	sinergia_escalonada	Efeitos que escalam com o nível de afinidade em múltiplos domínios; efeito épico quando todos estão em Maestria.
+Temporais	storm	Tempestade que atinge um inimigo aleatório na área a cada intervalo.
+orbit	Esferas que orbitam o jogador e causam dano a inimigos próximos.
+rain	Projéteis que caem aleatoriamente na área em intervalos regulares.
+pulse	Ondas de energia que se expandem e contraem, causando dano a cada pulso.
+Estratégicos	trap	Armadilha tática com suporte a centros inteligentes (alvo, jogador, entre, fuga, aleatorio), atraso de armação e condições.
+Invocação	summon	Invocação de criaturas mágicas com duração baseada na barra de foco.
+6.3 O Motor Inteligente
+O executor de habilidades (executor_habilidades.lua v9.0) introduz várias
+camadas de profundidade e otimização:
+
+Selecção por prioridade contextual: avalia número de inimigos, vida do
+alvo, postura, e bónus de especialização.
+
+Cooldown global por domínio: cada domínio tem o seu próprio cooldown,
+influenciado pelo nível efetivo e pela barra de foco.
+
+Limite de habilidades por ciclo dinâmico: 1 (níveis 0‑4), 2 (5‑14), 3 (15+).
+
+Disponibilidade por hierarquia: habilidades de domínios secundários e
+primários só são elegíveis quando a barra de foco atinge 100% (Vínculo/Maestria).
+
+Throttle global: intervalo mínimo de 600ms entre execuções de qualquer
+habilidade, garantindo que o combo seja fluido e que o servidor tenha tempo
+de processar cada efeito.
+
+Limite de candidatos: a seleção percorre no máximo 5 habilidades elegíveis,
+reduzindo drasticamente o custo de CPU por ataque.
+
+Sistema de contenção por categoria: impede que mais de N habilidades
+da mesma categoria sejam usadas num intervalo de 10 segundos. Limites padrão:
+aoe=2, single=3, debuff=2, buff=2, finisher=1, sinergia=2,
+defense=2. Habilidades sem categoria definida são tratadas como single.
+
+Controlo de efeitos temporais: no máximo 2 efeitos temporais
+(storm, orbit, rain, pulse, trap) podem estar ativos em simultâneo
+por jogador. Novos efeitos são recusados sem consumir cooldown.
+
+6.4 A Árvore I‑IV e Progressão
+Cada domínio possui uma árvore de progressão interna (níveis 5, 10, 15, 20)
+que define a sua identidade e ensina a habilidade de assinatura ao domínio
+irmão na Maestria. O Traço Inerente é uma progressão temática automática
+que evolui nesses mesmos marcos, sem ocupar slots de habilidade.
+
+A distribuição de habilidades segue perfis distintos conforme a hierarquia:
+
+Categoria	Especialidade	Secundário	Primário
+Passivas	6	7	8
+Gatilhos de Combate	14	8	4
+Gatilhos de Condição/Defesa	7	5	2
+Gatilhos de Sinergia	4	8	10
+Transformações	4	5	5
+Traço Inerente	1	1	1
+6.5 Feedback Visual
+O motor possui um mapeamento central de efeitos visuais por elemento
+(EFEITOS_ELEMENTAIS), usado como fallback automático quando uma habilidade
+não especifica magicEffect. Habilidades que aplicam condições podem
+definir um conditionMagicEffect separado para o momento da aplicação.
+Isto garante que cada domínio tenha uma identidade visual coerente e
+imersiva — chamas para o Fogo, ondas de choque para a Terra, anéis verdes
+para o Veneno.
+
+6.6 Campos e Tempestades – Performance Otimizada
+Campos (field) e tempestades (storm) foram reprojetados para aplicar
+dano de forma sequencial (um alvo de cada vez, com 300ms de intervalo)
+em vez de acertar todos os alvos simultaneamente. Isto elimina picos de
+processamento e torna os efeitos visualmente mais agradáveis. O conjurador
+é sempre imune aos seus próprios campos.
+
+🖐️ 7. Chi, Virtudes e Serenidade – O Caminho de Artes Marciais
+
+O domínio Artes Marciais (14) integra as mecânicas do Monk nativo do Tibia.
+O Aventureiro que luta sem armas – ou com armas de Monge (Katar, Nunchaku,
+Bastões) – tem acesso a um sistema de recursos único.
+
+Chi: Acumula pontos ao atacar e pode ser gasto em habilidades poderosas.
+
+Virtudes: Três filosofias (Harmony, Justice, Sustain) que moldam o
+estilo de luta.
+
+Serenidade: Estado especial alcançado com Chi máximo ou na Maestria.
+
+🧩 8. Sinergias e Hibridismo – O Mago de Combate
+
+O SPA recompensa a experimentação e a combinação de domínios:
+
+Sinergia entre Domínios: habilidades que escalam com a afinidade em
+múltiplos domínios, verificando os níveis efetivos para adicionar efeitos
+bónus. Com o tipo sinergia_escalonada, estas habilidades são definidas
+exclusivamente por parâmetros, sem código manual, e podem atingir um
+efeito épico quando todos os domínios envolvidos estão em Maestria.
+
+Sinergia Elemental: armas com elemento desbloqueiam automaticamente
+as habilidades do domínio elemental correspondente. A função
+armaCompativeis e a tabela damageDomains gerem esta mecânica.
+Wands e Rods têm os seus efeitos visuais e condições automaticamente
+adaptados ao elemento da arma equipada.
+
+Invocação e Companheirismo: o domínio Summon (28) permite ao Aventureiro
+conjurar criaturas mágicas que lutam a seu lado. A duração das invocações
+escala com a barra de foco, e a IA modular (summon_ai.lua) garante que
+cada criatura se comporte de forma única. O vínculo transcende barreiras
+físicas: quando o mestre muda de piso (escadas, buracos, teleports), a
+criatura captura a posição exacta de origem e destino através de uma fila
+nativa gerida pelo motor C++. A criatura caminha incrementalmente até
+ao ponto onde o mestre usou a transição e, ao chegar, aparece imediatamente
+no novo piso, seguindo‑o fielmente. Este comportamento é automático,
+sem dependência de scripts Lua externos, e garante que a jornada do
+Aventureiro nunca seja interrompida — os seus aliados estão sempre por perto.
+
+⚙️ 9. O Motor do SPA – Modularidade e Performance
+
+Por baixo da camada narrativa, o SPA é um motor de progressão genérico,
+desenhado para ser infinitamente expansível.
+
+SPAManager (C++): permite registar novos domínios em tempo real, via
+Lua, sem recompilar o servidor.
+
+Event Bus (SPA.onEvent / SPA.dispatchEvent): permite que qualquer
+script Lua reaja a qualquer acção do jogo sem modificar o C++.
+
+Modificadores de Combate Dinâmicos (player:setCombatModifier):
+permitem que habilidades e domínios ajustem parâmetros de combate com
+chaves textuais.
+
+Think Master unificado: processa buffs, postura, sintonia, passivas,
+Arremesso de Escudo, recálculo de vida/mana/velocidade e descarregamento
+do buffer num único evento a cada 2 segundos.
+
+Consultas em lote: addDominioAfinidadeBatch, learnHabilidadeBatch,
+unlearnAllHabilidades minimizam escritas na BD.
+
+Projéteis 100% dinâmicos: adaptação elemental com suporte a aljavas.
+
+Campos Elementais: criarField() com imunidade para o conjurador
+e seu grupo (se Maestria). Dano sequencial para performance.
+
+Perseguição Multi‑Piso Nativa: o motor captura automaticamente as
+transições de piso do jogador em Game::internalTeleport e
+Map::moveCreature, armazenando‑as numa fila (Player::storeFloorChange,
+Player::hasPendingFloorChange, etc.). As criaturas invocadas consomem
+essa fila e caminham até ao ponto exacto antes de aparecer no destino,
+limpando automaticamente a fila ao alcançar o mestre. Este sistema
+substitui completamente as abordagens anteriores baseadas em estimativas
+e buscas de escadas, oferecendo precisão absoluta e um feedback visual
+discreto.
+
+Comandos de diagnóstico: !platinar, !resetspa, !testesistema,
+!escudeiro, !pet e muitos outros, permitem testar e validar cada
+aspecto do sistema sem sair do cliente.
+
+Sistema de contenção por categoria: evita que o combate se torne
+spam da mesma mecânica, forçando variedade.
+
+Throttle global (600ms): garante um ritmo de combate fluido e sem
+picos de lag, mesmo com dezenas de habilidades disponíveis.
+
+Controlo de efeitos temporais: máximo de 2 efeitos de longa duração
+simultâneos, preservando a performance e a clareza visual.
+
+Fallback de categoria: habilidades antigas ou sem categoria são
+tratadas como single, garantindo compatibilidade total.
+
+🧭 O Aventureiro – A Tua Lenda
+
+No centro de tudo está o jogador. O SPA não é um sistema para ser
+"vencido" – é um sistema para ser vivido. Cada Aventureiro é único, não
+porque escolheu uma classe no ecrã de criação, mas porque passou 100 horas
+a pescar nos lagos de Eridanus, ou porque desafiou os dragões do norte com
+uma espada longa até que o aço se tornou parte de si.
+
+O SPA respeita o teu tempo, a tua curiosidade e a tua identidade. As
+escolhas que fazes ecoam pelo mundo: os NPCs reconhecem o teu domínio, os
+teus golpes carregam a tua história, as tuas criaturas invocadas são a
+extensão da tua vontade, a tua montaria é a manifestação da tua jornada,
+e as tuas habilidades são a assinatura do teu estilo. E quando a
+Maestria é alcançada, o mundo reconhece‑te como um verdadeiro Mestre
+— para sempre.
+
+Mais do que um meio de transporte, a montaria tornou-se uma companheira
+de aventura. Quando desmontas, ela permanece ao teu lado como um summon
+fiel — com inventário próprio, velocidade adaptativa e personalidade
+emergente. O sistema MountSummon (v1.0) materializa esta visão: a
+montaria não desaparece; fica contigo, luta contigo, cresce contigo.
+
+No futuro, as montarias terão domínios próprios (Cavalaria/Montaria),
+vínculo progressivo, personalidade por tipo (Guerra, Veloz, Carga,
+Arcana), equipamento específico e até capacidade de ataque montado.
+E mais além: a domesticação de criaturas selvagens — o sonho do Domador
+— nascerá desta mesma base, permitindo que qualquer criatura do mundo
+se torne a tua companheira de jornada.
+
+Este documento é o testemunho de uma filosofia: a de que um jogo de RPG
+deve ser sobre quem tu és, não sobre o que o sistema diz que deves ser.
+
+Fim do Documento (atualizado 21/06/2026).

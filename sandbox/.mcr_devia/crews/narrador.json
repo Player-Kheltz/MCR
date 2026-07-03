@@ -1,0 +1,21 @@
+{
+  "lessons": [
+    {
+      "context": "crew_narrador_narrar_evento",
+      "antes": "O sistema processou",
+      "depois": "MCR-DevIA usou KG hit pra corrigir SQL injection no oraculo.lua",
+      "score": 0.9,
+      "benchmark": 0
+    }
+  ],
+  "dominio": "narrativa",
+  "benchmarks": [
+    {
+      "teste": "qualidade_narrativa",
+      "antes": 0.5,
+      "depois": 0.85,
+      "melhoria": 0.35,
+      "timestamp": 1782405283.1425817
+    }
+  ]
+}

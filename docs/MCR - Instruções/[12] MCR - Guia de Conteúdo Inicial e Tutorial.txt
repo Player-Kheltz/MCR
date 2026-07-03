@@ -1,0 +1,325 @@
+>> CATALOG tags=tutorial, eridanus, new-player updated=2026-06-23
+PROJETO MCR – GUIA DE CONTEÚDO INICIAL E TUTORIAL
+(Versão 5.0 – Integração total com o SPA v3.2.0, sistema de cores, missões e progressão em Eridanus)
+Arquivo: [12] MCR - Guia de Conteúdo Inicial e Tutorial.txt
+
+🎯 OBJETIVO DESTE GUIA
+Descrever, passo a passo, a Ilha do Despertar (Eridanus) — o cenário de tutorial do Projeto MCR. Aqui o novo Aventureiro aprende, de forma orgânica e narrativa, todas as mecânicas fundamentais: combate, posturas, ferramentas, pesca, runas, ofícios e a progressão por Domínios. Nenhuma janela modal, nenhum texto frio; tudo é ensinado por NPCs com personalidade, missões com {destaque} e feedback colorido.
+
+A versão 5.0 reflecte o SPA v3.2.0 plenamente operacional: os despertares de Domínio, o ganho de afinidade, os Lampejos, os Vínculos e as Posturas estão todos activos. Os scripts de Eridanus residem em data-canary/scripts/MCR/Tutorial/ e são carregados automaticamente pelo Revscript.
+
+🚧 ESTADO ATUAL DA IMPLEMENTAÇÃO
+Todo o conteúdo descrito neste guia pode ser implementado imediatamente. Não há dependências de fases futuras. As funções do SPA (adicionarAfinidade, despertarDominio, getNivelPorAfinidade, etc.) e o sistema de cores (c(), COR) estão disponíveis como globais.
+
+⚠️ REGRAS DE REVISÃO PARA O ASSISTENTE (TUTORIAL)
+
+Imersão primeiro: Cada mecânica é apresentada por um NPC com personalidade. O jogador nunca lê um manual; ele ouve um personagem.
+
+Aprender fazendo: As missões exigem que o jogador execute a acção (atacar, pescar, minerar, etc.). A recompensa é o despertar do Domínio e a afinidade inicial.
+
+Cores e {chaves}: Todas as falas usam c() para itens, locais, domínios e acções importantes.
+
+Sem números expostos: O jogador não vê "Afinidade +50". Vê "Sentes o calor da forja a reconhecer-te."
+
+IDs de itens: Confirmar sempre com a Lista de Itens Úteis e o items.xml traduzido.
+
+Scripts salvos como ISO‑8859‑1 e colocados em MCR/Tutorial/.
+
+Verificar a existência dos métodos do SPA (todos estão activos no v3.2.0).
+
+🗺️ 1. VISÃO GERAL DE ERIDANUS
+
+Eridanus é uma ilha pequena, autossuficiente, desenhada para ensinar as mecânicas do Projeto MCR num ambiente seguro. Não há monstros letais para um recém‑chegado; os perigos são controlados (bonecos de treino, animais fracos). A ilha contém:
+
+Praia do Náufrago – Local de chegada. NPC Eldrin, o Guardião.
+
+Acampamento dos Despertos – Centro nevrálgico com a maioria dos NPCs.
+
+Floresta Baixa – Árvores, ervas, pequenos animais. Local das lições de Natureza e Pesca.
+
+Caverna Rasa – Minérios básicos e o NPC Mira.
+
+Ruínas Arcanas – Local místico para a lição de Runologia com Lyra.
+
+Campo de Treino – Onde Thorne ensina as Posturas e o combate.
+
+A progressão é não‑linear dentro da ilha; o jogador pode explorar livremente, mas cada NPC oferece uma missão introdutória ao seu Domínio.
+
+🏖️ 2. A CHEGADA – NPC ELDRIN, O GUARDIÃO
+
+Localização: Praia do Náufrago (posição inicial).
+
+Personalidade: Ancião sábio e caloroso. Fala com metáforas náuticas.
+
+Função: Equipar o jogador e ensinar o básico da interface.
+
+Script: MCR/Tutorial/eldrin.lua
+
+Diálogo de saudação:
+"Ah, mais um náufrago! As ondas trazem‑me sempre boas surpresas. Chamo‑me Eldrin. Precisas de agasalho e uma arma; a ilha não é cruel, mas também não é mansa. Aceitas a minha ajuda?"
+
+Tópicos:
+
+{aceitar} ou {sim}: Eldrin entrega os itens iniciais e explica brevemente o inventário.
+
+c("{Mochila}", COR.NPC_ITEM), c("{Tocha}", COR.NPC_ITEM), c("{Botas}", COR.NPC_ITEM), c("{Jaqueta}", COR.NPC_ITEM), c("{Calças}", COR.NPC_ITEM), c("{Espada}", COR.NPC_ITEM) — tudo colorido.
+
+Se o jogador clicar em c("Espada", COR.NPC_ITEM), Eldrin dirá: "Uma lâmina simples, mas bem forjada. Empunha‑a com respeito e descobrirás o teu primeiro Domínio."
+
+Itens entregues (IDs da Lista de Itens Úteis):
+
+ID	Item
+2854	Mochila
+2920	Tocha
+3552	Botas de Couro
+3561	Jaqueta
+3559	Calças de Couro
+3264	Espada
+Após entregar os itens, Eldrin sugere: "Vai ao Acampamento dos Despertos, a norte. Lá encontrarás Thorne, um mestre de armas. Diz‑lhe que eu te enviei."
+
+⚔️ 3. O PESO DO AÇO – NPC THORNE, O MESTRE DE ARMAS
+
+Localização: Campo de Treino (a norte da praia).
+
+Personalidade: Guerreiro veterano, voz grave, mas paciente.
+
+Função: Ensinar combate, posturas e despertar Lâminas Leves (Domínio 100).
+
+Script: MCR/Tutorial/thorne.lua
+
+Missão: "O Peso do Aço"
+
+Diálogo inicial:
+"Eldrin mandou‑te, hein? Veremos se a areia da praia já te deu calos. Pega na tua espada e ataca aqueles bonecos de treino."
+
+Objectivo: Causar 100 de dano em bonecos de treino (ou derrotar 3).
+
+Mecânicas:
+
+O jogador ataca o boneco. Cada golpe activa ProgDano (SPA), que chama adicionarAfinidade(player, DOM_ESPADAS_LEVES, pontos).
+
+Ao atingir o objectivo, despertarDominio(player, 100) é chamado.
+
+Thorne exclama: "O aço já não é um estranho em suas mãos. Sentes isso? É o teu primeiro passo nas " .. c("Lâminas", COR.DOM_COMBATE_LAMINAS) .. ". Chama‑se a isso um Despertar."
+
+Recompensa:
+
+c("{Escudo de Madeira}", COR.ITEM_COMUM) (ID 3412).
+
+50 pontos de afinidade em Lâminas Leves.
+
+Thorne explica as Posturas: "Agora que tens um escudo, podes escolher como lutar. Usa " .. c("Ímpeto", COR.POSTURA_IMPETO) .. " para atacar, " .. c("Equilíbrio", COR.POSTURA_EQUILIBRIO) .. " para te adaptares, ou " .. c("Guarda", COR.POSTURA_GUARDA) .. " para te defenderes. Experimenta‑as com Ctrl+A, Ctrl+B e Ctrl+D."
+
+Pós‑missão: Thorne permanece como instrutor; comenta a postura actual do jogador e, futuramente, pode ensinar habilidades de Lâminas.
+
+🌿 4. O TOQUE DA TERRA – NPC LYRA, A HERBALISTA
+
+Localização: Acampamento dos Despertos, junto a uma horta.
+
+Personalidade: Jovem, doce, ligada à natureza.
+
+Função: Ensinar a colheita de ervas, despertar Terra e Magia Natural (Domínio 25) e introduzir poções.
+
+Script: MCR/Tutorial/lyra.lua
+
+Missão: "As Lágrimas da Floresta"
+
+Diálogo inicial:
+"Bem‑vindo, Aventureiro! A floresta dá‑nos muito, mas precisamos de a ouvir. Consegues colher " .. c("{5 Ervas Lunares}", COR.NPC_ITEM) .. " para mim? Crescem perto das árvores antigas."
+
+Objectivo: Usar um c("{Foice}", COR.NPC_ITEM) (entregue por Lyra, ID 3456) em arbustos especiais na Floresta Baixa.
+
+Mecânicas:
+
+Ao usar a foice, o evento ProgItem dispara adicionarAfinidade(player, DOM_TERRA_VENENO, pontos).
+
+Após colher 5 ervas, despertarDominio(player, 25).
+
+Lyra: "Sentes a terra a responder‑te? É o domínio da " .. c("Terra e Magia Natural", COR.ELEM_TERRA) .. ". As plantas confiam em ti agora."
+
+Recompensa:
+
+c("{5 Poções de Vida}", COR.ITEM_RARO) (ID 266).
+
+c("{Receita: Poção de Vida}", COR.ITEM_COMUM) (pergaminho, pode ser aprendido via opcode 184 no futuro ou usado como item de missão).
+
+Lyra ensina a beber poções: "Quando a vida te faltar, usa uma poção. O teu corpo agradecerá."
+
+🔥 5. A PRIMEIRA RUNA – NPC KAZ, O RUNÓLOGO
+
+Localização: Ruínas Arcanas (a este do acampamento).
+
+Personalidade: Misterioso, irónico, apaixonado por runas.
+
+Função: Ensinar a criar runas, despertar Runologia (Domínio 22) e Fogo e Ar (Domínio 23).
+
+Script: MCR/Tutorial/kaz.lua
+
+Missão: "O Sussurro do Fogo"
+
+Diálogo inicial:
+"As runas não são meros rabiscos. São a voz do cosmos. Queres aprender a falar? Cria uma " .. c("{Runa de Fogo}", COR.ITEM_RARO) .. " comigo."
+
+Objectivo: Kaz entrega um c("{Pergaminho em Branco}", COR.ITEM_COMUM) (ID 3458). O jogador usa o pergaminho numa "Fonte Rúnica" (tile especial) próxima.
+
+Mecânicas:
+
+Ao usar o pergaminho na fonte, adicionarAfinidade(player, DOM_RUNOLOGIA, pontos) e adicionarAfinidade(player, DOM_FOGO_AR, pontos).
+
+despertarDominio(player, 22) e despertarDominio(player, 23) são chamados.
+
+Kaz: "O fogo falou por ti. Bem‑vindo à " .. c("Runologia", COR.DOM_MAGIA_RUNOLOGIA) .. ". E sente o calor nos teus dedos: é o domínio do " .. c("Fogo e Ar", COR.ELEM_FOGO) .. "."
+
+Recompensa:
+
+c("{3 Runas de Fogo}", COR.ITEM_RARO) (ID 2305).
+
+Kaz ensina a usar runas: "Arremessa‑as aos teus inimigos. O fogo fará o resto."
+
+⛏️ 6. O VEIO DA TERRA – NPC MIRA, A MINEIRA
+
+Localização: Caverna Rasa (a oeste).
+
+Personalidade: Mulher forte, pragmática, mãos calejadas.
+
+Função: Ensinar mineração, despertar Mineração (Domínio 31) e Craft (Domínio 30).
+
+Script: MCR/Tutorial/mira.lua
+
+Missão: "O Brilho da Rocha"
+
+Diálogo inicial:
+"Queres ser útil? Então pega nesta " .. c("{Picareta}", COR.NPC_ITEM) .. " e traz‑me " .. c("{3 Minérios de Ferro}", COR.NPC_ITEM) .. ". As paredes da caverna não mordem. Ainda."
+
+Objectivo: Minerar 3 pedras de minério na Caverna Rasa.
+
+Mecânicas:
+
+Ao usar a picareta (ID 3456), ProgItem dispara adicionarAfinidade(player, DOM_OFICIO_MINERACAO, pontos).
+
+Ao entregar os 3 minérios, despertarDominio(player, 31).
+
+Mira: "A rocha conhece‑te agora. És um " .. c("Mineiro", COR.DOM_OFICIO_MINERACAO) .. ". E quem extrai também cria: o " .. c("Craft", COR.DOM_OFICIO_CRAFT) .. " está ao teu alcance." (despertarDominio(player, 30) também pode ser activado, ou ganha afinidade em Craft).
+
+Recompensa:
+
+c("{3 Minérios de Ferro}", COR.ITEM_COMUM) (o jogador fica com eles).
+
+Mira forja um c("{Martelo}", COR.ITEM_COMUM) (ID 3308) para o jogador: "Usa‑o para criar os teus próprios artefactos."
+
+🎣 7. O CHAMADO DAS PROFUNDEZAS – NPC CORVUS, O PESCADOR
+
+Localização: Lagoa na Floresta Baixa.
+
+Personalidade: Velho paciente, conta histórias de monstros marinhos.
+
+Função: Ensinar pesca, despertar Pesca (Domínio 32).
+
+Script: MCR/Tutorial/corvus.lua
+
+Missão: "O Peixe que Traz Sorte"
+
+Diálogo inicial:
+"A pesca é a arte da espera. Mas não te preocupes, a lagoa é generosa. Pega nesta " .. c("{Vara de Pescar}", COR.NPC_ITEM) .. " e traz‑me um " .. c("{Peixe Colorido}", COR.ITEM_RARO) .. "."
+
+Objectivo: Pescar um Peixe Colorido (item especial, chance de 20% a cada tentativa).
+
+Mecânicas:
+
+Ao usar a vara de pescar (ID 3483), ProgItem dispara adicionarAfinidade(player, DOM_OFICIO_PESCA, pontos).
+
+Ao pescar o item especial e entregá‑lo, despertarDominio(player, 32).
+
+Corvus: "As águas já te aceitaram. És um " .. c("Pescador", COR.DOM_OFICIO_PESCA) .. ". Os peixes sussurrarão os teus segredos."
+
+Recompensa:
+
+c("{5 Peixes}", COR.ITEM_COMUM) (para regeneração).
+
+Uma dica sobre tesouros submersos: "Com mais prática, podes encontrar muito mais do que peixes."
+
+🎖️ 8. O DESPERTAR COMPLETO – CONCLUSÃO DO TUTORIAL
+
+Após completar as cinco missões (Eldrin, Thorne, Lyra, Kaz, Mira, Corvus), o jogador possui:
+
+Domínios despertados: Lâminas Leves (100), Terra e Magia Natural (25), Runologia (22), Fogo e Ar (23), Mineração (31), Pesca (32), e afinidade inicial em vários outros.
+
+Posturas de Combate explicadas e experimentadas.
+
+Equipamento inicial completo (espada, escudo, ferramentas, runas, poções).
+
+Compreensão do sistema de cores, {destaque}, HUD e toasts.
+
+NPC de encerramento – Eldrin (retorna ao diálogo):
+"Vejo nos teus olhos o brilho de quem já não é um náufrago. Os Domínios despertaram em ti. Agora, o mundo espera‑te. A cidade de " .. c("Thais", COR.NPC_LOCAL) .. " fica a sul da ilha. Leva o que aprendeste e torna‑te na lenda que quiseres ser."
+
+Teleporte para o continente: Opcode 200 ou um tile de teleport para a mainland, dependendo da configuração.
+
+🗂️ 9. ESTRUTURA DE PASTAS
+
+Todos os scripts do tutorial residem em:
+
+text
+data-canary/scripts/MCR/Tutorial/
+├── eldrin.lua
+├── thorne.lua
+├── lyra.lua
+├── kaz.lua
+├── mira.lua
+├── corvus.lua
+└── conclusao.lua (opcional)
+Os módulos globais em MCR/Geral/ (texto_colorido.lua, pronouns.lua, npc_utils.lua, util_armas.lua) e os do SPA em MCR/SPA/ são carregados automaticamente.
+
+📋 10. ITENS DO TUTORIAL – LISTA RÁPIDA
+
+ID	Item	Entregue por	Função
+2854	Mochila	Eldrin	Inventário
+2920	Tocha	Eldrin	Iluminação
+3552	Botas de Couro	Eldrin	Protecção
+3561	Jaqueta	Eldrin	Protecção
+3559	Calças de Couro	Eldrin	Protecção
+3264	Espada	Eldrin	Arma inicial
+3412	Escudo de Madeira	Thorne	Defesa (missão)
+3456	Foice	Lyra	Colheita
+266	Poção de Vida	Lyra	Cura
+3458	Pergaminho em Branco	Kaz	Runologia
+2305	Runa de Fogo	Kaz	Magia
+3456	Picareta	Mira	Mineração
+3308	Martelo	Mira	Craft
+3483	Vara de Pescar	Corvus	Pesca
+⚠️ ARMADILHAS E LIÇÕES APRENDIDAS
+
+Confirmar sempre os IDs no items.xml; a Lista de Itens Úteis é uma referência rápida, mas o XML é a fonte canónica.
+
+Os diálogos devem ser salvos como ISO‑8859‑1. Testar acentos: "Lâminas", "Poção".
+
+Verificar se despertarDominio e adicionarAfinidade estão disponíveis (sim, no v3.2.0).
+
+Não sobrecarregar o jogador com muitas cores; apenas palavras‑chave.
+
+Oferecer sempre a opção de voltar ao diálogo principal.
+
+Manter a progressão de intimidade com cada NPC (storage 100010+).
+
+🔍 CHECKLIST DE REVISÃO PARA O ASSISTENTE (TUTORIAL)
+
+☐ Eldrin equipa o jogador correctamente (6 itens)?
+☐ Thorne desperta Lâminas Leves e ensina Posturas?
+☐ Lyra desperta Terra e Magia Natural?
+☐ Kaz desperta Runologia e Fogo e Ar?
+☐ Mira desperta Mineração e Craft?
+☐ Corvus desperta Pesca?
+☐ Todos os diálogos usam c() para itens, locais, domínios e acções?
+☐ As cores são as apropriadas (COR.NPC_, COR.DOM_, etc.)?
+☐ As missões usam HUD (180) e toasts (181) para progresso?
+☐ Os IDs dos itens foram confirmados?
+☐ Scripts salvos como ISO‑8859‑1 e em MCR/Tutorial/?
+☐ O fluxo final redirecciona para o continente?
+
+📤 COMO ATUALIZAR O REPOSITÓRIO GIT
+
+bash
+git add "docs/MCR - Guia de Conteúdo Inicial e Tutorial.txt"
+git commit -m "docs: atualiza tutorial com SPA v3.2.0, cores e missões"
+git push origin main
+FIM DO GUIA DE CONTEÚDO INICIAL E TUTORIAL — VERSÃO 5.0

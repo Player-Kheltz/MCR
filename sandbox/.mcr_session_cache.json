@@ -1,0 +1,23 @@
+{
+  "pipeline_id": "super_test_20260629_191043_8780",
+  "pipeline_type": "super_test",
+  "texto_original": "Pergunta de teste",
+  "plano": [
+    {
+      "tool": "IA",
+      "solicitacao": "teste"
+    }
+  ],
+  "passos_completados": {
+    "0": {
+      "resposta": "Resposta de teste do super test",
+      "tool": "IA",
+      "solicitacao": "teste",
+      "ts": 1782771043.0008335
+    }
+  },
+  "iniciado_em": 1782771043.0002704,
+  "ultimo_passo": 0,
+  "status": "completed",
+  "concluido_em": 1782771043.0012746
+}

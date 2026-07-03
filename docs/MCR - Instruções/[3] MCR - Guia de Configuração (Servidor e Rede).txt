@@ -1,0 +1,460 @@
+>> CATALOG tags=config, network, server updated=2026-06-23
+PROJETO MCR – GUIA DE CONFIGURAÇÃO (SERVIDOR E REDE)
+Versão 4.4 – Suporte ao SPA v4.6.0, perseguição multi‑piso, novos comandos, métodos C++ expandidos
+Arquivo: [3] MCR - Guia de Configuração (Servidor e Rede).txt
+
+🎯 OBJETIVO DESTE GUIA
+Este documento reúne TODAS as configurações necessárias para que o servidor Canary, o Login Server e o ambiente de rede do Projeto MCR funcionem em harmonia. Ele cobre:
+
+O arquivo config.lua do Canary (com cada parâmetro explicado).
+
+A tabela obrigatória OTCFEATURES.
+
+O arquivo .env do Login Server (variáveis de ambiente).
+
+Portas, firewall e conectividade.
+
+Configuração do banco de dados (acesso e charset).
+
+Definição dos pronomes do personagem e da conta.
+
+Faixas de storages reservados para o SPA v4.6.0 e sistemas globais.
+
+Estrutura de pastas Revscript para os scripts do SPA.
+
+Referência às ferramentas de automação (pipeline de tradução).
+
+Versionamento com Git (boas práticas).
+
+Toda vez que for necessário ajustar uma porta, adicionar uma flag ou depurar um erro de conexão, este guia é a referência primária. A versão 4.4 atualiza as faixas de opcodes e storages para acomodar o SPA v4.6.0, documenta os novos métodos C++ (incluindo a perseguição multi‑piso com fila de transições, storeFloorChange, followTargetAcrossFloor, findFreeTileNear), e reflecte a estrutura de ficheiros actualizada.
+
+🚧 ESTADO ATUAL DA IMPLEMENTAÇÃO
+O SPA v4.6.0 está totalmente implementado no servidor. As funcionalidades abaixo estão operacionais e verificadas.
+
+✅ O que está IMPLEMENTADO e pode ser usado:
+Todos os métodos C++ necessários estão disponíveis e a funcionar, incluindo:
+
+Gestão de inventário remoto do escudeiro: openRemoteContainer, closeRemoteContainer, createInventoryContainer, getInventoryContainer, setCustomName, getCustomName.
+
+Perseguição multi‑piso: Player::storeFloorChange, Player::hasPendingFloorChange, Player::getNextFloorChange, Player::clearNextFloorChange, Creature::onFloorChange, Monster::followTargetAcrossFloor, Monster::findFreeTileNear.
+
+Métodos base da vocação: getVocationBaseMaxHealth, getVocationBaseMaxMana, getNaturalSpeed, setMovementSpeed.
+
+Os scripts em data-canary/scripts/MCR/SPA/core/ e subpastas estão completos e são carregados automaticamente pelo Revscript.
+
+As faixas de storages e opcodes aqui definidas são aplicáveis de imediato.
+
+Os opcodes 182, 183 e 184 estão reservados para feedback visual do SPA; os listeners no cliente ainda precisam ser implementados (ver Guia [2]).
+
+As Posturas de Combate reutilizam o fightMode nativo; nenhuma configuração extra é necessária.
+
+A propagação de afinidade segue o rácio 4:2:1 e está implementada em progressao.lua.
+
+A capacidade mínima de 500 caps foi removida; o ganho de capacidade é definido unicamente pelo vocations.xml.
+
+Os bónus de vida, mana e velocidade são calculados centralmente pelas funções recalcularVidaMana e recalcularVelocidade, sem risco de acumulação.
+
+O sistema de Summon/Pets está implementado com pet_system.lua, summon_configs.lua, summon_ai.lua e o template criatura_spa_template.lua.
+
+Sistema de perseguição multi‑piso: as criaturas invocadas seguem o jogador através de escadas, buracos e teleports, usando uma fila de transições capturada automaticamente em Game::internalTeleport e Map::moveCreature. A fila é limpa automaticamente quando a criatura alcança o mestre no mesmo piso.
+
+O inventário remoto do escudeiro está funcional, permitindo arrasto livre de itens entre o jogador e o escudeiro, com abertura via !escudeiro abrir.
+
+Comandos de diagnóstico e gestão disponíveis: !testecriatura, !escudeiro abrir/adicionar/pegar, !pet list/killall/info/test/behavior, /setskill, /setstatus, /addskill, !testesistema (com layout completo e suporte a múltiplos domínios).
+
+Habilidades placeholder geradas para vários domínios (Espadas Leves, Escudo, Fogo, Wands, Lâminas, Combate, Elementos, Magia, Runologia, Terra e Veneno, Sobrevivência, Summon), permitindo testes completos do sistema.
+
+🚧 O que está em DESENVOLVIMENTO ACTIVO:
+Geração das habilidades finais (35+ por domínio) seguindo o Guia [13], o Gabarito de Habilidades v4.5 e o Documento de Personalidade e Identidade de Domínios.
+
+Refatoração do feedback visual para todos os domínios, garantindo efeitos temáticos consistentes.
+
+📅 O que AINDA NÃO está implementado (roadmap futuro):
+Domínios de Ofícios (3) e Natureza (4).
+
+Tutorial da Ilha do Despertar (Eridanus).
+
+Listeners para os opcodes 182, 183 e 184 no cliente.
+
+Script Python para adicionar elementalBond no items.xml.
+
+⚠️ REGRAS DE REVISÃO PARA O ASSISTENTE (CONFIGURAÇÃO / INFRAESTRUTURA)
+Ao sugerir qualquer alteração em arquivos de configuração, .env, regras de firewall ou ajustes no Git, o assistente DEVE:
+
+Jamais incluir senhas reais em texto. Utilize SEMPRE o placeholder <Senha>.
+
+Garantir que as portas mencionadas são EXACTAMENTE: 7171, 7172, 7173, 8080, 3306.
+
+Verificar se as flags em OTCFEATURES no config.lua estão sincronizadas com o que o OTClient realmente espera.
+
+Sempre que adicionar uma nova variável ao .env, incluir a documentação correspondente e atualizar o arquivo .env.example.
+
+Nas instruções de versionamento, lembrar que o PowerShell requer aspas duplas em caminhos com espaços.
+
+Ao configurar charset do banco, sempre forçar utf8mb4 (COLLATE utf8mb4_unicode_ci).
+
+O pronome do personagem é armazenado na coluna nativa players.pronoun. O storage 100001 NÃO é mais utilizado.
+
+O pronome da conta (jogador/jogadora) é armazenado em accounts.player_pronoun.
+
+As faixas de storages reservados (100010+ para intimidade, 50000+ para missões, 90000–96999 para SPA) continuam válidas.
+
+Os opcodes 182, 183 e 184 estão reservados para o SPA, dentro da faixa 180‑199.
+
+As Posturas de Combate reutilizam os modos de luta nativos (fightMode).
+
+Os scripts do SPA v4.6.0 são carregados automaticamente pelo Revscript a partir das pastas data-canary/scripts/MCR/SPA/core/, habilidades/, comandos/, eventos/, criaturas/ e data-canary/scripts/MCR/Geral/.
+
+📄 1. CONFIGURAÇÃO DO CANARY (config.lua)
+Este arquivo está localizado na raiz do servidor Canary (ProjetoMCR/Canary/config.lua). Abaixo, cada parâmetro obrigatório e seu respectivo valor no Projeto MCR.
+
+lua
+-- Conexão com o Banco de Dados
+mysqlHost = "127.0.0.1"
+mysqlUser = "root"
+mysqlPass = "<Senha>" -- ⚠️ usar placeholder, senha real nunca em documentação pública
+mysqlDatabase = "BancoServer"
+mysqlPort = 3306
+mysqlInitCommand = "SET NAMES 'utf8mb4'" -- Garante UTF-8 completo na sessão
+
+-- Autenticação e Criptografia
+passwordType = "sha1" -- Hash de senhas (SHA1 compatível com Login Server)
+encryptionType = "aes" -- Criptografia de rede (protocolo 15.00)
+
+-- Rede e Portas
+ip = "0.0.0.0" -- Essencial para aceitar conexões externas (inclusive localhost)
+statusPort = 7171 -- Porta de status (opcional, mas configurada)
+loginPort = 7172 -- Porta de login (usada pelo Login Server internamente)
+gamePort = 7173 -- Porta do jogo (players se conectam a esta)
+
+-- Identificação do Servidor
+serverName = "Projeto MCR" -- Nome exibido no cliente
+ownerEmail = "admin@projetomcr.com"
+url = "http://projetomcr.com/"
+url_shop = "http://loja.projetomcr.com/"
+motd = "Bem-vindo ao Projeto MCR! Uma aventura fantasiosa te aguarda."
+
+-- Limites
+maxPlayers = 1000
+maxMessageBuffer = 5000
+
+-- Rates (multiplicadores de experiência, skill, etc.)
+rateExp = 5.0
+rateSkill = 3.0
+rateLoot = 2.0
+rateMagic = 3.0
+rateSpawn = 2.0
+
+-- PvP / Frag
+useFragHandler = true
+
+-- Recursos de Cliente (OTCFeatures) – ver secção 2 abaixo
+
+-- Outras
+enableLiveCasting = false
+showPlayerInfo = true
+sqlType = "mysql"
+⚠️ NOTA CRÍTICA: ip = "0.0.0.0" é necessário para evitar erro 10060 no cliente mesmo em testes locais. O default 127.0.0.1 não permite que o OTClient se conecte ao ProtocolGame em certas condições.
+
+📋 2. TABELA OTCFEATURES (CONFIG.LUA)
+Esta tabela informa ao OTClient quais recursos estendidos o servidor suporta. DEVE ser mantida exatamente como abaixo. Qualquer alteração aqui precisa ser refletida nos módulos do OTClient.
+
+lua
+OTCFEATURES = {
+    modalWindows = true,          -- Janelas modais (Banco, Loja, confirmações críticas)
+    extendedOpcode = true,        -- Comunicação por opcodes customizados (essencial para SQH e SPA)
+    changeMapAwareRange = true,
+    newWalking = false,           -- ⚠️ MANTENHA FALSE, a menos que o servidor tenha suporte compilado
+    newCreatureIcons = true,
+    newPartyList = true,
+    newBattlList = true,          -- Lista de batalha otimizada (dispensa game_battle)
+    shopModule = true,            -- Loja in-game
+    playerMounts = true,
+    playerAddons = true,
+    expertMode = true,
+    dailyReward = true,
+    imbuementSystem = true,
+    analytics = false             -- Sempre desabilitado
+}
+Os opcodes estendidos usados pelo SPA v4.6.0 (182, 183, 184) dependem de extendedOpcode = true. Esta flag já está activa e garante a comunicação bidirecional. O canal 24, usado para as mensagens coloridas do SPA, não requer nenhuma flag adicional.
+
+🌐 3. LOGIN SERVER – ARQUIVO .env
+Local: ProjetoMCR/LoginServer/.env
+
+Este arquivo contém variáveis de ambiente sensíveis. NÃO é versionado (está no .gitignore). Um template público está em LoginServer/.env.example.
+
+dotenv
+# Banco de dados (mesmo do Canary)
+MYSQL_DBNAME=BancoServer
+MYSQL_HOST=127.0.0.1
+MYSQL_PORT=3306
+MYSQL_USER=root
+MYSQL_PASS=<Senha>
+
+# Login Server
+LOGIN_IP=0.0.0.0
+LOGIN_HTTP_PORT=8080
+
+# Servidor de jogo (Canary) – informações enviadas ao cliente após autenticação
+SERVER_IP=127.0.0.1
+SERVER_NAME=Projeto MCR
+SERVER_PORT=7173          # ⚠️ DEVE SER 7173 (gamePort), NUNCA 7172. Erro 10060 se errado.
+SERVER_LOCATION=Brasil
+VOCATIONS=0               # Apenas Aventureiro (vocation 0). O SPA v4.6.0 substitui as vocações tradicionais.
+⚠️ LIÇÃO CRÍTICA: O campo SERVER_PORT é a porta do ProtocolGame (7173). Um valor errado (7172) causou timeout 10060. Verifique SEMPRE essa variável após alterações no config.lua.
+
+⚠️ ATUALIZAÇÃO SPA v4.6.0: A variável VOCATIONS é "0". O MCR não tem múltiplas vocações; todos os personagens são Aventureiros. Se o Login Server exigir uma lista, mantenha apenas {0}.
+
+🔥 4. FIREWALL E CONECTIVIDADE
+Para testes locais (tudo em 127.0.0.1), o firewall pode não bloquear, mas em produção ou rede local, as seguintes regras DEVEM ser aplicadas:
+
+Porta 8080 (TCP): Acesso público – Login Server HTTP. Necessário para que o cliente faça login e crie contas.
+
+Porta 7172 (TCP): Comunicação interna entre Login Server e Canary (ProtocolLogin). NÃO deve ser exposta ao público externo.
+
+Porta 7173 (TCP): Acesso público – ProtocolGame. Players se conectam directamente.
+
+Porta 3306 (TCP): MySQL/MariaDB. JAMAIS exponha à internet.
+
+A porta 8080 também é usada pelo cliente para chamar /guest_login (fluxo do Salão dos Destinos).
+
+No Windows, criar regra via PowerShell (Admin):
+
+powershell
+New-NetFirewallRule -DisplayName "MCR Game 7173" -Direction Inbound -LocalPort 7173 -Protocol TCP -Action Allow
+New-NetFirewallRule -DisplayName "MCR HTTP 8080" -Direction Inbound -LocalPort 8080 -Protocol TCP -Action Allow
+Testar conectividade:
+
+text
+Test-NetConnection 127.0.0.1 -Port 7173
+Se falhar, verificar se o Canary está rodando e se ip = "0.0.0.0" está configurado.
+
+🗄️ 5. BANCO DE DADOS – INFORMAÇÕES MÍNIMAS
+Consulte o Guia [9] para detalhes completos.
+
+Caminho do schema: Canary/data/schema.sql (importar uma vez).
+
+Login Server também usa o mesmo banco (BancoServer).
+
+Charset obrigatório: utf8mb4 COLLATE utf8mb4_unicode_ci.
+
+Comando para criar:
+
+sql
+CREATE DATABASE BancoServer CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+XAMPP (MariaDB): a senha do root é configurada via:
+
+sql
+SET PASSWORD FOR 'root'@'localhost' = PASSWORD('<Senha>');
+phpMyAdmin: configurar config.inc.php com $cfg['Servers'][$i]['password'] = '<Senha>'; e $cfg['Servers'][$i]['auth_type'] = 'config'; (para evitar tela de login).
+
+As tabelas do SPA v4.6.0 (dominios_def, habilidades_def, player_dominios, player_habilidades) já fazem parte do schema MCR e estão populadas com a hierarquia de domínios actualizada, incluindo Summon (28), Sobrevivência (400) como ramo de Natureza (4), e todas as especialidades de combate, magia e suporte.
+
+📚 6. VERSIONAMENTO COM GIT (BOAS PRÁTICAS)
+O repositório já está estruturado. Os arquivos sensíveis NÃO são commitados:
+
+.gitignore da raiz inclui:
+
+Canary/config.lua
+
+LoginServer/.env
+
+MyAAC/config.local.php
+
+Sempre que alterar configurações, atualize também os arquivos de exemplo (.env.example, config.lua.example).
+
+Nomes de arquivos com espaços exigem aspas duplas no PowerShell:
+
+text
+git add "docs/MCR - Guia de Configuração (Servidor e Rede).txt"
+🗂️ 7. PRONOMES DO PERSONAGEM E DA CONTA
+IMPORTANTE: O Projeto MCR distingue dois conceitos de pronome:
+
+Pronome da conta: como o Oráculo se dirige ao JOGADOR. Armazenado em accounts.player_pronoun (0 = não definido, 1 = jogador, 2 = jogadora).
+
+Pronome do personagem: como os NPCs e o mundo se referem ao avatar. Armazenado na coluna nativa players.pronoun (0 = usa o sexo, 2 = ela, 3 = ele...).
+
+O storage 100001 NÃO é mais usado para pronome do personagem. Ele foi removido dessa função e está livre para outros usos (se necessário).
+
+Para consultar o pronome do personagem em scripts Lua, utilize o módulo pronouns.lua localizado em data-canary/scripts/MCR/Geral/pronouns.lua. Este módulo é carregado automaticamente pelo Revscript, portanto NÃO é necessário usar dofile para carregá‑lo. Basta chamar:
+
+lua
+local subject = Pronouns.getSubject(player)  -- "he", "she" ou "they"
+Este módulo consulta automaticamente player:getPronoun() e faz fallback para o sexo do personagem quando o valor é 0.
+
+🗂️ 8. STORAGES E OPCODES RESERVADOS PARA O SPA v4.6.0 E SISTEMAS GLOBAIS
+A fim de evitar conflitos, as seguintes faixas estão reservadas:
+
+Faixa / ID	Sistema	Descrição
+100010–109999	Intimidade com NPCs	Nível de intimidade: 0=desconhecido, 1=conhecido, 2=amigo, 3=confidente.
+50000–50999	Missões (progresso)	Storages de progresso de missões.
+90000–96999	SPA (Progressão)	Storages de velocidade, dano, regeneração, leech, buffer de afinidade, sintonia, Lampejos, locks de habilidades, buffs, SkillTrees. Storages de Chi (97880-97881) e outras (ex.: Desarmado 97000) são geridas manualmente e NÃO são limpas em massa pelo !resetspa.
+90001	Temporário (accountId)	Usado pelo Oráculo durante gerenciamento de contas.
+Opcodes 180‑199	SQH e SPA	HUD de missões (180), toasts (181), ícone de Vínculo (182), partículas de Estados de Alma (183), janela de conhecimento (184).
+Opcode 200	Migração de conta	Usado pelo Oráculo para transferir o jogador da Alma para a conta permanente.
+Os opcodes 182, 183 e 184 são dedicados ao feedback visual do SPA. O desenvolvedor deve garantir que os listeners no cliente estejam sincronizados com esses números.
+
+As Posturas de Combate NÃO usam opcodes; são baseadas no fightMode enviado pelo cliente (já nativo) e interpretado pelo script postura.lua (SPA/core/) do lado do servidor.
+
+O progresso de Afinidade, níveis e Estados de Alma são armazenados nas tabelas player_dominios e player_habilidades do banco de dados, com buffer temporário em storages (95001+). Storages adicionais podem ser usadas para migração, mas devem ser documentadas.
+
+O Arremesso de Escudo (140) e a Sinergia Elemental utilizam as mesmas faixas de storages do SPA (90000+).
+
+A função recalcularVidaMana usa os métodos nativos getVocationBaseMaxHealth e getVocationBaseMaxMana, não dependendo de storages para a base.
+
+A função recalcularVelocidade usa getNaturalSpeed e setMovementSpeed, também sem storages auxiliares.
+
+O sistema de Summon/Pets não introduz novas faixas de storages reservadas; utiliza storages locais geridas por pet_system.lua e ActivePets.
+
+🗂️ 9. ESTRUTURA DE PASTAS REVSCRIPT PARA O SPA v4.6.0
+Os scripts do Sistema de Progressão do Aventureiro residem em:
+
+data-canary/scripts/MCR/SPA/
+
+Scripts genéricos e utilitários partilhados (como texto_colorido.lua v10.0, pronouns.lua, util_armas.lua, npc_utils.lua) ficam em:
+
+data-canary/scripts/MCR/Geral/
+
+O Canary, com suporte a Revscript, carrega automaticamente todos os ficheiros .lua nessas pastas e subpastas. Não é necessário registá‑los manualmente no config.lua ou em qualquer outro lugar. A estrutura actual é:
+
+text
+data-canary/scripts/MCR/
+├── SPA/
+│   ├── core/
+│   │   ├── constantes.lua (v5.5)
+│   │   ├── progressao.lua (v5.1)
+│   │   ├── sintonia.lua (v6.2)
+│   │   ├── eventos.lua (v6.2.1)
+│   │   ├── postura.lua (v6.2.1)
+│   │   ├── buff_system.lua (v6.1)
+│   │   ├── login.lua (v5.6.1)
+│   │   ├── think_master.lua (v3.4.1)
+│   │   ├── skilltree.lua (v6.0)
+│   │   ├── passivas.lua (contém recalcularVidaMana e recalcularVelocidade)
+│   │   ├── passivas_ataque.lua (v5.0)
+│   │   ├── postura_config.lua (v5.0)
+│   │   ├── motor_habilidades.lua (v2.0)
+│   │   ├── narrativa_habilidades.lua (v1.0)
+│   │   ├── funcoes_habilidade.lua (v2.0.2)
+│   │   ├── pet_system.lua (novo)
+│   │   ├── summon_configs.lua (novo)
+│   │   └── summon_ai.lua (novo)
+│   ├── habilidades/
+│   │   ├── _init_habilidades.lua
+│   │   ├── habilidade_gabarito.lua (v4.5)
+│   │   └── (ficheiros modulares por domínio: espadas_leves, escudo, fogo, laminas, elementos, combate, magia, runologia, wands, terra_veneno, sobrevivencia, summon, etc.)
+│   ├── comandos/
+│   │   └── comandos_spa.lua (v5.2, inclui !testesistema, !escudeiro, !pet, etc.)
+│   ├── eventos/
+│   │   ├── advance.lua (evento SPASpeedAdvance)
+│   │   └── spa_death.lua (novo, evento de morte da CriaturaSPA)
+│   └── criaturas/
+│       └── criatura_spa_template.lua (novo, template Revscript para CriaturaSPA)
+├── Geral/
+│   ├── texto_colorido.lua (v10.0)
+│   ├── util_armas.lua (v6.2.1)
+│   ├── util_criaturas.lua (v5.0)
+│   ├── util_efeitos.lua (v5.1)
+│   ├── pronouns.lua
+│   ├── npc_utils.lua (refatorado, sem dependência de vocações)
+│   └── ...
+├── Criacao/
+│   ├── oraculo.lua
+│   └── ...
+├── Tutorial/
+│   ├── eldrin.lua
+│   ├── thorne.lua
+│   └── ...
+Cada script pode conter múltiplos eventos (onLogin, onKill, onFightModeChange, onAdvance, onDeath, etc.) e é completamente modular. Funções definidas nos módulos em Geral/ e SPA/core/ tornam‑se globais automaticamente e podem ser chamadas por qualquer outro script sem necessidade de dofile. Por exemplo, as funções c(), enviarMsgColorida(), adicionarAfinidade(), getWeaponEspecialidade(), getElementalProjectile(), recalcularVidaMana(), recalcularVelocidade(), PetSystem.registerPet() e a tabela COR (v10.0) estão disponíveis globalmente após o carregamento.
+
+🗺️ 10. CONFIGURAÇÃO DO MAP EDITOR (RME)
+O RME modificado importa monstros e NPCs diretamente dos diretórios Lua do Canary. As configurações relevantes estão em:
+
+Preferências → Monstros: Diretório Lua (ex: data/monster)
+
+Preferências → NPCs: Diretório Lua (ex: data/npc)
+
+Estes caminhos devem apontar para os diretórios do servidor Canary MCR. A conversão ISO‑8859‑1 → UTF‑8 já está incorporada no RME.
+
+⚠️ ARMADILHAS E LIÇÕES APRENDIDAS
+SERVER_PORT errado: Usar 7172 no .env causa erro 10060 (timeout) no cliente. O campo externalport na resposta de login deve ser 7173.
+
+ip = "127.0.0.1": Pode impedir conexões do OTClient mesmo no mesmo PC. Sempre use ip = "0.0.0.0".
+
+Senha do MariaDB: use SET PASSWORD FOR, não ALTER USER.
+
+phpMyAdmin sem senha: configurar config.inc.php correctamente.
+
+Cache do OTClient: manter cache local (cache/).
+
+OTCFeatures.newWalking: false evita problemas.
+
+Firewall no Windows: sempre verificar com Test-NetConnection.
+
+Botão "Criar Conta" removido: agora é "Salão dos Destinos".
+
+storage 100001 abolido para pronome; usar players.pronoun.
+
+A coluna lastlogin EXISTE na tabela players (confirmado no schema do projecto). Pode ser usada em scripts de inicialização.
+
+Os scripts da pasta MCR/SPA/ são carregados automaticamente (Revscript). Se um evento não dispara, verifique se o ficheiro está na pasta correcta e se não há erros de sintaxe.
+
+O módulo pronouns.lua está em data-canary/scripts/MCR/Geral/ e NÃO requer dofile para ser usado.
+
+A tabela COR (v10.0) e a função c() são definidas em texto_colorido.lua (Geral/) e estão disponíveis globalmente. Use c("texto", COR.CONSTANTE) para mensagens coloridas.
+
+As storages do SPA v4.6.0 (90004–96999) não devem ser usadas por outros sistemas para evitar conflitos. Consulte constantes.lua (SPA/core/) para a lista exacta.
+
+O buffer de afinidade (storages 95001+) é temporário e gerido automaticamente; não o manipule manualmente fora do SPA.
+
+A nova estrutura de pastas (SPA/core/, habilidades/, comandos/, eventos/, criaturas/) faz parte do SPA v4.6.0 e deve ser preservada.
+
+A capacidade do jogador não tem mais um mínimo fixo de 500; depende apenas do gaincap definido no vocations.xml.
+
+Os bónus de vida, mana e velocidade são calculados com base na vocação e nível, sem acumulação. As funções recalcularVidaMana e recalcularVelocidade são chamadas periodicamente pelo think_master e no login.
+
+Para testar o sistema de Summon, use !testecriatura para invocar um escudeiro, !escudeiro abrir para ver o inventário, e !escudeiro adicionar/!escudeiro pegar para transferir itens.
+
+🔍 CHECKLIST DE REVISÃO PARA O ASSISTENTE (CONFIGURAÇÃO / INFRAESTRUTURA)
+Antes de finalizar qualquer alteração em arquivos de configuração ou sugestão de rede, o assistente DEVE verificar:
+
+☐ Senhas reais NUNCA aparecem no texto; placeholder <Senha> foi utilizado?
+
+☐ Portas mencionadas são exactamente: 7171, 7172, 7173, 8080, 3306?
+
+☐ OTCFEATURES no config.lua estão sincronizadas com o cliente (extendedOpcode=true, etc.)?
+
+☐ Se uma nova variável de ambiente foi adicionada ao .env, o .env.example foi atualizado?
+
+☐ Comandos Git sugeridos estão com aspas duplas para caminhos com espaços (PowerShell)?
+
+☐ Configuração de charset do banco como utf8mb4 foi mencionada?
+
+☐ O pronome do personagem é obtido via players.pronoun e módulo pronouns.lua (sem storage 100001)?
+
+☐ O pronome da conta está em accounts.player_pronoun?
+
+☐ Storages globais e do SPA v4.6.0 não estão a ser invadidos por novos sistemas?
+
+☐ A pasta data-canary/scripts/MCR/SPA/core/, habilidades/, comandos/, eventos/, criaturas/ e MCR/Geral/ existem e contêm os scripts necessários?
+
+☐ As Posturas de Combate dependem apenas do fightMode nativo, sem necessidade de config extra?
+
+☐ As ferramentas de automação (pipeline) foram consideradas se a alteração envolver tradução de strings?
+
+☐ A variável VOCATIONS no .env está definida como "0" (Aventureiro) e documentada?
+
+☐ As funções globais (COR v10.0, c(), adicionarAfinidade, recalcularVidaMana, PetSystem.registerPet, etc.) estão disponíveis e não há conflitos de nomes?
+
+☐ Os novos métodos C++ (getVocationBaseMaxHealth, getVocationBaseMaxMana, getNaturalSpeed, setMovementSpeed, openRemoteContainer, closeRemoteContainer, createInventoryContainer, getInventoryContainer, setCustomName, getCustomName) estão disponíveis e a funcionar?
+
+☐ O sistema de Summon/Pets está operacional (testar com !testecriatura e !escudeiro abrir)?
+
+📤 COMO ATUALIZAR O REPOSITÓRIO GIT
+text
+git add "<arquivos alterados>"
+git commit -m "feat(config): Atualiza guia de configuração com SPA v4.6.0, Summon/Pets e nova estrutura de ficheiros (v4.3)"
+git push origin main
+⚠️ PowerShell: aspas duplas em caminhos com espaços.
+
+FIM DO GUIA DE CONFIGURAÇÃO (SERVIDOR E REDE) — VERSÃO 4.3

@@ -1,0 +1,281 @@
+{
+  "ctx": "gap_combinador",
+  "licoes": [
+    {
+      "erro": "combinador:Ordem_txt",
+      "causa": "conceito: combinador:Ordem_txt",
+      "solucao": "[Fonte: E:\\Projeto MCR\\docs\\Localizador Projeto MCR\\Server (CodigoFonte)\\Ordem.txt]\npython 1-extrator.py \"E:\\Projeto MCR\\Canary\\src\" extraido.txt \npython 2-tradutor.py extraido.txt traduzido.txt  \npython 3-removedor.py traduzido.txt    \npython 4-reparador.py extraido.txt traduzido.txt reparado.txt   \npython 5-corretor.py extraido.txt traduzido.txt reparado.txt  \npython 6-aplicador.py extraido.txt reparado.txt      \npython 7-acent",
+      "ctx": "gap_combinador",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782920779.4606233,
+      "id": "L1169"
+    },
+    {
+      "erro": "combinador:Comandos_txt",
+      "causa": "conceito: combinador:Comandos_txt",
+      "solucao": "[Fonte: E:\\Projeto MCR\\docs\\Localizador Projeto MCR\\Server (Data)\\Comandos.txt]\n-additem.py \"E:\\Projeto MCR\\Canary\"\npython 0-converter-custom-loot.py \"E:\\Projeto MCR\\Canary\"\n\n# 1. Extrair texto visível (apenas scripts Lua)\npython 1-extrair.py \"E:\\Projeto MCR\\Canary\" extraido.txt\n\n# 2. Traduzir (usa cache + dicionário MCR + Google Translate)\npython 2-traduzir.py extraido.txt traduzido.txt\n\n# 3. Reparar (capitalização, dicionário MCR forçado)\npython 3-reparar.py extraido.txt tr",
+      "ctx": "gap_combinador",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782920783.5254822,
+      "id": "L1170"
+    },
+    {
+      "erro": "combinador:Pendências_md",
+      "causa": "conceito: combinador:Pendências_md",
+      "solucao": "[Fonte: E:\\Projeto MCR\\docs\\MCR - Instruções\\DevLog\\Pendências.md]\nranscript_api` v1.2.4 (API: `fetch(video_id)` retorna objetos com `.text`)\n- Detecta YouTube URLs e extrai transcrição em vez de baixar HTML\n\n### KG (Knowledge Graph)\n- Auto-diagnóstico a cada 5 ciclos (monitora saúde)\n- Auto-melhoria a cada 10 ciclos (dedup, remove lixo)\n- Compactado: 243KB → 185KB (-22%)\n- Educação continuada: toda ação relevante vira lesson\n\n### Loop OODA (mcr_loop.py)\n- Auto-d",
+      "ctx": "gap_combinador",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782920787.5791,
+      "id": "L1171"
+    },
+    {
+      "erro": "combinador:PATTERN_ENGINE_md",
+      "causa": "conceito: combinador:PATTERN_ENGINE_md",
+      "solucao": "[Fonte: E:\\Projeto MCR\\docs\\plano\\PATTERN_ENGINE.md]\nó confirma. O futuro só direciona.\n\n## Tokenização por domínio\n\n| Domínio | O que é um token | Como extrair |\n|---------|-----------------|-------------|\n| **Código** | AST node, indent level, keyword | `ast.parse()` + `tokenize` |\n| **Texto** | Palavra, pontuação, POS tag, tamanho de frase | `re.findall()` + métricas |\n| **Logs** | Tipo de evento, timestamp, erro | `json.loads()` em `.jsonl` |\n| ",
+      "ctx": "gap_combinador",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782920791.6377506,
+      "id": "L1172"
+    },
+    {
+      "erro": "combinador:recentes_md",
+      "causa": "conceito: combinador:recentes_md",
+      "solucao": "[Fonte: docs\\lessons\\recentes.md]\ncompleta: ReAct + Busca Estrategica + BlankFiller + 5 camadas\n\n### Resumo\nSessao mais produtiva ate agora. Implementamos a arquitetura AGI completa em 5 camadas, substituimos o pipeline cascade fixo por ReAct loop dinamico, criamos busca estrategica para descoberta de codigo real, e integramos BlankFiller para criacao segura.\n\n### O que foi feito\n\n1. **FASE 1 — SENSE** (completa):\n   - Security: f",
+      "ctx": "gap_combinador",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782924821.6166027,
+      "id": "L1322",
+      "inactive": true
+    },
+    {
+      "erro": "combinador:reparado_txt",
+      "causa": "conceito: combinador:reparado_txt",
+      "solucao": "[Fonte: docs\\Localizador Projeto MCR\\Server (Data)\\reparado.txt]\n isso, sim. Custa 5.000 ouro, no entanto. Você ainda está interessado?\n137_4_say=E aqui estão eles! Agora esqueça de onde você os tirou.\n139_4_say=Você não tem dinheiro suficiente.\n151_4_say=ÓTIMO! Se você precisar de um emprego como meu segurança pessoal, me avise. Aqui está a recompensa que prometi a você.\n157_4_say=Volte Quando Encontrar Minhas Coisas.\n171_5_say=Você precisa de 5.000 GPS e rese",
+      "ctx": "gap_combinador",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782924826.5256915,
+      "id": "L1323",
+      "inactive": true
+    },
+    {
+      "erro": "combinador:traduzido_txt",
+      "causa": "conceito: combinador:traduzido_txt",
+      "solucao": "[Fonte: docs\\Localizador Projeto MCR\\Server (Data)\\traduzido.txt]\n isso, sim. Custa 5.000 ouro, no entanto. Você ainda está interessado?\n137_4_say=E aqui estão eles! Agora esqueça de onde você os tirou.\n139_4_say=Você não tem dinheiro suficiente.\n151_4_say=ÓTIMO! Se você precisar de um emprego como meu segurança pessoal, me avise. Aqui está a recompensa que prometi a você.\n157_4_say=Volte quando encontrar minhas coisas.\n171_5_say=Você precisa de 5.000 GPS e rese",
+      "ctx": "gap_combinador",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782924830.6098704,
+      "id": "L1324",
+      "inactive": true
+    },
+    {
+      "erro": "combinador:[6] MCR - Guia de Narrativa e Diálogos_txt",
+      "causa": "conceito: combinador:[6] MCR - Guia de Narrativa e Diálogos_txt",
+      "solucao": "[Fonte: docs\\MCR - Instruções\\[6] MCR - Guia de Narrativa e Diálogos.txt]\nNPCs sobre os Domínios (incluindo os novos Summon (28) e Sobrevivência (400)), níveis de afinidade (agora traduzidos em níveis de maestria), Lampejos, Vínculos, Maestria (Vínculo permanente no nível 20), Sinergia Elemental, Arremesso de Escudo, Posturas de Combate e o novo sistema de bónus percentuais de vida, mana e velocidade de movimento. Integra também as novas funções centrais de recálculo (r",
+      "ctx": "gap_combinador",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782924834.6715953,
+      "id": "L1325",
+      "inactive": true
+    },
+    {
+      "erro": "combinador:[8] MCR - Guia de Criação de Conta e Personagem_txt",
+      "causa": "conceito: combinador:[8] MCR - Guia de Criação de Conta e Personagem_txt",
+      "solucao": "[Fonte: docs\\MCR - Instruções\\[8] MCR - Guia de Criação de Conta e Personagem.txt]\nlha de vocação — o\npersonagem é sempre um Aventureiro (vocation = 0). A benção narrativa do\nOráculo agora ecoa o despertar dos Domínios que ocorrerá em Eridanus.\n\nComponentes abordados:\n\nBotão \"Salão dos Destinos\" (entrada única para novos jogadores e\ngerenciamento).\n\nContas guest temporárias e personagem Alma descartável.\n\nNPC Oráculo como central de autoatendimento (criação de conta, criação de\n",
+      "ctx": "gap_combinador",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782924838.730991,
+      "id": "L1326",
+      "inactive": true
+    },
+    {
+      "erro": "combinador:recentes_md",
+      "causa": "conceito: combinador:recentes_md",
+      "solucao": "[Fonte: docs\\lessons\\recentes.md]\ncompleta: ReAct + Busca Estrategica + BlankFiller + 5 camadas\n\n### Resumo\nSessao mais produtiva ate agora. Implementamos a arquitetura AGI completa em 5 camadas, substituimos o pipeline cascade fixo por ReAct loop dinamico, criamos busca estrategica para descoberta de codigo real, e integramos BlankFiller para criacao segura.\n\n### O que foi feito\n\n1. **FASE 1 — SENSE** (completa):\n   - Security: f",
+      "ctx": "gap_combinador",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782926054.4037223,
+      "id": "L1385",
+      "inactive": true
+    },
+    {
+      "erro": "combinador:reparado_txt",
+      "causa": "conceito: combinador:reparado_txt",
+      "solucao": "[Fonte: docs\\Localizador Projeto MCR\\Server (Data)\\reparado.txt]\n isso, sim. Custa 5.000 ouro, no entanto. Você ainda está interessado?\n137_4_say=E aqui estão eles! Agora esqueça de onde você os tirou.\n139_4_say=Você não tem dinheiro suficiente.\n151_4_say=ÓTIMO! Se você precisar de um emprego como meu segurança pessoal, me avise. Aqui está a recompensa que prometi a você.\n157_4_say=Volte Quando Encontrar Minhas Coisas.\n171_5_say=Você precisa de 5.000 GPS e rese",
+      "ctx": "gap_combinador",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782926058.4752362,
+      "id": "L1386",
+      "inactive": true
+    },
+    {
+      "erro": "combinador:traduzido_txt",
+      "causa": "conceito: combinador:traduzido_txt",
+      "solucao": "[Fonte: docs\\Localizador Projeto MCR\\Server (Data)\\traduzido.txt]\n isso, sim. Custa 5.000 ouro, no entanto. Você ainda está interessado?\n137_4_say=E aqui estão eles! Agora esqueça de onde você os tirou.\n139_4_say=Você não tem dinheiro suficiente.\n151_4_say=ÓTIMO! Se você precisar de um emprego como meu segurança pessoal, me avise. Aqui está a recompensa que prometi a você.\n157_4_say=Volte quando encontrar minhas coisas.\n171_5_say=Você precisa de 5.000 GPS e rese",
+      "ctx": "gap_combinador",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782926062.541261,
+      "id": "L1387",
+      "inactive": true
+    },
+    {
+      "erro": "combinador:[6] MCR - Guia de Narrativa e Diálogos_txt",
+      "causa": "conceito: combinador:[6] MCR - Guia de Narrativa e Diálogos_txt",
+      "solucao": "[Fonte: docs\\MCR - Instruções\\[6] MCR - Guia de Narrativa e Diálogos.txt]\nNPCs sobre os Domínios (incluindo os novos Summon (28) e Sobrevivência (400)), níveis de afinidade (agora traduzidos em níveis de maestria), Lampejos, Vínculos, Maestria (Vínculo permanente no nível 20), Sinergia Elemental, Arremesso de Escudo, Posturas de Combate e o novo sistema de bónus percentuais de vida, mana e velocidade de movimento. Integra também as novas funções centrais de recálculo (r",
+      "ctx": "gap_combinador",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782926067.3926568,
+      "id": "L1388",
+      "inactive": true
+    },
+    {
+      "erro": "combinador:[8] MCR - Guia de Criação de Conta e Personagem_txt",
+      "causa": "conceito: combinador:[8] MCR - Guia de Criação de Conta e Personagem_txt",
+      "solucao": "[Fonte: docs\\MCR - Instruções\\[8] MCR - Guia de Criação de Conta e Personagem.txt]\nlha de vocação — o\npersonagem é sempre um Aventureiro (vocation = 0). A benção narrativa do\nOráculo agora ecoa o despertar dos Domínios que ocorrerá em Eridanus.\n\nComponentes abordados:\n\nBotão \"Salão dos Destinos\" (entrada única para novos jogadores e\ngerenciamento).\n\nContas guest temporárias e personagem Alma descartável.\n\nNPC Oráculo como central de autoatendimento (criação de conta, criação de\n",
+      "ctx": "gap_combinador",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782926071.466539,
+      "id": "L1389",
+      "inactive": true
+    },
+    {
+      "erro": "combinador:recentes_md",
+      "causa": "conceito: combinador:recentes_md",
+      "solucao": "[Fonte: docs\\lessons\\recentes.md]\ncompleta: ReAct + Busca Estrategica + BlankFiller + 5 camadas\n\n### Resumo\nSessao mais produtiva ate agora. Implementamos a arquitetura AGI completa em 5 camadas, substituimos o pipeline cascade fixo por ReAct loop dinamico, criamos busca estrategica para descoberta de codigo real, e integramos BlankFiller para criacao segura.\n\n### O que foi feito\n\n1. **FASE 1 — SENSE** (completa):\n   - Security: f",
+      "ctx": "gap_combinador",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782928654.9118764,
+      "id": "L1450"
+    },
+    {
+      "erro": "combinador:reparado_txt",
+      "causa": "conceito: combinador:reparado_txt",
+      "solucao": "[Fonte: docs\\Localizador Projeto MCR\\Server (Data)\\reparado.txt]\n isso, sim. Custa 5.000 ouro, no entanto. Você ainda está interessado?\n137_4_say=E aqui estão eles! Agora esqueça de onde você os tirou.\n139_4_say=Você não tem dinheiro suficiente.\n151_4_say=ÓTIMO! Se você precisar de um emprego como meu segurança pessoal, me avise. Aqui está a recompensa que prometi a você.\n157_4_say=Volte Quando Encontrar Minhas Coisas.\n171_5_say=Você precisa de 5.000 GPS e rese",
+      "ctx": "gap_combinador",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782928658.9898026,
+      "id": "L1451"
+    },
+    {
+      "erro": "combinador:traduzido_txt",
+      "causa": "conceito: combinador:traduzido_txt",
+      "solucao": "[Fonte: docs\\Localizador Projeto MCR\\Server (Data)\\traduzido.txt]\n isso, sim. Custa 5.000 ouro, no entanto. Você ainda está interessado?\n137_4_say=E aqui estão eles! Agora esqueça de onde você os tirou.\n139_4_say=Você não tem dinheiro suficiente.\n151_4_say=ÓTIMO! Se você precisar de um emprego como meu segurança pessoal, me avise. Aqui está a recompensa que prometi a você.\n157_4_say=Volte quando encontrar minhas coisas.\n171_5_say=Você precisa de 5.000 GPS e rese",
+      "ctx": "gap_combinador",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782928663.069233,
+      "id": "L1452"
+    },
+    {
+      "erro": "combinador:[6] MCR - Guia de Narrativa e Diálogos_txt",
+      "causa": "conceito: combinador:[6] MCR - Guia de Narrativa e Diálogos_txt",
+      "solucao": "[Fonte: docs\\MCR - Instruções\\[6] MCR - Guia de Narrativa e Diálogos.txt]\nNPCs sobre os Domínios (incluindo os novos Summon (28) e Sobrevivência (400)), níveis de afinidade (agora traduzidos em níveis de maestria), Lampejos, Vínculos, Maestria (Vínculo permanente no nível 20), Sinergia Elemental, Arremesso de Escudo, Posturas de Combate e o novo sistema de bónus percentuais de vida, mana e velocidade de movimento. Integra também as novas funções centrais de recálculo (r",
+      "ctx": "gap_combinador",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782928667.8754492,
+      "id": "L1453"
+    },
+    {
+      "erro": "combinador:[8] MCR - Guia de Criação de Conta e Personagem_txt",
+      "causa": "conceito: combinador:[8] MCR - Guia de Criação de Conta e Personagem_txt",
+      "solucao": "[Fonte: docs\\MCR - Instruções\\[8] MCR - Guia de Criação de Conta e Personagem.txt]\nlha de vocação — o\npersonagem é sempre um Aventureiro (vocation = 0). A benção narrativa do\nOráculo agora ecoa o despertar dos Domínios que ocorrerá em Eridanus.\n\nComponentes abordados:\n\nBotão \"Salão dos Destinos\" (entrada única para novos jogadores e\ngerenciamento).\n\nContas guest temporárias e personagem Alma descartável.\n\nNPC Oráculo como central de autoatendimento (criação de conta, criação de\n",
+      "ctx": "gap_combinador",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782928671.9580681,
+      "id": "L1454"
+    },
+    {
+      "erro": "combinador:[3] MCR - Guia de Configuração (Servidor e Rede)_txt",
+      "causa": "conceito: combinador:[3] MCR - Guia de Configuração (Servidor e Rede)_txt",
+      "solucao": "[Fonte: docs\\MCR - Instruções\\[3] MCR - Guia de Configuração (Servidor e Rede).txt]\niente de rede do Projeto MCR funcionem em harmonia. Ele cobre:\n\nO arquivo config.lua do Canary (com cada parâmetro explicado).\n\nA tabela obrigatória OTCFEATURES.\n\nO arquivo .env do Login Server (variáveis de ambiente).\n\nPortas, firewall e conectividade.\n\nConfiguração do banco de dados (acesso e charset).\n\nDefinição dos pronomes do personagem e da conta.\n\nFaixas de storages reservados para o SPA v4",
+      "ctx": "gap_combinador",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782929074.306063,
+      "id": "L1477"
+    },
+    {
+      "erro": "combinador:IMPLEMENTACAO_MANIFEST_md",
+      "causa": "conceito: combinador:IMPLEMENTACAO_MANIFEST_md",
+      "solucao": "[Fonte: docs\\IMPLEMENTACAO_MANIFEST.md]\n\n> **LEIA SEMPRE** antes de planejar ou executar qualquer implementação.\n> **ATUALIZE** ao concluir cada etapa — status, data e observações.\n> **PONTE** entre o `MANIFEST.md` (o que existe) e a AGI real (o que está rodando).\n> Versão: 1.0 | Data: 2026-06-30\n\n---\n\n## Sumário\n\n1. [Etapas Concluídas](#-etapas-concluidas)\n2. [Próximas Etapas](#-proximas-etapas)\n3. [Barreiras / Bloqueios](#-barreiras--",
+      "ctx": "gap_combinador",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782929078.3672917,
+      "id": "L1478"
+    },
+    {
+      "erro": "combinador:PENDENCIA_REVAMP_SCRIPTS_LEGADOS_md",
+      "causa": "conceito: combinador:PENDENCIA_REVAMP_SCRIPTS_LEGADOS_md",
+      "solucao": "[Fonte: docs\\PENDENCIA_REVAMP_SCRIPTS_LEGADOS.md]\npeline de input antigo | Substituído por pipeline_executor.py |\n\n## Ação Necessária\n1. Verificar se cada script ainda funciona (teste básico)\n2. Se útil: substituir chamadas hardcoded pelo router padronizado\n3. Se legado/não usado: arquivar ou remover\n4. Se substituído: apontar para o módulo atual\n",
+      "ctx": "gap_combinador",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [
+        "stress_test"
+      ],
+      "timestamp": 1782929082.4385293,
+      "id": "L1479"
+    },
+    {
+      "erro": "combinador:2026-06-24-shc-arquitetura_md",
+      "causa": "conceito: combinador:2026-06-24-shc-arquitetura_md",
+      "solucao": "[Fonte: docs\\lessons\\2026-06-24-shc-arquitetura.md]\nxto\n\n## Princípios fundamentais\n- O jogador NÃO escolhe caminhos; o sistema reflete o que ele faz\n- Cada habilidade carrega DENTRO DE SI suas variações (blocos postura/niveis/sinergias/estados/condicoes)\n- ~400 habilidades com ~7600+ comportamentos únicos potenciais\n- Habilidades existentes continuam funcionando (fallback para efeitoConfig base)\n- O motor_habilidades.lua NÃO precisa ser alterado (",
+      "ctx": "gap_combinador",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782929086.485991,
+      "id": "L1480"
+    },
+    {
+      "erro": "combinador:04 - MATRIZ DE SINERGIAS_txt",
+      "causa": "conceito: combinador:04 - MATRIZ DE SINERGIAS_txt",
+      "solucao": "[Fonte: docs\\MCR - Instruções\\Sistema de Habilidades Contextuais\\04 - MATRIZ DE SINERGIAS.txt]\n====================================\nA Matriz de Sinergias define interações entre domínios no SPA.\nCada sinergia é ativada quando o jogador possui nível mínimo em\num domínio secundário, adicionando efeitos extras às habilidades\ndo domínio primário.\n\nAs sinergias são definidas no bloco `sinergias` de cada habilidade\ne processadas pelo Resolvedor Contextual (contexto.lua).\n\n========================",
+      "ctx": "gap_combinador",
+      "tipo": "dominio",
+      "time_sensitive": false,
+      "tags": [],
+      "timestamp": 1782929090.5615606,
+      "id": "L1481"
+    }
+  ]
+}

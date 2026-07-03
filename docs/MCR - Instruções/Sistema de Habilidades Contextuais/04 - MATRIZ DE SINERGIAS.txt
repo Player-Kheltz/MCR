@@ -1,0 +1,149 @@
+>> CATALOG tags=sinergias, matrix, synergies, shc updated=2026-06-24
+╔══════════════════════════════════════════════════════════════╗
+║            MATRIZ DE SINERGIAS — SHC v1.0                   ║
+║              Projeto MCR — SPA                              ║
+╚══════════════════════════════════════════════════════════════╝
+
+=====================================================================
+1. INTRODUÇÃO
+=====================================================================
+A Matriz de Sinergias define interações entre domínios no SPA.
+Cada sinergia é ativada quando o jogador possui nível mínimo em
+um domínio secundário, adicionando efeitos extras às habilidades
+do domínio primário.
+
+As sinergias são definidas no bloco `sinergias` de cada habilidade
+e processadas pelo Resolvedor Contextual (contexto.lua).
+
+=====================================================================
+2. MATRIZ COMPLETA
+=====================================================================
+
+LEGENDA:
+  • D → D: Domínio de Origem → Domínio Alvo
+  • Nv: Nível mínimo requerido no domínio alvo
+  • Efeito: O que a sinergia adiciona
+
+=====================================================================
+2.1 ELEMENTAIS — BASE
+=====================================================================
+
+| Origem  | Alvo   | Nv | Efeito | Descrição |
+|---------|--------|:--:|--------|-----------|
+| FOGO(23)| GELO(24) | 1 | Cegueira (0.3, 3s) | Vapor cegante ao contato |
+| FOGO(23)| TERRA(25)| 5 | DOT de magma (0.3, 5s) | Queimadura + fragmentos |
+| FOGO(23)| ENERGIA(26)| 10 | Plasma (penetração 0.3) | Fogo + Energia = plasma |
+| FOGO(23)| SAGRADO(200)| 1 | Dano extra vs undead (1.5x) | Fogo purificador |
+
+| GELO(24)| FOGO(23) | 3 | Cegueira (0.3, 2s) | Vapor/choque térmico |
+| GELO(24)| TERRA(25)| 3 | Veneno + lentidão | Lodo congelante |
+| GELO(24)| ENERGIA(26)| 3 | Paralisia (0.15, 1s) | Raio glacial |
+| GELO(24)| FOGO(23) | 5 | Quebra-armadura (0.4, 5s) | Choque térmico |
+
+| TERRA(25)| FOGO(23) | 3 | Fragmentos de magma | Magma |
+| TERRA(25)| GELO(24) | 3 | Lentidão + veneno | Lodo |
+| TERRA(25)| ENERGIA(26)| 5 | Paralisia (0.15, 1s) | Campo eletrificado |
+| TERRA(25)| SAGRADO(200)| 5 | Cura ao enraizar | Terra sagrada |
+
+| ENERGIA(26)| FOGO(23) | 5 | Raio de plasma (penetração 0.3) | Plasma |
+| ENERGIA(26)| GELO(24) | 5 | Lentidão em cadeia | Raio glacial |
+| ENERGIA(26)| TERRA(25)| 5 | Campo eletrificado | Eletricidade + terra |
+
+| SAGRADO(200)| FOGO(23) | 3 | Cura + queimadura holy | Chama sagrada |
+| SAGRADO(200)| GELO(24) | 3 | Cura + lentidão | Cura glacial |
+| SAGRADO(200)| TERRA(25)| 3 | Cura + resistência | Benção da terra |
+| SAGRADO(200)| ENERGIA(26)| 5 | Dano holy + paralisia | Julgamento divino |
+
+=====================================================================
+2.2 ARMAS — BASE
+=====================================================================
+
+| Origem  | Alvo       | Nv | Efeito | Descrição |
+|---------|------------|:--:|--------|-----------|
+| ESP_LEVES(100)| ESP_PES(101)| 5 | Acertos +2 em ultimates | Lâminas gêmeas |
+| ESP_PES(101)| ESP_LEVES(100)| 5 | Velocidade +10% | Equilíbrio marcial |
+| MACH_LEV(110)| MACH_PES(111)| 5 | Acertos +2 em fúria | Fúria dupla |
+| MACH_PES(111)| MACH_LEV(110)| 5 | Sangramento +10% | Cortes profundos |
+| CLAV_LEV(112)| CLAV_PES(113)| 5 | Acertos +2 em dança | Ritmo sincronizado |
+| CLAV_PES(113)| CLAV_LEV(112)| 5 | Stun +10% | Impacto preciso |
+
+=====================================================================
+2.3 CRUZADAS — ELEMENTAL → ARMA
+=====================================================================
+
+| Origem   | Alvo        | Nv | Efeito | Descrição |
+|----------|-------------|:--:|--------|-----------|
+| FOGO(23) | ESP_PES(101)| 3 | Dano fire em lâminas | Lâmina flamejante |
+| GELO(24) | ESP_PES(101)| 3 | Dano ice + lentidão | Lâmina gelada |
+| FOGO(23) | ARCOS(120)  | 3 | Flecha de fogo | Flecha ígnea |
+| GELO(24) | ARCOS(120)  | 3 | Flecha de gelo | Flecha glacial |
+| TERRA(25)| ARCOS(120)  | 3 | Flecha venenosa | Flecha tóxica |
+| ENERGIA(26)| BASTOES(133)| 3 | Dano amplificado | Explosão amplificada |
+| FOGO(23) | SOBREV(400) | 3 | Cura extra na fogueira | Fogueira intensa |
+| TERRA(25)| SOBREV(400) | 3 | Veneno potente | Veneno natural |
+
+=====================================================================
+2.4 CRUZADAS — ARMA → ELEMENTAL
+=====================================================================
+
+| Origem   | Alvo      | Nv | Efeito | Descrição |
+|----------|-----------|:--:|--------|-----------|
+| COMBATE(1)| FOGO(23) | 5 | Dano +5% | Chama marcial |
+| COMBATE(1)| GELO(24) | 5 | Lentidão +5% | Golpe glacial |
+| COMBATE(1)| TERRA(25)| 5 | Dano físico extra | Força bruta |
+| PRECISAO(13)| ARCOS(120)| 5 | Crit + alcance | Pontaria venenosa |
+| ESCUDO(15)| FOGO(23) | 5 | Absorção no manto | Chamas absorventes |
+| ESCUDO(15)| GELO(24) | 5 | Escudo reflectivo | Escudo glacial |
+| ESCUDO(15)| TERRA(25)| 5 | Armadura reforçada | Pele de pedra |
+
+=====================================================================
+2.5 ESPECIAIS — SUPREMAS / DUPLAS
+=====================================================================
+
+| Origem   | Alvo        | Nv  | Efeito | Descrição |
+|----------|-------------|:---:|--------|-----------|
+| FOGO(23) | GELO(24)    | 10  | Sinergia dual em ultimates | Fusão elemental |
+| FOGO(23) | TERRA(25)   | 10  | Magma em ultimates | Erupção vulcânica |
+| FOGO(23) | ENERGIA(26) | 10  | Plasma em ultimates | Fusão nuclear |
+| GELO(24) | TERRA(25)   | 10  | Lodo glacial em ultimates | Avalanche |
+| GELO(24) | ENERGIA(26) | 10  | Plasma frio em ultimates | Supercondutor |
+| TERRA(25)| ENERGIA(26) | 10  | Campo de força total | Gaia ativa |
+| FOGO(23) | SAGRADO(200)| 10  | Julgamento ígneo | Inferno divino |
+| GELO(24) | SAGRADO(200)| 10  | Julgamento glacial | Silêncio eterno |
+| ENERGI(26)| SAGRADO(200)| 10  | Julgamento elétrico | Tempestade divina |
+
+=====================================================================
+2.6 DOMÍNIOS PRIMÁRIOS — SÍNTESE SUPERIOR
+=====================================================================
+
+| Primário | Requisito                | Efeito |
+|----------|--------------------------|--------|
+| COMBATE(1)| Todas as especialidades de combate nível 20 | Mestre da Guerra: ao trocar de arma, ganha 15% dano e 10% velocidade por 5s |
+| MAGIA(2)  | Todos os elementais nível 20 | Avatar Arcano: habilidades elementais têm 20% de chance de ativar dois elementos |
+| OFICIOS(3)| Todas as especialidades de ofício nível 20 | Mestre Artesão: bônus de criação +30% |
+| NATUREZA(4)| Todas as especialidades de natureza nível 20 | Filho da Natureza: regeneração +50% em áreas abertas |
+
+=====================================================================
+3. HIERARQUIA DE PROPAGAÇÃO (Rácio 4:2:1)
+=====================================================================
+
+Quando o jogador ganha afinidade numa Especialidade:
+  • 100% dos pontos para a Especialidade
+  • 50% para o Domínio Secundário (pai)
+  • 25% para o Domínio Primário (avô)
+
+Exemplo: Espadas Leves (100) → Lâminas (10) → Combate (1)
+  • +10 afinidade em Espadas Leves
+  • +5 afinidade em Lâminas
+  • +2.5 afinidade em Combate
+
+=====================================================================
+4. NOTAS DE IMPLEMENTAÇÃO
+=====================================================================
+
+1. Sinergias são definidas dentro de cada HABILIDADES[ID].sinergias{}
+2. O Resolvedor Contextual (contexto.lua) verifica sinergias ativas
+3. nivelMin = nível do domínio alvo necessário para ativar
+4. Múltiplas sinergias podem stackar no mesmo efeitoConfig
+5. Sinergias de nível 10+ são reservadas para efeitos poderosos (ultimates)
+6. A Síntese Superior (Primário nível 20) é definida em progressao.lua
