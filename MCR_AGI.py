@@ -254,19 +254,40 @@ class MCRHDCOperation:
     def _normalizar(self, va, vb, dim_alvo=None):
         """Normaliza dois vetores para o MESMO tamanho.
         
-        Em vez de padding por repeticao (que destroi informacao),
-        usa interpolacao linear para o tamanho alvo (max entre os dois).
-        Se dim_alvo for fornecido, usa esse tamanho.
+        dim_alvo: descoberto por MCRSignatureExpansiva (HC #5)
+        modo: decidido por MCRDecisorUniversal entre 3 opcoes (HC #6)
         """
         if not va or not vb:
             return va, vb
-        alvo = dim_alvo or max(len(va), len(vb))
-        def _interp(v, n):
+        # Dimensionalidade ideal descoberta pelos dados (HC #5)
+        if dim_alvo is None:
+            dados_treino = str([round(v, 3) for v in va + vb])
+            dim_alvo = MCRSignatureExpansiva.dimensionalidade_ideal(dados_treino.encode()[:2000], mx=128, thr=0.05)
+            dim_alvo = max(dim_alvo, 4)  # minimo viavel
+        
+        # Modo de interpolacao decidido por MCRDecisor (HC #6)
+        modo = MCRDecisorUniversal.decidir(ctx="hdc_interp").get("threshold", 0)
+        modo_tag = "linear" if modo < 0.33 else "vizinho" if modo < 0.66 else "media"
+        
+        def _interp(v, n, modo):
             if len(v) == n:
                 return list(v)
-            # Interpolacao linear para o tamanho alvo
-            return [v[min(int(i * len(v) / n), len(v)-1)] for i in range(n)]
-        return _interp(va, alvo), _interp(vb, alvo)
+            if modo == "linear":
+                return [v[min(int(i * len(v) / n), len(v)-1)] for i in range(n)]
+            elif modo == "vizinho":
+                # Vizinho mais proximo (amostragem pura)
+                passo = max(1, len(v) // n)
+                return [v[i] for i in range(0, len(v), passo)][:n]
+            else:
+                # Media de janelas
+                janela = max(1, len(v) // n)
+                result = []
+                for i in range(0, len(v), janela):
+                    chunk = v[i:i+janela]
+                    result.append(sum(chunk) / len(chunk) if chunk else 0)
+                return result[:n]
+        
+        return _interp(va, dim_alvo, modo_tag), _interp(vb, dim_alvo, modo_tag)
     
     def bundle(self, a, b, peso_a=0.5, peso_b=0.5):
         """Bundle: soma ponderada de dois vetores."""
@@ -443,8 +464,9 @@ class MCREntropicSearch:
                 f"{media_r:.2f}"
             )
         
-        # Treina thresholds com resultados reais
-        self.thr_rollouts.observar(max(1, n_rollouts * (melhor_score + 10) / 10))
+        # Treina thresholds com resultados reais (HC #4)
+        dec_es = MCRDecisorUniversal.decidir(ctx="es_recompensa")
+        self.thr_rollouts.observar(max(1, n_rollouts * (melhor_score + 10) / 10 * dec_es.get("passos", 1)))
         self.thr_depth.observar(max(1, depth * (melhor_score + 10) / 10))
         self.total += 1
         return melhor_acao, round(melhor_score, 3)
@@ -499,40 +521,39 @@ class MCRAutoEvolution:
         if not hcs:
             return {"acao": "nada_para_mutar"}
         
-        # Propoe mutacao: modificar um parametro hardcoded
+        # Propoe mutacao: parametro + direcao decididos por MCRDecisor (HC #2)
         hc = hcs[0]
         if hc['valor'].lstrip('-').isdigit():
-            novo_valor = str(max(1, int(hc['valor']) + _rand.choice([-1, 1])))
+            dec = MCRDecisorUniversal.decidir(ctx="ae_mutacao")
+            delta = max(1, int(dec.get("passos", 1)))
+            direcao = _rand.choice([-1, 1])
+            novo_valor = str(max(1, int(hc['valor']) + direcao * delta))
         else:
             novo_valor = "10"
         mutacao = {'tipo': 'parametro', 'param': hc['param'], 'linha': hc['linha'],
                    'valor_original': hc['valor'], 'novo_valor': novo_valor}
         
-        # Aplica mutacao REAL em copia temp e mede entropia
+        # Aplica mutacao REAL em copia temp e mede entropia (HC #1)
         try:
             src_path = os.path.abspath(__file__)
-            tmp_path = os.path.join(self._cache_dir, "MCR_AGI_ae_tmp.py")
+            import tempfile as _tf
+            tmp_path = _tf.mktemp(suffix='_ae_mutacao.py', dir=self._cache_dir)
             
-            # Le arquivo original
             with open(src_path, 'r', encoding='utf-8') as f:
                 codigo = f.readlines()
             
-            # Aplica mutacao na linha alvo
             if 0 < hc['linha'] <= len(codigo):
                 codigo[hc['linha'] - 1] = self.codex.substituir(
                     src_path, hc['linha'], hc['param'], novo_valor
                 ) or codigo[hc['linha'] - 1]
             
-            # Salva copia temporaria
             with open(tmp_path, 'w', encoding='utf-8') as f:
                 f.writelines(codigo)
             
-            # Tenta compilar a copia
             try:
                 import py_compile
                 py_compile.compile(tmp_path, doraise=True)
                 
-                # Recarrega o cerebro com o modulo modificado
                 import importlib.util as _iu
                 _spec = _iu.spec_from_file_location('mcr_ae_tmp', tmp_path)
                 _mod = _iu.module_from_spec(_spec)
@@ -540,7 +561,6 @@ class MCRAutoEvolution:
                 sys.modules['mcr_ae_tmp'] = _mod
                 _spec.loader.exec_module(_mod)
                 
-                # Cria cerebro temporario e mede entropia REAL
                 _c2 = _mod.CerebroAGI()
                 for nome, mk in self.cerebro.hiper.dimensoes.items():
                     if nome in _c2.hiper.dimensoes:
@@ -549,8 +569,7 @@ class MCRAutoEvolution:
                 ent_depois = self._entropia_cerebro(_c2)
                 
             except:
-                # Falha ao compilar: rejeita
-                ent_depois = ent_antes * 1.1
+                ent_depois = ent_antes * self.thr_aceitacao.obter("fallback_ent", 1.1)  # HC #3
             
             # Remove temporario
             try: os.unlink(tmp_path)
@@ -1141,12 +1160,13 @@ class MCRHiperesferaAutoExpansiva:
         """Gera candidatos FIXOS + DERIVADOS dos dados."""
         # Candidatos fixos
         yield from self.CANDIDATOS
-        # Candidatos derivados: n-gramas de caracteres (se texto longo o suficiente)
+        # Candidatos derivados: n-gramas (HC #7-8)
         if len(texto) > 50:
-            yield ("bigrama_char", lambda t: [t[i:i+2] for i in range(min(len(t)-1, 200))], "bigramas de caracteres")
-            yield ("trigrama_char", lambda t: [t[i:i+3] for i in range(min(len(t)-2, 200))], "trigramas de caracteres")
-            # Hash de n-gramas (captura estrutura local)
-            yield ("ngram_hash", lambda t: [f"N:{abs(hash(t[i:i+4]))%1000:03d}" for i in range(min(len(t)-3, 200))], "hash de 4-gramas")
+            n_limite = MCRDecisorUniversal.decidir_passos("gerar_candidatos", {"tamanho_bytes": len(texto)})
+            n_buckets = int(MCRDecisorUniversal.decidir(ctx="bucket_size").get("dim", 8)) * 125
+            yield ("bigrama_char", lambda t: [t[i:i+2] for i in range(min(len(t)-1, n_limite))], "bigramas de caracteres")
+            yield ("trigrama_char", lambda t: [t[i:i+3] for i in range(min(len(t)-2, n_limite))], "trigramas de caracteres")
+            yield ("ngram_hash", lambda t: [f"N:{abs(hash(t[i:i+4]))%max(n_buckets,100):03d}" for i in range(min(len(t)-3, n_limite))], "hash de 4-gramas")
     
     def _candidatos_disponiveis(self, texto=""):
         conhecidos = set(self.dimensoes.keys())
@@ -1953,23 +1973,22 @@ class CerebroAGI:
             
             if estado_str == estado_anterior:
                 ent_depois = self.mk_byte.entropia_media() if self.mk_byte.total > 0 else 1.0
-                recompensa = ent_antes - ent_depois
-                # Aprende com recompensa por reducao de entropia
+                dec_rec = MCRDecisorUniversal.decidir(ctx="ciclo_recompensa")  # HC #9
+                recompensa = (ent_antes - ent_depois) * dec_rec.get("threshold", 1.0)
                 self.mk_orq.aprender(estado_str, f"ent_stabilized:{recompensa:.3f}")
                 break
             estado_anterior = estado_str
             
-            # MCR decide a proxima acao
             acao, conf = self.mk_orq.predizer(estado_str)
             if acao is None:
                 acao, conf = self.mk_orq.predizer("ent:baixa_dims:0_inst:0_meta:0")
             if acao is None:
                 ent_depois = self.mk_byte.entropia_media() if self.mk_byte.total > 0 else 1.0
-                recompensa = ent_antes - ent_depois
+                dec_rec = MCRDecisorUniversal.decidir(ctx="ciclo_recompensa")
+                recompensa = (ent_antes - ent_depois) * dec_rec.get("threshold", 1.0)
                 self.mk_orq.aprender(estado_str, f"ent_unknown:{recompensa:.3f}")
                 break
             
-            # Executa via registry (zero if/elif)
             fn = self._acoes_internas.get(acao)
             if not fn:
                 break
@@ -1979,9 +1998,9 @@ class CerebroAGI:
             resultado["confianca"] = round(conf, 3)
             historico.append(resultado)
             
-            # Aprende com recompensa por reducao de entropia
             ent_depois = self.mk_byte.entropia_media() if self.mk_byte.total > 0 else 1.0
-            recompensa = ent_antes - ent_depois
+            dec_rec = MCRDecisorUniversal.decidir(ctx="ciclo_recompensa")
+            recompensa = (ent_antes - ent_depois) * dec_rec.get("threshold", 1.0)
             self.mk_orq.aprender(estado_str, f"{acao}:{recompensa:.3f}")
             self._ultimo_resultado = {"ultima_acao": acao}
         
@@ -2755,7 +2774,8 @@ def chat_loop(cerebro):
         
         # Aprende fingerprint (sem hardcode)
         autor, conf, status = identidade.reconhecer_e_aprender(e)
-        ident_s = f'[{autor} conf={conf:.2f}] ' if conf > 0.2 else ''
+        _thr_ident = MCRThreshold("ident").obter("conf_min", 0.2)
+        ident_s = f'[{autor} conf={conf:.2f}] ' if conf > _thr_ident else ''
         
         # MCR decide o fluxo — ZERO if/elif na decisao
         est_fome = curiosidade.diagnosticar_fome()
