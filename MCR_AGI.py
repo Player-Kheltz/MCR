@@ -332,26 +332,19 @@ class MCRHDCOperation:
         """Bundle inverso: subtracao ponderada.
         
         Para analogias: bundle_inv("rei", "homem") ≈ "real"
-        (rei - homem ≈ real)
         """
         va = self._vetor(a) if isinstance(a, str) else a
         vb = self._vetor(b) if isinstance(b, str) else b
         if not va or not vb:
             return []
-        mx = max(len(va), len(vb))
-        va = va * (mx // len(va)) + va[:mx % len(va)] if len(va) < mx else va[:mx]
-        vb = vb * (mx // len(vb)) + vb[:mx % len(vb)] if len(vb) < mx else vb[:mx]
-        resultado = [va[i] - vb[i]*peso_b for i in range(min(len(va), len(vb)))]
-        return resultado
+        va, vb = self._normalizar(va, vb)
+        return [va[i] - vb[i]*peso_b for i in range(len(va))]
     
     def analogia(self, a, b, c, candidatos):
         """Resolve analogia A:B :: C:?
         
         Ex: analogia("rei", "homem", "rainha", candidatos)
-        → busca "mulher" onde resultado ≈ bundle_inv(bundle(A,B), C) ?
-        
-        Na verdade: analogia = bundle_inv(bundle(A,C), B)
-        que resulta no fingerprint mais proximo de "D".
+        → busca "mulher" onde resultado ≈ bundle_inv(bundle(A,C), B)
         """
         va = self._vetor(a)
         vb = self._vetor(b)
@@ -359,21 +352,20 @@ class MCRHDCOperation:
         if not va or not vb or not vc:
             return None, 0.0
         
-        # A - B + C ≈ D  (rei - homem + mulher ≈ rainha)
-        diferenca = self.bundle_inv(va, vb)
-        resultado = [diferenca[i] + vc[i] for i in range(min(len(diferenca), len(vc)))]
+        va, vb = self._normalizar(va, vb)
+        _, vc = self._normalizar(va, vc)  # normaliza todos para o mesmo tamanho
         
-        # Busca o candidato mais similar ao resultado
+        diferenca = [va[i] - vb[i] for i in range(len(va))]
+        resultado = [diferenca[i] + vc[i] for i in range(len(vc))]
+        
         melhor = None
         melhor_sim = 0
         for cand in candidatos:
             vd = self._vetor(cand)
             if not vd:
                 continue
-            # Normaliza tamanhos
-            r = resultado[:len(vd)] if len(vd) <= len(resultado) else resultado
-            r = r * (len(vd) // len(r)) + r[:len(vd) % len(r)] if len(r) < len(vd) else r
-            sim = MCRByteUtils.similaridade_cosseno(r, vd)
+            r, vd_norm = self._normalizar(resultado, vd)
+            sim = MCRByteUtils.similaridade_cosseno(r, vd_norm)
             if sim > melhor_sim:
                 melhor_sim = sim
                 melhor = cand
@@ -464,10 +456,10 @@ class MCREntropicSearch:
                 f"{media_r:.2f}"
             )
         
-        # Treina thresholds com resultados reais (HC #4)
-        dec_es = MCRDecisorUniversal.decidir(ctx="es_recompensa")
-        self.thr_rollouts.observar(max(1, n_rollouts * (melhor_score + 10) / 10 * dec_es.get("passos", 1)))
-        self.thr_depth.observar(max(1, depth * (melhor_score + 10) / 10))
+        # Treina thresholds com score real (Etapa 3)
+        score_abs = max(abs(melhor_score), 0.01) if melhor_score != -999 else 1.0
+        self.thr_rollouts.observar(n_rollouts * score_abs / 10)
+        self.thr_depth.observar(depth * score_abs / 10)
         self.total += 1
         return melhor_acao, round(melhor_score, 3)
 
@@ -501,13 +493,34 @@ class MCRAutoEvolution:
     
     def entropia_global(self):
         entropias = []
-        if hasattr(self.cerebro, 'mk_byte'):
-            entropias.append(self.cerebro.mk_byte.entropia_media())
-        if hasattr(self.cerebro, 'mk_palavra'):
-            entropias.append(self.cerebro.mk_palavra.entropia_media())
-        if hasattr(self.cerebro, 'topologia') and self.cerebro._topologia_atualizada:
-            tm = self.cerebro.topologia.metricas()
-            entropias.append(tm["n_arestas"] / max(tm["n_niveis"], 1))
+        c = self.cerebro
+        if hasattr(c, 'mk_byte'):
+            entropias.append(c.mk_byte.entropia_media())
+        if hasattr(c, 'mk_palavra'):
+            entropias.append(c.mk_palavra.entropia_media())
+        # Etapa 4: entropia do mundo causal
+        if hasattr(c, 'world') and hasattr(c.world, 'mk_estado'):
+            entropias.append(c.world.mk_estado.entropia_media())
+        # Entropia do coupling (matriz de pesos entre niveis)
+        if hasattr(c, 'coupling') and c.coupling.total_cooc > 0:
+            cm = c.coupling.matriz
+            vals = [cm[o][d] for o in cm for d in cm[o] if o != d]
+            if vals:
+                from collections import Counter as _Cnt
+                f = _Cnt(vals); n = len(vals)
+                ent_c = -sum((c/n)*math.log2(c/n) for c in f.values()) if n > 0 else 0
+                entropias.append(min(ent_c, 1.0))
+        # Variancia da entropia entre topicos (ruido do sistema)
+        if hasattr(c, 'topicos') and len(c.topicos) >= 2:
+            ents_t = []
+            for t in list(c.topicos.values())[:20]:
+                texto = t.get("texto", "")
+                if texto:
+                    ents_t.append(MCRByteUtils.entropia_bytes(texto.encode()[:500]))
+            if ents_t:
+                media_t = sum(ents_t) / len(ents_t)
+                var_t = sum((e - media_t)**2 for e in ents_t) / len(ents_t)
+                entropias.append(min(var_t * MCRDecisorUniversal.decidir(ctx="ae_var").get("threshold", 0.5), 1.0))
         return sum(entropias) / max(len(entropias), 1) if entropias else 1.0
     
     def ciclo(self):
@@ -533,65 +546,84 @@ class MCRAutoEvolution:
         mutacao = {'tipo': 'parametro', 'param': hc['param'], 'linha': hc['linha'],
                    'valor_original': hc['valor'], 'novo_valor': novo_valor}
         
-        # Aplica mutacao REAL em copia temp e mede entropia (HC #1)
+        # Aplica mutacao REAL em copia temp e mede entropia
+        import re as _re, tempfile as _tf
+        src_path = os.path.abspath(__file__)
+        tmp_path = _tf.mktemp(suffix='_ae_mutacao.py', dir=self._cache_dir)
+        mutacao_aplicada = False
+        linha_modificada = -1
+        linha_original_conteudo = ""
+        
         try:
-            src_path = os.path.abspath(__file__)
-            import tempfile as _tf
-            tmp_path = _tf.mktemp(suffix='_ae_mutacao.py', dir=self._cache_dir)
-            
             with open(src_path, 'r', encoding='utf-8') as f:
                 codigo = f.readlines()
             
+            # Mutacao na LISTA em memoria (SEM tocar no disco) — Etapa 1
             if 0 < hc['linha'] <= len(codigo):
-                codigo[hc['linha'] - 1] = self.codex.substituir(
-                    src_path, hc['linha'], hc['param'], novo_valor
-                ) or codigo[hc['linha'] - 1]
+                linha_original_conteudo = codigo[hc['linha'] - 1]
+                nova_linha = _re.sub(
+                    rf'(.*{_re.escape(str(hc["param"]))}\s*=\s*)\d+\.?\d*',
+                    rf'\g<1>{novo_valor}',
+                    linha_original_conteudo
+                )
+                if nova_linha != linha_original_conteudo:
+                    codigo[hc['linha'] - 1] = nova_linha
+                    mutacao_aplicada = True
+                    linha_modificada = hc['linha'] - 1
             
+            if not mutacao_aplicada:
+                raise ValueError("mutacao_nao_aplicada")
+            
+            # Salva APENAS no temporario
             with open(tmp_path, 'w', encoding='utf-8') as f:
                 f.writelines(codigo)
             
-            try:
-                import py_compile
-                py_compile.compile(tmp_path, doraise=True)
-                
-                import importlib.util as _iu
-                _spec = _iu.spec_from_file_location('mcr_ae_tmp', tmp_path)
-                _mod = _iu.module_from_spec(_spec)
-                _mod.__file__ = tmp_path
-                sys.modules['mcr_ae_tmp'] = _mod
-                _spec.loader.exec_module(_mod)
-                
-                _c2 = _mod.CerebroAGI()
-                for nome, mk in self.cerebro.hiper.dimensoes.items():
-                    if nome in _c2.hiper.dimensoes:
-                        _c2.hiper.dimensoes[nome] = mk
-                _c2.topicos = dict(self.cerebro.topicos)
-                ent_depois = self._entropia_cerebro(_c2)
-                
-            except:
-                ent_depois = ent_antes * self.thr_aceitacao.obter("fallback_ent", 1.1)  # HC #3
+            # Compila e testa
+            import py_compile as _pyc
+            _pyc.compile(tmp_path, doraise=True)
             
-            # Remove temporario
+            import importlib.util as _iu
+            _spec = _iu.spec_from_file_location('mcr_ae_tmp', tmp_path)
+            _mod = _iu.module_from_spec(_spec)
+            _mod.__file__ = tmp_path
+            sys.modules['mcr_ae_tmp'] = _mod
+            _spec.loader.exec_module(_mod)
+            
+            _c2 = _mod.CerebroAGI()
+            for nome, mk in self.cerebro.hiper.dimensoes.items():
+                if nome in _c2.hiper.dimensoes:
+                    _c2.hiper.dimensoes[nome] = mk
+            _c2.topicos = dict(self.cerebro.topicos)
+            ent_depois = self._entropia_cerebro(_c2)
+            
+        except Exception:
+            ent_depois = ent_antes * self.thr_aceitacao.obter("fallback_ent", 1.1)
+        
+        finally:
+            # Cleanup: remove temporario
             try: os.unlink(tmp_path)
             except: pass
-            try: _mod = sys.modules.pop('mcr_ae_tmp', None)
+            try: sys.modules.pop('mcr_ae_tmp', None)
             except: pass
-            
-        except Exception as e:
-            ent_depois = ent_antes * 1.1  # falha = entropia piorou
         
         melhoria = ent_antes - ent_depois
         limiar = self.thr_aceitacao.obter("limiar", 0.01)
         aceite = melhoria > limiar
         
-        # Se rejeitado, reverte a alteracao
-        if not aceite:
+        # Se aceito, APENAS AGORA modifica o arquivo real
+        if aceite and linha_modificada >= 0:
             try:
-                self.codex.substituir(
-                    os.path.abspath(__file__),
-                    hc['linha'], hc['param'], hc['valor_original']
+                with open(src_path, 'r', encoding='utf-8') as f:
+                    codigo_real = f.readlines()
+                codigo_real[linha_modificada] = _re.sub(
+                    rf'(.*{_re.escape(str(hc["param"]))}\s*=\s*)\d+\.?\d*',
+                    rf'\g<1>{novo_valor}',
+                    codigo_real[linha_modificada]
                 )
-            except: pass
+                with open(src_path, 'w', encoding='utf-8') as f:
+                    f.writelines(codigo_real)
+            except:
+                pass
         
         self.mk_resultados.aprender(
             f"{'ACEITE' if aceite else 'REJEITE'}:{mutacao['tipo']}",
