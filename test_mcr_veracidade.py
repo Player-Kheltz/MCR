@@ -1040,9 +1040,11 @@ def test_entropic_search():
 
     # 17.1 rollout
     e = EstadoMundo.criar_simples()
-    prox = es.rollout(e, "andar_dir", passos=3)
+    prox, traj = es.rollout(e, "andar_dir", passos=3)
     check("17.1 rollout retorna EstadoMundo", isinstance(prox, EstadoMundo),
           f"type={type(prox).__name__}")
+    check("17.1b rollout retorna trajetoria", isinstance(traj, list) and len(traj) > 1,
+          f"traj_len={len(traj)}")
 
     # 17.2 planejar
     obj = e.clone()

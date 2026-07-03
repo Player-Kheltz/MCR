@@ -108,7 +108,15 @@ class MCR:
 
 class MCRByteUtils:
     @staticmethod
-    def fingerprint(texto, dims=8):
+    def fingerprint(texto, dims=None):
+        """Fingerprint com dimensionalidade ideal (auto-descoberta).
+        
+        Se dims for None, usa MCRSignatureExpansiva.dimensionalidade_ideal()
+        para descobrir a dimensao otima para o texto. O minimo e 8.
+        """
+        if dims is None:
+            dados_enc = texto.encode('utf-8')[:2000] if isinstance(texto, str) else bytes(texto)[:2000]
+            dims = max(8, MCRSignatureExpansiva.dimensionalidade_ideal(dados_enc, mx=128, thr=0.05))
         dados = texto.encode('utf-8')[:500] if isinstance(texto, str) else bytes(texto)[:500]
         if not dados: return [0.0]*dims
         b = [0.0]*dims
@@ -422,11 +430,13 @@ class MCRHDCOperation:
 # ═══════════════════════════════════════════════════════════════════
 
 class MCREntropicSearch:
-    """Entropic Tree Search: MCTS com incerteza por entropia.
+    """Entropic Tree Search: MCTS com entropia como metrica.
     
-    Substitui MCRPlanner.plano() (split linear de delta) por Monte Carlo
-    com multiplos rollouts por acao e variancia da entropia como metrica
-    de incerteza. Aprende parametros via MCRThreshold.
+    A acao otima e a que produz a trajetoria de MENOR ENTROPIA
+    (mais previsivel). Substitui "distancia ao objetivo" por
+    "entropia acumulada da trajetoria simulada".
+    
+    O caminho otimo nao e o mais curto — e o MAIS PREVISIVEL.
     """
     def __init__(self, world, qlearn):
         self.world = world
@@ -438,8 +448,11 @@ class MCREntropicSearch:
         self.total = 0
     
     def rollout(self, estado, acao, passos=5):
-        """Simula N passos a partir de estado + acao."""
+        """Simula N passos a partir de estado + acao.
+        Retorna (estado_final, trajetoria) onde trajetoria e
+        a lista de estados intermediarios."""
         est = estado.clone()
+        traj = [est]
         for _ in range(passos):
             ac = self.qlearn.melhor_acao(est)
             if not ac:
@@ -448,14 +461,29 @@ class MCREntropicSearch:
             if prox is None:
                 prox = MCRAcao.executar(est, ac)
             est = prox
-        return est
+            traj.append(est)
+        return est, traj
+    
+    def _entropia_trajetoria(self, trajetoria):
+        """Entropia media dos fingerprints dos estados na trajetoria.
+        Quanto menor, mais PREVISIVEL e a trajetoria.
+        Quanto maior, mais CAOTICA."""
+        if not trajetoria:
+            return 1.0
+        entropias = []
+        for est in trajetoria:
+            fp = est.fingerprint(16)  # fingerprint 16D para maior resolucao
+            total = sum(abs(v) for v in fp) or 1
+            ent = -sum((abs(v)/total)*math.log2(max(abs(v)/total, 0.001)) for v in fp if abs(v) > 0)
+            entropias.append(ent)
+        return sum(entropias) / len(entropias)
     
     def planejar(self, estado, objetivo, n_rollouts=None, depth=None):
         """Entropic Tree Search sobre espaco de acoes.
         
         Para cada acao, executa multiplos rollouts.
-        Score = recompensa media - variancia da entropia.
-        Melhor acao = a com maior score.
+        Score = bonus_proximidade - entropia_trajetoria.
+        Melhor acao = a que minimiza entropia (maximiza previsibilidade).
         """
         n_rollouts = n_rollouts or int(self.thr_rollouts.obter("rollouts", 10))
         depth = depth or int(self.thr_depth.obter("depth", 4))
@@ -466,29 +494,33 @@ class MCREntropicSearch:
         for acao in MCRAcao.disponiveis():
             scores = []
             for _ in range(n_rollouts):
-                prox = self.rollout(estado, acao, depth)
-                dist = self.world.distancia(prox, objetivo) if hasattr(self.world, 'distancia') else 99
-                # Recompensa: quanto mais perto do objetivo, melhor
-                r = 10.0 / max(dist + 1, 0.1)
-                scores.append(r)
+                prox, traj = self.rollout(estado, acao, depth)
+                # Bonus por proximidade ao objetivo
+                dist = self.world.distancia_manhattan(prox, objetivo) if hasattr(self.world, 'distancia_manhattan') else 99
+                bonus_prox = 10.0 / max(dist + 1, 0.1)
+                # Entropia da trajetoria (menor = melhor)
+                ent_traj = self._entropia_trajetoria(traj)
+                # Score composto: recompensa - entropia (entropia e penalidade)
+                score = bonus_prox - ent_traj * 2
+                scores.append(score)
             
             if not scores:
                 continue
             
-            media_r = sum(scores) / len(scores)
-            var_r = sum((s - media_r)**2 for s in scores) / len(scores)
-            score = media_r - var_r * 0.5  # penaliza incerteza
+            media_s = sum(scores) / len(scores)
+            var_s = sum((s - media_s)**2 for s in scores) / len(scores)
+            score = media_s - var_s * 0.5  # penaliza incerteza (alta variancia)
             
             if score > melhor_score:
                 melhor_score = score
                 melhor_acao = acao
             
             self.mk_sim.aprender(
-                f"ES:{str(estado.fingerprint(8)[:3])}:{acao}",
-                f"{media_r:.2f}"
+                f"ES:{str(estado.fingerprint(16)[:3])}:{acao}",
+                f"{media_s:.2f}"
             )
         
-        # Treina thresholds com score real (Etapa 3)
+        # Treina thresholds com score real
         score_abs = max(abs(melhor_score), 0.01) if melhor_score != -999 else 1.0
         self.thr_rollouts.observar(n_rollouts * score_abs / 10)
         self.thr_depth.observar(depth * score_abs / 10)
@@ -542,14 +574,22 @@ class MCRAutoEvolution:
                 f = _Cnt(vals); n = len(vals)
                 ent_c = -sum((c/n)*math.log2(c/n) for c in f.values()) if n > 0 else 0
                 entropias.append(min(ent_c, 1.0))
-        # Entropia dos pesos da atencao (mudam quando AE muta)
+        # Entropia dos MCRThreshold: mede QUANTO os valores mudaram
+        # em relacao aos valores estaveis (obter). Se AE mutou, obs[-1]
+        # difere de obter() → entropia sobe → AE detecta impacto.
+        thr_baseline = []
+        thr_trial = []
         if hasattr(MCRAttention, '_thr_p'):
-            pesos = [v.obter("peso", 3.0) for v in MCRAttention._thr_p.values()]
-            if pesos:
-                from collections import Counter as _Cnt2
-                f2 = _Cnt2([int(p*10) for p in pesos]); n2 = len(pesos)
-                ent_p = -sum((c/n2)*math.log2(c/n2) for c in f2.values()) if n2 > 0 else 0
-                entropias.append(min(ent_p, 1.0))
+            for nome_k, thr_k in MCRAttention._thr_p.items():
+                p_base = {'prob': 3.0, 'fp': 5.0, 'jac': 4.0, 'ent': 1.0}.get(nome_k, 3.0)
+                thr_baseline.append(thr_k.obter("peso", p_base))
+                if len(thr_k.obs) >= 1:
+                    thr_trial.append(abs(thr_k.obs[-1] - thr_baseline[-1]))
+        # Mede mudanca: se AE tentou algo, quanto diferiu do baseline?
+        if thr_trial:
+            ent_thr = min(sum(thr_trial) / len(thr_trial), 1.0)
+            if ent_thr > 0:
+                entropias.append(ent_thr)
         # Variancia da entropia entre topicos (ruido do sistema)
         if hasattr(c, 'topicos') and len(c.topicos) >= 2:
             ents_t = []
@@ -609,8 +649,8 @@ class MCRAutoEvolution:
         
         limiar = self.thr_aceitacao.obter("limiar", 0.001)
         aceite = melhoria > limiar
-        if not aceite:
-            thr.obs = thr.obs[:-1]  # reverte
+        # Nao reverte obs: mesmo mutacoes rejeitadas sao aprendidas
+        # (filosofia MCR: tudo e transicao, tudo e aprendizado)
         
         self.mk_resultados.aprender(f"{'ACEITE' if aceite else 'REJEITE'}:{mutacao['tipo']}", f"{melhoria:.4f}")
         self.mk_mutacoes.aprender(f"AE:{mutacao['tipo']}:{'ACEITE' if aceite else 'REJEITE'}", f"{melhoria:.4f}")
@@ -984,7 +1024,7 @@ class MCRWorld:
     def __init__(self):
         self.mk_estado = MCR("world_est"); self.mk_acao = MCR("world_ac"); self.mk_causal = MCR("world_caus")
         self.mk_plano = MCR("world_plan"); self.hist: List[Dict] = []; self.thr = MCRThreshold("world")
-        self.dim_fp = C("dim_fingerprint", 8)
+        self.dim_fp = C("dim_fingerprint", 16)
     def aprender(self, antes, acao, depois):
         fpa, fpd = antes.fingerprint(self.dim_fp), depois.fingerprint(self.dim_fp)
         as_, ds = str(fpa), str(fpd)
@@ -1042,6 +1082,22 @@ class MCRWorld:
     def distancia(self, a, b):
         fa, fb = a.fingerprint(self.dim_fp), b.fingerprint(self.dim_fp)
         return math.sqrt(sum((fb[i]-fa[i])**2 for i in range(self.dim_fp)))
+    def distancia_manhattan(self, a, b):
+        """Distancia Manhattan entre herois de dois estados.
+        Usada para planejamento onde fingerprint 8D e insuficiente."""
+        ha, hb = a.get("heroi"), b.get("heroi")
+        if not ha or not hb: return self.distancia(a, b)
+        return abs(ha.props.get("x",0)-hb.props.get("x",0)) + \
+               abs(ha.props.get("y",0)-hb.props.get("y",0))
+    def delta_entidade(self, antes, depois, nome="heroi", props=("x","y")):
+        """Delta de propriedades de uma entidade entre dois estados.
+        
+        Ex: delta_entidade(est1, est2, 'heroi', ('x','y'))
+            → [dx, dy]  (exato, independente de fingerprint)
+        """
+        ha, hb = antes.get(nome), depois.get(nome)
+        if not ha or not hb: return []
+        return [hb.props.get(k,0) - ha.props.get(k,0) for k in props]
 
 # ═══════════════════════════════════════════════════════════════════
 # [07] MCRCoupling — matriz byte↔palavra↔token↔intencao↔acao
@@ -1400,37 +1456,69 @@ class MCRAutoValidacaoContinua:
 class MCRPlanner:
     def __init__(self, world: MCRWorld):
         self.world = world; self.mk_plano = MCR("planner"); self.mk_sub = MCR("planner_sub")
+        self.mk_pos = MCR("planner_pos")  # Markov de posicao (delta entidade)
     def plano(self, atual, obj, max_passos=10):
-        dist = self.world.distancia(atual, obj)
+        dist = self.world.distancia_manhattan(atual, obj)
         if dist < 1.0:
             ac = self.world.predizer_acao(atual, obj)
             return [ac] if ac else []
+        # Tenta recuperar plano por fingerprint (cache)
         fp_alvo = str(obj.fingerprint(self.world.dim_fp))
         pk, cf = self.mk_plano.predizer(fp_alvo)
         if pk and cf > 0.2:
             acs = pk.split("|")
             if len(acs) <= max_passos: return acs
-        delta = MCRByteUtils.delta_fingerprint(atual.serializar(), obj.serializar(), self.world.dim_fp)
-        dim_d = MCRSignatureExpansiva.dimensionalidade_ideal(str(delta).encode(), 16)
-        num_sub = max(2, min(max_passos, dim_d))
-        subs = []
-        for i in range(num_sub):
-            frac, frac_ant = (i+1)/num_sub, i/num_sub
-            subs.append([(d*frac)-(d*frac_ant) for d in delta])
+        # Decompoe delta Manhattan em sub-objetivos
+        delta_pos = self.world.delta_entidade(atual, obj, "heroi", ("x","y"))
+        if not delta_pos:
+            return []
+        n_sub = min(max_passos, max(2, sum(abs(d) for d in delta_pos)))
+        sub_objs = []
+        for i in range(1, n_sub + 1):
+            frac = i / n_sub
+            sx = int(delta_pos[0] * frac) if delta_pos else 0
+            sy = int(delta_pos[1] * frac) if len(delta_pos) > 1 else 0
+            sub_objs.append((sx, sy))
+        # Constroi plano: para cada sub-objetivo, acha acao que produz o delta desejado
         plano = []
         est_int = atual.clone()
-        for sub in subs:
-            sub_str = str(tuple(round(d,3) for d in sub))
-            ac, cf = self.world.mk_causal.predizer(sub_str)
-            if not ac or cf < 0.1:
-                ac_sub, cf_sub = self.mk_sub.predizer(sub_str)
-                ac = ac_sub or self._fallback(est_int, sub)
+        last_sub = (0, 0)
+        for sx, sy in sub_objs:
+            dx_alvo = sx - last_sub[0]
+            dy_alvo = sy - last_sub[1]
+            if dx_alvo == 0 and dy_alvo == 0:
+                continue
+            # Tenta Markov de posicao primeiro
+            chave_pos = f"P:{est_int.get('heroi').props.get('x',0)},{est_int.get('heroi').props.get('y',0)}:{dx_alvo},{dy_alvo}"
+            ac_pred, cf_pred = self.mk_pos.predizer(chave_pos)
+            if ac_pred and cf_pred > 0.15:
+                ac = ac_pred
+            else:
+                # Fallback: encontra a acao que produz o delta mais proximo
+                ac = self._fallback_pos(est_int, dx_alvo, dy_alvo)
             if ac:
-                plano.append(ac); prox = self.world.simular(est_int, ac)
+                plano.append(ac)
+                prox = MCRAcao.executar(est_int, ac)
                 if prox: est_int = prox
+                # Aprende: nesta posicao, esta acao produz este delta
+                self.mk_pos.aprender(chave_pos, ac)
+            last_sub = (sx, sy)
         if plano: self._aprender(plano, atual, obj)
         return plano
+    def _fallback_pos(self, est, dx_alvo, dy_alvo):
+        """Encontra a acao cujo delta de posicao mais se aproxima do desejado."""
+        melhor_ac, melhor_dist = None, 999
+        for ac in MCRAcao.disponiveis():
+            prox = MCRAcao.executar(est, ac)
+            delta_real = self.world.delta_entidade(est, prox, "heroi", ("x","y"))
+            if delta_real:
+                dist_delta = abs(delta_real[0] - dx_alvo) + abs(delta_real[1] - dy_alvo)
+                if dist_delta < melhor_dist:
+                    melhor_dist = dist_delta
+                    melhor_ac = ac
+        return melhor_ac or "andar_cima"
     def _fallback(self, est, sub):
+        """Fallback original por delta fingerprint (mantido para compatibilidade)."""
         melhor_ac, melhor_sc = "andar_cima", 0.0
         for ac in MCRAcao.disponiveis():
             prox = MCRAcao.executar(est, ac)
@@ -1454,49 +1542,123 @@ class MCRPlanner:
 class MCRReward:
     def avaliar(self, est_atual, est_ant, est_obj=None, acao_ok=True):
         r = 0.0
-        if est_obj:
-            da = MCRByteUtils.similaridade_cosseno(est_ant.fingerprint(8), est_obj.fingerprint(8))
-            dd = MCRByteUtils.similaridade_cosseno(est_atual.fingerprint(8), est_obj.fingerprint(8))
-            r += (dd-da)*10
-        if acao_ok: r += 2.0
-        h = MCRByteUtils.entropia_bytes(est_atual.serializar())
-        if h > 0.5: r += 0.5
-        sim = MCRByteUtils.similaridade_cosseno(est_atual.fingerprint(8), est_ant.fingerprint(8))
-        if sim < 0.95: r += 1.0
-        return max(-10.0, min(10.0, r))
+        h_atual = est_atual.get("heroi")
+        h_ant = est_ant.get("heroi")
+        h_obj = est_obj.get("heroi") if est_obj else None
+        
+        if h_atual and h_ant:
+            # Penaliza fortemente ficar parado (acao que nao move o heroi)
+            if h_atual.props.get("x",0) == h_ant.props.get("x",0) and \
+               h_atual.props.get("y",0) == h_ant.props.get("y",0):
+                r -= 3.0  # parado e RUIM
+        
+        if h_atual and h_obj:
+            # Bonus Manhattan: recompensa aproximacao ao objetivo
+            dist_atual = abs(h_atual.props.get("x",0)-h_obj.props.get("x",0)) + \
+                        abs(h_atual.props.get("y",0)-h_obj.props.get("y",0))
+            if h_ant:
+                dist_ant = abs(h_ant.props.get("x",0)-h_obj.props.get("x",0)) + \
+                          abs(h_ant.props.get("y",0)-h_obj.props.get("y",0))
+                r += (dist_ant - dist_atual) * 5  # bonus alto por reduzir distancia
+            # Recompensa esparsa: chegou no objetivo
+            if dist_atual == 0:
+                r += 15.0
+        if acao_ok: r += 1.0
+        return max(-10.0, min(15.0, r))
 
 class MCRQLearn:
     def __init__(self, gamma=0.9, alpha=0.3):
         self.mk_Q = MCR("qlearn"); self.mk_pol = MCR("qpol"); self.gamma, self.alpha = gamma, alpha
         self.thr = MCRThreshold("qlearn"); self.episodio = 0; self.hist_ep: List[Dict] = []
+        self.replay: List[Tuple] = []  # replay buffer: (acoes, recompensa_total)
+        self._ultimas_acoes: List[str] = []  # Radar: historico para detectar loops
+        self._radar_limite = 4  # N repeticoes iguais = loop
+    def _fp_estado(self, estado):
+        """Fingerprint do estado com dimensionalidade moderada.
+        Usa 16-32D: suficiente para evitar colisoes sem isolar
+        estados demais (o que减慢 o aprendizado)."""
+        ser = estado.serializar().encode()[:2000]
+        dim = MCRSignatureExpansiva.dimensionalidade_ideal(ser, mx=64, thr=0.08)
+        dim = max(12, min(dim, 32))  # entre 12 e 32D
+        fp = estado.fingerprint(dim)
+        return str(fp[:4])  # primeiros 4 floats como chave
     def q_valor(self, estado, acao):
-        ch = f"Q:{str(estado.fingerprint(8)[:2])}:{acao}"
+        ch = f"Q:{self._fp_estado(estado)}:{acao}"
         p, c = self.mk_Q.predizer(ch)
         try: return float(p) if p and c > 0 else 0.0
         except: return 0.0
     def atualizar(self, estado, acao, recompensa, prox_est):
-        ch = f"Q:{str(estado.fingerprint(8)[:2])}:{acao}"
+        ch = f"Q:{self._fp_estado(estado)}:{acao}"
         q_at = self.q_valor(estado, acao)
         acs = MCRAcao.disponiveis()
         max_qf = max(self.q_valor(prox_est, a) for a in acs) if acs else 0.0
+        # Radar: penaliza acao em loop para forcar diversificacao
+        acao_loop = self._radar_loop_action()
+        if acao_loop == acao:
+            recompensa -= 1.0  # penalidade por repetir em loop
         td = recompensa + self.gamma*max_qf - q_at
         self.mk_Q.aprender(ch, f"{q_at+self.alpha*td:.4f}")
         melh = self.melhor_acao(estado)
-        if melh: self.mk_pol.aprender(str(estado.fingerprint(8)), melh)
+        if melh: self.mk_pol.aprender(self._fp_estado(estado), melh)
         self.thr.observar(abs(td))
-    def melhor_acao(self, estado, acoes=None):
+    def _radar_loop_action(self):
+        """Radar: retorna a acao que esta em loop (ou None)."""
+        if len(self._ultimas_acoes) < self._radar_limite:
+            return None
+        if len(set(self._ultimas_acoes[-self._radar_limite:])) == 1:
+            return self._ultimas_acoes[-1]
+        return None
+
+    def _radar_alimentar(self, acao):
+        """Alimenta o radar com a ultima acao."""
+        self._ultimas_acoes.append(acao)
+        if len(self._ultimas_acoes) > 100:
+            self._ultimas_acoes = self._ultimas_acoes[-50:]
+
+    def melhor_acao(self, estado, acoes=None, bloquear=None):
+        """Melhor acao, opcionalmente bloqueando uma acao especifica."""
         acoes = acoes or MCRAcao.disponiveis()
         if not acoes: return None
+        if bloquear:
+            candidatos = [a for a in acoes if a != bloquear]
+            if candidatos:
+                return max(candidatos, key=lambda a: self.q_valor(estado, a))
         return max(acoes, key=lambda a: self.q_valor(estado, a))
     def escolher_acao(self, estado, epsilon=0.2, acoes=None):
         acoes = acoes or MCRAcao.disponiveis()
         if not acoes: return "andar_cima"
+        # Radar: se loop detectado, BLOQUEIA a acao repetida por um passo
+        acao_loop = self._radar_loop_action()
+        if acao_loop:
+            # Bloqueia a acao em loop: escolhe a melhor DAS OUTRAS
+            bloqueada = self.melhor_acao(estado, acoes, bloquear=acao_loop)
+            if bloqueada:
+                return bloqueada
         if _rand.random() < epsilon: return _rand.choice(acoes)
         return self.melhor_acao(estado, acoes) or acoes[0]
+    def _replay_treinar(self):
+        """Re-treina com trajetorias bem-sucedidas (aprendizado offline).
+        Ajuda a consolidar politicas que levam ao objetivo."""
+        if len(self.replay) < 3:
+            return
+        melhores = sorted(self.replay, key=lambda x: -x[1])[:5]
+        for acoes, _ in melhores:
+            est = EstadoMundo.criar_simples()
+            for acao in acoes:
+                prox = MCRAcao.executar(est, acao)
+                mud = prox.serializar() != est.serializar()
+                rw = MCRReward().avaliar(prox, est, est, mud)
+                self.atualizar(est, acao, rw, prox)
+                est = prox
+
     def executar_episodio(self, est_ini, est_obj, mx=20):
         est = est_ini.clone(); r_total = 0.0; acs = []
+        self._ultimas_acoes = []  # reseta radar para novo episodio
         for passo in range(mx):
-            ac = self.escolher_acao(est, epsilon=max(0.05, 0.2-self.episodio*0.01))
+            # Epsilon com decay mais lento (explora mais no inicio)
+            ac = self.escolher_acao(est, epsilon=max(0.05, 0.3-self.episodio*0.005))
+            # Radar: alimenta detector de loop
+            self._radar_alimentar(ac)
             prox = MCRAcao.executar(est, ac)
             mud = prox.serializar() != est.serializar()
             rw = MCRReward().avaliar(prox, est, est_obj, mud)
@@ -1505,6 +1667,13 @@ class MCRQLearn:
             if h and ho:
                 if abs(h.props.get("x",0)-ho.props.get("x",0)) + abs(h.props.get("y",0)-ho.props.get("y",0)) <= 1: break
         self.episodio += 1
+        # Guarda no replay se chegou perto do objetivo
+        if h and ho:
+            dist_final = abs(h.props.get("x",0)-ho.props.get("x",0)) + \
+                        abs(h.props.get("y",0)-ho.props.get("y",0))
+            if dist_final <= 2:
+                self.replay.append((list(acs), r_total))
+                self._replay_treinar()
         res = {"episodio": self.episodio, "passos": passo+1, "recompensa": round(r_total,2), "acoes": acs[:10]}
         self.hist_ep.append(res); return res
 
