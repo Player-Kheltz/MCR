@@ -1759,6 +1759,12 @@ class MCRResposta:
         if not cerebro:
             return ""
         return MCRResposta._buscar(pergunta, cerebro)
+    
+    @staticmethod
+    def _feedback(pergunta, delta=0.0):
+        """Aprende com feedback: penaliza ou recompensa topicos.
+        Se o usuario repetiu a pergunta, a resposta anterior nao foi util."""
+        pass  # feedback sera usado pelo ciclo_autonomo
 
 # ═══════════════════════════════════════════════════════════════════
 # [19] MCRNPCBrain — NPCs do servidor
@@ -2756,27 +2762,79 @@ class MCRCuriosidade:
 
 
 class MCRConversa:
-    """Conversa: MCRResposta busca com metacognicao, cerebro aprende.
-    Zero categorias. Zero extratores. Zero hardcodes."""
+    """Conversa: MCRResposta busca + web fallback + aprendizado continuo.
+    Zero categorias. Zero hardcodes."""
     def __init__(self, cerebro):
         self.cerebro = cerebro
         self.historico: List[str] = []
+        self.thr_web = MCRThreshold("conv_web")
+    
+    def _buscar_web(self, consulta):
+        """Busca na web via DuckDuckGo (stdlib urllib, sem API key)."""
+        try:
+            import urllib.request as _ur
+            import urllib.parse as _up
+            url = "https://html.duckduckgo.com/html/?q=" + _up.quote(consulta)
+            req = _ur.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+            with _ur.urlopen(req, timeout=5) as r:
+                html = r.read().decode('utf-8', errors='replace')
+            # Extrai snippets de resultado
+            import re as _re
+            snippets = _re.findall(r'<a rel="nofollow" class="result__a" href="[^"]*">(.*?)</a>', html)[:3]
+            return [s.strip() for s in snippets if s.strip()]
+        except:
+            return []
     
     def perguntar(self, texto: str) -> str:
         texto = texto.strip()
         if not texto:
             return ""
         
+        # Tenta responder com conhecimento atual
         resp = MCRResposta.responder(texto, self.cerebro)
-        if not resp or resp == texto:
-            resp = "Nao sei responder sobre isso."
         
+        # Se nao sabe, busca na web (Passo 1)
+        if not resp or resp == texto or resp == "Nao sei responder sobre isso.":
+            max_web = max(1, int(self.thr_web.obter("max_resultados", 3)))
+            resultados = self._buscar_web(texto)
+            for i, snippet in enumerate(resultados[:max_web]):
+                self.cerebro.alimentar(snippet, f"web_{hash(texto)}_{i}")
+            if resultados:
+                resp = MCRResposta.responder(texto, self.cerebro)
+                if not resp or resp == texto:
+                    resp = resultados[0][:200]
+            else:
+                resp = "Nao sei responder sobre isso."
+        
+        # Aprende com a interacao
         self.historico.append(f"> {texto}")
         self.historico.append(f"< {resp}")
         self.cerebro.alimentar(f"> {texto} < {resp}", f"conv_{hash(texto+resp)%10000}")
         
+        # Ciclo autonomo apos cada pergunta (Passo 3)
+        try:
+            self.cerebro.ciclo_autonomo(texto, max_passos=MCRDecisorUniversal.decidir_passos("pos_pergunta", {"tamanho_bytes": len(texto)}))
+        except:
+            pass
+        
         return resp
 
+
+def _explorar_fundo(cerebro, curiosidade):
+    """Thread de exploracao proativa em background (Passo 2).
+    
+    Verifica periodicamente se o cerebro esta com fome
+    e explora em segundo plano sem travar o chat."""
+    thr_pausa = MCRThreshold("explorar_fundo")
+    while True:
+        try:
+            pausa = max(1.0, thr_pausa.obter("pausa_segundos", 5.0))
+            time.sleep(pausa)
+            est_fome = curiosidade.diagnosticar_fome()
+            if est_fome['fome']:
+                curiosidade.ciclo()
+        except:
+            pass
 
 def chat_loop(cerebro):
     conversa = MCRConversa(cerebro)
@@ -2804,6 +2862,10 @@ def chat_loop(cerebro):
         r = curiosidade.ciclo()
         if r['descobertas'] > 0:
             print(f"[MCR] Aprendi {r['descobertas']} novas informacoes!\n")
+    
+    # Exploracao proativa em background (Passo 2)
+    _thread_curiosidade = threading.Thread(target=_explorar_fundo, args=(cerebro, curiosidade), daemon=True)
+    _thread_curiosidade.start()
     
     # Aprende fingerprint APENAS por conversa real, nao por seed artificial
     # (reconhecer_e_aprender dentro do loop faz isso naturalmente)
@@ -2860,6 +2922,12 @@ def chat_loop(cerebro):
         "r": ctx['curiosidade'].ciclo(),
         "zerar_exp": True,
     })
+    # Acao buscar_web (Passo 4): busca, alimenta cerebro, responde
+    _reg_acao("buscar_web", lambda ctx: {
+        "acao": "buscar_web",
+        "conversa": ctx['conversa'],
+        "entrada": ctx['entrada'],
+    })
     
     # Seed: estado desconhecido → responder
     mk_fluxo.aprender("estado_desconhecido", "responder")
@@ -2905,11 +2973,17 @@ def chat_loop(cerebro):
         # Executa acao via registry (zero ifs — dispatch por dicionario)
         r = _exec_acao(acao, ctx_acao)
         
-        # RESPONDE sempre (a acao "responder" ja faz isso,
-        # mas para as outras acoes, respondemos depois)
+        # RESPONDE sempre
         if acao == "responder":
             safe = r['msg'].encode("ascii", errors="replace").decode("ascii")
             print(f"  {ident_s}{safe}")
+        elif acao == "buscar_web":
+            # Busca na web e responde (Passo 4)
+            resp2 = r.get('conversa', conversa).perguntar(r.get('entrada', e))
+            safe2 = resp2.encode("ascii", errors="replace").decode("ascii")
+            print(f"  {ident_s}{safe2}")
+            n_desde_ultima_exploracao = 0
+            mk_fluxo.aprender(estado_fluxo, f"buscou_web")
         else:
             # EXPLOROU: mostra resultado e depois responde
             desc = r.get('r', {}).get('descobertas', 0)
@@ -2921,10 +2995,17 @@ def chat_loop(cerebro):
             n_desde_ultima_exploracao = 0
             mk_fluxo.aprender(estado_fluxo, f"{acao}_desc:{desc}")
             
-            # Responde depois de explorar
-            resp = conversa.perguntar(e)
-            safe = resp.encode("ascii", errors="replace").decode("ascii")
-            print(f"  {ident_s}{safe}")
+            resp2 = conversa.perguntar(e)
+            safe2 = resp2.encode("ascii", errors="replace").decode("ascii")
+            print(f"  {ident_s}{safe2}")
+        
+        # Feedback de utilidade (Passo 5)
+        # Se o usuario repetir a mesma pergunta, a resposta anterior nao foi util
+        if len(conversa.historico) >= 4:
+            ultima = conversa.historico[-2] if len(conversa.historico) >= 2 else ""
+            if ultima and ultima.startswith("> ") and ultima[2:].strip().lower() == e.lower():
+                _thr_feedback = MCRThreshold("feedback").obter("penalidade", 0.1)
+                MCRResposta._feedback(e, -_thr_feedback)
     
     # Salva estado antes de sair
     try:
