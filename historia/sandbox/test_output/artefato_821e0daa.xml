@@ -1,7 +1,0 @@
-<npc name="Ferreiro" script="ferreiro.lua">
-       <health max="100" now="100"/>
-       <looktype>128</looktype>
-       <speed>300</speed>
-       <walkinterval>2000</walkinterval>
-       <position x="100" y="100" z="7"/> <!-- Substitua pelas coordenadas corretas de Eridanus -->
-   </npc>

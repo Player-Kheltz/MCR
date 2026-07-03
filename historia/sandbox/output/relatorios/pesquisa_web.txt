@@ -1,6 +1,0 @@
-Entendido. Vou buscar informações sobre as últimas novidades do Canary OTServ e salvar o resultado no arquivo especificado.
-
-Ação: buscar_web  
-Descrição: Pesquisa na web sobre as últimas novidades do Canary OTServ.
-
-Vou iniciar a pesquisa e, após obter as informações relevantes, salvo-as em sandbox/output/relatorios/canary_novidades.txt.

@@ -1,2 +1,0 @@
-# Dependencias do projeto
-requests, beautifulsoup4

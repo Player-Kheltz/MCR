@@ -1,3 +1,0 @@
-Este módulo `fases.js` define uma classe `Jogo` que gerencia as fases do jogo. Ele possui métodos para iniciar o jogo, mover jogadores, verificar vitória e encerrar o jogo. O tabuleiro é criado com um tamanho fixo de 8x8, mas você pode ajustar isso conforme necessário.
-
-Para usar este módulo em seu projeto React, você precisará importá-lo e integrá-lo ao seu fluxo de jogo. Aqui está um exemplo simples de como você pode fazer isso:
