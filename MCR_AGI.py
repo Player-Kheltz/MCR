@@ -1683,6 +1683,9 @@ def chat_loop(cerebro):
     print()
     
     n_mensagens = 0
+    n_desde_ultima_exploracao = 0
+    mk_fluxo = MCR("fluxo_chat")
+    
     while True:
         try: e = input("voce: ").strip()
         except (EOFError, KeyboardInterrupt): print("\nAte logo!"); break
@@ -1690,24 +1693,54 @@ def chat_loop(cerebro):
         if e.lower() in ("sair","exit","quit"): print("Ate logo!"); break
         
         n_mensagens += 1
+        n_desde_ultima_exploracao += 1
         
         # Aprende fingerprint (sem hardcode)
         autor, conf, status = identidade.reconhecer_e_aprender(e)
         ident_s = f'[{autor} conf={conf:.2f}] ' if conf > 0.2 else ''
         
+        # MCRDecisor decide o fluxo baseado no ESTADO REAL
+        est_fome = curiosidade.diagnosticar_fome()
+        estado_fluxo = (
+            f"TOP:{min(len(cerebro.topicos)//10, 20)}_"
+            f"FOME:{'S' if est_fome['fome'] else 'N'}_"
+            f"ULT_EXP:{min(n_desde_ultima_exploracao, 20)}_"
+            f"CONF:{int(conf*10)}"
+        )
+        
+        dec_fluxo = mk_fluxo.predizer(estado_fluxo)
+        acao = str(dec_fluxo[0]).lower() if dec_fluxo[0] else ''
+        
+        # EXPLORAR ANTES: confianca baixa, tema parece novo
+        if 'explorar' in acao and ('antes' in acao or 'ansioso' in acao):
+            r = curiosidade.ciclo()
+            if r['descobertas'] > 0:
+                print(f"  [MCR] Deixe-me estudar isso primeiro... aprendi {r['descobertas']} novas informacoes")
+            n_desde_ultima_exploracao = 0
+            mk_fluxo.aprender(estado_fluxo, f"explorou_antes_{r['descobertas']}")
+        
+        # RESPONDE (sempre)
         resp = conversa.perguntar(e)
         safe = resp.encode("ascii", errors="replace").decode("ascii")
         print(f"  {ident_s}{safe}")
         
-        # A cada 3 mensagens, MCRDecisor decide se deve explorar
-        if n_mensagens % 3 == 0:
-            est = curiosidade.diagnosticar_fome()
-            dec_est = f"top:{est['topicos']//10}_pal:{est['palavras']//500}_desc:{curiosidade.descobertas}"
-            dec2 = decisor_explorar.predizer(dec_est)
-            if dec2[0] is not None and 'explorar' in str(dec2[0]).lower():
-                r = curiosidade.ciclo()
-                if r['descobertas'] > 0:
-                    print(f"  [MCR] Aprendi {r['descobertas']} novas informacoes enquanto conversavamos!")
+        # EXPLORAR DEPOIS: resposta foi fraca, MCR sabe que nao sabe
+        if 'explorar' in acao and 'depois' in acao:
+            r = curiosidade.ciclo()
+            if r['descobertas'] > 0:
+                print(f"  [MCR] Aprendi {r['descobertas']} novas informacoes sobre isso para a proxima vez!")
+            else:
+                print(f"  [MCR] Nao encontrei mais informacoes sobre este assunto agora.")
+            n_desde_ultima_exploracao = 0
+            mk_fluxo.aprender(estado_fluxo, f"explorou_depois_{r['descobertas']}")
+        
+        # EXPLORAR SOZINHO: MCR aproveita enquanto o usuario pensa
+        elif 'explorar' in acao and n_desde_ultima_exploracao > 3:
+            r = curiosidade.ciclo()
+            if r['descobertas'] > 0:
+                print(f"  [MCR] Aproveitei para aprender {r['descobertas']} coisas novas enquanto isso!")
+            n_desde_ultima_exploracao = 0
+            mk_fluxo.aprender(estado_fluxo, f"explorou_sozinho_{r['descobertas']}")
     
     # Salva estado antes de sair
     try:
