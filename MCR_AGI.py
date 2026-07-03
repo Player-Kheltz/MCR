@@ -644,6 +644,81 @@ class MCREsfera:
         return melhor, min(conf, 1.0)
 
 # ═══════════════════════════════════════════════════════════════════
+# [07b] MCRHiperesferaAutoExpansiva — dimensoes descobertas por entropia
+# ═══════════════════════════════════════════════════════════════════
+
+class MCRHiperesferaAutoExpansiva:
+    """Descobre dimensoes automaticamente pela entropia.
+    
+    Comeca com 0 dimensoes. A cada ciclo, descobre a DIMENSAO
+    MAIS PREVISIVEL (menor entropia) que ainda nao foi adicionada.
+    Para quando o proximo candidato tem entropia ~1.0 (ruido).
+    
+    A ordem de descoberta e sempre: MAIS ESTRUTURADA primeiro.
+    Para codigo fonte: linha → fingerprint_sliding → hash_curto → palavra
+    """
+    
+    CANDIDATOS = [
+        ("byte", lambda t: [f"B:{b:02x}" for b in t.encode('utf-8')[:2000]], "bytes individuais"),
+        ("palavra", lambda t: re.findall(r'\b\w+\b', t.lower())[:500], "palavras do texto"),
+        ("token_tipo", lambda t: [
+            'M' if c.isupper() else 'm' if c.islower() else 'd' if c.isdigit() else 'o'
+            for c in t[:1000]], "tipo do caractere"),
+        ("linha", lambda t: [l[:30] for l in t.split('\n') if l.strip()][:200], "linhas do texto"),
+        ("byte_delta", lambda t: [
+            f"Δ:{abs(t.encode()[i+1]-t.encode()[i]):02x}"
+            for i in range(min(len(t), 999))], "diferenca entre bytes"),
+        ("hash_curto", lambda t: [
+            f"H:{abs(hash(p))%1000:03d}"
+            for p in re.findall(r'\b\w+\b', t.lower())[:300]], "hash de palavras"),
+    ]
+    
+    def __init__(self):
+        self.dimensoes: Dict[str, MCR] = {}
+        self.tokenizadores: Dict[str, Callable] = {}
+        self.ent_historico: List[float] = []
+        self.threshold = 0.95
+    
+    def _entropia(self, mk: MCR) -> float:
+        if mk.total == 0: return 1.0
+        return mk.entropia_media()
+    
+    def _entropia_candidato(self, nome, fn, texto):
+        tokens = fn(texto)
+        if len(tokens) < 3: return 1.0
+        mk = MCR(nome)
+        for i in range(len(tokens)-1): mk.aprender(tokens[i], tokens[i+1])
+        return self._entropia(mk)
+    
+    def _candidatos_disponiveis(self):
+        return [(n, fn, d) for n, fn, d in self.CANDIDATOS if n not in self.dimensoes]
+    
+    def descobrir(self, texto, max_dim=10):
+        """Descobre dimensoes da mais estruturada para a menos.
+        Retorna lista de nomes das dimensoes descobertas.
+        """
+        descobertas = []
+        for _ in range(max_dim):
+            candidatos = self._candidatos_disponiveis()
+            if not candidatos: break
+            
+            melhor = min(candidatos, key=lambda c: self._entropia_candidato(c[0], c[1], texto))
+            nome, fn, desc = melhor
+            ent = self._entropia_candidato(nome, fn, texto)
+            
+            if ent >= self.threshold: break  # ruido — para
+            
+            mk = MCR(nome)
+            tokens = fn(texto)
+            for i in range(len(tokens)-1): mk.aprender(tokens[i], tokens[i+1])
+            self.dimensoes[nome] = mk
+            self.tokenizadores[nome] = fn
+            self.ent_historico.append(ent)
+            descobertas.append(nome)
+        
+        return descobertas
+
+# ═══════════════════════════════════════════════════════════════════
 # [08] MCRPlanner — planejamento hierarquico
 # ═══════════════════════════════════════════════════════════════════
 
