@@ -826,6 +826,111 @@ class MCRAutoValidacaoContinua:
         }
 
 # ═══════════════════════════════════════════════════════════════════
+# [07e] PIFilosofia — PI como cadeia infinita projetada em N dimensoes
+# ═══════════════════════════════════════════════════════════════════
+
+class PIFilosofia:
+    """PI (π) como cadeia Markov infinita contendo TUDO.
+    
+    Cada MCR(nivel) e uma projecao finita de PI.
+    O destino de cada entidade e sua transicao mais provavel.
+    Superposicao e o encontro de duas cadeias no mesmo ponto.
+    Entropia e o residuo informacional desse encontro.
+    
+    Uso:
+        pi = PIFilosofia()
+        pi.alimentar(texto)           # projeta PI em dimensoes finitas
+        pi.destino("palavra", "MCR")  # destino mais provavel
+        pi.superposicao("byte","B:41","palavra","MCR")  # entropia do encontro
+    """
+    
+    def __init__(self):
+        self.hiper = None
+        self.destinos_cache = {}
+    
+    def alimentar(self, texto):
+        """Projeta PI em dimensoes finitas via hiperesfera."""
+        self.hiper = MCRHiperesferaAutoExpansiva()
+        return self.hiper.descobrir(texto)
+    
+    def dimensoes(self):
+        if not self.hiper: return []
+        return list(self.hiper.dimensoes.keys())
+    
+    def destino(self, nivel, estado):
+        """O destino de uma entidade: seu proximo estado mais provavel.
+        
+        Retorna:
+          - destino: o estado mais provavel
+          - confianca: probabilidade desse destino
+          - entropia: incerteza do estado atual
+          - livre_arbitrio: 1 - confianca (o quanto pode divergir)
+        """
+        if not self.hiper or nivel not in self.hiper.dimensoes:
+            return None
+        mk = self.hiper.dimensoes[nivel]
+        pred, conf = mk.predizer(estado)
+        ent = mk.entropia(estado) if estado in mk.freq else 1.0
+        return {
+            "destino": pred,
+            "confianca": round(conf, 4),
+            "entropia": round(ent, 4),
+            "livre_arbitrio": round(1.0 - conf, 4),
+        }
+    
+    def superposicao(self, nivel_a, valor_a, nivel_b, valor_b):
+        """Calcula a entropia do encontro entre duas cadeias.
+        
+        Se H_total e alta → superposicao caotica (destinos conflitaram)
+        Se H_total e baixa → superposicao suave (um previu o outro)
+        """
+        if not self.hiper:
+            return {"entropia_total": 1.0, "tipo": "desconhecido"}
+        
+        mk_a = self.hiper.dimensoes.get(nivel_a)
+        mk_b = self.hiper.dimensoes.get(nivel_b)
+        if not mk_a or not mk_b:
+            return {"entropia_total": 1.0, "tipo": "dimensao_ausente"}
+        
+        ha = mk_a.entropia(valor_a) if valor_a in mk_a.freq else 1.0
+        hb = mk_b.entropia(valor_b) if valor_b in mk_b.freq else 1.0
+        
+        # Entropia condicional: se um explica o outro
+        pred_a_para_b, conf_a = mk_a.predizer(valor_a)
+        pred_b_para_a, conf_b = mk_b.predizer(valor_b)
+        
+        # Informacao mutua = quanto um reduz a entropia do outro
+        i_ab = conf_a * conf_b  # simplificacao
+        
+        h_total = ha + hb - i_ab
+        tipo = "suave" if i_ab > 0.5 else "caotica" if i_ab < 0.2 else "neutra"
+        
+        return {
+            "entropia_total": round(h_total, 4),
+            "entropia_a": round(ha, 4),
+            "entropia_b": round(hb, 4),
+            "informacao_mutua": round(i_ab, 4),
+            "tipo": tipo,
+            "a_previu_b": pred_a_para_b is not None,
+            "b_previu_a": pred_b_para_a is not None,
+        }
+    
+    def cadeia_universal(self, niveis=None):
+        """Retorna a entropia combinada de todas as projecoes de PI.
+        
+        Quanto mais baixa, mais 'destino' o sistema esta seguindo.
+        Quanto mais alta, mais superposicoes caoticas estao ocorrendo.
+        """
+        if not self.hiper:
+            return 1.0
+        entropias = []
+        for nome, mk in self.hiper.dimensoes.items():
+            if niveis and nome not in niveis: continue
+            entropias.append(mk.entropia_media() if mk.total > 0 else 1.0)
+        if not entropias: return 1.0
+        return round(max(entropias), 4)
+
+# ═══════════════════════════════════════════════════════════════════
 # [08] MCRPlanner — planejamento hierarquico
 # ═══════════════════════════════════════════════════════════════════
 
