@@ -281,15 +281,24 @@ class MCRHDCOperation:
             dim_alvo = MCRSignatureExpansiva.dimensionalidade_ideal(dados_treino.encode()[:2000], mx=128, thr=0.05)
             dim_alvo = max(dim_alvo, 4)  # minimo viavel
         
-        # Modo de interpolacao decidido por MCRDecisor (HC #6)
-        modo = MCRDecisorUniversal.decidir(ctx="hdc_interp").get("threshold", 0)
-        modo_tag = "linear" if modo < 0.33 else "vizinho" if modo < 0.66 else "media"
+        # Modo de interpolacao: linear por padrao (HC #6)
+        modo_tag = "linear"
         
         def _interp(v, n, modo):
             if len(v) == n:
                 return list(v)
             if modo == "linear":
-                return [v[min(int(i * len(v) / n), len(v)-1)] for i in range(n)]
+                # Interpolacao linear VERDADEIRA entre valores vizinhos
+                result = []
+                for i in range(n):
+                    pos = i * (len(v) - 1) / max(n - 1, 1)
+                    idx = int(pos)
+                    frac = pos - idx
+                    if idx >= len(v) - 1:
+                        result.append(v[-1])
+                    else:
+                        result.append(v[idx] * (1.0 - frac) + v[idx+1] * frac)
+                return result
             elif modo == "vizinho":
                 # Vizinho mais proximo (amostragem pura)
                 # Se n > len(v), faz upsample (repete cada elemento)
@@ -533,6 +542,14 @@ class MCRAutoEvolution:
                 f = _Cnt(vals); n = len(vals)
                 ent_c = -sum((c/n)*math.log2(c/n) for c in f.values()) if n > 0 else 0
                 entropias.append(min(ent_c, 1.0))
+        # Entropia dos pesos da atencao (mudam quando AE muta)
+        if hasattr(MCRAttention, '_thr_p'):
+            pesos = [v.obter("peso", 3.0) for v in MCRAttention._thr_p.values()]
+            if pesos:
+                from collections import Counter as _Cnt2
+                f2 = _Cnt2([int(p*10) for p in pesos]); n2 = len(pesos)
+                ent_p = -sum((c/n2)*math.log2(c/n2) for c in f2.values()) if n2 > 0 else 0
+                entropias.append(min(ent_p, 1.0))
         # Variancia da entropia entre topicos (ruido do sistema)
         if hasattr(c, 'topicos') and len(c.topicos) >= 2:
             ents_t = []
@@ -554,11 +571,16 @@ class MCRAutoEvolution:
         """
         ent_antes = self.entropia_global()
         
-        # Encontra MCRThresholds no cerebro para mutar
+        # Encontra MCRThresholds no cerebro que IMPACTAM entropia
         alvos = []
+        # Pesos da atencao (afetam pontuar() -> selecao de tokens -> entropia)
+        if hasattr(MCRAttention, '_thr_p'):
+            for nome_k, thr_k in MCRAttention._thr_p.items():
+                alvos.append((f'att_{nome_k}', thr_k))
+        # Thresholds do cerebro que sao usados em decisoes
         for attr_name in ['thr', 'thr_entropia', 'thr_tamanho', 'thr_palavras',
                           'thr_visitas', 'thr_amostras', 'thr_por_pasta']:
-            if hasattr(self.cerebro, attr_name):
+            if hasattr(self.cerebro, attr_name) and attr_name != 'thr':
                 attr = getattr(self.cerebro, attr_name)
                 if isinstance(attr, MCRThreshold):
                     alvos.append((attr_name, attr))
