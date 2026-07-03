@@ -30,7 +30,19 @@ teste_persistencia.py
 agi_prototipo/
 backup_final/
 backup_universal/
-validacao/
+
+# ProjetoMCR server files (excluded from MCR repo)
+Canary/
+OTClient/
+LoginServer/
+MapEditor/
+data/
+Legado/
+MCR-DevIA/
+..bfg-report/
+.learn_db/
+respostas_cloud/
+respostas_mcr/
 
 # Temp
 *.tmp
