@@ -165,14 +165,15 @@ class MCRSignatureExpansiva:
         return es[-1][0] if es else 8
 
 class MCRReservoir:
-    """Vetor de fingerprint com janelamento temporal.
+    """Vetor de fingerprint com janelamento temporal e estado interno.
     
-    Em vez de um fingerprint 8D unico para o texto TODO,
-    divide o texto em janelas e gera fingerprints de CADA janela.
-    O vetor resultante captura estrutura LOCAL — nao apenas global.
+    Divide o texto em janelas e gera fingerprints de cada janela.
+    O vetor resultante captura estrutura LOCAL.
     
-    Permite diferenciar textos que tem o mesmo fingerprint global
-    mas estrutura local diferente.
+    COM ESTADO INTERNO (leaky integration):
+    - O estado anterior e realimentado na proxima chamada
+    - alpha = taxa de leaky (aprendida por MCRThreshold)
+    - coupling alimentado com estado (nao fica vazio)
     """
     def __init__(self, dim=8, janela=200, passo=100):
         self.dim = dim
@@ -180,17 +181,11 @@ class MCRReservoir:
         self.passo = passo
         self.cache: Dict[str, List[float]] = {}
         self.coupling = MCRCoupling()
+        self.estado: List[float] = []
+        self.thr_alpha = MCRThreshold("reservoir_alpha")
+        self.mk_estado = MCR("reservoir_estado")
     
     def gerar(self, texto):
-        """Gera vetor de fingerprints de janelas do texto.
-        
-        1. Divide texto em janelas sobrepostas (tamanho=janela, passo=passo)
-        2. Gera fingerprint de cada janela (dimensao=dim)
-        3. Concatena em vetor unico
-        4. Cada janela captura o padrao LOCAL do texto naquela regiao
-        
-        O resultado e um vetor que preserva informacao POSICIONAL.
-        """
         if texto in self.cache:
             return self.cache[texto]
         
@@ -204,9 +199,27 @@ class MCRReservoir:
             if len(janela) < self.dim:
                 break
             fp = MCRByteUtils.fingerprint(janela, self.dim)
-            vetor.extend(fp)
+            
+            # Leaky integration com estado interno
+            alpha = self.thr_alpha.obter("alpha", 0.3)
+            if not self.estado or len(self.estado) != len(fp):
+                self.estado = list(fp)
+            else:
+                for i in range(len(fp)):
+                    self.estado[i] = alpha * fp[i] + (1-alpha) * self.estado[i]
+            
+            # Alimenta coupling com estado (nao fica vazio)
+            self.coupling.alimentar("reservoir", "estado",
+                                   str(fp[:min(3, len(fp))]),
+                                   str(self.estado[:min(3, len(self.estado))]))
+            # Aprende transicao de estado
+            self.mk_estado.aprender(str(self.estado[:min(4, len(self.estado))]),
+                                   str(fp[:min(4, len(fp))]))
+            
+            vetor.extend(self.estado)
         
         self.cache[texto] = vetor
+        self.coupling.recalcular()
         return vetor
     
     def entropia_reservoir(self, vetor=None):
@@ -858,13 +871,26 @@ class MCRNLP:
     @classmethod
     def entender(cls, frase, dominio="acao", top_k=None):
         top_k = top_k or max(1, int(C("top_k",3))); frase = frase.lower()
+        # Dimensionalidade ideal para a frase (P6-NOVO)
+        dim = MCRSignatureExpansiva.dimensionalidade_ideal(
+            frase.encode()[:2000], mx=128, thr=0.05
+        )
+        fp_frase = MCRByteUtils.fingerprint(frase, max(dim, 4))
         scores = {}
         for acao, exs in cls._ex.items():
-            melhor = max((MCRByteUtils.jaccard_bytes(frase, ex) for ex in exs), default=0)
-            if melhor > 0: scores[acao] = melhor
+            melhor_j = max((MCRByteUtils.jaccard_bytes(frase, ex) for ex in exs), default=0)
+            if melhor_j <= 0: continue
+            melhor_cos = max(
+                (MCRByteUtils.similaridade_cosseno(
+                    fp_frase, MCRByteUtils.fingerprint(ex, max(dim, 4))
+                ) for ex in exs), default=0
+            )
+            # Score combinado: jaccard + cosseno com dimensionalidade ideal
+            params = MCRDecisorUniversal.decidir(ctx="nlp")
+            peso_j = params.get("peso_jaccard", 0.5)
+            scores[acao] = melhor_j * peso_j + melhor_cos * (1 - peso_j)
         ords = sorted(scores.items(), key=lambda x: -x[1])
-        params = MCRDecisorUniversal.decidir(ctx="nlp")
-        limiar = params.get("threshold_nlp", 0.3)
+        limiar = MCRThreshold("nlp_entender").obter("limiar", 0.3)
         return [acao for acao, score in ords[:top_k] if score > limiar]
     @classmethod
     def detectar_dominio(cls, texto):
@@ -895,7 +921,13 @@ _registrar_nlp()
 # ═══════════════════════════════════════════════════════════════════
 
 class MCRAttention:
-    _pesos = {"prob": 3.0, "fp": 5.0, "jac": 4.0, "ent": 1.0}
+    _thr_p = {"prob": MCRThreshold("att_prob"), "fp": MCRThreshold("att_fp"),
+              "jac": MCRThreshold("att_jac"), "ent": MCRThreshold("att_ent")}
+    @classmethod
+    def _pesos(cls):
+        return {k: v.obter("peso", p) for k, v, p in
+                [("prob", cls._thr_p["prob"], 3.0), ("fp", cls._thr_p["fp"], 5.0),
+                 ("jac", cls._thr_p["jac"], 4.0), ("ent", cls._thr_p["ent"], 1.0)]}
     @classmethod
     def _topico_relevante(cls, cerebro, pergunta):
         if not pergunta or not cerebro.topicos: return None
@@ -936,7 +968,7 @@ class MCRAttention:
                         if j > s_jac: s_jac = j
             h = cerebro.mk_palavra.entropia(token) if hasattr(cerebro,'mk_palavra') and token in cerebro.mk_palavra.freq else 0.5
             s_ent = 1.0 - abs(h-0.5)*2
-            w = cls._pesos
+            w = cls._pesos()
             nota = (s_prob*w["prob"] + s_fp*w["fp"] + s_jac*w["jac"] + s_ent*w["ent"])/sum(w.values())
             pts.append((token, round(nota,4)))
         pts.sort(key=lambda x:-x[1]); return pts[:k]
@@ -1113,7 +1145,29 @@ class MCREsfera:
         self.total += 1
     
     def recalcular(self):
-        pass
+        """Recalcula correlacoes: poda pares com frequencia < threshold.
+        
+        Remove correlacoes que nunca se repetiram (frequencia 1 = ruido).
+        Auto-valida: se esfera ficou vazia, precisa de mais dados.
+        """
+        thr = MCRThreshold("esfera").obter("poda", 2)
+        for nivel_a in list(self.cross.keys()):
+            for valor_a in list(self.cross[nivel_a].keys()):
+                for nivel_b in list(self.cross[nivel_a][valor_a].keys()):
+                    for chave_b in list(self.cross[nivel_a][valor_a][nivel_b].keys()):
+                        if self.cross[nivel_a][valor_a][nivel_b][chave_b] < thr:
+                            del self.cross[nivel_a][valor_a][nivel_b][chave_b]
+                    if not self.cross[nivel_a][valor_a][nivel_b]:
+                        del self.cross[nivel_a][valor_a][nivel_b]
+                if not self.cross[nivel_a][valor_a]:
+                    del self.cross[nivel_a][valor_a]
+            if not self.cross[nivel_a]:
+                del self.cross[nivel_a]
+        self.total = sum(
+            sum(c for c in vb.values())
+            for na in self.cross for va in self.cross[na].values()
+            for vb in va.values()
+        )
     
     def predizer_cross(self, nivel_alvo, **contexto):
         """Prediz valor em nivel_alvo dado contexto em QUALQUER nivel.
@@ -1169,6 +1223,9 @@ class MCRHiperesferaAutoExpansiva:
         ("hash_curto", lambda t: [
             f"H:{abs(hash(p))%1000:03d}"
             for p in re.findall(r'\b\w+\b', t.lower())[:300]], "hash de palavras"),
+        # Candidatos independentes de variedade lexical (P4)
+        ("byte_freq", lambda t: [f"F:{t.encode().count(b):03d}" for b in range(min(256, len(t.encode())))][:50], "frequencia de bytes"),
+        ("entropia_local", lambda t: [f"E:{int(MCRByteUtils.entropia_bytes(t[i:i+10].encode())*10)}" for i in range(0, min(len(t),500), 5)], "entropia de janelas"),
     ]
     
     def __init__(self):
@@ -1990,22 +2047,21 @@ class CerebroAGI:
     def ciclo_autonomo(self, texto="", max_passos=20):
         """Ciclo autonomo: MCR decide QUAL acao executar.
         
-        Nao ha ordem fixa. O MCR orquestrador decide baseado
-        no estado atual do sistema. Cada acao e registrada,
-        dispatch via dicionario (zero if/elif).
-        
-        O orquestrador aprende com recompensa = reducao de entropia.
+        Nao ha ordem fixa. MCR orquestrador decide + epsilon-greedy
+        para exploracao. Aprende com recompensa = reducao de entropia.
         """
         historico = []
         estado_anterior = ""
         ent_antes = self.mk_byte.entropia_media() if self.mk_byte.total > 0 else 1.0
+        dec_orq = MCRDecisorUniversal.decidir(ctx="orquestrador")
+        epsilon = dec_orq.get("threshold", 0.1)
         
         for passo in range(max_passos):
             estado_str = self._estado_atual()
             
             if estado_str == estado_anterior:
                 ent_depois = self.mk_byte.entropia_media() if self.mk_byte.total > 0 else 1.0
-                dec_rec = MCRDecisorUniversal.decidir(ctx="ciclo_recompensa")  # HC #9
+                dec_rec = MCRDecisorUniversal.decidir(ctx="ciclo_recompensa")
                 recompensa = (ent_antes - ent_depois) * dec_rec.get("threshold", 1.0)
                 self.mk_orq.aprender(estado_str, f"ent_stabilized:{recompensa:.3f}")
                 break
@@ -2020,6 +2076,19 @@ class CerebroAGI:
                 recompensa = (ent_antes - ent_depois) * dec_rec.get("threshold", 1.0)
                 self.mk_orq.aprender(estado_str, f"ent_unknown:{recompensa:.3f}")
                 break
+            
+            # Epsilon-greedy: explora acao aleatoria com prob epsilon (P5)
+            if _rand.random() < epsilon:
+                acoes_validas = [k for k in self._acoes_internas.keys()]
+                if acoes_validas:
+                    acao = _rand.choice(acoes_validas)
+                    conf = epsilon
+            
+            # Sobrescrita por confianca: se aprendeu algo mais confiavel, usa (P5)
+            acao_aprendida, conf_aprendida = self.mk_orq.predizer(estado_str)
+            if acao_aprendida and conf_aprendida > conf:
+                acao = acao_aprendida
+                conf = conf_aprendida
             
             fn = self._acoes_internas.get(acao)
             if not fn:
