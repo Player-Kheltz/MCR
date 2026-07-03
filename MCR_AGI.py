@@ -251,39 +251,43 @@ class MCRHDCOperation:
                 return v
         return MCRByteUtils.fingerprint(texto, 8)
     
-    def bundle(self, a, b, peso_a=0.5, peso_b=0.5):
-        """Bundle: soma ponderada de dois vetores.
+    def _normalizar(self, va, vb, dim_alvo=None):
+        """Normaliza dois vetores para o MESMO tamanho.
         
-        Combina conceitos. Se A="rei" e B="homem",
-        bundle(A,B) ≈ "rei que e homem".
+        Em vez de padding por repeticao (que destroi informacao),
+        usa interpolacao linear para o tamanho alvo (max entre os dois).
+        Se dim_alvo for fornecido, usa esse tamanho.
         """
+        if not va or not vb:
+            return va, vb
+        alvo = dim_alvo or max(len(va), len(vb))
+        def _interp(v, n):
+            if len(v) == n:
+                return list(v)
+            # Interpolacao linear para o tamanho alvo
+            return [v[min(int(i * len(v) / n), len(v)-1)] for i in range(n)]
+        return _interp(va, alvo), _interp(vb, alvo)
+    
+    def bundle(self, a, b, peso_a=0.5, peso_b=0.5):
+        """Bundle: soma ponderada de dois vetores."""
         va = self._vetor(a) if isinstance(a, str) else a
         vb = self._vetor(b) if isinstance(b, str) else b
         if not va or not vb:
             return []
-        # Normaliza para mesmo tamanho
-        mx = max(len(va), len(vb))
-        va = va * (mx // len(va)) + va[:mx % len(va)] if len(va) < mx else va[:mx]
-        vb = vb * (mx // len(vb)) + vb[:mx % len(vb)] if len(vb) < mx else vb[:mx]
-        resultado = [va[i]*peso_a + vb[i]*peso_b for i in range(min(len(va), len(vb)))]
+        va, vb = self._normalizar(va, vb)
+        resultado = [va[i]*peso_a + vb[i]*peso_b for i in range(len(va))]
         self.mk_bundle.aprender(f"BD:{str(a)[:10]}:{str(b)[:10]}", str(resultado[:4]))
         self.total += 1
         return resultado
     
     def bind(self, a, b):
-        """Bind: multiplicacao elemento a elemento.
-        
-        Cria associacao. Se A="rei" e B="coroa",
-        bind(A,B) ≈ "rei coroado".
-        """
+        """Bind: multiplicacao elemento a elemento."""
         va = self._vetor(a) if isinstance(a, str) else a
         vb = self._vetor(b) if isinstance(b, str) else b
         if not va or not vb:
             return []
-        mx = max(len(va), len(vb))
-        va = va * (mx // len(va)) + va[:mx % len(va)] if len(va) < mx else va[:mx]
-        vb = vb * (mx // len(vb)) + vb[:mx % len(vb)] if len(vb) < mx else vb[:mx]
-        resultado = [va[i]*vb[i] for i in range(min(len(va), len(vb)))]
+        va, vb = self._normalizar(va, vb)
+        resultado = [va[i]*vb[i] for i in range(len(va))]
         self.mk_bind.aprender(f"BN:{str(a)[:10]}:{str(b)[:10]}", str(resultado[:4]))
         self.total += 1
         return resultado
@@ -439,6 +443,9 @@ class MCREntropicSearch:
                 f"{media_r:.2f}"
             )
         
+        # Treina thresholds com resultados reais
+        self.thr_rollouts.observar(max(1, n_rollouts * (melhor_score + 10) / 10))
+        self.thr_depth.observar(max(1, depth * (melhor_score + 10) / 10))
         self.total += 1
         return melhor_acao, round(melhor_score, 3)
 
@@ -467,6 +474,8 @@ class MCRAutoEvolution:
         self.thr_aceitacao = MCRThreshold("ae_aceite")
         self.codex = MCRCodex()
         self.hist: List[Dict] = []
+        self._cache_dir = os.path.join(CACHE_DIR, "ae_temp")
+        os.makedirs(self._cache_dir, exist_ok=True)
     
     def entropia_global(self):
         entropias = []
@@ -480,7 +489,10 @@ class MCRAutoEvolution:
         return sum(entropias) / max(len(entropias), 1) if entropias else 1.0
     
     def ciclo(self):
-        """Um ciclo de auto-evolucao: medir → mutar → validar → aceitar/rejeitar."""
+        """Um ciclo de auto-evolucao: medir → mutar → validar → aceitar/rejeitar.
+        
+        A mutacao e REAL: cria copia do MCR_AGI.py, modifica um parametro,
+        recarrega o modulo, mede entropia real, decide. Reverte se rejeitado."""
         ent_antes = self.entropia_global()
         hcs = self.codex.escanear()
         
@@ -488,15 +500,79 @@ class MCRAutoEvolution:
             return {"acao": "nada_para_mutar"}
         
         # Propoe mutacao: modificar um parametro hardcoded
-        hc = hcs[0]  # primeiro hardcode
-        novo_valor = str(int(hc['valor']) + 1) if hc['valor'].lstrip('-').isdigit() else "10"
-        mutacao = {'tipo': 'parametro', 'param': hc['param'], 'linha': hc['linha'], 'novo_valor': novo_valor}
+        hc = hcs[0]
+        if hc['valor'].lstrip('-').isdigit():
+            novo_valor = str(max(1, int(hc['valor']) + _rand.choice([-1, 1])))
+        else:
+            novo_valor = "10"
+        mutacao = {'tipo': 'parametro', 'param': hc['param'], 'linha': hc['linha'],
+                   'valor_original': hc['valor'], 'novo_valor': novo_valor}
         
-        # Simula: mede entropia apos mutacao
-        ent_depois = ent_antes * 0.98 if ent_antes > 0.01 else 0.01  # simulacao
+        # Aplica mutacao REAL em copia temp e mede entropia
+        try:
+            src_path = os.path.abspath(__file__)
+            tmp_path = os.path.join(self._cache_dir, "MCR_AGI_ae_tmp.py")
+            
+            # Le arquivo original
+            with open(src_path, 'r', encoding='utf-8') as f:
+                codigo = f.readlines()
+            
+            # Aplica mutacao na linha alvo
+            if 0 < hc['linha'] <= len(codigo):
+                codigo[hc['linha'] - 1] = self.codex.substituir(
+                    src_path, hc['linha'], hc['param'], novo_valor
+                ) or codigo[hc['linha'] - 1]
+            
+            # Salva copia temporaria
+            with open(tmp_path, 'w', encoding='utf-8') as f:
+                f.writelines(codigo)
+            
+            # Tenta compilar a copia
+            try:
+                import py_compile
+                py_compile.compile(tmp_path, doraise=True)
+                
+                # Recarrega o cerebro com o modulo modificado
+                import importlib.util as _iu
+                _spec = _iu.spec_from_file_location('mcr_ae_tmp', tmp_path)
+                _mod = _iu.module_from_spec(_spec)
+                _mod.__file__ = tmp_path
+                sys.modules['mcr_ae_tmp'] = _mod
+                _spec.loader.exec_module(_mod)
+                
+                # Cria cerebro temporario e mede entropia REAL
+                _c2 = _mod.CerebroAGI()
+                for nome, mk in self.cerebro.hiper.dimensoes.items():
+                    if nome in _c2.hiper.dimensoes:
+                        _c2.hiper.dimensoes[nome] = mk
+                _c2.topicos = dict(self.cerebro.topicos)
+                ent_depois = self._entropia_cerebro(_c2)
+                
+            except:
+                # Falha ao compilar: rejeita
+                ent_depois = ent_antes * 1.1
+            
+            # Remove temporario
+            try: os.unlink(tmp_path)
+            except: pass
+            try: _mod = sys.modules.pop('mcr_ae_tmp', None)
+            except: pass
+            
+        except Exception as e:
+            ent_depois = ent_antes * 1.1  # falha = entropia piorou
+        
         melhoria = ent_antes - ent_depois
         limiar = self.thr_aceitacao.obter("limiar", 0.01)
         aceite = melhoria > limiar
+        
+        # Se rejeitado, reverte a alteracao
+        if not aceite:
+            try:
+                self.codex.substituir(
+                    os.path.abspath(__file__),
+                    hc['linha'], hc['param'], hc['valor_original']
+                )
+            except: pass
         
         self.mk_resultados.aprender(
             f"{'ACEITE' if aceite else 'REJEITE'}:{mutacao['tipo']}",
@@ -518,6 +594,15 @@ class MCRAutoEvolution:
         self.hist.append(r)
         self.thr_aceitacao.observar(abs(melhoria))
         return r
+    
+    def _entropia_cerebro(self, cerebro):
+        """Entropia de um cerebro (para comparacao antes/depois)."""
+        entropias = []
+        if hasattr(cerebro, 'mk_byte'):
+            entropias.append(cerebro.mk_byte.entropia_media())
+        if hasattr(cerebro, 'mk_palavra'):
+            entropias.append(cerebro.mk_palavra.entropia_media())
+        return sum(entropias) / max(len(entropias), 1) if entropias else 1.0
     
     def relatorio(self):
         aceites = sum(1 for h in self.hist if h['resultado'] == 'aceito')
@@ -1052,8 +1137,24 @@ class MCRHiperesferaAutoExpansiva:
         for i in range(len(tokens)-1): mk.aprender(tokens[i], tokens[i+1])
         return self._entropia(mk)
     
-    def _candidatos_disponiveis(self):
-        return [(n, fn, d) for n, fn, d in self.CANDIDATOS if n not in self.dimensoes]
+    def _gerar_candidatos(self, texto):
+        """Gera candidatos FIXOS + DERIVADOS dos dados."""
+        # Candidatos fixos
+        yield from self.CANDIDATOS
+        # Candidatos derivados: n-gramas de caracteres (se texto longo o suficiente)
+        if len(texto) > 50:
+            yield ("bigrama_char", lambda t: [t[i:i+2] for i in range(min(len(t)-1, 200))], "bigramas de caracteres")
+            yield ("trigrama_char", lambda t: [t[i:i+3] for i in range(min(len(t)-2, 200))], "trigramas de caracteres")
+            # Hash de n-gramas (captura estrutura local)
+            yield ("ngram_hash", lambda t: [f"N:{abs(hash(t[i:i+4]))%1000:03d}" for i in range(min(len(t)-3, 200))], "hash de 4-gramas")
+    
+    def _candidatos_disponiveis(self, texto=""):
+        conhecidos = set(self.dimensoes.keys())
+        resultado = []
+        for n, fn, d in self._gerar_candidatos(texto):
+            if n not in conhecidos:
+                resultado.append((n, fn, d))
+        return resultado
     
     def descobrir(self, texto, max_dim=10):
         """Descobre dimensoes da mais estruturada para a menos.
@@ -1061,7 +1162,7 @@ class MCRHiperesferaAutoExpansiva:
         """
         descobertas = []
         for _ in range(max_dim):
-            candidatos = self._candidatos_disponiveis()
+            candidatos = self._candidatos_disponiveis(texto)
             if not candidatos: break
             
             melhor = min(candidatos, key=lambda c: self._entropia_candidato(c[0], c[1], texto))
@@ -1192,107 +1293,6 @@ class MCRAutoValidacaoContinua:
 # ═══════════════════════════════════════════════════════════════════
 # [07e] PIFilosofia — PI como cadeia infinita projetada em N dimensoes
 # ═══════════════════════════════════════════════════════════════════
-
-class PIFilosofia:
-    """PI (π) como cadeia Markov infinita contendo TUDO.
-    
-    Cada MCR(nivel) e uma projecao finita de PI.
-    O destino de cada entidade e sua transicao mais provavel.
-    Superposicao e o encontro de duas cadeias no mesmo ponto.
-    Entropia e o residuo informacional desse encontro.
-    
-    Uso:
-        pi = PIFilosofia()
-        pi.alimentar(texto)           # projeta PI em dimensoes finitas
-        pi.destino("palavra", "MCR")  # destino mais provavel
-        pi.superposicao("byte","B:41","palavra","MCR")  # entropia do encontro
-    """
-    
-    def __init__(self):
-        self.hiper = None
-        self.destinos_cache = {}
-    
-    def alimentar(self, texto):
-        """Projeta PI em dimensoes finitas via hiperesfera."""
-        self.hiper = MCRHiperesferaAutoExpansiva()
-        return self.hiper.descobrir(texto)
-    
-    def dimensoes(self):
-        if not self.hiper: return []
-        return list(self.hiper.dimensoes.keys())
-    
-    def destino(self, nivel, estado):
-        """O destino de uma entidade: seu proximo estado mais provavel.
-        
-        Retorna:
-          - destino: o estado mais provavel
-          - confianca: probabilidade desse destino
-          - entropia: incerteza do estado atual
-          - livre_arbitrio: 1 - confianca (o quanto pode divergir)
-        """
-        if not self.hiper or nivel not in self.hiper.dimensoes:
-            return None
-        mk = self.hiper.dimensoes[nivel]
-        pred, conf = mk.predizer(estado)
-        ent = mk.entropia(estado) if estado in mk.freq else 1.0
-        return {
-            "destino": pred,
-            "confianca": round(conf, 4),
-            "entropia": round(ent, 4),
-            "livre_arbitrio": round(1.0 - conf, 4),
-        }
-    
-    def superposicao(self, nivel_a, valor_a, nivel_b, valor_b):
-        """Calcula a entropia do encontro entre duas cadeias.
-        
-        Se H_total e alta → superposicao caotica (destinos conflitaram)
-        Se H_total e baixa → superposicao suave (um previu o outro)
-        """
-        if not self.hiper:
-            return {"entropia_total": 1.0, "tipo": "desconhecido"}
-        
-        mk_a = self.hiper.dimensoes.get(nivel_a)
-        mk_b = self.hiper.dimensoes.get(nivel_b)
-        if not mk_a or not mk_b:
-            return {"entropia_total": 1.0, "tipo": "dimensao_ausente"}
-        
-        ha = mk_a.entropia(valor_a) if valor_a in mk_a.freq else 1.0
-        hb = mk_b.entropia(valor_b) if valor_b in mk_b.freq else 1.0
-        
-        # Entropia condicional: se um explica o outro
-        pred_a_para_b, conf_a = mk_a.predizer(valor_a)
-        pred_b_para_a, conf_b = mk_b.predizer(valor_b)
-        
-        # Informacao mutua = quanto um reduz a entropia do outro
-        i_ab = conf_a * conf_b  # simplificacao
-        
-        h_total = ha + hb - i_ab
-        tipo = "suave" if i_ab > 0.5 else "caotica" if i_ab < 0.2 else "neutra"
-        
-        return {
-            "entropia_total": round(h_total, 4),
-            "entropia_a": round(ha, 4),
-            "entropia_b": round(hb, 4),
-            "informacao_mutua": round(i_ab, 4),
-            "tipo": tipo,
-            "a_previu_b": pred_a_para_b is not None,
-            "b_previu_a": pred_b_para_a is not None,
-        }
-    
-    def cadeia_universal(self, niveis=None):
-        """Retorna a entropia combinada de todas as projecoes de PI.
-        
-        Quanto mais baixa, mais 'destino' o sistema esta seguindo.
-        Quanto mais alta, mais superposicoes caoticas estao ocorrendo.
-        """
-        if not self.hiper:
-            return 1.0
-        entropias = []
-        for nome, mk in self.hiper.dimensoes.items():
-            if niveis and nome not in niveis: continue
-            entropias.append(mk.entropia_media() if mk.total > 0 else 1.0)
-        if not entropias: return 1.0
-        return round(max(entropias), 4)
 
 # ═══════════════════════════════════════════════════════════════════
 # [08] MCRPlanner — planejamento hierarquico
@@ -1800,7 +1800,6 @@ class CerebroAGI:
         self.topologia = MCRAutoTopologia()
         self.auto_validacao = MCRAutoValidacaoContinua()
         self._topologia_atualizada = False
-        self.pi = PIFilosofia()
         self.mk_orq = MCR("orquestrador")
         self._seed_orquestrador()
         self._acoes_internas = {}
@@ -1903,8 +1902,6 @@ class CerebroAGI:
         return {"acao": "auto_validacao", "status": "sem_dimensoes"}
     
     def _exec_calcular_destinos(self):
-        if self.hiper and self.hiper.dimensoes:
-            self.pi.hiper = self.hiper
         return {"acao": "calcular_destinos", "n_dims": len(self.hiper.dimensoes) if self.hiper else 0}
     
     def _exec_buscar_analogias(self, texto):
@@ -1944,15 +1941,22 @@ class CerebroAGI:
         Nao ha ordem fixa. O MCR orquestrador decide baseado
         no estado atual do sistema. Cada acao e registrada,
         dispatch via dicionario (zero if/elif).
+        
+        O orquestrador aprende com recompensa = reducao de entropia.
         """
         historico = []
         estado_anterior = ""
+        ent_antes = self.mk_byte.entropia_media() if self.mk_byte.total > 0 else 1.0
         
         for passo in range(max_passos):
             estado_str = self._estado_atual()
             
             if estado_str == estado_anterior:
-                break  # entropia estabilizou — nao precisa mais
+                ent_depois = self.mk_byte.entropia_media() if self.mk_byte.total > 0 else 1.0
+                recompensa = ent_antes - ent_depois
+                # Aprende com recompensa por reducao de entropia
+                self.mk_orq.aprender(estado_str, f"ent_stabilized:{recompensa:.3f}")
+                break
             estado_anterior = estado_str
             
             # MCR decide a proxima acao
@@ -1960,7 +1964,10 @@ class CerebroAGI:
             if acao is None:
                 acao, conf = self.mk_orq.predizer("ent:baixa_dims:0_inst:0_meta:0")
             if acao is None:
-                break  # nao sabe o que fazer
+                ent_depois = self.mk_byte.entropia_media() if self.mk_byte.total > 0 else 1.0
+                recompensa = ent_antes - ent_depois
+                self.mk_orq.aprender(estado_str, f"ent_unknown:{recompensa:.3f}")
+                break
             
             # Executa via registry (zero if/elif)
             fn = self._acoes_internas.get(acao)
@@ -1972,8 +1979,10 @@ class CerebroAGI:
             resultado["confianca"] = round(conf, 3)
             historico.append(resultado)
             
-            # Aprende: neste estado, esta acao levou a este resultado
-            self.mk_orq.aprender(estado_str, f"{acao}:{resultado.get('status','ok')}")
+            # Aprende com recompensa por reducao de entropia
+            ent_depois = self.mk_byte.entropia_media() if self.mk_byte.total > 0 else 1.0
+            recompensa = ent_antes - ent_depois
+            self.mk_orq.aprender(estado_str, f"{acao}:{recompensa:.3f}")
             self._ultimo_resultado = {"ultima_acao": acao}
         
         self._ultimo_resultado = {
