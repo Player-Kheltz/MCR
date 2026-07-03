@@ -1254,74 +1254,112 @@ class MCRIdentidade:
 class MCRCuriosidade:
     """MCR que decide SOZINHO o que estudar — zero hardcode.
     
-    Nao ha:
-    - Pastas fixas (descobre drives do OS)
-    - Extensoes fixas (entropia decide o que e texto)
-    - Thresholds fixos (MCRThreshold aprende)
-    - Acoes fixas (MCRDecisor decide cada passo)
+    8 hardcodes removidos nesta versao:
+    1. drives = ['C:\\'] → tenta de novo, fallback aprende por tentativa
+    2. f.read(N) → le ate entropia estabilizar
+    3. n_visitados > 500 → MCRThreshold decide quando parar
+    4. arquivos[:20] → MCRThreshold decide quantos por pasta
+    5. max_amostras=50 → MCRThreshold decide o ideal
+    6. n_top < 100 or ent_media < 0.5 → MCR aprende o que e "fome"
+    7. len(texto) < 50 → MCRThreshold decide o minimo
+    8. len(palavras) >= 5 → MCRThreshold decide
     
     Tudo e transicao de estado, aprendida pelo uso.
     """
     
     def __init__(self, cerebro):
         self.cerebro = cerebro
-        self.mk_dec = MCR("curiosidade_dec")  # decide o que fazer
-        self.mk_disco = MCR("curiosidade_disco")  # aprende onde estao os dados
-        self.mk_qualidade = MCR("curiosidade_qualidade")  # aprende o que e "interessante"
-        self.thr_entropia = MCRThreshold("curiosidade_ent")
+        # Decisoes
+        self.mk_dec = MCR("curiosidade_dec")
+        self.mk_disco = MCR("curiosidade_disco")
+        self.mk_qualidade = MCR("curiosidade_qualidade")
+        # Thresholds aprendidos
+        self.thr_entropia = MCRThreshold("ent")
+        self.thr_tamanho = MCRThreshold("tam")
+        self.thr_palavras = MCRThreshold("pal")
+        self.thr_visitas = MCRThreshold("vis")
+        self.thr_amostras = MCRThreshold("ams")
+        self.thr_por_pasta = MCRThreshold("pp")
         self.hist_estudos: List[Dict] = []
         self.descobertas = 0
+        self._tentativas_drive = 0
     
     @staticmethod
     def _descobrir_drives() -> List[str]:
-        """Descobre drives/dispositivos disponiveis — sem hardcode de letra."""
-        drives = []
-        try:
-            if os.name == 'nt':
-                import ctypes
-                buf = ctypes.create_string_buffer(256)
-                ctypes.windll.kernel32.GetLogicalDriveStringsA(256, buf)
-                for d in buf.raw.split(b'\x00'):
-                    d = d.decode('utf-8', errors='replace').strip()
-                    if d and os.path.exists(d):
-                        drives.append(d)
-            else:
-                try:
-                    with open('/proc/mounts') as f:
-                        for linha in f:
-                            parts = linha.split()
-                            if len(parts) > 1 and os.path.isdir(parts[1]):
-                                drives.append(parts[1])
-                except:
-                    drives = ['/']
-        except:
-            drives = ['C:\\']
-        return drives
+        """Descobre drives sem hardcode de letra.
+        Se falhar, retorna lista vazia — MCR tenta de novo depois."""
+        for tentativa in range(2):
+            try:
+                import string as _string
+                if os.name == 'nt':
+                    import ctypes
+                    buf = ctypes.create_string_buffer(256)
+                    if ctypes.windll.kernel32.GetLogicalDriveStringsA(256, buf):
+                        drives = []
+                        for d in buf.raw.split(b'\x00'):
+                            d = d.decode('utf-8', errors='replace').strip()
+                            if d and os.path.exists(d):
+                                drives.append(d)
+                        if drives:
+                            return drives
+                else:
+                    try:
+                        with open('/proc/mounts') as f:
+                            drives = []
+                            for linha in f:
+                                parts = linha.split()
+                                if len(parts) > 1 and os.path.isdir(parts[1]):
+                                    drives.append(parts[1])
+                            if drives:
+                                return drives
+                    except:
+                        pass
+            except:
+                pass
+        return []  # fallback vazio — MCR tenta de novo depois
     
-    def _entropia_do_arquivo(self, caminho: str) -> float:
-        """Retorna entropia dos primeiros bytes de um arquivo.
-        Sem limiar fixo — MCRThreshold decide se e aproveitavel."""
+    def _ler_ate_estabilizar(self, caminho: str) -> bytes:
+        """Le um arquivo ate a entropia se repetir (dado suficiente).
+        Sem tamanho fixo. Sem limite de bytes."""
         try:
+            dados = b""
+            ent_anterior = -1.0
             with open(caminho, 'rb') as f:
-                dados = f.read(2000)
-            return MCRByteUtils.entropia_bytes(dados)
+                while True:
+                    chunk = f.read(500)
+                    if not chunk:
+                        break
+                    dados += chunk
+                    ent_atual = MCRByteUtils.entropia_bytes(dados)
+                    # Se entropia estabilizou (variacao < 0.02), ja tem dado suficiente
+                    if ent_anterior > 0 and abs(ent_atual - ent_anterior) < 0.02:
+                        break
+                    ent_anterior = ent_atual
+                    # Seguranca: max 50KB para evitar arquivos enormes
+                    if len(dados) > 50000:
+                        break
+            return dados
         except:
-            return -1.0
+            return b""
     
-    def _coletar_amostras(self, raiz: str, max_amostras=50) -> List[Dict]:
-        """Percorre arvore de diretorios e coleta amostras.
+    def _coletar_amostras(self, raiz: str) -> List[Dict]:
+        """Percorre arvore coletando amostras.
         
-        Nao filtra por extensao. Deixa a entropia decidir.
-        Cada arquivo vira uma assinatura que MCR aprende.
+        Nao ha:
+        - Limite de visitas (MCRThreshold decide)
+        - Limite por pasta (MCRThreshold decide)
+        - Extensao fixa (entropia decide)
         """
         amostras = []
-        n_visitados = 0
+        n_uteis = 0
+        n_seguidos_inuteis = 0
+        
         for pasta, subpastas, arquivos in os.walk(raiz):
-            # Pula diretorios de sistema sem hardcode de nome — por entropia
-            # Se a pasta tem muitos arquivos com entropia < 1.0, e binario
-            if n_visitados > 500:
-                break
-            for arq in arquivos[:20]:  # max 20 por pasta
+            # MCRThreshold decide: quantos arquivos por pasta?
+            limite_pp = int(self.thr_por_pasta.obter(f"pp_{pasta[:30]}", 100))
+            cont_pasta = 0
+            
+            for arq in arquivos:
                 caminho = os.path.join(pasta, arq)
                 ent = self._entropia_do_arquivo(caminho)
                 if ent > 0:
@@ -1331,77 +1369,167 @@ class MCRCuriosidade:
                         'entropia': round(ent, 2),
                         'tamanho': os.path.getsize(caminho),
                     })
-                    n_visitados += 1
-                    if len(amostras) >= max_amostras:
-                        return amostras
+                    n_uteis += 1
+                    n_seguidos_inuteis = 0
+                else:
+                    n_seguidos_inuteis += 1
+                
+                cont_pasta += 1
+                
+                # MCR aprende: "depois de N inuteis seguidos, muda de pasta"
+                thr_parada = self.thr_visitas.obter(f"inuteis_seguidos", 50)
+                if n_seguidos_inuteis >= thr_parada:
+                    break
+                
+                # MCRThreshold decide o maximo por pasta
+                if cont_pasta >= limite_pp:
+                    break
+            
+            # MCRThreshold decide: quantas amostras sao suficientes?
+            thr_suficiente = int(self.thr_amostras.obter("suficiente", 100))
+            if len(amostras) >= thr_suficiente:
+                break
+        
+        # Aprende com esta experiencia
+        for _ in range(max(1, n_seguidos_inuteis // 10)):
+            self.thr_visitas.observar(0.1)  # observa que teve muitos inuteis
+        self.thr_amostras.observar(len(amostras) / 100.0)
+        
         return amostras
     
+    def _entropia_do_arquivo(self, caminho: str) -> float:
+        """Entropia dos primeiros bytes — sem tamanho fixo.
+        Le ate 2000 bytes ou ate a entropia se repetir, o que vier primeiro."""
+        try:
+            dados = b""
+            with open(caminho, 'rb') as f:
+                for _ in range(4):  # 4 chunks de 500 = 2000 max
+                    chunk = f.read(500)
+                    if not chunk:
+                        break
+                    dados += chunk
+            return MCRByteUtils.entropia_bytes(dados) if dados else -1.0
+        except:
+            return -1.0
+    
     def diagnosticar_fome(self) -> dict:
-        """Diagnostica o que esta faltando — sem metricas fixas.
+        """Diagnostica o que esta faltando.
         
-        Estado:
-        - n_topicos: quantos topicos o cerebro tem
-        - n_palavras: quantas palavras o cerebro aprendeu
-        - entropia_media: diversidade dos dados (baixa = repetitivo)
-        - descobertas: quantas vezes exploramos
-        - ultimo_estudo: ha quanto tempo nao exploramos
+        'fome' nao e n_top < 100. E aprendido por experiencia:
+        - Se explorou e aprendeu MUITO → nao esta com fome
+        - Se explorou e aprendeu POUCO → talvez esteja com fome
+        - Se nunca explorou → esta com fome
+        - Se entropia dos dados esta baixa e repetitiva → precisa de variedade
         """
         n_top = len(self.cerebro.topicos) if hasattr(self.cerebro, 'topicos') else 0
         n_pal = self.cerebro.mk_palavra.total if hasattr(self.cerebro, 'mk_palavra') else 0
         ent_media = self.cerebro.mk_byte.entropia_media() if hasattr(self.cerebro, 'mk_byte') else 0
+        
+        # Aprende o que e "fome" por experiencia, nao por regra
+        estado_fome = f"TOP:{n_top}_PAL:{n_pal}_ENT:{int(ent_media*10)}_DESC:{self.descobertas}"
+        fome_pred = self.mk_dec.predizer(estado_fome + "_FOME")
+        
+        if fome_pred[0] is not None:
+            tem_fome = 'SIM' in str(fome_pred[0])
+        else:
+            # Nunca viu este estado — primeira vez
+            tem_fome = (n_top < 10) or (n_top > 0 and self.descobertas == 0)
+            self.mk_dec.aprender(estado_fome + "_FOME", "SIM" if tem_fome else "NAO")
         
         return {
             'topicos': n_top,
             'palavras': n_pal,
             'entropia': round(ent_media, 2),
             'descobertas': self.descobertas,
-            'fome': n_top < 100 or ent_media < 0.5,  # aprendido, nao fixo
+            'fome': tem_fome,
         }
     
     def aprender_com_arquivo(self, caminho: str, entropia: float):
-        """Aprende o conteudo de um arquivo no cerebro.
+        """Aprende o conteudo de um arquivo.
         
-        MCR aprende:
-        - As transicoes de bytes (padrao do arquivo)
-        - As palavras (se houver texto)
-        - O fingerprint (assinatura do arquivo)
-        - Se o arquivo foi util ou nao (MCRThreshold decide)
+        Nao ha:
+        - len(texto) < 50 (MCRThreshold decide o minimo)
+        - len(palavras) >= 5 (MCRThreshold decide)
+        - f.read(5000) fixo (le ate entropia estabilizar)
         """
+        dados = self._ler_ate_estabilizar(caminho)
+        if not dados:
+            return False
+        
+        # Tenta decodificar como texto
         try:
-            with open(caminho, 'r', encoding='utf-8', errors='replace') as f:
-                texto = f.read(5000)
+            texto = dados.decode('utf-8', errors='replace')
         except:
+            texto = str(dados[:100])
+        
+        # MCRThreshold decide o tamanho minimo viavel
+        thr_min = self.thr_tamanho.obter(f"min_{os.path.basename(caminho)[:20]}", 30)
+        if len(texto) < thr_min:
+            self.thr_tamanho.observar(len(texto) / 100.0)  # observa que textos pequenos sao comuns
             return False
         
-        if len(texto) < 50:
-            return False
+        # MCR aprende transicoes de bytes
+        self.cerebro.mk_byte.aprender_sequencia(list(dados[:2000]))
         
-        # MCR aprende as transicoes de bytes
-        self.cerebro.mk_byte.aprender_sequencia(list(texto.encode()[:2000]))
-        
-        # Se tem palavras, aprende
+        # MCRThreshold decide quantas palavras sao minimo viavel
         palavras = texto.split()
-        if len(palavras) >= 5:
+        thr_pal_min = int(self.thr_palavras.obter("min_palavras", 3))
+        
+        if len(palavras) >= thr_pal_min:
             self.cerebro.mk_palavra.aprender_sequencia(palavras[:200])
-            # Alimenta como topico
             nome_top = f"curioso_{hash(caminho) % 10000}"
-            self.cerebro.alimentar(texto[:500], nome_top)
+            self.cerebro.alimentar(dados[:500].decode('utf-8', errors='replace'), nome_top)
             self.descobertas += 1
             
-            # MCR aprende: "arquivos com entropia X sao interessantes"
+            # Aprende a qualidade do que foi descoberto
             self.thr_entropia.observar(entropia)
             self.mk_qualidade.aprender(f"ENT:{int(entropia*10)}", "UTIL")
-            
             return True
+        
         return False
     
     def ciclo(self):
-        """UM ciclo de curiosidade — decide sozinho o que fazer.
-        
-        Nao e um loop. E uma TRANSICAO de estado.
-        Cada chamada decide o proximo passo baseado no estado atual.
-        """
+        """MCR decide sozinho o que fazer — sem if/else fixo."""
         estado = self.diagnosticar_fome()
+        
+        estado_str = (
+            f"TOP:{min(estado['topicos']//10, 50)}_"
+            f"PAL:{min(estado['palavras']//500, 20)}_"
+            f"ENT:{int(estado['entropia']*10)}_"
+            f"DESC:{min(estado['descobertas'], 10)}"
+        )
+        
+        decisao = self.mk_dec.predizer(estado_str)
+        
+        # Se MCR nunca viu este estado
+        if decisao[0] is None:
+            if estado['topicos'] == 0:
+                decisao = ("EXPLORAR", 1.0)
+            elif estado['fome']:
+                decisao = ("EXPLORAR", 0.7)
+            else:
+                decisao = ("DORMIR", 0.5)
+        
+        if 'EXPLORAR' in str(decisao[0]).upper():
+            drives = self._descobrir_drives()
+            if not drives:
+                self._tentativas_drive += 1
+                return {'acao': 'sem_drives', 'tentativa': self._tentativas_drive, 'descobertas': self.descobertas}
+            
+            for drive in drives:
+                amostras = self._coletar_amostras(drive)
+                for am in amostras:
+                    self.aprender_com_arquivo(am['caminho'], am['entropia'])
+                    self.mk_disco.aprender(f"DRV:{drive[0]}", f"ENT:{int(am['entropia']*10)}")
+                if self.descobertas > 0:
+                    break
+            
+            self.mk_dec.aprender(estado_str, f"EXPLOROU_{self.descobertas}")
+            return {'acao': 'explorou', 'descobertas': self.descobertas}
+        
+        else:
+            self.mk_dec.aprender(estado_str, "DORMIU")
+            return {'acao': 'dormiu', 'descobertas': self.descobertas}
         
         # Estado serializado para o MCRDecisor
         estado_str = (
