@@ -1675,6 +1675,50 @@ def chat_loop(cerebro):
     n_desde_ultima_exploracao = 0
     mk_fluxo = MCR("fluxo_chat")
     
+    # Registry de acoes do chat (ZERO if/elif no dispatch)
+    _acoes_chat = {}
+    def _reg_acao(nome, fn):
+        _acoes_chat[nome] = fn
+    
+    def _exec_acao(nome, ctx):
+        fn = _acoes_chat.get(nome)
+        if fn:
+            return fn(ctx)
+        return {"acao": nome, "msg": ""}
+    
+    def _decidir(estado):
+        """Decide acao via MCR. Fallback tambem via MCR.
+        ZERO if/elif — ateh o fallback e uma predizer()."""
+        acao, _ = mk_fluxo.predizer(estado)
+        if acao is None:
+            acao, _ = mk_fluxo.predizer("estado_desconhecido")
+        if acao is None:
+            acao = "responder"
+        return acao
+    
+    # Registra acoes
+    _reg_acao("responder", lambda ctx: {
+        "acao": "responder", "msg": ctx['conversa'].perguntar(ctx['entrada'])
+    })
+    _reg_acao("explorar_antes", lambda ctx: {
+        "acao": "explorar_antes",
+        "r": ctx['curiosidade'].ciclo(),
+        "zerar_exp": True,
+    })
+    _reg_acao("explorar_depois", lambda ctx: {
+        "acao": "explorar_depois",
+        "r": ctx['curiosidade'].ciclo(),
+        "zerar_exp": True,
+    })
+    _reg_acao("explorar_sozinho", lambda ctx: {
+        "acao": "explorar_sozinho",
+        "r": ctx['curiosidade'].ciclo(),
+        "zerar_exp": True,
+    })
+    
+    # Seed: estado desconhecido → responder
+    mk_fluxo.aprender("estado_desconhecido", "responder")
+    
     while True:
         try: e = input("voce: ").strip()
         except (EOFError, KeyboardInterrupt): print("\nAte logo!"); break
@@ -1688,7 +1732,7 @@ def chat_loop(cerebro):
         autor, conf, status = identidade.reconhecer_e_aprender(e)
         ident_s = f'[{autor} conf={conf:.2f}] ' if conf > 0.2 else ''
         
-        # MCRDecisor decide o fluxo baseado no ESTADO REAL
+        # MCR decide o fluxo — ZERO if/elif na decisao
         est_fome = curiosidade.diagnosticar_fome()
         estado_fluxo = (
             f"TOP:{min(len(cerebro.topicos)//10, 20)}_"
@@ -1697,39 +1741,44 @@ def chat_loop(cerebro):
             f"CONF:{int(conf*10)}"
         )
         
-        dec_fluxo = mk_fluxo.predizer(estado_fluxo)
-        acao = str(dec_fluxo[0]).lower() if dec_fluxo[0] else ''
+        # Decisao via MCR (zero ifs — fallback por predizer)
+        acao = _decidir(estado_fluxo)
         
-        # EXPLORAR ANTES: confianca baixa, tema parece novo
-        if 'explorar' in acao and ('antes' in acao or 'ansioso' in acao):
-            r = curiosidade.ciclo()
-            if r['descobertas'] > 0:
-                print(f"  [MCR] Deixe-me estudar isso primeiro... aprendi {r['descobertas']} novas informacoes")
-            n_desde_ultima_exploracao = 0
-            mk_fluxo.aprender(estado_fluxo, f"explorou_antes_{r['descobertas']}")
+        # Contexto para as acoes
+        ctx_acao = {
+            'entrada': e,
+            'conversa': conversa,
+            'curiosidade': curiosidade,
+            'cerebro': cerebro,
+            'ident_s': ident_s,
+            'estado_fluxo': estado_fluxo,
+            'mk_fluxo': mk_fluxo,
+            'n_desde_ultima_exploracao': n_desde_ultima_exploracao,
+        }
         
-        # RESPONDE (sempre)
-        resp = conversa.perguntar(e)
-        safe = resp.encode("ascii", errors="replace").decode("ascii")
-        print(f"  {ident_s}{safe}")
+        # Executa acao via registry (zero ifs — dispatch por dicionario)
+        r = _exec_acao(acao, ctx_acao)
         
-        # EXPLORAR DEPOIS: resposta foi fraca, MCR sabe que nao sabe
-        if 'explorar' in acao and 'depois' in acao:
-            r = curiosidade.ciclo()
-            if r['descobertas'] > 0:
-                print(f"  [MCR] Aprendi {r['descobertas']} novas informacoes sobre isso para a proxima vez!")
-            else:
+        # RESPONDE sempre (a acao "responder" ja faz isso,
+        # mas para as outras acoes, respondemos depois)
+        if acao == "responder":
+            safe = r['msg'].encode("ascii", errors="replace").decode("ascii")
+            print(f"  {ident_s}{safe}")
+        else:
+            # EXPLOROU: mostra resultado e depois responde
+            desc = r.get('r', {}).get('descobertas', 0)
+            if desc > 0:
+                print(f"  [MCR] Aprendi {desc} novas informacoes!")
+            elif acao == 'explorar_depois':
                 print(f"  [MCR] Nao encontrei mais informacoes sobre este assunto agora.")
+            
             n_desde_ultima_exploracao = 0
-            mk_fluxo.aprender(estado_fluxo, f"explorou_depois_{r['descobertas']}")
-        
-        # EXPLORAR SOZINHO: MCR aproveita enquanto o usuario pensa
-        elif 'explorar' in acao and n_desde_ultima_exploracao > 3:
-            r = curiosidade.ciclo()
-            if r['descobertas'] > 0:
-                print(f"  [MCR] Aproveitei para aprender {r['descobertas']} coisas novas enquanto isso!")
-            n_desde_ultima_exploracao = 0
-            mk_fluxo.aprender(estado_fluxo, f"explorou_sozinho_{r['descobertas']}")
+            mk_fluxo.aprender(estado_fluxo, f"{acao}_desc:{desc}")
+            
+            # Responde depois de explorar
+            resp = conversa.perguntar(e)
+            safe = resp.encode("ascii", errors="replace").decode("ascii")
+            print(f"  {ident_s}{safe}")
     
     # Salva estado antes de sair
     try:
