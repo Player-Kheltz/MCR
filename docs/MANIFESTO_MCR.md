@@ -1,4 +1,4 @@
-# MCR — Processamento Universal de Informação
+# MCR — Processamento Multi-Nível de Informação
 
 ## Um novo paradigma: uma equação, infinitos níveis
 
