@@ -3291,6 +3291,17 @@ class CerebroAGI:
                             if conf > 0.3:
                                 break  # confianca alta, aceita
             
+            # Fallback: superposicao — colisao entre cadeias gera algo novo
+            if pred is None or conf < 0.01:
+                ultimo_byte = f"B:{ord(semente[-1]):02x}" if semente else "B:00"
+                novo, conf2, meta = self.superposicao.colidir(
+                    "palavra", semente,
+                    "byte", ultimo_byte,
+                    self.mk_palavra, self.mk_byte)
+                if novo and conf2 > 0.05:
+                    pred = novo
+                    conf = conf2
+            
             # Ultimo fallback: byte puro
             if pred is None or conf < 0.01:
                 ultimo_byte = f"B:{ord(semente[-1]):02x}" if semente else "B:00"
