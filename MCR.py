@@ -1927,6 +1927,210 @@ class MCREsquecimento:
 
 
 # ═══════════════════════════════════════════════════════════════════
+# [07h] MCRFragmento — fragmentos de processamento independentes
+# ═══════════════════════════════════════════════════════════════════
+
+class MCRFragmento:
+    """Um fragmento de processamento independente."""
+    def __init__(self, nome, funcao, args=None):
+        self.nome = nome; self.funcao = funcao; self.args = args or {}
+        self.resultado = None; self.erro = None; self.tempo = 0.0; self.sucesso = False
+    def executar(self):
+        t0 = time.perf_counter()
+        try: self.resultado = self.funcao(**self.args); self.sucesso = True
+        except Exception as e: self.erro = str(e)[:200]
+        self.tempo = time.perf_counter() - t0
+        return self.sucesso
+
+class MCRFragmentador:
+    """Fragmenta um ciclo em partes executaveis e rastreaveis."""
+    def __init__(self, nome="fragmentador"):
+        self.fragmentos = []; self.mk = MCR(nome)
+        self.tempo_total = 0.0; self.total_sucesso = 0; self.total_falha = 0
+    def adicionar(self, nome, funcao, args=None):
+        self.fragmentos.append(MCRFragmento(nome, funcao, args))
+    def executar_todos(self):
+        self.tempo_total = 0.0
+        for f in self.fragmentos:
+            f.executar(); self.tempo_total += f.tempo
+            if f.sucesso: self.total_sucesso += 1
+            else: self.total_falha += 1
+            self.mk.aprender(f"FRAG:{f.nome}", f"{'OK' if f.sucesso else 'FALHA'}:{f.tempo:.2f}s")
+        return self.fragmentos
+    def limpar(self): self.fragmentos.clear()
+    def stats(self):
+        return {'fragmentos': len(self.fragmentos), 'tempo_total': round(self.tempo_total, 3),
+                'sucesso': self.total_sucesso, 'falha': self.total_falha,
+                'taxa': round(self.total_sucesso / max(self.total_sucesso + self.total_falha, 1), 3)}
+
+
+# ═══════════════════════════════════════════════════════════════════
+# [07i] MCRConexao — ponte otima entre topicos (geracao > 4 tokens)
+# ═══════════════════════════════════════════════════════════════════
+
+class MCRConexao:
+    """Ponte otima entre topicos da CerebroAGI.
+    
+    Encontra a palavra que MELHOR conecta dois topicos, permitindo
+    geracao de texto COERENTE por >4 tokens (constrói pontes em
+    vez de prever 1 token).
+    
+    Criterio: divergencia x especificidade x profundidade.
+    """
+    def __init__(self, cerebro):
+        self.cerebro = cerebro
+    
+    def analisar(self, topico_a, topico_b):
+        if topico_a not in self.cerebro.topicos or topico_b not in self.cerebro.topicos:
+            return {'erro': 'topico nao encontrado', 'melhor': None}
+        
+        conteudo_a = set(self.cerebro.topicos[topico_a].get('conteudo', []))
+        conteudo_b = set(self.cerebro.topicos[topico_b].get('conteudo', []))
+        candidatas = conteudo_a & conteudo_b
+        
+        if not candidatas:
+            return self._analisar_sem_compartilhadas(topico_a, topico_b)
+        
+        pontes = []
+        for palavra in candidatas:
+            score, detalhes = self._avaliar_ponte(palavra)
+            pontes.append({'palavra': palavra, 'score': round(score, 2), **detalhes})
+        
+        pontes.sort(key=lambda x: -x['score'])
+        return {'total_candidatas': len(candidatas),
+                'pontes': pontes, 'melhor': pontes[0] if pontes else None}
+    
+    def _avaliar_ponte(self, palavra):
+        mk = self.cerebro.mk_palavra
+        if palavra not in mk.freq:
+            return 0.0, {'erro': 'palavra nao encontrada'}
+        
+        # Divergencia: quantas transicoes diferentes esta palavra tem?
+        trans = set(mk.transicoes.get(palavra, {}).keys())
+        divergencia = min(1.0, len(trans) / 5.0) if trans else 0.0
+        
+        # Especificidade: em quantos topicos esta palavra aparece?
+        freq_global = sum(1 for t in self.cerebro.topicos.values()
+                         if palavra in set(t.get('conteudo', [])))
+        especificidade = 1.0 - min(1.0, freq_global / max(1, len(self.cerebro.topicos) * 0.3))
+        
+        # Profundidade: quantos tokens ela gera a partir dela?
+        cadeia = len(mk.gerar(palavra, passos=5))
+        profundidade = min(1.0, cadeia / 5.0)
+        
+        score = (divergencia * 5 + especificidade * 3 + profundidade * 2) / 10
+        ent = mk.entropia(palavra) if palavra in mk.freq else 0
+        score += min(0.5, ent * 0.2) / 10
+        return min(1.0, score), {'divergencia': round(divergencia, 3),
+                'especificidade': round(especificidade, 3),
+                'profundidade': round(profundidade, 3)}
+    
+    def _analisar_sem_compartilhadas(self, topico_a, topico_b):
+        texto_a = self.cerebro.topicos[topico_a].get('texto', '')
+        texto_b = self.cerebro.topicos[topico_b].get('texto', '')
+        bytes_comuns = set(texto_a.encode()) & set(texto_b.encode())
+        pontes = []
+        for byte_val in list(bytes_comuns)[:20]:
+            pal = self._palavra_por_byte(texto_a, byte_val)
+            if pal and pal in self.cerebro.mk_palavra.freq:
+                score, det = self._avaliar_ponte(pal)
+                score *= 0.7; det['palavra'] = pal
+                pontes.append({'palavra': pal, 'score': round(score, 2), **det})
+        pontes.sort(key=lambda x: -x['score'])
+        return {'tipo': 'byte_bridge', 'pontes': pontes[:5],
+                'melhor': pontes[0] if pontes else None}
+    
+    @staticmethod
+    def _palavra_por_byte(texto, byte_val):
+        dados = texto.encode('utf-8')
+        for i, b in enumerate(dados):
+            if b == byte_val:
+                ini, fim = i, i
+                while ini > 0 and dados[ini-1] != 32: ini -= 1
+                while fim < len(dados) and dados[fim] != 32: fim += 1
+                pal = dados[ini:fim].decode('utf-8', errors='replace')
+                if len(pal) >= 3: return pal
+        return None
+
+
+# ═══════════════════════════════════════════════════════════════════
+# [07j] SessionCache — memoria de sessao (absorve tudo, pesca relevante)
+# ═══════════════════════════════════════════════════════════════════
+
+class FragmentoContexto:
+    """Um fragmento de contexto na sessao."""
+    def __init__(self, id, conteudo, origem="", prioridade=50, tipo="texto", tags=None):
+        self.id = id; self.conteudo = conteudo; self.origem = origem
+        self.prioridade = prioridade; self.tipo = tipo; self._tags = tags or []
+        self.criado_em = time.time(); self.ultimo_acesso = time.time()
+        self.acessos = 0; self.tokens = max(1, len(conteudo.split()))
+    def registrar_acesso(self):
+        self.acessos += 1; self.ultimo_acesso = time.time()
+        self.prioridade = min(100, self.prioridade + 1)
+
+class SessionCache:
+    """Cache de sessao que absorve TUDO sem limite.
+    
+    Diferenca de um cache normal: nunca remove fragmentos.
+    pescar() retorna SO o relevante para o contexto atual.
+    Usado para geracao coerente > 4 tokens — mantem o
+    historico completo da conversa/discurso.
+    """
+    def __init__(self):
+        self.fragmentos = {}; self.indice = {}; self.historico = []
+    
+    def _indexar(self, frag):
+        termos = set(frag.conteudo.lower().split())
+        for termo in termos:
+            if len(termo) > 3:
+                self.indice.setdefault(termo, []).append(frag.id)
+    
+    def absorver(self, id, conteudo, tipo="texto", tags=None, origem=""):
+        if id in self.fragmentos:
+            frag = self.fragmentos[id]
+            frag.conteudo = conteudo
+            frag.prioridade = min(100, frag.prioridade + 5)
+            frag.ultimo_acesso = time.time()
+            if tags: frag._tags = list(set(frag._tags + tags))
+            self.historico.append({'ts': time.time(), 'acao': 'atualizar', 'id': id})
+            return
+        prioridades = {'request': 100, 'resposta': 90, 'codigo': 80, 'contexto': 50}
+        prioridade = prioridades.get(tipo, 50)
+        frag = FragmentoContexto(id, conteudo, origem, prioridade, tipo, tags=tags or [])
+        self.fragmentos[id] = frag; self._indexar(frag)
+        self.historico.append({'ts': time.time(), 'acao': 'absorver', 'id': id, 'tipo': tipo})
+    
+    def pescar(self, pergunta="", tipos=None, tags=None, n=5, max_tokens=800):
+        candidatos = list(self.fragmentos.values())
+        if tipos: candidatos = [f for f in candidatos if f.tipo in tipos]
+        if tags: candidatos = [f for f in candidatos if f._tags and any(t in f._tags for t in tags)]
+        if pergunta and candidatos:
+            termos = set(pergunta.lower().split())
+            scores = []
+            for frag in candidatos:
+                score = sum(1 for t in termos if len(t) > 3 and t in frag.conteudo.lower())
+                if score > 0:
+                    score += frag.prioridade / 10 + frag.acessos / 100
+                    scores.append((score, frag)); frag.registrar_acesso()
+            scores.sort(key=lambda x: -x[0])
+            candidatos = [s[1] for s in scores]
+        if pergunta and not candidatos:
+            candidatos = sorted(self.fragmentos.values(), key=lambda f: f.ultimo_acesso, reverse=True)
+        if max_tokens and candidatos:
+            resultado = []; tokens = 0
+            for frag in candidatos:
+                if tokens + frag.tokens <= max_tokens:
+                    resultado.append(frag); tokens += frag.tokens
+            return resultado
+        return candidatos[:n]
+    
+    def reconstruir(self, max_fragmentos=5):
+        """Reconstroi o estado da sessao como string (para contexto de geracao)."""
+        recentes = sorted(self.fragmentos.values(), key=lambda f: f.ultimo_acesso, reverse=True)[:max_fragmentos]
+        return "\n".join(f"[{f.tipo}] {f.conteudo[:200]}" for f in recentes if f.conteudo)
+
+
+# ═══════════════════════════════════════════════════════════════════
 # [08] MCRPlanner — planejamento hierarquico
 # ═══════════════════════════════════════════════════════════════════
 
@@ -2986,6 +3190,8 @@ class CerebroAGI:
         self.mk_contexto = MCR("contexto")  # Markov-2 + contexto de turno
         self._ultimo_texto = ""
         self.esquecimento = MCREsquecimento(self)
+        self.conexao = MCRConexao(self)
+        self.session_cache = SessionCache()
     
     def _seed_orquestrador(self):
         """Sementes para o orquestrador comecar a decidir.
