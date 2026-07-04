@@ -1244,7 +1244,7 @@ class MCRCoupling:
     @staticmethod
     def _descobrir_niveis():
         base = ["byte","palavra","tven","fingerprint"]
-        return base + ["intencao","acao","sujeito","relacao","objeto","contexto"]
+        return base + ["intencao","acao","sujeito","relacao","objeto","contexto","posicao"]
     def alimentar(self, origem, destino, to, td):
         if origem not in self.niveis or destino not in self.niveis: return
         self.cooc[origem][destino] += 1; self.total_cooc += 1
@@ -2196,6 +2196,17 @@ class MCRCodex:
 # ═══════════════════════════════════════════════════════════════════
 
 class MCRGenesis:
+    """Gerador de esqueletos de classe (boilerplate factory).
+    
+    ATENCAO: Isso NAO e auto-evolucao de verdade. E um gerador de
+    templates que produz classes vazias baseadas em gaps detectados.
+    O nome 'Genesis' e' herdado do prototipo original e e' um
+    exagero reconhecido. A implementacao atual:
+      - Nao gera logica nova (só esqueleto)
+      - Nao modifica o codigo em execucao
+      - Nao altera a arquitetura do sistema
+    E um Factory Pattern dinamico, nao uma maquina de auto-evolucao.
+    """
     def __init__(self, cerebro=None):
         self.cerebro = cerebro; self.mk = MCR("genesis"); self.modulos: List[Dict] = []; self.thr = MCRThreshold("genesis")
     def diagnosticar(self):
@@ -2874,6 +2885,7 @@ class CerebroAGI:
         self.parser = MCRParserMinimo()
         self.rede_semantica = MCRRedeSemantica()
         self._niveis_semanticos = False
+        self.mk_pos = MCR("posicao")  # nivel posicional (POS aproximado por posicao)
         self.mk_contexto = MCR("contexto")  # Markov-2 + contexto de turno
         self._ultimo_texto = ""
     
@@ -3162,6 +3174,11 @@ class CerebroAGI:
         for i in range(len(palavras)-1):
             ta = palavras[i][0].upper() if palavras[i] else '?'; tb = palavras[i+1][0].upper() if palavras[i+1] else '?'
             self.mk_tven.aprender(ta, tb)
+        # Nivel posicional: aprende qual palavra tende a estar em qual posicao
+        for i, palavra in enumerate(palavras[:8]):
+            pos_key = f"POS:{i}"
+            self.mk_pos.aprender(pos_key, palavra)
+            if i > 0: self.mk_pos.aprender(palavras[i-1], pos_key)  # palavra N-1 → POS:N
         
         # Hiperesfera: descobre dimensoes na primeira alimentacao
         # (protegido — falha nao quebra o pipeline)
@@ -3208,6 +3225,9 @@ class CerebroAGI:
             if i < len(dados)-1:
                 bt = f"B:{dados[i]:02x}"; pt = palavras[min(i,len(palavras)-1)]; tt = pt[0].upper() if pt else '?'
                 self.coupling.alimentar("byte","palavra",bt,pt); self.coupling.alimentar("palavra","tven",pt,tt); self.coupling.alimentar("tven","byte",tt,bt)
+                # Acopla posicao com palavra e byte
+                pos_key = f"POS:{i}"
+                self.coupling.alimentar("palavra","posicao",pt,pos_key); self.coupling.alimentar("posicao","palavra",pos_key,pt)
         self.coupling.recalcular()
         
         # Contexto de turno: aprende transicoes entre alimentacoes (conversa)
@@ -5068,18 +5088,28 @@ def _rodar_autonomo(cerebro):
                     _log(f"  Erro pensar: {e}")
                     
             elif modo == "web":
+                # Cold start: se tem poucos dados, nao usa entropia como filtro
+                cold_start = cerebro.mk_palavra.total < 100
                 if total_webs > 3 and total_ciclos % 15 != 0:
                     pass
                 elif cerebro.mk_palavra.freq:
                     try:
                         alvo = None
-                        maior_ent = 0.0
+                        alvo = None
+                        maior_ent = 0.0; menor_freq = 999999
                         for palavra in list(cerebro.mk_palavra.freq.keys())[:100]:
                             if palavra.lower() in _FILTRO_WEB or len(palavra) < 5:
                                 continue
-                            e = cerebro.mk_palavra.entropia(palavra)
-                            if e > maior_ent:
-                                maior_ent = e; alvo = palavra
+                            if cold_start:
+                                # Cold start: busca palavra mais rara (entropia baixa)
+                                freq = cerebro.mk_palavra.freq.get(palavra, 0)
+                                if not alvo or freq < menor_freq:
+                                    menor_freq = freq
+                                    alvo = palavra
+                            else:
+                                e = cerebro.mk_palavra.entropia(palavra)
+                                if e > maior_ent:
+                                    maior_ent = e; alvo = palavra
                         # Web por gradiente, nao por limiar fixo
                         prob_web = max(0.02, 0.5 - ent_media)
                         if alvo and _rand.random() < prob_web and alvo != ultima_busca:
