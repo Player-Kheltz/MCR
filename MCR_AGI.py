@@ -1867,14 +1867,21 @@ class MCRQLearn:
         self._ultimas_acoes: List[str] = []  # Radar: historico para detectar loops
         self._radar_limite = 4  # N repeticoes iguais = loop
     def _fp_estado(self, estado):
-        """Fingerprint do estado com dimensionalidade moderada.
-        Usa 16-32D: suficiente para evitar colisoes sem isolar
-        estados demais (o que减慢 o aprendizado)."""
-        ser = estado.serializar().encode()[:2000]
-        dim = MCRSignatureExpansiva.dimensionalidade_ideal(ser, mx=64, thr=0.08)
-        dim = max(12, min(dim, 32))  # entre 12 e 32D
-        fp = estado.fingerprint(dim)
-        return str(fp)  # Removemos o truncamento para permitir que o MCR veja a assinatura completa e evite o Aliasing
+        """Chave unica por estado (fingerprint + hash do serializado).
+        
+        O fingerprint sozinho causa aliasing (dois estados diferentes
+        com mesmo fingerprint). A solucao: concatenar fingerprint
+        (para compatibilidade HDC/similaridade) com um hash MD5 do
+        serializado completo (para unicidade absoluta).
+        
+        Isso e' como ter bairro + rua + numero — o fingerprint
+        agrupa estados similares, o hash identifica cada um."""
+        ser = estado.serializar()
+        dim = MCRSignatureExpansiva.dimensionalidade_ideal(ser.encode()[:2000], mx=64, thr=0.08)
+        dim = max(12, min(dim, 32))
+        fp = MCRByteUtils.fingerprint(ser, dim)
+        uid = hashlib.md5(ser.encode()).hexdigest()[:8]
+        return f"{fp}|{uid}"
     def q_valor(self, estado, acao):
         ch = f"Q:{self._fp_estado(estado)}:{acao}"
         p, c = self.mk_Q.predizer(ch)
