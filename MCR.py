@@ -2940,6 +2940,28 @@ class MCRParserMinimo:
         if palavra[0].isupper() and len(palavra) > 1 and pos > 0: return 'nome'
         if len(p) > 2 and p.endswith(('cao','dade','mento','gem','ez','ista','eiro','or')): return 'nome'
         if len(p) > 2 and p.endswith(('oso','osa','vel','al','ico','ante','ente')): return 'adj'
+        # Fallback: similaridade Jaccard com palavras conhecidas do cerebro
+        if self.cerebro and self.cerebro.mk_palavra.freq:
+            best_sim = 0.0; best_cls = 'nome'
+            for palavra_conhecida in list(self.cerebro.mk_palavra.freq.keys())[:50]:
+                sim = MCRByteUtils.jaccard_bytes(p, palavra_conhecida)
+                if sim > best_sim:
+                    best_sim = sim; best_cls = self._classificar_sem_jaccard(palavra_conhecida, 0)
+            if best_sim > 0.3: return best_cls
+        return 'nome'
+    def _classificar_sem_jaccard(self, palavra, pos=0):
+        """classificar sem recursao Jaccard (para evitar loop)."""
+        p = palavra.lower()
+        if p in self._FUNC:
+            if p in self._PREP: return 'prep'
+            if p in self._ART: return 'art'
+            return 'conj'
+        if self._eh_verbo_por_entropia(palavra, pos): return 'verbo'
+        if p in ('mais','menos','tanto','quanto'): return 'comp'
+        if p == 'que' and pos > 0: return 'sub'
+        if palavra[0].isupper() and len(palavra) > 1 and pos > 0: return 'nome'
+        if len(p) > 2 and p.endswith(('cao','dade','mento','gem','ez','ista','eiro','or')): return 'nome'
+        if len(p) > 2 and p.endswith(('oso','osa','vel','al','ico','ante','ente')): return 'adj'
         return 'nome'
 
     def _extrair_tripla(self, tokens):
@@ -3151,6 +3173,108 @@ class MCRRedeSemantica:
         n_triplas = sum(sum(len(os) for os in rs.values()) for rs in self.grafo.values())
         return {'sujeitos': n_sujeitos, 'relacoes': n_relacoes, 'triplas': n_triplas,
                 'total_markov': self.total, 'entropia': round(self.entropia_media(), 3)}
+
+
+# ═══════════════════════════════════════════════════════════════════
+# [20c] MCRTokenizadorUniversal — tokeniza QUALQUER entrada (0 keywords)
+# ═══════════════════════════════════════════════════════════════════
+
+class MCRTokenizadorUniversal:
+    """Tokenizador universal — descobre o dominio automaticamente.
+    
+    Extraido do pattern_engine original (MCR-DevIA). Tokeniza
+    QUALQUER entrada (bytes, str, list, dict) sem saber o idioma.
+    Usa AST para codigo Python, regex para outras linguagens,
+    entropia para texto generico.
+    
+    0 keywords hardcoded. 0 LLM. 0 dependencias.
+    """
+    def tokenizar_universal(self, entrada):
+        """Tokeniza qualquer entrada sem precisar de dominio fixo."""
+        import ast as _ast_uni, json as _json_uni
+        
+        if isinstance(entrada, bytes):
+            return self._tokenizar_bytes(entrada)
+        
+        elif isinstance(entrada, str):
+            try:
+                _ast_uni.parse(entrada)
+                return self._tokenizar_codigo(entrada)
+            except SyntaxError: pass
+            try:
+                _json_uni.loads(entrada)
+                return [('JSON', entrada)]
+            except Exception: pass
+            if re.search(r'\b(function|local|end|if|then|else|for|while|return|import|class|def|var|let|const)\b', entrada):
+                tokens = self._tokenizar_texto(entrada)
+                tokens.append(('SUSPEITO_CODIGO', 1))
+                return tokens
+            return self._tokenizar_texto(entrada)
+        
+        elif isinstance(entrada, (list, tuple)):
+            tokens = []
+            for i, item in enumerate(entrada):
+                if isinstance(item, str): tokens.append(('LIST_ITEM', item))
+                elif isinstance(item, (int, float)): tokens.append(('LIST_NUM', item))
+                elif isinstance(item, dict):
+                    for k, v in item.items(): tokens.append((f'DICT_{k}', str(v)[:100]))
+                else: tokens.append(('LIST_RAW', str(item)[:100]))
+            return tokens
+        
+        elif isinstance(entrada, dict):
+            return [(f'KEY_{k}', str(v)[:200]) for k, v in entrada.items()
+                    if isinstance(v, (str, int, float, bool))]
+        
+        return [('RAW', str(entrada)[:500])]
+    
+    def _tokenizar_codigo(self, codigo):
+        """Tokeniza codigo UNIVERSAL — 0 keywords."""
+        tokens = []
+        linhas = codigo.split('\n')
+        for linha in linhas:
+            indent = len(linha) - len(linha.lstrip())
+            if indent >= 0: tokens.append(('INDENT', indent // 4))
+        for palavra in codigo.split():
+            p = palavra.strip('():;,\'"{}[]=<>+-*/')
+            if any(s in palavra for s in ('(', ')', '{', '}', '[', ']')):
+                tokens.append(('BRACKET', palavra))
+            elif any(s in palavra for s in ('=', '+', '-', '*', '/', '<', '>')):
+                tokens.append(('OP', palavra))
+            elif palavra.startswith('"') or palavra.startswith("'"):
+                tokens.append(('STR', palavra))
+            elif palavra.startswith('--') or palavra.startswith('//') or palavra.startswith('#'):
+                tokens.append(('COMMENT', palavra))
+            elif p and len(p) > 0:
+                if p[0].isupper(): tokens.append(('PROPER', p))
+                elif p.isdigit(): tokens.append(('NUM', p))
+                elif p in ('.', ':', ';', ','): tokens.append(('PUNCT', p))
+                else: tokens.append(('WORD', p))
+        return tokens
+    
+    def _tokenizar_bytes(self, data):
+        """Tokeniza bytes brutos — detecta formato por entropia."""
+        tokens = []
+        tokens.append(('BYTE_LEN', len(data)))
+        ent = MCRByteUtils.entropia_bytes(data)
+        tokens.append(('BYTE_ENT', round(ent, 2)))
+        if len(data) > 4:
+            tokens.extend([(f'B{b:d}', chr(b) if 32 <= b < 127 else f'\\x{b:02x}') for b in data[:16]])
+        return tokens
+    
+    def _tokenizar_texto(self, texto):
+        """Tokeniza texto natural — palavras, numeros, pontuacao."""
+        tokens = []
+        for palavra in texto.split():
+            p = palavra.strip('.,!?;:()[]{}""''')
+            if not p: continue
+            if p.isdigit(): tokens.append(('NUM', p))
+            elif p[0].isupper() and len(p) > 1: tokens.append(('PROPER', p))
+            elif any(c in p for c in '=+-*/<>'):
+                tokens.append(('OP', p))
+            elif re.match(r'^[A-Za-z]+$', p):
+                tokens.append(('WORD', p))
+            else: tokens.append(('TOKEN', p))
+        return tokens
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -3864,6 +3988,24 @@ class CerebroAGI:
                     if pred and conf > 0.1:
                         novo_token = pred
                         melhor_conf = conf
+            
+            # Se tudo falhou, tenta ponte MCRConexao entre topicos
+            if novo_token is None and self.topicos and semente in self.mk_palavra.freq:
+                try:
+                    topicos = list(self.topicos.keys())
+                    for topico_a in topicos[:5]:
+                        if intencao_ativa and any(intencao_ativa[:10].lower() in 
+                            self.topicos[topico_a].get('texto','').lower() for topico_a in topicos[:3]):
+                            continue
+                        r = self.conexao.analisar(topicos[0], topico_a)
+                        melhor = r.get('melhor')
+                        if melhor and melhor.get('palavra') and melhor['palavra'] not in cadeia:
+                            novo_token = melhor['palavra']
+                            melhor_conf = 0.3
+                            self.alimentar(f"[ponte] {melhor['palavra']}", f"ponte_{abs(hash(melhor['palavra']))%10000}")
+                            break
+                except:
+                    pass
             
             # Se tudo falhou, para
             if novo_token is None:
@@ -4592,6 +4734,9 @@ def chat_loop(cerebro):
         if not e: continue
         if e.lower() in ("sair","exit","quit"): print("Ate logo!"); break
         
+        # SessionCache: absorve a mensagem do usuario
+        cerebro.session_cache.absorver(f"user_{n_mensagens}", e, "request", tags=["chat", "usuario"])
+        
         n_mensagens += 1
         n_desde_ultima_exploracao += 1
         
@@ -4643,11 +4788,12 @@ def chat_loop(cerebro):
         if acao == "responder":
             safe = r['msg'].encode("ascii", errors="replace").decode("ascii")
             print(f"  {ident_s}{safe}")
+            cerebro.session_cache.absorver(f"mcr_{n_mensagens}", r['msg'], "resposta", tags=["chat", "mcr"])
         elif acao == "buscar_web":
-            # Busca na web e responde (Passo 4)
             resp2 = r.get('conversa', conversa).perguntar(r.get('entrada', e))
             safe2 = resp2.encode("ascii", errors="replace").decode("ascii")
             print(f"  {ident_s}{safe2}")
+            cerebro.session_cache.absorver(f"web_{n_mensagens}", resp2, "resposta", tags=["chat", "web"])
             n_desde_ultima_exploracao = 0
             mk_fluxo.aprender(estado_fluxo, f"buscou_web")
         else:
@@ -5358,6 +5504,9 @@ def _rodar_autonomo(cerebro):
         with open(log_aut, "a", encoding="utf-8") as f:
             f.write(f"[{time.strftime('%H:%M:%S')}] {msg}\n")
     
+    # Fragmentador para rastrear o ciclo autonomo
+    fragmentador = MCRFragmentador("autonomo")
+    
     # Gerador de caminhos — walk unico, shuffle por pasta, yield infinito
     def _caminhos_gen(drives_list):
         while True:
@@ -5463,13 +5612,15 @@ def _rodar_autonomo(cerebro):
             if total_ciclos % 5 == 0:
                 _log(f"Ciclo #{total_ciclos} ent={ent_media:.2f} modo={modo} top={n_top}")
             
-            # 4. Executar modo
+            # 4. Executar modo (com fragmentos rastreaveis)
+            fragmentador.limpar()
+            
             if modo == "explorar":
+                fragmentador.adicionar("explorar", lambda: MCRCuriosidade(cerebro).ciclo())
                 try:
-                    cur = MCRCuriosidade(cerebro)
-                    r = cur.ciclo()
-                    if r.get('descobertas', 0) > 0:
-                        _log(f"  Descobriu {r['descobertas']} novos arquivos")
+                    r = fragmentador.executar_todos()[-1]
+                    if r.sucesso and r.resultado and r.resultado.get('descobertas', 0) > 0:
+                        _log(f"  Descobriu {r.resultado['descobertas']} novos arquivos")
                         teve_descoberta = True
                 except Exception as e:
                     _log(f"  Erro exploracao: {e}")
