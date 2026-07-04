@@ -56,7 +56,11 @@ class MCRNPC:
         self.cerebro_path = os.path.join(MCR_DIR, "cache", "cerebro.json")
         self.cerebro.carregar(self.cerebro_path)
         
+        # Cadeia Markov propria do NPC (so os seeds dela, sem poluicao global)
+        self.mk_npc = MCR(f"npc_{nome}")
+        
         # Seed de conhecimento inicial (personalidade)
+        self._seed_conhecimento()
         self._seed_conhecimento()
         
         # Estado do NPC
@@ -95,18 +99,20 @@ class MCRNPC:
         base = seeds.get(self.personalidade, seeds["ferreiro"])
         for i, texto in enumerate(base):
             self.cerebro.alimentar(texto, f"{self.nome}_seed_{i}")
+            # Alimenta TAMBEM a cadeia propria do NPC (sem poluicao global)
+            self.mk_npc.aprender_sequencia(texto.split())
         
-        # Itens que o NPC conhece (para gerar por superposicao)
+        # Itens que o NPC conhece
         itens = ["espada", "armadura", "escudo", "elmo", "bota", "luvas"]
         materiais = ["ferro", "aco", "prata", "ouro", "mitril"]
         qualidades = ["comum", "raro", "epico", "lendario"]
         for item in itens:
             for mat in materiais:
                 for qual in qualidades:
-                    self.cerebro.alimentar(
-                        f"{qual} {item} de {mat}", 
-                        f"item_{item}_{mat}_{qual}"
-                    )
+                    texto = f"{qual} {item} de {mat}"
+                    self.cerebro.alimentar(texto, f"item_{item}_{mat}_{qual}")
+                    # Alimenta TAMBEM a cadeia propria do NPC
+                    self.mk_npc.aprender_sequencia(texto.split())
     
     def _estado_orquestrador(self, jogador, mensagem):
         """Estado do orquestrador para decidir acao."""
@@ -149,8 +155,24 @@ class MCRNPC:
         return "conversar"
     
     def _gerar_item(self, qualidade="raro", tipo="espada", material="aco"):
-        """Gera o nome de um item (template simples, sem Markov)."""
-        return f"{qualidade} {tipo} de {material}"
+        """Gera o nome de um item — Markov-1 no tipo, zero hardcode.
+        
+        Se o MCR aprendeu concordancia dos dados (items.xml alimentado
+        pelo usuario, conversas, etc.), usa. Senao, fallback honesto.
+        """
+        pred, conf = self.cerebro.mk_palavra.predizer(tipo)
+        if pred and conf > 0.1 and len(pred) > 2:
+            return f"{tipo} {pred} de {material}"
+        return f"{tipo} {qualidade} de {material}"
+    
+    def _gerar_nome_item(self, tipo):
+        """Gera nome de item pela cadeia propria do NPC (sem poluicao global)."""
+        if tipo not in self.mk_npc.freq:
+            return f"algo chamado {tipo}"
+        item = self.mk_npc.gerar(tipo, passos=3)
+        if len(item) >= 2:
+            return " ".join(item)
+        return f"algo chamado {tipo}"
     
     def _responder(self, jogador, mensagem):
         """Gera resposta contextualizada para o jogador."""
@@ -168,7 +190,7 @@ class MCRNPC:
         sujeito, relacao, objeto = intencao
         
         # Usa o objeto da intencao como tipo de item (se existir)
-        tipo_item = objeto if objeto and len(objeto) > 2 else _rand.choice(["espada", "armadura", "escudo", "elmo"])
+        tipo_item = objeto if objeto and len(objeto) > 2 else ""
         tipo_item = tipo_item.strip('.,!?;:()[]{}"\'')  # remove pontuacao
         
         if acao == "saudar":
@@ -180,20 +202,20 @@ class MCRNPC:
             resposta = _rand.choice(respostas)
         
         elif acao == "informar_preco":
-            item = self._gerar_item(tipo=tipo_item)
+            item = self._gerar_nome_item(tipo_item) if tipo_item else ""
             respostas = [
-                f"Este {item} custa {_rand.randint(50,500)} moedas de ouro.",
-                f"Tenho um {item} especial por {_rand.randint(100,800)} moedas.",
+                f"Este {item} custa {_rand.randint(50,500)} moedas de ouro." if item else f"Isso custa {_rand.randint(50,500)} moedas.",
+                f"Tenho {item} especial por {_rand.randint(100,800)} moedas." if item else f"Tenho algo especial por {_rand.randint(100,800)} moedas.",
                 f"Por {_rand.randint(200,1000)} moedas, e' seu.",
             ]
             resposta = _rand.choice(respostas)
         
         elif acao == "negociar":
-            item = self._gerar_item(tipo=tipo_item)
+            item = self._gerar_nome_item(tipo_item) if tipo_item else ""
             respostas = [
-                f"Entendo. Posso fazer um {item} para voce.",
-                f"Preciso de materiais, mas posso conseguir um {item}.",
-                f"Interessante. Tenho um {item} que pode lhe servir.",
+                f"Entendo. Posso fazer {item} para voce." if item else "Entendo. Posso fazer algo para voce.",
+                f"Preciso de materiais, mas posso conseguir {item}." if item else "Preciso de materiais, mas posso conseguir algo.",
+                f"Interessante. Tenho {item} que pode lhe servir." if item else "Interessante. Tenho algo que pode lhe servir.",
             ]
             resposta = _rand.choice(respostas)
         
