@@ -1706,6 +1706,8 @@ class MCREntropiaTemporal:
         self._ent_antes = 0.0
         self.min_niveis_auto = 2
         self.threshold_rel_auto = 0.10
+        self.janela_auto = 20
+        self.sensibilidade_auto = 1.0
         self._ciclos_sem_melhoria = 0
 
     def get_levels(self) -> Dict[str, 'MCR']:
@@ -1756,8 +1758,8 @@ class MCREntropiaTemporal:
         ent_depois = self._entropia_global()
         melhoria = self._ent_antes - ent_depois  # positivo = bom
         
-        # Estado atual dos parametros
-        estado = f"min:{self.min_niveis_auto}_rel:{int(self.threshold_rel_auto*100)}"
+        # Estado atual dos parametros (4 dimensoes)
+        estado = f"min:{self.min_niveis_auto}_rel:{int(self.threshold_rel_auto*100)}_jan:{self.janela_auto}_sen:{int(self.sensibilidade_auto*100)}"
         
         if evento:
             # Recompensa ou punicao
@@ -1775,8 +1777,7 @@ class MCREntropiaTemporal:
             self._experimentar_parametros()
 
     def _experimentar_parametros(self):
-        """Tenta uma combinacao diferente de parametros."""
-        # Olha o historico: qual estado teve melhor recompensa?
+        """Tenta combinacoes diferentes de parametros (ate 4 dimensoes)."""
         melhores = {}
         for estado in self._mk_params.freq:
             pred, conf = self._mk_params.predizer(estado)
@@ -1784,37 +1785,45 @@ class MCREntropiaTemporal:
                 melhores[estado] = conf if pred == "bom" else -conf
         
         if melhores:
-            # Pega o estado com melhor recompensa
             melhor_est = max(melhores, key=melhores.get)
             try:
                 partes = melhor_est.split('_')
-                novo_min = int(partes[0].replace('min:',''))
-                novo_rel = int(partes[1].replace('rel:',''))
-                self.min_niveis_auto = max(1, min(5, novo_min))
-                self.threshold_rel_auto = max(0.05, min(0.5, novo_rel / 100.0))
+                for p in partes:
+                    if 'min:' in p: self.min_niveis_auto = max(1, min(5, int(p.replace('min:',''))))
+                    if 'rel:' in p: self.threshold_rel_auto = max(0.05, min(0.5, int(p.replace('rel:',''))/100.0))
+                    if 'jan:' in p: self.janela_auto = max(5, min(50, int(p.replace('jan:',''))))
+                    if 'sen:' in p: self.sensibilidade_auto = max(0.5, min(3.0, int(p.replace('sen:',''))/100.0))
                 return
             except:
                 pass
         
-        # Fallback: tenta variacao aleatoria a partir do atual
-        candidatos = [max(1, self.min_niveis_auto + d) for d in [-1, 0, 1]]
-        self.min_niveis_auto = candidatos[hash(time.time()) % len(candidatos)]
-        self.threshold_rel_auto = max(0.05, min(0.5,
-            self.threshold_rel_auto + (-0.05 if hash(str(time.time())) % 2 == 0 else 0.05)))
+        # Mutacao aleatoria em 1 dos 4 parametros
+        params = ['min', 'rel', 'jan', 'sen']
+        par = params[hash(str(time.time())) % 4]
+        if par == 'min':
+            self.min_niveis_auto = max(1, min(5, self.min_niveis_auto + [-1, 1][hash(str(time.time()+1)) % 2]))
+        elif par == 'rel':
+            self.threshold_rel_auto = max(0.05, min(0.5, self.threshold_rel_auto * (0.9 if hash(str(time.time()+2)) % 2 == 0 else 1.1)))
+        elif par == 'jan':
+            self.janela_auto = max(5, min(50, self.janela_auto + 5 * [-1, 1][hash(str(time.time()+3)) % 2]))
+        elif par == 'sen':
+            self.sensibilidade_auto = max(0.5, min(3.0, self.sensibilidade_auto * (0.8 if hash(str(time.time()+4)) % 2 == 0 else 1.2)))
 
-    def detectar(self, threshold_rel=None, min_niveis=None):
+    def detectar(self, threshold_rel=None, min_niveis=None, janela=None, sensibilidade=None):
         """Detecta evento com parametros auto-descobertos ou explicitos."""
         tr = threshold_rel if threshold_rel is not None else self.threshold_rel_auto
         mn = min_niveis if min_niveis is not None else self.min_niveis_auto
+        jn = janela if janela is not None else self.janela_auto
+        se = sensibilidade if sensibilidade is not None else self.sensibilidade_auto
         
         with self._lock:
             spikes = {}
             for nivel in list(self._hist.keys()):
-                dr = self.delta_relativo(nivel)
+                dr = self.delta_relativo(nivel) * se
                 if dr > tr:
                     spikes[nivel] = round(dr, 3)
             evento = len(spikes) >= mn
-            info = {'niveis': spikes, 'n_afetados': len(spikes)}
+            info = {'niveis': spikes, 'n_afetados': len(spikes), 'janela': jn, 'sensibilidade': se}
             if evento:
                 self.eventos.append(info)
         return evento, info

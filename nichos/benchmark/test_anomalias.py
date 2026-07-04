@@ -165,10 +165,65 @@ def avaliar_metodos(n_rodadas=10):
     return relatorio
 
 
+# ═══════════════════════════════════════════════════════════════
+# TESTE ADICIONAL: Log real do Windows + 3-sigma
+# ═══════════════════════════════════════════════════════════════
+
+def testar_log_real():
+    """Testa MCR contra arquivo de log real (+ comparacao 3-sigma)."""
+    print()
+    print("=" * 60)
+    print("  TESTE REAL: Log do Windows + 3-sigma")
+    print("=" * 60)
+    
+    ARQUIVO = r"C:\Windows\Logs\CBS\FilterList.log"
+    with open(ARQUIVO, 'r', errors='replace') as f:
+        linhas = f.read().strip().split('\n')
+    
+    print(f"  Arquivo: {ARQUIVO}")
+    print(f"  Linhas: {len(linhas)}")
+    
+    mk = MCR("log_real")
+    metade = len(linhas) // 2
+    for i in range(metade - 1):
+        mk.aprender(linhas[i].strip(), linhas[i+1].strip())
+    
+    ent_antes = mk.entropia_media()
+    acertos = 0
+    for i in range(metade - 1, len(linhas) - 1):
+        mk.aprender(linhas[i].strip(), linhas[i+1].strip())
+        pred, conf = mk.predizer(linhas[i].strip())
+        if pred and pred == linhas[i+1].strip():
+            acertos += 1
+    ent_depois = mk.entropia_media()
+    taxa = acertos / max(len(linhas) - metade, 1)
+    
+    print(f"  Taxa de acerto (MCR): {acertos}/{len(linhas)-metade} = {taxa:.0%}")
+    print(f"  Entropia: {ent_antes:.3f} -> {ent_depois:.3f}")
+    
+    # 3-sigma
+    comps = [len(l.strip()) for l in linhas if l.strip()]
+    if comps:
+        med = sum(comps)/len(comps)
+        std = math.sqrt(sum((c-med)**2 for c in comps)/len(comps))
+        thresh = med + 3*std
+        anom = sum(1 for c in comps if c > thresh)
+        print(f"  3-sigma: threshold={thresh:.0f} chars, {anom} anomalias")
+    
+    if ent_depois == 0.0:
+        print("  VEREDITO (log real): MCR aprendeu perfeitamente (entropia zero).")
+    elif ent_depois < ent_antes:
+        print(f"  VEREDITO (log real): Entropia caiu {ent_antes-ent_depois:.3f} — aprendeu.")
+    else:
+        print("  VEREDITO (log real): Entropia NAO caiu — padrao complexo.")
+    
+    return {"arquivo": ARQUIVO, "linhas": len(linhas), "taxa": round(taxa, 2),
+            "ent_antes": round(ent_antes, 3), "ent_depois": round(ent_depois, 3)}
+
+
 if __name__ == '__main__':
     print("=" * 60)
-    print("  BENCHMARK: DETECCAO DE ANOMALIAS MULTI-FONTE")
-    print("  Comparando MCREntropiaTemporal multi-nivel vs mono-nivel")
+    print("  BENCHMARK COMPLETO: MULTI-FONTE + LOG REAL")
     print("=" * 60)
     print()
     
@@ -176,7 +231,6 @@ if __name__ == '__main__':
     relatorio = avaliar_metodos(n_rodadas=10)
     dt = time.perf_counter() - t0
     
-    # Sumario
     taxas_multi = [r['mcr_multi_taxa'] for r in relatorio]
     taxas_mono = [r['mcr_mono_taxa'] for r in relatorio]
     fps_multi = [r['mcr_multi_fp'] for r in relatorio]
@@ -185,38 +239,37 @@ if __name__ == '__main__':
     
     print()
     print("=" * 60)
-    print("  RESULTADOS")
+    print("  RESULTADOS (SIMULACAO)")
     print("=" * 60)
     print(f"  Multi-nivel:  taxa_media={sum(taxas_multi)/len(taxas_multi):.0%}   "
           f"fp_medio={sum(fps_multi)/len(fps_multi):.1f}   "
           f"latencia_media={sum(lats)/max(len(lats),1):.1f} ciclos")
     print(f"  Mono-nivel:   taxa_media={sum(taxas_mono)/len(taxas_mono):.0%}   "
           f"fp_medio={sum(fps_mono)/len(fps_mono):.1f}")
-    print(f"  Tempo: {dt:.2f}s para {len(relatorio)} rodadas")
+    print(f"  Tempo: {dt:.2f}s")
     print()
-    
-    # Conclusao
     if sum(taxas_multi) > sum(taxas_mono):
-        print("  VEREDITO: Multi-nivel detecta MAIS eventos que mono-nivel.")
+        print("  VEREDITO SIM: Multi-nivel detecta MAIS eventos que mono-nivel.")
     else:
-        print("  VEREDITO: Multi-nivel NAO e significativamente melhor que mono-nivel.")
+        print("  VEREDITO SIM: Multi-nivel NAO e melhor que mono-nivel.")
     if sum(fps_multi) < sum(fps_mono):
-        print("  VEREDITO: Multi-nivel tem MENOS falsos positivos que mono-nivel.")
+        print("  VEREDITO SIM: Multi-nivel tem MENOS falsos positivos que mono-nivel.")
     else:
-        print("  VEREDITO: Multi-nivel NAO reduz falsos positivos significativamente.")
-    print()
+        print("  VEREDITO SIM: Multi-nivel NAO reduz falsos positivos.")
     
-    # Salva
     resultado = {
         "data": time.strftime("%Y-%m-%d %H:%M:%S"),
-        "rodadas": len(relatorio),
-        "tempo": round(dt, 2),
+        "rodadas": len(relatorio), "tempo": round(dt, 2),
         "multi_nivel_taxa_media": round(sum(taxas_multi)/len(taxas_multi), 2),
         "mono_nivel_taxa_media": round(sum(taxas_mono)/len(taxas_mono), 2),
         "multi_nivel_fp_medio": round(sum(fps_multi)/len(fps_multi), 1),
         "mono_nivel_fp_medio": round(sum(fps_mono)/len(fps_mono), 1),
         "detalhes": relatorio,
     }
+    
+    log_result = testar_log_real()
+    resultado["log_real"] = log_result
+    
     with open(RESULTADOS_PATH, "w") as f:
         json.dump(resultado, f)
-    print(f"  Resultados salvos em: {RESULTADOS_PATH}")
+    print(f"\n  Resultados completos: {RESULTADOS_PATH}")
