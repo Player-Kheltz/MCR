@@ -1690,6 +1690,10 @@ class MCREntropiaTemporal:
     TODOS os niveis oscilam simultaneamente.
 
     Nivel unico detecta com ruido. Multi-nivel detecta com certeza.
+    
+    Auto-descoberta: min_niveis e threshold_rel sao ajustados por
+    tentativa-e-erro. Se um evento gera aprendizado (entropia cai),
+    a combinacao e recompensada. Se gera falso alarme, e punida.
     """
     def __init__(self, observer=None, janela=20):
         self.observer = observer
@@ -1697,6 +1701,12 @@ class MCREntropiaTemporal:
         self._hist: Dict[str, deque] = {}
         self._lock = threading.Lock()
         self.eventos = []
+        # Auto-descoberta de parametros
+        self._mk_params = MCR("ent_temporal_params")
+        self._ent_antes = 0.0
+        self.min_niveis_auto = 2
+        self.threshold_rel_auto = 0.10
+        self._ciclos_sem_melhoria = 0
 
     def get_levels(self) -> Dict[str, 'MCR']:
         levels = {}
@@ -1725,14 +1735,85 @@ class MCREntropiaTemporal:
         if hist[-2] < 0.001: return diff
         return diff / hist[-2]
 
-    def detectar(self, threshold_rel=0.10, min_niveis=2):
+    def _entropia_global(self):
+        """Entropia media dos niveis observados (usada como recompensa)."""
+        ent = 0.0; n = 0
+        for nome, hist in self._hist.items():
+            if hist:
+                ent += hist[-1]; n += 1
+        return ent / n if n else 1.0
+
+    def pre_detectar(self):
+        """Captura entropia ANTES de detectar (para comparacao)."""
+        self._ent_antes = self._entropia_global()
+
+    def pos_detectar(self, evento, info):
+        """Avalia se a deteccao foi util e ajusta parametros.
+        
+        Recompensa: se entropia caiu apos o evento, foi util.
+        Punicao: se entropia subiu ou ficou igual, foi falso alarme.
+        """
+        ent_depois = self._entropia_global()
+        melhoria = self._ent_antes - ent_depois  # positivo = bom
+        
+        # Estado atual dos parametros
+        estado = f"min:{self.min_niveis_auto}_rel:{int(self.threshold_rel_auto*100)}"
+        
+        if evento:
+            # Recompensa ou punicao
+            recompensa = "bom" if melhoria > 0.01 else "ruim"
+            self._mk_params.aprender(estado, recompensa)
+            
+            if not melhoria > 0.01:
+                self._ciclos_sem_melhoria += 1
+            else:
+                self._ciclos_sem_melhoria = 0
+        
+        # A cada 10 ciclos sem melhoria, tenta variar parametros
+        if self._ciclos_sem_melhoria > 10:
+            self._ciclos_sem_melhoria = 0
+            self._experimentar_parametros()
+
+    def _experimentar_parametros(self):
+        """Tenta uma combinacao diferente de parametros."""
+        # Olha o historico: qual estado teve melhor recompensa?
+        melhores = {}
+        for estado in self._mk_params.freq:
+            pred, conf = self._mk_params.predizer(estado)
+            if pred and conf > 0.3:
+                melhores[estado] = conf if pred == "bom" else -conf
+        
+        if melhores:
+            # Pega o estado com melhor recompensa
+            melhor_est = max(melhores, key=melhores.get)
+            try:
+                partes = melhor_est.split('_')
+                novo_min = int(partes[0].replace('min:',''))
+                novo_rel = int(partes[1].replace('rel:',''))
+                self.min_niveis_auto = max(1, min(5, novo_min))
+                self.threshold_rel_auto = max(0.05, min(0.5, novo_rel / 100.0))
+                return
+            except:
+                pass
+        
+        # Fallback: tenta variacao aleatoria a partir do atual
+        candidatos = [max(1, self.min_niveis_auto + d) for d in [-1, 0, 1]]
+        self.min_niveis_auto = candidatos[hash(time.time()) % len(candidatos)]
+        self.threshold_rel_auto = max(0.05, min(0.5,
+            self.threshold_rel_auto + (-0.05 if hash(str(time.time())) % 2 == 0 else 0.05)))
+
+    def detectar(self, threshold_rel=None, min_niveis=None):
+        """Detecta evento com parametros auto-descobertos ou explicitos."""
+        tr = threshold_rel if threshold_rel is not None else self.threshold_rel_auto
+        mn = min_niveis if min_niveis is not None else self.min_niveis_auto
+        
         with self._lock:
             spikes = {}
             for nivel in list(self._hist.keys()):
                 dr = self.delta_relativo(nivel)
-                if dr > threshold_rel:
+                if dr > tr:
                     spikes[nivel] = round(dr, 3)
-            evento = len(spikes) >= min_niveis
+            evento = len(spikes) >= mn
             info = {'niveis': spikes, 'n_afetados': len(spikes)}
             if evento:
                 self.eventos.append(info)
@@ -2882,8 +2963,10 @@ class CerebroAGI:
         
         # Mede entropia temporal apos processar eventos
         try:
+            self.ent_temporal.pre_detectar()
             self.ent_temporal.medir()
             evento, info = self.ent_temporal.detectar()
+            self.ent_temporal.pos_detectar(evento, info)
             if evento:
                 self._ultimo_resultado['ultimo_evento'] = info
         except:
@@ -4049,13 +4132,13 @@ def chat_loop(cerebro):
         # Ciclo passivo: processa eventos do sistema (arquivos, hooks)
         cerebro._ciclo_passivo()
         
-        # Verifica eventos do sistema detectados via hooks
-        evento, info = cerebro.ent_temporal.detectar()
-        if evento:
-            niveis_str = ", ".join(f"{n}:{v}" for n, v in info["niveis"].items())
-            print(f"  [SISTEMA] Evento detectado: {info['n_afetados']} niveis ({niveis_str})")
+        # Verifica eventos detectados durante o ciclo passivo
+        ev_info = cerebro._ultimo_resultado.get('ultimo_evento')
+        if ev_info and ev_info.get('n_afetados', 0) >= 2:
+            niveis_str = ", ".join(f"{n}:{v}" for n, v in ev_info["niveis"].items())
+            print(f"  [SISTEMA] Evento detectado: {ev_info['n_afetados']} niveis ({niveis_str})")
             # Alimenta o cerebro com o evento do sistema
-            cerebro.alimentar(f"[evento_sistema] oscilacao em {info['n_afetados']} niveis: {niveis_str}",
+            cerebro.alimentar(f"[evento_sistema] oscilacao em {ev_info['n_afetados']} niveis: {niveis_str}",
                             "evento_sistema")
         
         # Aprende fingerprint (sem hardcode)
