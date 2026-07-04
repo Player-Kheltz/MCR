@@ -3,7 +3,7 @@ import sys, os
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 os.chdir(os.path.join(BASE_DIR, "..", ".."))
 sys.path.insert(0, os.getcwd())
-exec(compile(open("MCR_AGI.py", encoding="utf-8").read().split("def main():")[0], "MCR_AGI.py", "exec"))
+exec(compile(open("MCR.py", encoding="utf-8").read().split("def main():")[0], "MCR.py", "exec"))
 ARQUIVO = r"C:\Windows\Logs\CBS\FilterList.log"
 PONTOS = 0
 def check(n, c):

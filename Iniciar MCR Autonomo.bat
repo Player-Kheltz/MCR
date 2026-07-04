@@ -13,7 +13,7 @@ echo  Para parar: feche esta janela ou pressione Ctrl+C
 echo.
 echo ===================================================
 
-python MCR_AGI.py --autonomo
+python MCR.py --autonomo
 
 echo.
 echo MCR Autonomo encerrado.

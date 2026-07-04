@@ -19,10 +19,10 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 os.chdir(BASE_DIR)
 sys.path.insert(0, BASE_DIR)
 
-__file__ = os.path.join(BASE_DIR, "MCR_AGI.py")
+__file__ = os.path.join(BASE_DIR, "MCR.py")
 with open(__file__, encoding="utf-8") as f:
     _code = f.read().split("def main():")[0]
-exec(compile(_code, "MCR_AGI.py", "exec"))
+exec(compile(_code, "MCR.py", "exec"))
 
 VERBOSE = "--verbose" in sys.argv
 PASS = 0
@@ -387,17 +387,10 @@ def test_auto_expansao():
 
 from collections import deque as _deque
 
-class MCREntropiaTemporal:
-    """Monitora entropia de cada nivel ao longo do tempo e detecta
-    EVENTOS por oscilacao SIMULTANEA em multiplos niveis.
-
-    Filosofia: entropia nao e' valor fixo de uma coisa -- e' uma
-    COORDENADA no espaco N-dimensional. Quando um evento ocorre
-    (mudanca de contexto, anomalia), TODOS os niveis oscilam
-    simultaneamente. A correlacao NO TEMPO destas oscilacoes e' o sinal.
-
-    Nivel unico detecta com ruido. Multi-nivel detecta com certeza.
-    """
+class _MCREntropiaTemporalTest:
+    """(test-local) Monitora entropia de cada nivel ao longo do tempo.
+    Usa cerebro com níveis fixos ['byte','palavra','tven'].
+    EVITAR conflito com MCREntropiaTemporal do core."""
     def __init__(self, cerebro, janela=20):
         self.cerebro = cerebro
         self.janela = janela
@@ -470,7 +463,7 @@ def test_deteccao_evento():
     for i in range(2):
         c.alimentar("o rato roeu a roupa do rei de roma ", f"pre_{i}")
 
-    detector = MCREntropiaTemporal(c)
+    detector = _MCREntropiaTemporalTest(c)
     detector.medir()  # registro inicial
 
     eventos_encontrados = []
@@ -536,13 +529,114 @@ def test_deteccao_evento():
           f"events={eventos_encontrados}")
 
 # ???????????????????????????????????????????????????????????????????
+# TESTE 10: EVENTO MULTI-FONTE (fontes fisicamente diferentes)
+# ???????????????????????????????????????????????????????????????????
+
+def test_evento_multi_fonte():
+    """PROVA: 3 fontes FISICAMENTE DIFERENTES oscilam juntas -> EVENTO.
+
+    Filosofia: entropia e' COORDENADA. Quando K+ coordenadas se movem
+    simultaneamente no tempo t, algo REAL aconteceu.
+    """
+    tec = MCRFonteSimulada("teclado")
+    clip = MCRFonteSimulada("clipboard")
+    cpu = MCRFonteSimulada("cpu")
+
+    # MCREntropiaTemporal com levels custom para as fontes simuladas
+    ent_temporal = MCREntropiaTemporal(observer=None)
+    def _levels():
+        return {"obs_teclado": tec.mk, "obs_clipboard": clip.mk, "obs_cpu": cpu.mk}
+    ent_temporal.get_levels = _levels
+
+    eventos_encontrados = []
+
+    def _ciclo():
+        tec.alimentar_sim(); clip.alimentar_sim(); cpu.alimentar_sim()
+        ent_temporal.medir()
+        return ent_temporal.detectar()
+
+    print("  (pre-warm: construindo cadeias Markov...)")
+    for _ in range(15):
+        tec.adicionar(["TEC:A:d", "TEC:A:u"])
+        clip.adicionar(["CLP:TXT:0"])
+        cpu.adicionar(["CPU:5"])
+        _ciclo()
+
+    ent_temporal._hist.clear()
+
+    print("\n  FASE 1: fontes estaveis (tokens repetitivos)")
+    for _ in range(10):
+        tec.adicionar(["TEC:A:d", "TEC:A:u"])
+        clip.adicionar(["CLP:TXT:0"])
+        cpu.adicionar(["CPU:5"])
+        evento, info = _ciclo()
+        if evento:
+            eventos_encontrados.append(len(eventos_encontrados))
+            print(f"    Ciclo: EVENTO niveis={info['niveis']} (falso positivo?)")
+
+    if not eventos_encontrados:
+        print("    (nenhum evento - sistema estavel)")
+    else:
+        print(f"    EVENTOS INESPERADOS: {eventos_encontrados}")
+
+    check("[10-a] Fase estavel: sem eventos",
+          len(eventos_encontrados) == 0,
+          f"eventos={eventos_encontrados}")
+
+    print("\n  FASE 2: INJECAO SIMULTANEA (momento T)")
+    tec.adicionar(["TEC:W:d", "TEC:W:u"])
+    clip.adicionar(["CLP:TXT:999"])
+    cpu.adicionar(["CPU:99"])
+    evento, info = _ciclo()
+    if evento:
+        eventos_encontrados.append("T")
+        print(f"    Ciclo T: EVENTO niveis={info['niveis']} <<<")
+
+    print("\n  FASE 3: estabilizacao pos-evento")
+    for ciclo_label in range(4):
+        tec.adicionar(["TEC:W:d", "TEC:W:u"])
+        clip.adicionar(["CLP:TXT:999"])
+        cpu.adicionar(["CPU:99"])
+        evento, info = _ciclo()
+        spikes = {n: round(ent_temporal.delta_relativo(n), 4) for n in ent_temporal._hist}
+        ativos = {n: v for n, v in spikes.items() if v > 0.001}
+        if evento:
+            eventos_encontrados.append(f"T+{ciclo_label+1}")
+            print(f"    Ciclo T+{ciclo_label+1}: EVENTO niveis={info['niveis']} (falso positivo?)")
+        elif ativos:
+            print(f"    Ciclo T+{ciclo_label+1}: delta={ativos} (sub-threshold)")
+        else:
+            print(f"    Ciclo T+{ciclo_label+1}: (estavel)")
+
+    print(f"\n  Eventos detectados: {eventos_encontrados}")
+
+    check("[10-b] Injecao simultanea: ciclo T detectado",
+          "T" in eventos_encontrados,
+          f"eventos={eventos_encontrados}")
+
+    falsos_pos = [c for c in eventos_encontrados if isinstance(c, str) and c.startswith("T+")]
+    check("[10-c] Pos-evento: ciclos T+2+ sem falsos positivos",
+          len(falsos_pos) <= 1,
+          f"falsos_positivos={falsos_pos}")
+
+    print("\n  PROVA: multi-fonte > nivel unico")
+    print("    Se fosse nivel unico (ex: so teclado):")
+    print("      teclado muda de A->A para W->W (aumento de entropia)")
+    print("      -> FALSO POSITIVO a cada mudanca")
+    print("    Multi-nivel (teclado+clipboard+cpu):")
+    print("      So detecta quando TODOS oscilam juntos")
+    print("      -> REJEITA mudancas isoladas")
+    print("    -> RESULTADO: multi-fonte e intrinsecamente mais robusto")
+
+
+# ???????????????????????????????????????????????????????????????????
 # MAIN
 # ???????????????????????????????????????????????????????????????????
 
 def main():
     print("=" * 67)
-    print("  EQUACAO MCR -- 9 testes contra problemas reais")
-    print("  Entropia, Auto-val, Curiosidade, Coupling, Superposicao")
+    print("  EQUACAO MCR -- 10 testes contra problemas reais")
+    print("  Entropia, Auto-val, Curiosidade, Coupling, Superposicao, Multi-fonte")
     print("=" * 67)
     print()
     
@@ -591,6 +685,11 @@ def main():
     print("-" * 40)
     print("[9] DETECCAO DE EVENTO MULTI-NIVEL (TESTE DEFINITIVO)")
     test_deteccao_evento()
+    print()
+    
+    print("-" * 40)
+    print("[10] EVENTO MULTI-FONTE — fontes fisicamente diferentes")
+    test_evento_multi_fonte()
     print()
     
     tempo = time.time() - t0

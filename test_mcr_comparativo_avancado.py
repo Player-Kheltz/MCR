@@ -21,10 +21,10 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 os.chdir(BASE_DIR)
 sys.path.insert(0, BASE_DIR)
 
-__file__ = os.path.join(BASE_DIR, "MCR_AGI.py")
+__file__ = os.path.join(BASE_DIR, "MCR.py")
 with open(__file__, encoding="utf-8") as f:
     _code = f.read().split("def main():")[0]
-exec(compile(_code, "MCR_AGI.py", "exec"))
+exec(compile(_code, "MCR.py", "exec"))
 
 VERBOSE = "--verbose" in sys.argv
 TOTAL = 0
@@ -638,7 +638,7 @@ def test_planejamento_entropia():
             dist_final = abs(h.props.get("x",0)-h_obj.props.get("x",0)) + \
                         abs(h.props.get("y",0)-h_obj.props.get("y",0))
             reducao = (1 - dist_final / dist_a) * 100
-            print(f"  MCRPlanner reduziu distancia: {dist_a} → {dist_final} ({reducao:.0f}%)")
+            print(f"  MCRPlanner reduziu distancia: {dist_a} -> {dist_final} ({reducao:.0f}%)")
             check("7d MCRPlanner reduz distancia ao objetivo",
                   dist_final < dist_a, f"inicial={dist_a} final={dist_final}")
     
@@ -650,7 +650,7 @@ def test_planejamento_entropia():
         if h2 and h_obj:
             dist_es = abs(h2.props.get("x",0)-h_obj.props.get("x",0)) + \
                      abs(h2.props.get("y",0)-h_obj.props.get("y",0))
-            print(f"  EntropicSearch distancia: {dist_a} → {dist_es}")
+            print(f"  EntropicSearch distancia: {dist_a} -> {dist_es}")
             check("7e EntropicSearch escolhe acao que reduz distancia",
                   dist_es < dist_a, f"inicial={dist_a} apos_acao={dist_es}")
     

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-MCR_AGI.py — Experimento em minimalismo computacional com Markov multi-nivel.
+MCR.py — Experimento em minimalismo computacional com Markov multi-nivel.
 ============================================================================
 Unico arquivo. Markov em N niveis: byte, palavra, token, decisao, acao.
 Primitivas, mundo, acoes, NLP (Jaccard), atencao (heuristicas),
@@ -11,10 +11,10 @@ curiosidade, identidade (fingerprint), chat, daemon.
 0 GPU. 0 LLM. 0 dependencias externas. Python stdlib apenas.
 
 Uso:
-    python MCR_AGI.py                            # chat
-    python MCR_AGI.py --daemon                   # servidor
-    python MCR_AGI.py --ask "preco do worm"      # direto
-    python MCR_AGI.py --aprender                 # alimenta NPCs
+    python MCR.py                            # chat
+    python MCR.py --daemon                   # servidor
+    python MCR.py --ask "preco do worm"      # direto
+    python MCR.py --aprender                 # alimenta NPCs
 """
 import os, sys, json, math, time, glob, re, random as _rand
 import sqlite3, socket, threading, hashlib, tempfile, queue
@@ -4068,7 +4068,7 @@ def chat_loop(cerebro):
     # (reconhecer_e_aprender dentro do loop faz isso naturalmente)
     
     print("\n" + "=" * 55)
-    print("  MCR_AGI — Conversa")
+    print("  MCR — Conversa")
     print("  Confianca decide. Ferramentas aprendem. Cerebro evolui.")
     print("  'sair' para encerrar")
     print("=" * 55)

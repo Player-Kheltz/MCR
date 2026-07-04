@@ -3,7 +3,7 @@
 """
 test_mcr_veracidade.py
 ======================
-Testa cada capacidade declarada do MCR_AGI.py com criterios objetivos
+Testa cada capacidade declarada do MCR.py com criterios objetivos
 e deterministicos. 14 secoes, ~81 testes, pontuacao final 0-10.
 
 Uso:
@@ -18,11 +18,11 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 os.chdir(BASE_DIR)
 sys.path.insert(0, BASE_DIR)
 
-# Carrega o MCR_AGI (sem executar main())
-__file__ = os.path.join(BASE_DIR, "MCR_AGI.py")
+# Carrega o MCR (sem executar main())
+__file__ = os.path.join(BASE_DIR, "MCR.py")
 with open(__file__, encoding="utf-8") as f:
     _code = f.read().split("def main():")[0]
-exec(compile(_code, "MCR_AGI.py", "exec"))
+exec(compile(_code, "MCR.py", "exec"))
 
 VERBOSE = "--verbose" in sys.argv
 
@@ -718,12 +718,12 @@ def test_curiosity():
     check("11.2 _descobrir_drives retorna list", isinstance(drives, list),
           f"type={type(drives).__name__}")
 
-    # 11.3 _entropia_do_arquivo no proprio MCR_AGI.py
+    # 11.3 _entropia_do_arquivo no proprio MCR.py
     ent = cur._entropia_do_arquivo(__file__)
     check("11.3 entropia do proprio arquivo > 0", isinstance(ent, float) and ent > 0,
           f"ent={ent}")
 
-    # 11.4 aprender_com_arquivo no proprio MCR_AGI.py
+    # 11.4 aprender_com_arquivo no proprio MCR.py
     try:
         result = cur.aprender_com_arquivo(__file__, ent)
         check("11.4 aprender_com_arquivo executa sem erro", True)

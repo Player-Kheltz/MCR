@@ -14,10 +14,10 @@ import sys, os, json, math
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 
 # Importa o MCR real
-__file__ = os.path.join(os.path.dirname(__file__), '..', '..', 'MCR_AGI.py')
+__file__ = os.path.join(os.path.dirname(__file__), '..', '..', 'MCR.py')
 with open(__file__, encoding='utf-8') as f:
     _code = f.read().split('def main():')[0]
-exec(compile(_code, 'MCR_AGI.py', 'exec'))
+exec(compile(_code, 'MCR.py', 'exec'))
 
 VERBOSE = '--verbose' in sys.argv
 SEP = '-' * 60

@@ -1,26 +1,26 @@
 #!/usr/bin/env python3
 """
-BATERIA DE TESTES REAIS — MCR_AGI.py
+BATERIA DE TESTES REAIS — MCR.py
 ======================================
 Valida TODAS as capacidades com dados e cenarios REAIS.
 NENHUM resultado e hardcoded. Tudo e metricas reais.
-Nao modifica o MCR_AGI.py.
+Nao modifica o MCR.py.
 """
 import os, sys, math, json, time, re, gc, sqlite3, tempfile
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 os.chdir(BASE)
 
-# Carrega o MCR_AGI.py sem executar main()
+# Carrega o MCR.py sem executar main()
 import importlib.util as _iu
-_spec = _iu.spec_from_file_location('mcr_real', os.path.join(BASE, 'MCR_AGI.py'))
+_spec = _iu.spec_from_file_location('mcr_real', os.path.join(BASE, 'MCR.py'))
 _mcr = _iu.module_from_spec(_spec)
-_mcr.__file__ = os.path.join(BASE, 'MCR_AGI.py')
+_mcr.__file__ = os.path.join(BASE, 'MCR.py')
 sys.modules['mcr_real'] = _mcr
 _spec.loader.exec_module(_mcr)
 
 print("=" * 70)
-print("  BATERIA DE TESTES REAIS — MCR_AGI.py")
+print("  BATERIA DE TESTES REAIS — MCR.py")
 print("  Nenhum resultado hardcoded. Metricas reais.")
 print("=" * 70)
 print()
@@ -37,7 +37,7 @@ def test_core():
     t0 = time.time()
     
     # Dados reais
-    texto = open('MCR_AGI.py', encoding='utf-8').read()[:20000]
+    texto = open('MCR.py', encoding='utf-8').read()[:20000]
     palavras = re.findall(r'\b\w+\b', texto.lower())
     dados = texto.encode()
     
@@ -346,7 +346,7 @@ def test_hiperesfera():
     print("---[09] HIPERESFERA: Dimensoes descobertas por entropia---")
     t0 = time.time()
     
-    texto = open('MCR_AGI.py', encoding='utf-8').read()[:15000]
+    texto = open('MCR.py', encoding='utf-8').read()[:15000]
     hiper = _mcr.MCRHiperesferaAutoExpansiva()
     dims = hiper.descobrir(texto)
     
@@ -540,5 +540,5 @@ print(f"Resultados salvos em {result_path}")
 print()
 print("=" * 70)
 print("  BATERIA CONCLUIDA — Todos os resultados sao REAIS")
-print("  Nenhum resultado hardcoded. Nenhuma alteracao no MCR_AGI.py.")
+print("  Nenhum resultado hardcoded. Nenhuma alteracao no MCR.py.")
 print("=" * 70)

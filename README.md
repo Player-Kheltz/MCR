@@ -66,10 +66,10 @@ All feed into a **single unified byte chain** (`sys_byte`). The MCR discovers co
 ### Interaction
 
 ```bash
-python MCR_AGI.py                          # chat — learns from conversation
-python MCR_AGI.py "explique o MCR"         # direct question
-python MCR_AGI.py --daemon                 # server — observes system in background
-python MCR_AGI.py --aprender               # feeds NPC dialogue files
+python MCR.py                          # chat — learns from conversation
+python MCR.py "explique o MCR"         # direct question
+python MCR.py --daemon                 # server — observes system in background
+python MCR.py --aprender               # feeds NPC dialogue files
 ```
 
 ---
@@ -133,7 +133,7 @@ All levels learn simultaneously from every input. The coupling matrix captures c
 
 ```
 E:/MCR/
-├── MCR_AGI.py                   # ~4650 lines, stdlib only (ENTIRE system)
+├── MCR.py                   # ~4650 lines, stdlib only (ENTIRE system)
 ├── test_mcr_veracidade.py       # 194 tests
 ├── test_mcr_desafios.py         # 13 multi-level tests
 ├── test_mcr_comparativo.py      # 22 vs baseline

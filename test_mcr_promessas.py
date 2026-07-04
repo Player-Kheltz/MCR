@@ -16,10 +16,10 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 os.chdir(BASE_DIR)
 sys.path.insert(0, BASE_DIR)
 
-__file__ = os.path.join(BASE_DIR, "MCR_AGI.py")
+__file__ = os.path.join(BASE_DIR, "MCR.py")
 with open(__file__, encoding="utf-8") as f:
     _code = f.read().split("def main():")[0]
-exec(compile(_code, "MCR_AGI.py", "exec"))
+exec(compile(_code, "MCR.py", "exec"))
 
 VERBOSE = "--verbose" in sys.argv
 PONTOS = 0
@@ -123,7 +123,7 @@ def p1_entropia_detecta_eventos():
 def p2_zero_hardcode():
     print("  2.1: Decisoes passam por MCR.predizer() ou MCRDecisor...")
     # Analisa o codigo fonte em busca de if/elif no chat_loop e ciclo_autonomo
-    with open(os.path.join(BASE_DIR, "MCR_AGI.py"), "r", encoding="utf-8") as f:
+    with open(os.path.join(BASE_DIR, "MCR.py"), "r", encoding="utf-8") as f:
         source = f.read()
 
     # O chat_loop e ciclo_autonomo devem usar _decidir() e _exec_acao()

@@ -20,10 +20,10 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 os.chdir(os.path.join(BASE_DIR, '..', '..'))
 sys.path.insert(0, os.getcwd())
 
-__file__ = os.path.join(os.getcwd(), "MCR_AGI.py")
+__file__ = os.path.join(os.getcwd(), "MCR.py")
 with open(__file__, encoding="utf-8") as f:
     _code = f.read().split("def main():")[0]
-exec(compile(_code, "MCR_AGI.py", "exec"))
+exec(compile(_code, "MCR.py", "exec"))
 
 RESULTADOS_PATH = os.path.join(BASE_DIR, "resultados.json")
 SEED = 42
