@@ -1244,7 +1244,7 @@ class MCRCoupling:
     @staticmethod
     def _descobrir_niveis():
         base = ["byte","palavra","tven","fingerprint"]
-        return base + ["intencao","acao","sujeito","relacao","objeto"]
+        return base + ["intencao","acao","sujeito","relacao","objeto","contexto"]
     def alimentar(self, origem, destino, to, td):
         if origem not in self.niveis or destino not in self.niveis: return
         self.cooc[origem][destino] += 1; self.total_cooc += 1
@@ -2874,6 +2874,8 @@ class CerebroAGI:
         self.parser = MCRParserMinimo()
         self.rede_semantica = MCRRedeSemantica()
         self._niveis_semanticos = False
+        self.mk_contexto = MCR("contexto")  # Markov-2 + contexto de turno
+        self._ultimo_texto = ""
     
     def _seed_orquestrador(self):
         """Sementes para o orquestrador comecar a decidir.
@@ -3153,7 +3155,10 @@ class CerebroAGI:
         
         # Niveis fixos (byte, palavra, tven) — sempre aprende
         for i in range(len(dados)-1): self.mk_byte.aprender(f"B:{dados[i]:02x}", f"B:{dados[i+1]:02x}")
+        # Markov-1: transicoes de palavra simples (fallback)
         for i in range(len(palavras)-1): self.mk_palavra.aprender(palavras[i], palavras[i+1])
+        # Markov-2: palavra depende das 2 anteriores (choque de bigrama)
+        for i in range(len(palavras)-2): self.mk_palavra.aprender(f"{palavras[i]}|{palavras[i+1]}", palavras[i+2])
         for i in range(len(palavras)-1):
             ta = palavras[i][0].upper() if palavras[i] else '?'; tb = palavras[i+1][0].upper() if palavras[i+1] else '?'
             self.mk_tven.aprender(ta, tb)
@@ -3204,6 +3209,18 @@ class CerebroAGI:
                 bt = f"B:{dados[i]:02x}"; pt = palavras[min(i,len(palavras)-1)]; tt = pt[0].upper() if pt else '?'
                 self.coupling.alimentar("byte","palavra",bt,pt); self.coupling.alimentar("palavra","tven",pt,tt); self.coupling.alimentar("tven","byte",tt,bt)
         self.coupling.recalcular()
+        
+        # Contexto de turno: aprende transicoes entre alimentacoes (conversa)
+        if self._ultimo_texto and texto:
+            ctx_ant = self._ultimo_texto[:100].replace('\n',' ')
+            ctx_atual = texto[:100].replace('\n',' ')
+            # Aprende turno_anterior → turno_atual
+            self.mk_contexto.aprender(ctx_ant, ctx_atual)
+            # Acopla contexto com palavra: dado o turno anterior, qual palavra esperar?
+            primeira_palavra = palavras[0][:20] if palavras else "?"
+            if ctx_ant:
+                self.coupling.alimentar("contexto", "palavra", ctx_ant[:10], primeira_palavra)
+        self._ultimo_texto = texto[:200]  # guarda para o proximo turno
         
         # Parser semantico minimo + alimentacao da rede
         try:
@@ -3265,6 +3282,9 @@ class CerebroAGI:
             'topicos': topicos_serial,
             'byte_trans': {str(k): v for k, v in self.mk_byte.transicoes.items()},
             'palavra_trans': {str(k): v for k, v in self.mk_palavra.transicoes.items()},
+            'contexto_trans': {str(k): v for k, v in self.mk_contexto.transicoes.items()},
+            'contexto_freq': {str(k): v for k, v in self.mk_contexto.freq.items()},
+            'contexto_total': self.mk_contexto.total,
             'timestamp': time.time(),
         }
         # Salva dimensoes descobertas pela hiperesfera
@@ -3335,6 +3355,11 @@ class CerebroAGI:
                 self.mk_palavra.transicoes[chave_a] = dict(trans)
                 self.mk_palavra.freq[chave_a] = sum(trans.values())
             self.mk_palavra.total = sum(len(t) for t in self.mk_palavra.transicoes.values())
+            # Restaura contexto de turno
+            for chave_a, trans in dados.get('contexto_trans', {}).items():
+                self.mk_contexto.transicoes[chave_a] = dict(trans)
+                self.mk_contexto.freq[chave_a] = sum(trans.values())
+            self.mk_contexto.total = dados.get('contexto_total', 0)
             # Restaura topologia
             topo_data = dados.get('topologia', {})
             if topo_data.get('grafo'):
@@ -3350,12 +3375,29 @@ class CerebroAGI:
         palavras = texto.split(); dim = C("dim_fingerprint",8)
         if not palavras: return texto
         for _ in range(passos):
-            semente = palavras[-1]
+            # Markov-2: semente = ultimas 2 palavras (choque de bigrama)
+            if len(palavras) >= 2:
+                semente = f"{palavras[-2]}|{palavras[-1]}"
+            else:
+                semente = palavras[-1]
             if semente not in self.mk_palavra.freq:
-                if len(palavras) > 1: semente = palavras[-2]
-                else: break
+                if len(palavras) > 2:
+                    # Fallback: tenta com a ultima palavra so (Markov-1)
+                    semente = palavras[-1]
+                    if semente not in self.mk_palavra.freq and len(palavras) > 1:
+                        semente = palavras[-2]
+                    elif semente not in self.mk_palavra.freq:
+                        break
+                elif len(palavras) > 1:
+                    semente = palavras[-1]
+                    if semente not in self.mk_palavra.freq:
+                        semente = palavras[-2] if len(palavras) > 1 else None
+                        if semente is None or semente not in self.mk_palavra.freq:
+                            break
+                else:
+                    break
             
-            # Tenta Markov puro primeiro (dimensao palavra)
+            # Tenta Markov puro primeiro (Markov-2 ou fallback Markov-1)
             cands = self.mk_palavra.predizer_n(semente, 5)
             pred = None
             conf = 0.0
