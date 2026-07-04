@@ -4778,6 +4778,7 @@ def _rodar_autonomo(cerebro):
     total_webs = 0
     ultimo_modo = None
     n_vezes_mesmo_modo = 0
+    ciclos_sem_descoberta = 0
     ultima_busca = ""
     AUTONOMO_PATH = os.path.join(CACHE_DIR, "autonomo_estado.json")
     
@@ -4808,6 +4809,50 @@ def _rodar_autonomo(cerebro):
         with open(log_aut, "a", encoding="utf-8") as f:
             f.write(f"[{time.strftime('%H:%M:%S')}] {msg}\n")
     
+    # Gerador de caminhos — walk unico, shuffle por pasta, yield infinito
+    def _caminhos_gen(drives_list):
+        while True:
+            for raiz in drives_list:
+                try:
+                    for pasta, _, arquivos in os.walk(raiz):
+                        _rand.shuffle(arquivos)
+                        for arq in arquivos:
+                            yield os.path.join(pasta, arq)
+                except: pass
+            _log("  (fim do walk — recomecando)")
+    
+    _walk_gen = _caminhos_gen(drives)
+    
+    def _processar_lote(cerebro_obj, walk_gen, n_max, tempo_max=0.5):
+        """Processa ate N arquivos nunca vistos, max tempo_max segundos."""
+        t0 = time.perf_counter()
+        aprendidos = 0
+        vistos = 0
+        for caminho in walk_gen:
+            # Limite de tempo
+            if time.perf_counter() - t0 > tempo_max:
+                break
+            # Ja visto?
+            if caminho in cerebro_obj.file_observer._file_sigs:
+                vistos += 1
+                if vistos > n_max * 10:  # muitos vistos seguidos: reseta
+                    _log(f"  (muitos ja vistos — pulando)")
+                    break
+                continue
+            vistos = 0
+            try:
+                with open(caminho, 'rb') as f:
+                    raw = f.read(2000)
+                txt = raw.decode('utf-8', errors='replace')
+                if len(txt.strip()) > 50:
+                    cerebro_obj.alimentar(txt, f"descoberta_{abs(hash(caminho))%10000}")
+                    cerebro_obj.file_observer._file_sigs[caminho] = (0, 0)
+                    aprendidos += 1
+            except: pass
+            if aprendidos >= n_max:
+                break
+        return aprendidos
+    
     def _decidir_modo(estado_str):
         if _rand.random() < 0.15:
             return _rand.choice(_MODOS)
@@ -4836,13 +4881,13 @@ def _rodar_autonomo(cerebro):
             
             estado_str = f"ent:{int(ent_media*100)}_top:{min(n_top,9)}"
             
-            # 3. Decidir modo — com deteccao de estagnacao
-            # Se o mesmo modo se repete > 5x, ou 0 descobertas ha muito,
-            # força aprendizado ativo (conhecido + desconhecido)
-            if n_vezes_mesmo_modo > 5:
+            # 3. Decide modo + detecta estagnacao
+            # Forca aprendizado se: mesmo modo > 5x OU 12+ ciclos sem descoberta
+            teve_descoberta = False
+            if n_vezes_mesmo_modo > 5 or ciclos_sem_descoberta > 12:
                 try:
+                    # Reforco: topico conhecido aleatorio
                     aprendidos = 0
-                    # 3a. Reforco: tópico conhecido aleatório
                     topicos = list(cerebro.topicos.keys())
                     if topicos:
                         esc = _rand.choice(topicos)
@@ -4850,30 +4895,19 @@ def _rodar_autonomo(cerebro):
                         if txt:
                             cerebro.alimentar(txt, f"reforco_{esc[:20]}")
                             aprendidos += 1
-                    # 3b. Descoberta: arquivo nunca visto do filesystem
-                    for raiz in drives:
-                        for pasta, _, arquivos in os.walk(raiz):
-                            _rand.shuffle(arquivos)
-                            for arq in arquivos:
-                                caminho = os.path.join(pasta, arq)
-                                if caminho not in cerebro.file_observer._file_sigs:
-                                    try:
-                                        with open(caminho, 'rb') as f:
-                                            raw = f.read(2000)
-                                        txt = raw.decode('utf-8', errors='replace')
-                                        if len(txt.strip()) > 50:
-                                            cerebro.alimentar(txt, f"descoberta_{abs(hash(caminho))%10000}")
-                                            cerebro.file_observer._file_sigs[caminho] = (0, 0)
-                                            aprendidos += 1
-                                            _log(f"  Descoberta forçada: {os.path.basename(caminho)[:50]}")
-                                            break
-                                    except: pass
-                            if aprendidos > 1: break
-                        if aprendidos > 1: break
+                    # Lote de descobertas: N arquivos novos, max 500ms
+                    n_lote = MCRDecisorUniversal.decidir_passos("autonomo_batch",
+                        {"n_topicos": n_top, "n_arquivos": len(cerebro.file_observer._file_sigs)})
+                    n_lote = max(5, min(n_lote, 100))
+                    n_novos = _processar_lote(cerebro, _walk_gen, n_lote, 0.5)
+                    aprendidos += n_novos
+                    if n_novos > 0:
+                        _log(f"  Lote: {n_novos} arquivos novos em 500ms")
                     if aprendidos > 0:
-                        _log(f"  Aprendizagem forçada: {aprendidos} novas informacoes")
+                        _log(f"  Aprendizagem forcada: {aprendidos} novas informacoes")
+                        teve_descoberta = True
                 except Exception as e:
-                    _log(f"  Erro aprendizagem forçada: {e}")
+                    _log(f"  Erro aprendizagem forcada: {e}")
                 n_vezes_mesmo_modo = 0
 
             modo = _decidir_modo(estado_str)
@@ -4893,6 +4927,7 @@ def _rodar_autonomo(cerebro):
                     r = cur.ciclo()
                     if r.get('descobertas', 0) > 0:
                         _log(f"  Descobriu {r['descobertas']} novos arquivos")
+                        teve_descoberta = True
                 except Exception as e:
                     _log(f"  Erro exploracao: {e}")
                     
@@ -4937,6 +4972,7 @@ def _rodar_autonomo(cerebro):
                                 if txt:
                                     cerebro.alimentar(txt, f"web_{alvo}")
                                     total_webs += 1
+                                    teve_descoberta = True
                                     _log(f"  + {txt[:80]}")
                     except Exception as e:
                         _log(f"  Erro web: {e}")
@@ -4952,7 +4988,13 @@ def _rodar_autonomo(cerebro):
             # 5. Aprender transicao
             mk_ciclo.aprender(estado_str, modo)
             
-            # 6. Salva estado a cada 10
+            # 6. Atualiza contador de estagnacao
+            if teve_descoberta:
+                ciclos_sem_descoberta = 0
+            else:
+                ciclos_sem_descoberta += 1
+            
+            # 7. Salva estado a cada 10
             if total_ciclos % 10 == 0:
                 try:
                     with open(AUTONOMO_PATH, "w") as f:
