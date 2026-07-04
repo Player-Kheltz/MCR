@@ -3456,6 +3456,16 @@ class CerebroAGI:
                     pred = novo
                     conf = conf2
             
+            # Fallback: cadeia de pensamento — colisoes encadeadas
+            if pred is None or conf < 0.01:
+                texto_original = " ".join(palavras)
+                cadeia = self._cadeia_pensamento(texto_original, passos=3)
+                tokens_cadeia = cadeia.split()
+                novos = [t for t in tokens_cadeia if t not in palavras]
+                if novos:
+                    pred = novos[0]
+                    conf = 0.05
+            
             # Ultimo fallback: byte puro
             if pred is None or conf < 0.01:
                 ultimo_byte = f"B:{ord(semente[-1]):02x}" if semente else "B:00"
@@ -3490,6 +3500,82 @@ class CerebroAGI:
                         continue
                 break  # sem alternativa, para
         return " ".join(palavras)
+    
+    def _cadeia_pensamento(self, texto, intencao="", passos=4):
+        """Cadeia de pensamento Markoviana: colisoes encadeadas guiadas por entropia.
+        
+        Em vez de prever 1 token, colide niveis N vezes — a saida de
+        uma colisao vira entrada da proxima. A cadeia de menor entropia
+        vira a resposta. Para quando a entropia entre passos consecutivos
+        estabiliza (pensamento convergiu) ou quando o resultado se repete.
+        
+        Isso nao e raciocinio. E colisao encadeada com parada entropica.
+        """
+        palavras = texto.split()
+        if not palavras:
+            return texto
+        
+        cadeia = list(palavras)
+        intencao_ativa = intencao or palavras[0] if palavras else ""
+        
+        for passo in range(passos):
+            semente = cadeia[-1] if cadeia else ""
+            if not semente:
+                break
+            
+            # Tenta colidir palavra + intencao (se houver)
+            novo_token = None
+            melhor_conf = 0.0
+            
+            if intencao_ativa and semente in self.mk_palavra.freq:
+                novo, conf, meta = self.superposicao.colidir(
+                    "palavra", semente,
+                    "intencao", intencao_ativa[:10],
+                    self.mk_palavra, MCR("intencao_temp"))
+                if novo and conf > 0.05:
+                    novo_token = novo
+                    melhor_conf = conf
+            
+            # Se falhou, tenta colidir palavra + byte (superposicao normal)
+            if novo_token is None:
+                ultimo_byte = f"B:{ord(semente[-1]):02x}" if semente else "B:00"
+                novo, conf, meta = self.superposicao.colidir(
+                    "palavra", semente,
+                    "byte", ultimo_byte,
+                    self.mk_palavra, self.mk_byte)
+                if novo and conf > 0.05:
+                    novo_token = novo
+                    melhor_conf = conf
+            
+            # Se ainda falhou, tenta Markov-2 (ultimas 2 palavras)
+            if novo_token is None and len(cadeia) >= 2:
+                chave_m2 = f"{cadeia[-2]}|{cadeia[-1]}"
+                if chave_m2 in self.mk_palavra.freq:
+                    pred, conf = self.mk_palavra.predizer(chave_m2)
+                    if pred and conf > 0.1:
+                        novo_token = pred
+                        melhor_conf = conf
+            
+            # Se tudo falhou, para
+            if novo_token is None:
+                break
+            
+            # Se repetiu o ultimo token, parou (loop)
+            if novo_token == semente or (len(cadeia) > 1 and novo_token == cadeia[-2]):
+                break
+            
+            cadeia.append(novo_token)
+            
+            # Mede entropia do passo: se baixa, "pensamento convergiu"
+            ent = self.mk_palavra.entropia(semente) if semente in self.mk_palavra.freq else 1.0
+            if ent < 0.15 and passo > 0:
+                break  # convergiu
+            
+            # Aprende esta transicao da cadeia
+            self.mk_palavra.aprender(semente, novo_token)
+        
+        return " ".join(cadeia)
+    
     def gerar(self, texto, passos=None, pergunta=""):
         passos = passos or int(C("passos_gerar",6))
         if len(self.topicos) < 100: return self._gerar_original(texto, passos)
