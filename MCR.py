@@ -1244,7 +1244,7 @@ class MCRCoupling:
     @staticmethod
     def _descobrir_niveis():
         base = ["byte","palavra","tven","fingerprint"]
-        return base + ["intencao","acao","sujeito","relacao","objeto","contexto","posicao"]
+        return base + ["intencao","acao","sujeito","relacao","objeto","contexto","posicao","token_tipo"]
     def alimentar(self, origem, destino, to, td):
         if origem not in self.niveis or destino not in self.niveis: return
         self.cooc[origem][destino] += 1; self.total_cooc += 1
@@ -3613,6 +3613,19 @@ class CerebroAGI:
                 bucket = pct // 25 * 25
                 self.mk_pos.aprender(f"POS_PCT:{bucket}", palavra)
         
+        # Tokenizacao universal: descobre tipo de cada token (WORD, NUM, PROPER, etc.)
+        if not hasattr(self, '_tokenizador'):
+            self._tokenizador = MCRTokenizadorUniversal()
+        try:
+            tokens_univ = self._tokenizador.tokenizar_universal(texto)
+            if tokens_univ:
+                for i in range(len(tokens_univ)-1):
+                    tipo_a, val_a = tokens_univ[i]
+                    tipo_b, val_b = tokens_univ[i+1]
+                    self.coupling.alimentar("token_tipo", "palavra", tipo_a, str(val_a)[:20])
+        except:
+            pass
+        
         # Hiperesfera: descobre dimensoes na primeira alimentacao
         # (protegido — falha nao quebra o pipeline)
         try:
@@ -4029,8 +4042,17 @@ class CerebroAGI:
     
     def gerar(self, texto, passos=None, pergunta=""):
         passos = passos or int(C("passos_gerar",6))
-        if len(self.topicos) < 100: return self._gerar_original(texto, passos)
-        return MCRAttention.gerar(self, texto, passos, pergunta or texto)
+        # Prefixa contexto da sessao (se houver) para geracao coerente
+        if self.session_cache and self.session_cache.fragmentos:
+            contexto = self.session_cache.reconstruir(max_fragmentos=3)
+            if contexto and len(contexto) > len(texto):
+                texto_com_contexto = contexto + " " + texto
+            else:
+                texto_com_contexto = texto
+        else:
+            texto_com_contexto = texto
+        if len(self.topicos) < 100: return self._gerar_original(texto_com_contexto, passos)
+        return MCRAttention.gerar(self, texto_com_contexto, passos, pergunta or texto)
     def planejar(self, obj, est=None):
         est = est or EstadoMundo.criar_simples()
         eo = self._estado_de_texto(obj, est)
