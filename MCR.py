@@ -2604,41 +2604,87 @@ class MCRParserMinimo:
     def __init__(self, cerebro=None):
         self.cerebro = cerebro
 
+    def _posicao_do_verbo(self):
+        """Descobre empiricamente onde estao os verbos (SVO/SOV/VSO).
+        
+        Varre escalas absoluta (POS:N) e relativa (POS_PCT:pct).
+        Escolhe as 2 com maior entropia media.
+        Cache por crescimento de dados (recalcula se mk_pos aprendeu 20+ entradas).
+        Fallback [1, 2] para cold start.
+        """
+        if not self.cerebro or not hasattr(self.cerebro, 'mk_pos'):
+            return [1, 2]
+        
+        if not hasattr(self, '_pos_v_cache'):
+            self._pos_v_cache = [1, 2]
+            self._pos_v_ciclo = 0
+            self._pos_v_mk_total = 0
+        
+        self._pos_v_ciclo += 1
+        mk_total = self.cerebro.mk_pos.total
+        if self._pos_v_ciclo < 50 and abs(mk_total - self._pos_v_mk_total) < 20:
+            return self._pos_v_cache
+        self._pos_v_ciclo = 0
+        self._pos_v_mk_total = mk_total
+        
+        candidatos = []
+        
+        # Escala absoluta (POS:0 a POS:7)
+        for pos in range(8):
+            chave = f"POS:{pos}"
+            if chave not in self.cerebro.mk_pos.freq: continue
+            ent_total = 0.0; n = 0
+            for cand, prob in self.cerebro.mk_pos.predizer_n(chave, 15):
+                if cand in self.cerebro.mk_palavra.freq:
+                    ent_total += self.cerebro.mk_palavra.entropia(cand); n += 1
+            if n > 0: candidatos.append((chave, ent_total / n))
+        
+        # Escala relativa (POS_PCT:0, 25, 50, 75, 100)
+        for pct in [0, 25, 50, 75, 100]:
+            chave = f"POS_PCT:{pct}"
+            if chave not in self.cerebro.mk_pos.freq: continue
+            ent_total = 0.0; n = 0
+            for cand, prob in self.cerebro.mk_pos.predizer_n(chave, 15):
+                if cand in self.cerebro.mk_palavra.freq:
+                    ent_total += self.cerebro.mk_palavra.entropia(cand); n += 1
+            if n > 0: candidatos.append((chave, ent_total / n))
+        
+        if not candidatos: return [1, 2]
+        candidatos.sort(key=lambda x: -x[1])
+        self._pos_v_cache = [c[0] for c in candidatos[:2]]
+        return self._pos_v_cache
+    
     def _eh_verbo_por_entropia(self, palavra, pos=0):
-        """Determina se palavra e verbo por acoplamento de 2 sinais.
+        """Determina se palavra e verbo por acoplamento.
         
         Nao usa lista de verbos nem sufixos. Zero conhecimento
         linguistico. Apenas:
-        1. Posicao (mk_pos): palavra aparece em POS:1 com que prob?
+        1. Posicao (mk_pos): palavra esta onde o verbo costuma estar?
         2. Entropia de saida (mk_palavra): palavra ramifica muito?
         
-        Se o cerebro ainda nao tem dados, retorna False (honesto).
+        A posicao do verbo e DESCOBERTA por _posicao_do_verbo(),
+        que varre escalas absoluta e relativa. Nao ha [1, 2] fixo.
         """
         if not self.cerebro:
-            return False  # sem dados, sem deteccao — honesto
+            return False
         
         score = 0.0; n_sinais = 0
         p = palavra.lower()
         
-        # Sinal 1: Posicao (verbo tende a POS:1 em SVO)
-        for pos_teste in [1, 2]:
-            chave = f"POS:{pos_teste}"
-            if chave not in self.cerebro.mk_pos.freq:
-                continue
+        # Sinal 1: Posicao (descoberta por entropia — qualquer lingua)
+        for chave in self._posicao_do_verbo():
+            if chave not in self.cerebro.mk_pos.freq: continue
             for cand, prob in self.cerebro.mk_pos.predizer_n(chave, 10):
                 if cand.lower() == p:
-                    score += prob
-                    n_sinais += 1
-                    break
+                    score += prob; n_sinais += 1; break
+            if n_sinais > 0: break
         
         # Sinal 2: Entropia de saida (verbos ramificam mais)
         if p in self.cerebro.mk_palavra.freq:
             ent = self.cerebro.mk_palavra.entropia(p)
-            score += min(1.0, ent / 3.0)
-            n_sinais += 1
+            score += min(1.0, ent / 3.0); n_sinais += 1
         
-        if n_sinais == 0:
-            return False
+        if n_sinais == 0: return False
         return score / n_sinais > 0.3
 
     def extrair(self, texto):
@@ -3231,6 +3277,11 @@ class CerebroAGI:
             pos_key = f"POS:{i}"
             self.mk_pos.aprender(pos_key, palavra)
             if i > 0: self.mk_pos.aprender(palavras[i-1], pos_key)  # palavra N-1 → POS:N
+            # Posicao relativa (percentual discretizada em quartis)
+            if len(palavras) > 1:
+                pct = int((i / (len(palavras) - 1)) * 100)
+                bucket = pct // 25 * 25
+                self.mk_pos.aprender(f"POS_PCT:{bucket}", palavra)
         
         # Hiperesfera: descobre dimensoes na primeira alimentacao
         # (protegido — falha nao quebra o pipeline)
