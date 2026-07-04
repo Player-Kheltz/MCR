@@ -4750,6 +4750,188 @@ class MCRFileObserver:
             self._thread.join(timeout=2.0)
 
 
+# ═══════════════════════════════════════════════════════════════════
+# [modo_autonomo] — aprendizado perpetuo (--autonomo)
+# ═══════════════════════════════════════════════════════════════════
+
+_FILTRO_WEB = frozenset([
+    'mais', 'que', 'para', 'com', 'por', 'como', 'dos', 'das',
+    'mas', 'era', 'seu', 'sua', 'tem', 'sao', 'muito', 'pode',
+    'quem', 'ate', 'sobre', 'apos', 'antes', 'entre', 'todo',
+    'tudo', 'cada', 'vai', 'foi', 'era', 'ser', 'esta', 'ele',
+    'ela', 'isto', 'isso', 'onde', 'qual', 'quais', 'sao', 'sua',
+    'teu', 'tua', 'nos', 'vos', 'sim', 'nao', 'ja', 'ainda',
+])
+_MODOS = ["explorar", "pensar", "web", "evoluir", "explorar", "pensar"]
+
+
+def _rodar_autonomo(cerebro):
+    """Ciclo perpetuo: passivo → diagnostico → acao → descanso → repete.
+    
+    Usa Markov (mk_ciclo) + epsilon-greedy para decidir o que fazer.
+    So para com Ctrl+C."""
+    print("Modo autonomo. Pressione Ctrl+C para parar.")
+    print("=" * 55)
+    
+    mk_ciclo = MCR("ciclo_autonomo")
+    total_ciclos = 0
+    total_webs = 0
+    ultimo_modo = None
+    n_vezes_mesmo_modo = 0
+    ultima_busca = ""
+    AUTONOMO_PATH = os.path.join(CACHE_DIR, "autonomo_estado.json")
+    
+    # Carrega estado anterior
+    try:
+        if os.path.exists(AUTONOMO_PATH):
+            with open(AUTONOMO_PATH) as f:
+                st = json.load(f)
+            total_ciclos = st.get("ciclos", 0)
+    except: pass
+    
+    # Inicia observadores
+    try:
+        cerebro.hook_observer.iniciar()
+        print("HookObserver: monitorando teclado, mouse, clipboard")
+    except Exception as e:
+        print(f"HookObserver: {e}")
+    try:
+        cerebro.file_observer.iniciar()
+        drives = cerebro.file_observer._get_drives()
+        print(f"FileObserver: monitorando {' '.join(drives)}")
+    except Exception as e:
+        print(f"FileObserver: {e}")
+    
+    log_aut = os.path.join(CACHE_DIR, "autonomo.log")
+    
+    def _log(msg):
+        with open(log_aut, "a", encoding="utf-8") as f:
+            f.write(f"[{time.strftime('%H:%M:%S')}] {msg}\n")
+    
+    def _decidir_modo(estado_str):
+        if _rand.random() < 0.15:
+            return _rand.choice(_MODOS)
+        pred, conf = mk_ciclo.predizer(estado_str)
+        if pred and conf > 0.3:
+            return pred
+        return _MODOS[abs(hash(estado_str)) % len(_MODOS)]
+    
+    _log("=" * 40)
+    _log("MCR Autonomo iniciado")
+    _log(f"Topicos: {len(cerebro.topicos)} | Bytes: {cerebro.mk_byte.total} | Palavras: {cerebro.mk_palavra.total}")
+    _log("=" * 40)
+    
+    try:
+        while True:
+            total_ciclos += 1
+            
+            # 1. Passivo — drena eventos de hooks + arquivos
+            cerebro._ciclo_passivo(max_eventos=20)
+            
+            # 2. Diagnostico
+            ent_byte = cerebro.mk_byte.entropia_media() if cerebro.mk_byte.total > 0 else 1.0
+            ent_palavra = cerebro.mk_palavra.entropia_media() if cerebro.mk_palavra.total > 0 else 1.0
+            ent_media = (ent_byte + ent_palavra) / 2
+            ent_tag = "alta" if ent_media > 0.7 else "baixa" if ent_media < 0.3 else "media"
+            n_top = len(cerebro.topicos)
+            
+            estado_str = f"ent:{ent_tag}_top:{min(n_top,9)}_ult:{ultimo_modo or 'nada'}_rep:{min(n_vezes_mesmo_modo,5)}"
+            
+            # 3. Decidir modo
+            modo = _decidir_modo(estado_str)
+            if modo == ultimo_modo:
+                n_vezes_mesmo_modo += 1
+            else:
+                n_vezes_mesmo_modo = 0
+            ultimo_modo = modo
+            
+            if total_ciclos % 5 == 0:
+                _log(f"Ciclo #{total_ciclos} ent={ent_media:.2f} modo={modo} top={n_top}")
+            
+            # 4. Executar modo
+            if modo == "explorar":
+                try:
+                    cur = MCRCuriosidade(cerebro)
+                    r = cur.ciclo()
+                    if r.get('descobertas', 0) > 0:
+                        _log(f"  Descobriu {r['descobertas']} novos arquivos")
+                except Exception as e:
+                    _log(f"  Erro exploracao: {e}")
+                    
+            elif modo == "pensar":
+                try:
+                    passos = MCRDecisorUniversal.decidir_passos("autonomo_pensar",
+                        {"n_topicos": n_top})
+                    cerebro.ciclo_autonomo(max_passos=passos)
+                except Exception as e:
+                    _log(f"  Erro pensar: {e}")
+                    
+            elif modo == "web":
+                if total_webs > 3 and total_ciclos % 15 != 0:
+                    pass  # limite de webs
+                elif cerebro.mk_palavra.freq:
+                    try:
+                        alvo = None
+                        maior_ent = 0.0
+                        for palavra in list(cerebro.mk_palavra.freq.keys())[:100]:
+                            if palavra.lower() in _FILTRO_WEB or len(palavra) < 5:
+                                continue
+                            e = cerebro.mk_palavra.entropia(palavra)
+                            if e > maior_ent:
+                                maior_ent = e; alvo = palavra
+                        if alvo and maior_ent > 0.7 and alvo != ultima_busca:
+                            ultima_busca = alvo
+                            _log(f"Web: '{alvo}' (ent={maior_ent:.2f})")
+                            from urllib.request import Request, urlopen
+                            from urllib.parse import quote
+                            import re
+                            url = "https://html.duckduckgo.com/html/?q=" + quote(alvo)
+                            req = Request(url, headers={"User-Agent": "Mozilla/5.0"})
+                            with urlopen(req, timeout=5) as r:
+                                html = r.read().decode('utf-8', errors='replace')
+                            snippets = re.findall(
+                                r'<a rel="nofollow" class="result__a" href="[^"]*">(.*?)</a>',
+                                html)[:3]
+                            for s in snippets:
+                                txt = s.strip()
+                                if txt:
+                                    cerebro.alimentar(txt, f"web_{alvo}")
+                                    total_webs += 1
+                                    _log(f"  + {txt[:80]}")
+                    except Exception as e:
+                        _log(f"  Erro web: {e}")
+                        
+            elif modo == "evoluir":
+                try:
+                    r = cerebro.auto_evolution.ciclo()
+                    if r.get('mutado'):
+                        _log(f"  Threshold mutado: {r['resultado']}")
+                except Exception as e:
+                    _log(f"  Erro evolucao: {e}")
+            
+            # 5. Aprender transicao
+            mk_ciclo.aprender(estado_str, modo)
+            
+            # 6. Salva estado a cada 10
+            if total_ciclos % 10 == 0:
+                try:
+                    with open(AUTONOMO_PATH, "w") as f:
+                        json.dump({"ciclos": total_ciclos}, f)
+                    cerebro.salvar()
+                except: pass
+            
+            # 7. Pausa adaptativa
+            pausa = max(0.3, min(3.0, ent_media * 2))
+            time.sleep(pausa)
+            
+    except KeyboardInterrupt:
+        print("\nParando modo autonomo...")
+    finally:
+        try: cerebro.file_observer.parar()
+        except: pass
+        _log("MCR Autonomo parado.\n")
+
+
 def main():
     args = sys.argv[1:]
     cerebro = CerebroAGI()
@@ -4799,12 +4981,26 @@ def main():
         print("Modo daemon. Pressione Ctrl+C para parar.")
         cerebro.file_observer.iniciar()
         print("  Monitorando: ", " ".join(cerebro.file_observer._get_drives()))
+        # Hooks opcionais no daemon
+        try:
+            cerebro.hook_observer.iniciar()
+            print("  HookObserver: monitorando teclado, mouse, clipboard")
+        except: pass
         try:
             while True:
                 cerebro._ciclo_passivo()
+                # Auto-evolucao periodica no daemon
+                if _rand.random() < 0.1:
+                    try: cerebro.auto_evolution.ciclo()
+                    except: pass
                 time.sleep(0.5)
         except KeyboardInterrupt: print("\nParando...")
         cerebro.file_observer.parar()
+        return
+
+    # --autonomo: ciclo perpetuo de aprendizado
+    if "--autonomo" in args:
+        _rodar_autonomo(cerebro)
         return
 
     # --status: mostra estado
