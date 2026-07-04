@@ -2605,19 +2605,17 @@ class MCRParserMinimo:
         self.cerebro = cerebro
 
     def _eh_verbo_por_entropia(self, palavra, pos=0):
-        """Determina se palavra e verbo por acoplamento de 3 sinais.
+        """Determina se palavra e verbo por acoplamento de 2 sinais.
         
-        Nao usa lista de verbos. Usa o que o MCR ja aprendeu:
-        1. Posicao (mk_pos): POS:1 → palavra?
-        2. Transicao (mk_palavra): quantos antecedentes tem?
-        3. Byte (sufixo): termina em -ar, -er, -ir, -ndo?
+        Nao usa lista de verbos nem sufixos. Zero conhecimento
+        linguistico. Apenas:
+        1. Posicao (mk_pos): palavra aparece em POS:1 com que prob?
+        2. Entropia de saida (mk_palavra): palavra ramifica muito?
+        
+        Se o cerebro ainda nao tem dados, retorna False (honesto).
         """
         if not self.cerebro:
-            # Fallback: sufixo apenas
-            p = palavra.lower()
-            if len(p) > 2 and p.endswith(('ar','er','ir','or','ndo','do','da')):
-                return True
-            return False
+            return False  # sem dados, sem deteccao — honesto
         
         score = 0.0; n_sinais = 0
         p = palavra.lower()
@@ -2625,27 +2623,22 @@ class MCRParserMinimo:
         # Sinal 1: Posicao (verbo tende a POS:1 em SVO)
         for pos_teste in [1, 2]:
             chave = f"POS:{pos_teste}"
-            if chave in self.cerebro.mk_pos.freq:
-                pred, conf = self.cerebro.mk_pos.predizer(chave)
-                if pred and pred.lower() == p:
-                    score += conf; n_sinais += 1
+            if chave not in self.cerebro.mk_pos.freq:
+                continue
+            for cand, prob in self.cerebro.mk_pos.predizer_n(chave, 10):
+                if cand.lower() == p:
+                    score += prob
+                    n_sinais += 1
+                    break
         
-        # Sinal 2: Transicao (verbos tem mais antecedentes que substantivos)
+        # Sinal 2: Entropia de saida (verbos ramificam mais)
         if p in self.cerebro.mk_palavra.freq:
-            n_entradas = len(self.cerebro.mk_palavra.transicoes.get(p, {}))
-            # Se muitos tokens diferentes podem vir antes, provavelmente e verbo
-            score_trans = min(1.0, n_entradas / 5.0)
-            score += score_trans; n_sinais += 1
-        
-        # Sinal 3: Sufixo byte
-        if len(p) > 2 and p.endswith(('ar','er','ir','or')):
-            score += 0.8; n_sinais += 1
-        elif len(p) > 2 and p.endswith(('ndo','do','da')):
-            score += 0.7; n_sinais += 1
+            ent = self.cerebro.mk_palavra.entropia(p)
+            score += min(1.0, ent / 3.0)
+            n_sinais += 1
         
         if n_sinais == 0:
             return False
-        
         return score / n_sinais > 0.3
 
     def extrair(self, texto):
