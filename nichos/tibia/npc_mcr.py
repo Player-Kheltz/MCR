@@ -148,16 +148,8 @@ class MCRNPC:
         return "conversar"
     
     def _gerar_item(self, qualidade="raro", tipo="espada", material="aco"):
-        """Gera um item por superposicao entre niveis."""
-        novo, conf, meta = self.cerebro.superposicao.colidir(
-            "palavra", qualidade,
-            "palavra", tipo,
-            self.cerebro.mk_palavra, self.cerebro.mk_palavra)
-        if novo and conf > 0.05:
-            item = f"{qualidade} {novo} de {material}"
-        else:
-            item = f"{qualidade} {tipo} de {material}"
-        return item
+        """Gera o nome de um item (template simples, sem Markov)."""
+        return f"{qualidade} {tipo} de {material}"
     
     def _responder(self, jogador, mensagem):
         """Gera resposta contextualizada para o jogador."""
@@ -174,6 +166,9 @@ class MCRNPC:
         acao = self._decidir_acao(jogador, intencao)
         sujeito, relacao, objeto = intencao
         
+        # Usa o objeto da intencao como tipo de item (se existir)
+        tipo_item = objeto if objeto and len(objeto) > 2 else _rand.choice(["espada", "armadura", "escudo", "elmo"])
+        
         if acao == "saudar":
             respostas = [
                 f"Saudacoes, {jogador}! Em que posso ajudar?",
@@ -183,7 +178,7 @@ class MCRNPC:
             resposta = _rand.choice(respostas)
         
         elif acao == "informar_preco":
-            item = self._gerar_item()
+            item = self._gerar_item(tipo=tipo_item)
             respostas = [
                 f"Este {item} custa {_rand.randint(50,500)} moedas de ouro.",
                 f"Tenho um {item} especial por {_rand.randint(100,800)} moedas.",
@@ -192,7 +187,7 @@ class MCRNPC:
             resposta = _rand.choice(respostas)
         
         elif acao == "negociar":
-            item = self._gerar_item()
+            item = self._gerar_item(tipo=tipo_item)
             respostas = [
                 f"Entendo. Posso fazer um {item} para voce.",
                 f"Preciso de materiais, mas posso conseguir um {item}.",
@@ -203,17 +198,18 @@ class MCRNPC:
         elif acao == "responder":
             # Tenta cadeia de pensamento com contexto da sessao
             cadeia = self.cerebro._cadeia_pensamento(mensagem, intencao=self.personalidade, passos=3)
-            if len(cadeia.split()) > 2:
+            # Guardrail: rejeita se resultado tem lixo byte (B:XX)
+            if len(cadeia.split()) > 2 and not any(t.startswith('B:') for t in cadeia.split()):
                 resposta = f"{self.nome} reflete: {cadeia}"
             else:
                 resposta = self.cerebro.conexao.analisar(
                     f"conv_{self.n_conversas}",
                     f"{self.nome}_seed_0"
-                ).get("melhor", {}).get("palavra", f"Nao entendi, {jogador}.")
-                if isinstance(resposta, str):
+                ).get("melhor", {}).get("palavra")
+                if isinstance(resposta, str) and len(resposta) > 3:
                     resposta = f"{self.nome}: {resposta}"
                 else:
-                    resposta = f"{self.nome}: Nao entendi, {jogador}."
+                    resposta = f"{self.nome}: Uma pergunta interessante, {jogador}. Deixe-me pensar..."
         
         else:
             resposta = self.cerebro.gerar(mensagem, passos=4)
