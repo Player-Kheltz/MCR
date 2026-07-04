@@ -2574,14 +2574,16 @@ class MCRNPCBrain:
 # ═══════════════════════════════════════════════════════════════════
 
 class MCRParserMinimo:
-    """Parser semantico rule-based para portugues.
+    """Parser semantico para portugues — usa entropia, nao lista de verbos.
     
     Extrai triplas (sujeito, relacao, objeto) de sentencas declarativas
-    simples usando apenas stdlib Python. Cobre ~75% das sentencas PT-BR.
+    simples usando apenas stdlib Python. Cobre ~70% das sentencas PT-BR.
     
-    Usa heuristica POSICIONAL como fallback — em portugues SVO,
-    a posicao 0 tende a ser sujeito e posicao 1 tende a ser verbo.
-    Isso torna o parser robusto para verbos desconhecidos.
+    NAO usa lista de verbos hardcoded. Usa acoplamento de 3 sinais
+    para detectar verbos por entropia:
+      1. POS:1 → palavra (posicao)
+      2. Entropia de transicao entrada (muitos antecedentes → verbo)
+      3. Sufixo byte (-ar, -er, -ir, -ndo)
     
     Padroes:
       SVO:         "Joao come maca"  → (Joao, come, maca)
@@ -2599,99 +2601,52 @@ class MCRParserMinimo:
         'me','te','se','lhe','lhes','nos','vos'])
     _FUNC = set().union(_PREP, _ART, _CONJ, _PRON)
 
-    _COP = frozenset(['ser','sou','e','sao','era','sera','foi','foram',
-        'seria','seriam','fui','foi','foram','seja','sejam','fosse','fossem',
-        'estar','estou','esta','estao','estava','estavam','esteve','estiveram',
-        'esteja','estejam','estivesse','estivessem',
-        'ficar','fico','fica','ficam','ficou','ficaram','ficava',
-        'parecer','parece','parecem','pareceu','pareciam',
-        'continuar','continua','continuam','continuou','continuava',
-        'permanecer','permanece','permaneceu','permaneciam',
-        'tornar','torna','tornam','tornou','tornaram'])
+    def __init__(self, cerebro=None):
+        self.cerebro = cerebro
 
-    _VERBOS = frozenset([
-        # ser/estar (copulativos ja inclusos)
-        # ter
-        'tenho','tem','tem','tinha','tinham','terei','tera','terao',
-        'teria','teriam','tive','teve','tiveram','tivesse','tivessem',
-        'tenha','tenham',
-        # fazer
-        'faco','faz','fazem','fazia','faziam','farei','fara','farao',
-        'faria','fariam','fez','fiz','fizeram','faca','facam','fizesse',
-        # dizer
-        'digo','diz','dizem','dizia','diziam','direi','dira','dirao',
-        'diria','diriam','disse','disseram','diga','digam','dissesse',
-        # poder
-        'posso','pode','podem','podia','podiam','poderei','podera','poderao',
-        'poderia','poderiam','pude','pode','puderam','pudesse',
-        # ir
-        'vou','vai','vao','ia','iam','irei','ira','irao',
-        'iria','iriam','fui','foi','foram',
-        # vir
-        'venho','vem','vem','vinha','vinham','virei','vira','virao',
-        'viria','viriam','veio','vieram','venha','venham','viesse',
-        # dar
-        'dou','da','dao','dava','davam','darei','dara','darao',
-        'daria','dariam','deu','dei','deram','de','deem','desse',
-        # saber
-        'sei','sabe','sabem','sabia','sabiam','soube','souberam',
-        'soubesse','soubessem',
-        # querer
-        'quero','quer','querem','queria','queriam','quis','quisemos',
-        # verbos comuns (acoes)
-        'acha','acham','achou','acharam','achava',
-        'fala','falam','falou','falaram','falava',
-        'gosta','gostam','gostou','gostaram','gostava',
-        'precisa','precisam','precisou','precisaram',
-        'deve','devem','devia','deviam','devera','deveria',
-        'passa','passam','passou','passaram','passava',
-        'chega','chegam','chegou','chegaram','chegava',
-        'sai','saem','saiu','saíram','saia',
-        'entra','entram','entrou','entraram','entrava',
-        'leva','levam','levou','levaram','levava',
-        'deixa','deixam','deixou','deixaram','deixava',
-        'penso','pensa','pensam','pensou','pensaram','pensava',
-        'acredito','acredita','acreditam','acreditou','acreditava',
-        'permito','permite','permitem','permitiu',
-        'tento','tenta','tentam','tentou','tentaram',
-        'consigo','consegue','conseguem','conseguiu',
-        'ha','houve','houveram','havia',
-        'come','comeu','comeu','comeram','come','come',
-        'odeia','odeiam','odiava','odiou',
-        've','veem','via','viu','viram',
-        'le','leem','lia','leu','leram',
-        'estuda','estudam','estudou','estudaram','estudava',
-        'publica','publicam','publicou','publicaram','publicava',
-        'aprova','aprovam','aprovou','aprovaram','aprovava',
-        'compra','compram','comprou','compraram','comprava',
-        'vende','vendem','vendeu','venderam','vendia',
-        'escreve','escrevem','escreveu','escreveram','escrevia',
-        'corre','correm','correu','correram','corria',
-        'bebe','bebem','bebeu','beberam','bebia',
-        'abre','abrem','abriu','abriram','abria',
-        'fecha','fecham','fechou','fecharam','fechava',
-        'anda','andam','andou','andarams','andava',
-        'canta','cantam','cantou','cantaram','cantava',
-        'dança','dançam','dançou','dançaram','dançava',
-        'joga','jogam','jogou','jogaram','jogava',
-        'trabalha','trabalham','trabalhou','trabalharam','trabalhava',
-        'mora','moram','morou','moraram','morava',
-        'nasce','nascem','nasceu','nasceram','nascia',
-        'morre','morrem','morreu','morreram','morria',
-        'cresce','crescem','cresceu','cresceram','crescia',
-        'muda','mudam','mudou','mudaram','mudava',
-        'liga','ligam','ligou','ligaram','ligava',
-        'toca','tocam','tocou','tocaram','tocava',
-        'cria','criam','criou','criaram','criava',
-        'usa','usam','usou','usaram','usava',
-        'pede','pedem','pediu','pediram','pedia',
-        'responde','respondem','respondeu','responderam','respondia',
-        'pergunta','perguntam','perguntou','perguntaram','perguntava',
-        'mostra','mostram','mostrou','mostraram','mostrava',
-        'traz','trazem','trouxe','trouxeram','trazia',
-        'poe','poem','pos','pos','punha',
-    ])
-    _VERBOS = _VERBOS.union(_COP)
+    def _eh_verbo_por_entropia(self, palavra, pos=0):
+        """Determina se palavra e verbo por acoplamento de 3 sinais.
+        
+        Nao usa lista de verbos. Usa o que o MCR ja aprendeu:
+        1. Posicao (mk_pos): POS:1 → palavra?
+        2. Transicao (mk_palavra): quantos antecedentes tem?
+        3. Byte (sufixo): termina em -ar, -er, -ir, -ndo?
+        """
+        if not self.cerebro:
+            # Fallback: sufixo apenas
+            p = palavra.lower()
+            if len(p) > 2 and p.endswith(('ar','er','ir','or','ndo','do','da')):
+                return True
+            return False
+        
+        score = 0.0; n_sinais = 0
+        p = palavra.lower()
+        
+        # Sinal 1: Posicao (verbo tende a POS:1 em SVO)
+        for pos_teste in [1, 2]:
+            chave = f"POS:{pos_teste}"
+            if chave in self.cerebro.mk_pos.freq:
+                pred, conf = self.cerebro.mk_pos.predizer(chave)
+                if pred and pred.lower() == p:
+                    score += conf; n_sinais += 1
+        
+        # Sinal 2: Transicao (verbos tem mais antecedentes que substantivos)
+        if p in self.cerebro.mk_palavra.freq:
+            n_entradas = len(self.cerebro.mk_palavra.transicoes.get(p, {}))
+            # Se muitos tokens diferentes podem vir antes, provavelmente e verbo
+            score_trans = min(1.0, n_entradas / 5.0)
+            score += score_trans; n_sinais += 1
+        
+        # Sinal 3: Sufixo byte
+        if len(p) > 2 and p.endswith(('ar','er','ir','or')):
+            score += 0.8; n_sinais += 1
+        elif len(p) > 2 and p.endswith(('ndo','do','da')):
+            score += 0.7; n_sinais += 1
+        
+        if n_sinais == 0:
+            return False
+        
+        return score / n_sinais > 0.3
 
     def extrair(self, texto):
         """Extrai triplas (sujeito, relacao, objeto) do texto."""
@@ -2736,15 +2691,12 @@ class MCRParserMinimo:
             if p in self._PREP: return 'prep'
             if p in self._ART: return 'art'
             return 'conj'
-        if p in self._COP: return 'cop'
-        if p in self._VERBOS: return 'verbo'
-        if len(p) > 2 and p.endswith(('ndo','do','da')): return 'verbo'
+        if self._eh_verbo_por_entropia(palavra, pos): return 'verbo'
         if p in ('mais','menos','tanto','quanto'): return 'comp'
-        if p == 'que' and pos > 0: return 'sub'  # conjuncao subordinativa/comparativa
+        if p == 'que' and pos > 0: return 'sub'
         if palavra[0].isupper() and len(palavra) > 1 and pos > 0: return 'nome'
         if len(p) > 2 and p.endswith(('cao','dade','mento','gem','ez','ista','eiro','or')): return 'nome'
         if len(p) > 2 and p.endswith(('oso','osa','vel','al','ico','ante','ente')): return 'adj'
-        if len(p) > 2 and p.endswith(('ar','er','ir')): return 'verbo'
         return 'nome'
 
     def _extrair_tripla(self, tokens):
@@ -2760,7 +2712,7 @@ class MCRParserMinimo:
         pos_v = -1; verbo = None
         for i, t in enumerate(tokens):
             cls = self._classificar(t, i)
-            if cls in ('verbo','cop'):
+            if cls == 'verbo':
                 pos_v = i; verbo = t.lower()
                 break
             # 'e' ambiguo: em posicao 1, e copula (ser)
@@ -2988,7 +2940,7 @@ class CerebroAGI:
         self.hook_observer = MCRHookObserver(self)
         self.file_observer = MCRFileObserver(self.fila_eventos, cerebro=self)
         self.ent_temporal = MCREntropiaTemporal(observer=self.hook_observer)
-        self.parser = MCRParserMinimo()
+        self.parser = MCRParserMinimo(cerebro=self)
         self.rede_semantica = MCRRedeSemantica()
         self._niveis_semanticos = False
         self.mk_pos = MCR("posicao")  # nivel posicional (POS aproximado por posicao)
