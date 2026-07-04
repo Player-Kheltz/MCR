@@ -1833,6 +1833,100 @@ class MCREntropiaTemporal:
 # ═══════════════════════════════════════════════════════════════════
 
 # ═══════════════════════════════════════════════════════════════════
+# [07g] MCREsquecimento — poda entropica (esquecer por lesao experimental)
+# ═══════════════════════════════════════════════════════════════════
+
+class MCREsquecimento:
+    """Poda entropica: aprende o que esquecer por lesao experimental.
+    
+    Remove um estado, mede se entropia global subiu (ruim — restaura)
+    ou caiu/estabilizou (bom — mantem). O proprio MCR decide, sem
+    thresholds fixos, o que e redundante.
+    
+    Nao ha 'if entropia < X'. O sistema descobre empiricamente
+    quais estados sao redundantes e quais sao essenciais.
+    """
+    def __init__(self, cerebro):
+        self.cerebro = cerebro
+        self.mk = MCR("esquecimento")
+        self._testando: Dict[str, dict] = {}
+        self.total_podas = 0
+    
+    def _entropia_global(self):
+        ent = 0.0; n = 0
+        for nome in ['byte', 'palavra', 'tven', 'contexto']:
+            mk = getattr(self.cerebro, f'mk_{nome}', None)
+            if mk and mk.total > 0:
+                ent += mk.entropia_media(); n += 1
+        return ent / n if n else 1.0
+    
+    def _coletar_candidatos(self, n=20):
+        """N candidatos com MAIOR entropia (ruido primeiro).
+        
+        Foca exploracao inicial no ruido (alta entropia, baixa freq)
+        para evitar gastar ciclos testando vigas estruturais.
+        """
+        candidatos = []
+        for nome in ['byte', 'palavra', 'tven', 'contexto']:
+            mk = getattr(self.cerebro, f'mk_{nome}', None)
+            if not mk or mk.total < 10: continue
+            for estado in list(mk.freq.keys())[:n]:
+                ent = mk.entropia(estado)
+                freq = mk.freq[estado]
+                candidatos.append((nome, estado, ent, freq))
+        # Ordem: maior entropia primeiro (ruido), menor freq como desempate
+        candidatos.sort(key=lambda c: (-c[2], c[3]))
+        return candidatos[:n]
+    
+    def _backup(self, nome, estado):
+        mk = getattr(self.cerebro, f'mk_{nome}', None)
+        if not mk or estado not in mk.transicoes: return None
+        return {'trans': dict(mk.transicoes[estado]), 'freq': mk.freq[estado]}
+    
+    def _remover(self, nome, estado):
+        mk = getattr(self.cerebro, f'mk_{nome}', None)
+        if not mk: return
+        mk.transicoes.pop(estado, None)
+        mk.freq.pop(estado, None)
+    
+    def _restaurar(self, nome, estado, backup):
+        if backup is None: return
+        mk = getattr(self.cerebro, f'mk_{nome}', None)
+        if not mk: return
+        mk.transicoes[estado] = backup['trans']
+        mk.freq[estado] = backup['freq']
+    
+    def ciclo(self, n_testes=5):
+        """Um ciclo de esquecimento experimental."""
+        candidatos = self._coletar_candidatos(20)
+        if not candidatos: return 0
+        
+        ent_antes = self._entropia_global()
+        removidos = 0
+        
+        for nome, estado, ent, freq in candidatos[:n_testes]:
+            chave = f"esq:{nome}:{str(estado)[:15]}"
+            decisao, conf = self.mk.predizer(chave)
+            if decisao == "ruim" and conf > 0.6:
+                continue  # ja aprendeu que este estado e importante
+            
+            bk = self._backup(nome, estado)
+            self._remover(nome, estado)
+            ent_depois = self._entropia_global()
+            melhoria = ent_antes - ent_depois
+            
+            if melhoria > 0.005:
+                self.mk.aprender(chave, "bom")
+                removidos += 1
+            else:
+                self._restaurar(nome, estado, bk)
+                self.mk.aprender(chave, "ruim")
+        
+        self.total_podas += removidos
+        return removidos
+
+
+# ═══════════════════════════════════════════════════════════════════
 # [08] MCRPlanner — planejamento hierarquico
 # ═══════════════════════════════════════════════════════════════════
 
@@ -2117,6 +2211,18 @@ class MCRMemory:
     def buscar_plano(self, fp_obj):
         r = self.con.execute("SELECT acoes,nota FROM planos WHERE fp_obj=? ORDER BY nota DESC LIMIT 1", (fp_obj,)).fetchone()
         return (r[0].split("|"), r[1]) if r else None
+    def _podar_memoria(self, max_planos=500):
+        """Remove planos com nota baixa (mesmo criterio: entropia experimental)."""
+        try:
+            c = self.con.cursor()
+            c.execute("SELECT COUNT(*) FROM planos")
+            total = c.fetchone()[0]
+            if total <= max_planos: return 0
+            c.execute("DELETE FROM planos WHERE nota < 0.3")
+            removidos = c.rowcount
+            self.con.commit()
+            return removidos
+        except: return 0
     def stats(self):
         c = self.con.cursor()
         return {"estados": c.execute("SELECT COUNT(*) FROM estados").fetchone()[0],
@@ -2888,6 +2994,7 @@ class CerebroAGI:
         self.mk_pos = MCR("posicao")  # nivel posicional (POS aproximado por posicao)
         self.mk_contexto = MCR("contexto")  # Markov-2 + contexto de turno
         self._ultimo_texto = ""
+        self.esquecimento = MCREsquecimento(self)
     
     def _seed_orquestrador(self):
         """Sementes para o orquestrador comecar a decidir.
@@ -5246,7 +5353,24 @@ def _rodar_autonomo(cerebro):
                     cerebro.salvar()
                 except: pass
             
-            # 7. Pausa adaptativa
+            # 7. Poda entropica: remove estados redundantes (a cada 20 ciclos)
+            if total_ciclos % 20 == 0:
+                try:
+                    n_removeu = cerebro.esquecimento.ciclo(n_testes=5)
+                    if n_removeu > 0:
+                        _log(f"  Poda: removeu {n_removeu} estados redundantes")
+                except Exception as e:
+                    _log(f"  Erro na poda: {e}")
+            # Poda do SQLite (a cada 50 ciclos)
+            if total_ciclos % 50 == 0:
+                try:
+                    n_podados = cerebro.memory._podar_memoria()
+                    if n_podados > 0:
+                        _log(f"  Poda SQLite: removeu {n_podados} planos obsoletos")
+                except Exception as e:
+                    _log(f"  Erro poda SQLite: {e}")
+            
+            # 8. Pausa adaptativa
             pausa = max(0.3, min(3.0, ent_media * 2))
             time.sleep(pausa)
             
