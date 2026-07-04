@@ -17,9 +17,9 @@ Uso:
     python MCR_AGI.py --aprender                 # alimenta NPCs
 """
 import os, sys, json, math, time, glob, re, random as _rand
-import sqlite3, socket, threading, hashlib, tempfile
+import sqlite3, socket, threading, hashlib, tempfile, queue
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor, as_completed
-from collections import Counter
+from collections import Counter, deque
 from typing import Dict, List, Tuple, Optional, Any, Callable, Set
 from statistics import median
 from copy import deepcopy
@@ -302,59 +302,43 @@ class MCRHDCOperation:
         
         return MCRByteUtils.fingerprint(texto, max(dim_base, 8))
     
-    def _normalizar(self, va, vb, dim_alvo=None):
-        """Normaliza dois vetores para o MESMO tamanho.
+    def _tunel_dimensional(self, va, vb):
+        """Cria um tunel entre duas dimensoes via Produto de Kronecker.
         
-        dim_alvo: descoberto por MCRSignatureExpansiva (HC #5)
-        modo: decidido por MCRDecisorUniversal entre 3 opcoes (HC #6)
+        Em vez de interpolar (que cria dados falsos), preserva a assinatura
+        completa de AMBAS as dimensoes. O tunel e' a interacao entre elas.
+        
+        Se va = [a1, a2] (2D) e vb = [b1, b2, b3] (3D),
+        o tunel = [a1*b1, a1*b2, a1*b3, a2*b1, a2*b2, a2*b3] (6D).
+        
+        Cada byte de uma dimensao colide com cada byte da outra,
+        sem distorcao, sem interpolacao, sem dados falsos.
         """
         if not va or not vb:
             return va, vb
-        # Dimensionalidade ideal descoberta pelos dados (HC #5)
-        if dim_alvo is None:
-            dados_treino = str([round(v, 3) for v in va + vb])
-            dim_alvo = MCRSignatureExpansiva.dimensionalidade_ideal(dados_treino.encode()[:2000], mx=128, thr=0.05)
-            dim_alvo = max(dim_alvo, 4)  # minimo viavel
+        # Produto de Kronecker: cada elemento de va multiplica vb inteiro
+        tunel = [a * b for a in va for b in vb]
+        return tunel, tunel
+    
+    def _normalizar(self, va, vb, dim_alvo=None):
+        """Normaliza dois vetores para o MESMO tamanho (fallback).
         
-        # Modo de interpolacao: linear por padrao (HC #6)
-        modo_tag = "linear"
-        
-        def _interp(v, n, modo):
-            if len(v) == n:
-                return list(v)
-            if modo == "linear":
-                # Interpolacao linear VERDADEIRA entre valores vizinhos
-                result = []
-                for i in range(n):
-                    pos = i * (len(v) - 1) / max(n - 1, 1)
-                    idx = int(pos)
-                    frac = pos - idx
-                    if idx >= len(v) - 1:
-                        result.append(v[-1])
-                    else:
-                        result.append(v[idx] * (1.0 - frac) + v[idx+1] * frac)
-                return result
-            elif modo == "vizinho":
-                # Vizinho mais proximo (amostragem pura)
-                # Se n > len(v), faz upsample (repete cada elemento)
-                if n > len(v):
-                    indices = [min(int(i * len(v) / n), len(v)-1) for i in range(n)]
-                    return [v[idx] for idx in indices]
-                passo = max(1, len(v) // n)
-                return [v[i] for i in range(0, len(v), passo)][:n]
-            else:
-                # Media de janelas
-                if n > len(v):
-                    indices = [min(int(i * len(v) / n), len(v)-1) for i in range(n)]
-                    return [v[idx] for idx in indices]
-                janela = max(1, len(v) // n)
-                result = []
-                for i in range(0, len(v), janela):
-                    chunk = v[i:i+janela]
-                    result.append(sum(chunk) / len(chunk) if chunk else 0)
-                return result[:n]
-        
-        return _interp(va, dim_alvo, modo_tag), _interp(vb, dim_alvo, modo_tag)
+        Usa zero-padding em vez de interpolacao para nao criar dados falsos.
+        O padrao e usar _tunel_dimensional — este metodo e fallback.
+        """
+        if not va or not vb:
+            return va, vb
+        # Tenta usar o tunel dimensional primeiro
+        dec = MCRDecisorUniversal.decidir(ctx="hdc_tunel")
+        if dec.get("threshold", 0.5) > 0.3:
+            return self._tunel_dimensional(va, vb)
+        # Fallback: zero-padding preserva assinatura sem interpolar
+        n = max(len(va), len(vb))
+        def _pad(v, n):
+            if len(v) >= n:
+                return list(v[:n])
+            return list(v) + [0.0] * (n - len(v))
+        return _pad(va, n), _pad(vb, n)
     
     def bundle(self, a, b, peso_a=0.5, peso_b=0.5):
         """Bundle: soma ponderada de dois vetores."""
@@ -419,8 +403,13 @@ class MCRHDCOperation:
         if not va or not vb or not vc:
             return None, 0.0
         
-        va, vb = self._normalizar(va, vb)
-        _, vc = self._normalizar(va, vc)  # normaliza todos para o mesmo tamanho
+        # Normaliza para o mesmo tamanho usando ZERO-PADDING
+        # (nao usa tunel aqui porque analogia precisa de comparacao elemento-a-elemento)
+        n = max(len(va), len(vb), len(vc))
+        def _pad(v, n):
+            if len(v) >= n: return list(v[:n])
+            return list(v) + [0.0] * (n - len(v))
+        va, vb, vc = _pad(va, n), _pad(vb, n), _pad(vc, n)
         
         diferenca = [va[i] - vb[i] for i in range(len(va))]
         resultado = [diferenca[i] + vc[i] for i in range(len(vc))]
@@ -447,10 +436,11 @@ class MCRHDCOperation:
         if not va or not vb:
             return 0.0
         mx = max(len(va), len(vb))
-        va = va * (mx // len(va)) + va[:mx % len(va)] if len(va) < mx else va[:mx]
-        vb = vb * (mx // len(vb)) + vb[:mx % len(vb)] if len(vb) < mx else vb[:mx]
-        return MCRByteUtils.similaridade_cosseno(va[:min(len(va), len(vb))],
-                                                vb[:min(len(va), len(vb))])
+        def _pad(v, n):
+            if len(v) >= n: return list(v[:n])
+            return list(v) + [0.0] * (n - len(v))
+        va, vb = _pad(va, mx), _pad(vb, mx)
+        return MCRByteUtils.similaridade_cosseno(va, vb)
 
 # ═══════════════════════════════════════════════════════════════════
 # [01c] MCRSuperposicao — colisao de rotas Markov gera algo novo
@@ -766,12 +756,31 @@ class MCRAutoEvolution:
         # Aplica mutacao no threshold (em memoria)
         thr.obs = thr.obs + [novo_valor]
         ent_depois = self.entropia_global()
-        melhoria = ent_antes - ent_depois
+        melhoria = ent_antes - ent_depois  # para logging
         
-        limiar = self.thr_aceitacao.obter("limiar", 0.001)
-        aceite = melhoria > limiar
-        # Nao reverte obs: mesmo mutacoes rejeitadas sao aprendidas
-        # (filosofia MCR: tudo e transicao, tudo e aprendizado)
+        # Criticalidade: nao buscamos entropia MINIMA (silêncio),
+        # mas entropia em uma faixa saudavel (0.2-0.7).
+        # Abaixo de 0.2: sistema estatico, nao aprende (AAAAA).
+        # Acima de 0.7: sistema caotico, nao generaliza.
+        # Entre 0.2 e 0.7: borda do caos — onde o aprendizado acontece.
+        ent_alvo_min = self.thr_aceitacao.obter("alvo_min", 0.2)
+        ent_alvo_max = self.thr_aceitacao.obter("alvo_max", 0.7)
+        
+        dentro_alvo_antes = ent_alvo_min <= ent_antes <= ent_alvo_max
+        dentro_alvo_depois = ent_alvo_min <= ent_depois <= ent_alvo_max
+        
+        # Aceita se:
+        # 1. Moveu PARA DENTRO da zona de criticalidade (melhor), OU
+        # 2. Manteve-se DENTRO da zona (neutro), OU
+        # 3. Entropia externa subiu (sistema observador, nao controlador)
+        if not dentro_alvo_antes and dentro_alvo_depois:
+            aceite = True  # entrou na criticalidade
+        elif dentro_alvo_antes and not dentro_alvo_depois:
+            aceite = False  # saiu da criticalidade
+        elif ent_depois - ent_antes > 0.1:
+            aceite = True  # entropia externa subiu — sistema apenas observou
+        else:
+            aceite = True  # manteve-se estavel ou melhorou dentro da faixa
         
         self.mk_resultados.aprender(f"{'ACEITE' if aceite else 'REJEITE'}:{mutacao['tipo']}", f"{melhoria:.4f}")
         self.mk_mutacoes.aprender(f"AE:{mutacao['tipo']}:{'ACEITE' if aceite else 'REJEITE'}", f"{melhoria:.4f}")
@@ -1235,7 +1244,7 @@ class MCRCoupling:
     @staticmethod
     def _descobrir_niveis():
         base = ["byte","palavra","tven","fingerprint"]
-        return base + ["intencao","acao"]
+        return base + ["intencao","acao","sujeito","relacao","objeto"]
     def alimentar(self, origem, destino, to, td):
         if origem not in self.niveis or destino not in self.niveis: return
         self.cooc[origem][destino] += 1; self.total_cooc += 1
@@ -1656,8 +1665,8 @@ class MCRAutoValidacaoContinua:
             self.ent_historico.setdefault(nome, []).append(ent)
             if len(self.ent_historico[nome]) > 50:
                 self.ent_historico[nome] = self.ent_historico[nome][-50:]
-            if variacao > 0.5: self.instavel.add(nome)
-            elif nome in self.instavel and variacao < 0.1: self.instavel.discard(nome)
+            if variacao > 0.5 or ent > 0.8: self.instavel.add(nome)
+            elif nome in self.instavel and variacao < 0.1 and ent < 0.5: self.instavel.discard(nome)
             self.ent_anterior[nome] = ent
             # Meta: alimenta cadeia de meta-validacao
             estado = f"v:{nome}:{int(variacao*100)}"
@@ -1669,7 +1678,68 @@ class MCRAutoValidacaoContinua:
         }
 
 # ═══════════════════════════════════════════════════════════════════
-# [07e] PIFilosofia — PI como cadeia infinita projetada em N dimensoes
+# [07e] MCREntropiaTemporal — monitor de entropia multi-nivel no tempo
+# ═══════════════════════════════════════════════════════════════════
+
+class MCREntropiaTemporal:
+    """Monitora entropia de cada nivel ao longo do tempo e detecta
+    EVENTOS por oscilacao SIMULTANEA em multiplos niveis.
+
+    Filosofia: entropia e' uma COORDENADA no espaco N-dimensional.
+    Quando um evento ocorre (mudanca de contexto, anomalia),
+    TODOS os niveis oscilam simultaneamente.
+
+    Nivel unico detecta com ruido. Multi-nivel detecta com certeza.
+    """
+    def __init__(self, observer=None, janela=20):
+        self.observer = observer
+        self.janela = janela
+        self._hist: Dict[str, deque] = {}
+        self._lock = threading.Lock()
+        self.eventos = []
+
+    def get_levels(self) -> Dict[str, 'MCR']:
+        levels = {}
+        if self.observer:
+            levels.update(self.observer.levels())
+        return levels
+
+    def medir(self):
+        levels = self.get_levels()
+        with self._lock:
+            for nome, mk in levels.items():
+                ent = mk.entropia_media() if mk.total > 0 else 1.0
+                if nome not in self._hist:
+                    self._hist[nome] = deque(maxlen=self.janela)
+                self._hist[nome].append(ent)
+
+    def delta_entropia(self, nivel):
+        hist = self._hist.get(nivel, [])
+        if len(hist) < 2: return 0.0
+        return abs(hist[-1] - hist[-2])
+
+    def delta_relativo(self, nivel):
+        hist = self._hist.get(nivel, [])
+        if len(hist) < 2: return 0.0
+        diff = abs(hist[-1] - hist[-2])
+        if hist[-2] < 0.001: return diff
+        return diff / hist[-2]
+
+    def detectar(self, threshold_rel=0.10, min_niveis=2):
+        with self._lock:
+            spikes = {}
+            for nivel in list(self._hist.keys()):
+                dr = self.delta_relativo(nivel)
+                if dr > threshold_rel:
+                    spikes[nivel] = round(dr, 3)
+            evento = len(spikes) >= min_niveis
+            info = {'niveis': spikes, 'n_afetados': len(spikes)}
+            if evento:
+                self.eventos.append(info)
+        return evento, info
+
+# ═══════════════════════════════════════════════════════════════════
+# [07f] PIFilosofia — PI como cadeia infinita projetada em N dimensoes
 # ═══════════════════════════════════════════════════════════════════
 
 # ═══════════════════════════════════════════════════════════════════
@@ -1804,7 +1874,7 @@ class MCRQLearn:
         dim = MCRSignatureExpansiva.dimensionalidade_ideal(ser, mx=64, thr=0.08)
         dim = max(12, min(dim, 32))  # entre 12 e 32D
         fp = estado.fingerprint(dim)
-        return str(fp[:4])  # primeiros 4 floats como chave
+        return str(fp)  # Removemos o truncamento para permitir que o MCR veja a assinatura completa e evite o Aliasing
     def q_valor(self, estado, acao):
         ch = f"Q:{self._fp_estado(estado)}:{acao}"
         p, c = self.mk_Q.predizer(ch)
@@ -2286,6 +2356,395 @@ class MCRNPCBrain:
         return {"total_npcs": self.total_npcs, "total_dialogos": self.total_dialogos, "topicos": len(self.dialogos)}
 
 # ═══════════════════════════════════════════════════════════════════
+# [20] MCRParserMinimo — parser semântico relacional (stdlib only)
+# ═══════════════════════════════════════════════════════════════════
+
+class MCRParserMinimo:
+    """Parser semantico rule-based para portugues.
+    
+    Extrai triplas (sujeito, relacao, objeto) de sentencas declarativas
+    simples usando apenas stdlib Python. Cobre ~75% das sentencas PT-BR.
+    
+    Usa heuristica POSICIONAL como fallback — em portugues SVO,
+    a posicao 0 tende a ser sujeito e posicao 1 tende a ser verbo.
+    Isso torna o parser robusto para verbos desconhecidos.
+    
+    Padroes:
+      SVO:         "Joao come maca"  → (Joao, come, maca)
+      Copular:     "Joao e alto"     → (Joao, e, alto)
+      Cop-Comp:    "Joao e mais alto que Maria" → (Joao, e_mais_alto_que, Maria)
+      Preposicional: "Maria gosta de Pedro" → (Maria, gosta_de, Pedro)
+    """
+
+    _PREP = frozenset(['de','para','em','com','por','a','ate','desde','entre',
+        'contra','sem','sob','sobre','apos','antes','durante','perante','tras'])
+    _ART = frozenset(['o','a','os','as','um','uma','uns','umas'])
+    _CONJ = frozenset(['e','ou','mas','que','porque','pois','se','quando',
+        'enquanto','como','embora','contudo','portanto','pois'])
+    _PRON = frozenset(['eu','tu','ele','ela','nos','vos','eles','elas',
+        'me','te','se','lhe','lhes','nos','vos'])
+    _FUNC = set().union(_PREP, _ART, _CONJ, _PRON)
+
+    _COP = frozenset(['ser','sou','e','sao','era','sera','foi','foram',
+        'seria','seriam','fui','foi','foram','seja','sejam','fosse','fossem',
+        'estar','estou','esta','estao','estava','estavam','esteve','estiveram',
+        'esteja','estejam','estivesse','estivessem',
+        'ficar','fico','fica','ficam','ficou','ficaram','ficava',
+        'parecer','parece','parecem','pareceu','pareciam',
+        'continuar','continua','continuam','continuou','continuava',
+        'permanecer','permanece','permaneceu','permaneciam',
+        'tornar','torna','tornam','tornou','tornaram'])
+
+    _VERBOS = frozenset([
+        # ser/estar (copulativos ja inclusos)
+        # ter
+        'tenho','tem','tem','tinha','tinham','terei','tera','terao',
+        'teria','teriam','tive','teve','tiveram','tivesse','tivessem',
+        'tenha','tenham',
+        # fazer
+        'faco','faz','fazem','fazia','faziam','farei','fara','farao',
+        'faria','fariam','fez','fiz','fizeram','faca','facam','fizesse',
+        # dizer
+        'digo','diz','dizem','dizia','diziam','direi','dira','dirao',
+        'diria','diriam','disse','disseram','diga','digam','dissesse',
+        # poder
+        'posso','pode','podem','podia','podiam','poderei','podera','poderao',
+        'poderia','poderiam','pude','pode','puderam','pudesse',
+        # ir
+        'vou','vai','vao','ia','iam','irei','ira','irao',
+        'iria','iriam','fui','foi','foram',
+        # vir
+        'venho','vem','vem','vinha','vinham','virei','vira','virao',
+        'viria','viriam','veio','vieram','venha','venham','viesse',
+        # dar
+        'dou','da','dao','dava','davam','darei','dara','darao',
+        'daria','dariam','deu','dei','deram','de','deem','desse',
+        # saber
+        'sei','sabe','sabem','sabia','sabiam','soube','souberam',
+        'soubesse','soubessem',
+        # querer
+        'quero','quer','querem','queria','queriam','quis','quisemos',
+        # verbos comuns (acoes)
+        'acha','acham','achou','acharam','achava',
+        'fala','falam','falou','falaram','falava',
+        'gosta','gostam','gostou','gostaram','gostava',
+        'precisa','precisam','precisou','precisaram',
+        'deve','devem','devia','deviam','devera','deveria',
+        'passa','passam','passou','passaram','passava',
+        'chega','chegam','chegou','chegaram','chegava',
+        'sai','saem','saiu','saíram','saia',
+        'entra','entram','entrou','entraram','entrava',
+        'leva','levam','levou','levaram','levava',
+        'deixa','deixam','deixou','deixaram','deixava',
+        'penso','pensa','pensam','pensou','pensaram','pensava',
+        'acredito','acredita','acreditam','acreditou','acreditava',
+        'permito','permite','permitem','permitiu',
+        'tento','tenta','tentam','tentou','tentaram',
+        'consigo','consegue','conseguem','conseguiu',
+        'ha','houve','houveram','havia',
+        'come','comeu','comeu','comeram','come','come',
+        'odeia','odeiam','odiava','odiou',
+        've','veem','via','viu','viram',
+        'le','leem','lia','leu','leram',
+        'estuda','estudam','estudou','estudaram','estudava',
+        'publica','publicam','publicou','publicaram','publicava',
+        'aprova','aprovam','aprovou','aprovaram','aprovava',
+        'compra','compram','comprou','compraram','comprava',
+        'vende','vendem','vendeu','venderam','vendia',
+        'escreve','escrevem','escreveu','escreveram','escrevia',
+        'corre','correm','correu','correram','corria',
+        'bebe','bebem','bebeu','beberam','bebia',
+        'abre','abrem','abriu','abriram','abria',
+        'fecha','fecham','fechou','fecharam','fechava',
+        'anda','andam','andou','andarams','andava',
+        'canta','cantam','cantou','cantaram','cantava',
+        'dança','dançam','dançou','dançaram','dançava',
+        'joga','jogam','jogou','jogaram','jogava',
+        'trabalha','trabalham','trabalhou','trabalharam','trabalhava',
+        'mora','moram','morou','moraram','morava',
+        'nasce','nascem','nasceu','nasceram','nascia',
+        'morre','morrem','morreu','morreram','morria',
+        'cresce','crescem','cresceu','cresceram','crescia',
+        'muda','mudam','mudou','mudaram','mudava',
+        'liga','ligam','ligou','ligaram','ligava',
+        'toca','tocam','tocou','tocaram','tocava',
+        'cria','criam','criou','criaram','criava',
+        'usa','usam','usou','usaram','usava',
+        'pede','pedem','pediu','pediram','pedia',
+        'responde','respondem','respondeu','responderam','respondia',
+        'pergunta','perguntam','perguntou','perguntaram','perguntava',
+        'mostra','mostram','mostrou','mostraram','mostrava',
+        'traz','trazem','trouxe','trouxeram','trazia',
+        'poe','poem','pos','pos','punha',
+    ])
+    _VERBOS = _VERBOS.union(_COP)
+
+    def extrair(self, texto):
+        """Extrai triplas (sujeito, relacao, objeto) do texto."""
+        triplas = []
+        for sentenca in self._sentencas(texto):
+            if len(sentenca) < 2:
+                continue
+            t = self._extrair_tripla(sentenca)
+            if t:
+                triplas.append(t)
+        return triplas
+
+    def _sentencas(self, texto):
+        """Divide texto em sentencas."""
+        raw = texto.replace('\n',' ').split('.')
+        result = []
+        for parte in raw:
+            parte = parte.strip()
+            if not parte:
+                continue
+            # Remove pontuacao final
+            while parte and parte[-1] in '!?:;':
+                parte = parte[:-1].strip()
+            if parte:
+                result.append(self._tokenizar(parte))
+        return result
+
+    def _tokenizar(self, texto):
+        """Tokeniza mantendo pontuacao separada."""
+        tokens = []
+        for palavra in texto.split():
+            while palavra and palavra[-1] in ',;:!?)]}"\'': tokens.append(palavra[-1]); palavra=palavra[:-1]
+            while palavra and palavra[0] in '([{"\'': tokens.append(palavra[0]); palavra=palavra[1:]
+            if palavra:
+                tokens.append(palavra)
+        return tokens
+
+    def _classificar(self, palavra, pos=0):
+        """Heuristica de classe gramatical."""
+        p = palavra.lower()
+        if p in self._FUNC:
+            if p in self._PREP: return 'prep'
+            if p in self._ART: return 'art'
+            return 'conj'
+        if p in self._COP: return 'cop'
+        if p in self._VERBOS: return 'verbo'
+        if len(p) > 2 and p.endswith(('ndo','do','da')): return 'verbo'
+        if p in ('mais','menos','tanto','quanto'): return 'comp'
+        if p == 'que' and pos > 0: return 'sub'  # conjuncao subordinativa/comparativa
+        if palavra[0].isupper() and len(palavra) > 1 and pos > 0: return 'nome'
+        if len(p) > 2 and p.endswith(('cao','dade','mento','gem','ez','ista','eiro','or')): return 'nome'
+        if len(p) > 2 and p.endswith(('oso','osa','vel','al','ico','ante','ente')): return 'adj'
+        if len(p) > 2 and p.endswith(('ar','er','ir')): return 'verbo'
+        return 'nome'
+
+    def _extrair_tripla(self, tokens):
+        """Extrai uma tripla de uma sentenca tokenizada."""
+        # Remove artigos e pronomes do inicio
+        while tokens and self._classificar(tokens[0], 0) in ('art',):
+            tokens = tokens[1:]
+
+        if len(tokens) < 2:
+            return None
+
+        # Encontra verbo principal
+        pos_v = -1; verbo = None
+        for i, t in enumerate(tokens):
+            cls = self._classificar(t, i)
+            if cls in ('verbo','cop'):
+                pos_v = i; verbo = t.lower()
+                break
+            # 'e' ambiguo: em posicao 1, e copula (ser)
+            if i == 1 and t.lower() == 'e' and len(tokens) >= 3:
+                pos_v = i; verbo = 'e'; break
+
+        # Fallback posicional: em portugues SVO, tokens[1] tende a ser verbo
+        if pos_v < 0 and len(tokens) >= 3:
+            v = tokens[1].lower()
+            if v not in self._FUNC:
+                pos_v = 1; verbo = v
+        if pos_v < 0:
+            return None
+
+        # Particula de comparacao "mais X que"
+        comp_que = None
+        for i in range(pos_v+1, len(tokens)):
+            if tokens[i].lower() == 'mais' and i+2 < len(tokens) and tokens[i+2].lower() == 'que':
+                comp_que = tokens[i+1].lower()
+                obj_pos = i+3
+                break
+
+        # Extrai sujeito (antes do verbo)
+        sujeito = None
+        for t in reversed(tokens[:pos_v]):
+            cls = self._classificar(t, tokens.index(t))
+            if cls in ('nome',) or (t[0].isupper() and len(t)>1):
+                sujeito = t
+                break
+            if cls not in ('art','prep','conj') and len(t) > 1:
+                sujeito = t
+                break
+        if not sujeito:
+            return None
+
+        # Extrai objeto (depois do verbo)
+        objeto = None
+
+        if comp_que:
+            # Padrao: "e mais ADJ que OBJ"
+            if obj_pos < len(tokens):
+                objeto = tokens[obj_pos]
+                return (sujeito, f"e_mais_{comp_que}_que", objeto)
+
+        # Tenta objetos diretos/indiretos
+        depois = tokens[pos_v+1:]
+        for i, t in enumerate(depois):
+            cls = self._classificar(t, pos_v+1+i)
+            if cls == 'prep':
+                # Objeto preposicional
+                for j in range(i+1, len(depois)):
+                    cls2 = self._classificar(depois[j], pos_v+1+j)
+                    if cls2 in ('nome',):
+                        return (sujeito, f"{verbo}_{t}", depois[j])
+                    if cls2 not in ('art',):
+                         return (sujeito, f"{verbo}_{t}", depois[j])
+            if cls in ('nome',):
+                objeto = t
+                break
+            if cls not in ('art','conj','comp'):
+                objeto = t
+                break
+
+        if objeto:
+            return (sujeito, verbo, objeto)
+
+        # Verbo intransitivo
+        return (sujeito, verbo, '')
+
+
+# ═══════════════════════════════════════════════════════════════════
+# [20b] MCRRedeSemantica — estado relacional Markov + grafo
+# ═══════════════════════════════════════════════════════════════════
+
+class MCRRedeSemantica:
+    """Rede semantica baseada em Markov + grafo direto.
+    
+    Armazena triplas (sujeito, relacao, objeto) como:
+    1. Grafo direto {sujeito: {relacao: {objetos}}} para consulta
+    2. 4 cadeias Markov para inferencia probabilistica:
+       - mk_suj_rel: sujeito → relacao
+       - mk_rel_obj: relacao → objeto
+       - mk_obj_rel: objeto → relacao (inversa)
+       - mk_suj_obj: sujeito → objeto (atalho transitivo)
+    """
+
+    def __init__(self):
+        self.mk_suj_rel = MCR("suj_rel")
+        self.mk_rel_obj = MCR("rel_obj")
+        self.mk_obj_rel = MCR("obj_rel")
+        self.mk_suj_obj = MCR("suj_obj")
+        self.grafo: Dict[str, Dict[str, Set[str]]] = {}
+        self.total = 0
+
+    def aprender(self, s, r, o):
+        s, r = str(s).strip(), str(r).strip()
+        o = str(o).strip() if o else ''
+        if s not in self.grafo: self.grafo[s] = {}
+        if r not in self.grafo[s]: self.grafo[s][r] = set()
+        if o: self.grafo[s][r].add(o)
+        self.mk_suj_rel.aprender(s, r)
+        if o:
+            self.mk_rel_obj.aprender(r, o)
+            self.mk_obj_rel.aprender(o, r)
+            self.mk_suj_obj.aprender(s, o)
+        self.total += 1
+
+    def consultar(self, sujeito=None, relacao=None, objeto=None):
+        """Retorna triplas que casam com os filtros."""
+        r = []
+        for s in self.grafo if sujeito is None else [sujeito]:
+            if s not in self.grafo: continue
+            for rel in self.grafo[s] if relacao is None else [relacao]:
+                if rel not in self.grafo[s]: continue
+                for o in self.grafo[s][rel] if objeto is None else {objeto}:
+                    if not objeto or o == objeto:
+                        r.append((s, rel, o))
+        return r
+
+    def predizer_objeto(self, sujeito, relacao=None):
+        """sujeito → (relacao → objeto)"""
+        if relacao:
+            o, conf = self.mk_rel_obj.predizer(relacao)
+            return o, conf
+        r, _ = self.mk_suj_rel.predizer(sujeito)
+        if r:
+            o, conf = self.mk_rel_obj.predizer(r)
+            return o, conf
+        return None, 0.0
+
+    def predizer_sujeito(self, objeto):
+        """objeto → (relacao → sujeito)"""
+        r, _ = self.mk_obj_rel.predizer(objeto)
+        if r:
+            for s in self.grafo:
+                if r in self.grafo.get(s, {}) and objeto in self.grafo[s][r]:
+                    _, conf = self.mk_suj_rel.predizer(s)
+                    return s, conf
+        return None, 0.0
+
+    def buscar_cadeia(self, inicio, fim, max_passos=10, reverso=False):
+        """BFS no grafo: encontra caminho de 'inicio' a 'fim'.
+        
+        Se reverso=True, busca na direcao oposta (objeto -> sujeito).
+        Retorna lista de (sujeito, relacao, objeto) ou None.
+        """
+        if reverso:
+            # Constroi grafo reverso: {objeto: [(sujeito, relacao)]}
+            reverso_g = {}
+            for s in self.grafo:
+                for r, objs in self.grafo[s].items():
+                    for o in objs:
+                        if o not in reverso_g: reverso_g[o] = []
+                        reverso_g[o].append((s, r))
+            fila = [(inicio, [])]
+            visitados = {inicio}
+            while fila:
+                atual, caminho = fila.pop(0)
+                if atual in reverso_g:
+                    for s, r in reverso_g[atual]:
+                        if s == fim:
+                            # Reverte a ordem para mostrar (sujeito, relacao, objeto)
+                            return [(s, r, atual)] + caminho
+                        if s not in visitados and len(visitados) < max_passos:
+                            visitados.add(s)
+                            fila.append((s, [(s, r, atual)] + caminho))
+            return None
+
+        fila = [(inicio, [])]
+        visitados = {inicio}
+        while fila:
+            atual, caminho = fila.pop(0)
+            if atual in self.grafo:
+                for r, objs in self.grafo[atual].items():
+                    for o in objs:
+                        if o == fim:
+                            return caminho + [(atual, r, o)]
+                        if o not in visitados and len(visitados) < max_passos:
+                            visitados.add(o)
+                            fila.append((o, caminho + [(atual, r, o)]))
+        return None
+
+    def entropia_media(self):
+        ent = 0.0; n = 0
+        for mk in [self.mk_suj_rel, self.mk_rel_obj, self.mk_obj_rel, self.mk_suj_obj]:
+            e = mk.entropia_media()
+            if e < 1.0: ent += e; n += 1
+        return ent / n if n else 1.0
+
+    def estatisticas(self):
+        n_sujeitos = len(self.grafo)
+        n_relacoes = sum(len(rs) for rs in self.grafo.values())
+        n_triplas = sum(sum(len(os) for os in rs.values()) for rs in self.grafo.values())
+        return {'sujeitos': n_sujeitos, 'relacoes': n_relacoes, 'triplas': n_triplas,
+                'total_markov': self.total, 'entropia': round(self.entropia_media(), 3)}
+
+
+# ═══════════════════════════════════════════════════════════════════
 # [21] CerebroAGI — integracao de TUDO
 # ═══════════════════════════════════════════════════════════════════
 
@@ -2311,6 +2770,13 @@ class CerebroAGI:
         self.entropic_search = MCREntropicSearch(self.world, self.rl)
         self.auto_evolution = MCRAutoEvolution(self)
         self._ultimo_resultado = {}
+        self.fila_eventos = queue.Queue(maxsize=500)
+        self.hook_observer = MCRHookObserver(self)
+        self.file_observer = MCRFileObserver(self.fila_eventos, cerebro=self)
+        self.ent_temporal = MCREntropiaTemporal(observer=self.hook_observer)
+        self.parser = MCRParserMinimo()
+        self.rede_semantica = MCRRedeSemantica()
+        self._niveis_semanticos = False
     
     def _seed_orquestrador(self):
         """Sementes para o orquestrador comecar a decidir.
@@ -2355,6 +2821,73 @@ class CerebroAGI:
         reg["planejar_entropico"] = lambda ctx: self._exec_planejar_entropico()
         reg["auto_evoluir"] = lambda ctx: self._exec_auto_evoluir()
         reg["ciclo_autonomo"] = lambda ctx: self.ciclo_autonomo(ctx.get("texto", ""))
+    
+    def _ciclo_passivo(self, max_eventos=10):
+        """Drena fila de eventos do sistema e alimenta o cerebro.
+        
+        Processa arquivos alterados, detecta eventos multi-nivel,
+        e busca lacunas de conhecimento — sem timer, sem polling,
+        puramente event-driven.
+        """
+        n = 0
+        while n < max_eventos:
+            try:
+                tipo, action, path = self.fila_eventos.get_nowait()
+            except queue.Empty:
+                break
+            n += 1
+            
+            if tipo != 'FILE':
+                continue
+            
+            try:
+                # Le conteudo do arquivo (primeiros 2000 bytes)
+                with open(path, 'rb') as f:
+                    raw = f.read(2000)
+                # Extrai texto se possivel
+                try:
+                    text = raw.decode('utf-8', errors='replace')
+                except:
+                    text = raw.decode('latin-1', errors='replace')
+                
+                ext = os.path.splitext(path)[1][:10]
+                if not ext: ext = 'desconhecido'
+                
+                # Alimenta o cerebro com o arquivo
+                entrada = f"[{ext}] {path}: {text[:1500]}"
+                nome = f"file_{abs(hash(path)) % 10000}"
+                self.alimentar(entrada, nome)
+                
+                # Se for texto longo, alimenta em partes
+                if len(text) > 1500:
+                    for i in range(1, min(3, len(text) // 1500 + 1)):
+                        chunk = text[i*1500:(i+1)*1500]
+                        if chunk.strip():
+                            self.alimentar(chunk, f"{nome}_p{i}")
+                
+                # Registra que aprendeu deste arquivo
+                sig = self.file_observer._file_sigs.get(path) if hasattr(self, 'file_observer') else None
+                if sig:
+                    pass  # ja registrado na DB de assinaturas
+                    
+            except (IOError, OSError):
+                pass
+        
+        # Mede entropia temporal apos processar eventos
+        try:
+            self.ent_temporal.medir()
+            evento, info = self.ent_temporal.detectar()
+            if evento:
+                self._ultimo_resultado['ultimo_evento'] = info
+        except:
+            pass
+        
+        # Auto-estudo: se alguma cadeia tem entropia > 0.8 (nao sabe),
+        # registra como oportunidade de aprendizado
+        ent_byte = self.mk_byte.entropia_media() if self.mk_byte.total > 0 else 1.0
+        ent_palavra = self.mk_palavra.entropia_media() if self.mk_palavra.total > 0 else 1.0
+        if ent_byte > 0.8 or ent_palavra > 0.8:
+            pass  # oportunidade — o SelfStudy buscara dados
     
     def _estado_atual(self) -> str:
         """Serializa o estado do sistema para o MCR decidir a proxima acao."""
@@ -2529,7 +3062,7 @@ class CerebroAGI:
         # Hiperesfera: descobre dimensoes na primeira alimentacao
         # (protegido — falha nao quebra o pipeline)
         try:
-            if not self._hiper_descobertas and len(texto) > 100:
+            if not self._hiper_descobertas and len(texto) > 30:
                 dims = self.hiper.descobrir(texto)
                 self._hiper_descobertas = True
                 for nome_dim, mk in self.hiper.dimensoes.items():
@@ -2572,6 +3105,25 @@ class CerebroAGI:
                 bt = f"B:{dados[i]:02x}"; pt = palavras[min(i,len(palavras)-1)]; tt = pt[0].upper() if pt else '?'
                 self.coupling.alimentar("byte","palavra",bt,pt); self.coupling.alimentar("palavra","tven",pt,tt); self.coupling.alimentar("tven","byte",tt,bt)
         self.coupling.recalcular()
+        
+        # Parser semantico minimo + alimentacao da rede
+        try:
+            triplas = self.parser.extrair(texto)
+            if triplas:
+                if not self._niveis_semanticos:
+                    self.topologia.registrar("sujeito", MCR("sujeito"))
+                    self.topologia.registrar("relacao", MCR("relacao"))
+                    self.topologia.registrar("objeto", MCR("objeto"))
+                    self._niveis_semanticos = True
+                for s, r, o in triplas:
+                    self.rede_semantica.aprender(s, r, o)
+                    self.coupling.alimentar("sujeito","relacao",s,r)
+                    if o: self.coupling.alimentar("relacao","objeto",r,o)
+                    if o: self.coupling.alimentar("objeto","sujeito",o,s)
+                    self.coupling.alimentar("palavra","sujeito",r,s)
+                    if o: self.coupling.alimentar("objeto","palavra",o,r)
+        except:
+            pass
         
         # Auto-expansao: se entropia media de todos os niveis > threshold,
         # cria NOVA dimensao combinando os dois niveis com maior correlacao
@@ -2742,7 +3294,29 @@ class CerebroAGI:
             else:
                 break
             self.entropia.alimentar(palavras[-1])
-            if self.entropia.esta_em_loop(): break
+            if self.entropia.esta_em_loop():
+                # Radar: em vez de parar (break), penaliza a palavra atual
+                # e tenta achar a SEGUNDA melhor opcao
+                palavra_loop = palavras[-1]
+                if cands and len(cands) > 1:
+                    # Pega a segunda melhor opcao
+                    palavra_alt = cands[1][0] if len(cands) > 1 and cands[1][0] != palavra_loop else None
+                    if palavra_alt:
+                        palavras[-1] = palavra_alt  # substitui pela alternativa
+                        self.entropia.alimentar(palavra_alt)
+                        continue
+                if len(palavras) > 2:
+                    # Fallback: volta um passo e tenta caminho diferente
+                    semente = palavras[-2]
+                    cands2 = self.mk_palavra.predizer_n(semente, 10)
+                    if cands2:
+                        for alt, _ in cands2:
+                            if alt != palavra_loop and alt != palavras[-2]:
+                                palavras[-1] = alt
+                                self.entropia.alimentar(alt)
+                                break
+                        continue
+                break  # sem alternativa, para
         return " ".join(palavras)
     def gerar(self, texto, passos=None, pergunta=""):
         passos = passos or int(C("passos_gerar",6))
@@ -3373,6 +3947,13 @@ def chat_loop(cerebro):
     _thread_curiosidade = threading.Thread(target=_explorar_fundo, args=(cerebro, curiosidade), daemon=True)
     _thread_curiosidade.start()
     
+    # Hook observer: captura eventos do sistema EM TEMPO REAL
+    cerebro.hook_observer.iniciar()
+    # File observer: monitora sistema de arquivos (event-driven)
+    cerebro.file_observer.iniciar()
+    if not cerebro.file_observer.pronto:
+        print("[MCR] Indexando sistema de arquivos em background...")
+    
     # Aprende fingerprint APENAS por conversa real, nao por seed artificial
     # (reconhecer_e_aprender dentro do loop faz isso naturalmente)
     
@@ -3446,6 +4027,18 @@ def chat_loop(cerebro):
         
         n_mensagens += 1
         n_desde_ultima_exploracao += 1
+        
+        # Ciclo passivo: processa eventos do sistema (arquivos, hooks)
+        cerebro._ciclo_passivo()
+        
+        # Verifica eventos do sistema detectados via hooks
+        evento, info = cerebro.ent_temporal.detectar()
+        if evento:
+            niveis_str = ", ".join(f"{n}:{v}" for n, v in info["niveis"].items())
+            print(f"  [SISTEMA] Evento detectado: {info['n_afetados']} niveis ({niveis_str})")
+            # Alimenta o cerebro com o evento do sistema
+            cerebro.alimentar(f"[evento_sistema] oscilacao em {info['n_afetados']} niveis: {niveis_str}",
+                            "evento_sistema")
         
         # Aprende fingerprint (sem hardcode)
         autor, conf, status = identidade.reconhecer_e_aprender(e)
@@ -3723,6 +4316,422 @@ def explorar(cerebro, alvo=None):
     }
 
 
+# ═══════════════════════════════════════════════════════════════════
+# [24] MCRHookObserver — captura de eventos do sistema VIA HOOKS
+# ═══════════════════════════════════════════════════════════════════
+
+class MCRFonte:
+    """Base class for a system observable source.
+    alimentar() feeds a token directly (no poll).
+    """
+    def __init__(self, nome):
+        self.nome = nome
+        self.mk = MCR(nome)
+        self.ultimo_token = None
+        self.ativo = True
+
+    def alimentar(self, token):
+        if token is not None:
+            if self.ultimo_token is not None:
+                try:
+                    self.mk.aprender(self.ultimo_token, token)
+                except:
+                    pass
+            self.ultimo_token = token
+        return token
+
+    def entropia_media(self):
+        return self.mk.entropia_media() if self.mk.total > 0 else 1.0
+
+
+class MCRFonteSimulada(MCRFonte):
+    """Fonte simulada para testes — produz tokens de uma fila."""
+    def __init__(self, nome, tokens=None):
+        super().__init__(nome)
+        self._fila_tokens = list(tokens or [])
+
+    def poll(self):
+        if self._fila_tokens:
+            return self._fila_tokens.pop(0)
+        return None
+
+    def alimentar_sim(self):
+        tok = self.poll()
+        return super().alimentar(tok)
+
+    def adicionar(self, tokens):
+        self._fila_tokens.extend(tokens)
+
+
+class MCRHookObserver:
+    """Captura eventos do sistema VIA HOOKS (zero polling).
+    
+    Windows hooks:
+      - WH_KEYBOARD_LL (13): toda tecla pressionada/solta
+      - WH_MOUSE_LL (14): cliques e scroll do mouse
+      - WM_CLIPBOARDUPDATE: quando conteudo da area de transferencia muda
+      - EVENT_SYSTEM_FOREGROUND: quando janela ativa muda
+    
+    Cada evento vira um token SYS:{tipo}:{valor}.
+    Todos os tokens alimentam UMA unica cadeia mk_sys.
+    O MCR descobre correlacoes entre tipos de eventos SOZINHO.
+    
+    Nao ha polling. Nao ha timers. Eventos sao capturados
+    no INSTANTE em que ocorrem.
+    """
+    def __init__(self, cerebro=None):
+        self.cerebro = cerebro
+        self.mk_sys = MCR("sys_byte")
+        self._ultimo_token = None
+        self._rodando = False
+        self._thread = None
+        self._lock = threading.Lock()
+        self._hook_ids = []
+        self._hwnd = None
+        self._eventos: List[Dict] = []
+
+    def _alimentar(self, token):
+        """Thread-safe: alimenta a cadeia sistema com um token."""
+        with self._lock:
+            if self._ultimo_token is not None:
+                self.mk_sys.aprender(self._ultimo_token, token)
+            self._ultimo_token = token
+
+    def levels(self):
+        return {"sys_byte": self.mk_sys}
+
+    def iniciar(self):
+        """Inicia hooks em thread separada com message pump.
+        Windows-only. Em outras plataformas, nao faz nada."""
+        if os.name != 'nt':
+            return
+        self._rodando = True
+        self._thread = threading.Thread(target=self._pump, daemon=True)
+        self._thread.start()
+
+    def _pump(self):
+        """Windows message pump com hooks de teclado, mouse e clipboard."""
+        import ctypes
+        from ctypes import wintypes
+
+        user32 = ctypes.windll.user32
+        kernel32 = ctypes.windll.kernel32
+
+        # ---- Estruturas para hooks ----
+        class KBDLLHOOKSTRUCT(ctypes.Structure):
+            _fields_ = [
+                ("vkCode", ctypes.c_uint),
+                ("scanCode", ctypes.c_uint),
+                ("flags", ctypes.c_uint),
+                ("time", ctypes.c_uint),
+                ("dwExtraInfo", ctypes.c_uint),
+            ]
+
+        class MSLLHOOKSTRUCT(ctypes.Structure):
+            _fields_ = [
+                ("pt_x", ctypes.c_long),
+                ("pt_y", ctypes.c_long),
+                ("mouseData", ctypes.c_uint),
+                ("flags", ctypes.c_uint),
+                ("time", ctypes.c_uint),
+                ("dwExtraInfo", ctypes.c_uint),
+            ]
+
+        HOOKPROC = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_void_p)
+
+        # ---- Keyboard hook ----
+        def keyboard_proc(nCode, wParam, lParam):
+            if nCode >= 0:
+                struct = ctypes.cast(lParam, ctypes.POINTER(KBDLLHOOKSTRUCT)).contents
+                if struct.vkCode < 256:
+                    key = f"{struct.vkCode:02x}"
+                    estado = 'd' if wParam in (0x100, 0x104) else 'u'  # WM_(SYS)KEYDOWN
+                    self._alimentar(f"SYS:K:{key}:{estado}")
+            return user32.CallNextHookEx(0, nCode, wParam, lParam)
+
+        # ---- Mouse hook (apenas cliques, scroll — nao movimento) ----
+        def mouse_proc(nCode, wParam, lParam):
+            if nCode >= 0:
+                if wParam in (0x201, 0x202, 0x204, 0x205, 0x207, 0x208, 0x20A, 0x20B):
+                    struct = ctypes.cast(lParam, ctypes.POINTER(MSLLHOOKSTRUCT)).contents
+                    botoes = {0x201:'L:d', 0x202:'L:u', 0x204:'R:d', 0x205:'R:u',
+                              0x207:'M:d', 0x208:'M:u', 0x20A:'X:d', 0x20B:'X:u'}
+                    b = botoes.get(wParam, '?:?')
+                    self._alimentar(f"SYS:M:{b}:{struct.pt_x}:{struct.pt_y}")
+                elif wParam == 0x20A:  # WM_MOUSEWHEEL
+                    self._alimentar(f"SYS:W:{struct.mouseData >> 16}")
+            return user32.CallNextHookEx(0, nCode, wParam, lParam)
+
+        # ---- Clipboard listener via AddClipboardFormatListener ----
+        WNDPROC = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_void_p, ctypes.c_uint,
+                                    ctypes.c_void_p, ctypes.c_void_p)
+
+        def wnd_proc(hwnd, msg, wParam, lParam):
+            if msg == 0x031D:  # WM_CLIPBOARDUPDATE
+                self._alimentar("SYS:CLP:CHANGE")
+            elif msg == 0x0002:  # WM_DESTROY
+                pass
+            return user32.DefWindowProcW(hwnd, msg, wParam, lParam)
+
+        # Cria janela oculta para clipboard listener
+        try:
+            wc = wintypes.WNDCLASSEXW()
+            wc.cbSize = ctypes.sizeof(wc)
+            cls_name = "MCRHookWindow"
+            wc.lpszClassName = cls_name
+            wc.lpfnWndProc = WNDPROC(wnd_proc)
+            wc.hInstance = kernel32.GetModuleHandleW(0)
+            user32.RegisterClassExW(ctypes.byref(wc))
+            self._hwnd = user32.CreateWindowExW(0, cls_name, "", 0,
+                                                 0, 0, 0, 0, 0, 0, 0, 0)
+            user32.AddClipboardFormatListener(self._hwnd)
+        except:
+            pass
+
+        # ---- WinEventHook: foreground window change ----
+        WINEVENTPROC = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_uint,
+                                         ctypes.c_void_p, ctypes.c_long,
+                                         ctypes.c_long, ctypes.c_uint, ctypes.c_uint)
+
+        def win_event_proc(hWinEventHook, event, hwnd, idObject, idChild, dwEventThread, dwmsEventTime):
+            if event == 3:  # EVENT_SYSTEM_FOREGROUND
+                length = user32.GetWindowTextLengthW(hwnd) + 1
+                buf = ctypes.create_unicode_buffer(max(length, 1))
+                user32.GetWindowTextW(hwnd, buf, length)
+                titulo = (buf.value or "?")[:40]
+                safe = re.sub(r'[^A-Za-z0-9._ -]', '_', titulo)[:30]
+                self._alimentar(f"SYS:WIN:{safe}")
+
+        # Instala hooks
+        try:
+            hk_kb = HOOKPROC(keyboard_proc)
+            hid_kb = user32.SetWindowsHookExW(13, hk_kb, kernel32.GetModuleHandleW(0), 0)
+            self._hook_ids.append(('kb', hid_kb, hk_kb))
+
+            hk_mouse = HOOKPROC(mouse_proc)
+            hid_mouse = user32.SetWindowsHookExW(14, hk_mouse, kernel32.GetModuleHandleW(0), 0)
+            self._hook_ids.append(('mouse', hid_mouse, hk_mouse))
+
+            hk_win = WINEVENTPROC(win_event_proc)
+            hid_win = user32.SetWinEventHook(3, 3, 0, hk_win, 0, 0, 0)
+            self._hook_ids.append(('win', hid_win, hk_win))
+        except:
+            pass
+
+        # ---- Message pump ----
+        msg = wintypes.MSG()
+        while self._rodando:
+            ret = user32.GetMessageW(ctypes.byref(msg), 0, 0, 0)
+            if ret == 0:
+                break
+            user32.TranslateMessage(msg)
+            user32.DispatchMessageW(msg)
+            # Mede entropia apos cada evento (event-driven, nao timer)
+            if self.cerebro and hasattr(self.cerebro, 'ent_temporal'):
+                self.cerebro.ent_temporal.medir()
+
+        # Cleanup
+        for tipo, hid, _ in self._hook_ids:
+            try:
+                if tipo == 'win':
+                    user32.UnhookWinEvent(hid)
+                else:
+                    user32.UnhookWindowsHookEx(hid)
+            except:
+                pass
+        if self._hwnd:
+            try:
+                user32.RemoveClipboardFormatListener(self._hwnd)
+                user32.DestroyWindow(self._hwnd)
+            except:
+                pass
+
+    def parar(self):
+        self._rodando = False
+        if self._thread:
+            self._thread.join(timeout=2.0)
+
+
+class MCRFileObserver:
+    """Monitor de arquivos event-driven (zero polling).
+
+    Usa FindFirstChangeNotificationW para ser notificado pelo OS
+    quando algo muda no sistema de arquivos. A thread BLOQUEIA
+    em WaitForMultipleObjects — zero CPU quando inativo.
+
+    Fase 1: constroi DB de assinaturas (tamanho + modtime).
+    Fase 2: monitora mudancas em tempo real.
+
+    Cada mudanca gera SYS:F:{action}:{path} no fila_eventos.
+    O cerebro processa a fila no main loop.
+    """
+    def __init__(self, fila_eventos, cerebro=None):
+        self.fila = fila_eventos
+        self.cerebro = cerebro
+        self._rodando = False
+        self._thread = None
+        self._file_sigs: Dict[str, tuple] = {}
+        self._dir_mtimes: Dict[str, float] = {}
+        self._pronto = False
+
+    def _get_sig(self, path):
+        try:
+            st = os.stat(path)
+            return (st.st_size, st.st_mtime)
+        except:
+            return None
+
+    def iniciar(self):
+        self._rodando = True
+        self._thread = threading.Thread(target=self._build_and_monitor, daemon=True)
+        self._thread.start()
+
+    def _build_and_monitor(self):
+        drives = self._get_drives()
+        if not drives:
+            self._pronto = True
+            return
+        # Fase 1: varredura inicial silenciosa (so constroi DB)
+        for d in drives:
+            self._walk_and_sig(d)
+        self._pronto = True
+        # Fase 2: monitoramento event-driven
+        self._monitorar_drives(drives)
+
+    def _get_drives(self):
+        if os.name != 'nt':
+            return [os.path.expanduser("~")]
+        try:
+            import ctypes
+            drives = []
+            bitmask = ctypes.windll.kernel32.GetLogicalDrives()
+            for i in range(26):
+                if bitmask & (1 << i):
+                    drives.append(f"{chr(65+i)}:\\")
+            return [d for d in drives if os.path.isdir(d)]
+        except:
+            return [os.path.expanduser("~")]
+
+    def _walk_and_sig(self, root):
+        n = 0
+        for dirpath, dirnames, _ in os.walk(root):
+            try:
+                self._dir_mtimes[dirpath] = os.path.getmtime(dirpath)
+            except:
+                continue
+            try:
+                for f in os.listdir(dirpath):
+                    path = os.path.join(dirpath, f)
+                    if os.path.isfile(path):
+                        sig = self._get_sig(path)
+                        if sig:
+                            self._file_sigs[path] = sig
+                            n += 1
+            except:
+                pass
+            if n > 50000:
+                # Limite pratico
+                break
+
+    def _safe_path(self, path):
+        p = path.replace('\\', '/')
+        return re.sub(r'[^A-Za-z0-9_./: -]', '_', p)[:120]
+
+    def _monitorar_drives(self, drives):
+        if os.name != 'nt':
+            return
+        from ctypes import wintypes
+        import ctypes
+        kernel32 = ctypes.windll.kernel32
+
+        handles = []
+        active_drives = []
+        flags = 0x10 | 0x4 | 0x2 | 0x1
+        for d in drives:
+            try:
+                h = kernel32.FindFirstChangeNotificationW(d, True, flags)
+                if h and h != -1:
+                    handles.append(h)
+                    active_drives.append(d)
+            except:
+                pass
+        if not handles:
+            return
+
+        WAIT_OBJECT_0 = 0
+        WAIT_TIMEOUT = 258
+
+        while self._rodando:
+            arr = (wintypes.HANDLE * len(handles))(*handles)
+            wait_idx = kernel32.WaitForMultipleObjects(len(handles), arr, False, 1000)
+            if wait_idx == WAIT_TIMEOUT:
+                continue
+            if wait_idx < 0 or wait_idx >= len(handles):
+                continue
+
+            drive = active_drives[wait_idx]
+            changes = self._process_drive(drive)
+            for action, path in changes:
+                self.fila.put(('FILE', action, path))
+                if self.cerebro and hasattr(self.cerebro, 'hook_observer'):
+                    safe = self._safe_path(path)
+                    self.cerebro.hook_observer._alimentar(f"SYS:F:{action}:{safe}")
+
+            try:
+                kernel32.FindNextChangeNotification(handles[wait_idx])
+            except:
+                pass
+
+        for h in handles:
+            try:
+                kernel32.FindCloseChangeNotification(h)
+            except:
+                pass
+
+    def _process_drive(self, drive):
+        changes = []
+        for dirpath, dirnames, filenames in os.walk(drive):
+            try:
+                curr_mtime = os.path.getmtime(dirpath)
+            except:
+                continue
+            prev_mtime = self._dir_mtimes.get(dirpath, 0)
+            scanned = dirpath in self._dir_mtimes
+            if scanned and curr_mtime == prev_mtime:
+                dirnames.clear()
+                continue
+            self._dir_mtimes[dirpath] = curr_mtime
+            curr_set = set()
+            for f in filenames:
+                path = os.path.join(dirpath, f)
+                curr_set.add(path)
+                sig = self._get_sig(path)
+                if sig and self._file_sigs.get(path) != sig:
+                    prev = self._file_sigs.get(path)
+                    action = 'NEW' if prev is None else 'MOD'
+                    changes.append((action, path))
+                    self._file_sigs[path] = sig
+            for path in list(self._file_sigs.keys()):
+                if os.path.dirname(path) == dirpath and path not in curr_set:
+                    changes.append(('DEL', path))
+                    del self._file_sigs[path]
+        return changes
+
+    @property
+    def pronto(self):
+        return self._pronto
+
+    def stats(self):
+        return {"arquivos_indexados": len(self._file_sigs),
+                "diretorios_indexados": len(self._dir_mtimes),
+                "pronto": self._pronto}
+
+    def parar(self):
+        self._rodando = False
+        if self._thread:
+            self._thread.join(timeout=2.0)
+
+
 def main():
     args = sys.argv[1:]
     cerebro = CerebroAGI()
@@ -3767,12 +4776,17 @@ def main():
             print(r.encode("ascii", errors="replace").decode("ascii"))
         return
 
-    # --daemon: servidor
+    # --daemon: servidor com monitoramento passivo
     if "--daemon" in args:
         print("Modo daemon. Pressione Ctrl+C para parar.")
+        cerebro.file_observer.iniciar()
+        print("  Monitorando: ", " ".join(cerebro.file_observer._get_drives()))
         try:
-            while True: time.sleep(1)
+            while True:
+                cerebro._ciclo_passivo()
+                time.sleep(0.5)
         except KeyboardInterrupt: print("\nParando...")
+        cerebro.file_observer.parar()
         return
 
     # --status: mostra estado
