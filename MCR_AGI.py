@@ -4827,19 +4827,11 @@ def _rodar_autonomo(cerebro):
         """Processa ate N arquivos nunca vistos, max tempo_max segundos."""
         t0 = time.perf_counter()
         aprendidos = 0
-        vistos = 0
         for caminho in walk_gen:
-            # Limite de tempo
             if time.perf_counter() - t0 > tempo_max:
                 break
-            # Ja visto?
             if caminho in cerebro_obj.file_observer._file_sigs:
-                vistos += 1
-                if vistos > n_max * 10:  # muitos vistos seguidos: reseta
-                    _log(f"  (muitos ja vistos — pulando)")
-                    break
                 continue
-            vistos = 0
             try:
                 with open(caminho, 'rb') as f:
                     raw = f.read(2000)
@@ -4895,11 +4887,13 @@ def _rodar_autonomo(cerebro):
                         if txt:
                             cerebro.alimentar(txt, f"reforco_{esc[:20]}")
                             aprendidos += 1
-                    # Lote de descobertas: N arquivos novos, max 500ms
+                    # Lote de descobertas: N arquivos novos com I/O limitado
                     n_lote = MCRDecisorUniversal.decidir_passos("autonomo_batch",
                         {"n_topicos": n_top, "n_arquivos": len(cerebro.file_observer._file_sigs)})
                     n_lote = max(5, min(n_lote, 100))
-                    n_novos = _processar_lote(cerebro, _walk_gen, n_lote, 0.5)
+                    # Reduz I/O se estagnado ha muito (nao desperdiça 500ms)
+                    tempo_io = 0.5 if ciclos_sem_descoberta < 30 else 0.2
+                    n_novos = _processar_lote(cerebro, _walk_gen, n_lote, tempo_io)
                     aprendidos += n_novos
                     if n_novos > 0:
                         _log(f"  Lote: {n_novos} arquivos novos em 500ms")
