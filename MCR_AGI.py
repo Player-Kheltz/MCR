@@ -4832,12 +4832,50 @@ def _rodar_autonomo(cerebro):
             ent_byte = cerebro.mk_byte.entropia_media() if cerebro.mk_byte.total > 0 else 1.0
             ent_palavra = cerebro.mk_palavra.entropia_media() if cerebro.mk_palavra.total > 0 else 1.0
             ent_media = (ent_byte + ent_palavra) / 2
-            ent_tag = "alta" if ent_media > 0.7 else "baixa" if ent_media < 0.3 else "media"
             n_top = len(cerebro.topicos)
             
-            estado_str = f"ent:{ent_tag}_top:{min(n_top,9)}_ult:{ultimo_modo or 'nada'}_rep:{min(n_vezes_mesmo_modo,5)}"
+            estado_str = f"ent:{int(ent_media*100)}_top:{min(n_top,9)}"
             
-            # 3. Decidir modo
+            # 3. Decidir modo — com deteccao de estagnacao
+            # Se o mesmo modo se repete > 5x, ou 0 descobertas ha muito,
+            # força aprendizado ativo (conhecido + desconhecido)
+            if n_vezes_mesmo_modo > 5:
+                try:
+                    aprendidos = 0
+                    # 3a. Reforco: tópico conhecido aleatório
+                    topicos = list(cerebro.topicos.keys())
+                    if topicos:
+                        esc = _rand.choice(topicos)
+                        txt = cerebro.topicos[esc].get('texto','')[:1000]
+                        if txt:
+                            cerebro.alimentar(txt, f"reforco_{esc[:20]}")
+                            aprendidos += 1
+                    # 3b. Descoberta: arquivo nunca visto do filesystem
+                    for raiz in drives:
+                        for pasta, _, arquivos in os.walk(raiz):
+                            _rand.shuffle(arquivos)
+                            for arq in arquivos:
+                                caminho = os.path.join(pasta, arq)
+                                if caminho not in cerebro.file_observer._file_sigs:
+                                    try:
+                                        with open(caminho, 'rb') as f:
+                                            raw = f.read(2000)
+                                        txt = raw.decode('utf-8', errors='replace')
+                                        if len(txt.strip()) > 50:
+                                            cerebro.alimentar(txt, f"descoberta_{abs(hash(caminho))%10000}")
+                                            cerebro.file_observer._file_sigs[caminho] = (0, 0)
+                                            aprendidos += 1
+                                            _log(f"  Descoberta forçada: {os.path.basename(caminho)[:50]}")
+                                            break
+                                    except: pass
+                            if aprendidos > 1: break
+                        if aprendidos > 1: break
+                    if aprendidos > 0:
+                        _log(f"  Aprendizagem forçada: {aprendidos} novas informacoes")
+                except Exception as e:
+                    _log(f"  Erro aprendizagem forçada: {e}")
+                n_vezes_mesmo_modo = 0
+
             modo = _decidir_modo(estado_str)
             if modo == ultimo_modo:
                 n_vezes_mesmo_modo += 1
@@ -4868,7 +4906,7 @@ def _rodar_autonomo(cerebro):
                     
             elif modo == "web":
                 if total_webs > 3 and total_ciclos % 15 != 0:
-                    pass  # limite de webs
+                    pass
                 elif cerebro.mk_palavra.freq:
                     try:
                         alvo = None
@@ -4879,9 +4917,11 @@ def _rodar_autonomo(cerebro):
                             e = cerebro.mk_palavra.entropia(palavra)
                             if e > maior_ent:
                                 maior_ent = e; alvo = palavra
-                        if alvo and maior_ent > 0.7 and alvo != ultima_busca:
+                        # Web por gradiente, nao por limiar fixo
+                        prob_web = max(0.02, 0.5 - ent_media)
+                        if alvo and _rand.random() < prob_web and alvo != ultima_busca:
                             ultima_busca = alvo
-                            _log(f"Web: '{alvo}' (ent={maior_ent:.2f})")
+                            _log(f"Web: '{alvo}' (ent={maior_ent:.2f} prob={prob_web:.2f})")
                             from urllib.request import Request, urlopen
                             from urllib.parse import quote
                             import re
