@@ -4,6 +4,12 @@
 *Independent Researcher*  
 *July 2026*
 
+> **Disclaimer:** This whitepaper describes a **research experiment**, not a production system.  
+> The implementation (~5000 lines, Python stdlib) is a **prototype**. Claims about "general intelligence"  
+> in the conclusion are **speculative hypotheses**, not demonstrated capabilities.  
+> MCR does not compete with LLMs, neural networks, or any commercial AI system.  
+> All code, tests, and results are公开 for independent verification.
+
 ---
 
 ## Abstract

@@ -1,16 +1,28 @@
-# MCR — Multi-level Cognitive Registry
+# MCR — Multi-level Markov Engine
 
 > 1 equation. N levels. 0 GPU. 0 LLM. 0 dependencies.
-> ~4650 lines of Python stdlib. **449/449 tests pass.**
+> ~5000 lines of Python stdlib. **449/449 tests pass.**
 
 ```python
 MCR(nivel).aprender(a, b)  # learns that "a" leads to "b"
 MCR(nivel).predizer(a)      # most probable "b" given "a"
 ```
 
-**A single Markov equation** applied at byte, word, token, subject, relation, object, decision, action, and any auto-discovered level — simultaneously, coupled via N-dimensional entropy.
+## ⚠️ Please read this first
 
-The system **observes passively** (Windows hooks + file monitoring), **learns in real time**, and **generates novel output** through the collision of independent chains (superposition). No backprop. No attention heads. No GPUs. Just counters, entropy, and emergence.
+**MCR is a research experiment, not an AGI, not a product, not a competitor to any AI system.**
+
+| MCR is NOT... | Because... |
+|---------------|-----------|
+| An AGI | No understanding, no consciousness, no reasoning. It counts transitions. |
+| A chatbot | Responses are Markov-generated bigrams — repetitive, no comprehension |
+| Production-ready | Prototype experiment by a single developer |
+| LLM competitor | GPT-4 generates more in 0.1s than MCR does in a day |
+| A business | Personal research project, dual-licensed AGPL v3 |
+
+**What MCR actually IS:** A multi-level Markov chain system where byte, word, semantic, and decision levels are coupled via entropy. An honest exploration of *how far a single equation can go when applied at every level of abstraction.* The results are measurable (449/449 tests), but modest in absolute terms. No claims beyond what the tests prove.
+
+The code is real. The tests pass. The limitations are documented. Judge accordingly.
 
 ---
 
@@ -114,20 +126,6 @@ Prediction / Generation / Action / Emergence
 ```
 
 All levels learn simultaneously from every input. The coupling matrix captures correlations. The esfera enables cross-level prediction. The superposition generates what no chain predicted alone.
-
----
-
-## How Is This Different
-
-| Aspect | Current AI | MCR |
-|--------|-----------|-----|
-| **Representation** | Dense vectors (embeddings) | Sparse discrete symbols |
-| **Learning** | Backpropagation | Frequency counting |
-| **Architecture** | Specialized (CNN, RNN, Transformer) | One equation, N levels |
-| **Observation** | Training dataset | Real-time hooks + files |
-| **Novelty** | Interpolation of training data | Collision of independent chains |
-| **Cost** | Millions in GPU/datacenter | CPU, zero dependencies |
-| **Transparency** | Black box | Full deterministic trace |
 
 ---
 

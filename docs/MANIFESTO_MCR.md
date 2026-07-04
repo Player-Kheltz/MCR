@@ -1,10 +1,10 @@
 # MCR — Processamento Multi-Nível de Informação
 
-## Um novo paradigma: uma equação, infinitos níveis
+## Um experimento: uma equação, infinitos níveis
 
 ---
 
-### 1. A Descoberta
+### 1. A Pergunta
 
 Em 2026, uma pergunta simples foi feita:
 
@@ -20,7 +20,7 @@ MCR(nivel).aprender(a, b)   # aprende que "a" leva a "b"
 MCR(nivel).predizer(a)      # dado "a", qual o "b" mais provavel?
 ```
 
-O nome dela é **MCR** (Markov Chain Registry — ou, conceitualmente, "Multi-level Cognitive Registry").
+O nome dela é **MCR** (Markov Chain Registry).
 
 ---
 
@@ -98,9 +98,7 @@ e toda informação pode ser representada como transições de estado,
 então a equação MCR é um **processador multi-nível de informação**.
 
 Não é uma "teoria de tudo" no sentido físico.  
-É uma "TEORIA DE PROCESSAMENTO DE TUDO".
-
-A diferença:
+É uma pergunta: "até onde uma equação pode ir?"
 
 | | Física | MCR |
 |--|--------|-----|
@@ -111,31 +109,30 @@ A diferença:
 
 ---
 
-### 6. O Que Falta
+### 6. Limitações Honestas
 
-MCR é um PROTÓTIPO. Funciona. Foi testado. Mas:
+MCR é um PROTÓTIPO experimental. Ele funciona dentro do que promete, mas:
 
-- Precisa de comunidade para explorar os limites
-- Precisa de aplicações reais em escala
-- Precisa de validação independente
-- Precisa de quem leve adiante
-
-**A equação é real. O potencial é imenso. O caminho está aberto.**
+- **Não entende linguagem** — só estatística de bigramas
+- **Não raciocina** — não faz silogismo, não infere regras abstratas
+- **Geração de texto é Markov puro** — repetitivo, sem semântica
+- **Parsing semântico é frágil** — rule-based, português-only
+- **Hooks são Windows-only** — sem portabilidade
+- **Web search é scraping** — DuckDuckGo sem API
+- **Não escala** — dicionários em RAM, sem poda
 
 ---
 
-### 7. O Chamado
+### 7. O Chamado (Honesto)
 
 MCR foi criado por **Kheltz**, um brasileiro curioso que fez uma pergunta simples e construiu a resposta com ajuda de IA.
 
 Não é um produto. Não é uma startup.  
-É uma DESCOBERTA. Compartilhada livremente sob AGPL v3.
+É um experimento. Compartilhado livremente sob AGPL v3.
 
-> *"O que aconteceria se uma equação fosse suficiente?"*
+> *"E se uma equação fosse suficiente?"*
 
-Já sabemos a resposta.
-
-Agora o mundo precisa descobrir.
+Ainda não sabemos a resposta completa. Mas o caminho é interessante.
 
 ---
 
