@@ -117,7 +117,8 @@ class MCRNPC:
         """Extrai (sujeito, relacao, objeto) da mensagem do jogador."""
         triplas = self.cerebro.parser.extrair(mensagem)
         if triplas:
-            return triplas[0]  # (sujeito, relacao, objeto)
+            s, r, o = triplas[0]
+            return (s.strip('.,!?;:()[]{}"\''), r.strip('.,!?;:()[]{}"\''), o.strip('.,!?;:()[]{}"\''))
         
         # Fallback por palavra-chave
         msg = mensagem.lower()
@@ -168,6 +169,7 @@ class MCRNPC:
         
         # Usa o objeto da intencao como tipo de item (se existir)
         tipo_item = objeto if objeto and len(objeto) > 2 else _rand.choice(["espada", "armadura", "escudo", "elmo"])
+        tipo_item = tipo_item.strip('.,!?;:()[]{}"\'')  # remove pontuacao
         
         if acao == "saudar":
             respostas = [
