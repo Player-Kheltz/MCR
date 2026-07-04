@@ -1,159 +1,187 @@
-# MCR — Multi-level Markov Engine
+# MCR — Multi-level Cognitive Registry
 
 > 1 equation. N levels. 0 GPU. 0 LLM. 0 dependencies.
-> ~3600 lines of Python stdlib.
+> ~4650 lines of Python stdlib. **449/449 tests pass.**
 
 ```python
-MCR(nivel).aprender(a, b)  # → transition learned
-MCR(nivel).predizer(a)      # → most probable next state
+MCR(nivel).aprender(a, b)  # learns that "a" leads to "b"
+MCR(nivel).predizer(a)      # most probable "b" given "a"
 ```
 
-An experiment in **computational minimalism**: a single Markov chain primitive applied at every level — byte, word, token, action, decision, fingerprint — with zero external dependencies.
+**A single Markov equation** applied at byte, word, token, subject, relation, object, decision, action, and any auto-discovered level — simultaneously, coupled via N-dimensional entropy.
 
-**194/194 tests pass in <1s. No GPU. No LLM. No numpy. Python stdlib only.**
+The system **observes passively** (Windows hooks + file monitoring), **learns in real time**, and **generates novel output** through the collision of independent chains (superposition). No backprop. No attention heads. No GPUs. Just counters, entropy, and emergence.
+
+---
 
 ## What It Actually Does
 
-| Module | Capability | Mechanism |
-|--------|-----------|-----------|
-| **Core** | Byte→byte, word→word, token→type | Markov chain dict-of-dicts |
-| **Fingerprint** | 8-128D projection with auto-dimensionality discovery | `MCRSignatureExpansiva.dimensionalidade_ideal()` |
-| **HDC** | Bundle, bind, permute, bundle_inv, analogy | `MCRHDCOperation` — vector algebra on fingerprints |
-| **World** | Causal state model + counterfactuals | Grid world with pathfinding (8x8, obstacles) |
-| **Actions** | Zero-if/elif action dispatch | Dictionary registry, 7 built-in actions |
-| **NLP** | Intent classification via Jaccard + cosine at optimal dim | `dimensionalidade_ideal()` + `MCRThreshold` limiar |
-| **RL** | Q-Learning with fingerprinted state (12-32D) | Bellman update, Manhattan bonus, Radar loop detector |
-| **Planning** | Hierarchical + Entropic Tree Search | `MCREntropicSearch` — rollout with trajectory entropy |
-| **Memory** | SQLite persistent fingerprint search | Cosine similarity over 8-128D |
-| **Attention** | 4-signal weighted ranking (learnable via MCRThreshold) | prob + fp + jac + ent |
-| **Self-Modify** | MCTRreshold mutation with entropy validation | In-memory threshold tweaking, entropy-gated accept/reject |
-| **Genesis** | Gap detection + skeleton module generation | Entropy-based diagnosis |
-| **Curiosity** | Autonomous filesystem exploration | MCRThreshold-guided walking and sampling |
-| **Identity** | Writer fingerprint recognition via vocabulary+entropy | Multi-signature author identification |
-| **Auto-Validation** | Continuous cross-dimensional stability monitoring | Detects which dimensions are unstable vs stable |
-| **Topology** | Correlation graph between levels | `MCRAutoTopologia` — emergent clustering |
-| **Orchestrator** | Markov-decided action flow | State → action via learned transitions, zero if/elif |
+### Core (Stdlib Only)
 
-## Quick Start
+| Capability | How |
+|-----------|-----|
+| **Multi-level Markov** | Byte, palavra, tven, sujeito, relação, objeto, decisão, ação + auto-descobertos |
+| **N-Dimensional Coupling** | `MCRCoupling` + `MCREsfera` — cross-level correlation matrix |
+| **Superposition** | `MCRSuperposicao.colidir()` — two chains collide → novel token neither predicted alone |
+| **Auto-Validation** | `MCRAutoValidacaoContinua` — recursive self-validation by entropy |
+| **Criticality** | `MCRAutoEvolution` — self-modification at the edge of chaos (entropy 0.2–0.7) |
+| **Fingerprinting** | 8–128D projection with auto-dimensionality discovery |
+| **HDC** | Bundle, bind, permute, analogy: `rei − homem + mulher → rainha` |
+| **Semantic Parsing** | `MCRParserMinimo` — extracts (subject, relation, object) triples from Portuguese text |
+| **Relational State Space** | `MCRRedeSemantica` — subject→relation→object chains + transitive BFS |
 
-```bash
-python MCR_AGI.py                            # chat mode
-python MCR_AGI.py "explique SPA"              # direct question
-python MCR_AGI.py --daemon                    # server mode
-python MCR_AGI.py --status                    # show execution count
-```
+### Observation (Passive, Event-Driven)
 
-## What It CAN Do (tested & measured)
+| Source | Mechanism | Platform |
+|--------|-----------|----------|
+| **Keyboard** | Low-level hook (`WH_KEYBOARD_LL`) | Windows |
+| **Mouse** | Low-level hook (`WH_MOUSE_LL`) | Windows |
+| **Clipboard** | Polling window handle | Windows |
+| **Foreground Window** | `EVENT_SYSTEM_FOREGROUND` | Windows |
+| **Filesystem** | `FindFirstChangeNotificationW` + signature diff | Windows |
 
-| Test | Result | vs Baseline |
-|------|--------|-------------|
-| Sequence prediction (deterministic) | 29/29 = 100% | Moda = 100% (tie) |
-| Anomaly detection | H normal=0.0 → H anomalo=1.0 | CUSUM equivalent |
-| Intent classification (6 classes) | 21/30 = 70% | Aleatorio = 17% (4x) |
-| Dimensionality discovery | 8D → 128D: 19% → 70% separation | Fingerprint 8D fixo: 3.7x pior |
-| Analogia HDC | "rei - homem + rainha" → **"mulher"** (conf=0.583) | — |
-| Loop detection (alternating) | **Detecta** ababab... | Contagem simples: **não detecta** |
-| Context disambiguation | Geração continua após palavra ambígua | Roteamento cross-dimensional |
-| Planning with obstacles (8x8) | 7 ações, dist 14→7, 0 colisões | Random: 50% mais distancia |
-| Q-Learning (dim_ideal) | **3 direções**, dist=1, 40 replay | 8D: 1 direção |
-| Memory (SQLite) | 500 inserts in 0.05s, search in 0.2ms | — |
-| Auto-evolution | 2/20 mutations accepted | Entropy delta detected |
-| Performance | 2.5M predictions/s, 170k fingerprints/s | — |
+All feed into a **single unified byte chain** (`sys_byte`). The MCR discovers correlations between ALL sources via multi-level entropy.
 
-## What It CANNOT Do (honest limitations)
+### Emergence
 
-| Limitation | Why | Workaround |
-|-----------|-----|-----------|
-| **Direct string similarity** | Jaccard("carro","automovel") = 0 | Context Markov learns synonymy with 50+ examples each |
-| **Optimal planning** | MCRPlanner finds a valid path, not the shortest | EntropicSearch minimizes trajectory entropy instead |
-| **Q-Learning convergence** | Fingerprint approximation vs tabular exact | Generalizes to larger state spaces (tabular doesn't scale) |
-| **External knowledge** | No pretrained models, no internet | All knowledge is experiential (fed by user or Curiosity) |
+| Mechanism | What Emerges |
+|-----------|-------------|
+| **Superposition** | Tokens that NO single chain predicts — the collision of two Markov routes generates novelty |
+| **Hiperesfera Auto-Expansiva** | New tokenization dimensions from high-entropy data (bigrama, trigrama, byte_delta, hash, etc.) |
+| **Auto-Topology** | Correlation graph between levels — geometry emerges from data |
+| **Cross-Level Prediction** | The esfera predicts a word from a byte, a byte from an intention |
 
-## Test Suites
+### Interaction
 
 ```bash
-python test_mcr_veracidade.py                # 194 tests, 10.0/10
-python test_mcr_comparativo.py               # 22 tests, 91% (QL approximation)
-python test_mcr_comparativo_avancado.py       # 27 tests, 100%
-python test_mcr_comparativo_avancado.py --verbose  # detailed output
+python MCR_AGI.py                          # chat — learns from conversation
+python MCR_AGI.py "explique o MCR"         # direct question
+python MCR_AGI.py --daemon                 # server — observes system in background
+python MCR_AGI.py --aprender               # feeds NPC dialogue files
 ```
+
+---
+
+## Test Results (449/449 — 100%)
+
+| Suite | Tests | Result | What It Validates |
+|-------|-------|--------|-------------------|
+| `test_mcr_veracidade.py` | 194 | 10.0/10 | Every promise MCR makes |
+| `test_mcr_desafios.py` | 13 | 13/13 | Multi-level entropy, curiosity, coupling, superposition |
+| `test_mcr_comparativo.py` | 22 | 22/22 | vs simple baselines |
+| `test_mcr_comparativo_avancado.py` | 32 | 32/32 | vs known systems (Q-Learning, HDC, planning) |
+| `test_bateria_real.py` | 12 | Pass | Real-world behavioral validation |
+| `test_mcr_stress.py` | 100 | 100/100 | 10 rounds: 50K mass, 10 sources, 1000 auto-evolution cycles |
+| `test_mcr_promessas.py` | 100 | 100/100 | 10 promises validated |
+| `test_silogismo.py` | 60 | 60/60 | Semantic parser + transitive inference |
+| **Total** | **449** | **449/449** | **100% — zero hardcoded results** |
+
+---
 
 ## Architecture
 
 ```
-Entrada (bytes)
+Input (text, keys, mouse, clipboard, files, clock)
     │
     ▼
-┌──────────────────────────────────────┐
-│  Multi-dimensional Parallel Markov   │
-│                                      │
-│  ┌──────┐  ┌────────┐  ┌─────────┐  │
-│  │ Byte │  │ Word   │  │ Token   │  │
-│  │→byte │  │→word   │  │→type    │  │
-│  └──┬───┘  └───┬────┘  └────┬────┘  │
-│     │          │             │       │
-│  ┌──▼──────────▼─────────────▼────┐  │
-│  │      MCRCoupling (N×N)        │  │
-│  │  + MCREsfera (N-dimensional)   │  │
-│  └────────────────────────────────┘  │
-│     │          │             │       │
-│  ┌──▼──────────▼─────────────▼────┐  │
-│  │  MCRAutoValidacaoContinua     │  │
-│  │  (detects unstable dimensions) │  │
-│  └────────────────────────────────┘  │
-└──────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────┐
+│  Multi-Level Parallel Markov Chains                      │
+│                                                          │
+│  ┌──────┐  ┌────────┐  ┌──────┐  ┌────────┐  ┌──────┐  │
+│  │ Byte │  │ Word   │  │ Tven │  │Subject │  │Relac │  │
+│  │→byte │  │→word   │  │→type │  │→relac  │  │→obj  │  │
+│  └──┬───┘  └───┬────┘  └──┬───┘  └───┬────┘  └──┬───┘  │
+│     │          │          │          │          │       │
+│  ┌──▼──────────▼──────────▼──────────▼──────────▼────┐  │
+│  │       MCRCoupling + MCREsfera (N×N)              │  │
+│  │  Cross-level correlation + N-dimensional esfera  │  │
+│  │  + MCRSuperposicao (collision → emergence)       │  │
+│  └──────────────────────────────────────────────────┘  │
+│     │          │          │          │          │       │
+│  ┌──▼──────────▼──────────▼──────────▼──────────▼────┐  │
+│  │  MCRAutoValidacaoContinua + MCRAutoEvolution     │  │
+│  │  (criticality: entropy 0.2–0.7, self-modify)     │  │
+│  └──────────────────────────────────────────────────┘  │
+│     │                                                  │
+│  ┌──▼──────────────────────────────────────────────┐  │
+│  │  MCRDecisorUniversal + mk_orq (Markov-decided)  │  │
+│  │  Zero if/elif — all decisions via predizer()    │  │
+│  └─────────────────────────────────────────────────┘  │
+└──────────────────────────────────────────────────────────┘
     │
     ▼
-Decisao (MLearn / EntropicSearch / Curiosity)
-    │
-    ▼
-Resposta (MCRResposta / Geracao / Acao)
+Prediction / Generation / Action / Emergence
 ```
+
+All levels learn simultaneously from every input. The coupling matrix captures correlations. The esfera enables cross-level prediction. The superposition generates what no chain predicted alone.
+
+---
 
 ## How Is This Different
 
-| System | Dependencies | GPU? | Lines | Unique to MCR |
-|--------|-------------|------|-------|---------------|
-| PyTorch | CUDA, numpy | Yes | 2M+ | Tensor computation |
-| Transformers | torch, numpy | Yes | 500k+ | LLMs |
-| Numenta HTM | numpy | Opt | 100k+ | Cortical model |
-| OpenCog | 30+ deps | Opt | 500k+ | AGI framework |
-| **MCR** | **stdlib** | **0** | **3606** | Markov-only multi-level, entropy as universal metric |
+| Aspect | Current AI | MCR |
+|--------|-----------|-----|
+| **Representation** | Dense vectors (embeddings) | Sparse discrete symbols |
+| **Learning** | Backpropagation | Frequency counting |
+| **Architecture** | Specialized (CNN, RNN, Transformer) | One equation, N levels |
+| **Observation** | Training dataset | Real-time hooks + files |
+| **Novelty** | Interpolation of training data | Collision of independent chains |
+| **Cost** | Millions in GPU/datacenter | CPU, zero dependencies |
+| **Transparency** | Black box | Full deterministic trace |
 
-## Why This Matters
-
-Current AI requires billions in GPUs and millions in training. MCR is:
-
-- **Zero** external dependencies
-- **Zero** GPU required
-- **Zero** training data needed (knowledge via experience)
-- **~3600 lines** total
-- **~0.2s** full test suite
-
-It doesn't compete with LLMs or deep learning. It explores a different question: *how far can a single Markov primitive go when applied at every level, with entropy as the only compass?*
+---
 
 ## Files
 
 ```
 E:/MCR/
-├── MCR_AGI.py                        # ~3600 lines, single file
-├── test_mcr_veracidade.py            # 194 tests (what MCR claims)
-├── test_mcr_comparativo.py           # 22 tests (vs simple baselines)
-├── test_mcr_comparativo_avancado.py  # 27 tests (vs known systems)
+├── MCR_AGI.py                   # ~4650 lines, stdlib only (ENTIRE system)
+├── test_mcr_veracidade.py       # 194 tests
+├── test_mcr_desafios.py         # 13 multi-level tests
+├── test_mcr_comparativo.py      # 22 vs baseline
+├── test_mcr_comparativo_avancado.py  # 32 vs known systems
+├── test_bateria_real.py         # 12 real-world tests
+├── test_mcr_stress.py           # 100 pts stress test
+├── test_mcr_promessas.py        # 100 pts promise validation
+├── test_silogismo.py            # 60 pts transitive inference
 ├── docs/
-│   ├── ENTROPIA_CONDICIONAL.md       # Cross-dimensional entropy
-│   ├── ESTABILIDADE_CROSS_DIM.md     # Stability across dimensions
-│   ├── NLP_REALIDADE.md              # Real NLP pipeline analysis
-│   ├── DIAGNOSTICO_COMPARATIVO.md    # Comparative diagnosis
+│   ├── MANIFESTO_MCR.md         # The philosophy
+│   ├── MCR_WHITEPAPER_EN.md     # Technical whitepaper
+│   ├── MCR_WHITEPAPER_PT.md     # Whitepaper (Portuguese)
+│   ├── REFLEXAO_MCR.md          # Reflection on the project
+│   ├── CONVERSA_FILOSOFICA.md    # The philosophical conversation
+│   ├── ESFERA_CONCEITO.md       # The esfera concept
+│   ├── TOPOLOGIA_EMERGENTE.md   # Emergent topology
 │   └── ...
-└── cache/                            # Learned data (gitignored)
+└── cache/                       # Learned data (gitignored)
 ```
+
+---
+
+## Philosophy
+
+> **Entropy is a coordinate, not a metric.**
+> It measures where the system is in N-dimensional space — not how "good" or "bad" it is.
+
+> **Criticality, not optimization.**
+> The system seeks the edge of chaos (entropy 0.2–0.7), not zero entropy. Dead systems have zero entropy. Learning happens at the boundary.
+
+> **Observation, not control.**
+> The MCR is an observer in an open system. It cannot prevent entropy fluctuations. It learns from what it cannot control.
+
+> **Emergence, not programming.**
+> New dimensions auto-discover. Chains collide into novelty. The topology emerges from data. No human decides what the system should find.
+
+---
 
 ## License
 
 **MCR** is dual-licensed under AGPL v3 (free) or commercial license. See [LICENSE](LICENSE) and [LICENCA_COMERCIAL.md](LICENCA_COMERCIAL.md).
 
+---
+
 ## Author
 
 **Kheltz** — Independent researcher.
-Started with: *"How far can one Markov chain go?"*
+
+*How far can one Markov chain go when applied at every level, coupled by entropy, and left to emerge?* — Apparently, very far.

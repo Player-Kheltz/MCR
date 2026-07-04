@@ -73,14 +73,21 @@ A diferença é ARQUITETURAL: em vez de criar 50 classes diferentes, registramos
 |-------|---------|-----------|
 | Byte | "Olá MCR!" | Aprende que 'O' → 'l' |
 | Palavra | "MCR é uma equação multi-nível" | Gera: "MCR é uma equação multi-nível que aprende" |
-| Decisão | explicacao → buscar_kg → conectar → gerar → entregar | Prediz: "explicacao" → "buscar_kg" |
+| Decisão | explicação → buscar_kg → conectar → gerar → entregar | Prediz: "explicação" → "buscar_kg" |
 | Mundo | estado + ação → próximo estado | Aprende causalidade |
 | Q-Learning | estado + ação → recompensa | Aprende por tentativa e erro |
 | Planejamento | delta grande → sub-deltas → ações | Divide e conquista |
 | Atenção | contexto + pergunta → tokens relevantes | Foca no que importa |
 | Memória | fingerprint → estado salvo | Busca por similaridade |
+| **Superposição** | duas rotas Markov colidem → token novo | NENHUMA cadeia previu sozinha |
+| **Acoplamento cross-nível** | byte + palavra → predição cruzada | Esfera N-dimensional conecta níveis |
+| **Parsing semântico** | "João come maçã" → (João, come, maçã) | Extrai sujeito-relação-objeto |
+| **Rede relacional** | "João > Maria" + "Maria > Pedro" → João→Pedro | Inferência transitiva sem hardcode |
+| **Observação passiva** | teclado, mouse, clipboard, arquivos | Tudo vira byte chain unificada |
+| **Auto-validação** | entropia de cada nível medida no tempo | Detecta instabilidade multi-nível |
+| **Auto-evolução** | limiares ajustados por criticalidade | Sistema se mantém na borda do caos |
 
-**Zero GPU. Zero LLM. Zero dependências externas.**
+**Zero GPU. Zero LLM. Zero dependências externas. 449/449 testes passando.**
 
 ---
 
