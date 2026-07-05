@@ -88,11 +88,46 @@ class MCR:
         ords = sorted(self.transicoes[a].items(), key=lambda x: -x[1])
         t = self.freq[a]
         return [(tok, cnt/t) for tok, cnt in ords[:n]]
+    def predizer_com_entropia(self, a):
+        """Prediz com temperatura derivada da entropia do estado.
+        
+        entropia 0 → temp 0 → deterministico (certeza)
+        entropia 1.5 → temp 0.5 → variacao media
+        entropia 3.0 → temp 1.0 → exploracao maxima
+        """
+        a = str(a)
+        if a not in self.transicoes or not self.transicoes[a]:
+            return (None, 0.0)
+        temperatura = min(1.0, self.entropia(a) / 3.0)
+        proximas = self.transicoes[a]
+        palavras = list(proximas.keys()); pesos = list(proximas.values())
+        if temperatura <= 0:
+            return (max(proximas, key=proximas.get), 1.0)
+        if temperatura >= 1.0:
+            return (_rand.choice(palavras), 0.5)
+        soma = sum(pesos); pesos_norm = [p/soma for p in pesos]
+        pesos_temp = [p ** (1.0/max(temperatura, 0.01)) for p in pesos_norm]
+        total_temp = sum(pesos_temp); probs = [p/total_temp for p in pesos_temp]
+        escolhida = _rand.choices(palavras, weights=probs, k=1)[0]
+        conf = probs[palavras.index(escolhida)]
+        return (escolhida, round(conf, 3))
     def gerar(self, semente, passos=0):
         seq, at = [semente], semente
         for _ in range(passos):
             p, c = self.predizer(at)
             if p is None or c < 0.01: break
+            seq.append(p); at = p
+        return seq
+    def gerar_com_entropia(self, semente, passos=0):
+        """Gera sequencia com temperatura derivada da entropia.
+        
+        Gera N candidatos e retorna o que maximiza diversidade.
+        """
+        seq, at = [semente], semente
+        for _ in range(passos):
+            p, c = self.predizer_com_entropia(at)
+            if p is None or c < 0.01: break
+            if len(seq) >= 3 and all(t == p for t in seq[-3:]): break  # radar
             seq.append(p); at = p
         return seq
     def entropia(self, a):
@@ -537,6 +572,35 @@ class MCRSuperposicao:
             "resultados": resultados,
             "total": self.total,
         }
+    
+    def colidir_n(self, nivel_a, valor_a, nivel_b, valor_b, mk_a=None, mk_b=None, n=5):
+        """Gera N colisoes com temperatura entropica, retorna as melhores.
+        
+        Cada colisao usa temperatura derivada da entropia do estado.
+        Retorna ate N resultados ordenados por confianca.
+        N e derivado da entropia media dos dois niveis.
+        """
+        resultados = []
+        if mk_a and valor_a in mk_a.freq:
+            temp_a = min(1.0, mk_a.entropia(valor_a) / 3.0)
+            n_iter = max(2, int(temp_a * 10))
+        else:
+            n_iter = n
+        
+        for _ in range(n_iter):
+            r, conf, meta = self.colidir(nivel_a, valor_a, nivel_b, valor_b, mk_a, mk_b)
+            if r and conf > 0.01:
+                resultados.append((r, conf, meta))
+        
+        # Remove duplicatas mantendo a maior confianca
+        unicos = {}
+        for r, conf, meta in resultados:
+            if r not in unicos or conf > unicos[r][0]:
+                unicos[r] = (conf, meta)
+        
+        ordenados = sorted(unicos.items(), key=lambda x: -x[1][0])
+        return ordenados[:n]
+
 
 # ═══════════════════════════════════════════════════════════════════
 # [01d] MCREntropicSearch — MCTS com entropia como metrica (F3)
@@ -3993,12 +4057,12 @@ class CerebroAGI:
                     novo_token = novo
                     melhor_conf = conf
             
-            # Se ainda falhou, tenta Markov-2 (ultimas 2 palavras)
+            # Se ainda falhou, tenta Markov-2 (ultimas 2 palavras) com entropia
             if novo_token is None and len(cadeia) >= 2:
                 chave_m2 = f"{cadeia[-2]}|{cadeia[-1]}"
                 if chave_m2 in self.mk_palavra.freq:
-                    pred, conf = self.mk_palavra.predizer(chave_m2)
-                    if pred and conf > 0.1:
+                    pred, conf = self.mk_palavra.predizer_com_entropia(chave_m2)
+                    if pred and conf > 0.05:
                         novo_token = pred
                         melhor_conf = conf
             
@@ -4030,10 +4094,12 @@ class CerebroAGI:
             
             cadeia.append(novo_token)
             
-            # Mede entropia do passo: se baixa, "pensamento convergiu"
+            # Entropic radar: se entropia baixa, convergiu. Se loop (repete 2x), para.
             ent = self.mk_palavra.entropia(semente) if semente in self.mk_palavra.freq else 1.0
             if ent < 0.15 and passo > 0:
                 break  # convergiu
+            if len(cadeia) >= 4 and len(set(cadeia[-4:])) == 1:
+                break  # loop de 4 repeticoes
             
             # Aprende esta transicao da cadeia
             self.mk_palavra.aprender(semente, novo_token)

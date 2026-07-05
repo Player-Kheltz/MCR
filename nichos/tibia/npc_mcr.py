@@ -166,10 +166,10 @@ class MCRNPC:
         return f"{tipo} {qualidade} de {material}"
     
     def _gerar_nome_item(self, tipo):
-        """Gera nome de item pela cadeia propria do NPC (sem poluicao global)."""
+        """Gera nome de item pela cadeia propria do NPC com temperatura entropica."""
         if tipo not in self.mk_npc.freq:
             return f"algo chamado {tipo}"
-        item = self.mk_npc.gerar(tipo, passos=3)
+        item = self.mk_npc.gerar_com_entropia(tipo, passos=3)
         if len(item) >= 2:
             return " ".join(item)
         return f"algo chamado {tipo}"

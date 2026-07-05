@@ -198,7 +198,7 @@ class MCRPipeline:
         return fragmentos[:3]
 
     def _gerar_fragmento(self, fragmento="", passos=6):
-        """Gera texto para um fragmento. Enriquece com SessionCache ANTES de gerar."""
+        """Gera texto para um fragmento. Usa entropia como temperatura e radar."""
         if not fragmento or not fragmento.strip():
             return ""
         
@@ -213,23 +213,37 @@ class MCRPipeline:
                 frase = frag.conteudo.split('.')[0] if '.' in frag.conteudo else frag.conteudo[:100]
                 ctx_texto += " " + frase
         
-        # Monta o fragmento enriquecido
         fragmento_enriquecido = fragmento
         if ctx_texto and len(ctx_texto.split()) > 2:
             fragmento_enriquecido = ctx_texto.strip()[:150] + " " + fragmento
         
-        # Tenta cadeia de pensamento
+        # Gera multiplos candidatos com temperatura entropica
+        candidatos = []
+        ultima_palavra = fragmento_enriquecido.split()[-1] if fragmento_enriquecido.split() else ""
+        
+        if ultima_palavra in self.cerebro.mk_palavra.freq:
+            n_candidatos = max(2, min(8, int(self.cerebro.mk_palavra.entropia(ultima_palavra) * 3)))
+            for _ in range(n_candidatos):
+                resultado = self.cerebro._cadeia_pensamento(
+                    fragmento_enriquecido, intencao="responder", passos=passos)
+                if resultado and resultado != fragmento_original:
+                    tokens_resp = resultado.split()
+                    if len(tokens_resp) > 2 and not any(t.startswith('B:') for t in tokens_resp):
+                        candidatos.append(" ".join(tokens_resp[:15]))
+        
+        # Seleciona o melhor candidato (maior diversidade de tokens)
+        if candidatos:
+            unicos = list(dict.fromkeys(candidatos))
+            if unicos:
+                return _rand.choice(unicos[:3]) if len(unicos) > 1 else unicos[0]
+        
+        # Fallback unico
         resultado = self.cerebro._cadeia_pensamento(
             fragmento_enriquecido, intencao="responder", passos=passos)
-        
-        # Filtra lixo byte
-        if resultado:
-            tokens_limpos = [t for t in resultado.split() if not t.startswith('B:')]
-            resultado = " ".join(tokens_limpos) if tokens_limpos else ""
-        
-        # Se gerou algo novo, retorna
         if resultado and resultado != fragmento_original:
-            return " ".join(resultado.split()[:15])
+            tokens_resp = resultado.split()
+            if len(tokens_resp) > 2 and not any(t.startswith('B:') for t in tokens_resp):
+                return " ".join(tokens_resp[:15])
         
         return fragmento_original if len(fragmento_original.split()) <= 4 else ""
 
