@@ -1308,7 +1308,7 @@ class MCRCoupling:
     @staticmethod
     def _descobrir_niveis():
         base = ["byte","palavra","tven","fingerprint"]
-        return base + ["intencao","acao","sujeito","relacao","objeto","contexto","posicao","token_tipo"]
+        return base + ["intencao","acao","sujeito","relacao","objeto","contexto","posicao","token_tipo","pi"]
     def alimentar(self, origem, destino, to, td):
         if origem not in self.niveis or destino not in self.niveis: return
         self.cooc[origem][destino] += 1; self.total_cooc += 1
@@ -3380,6 +3380,37 @@ class CerebroAGI:
         self.esquecimento = MCREsquecimento(self)
         self.conexao = MCRConexao(self)
         self.session_cache = SessionCache()
+        # PI como referencia de infinito: pre-load 10000 digitos
+        self.mk_pi = MCR("pi")
+        self._carregar_pi()
+    
+    def _carregar_pi(self):
+        """Pre-carrega 10000 digitos de PI como referencia de infinito.
+        
+        PI tem entropia maxima. Usado como referencia para o limite
+        superior de incerteza. Coupling byte↔pi↔palavra permite que
+        qualquer padrao observado seja comparado com o padrao de
+        maxima imprevisibilidade.
+        """
+        pi = ("314159265358979323846264338327950288419716939937510582097494"
+            "45923078164062862089986280348253421170679821480865132823066470938446095"
+            "5058223172535940812848111745028410270193852110555964462294895493038196"
+            "4428810975665933446128475648233786783165271201909145648566923460348610"
+            "4543266482133936072602491412737245870066063155881748815209209628292540"
+            "9171536436789259036001133053054882046652138414695194151160943305727036"
+            "5759591953092186117381932611793105118548074462379962749567351885752724"
+            "8912279381830119491298336733624406566430860213949463952247371907021798"
+            "6094370277053921717629317675238467481846766940513200056812714526356082"
+            "7785771342757789609173637178721468440901224953430146549585371050792279"
+            "6892589235420199561121290219608640344181598136297747713099605187072113"
+            "4999999837297804995105973173281609631859502445945534690830264252230825"
+            "3344685035261931188171010003137838752886587533208381420617177669147303"
+            "5982534904287554687311595628638823537875937519577818577805321712268066"
+            "13001927876611195909164201989")
+        for i in range(len(pi)-1):
+            self.mk_pi.aprender(pi[i], pi[i+1])
+        # Acopla pi com byte para referencia universal
+        self.coupling.alimentar("pi", "byte", "3", "B:33")
     
     def _seed_orquestrador(self):
         """Sementes para o orquestrador comecar a decidir.
@@ -4094,10 +4125,15 @@ class CerebroAGI:
             
             cadeia.append(novo_token)
             
-            # Entropic radar: se entropia baixa, convergiu. Se loop (repete 2x), para.
-            ent = self.mk_palavra.entropia(semente) if semente in self.mk_palavra.freq else 1.0
-            if ent < 0.15 and passo > 0:
-                break  # convergiu
+            # Entropic radar com referencia PI (infinito)
+            ent_palavra = self.mk_palavra.entropia(semente) if semente in self.mk_palavra.freq else 1.0
+            ent_pi = self.mk_pi.entropia_media()  # PI ≈ 3.32 bits (maxima incerteza)
+            # Normaliza a entropia contra PI: 0 = previsivel, 1 = caotico como PI
+            ent_normalizada = min(1.0, ent_palavra / ent_pi) if ent_pi > 0 else ent_palavra
+            if ent_normalizada < 0.05 and passo > 0:
+                break  # convergiu (muito mais previsivel que PI)
+            if ent_normalizada > 0.95:
+                pass  # caotico como PI — explorar mais (nao para)
             if len(cadeia) >= 4 and len(set(cadeia[-4:])) == 1:
                 break  # loop de 4 repeticoes
             
