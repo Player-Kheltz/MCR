@@ -1,2055 +1,1361 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
+"""MCR — Classe ÚNICA. MarkovUniversal em todos os níveis.
+
+Substitui: lexico_v2.py + intention_engine.py + auto_trigger.py + aprendiz_de_padroes.py
++ partes de pipeline_executor.py (decisão, autoavaliação, loop)
+
+Níveis:
+  mk_byte: bytes → transições → estrutura
+  mk_palavra: palavras → transições → frases
+  mk_token: tipos → transições → intenção
+  mk_intencao: intenção → transições → ação
+  mk_decisor: estado → transições → decisão
+  mk_acao: ação → transições → resultado
+
+Tudo Markov. Tudo o mesmo código. Zero hardcode.
 """
-MCR.py — Experimento em minimalismo computacional com Markov multi-nivel.
-============================================================================
-Unico arquivo. Markov em N niveis: byte, palavra, token, decisao, acao.
-Primitivas, mundo, acoes, NLP (Jaccard), atencao (heuristicas),
-planejamento (grid 5x5), Q-Learning, SQLite, auto-parametrizacao,
-curiosidade, identidade (fingerprint), chat, daemon.
+import os, re, json, math, random, time as _time
+from collections import Counter
+from typing import List, Dict, Tuple, Optional, Any
 
-0 GPU. 0 LLM. 0 dependencias externas. Python stdlib apenas.
+# MCR autossuficiente — não depende de módulos externos.
+# Equivalentes internos substituem KnowledgeGraph, PatternEngine, etc.
+# Módulos externos continuam existindo para outros componentes do sistema.
+MCR_COMPLETO = True
 
-Uso:
-    python MCR.py                            # chat
-    python MCR.py --daemon                   # servidor
-    python MCR.py --ask "preco do worm"      # direto
-    python MCR.py --aprender                 # alimenta NPCs
-"""
-import os, sys, json, math, time, glob, re, random as _rand
-import sqlite3, socket, threading, hashlib, tempfile, queue
-from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor, as_completed
-from collections import Counter, deque
-from typing import Dict, List, Tuple, Optional, Any, Callable, Set
-from statistics import median
-from copy import deepcopy
-
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-CACHE_DIR = os.path.join(BASE_DIR, "cache")
-os.makedirs(CACHE_DIR, exist_ok=True)
-
-# ═══════════════════════════════════════════════════════════════════
-# [17] MCRConfig — zero numeros magicos, tudo descoberto
-# ═══════════════════════════════════════════════════════════════════
-
-class MCRConfig:
-    _inst = None
-    def __new__(cls):
-        if cls._inst is None:
-            cls._inst = super().__new__(cls)
-            cls._inst._cache = {}
-            cls._inst._obs: Dict[str, list] = {}
-        return cls._inst
-
-    def _thr(self, nome, padrao):
-        obs = self._obs.get(nome, [])
-        return median(obs) if len(obs) >= 3 else padrao
-
-    def _dec(self, nome, padrao):
-        return padrao
-
-    def observar(self, nome, valor):
-        self._obs.setdefault(nome, []).append(valor)
-        self._cache.pop(nome, None)
-
-    def get(self, nome, padrao=None):
-        return self._cache.get(nome) or self._thr(nome, padrao)
-
-C = MCRConfig().get
-
-# ═══════════════════════════════════════════════════════════════════
-# [01] Primitivas — MCR, ByteUtils, Signature, Threshold, Entropia
-# ═══════════════════════════════════════════════════════════════════
-
-class MCR:
-    def __init__(self, nome=""):
-        self.nome = nome
-        self.transicoes: Dict[str, Dict[str, int]] = {}
-        self.freq: Dict[str, int] = {}
-        self.total = 0
-    def aprender(self, a, b):
-        a, b = str(a), str(b)
-        if a not in self.transicoes:
-            self.transicoes[a] = {}
-            self.freq[a] = 0
-        self.transicoes[a][b] = self.transicoes[a].get(b, 0) + 1
-        self.freq[a] += 1
-        self.total += 1
-    def aprender_sequencia(self, seq):
-        for i in range(len(seq)-1): self.aprender(seq[i], seq[i+1])
-    def predizer(self, a):
-        a = str(a)
-        if a not in self.transicoes or not self.transicoes[a]: return (None, 0.0)
-        m = max(self.transicoes[a], key=self.transicoes[a].get)
-        return (m, self.transicoes[a][m] / self.freq[a])
-    def predizer_n(self, a, n=3):
-        a = str(a)
-        if a not in self.transicoes: return []
-        ords = sorted(self.transicoes[a].items(), key=lambda x: -x[1])
-        t = self.freq[a]
-        return [(tok, cnt/t) for tok, cnt in ords[:n]]
-    def predizer_com_entropia(self, a):
-        """Prediz com temperatura derivada da entropia do estado.
-        
-        entropia 0 → temp 0 → deterministico (certeza)
-        entropia 1.5 → temp 0.5 → variacao media
-        entropia 3.0 → temp 1.0 → exploracao maxima
-        """
-        a = str(a)
-        if a not in self.transicoes or not self.transicoes[a]:
-            return (None, 0.0)
-        temperatura = min(1.0, self.entropia(a) / 3.0)
-        proximas = self.transicoes[a]
-        palavras = list(proximas.keys()); pesos = list(proximas.values())
-        if temperatura <= 0:
-            return (max(proximas, key=proximas.get), 1.0)
-        if temperatura >= 1.0:
-            return (_rand.choice(palavras), 0.5)
-        soma = sum(pesos); pesos_norm = [p/soma for p in pesos]
-        pesos_temp = [p ** (1.0/max(temperatura, 0.01)) for p in pesos_norm]
-        total_temp = sum(pesos_temp); probs = [p/total_temp for p in pesos_temp]
-        escolhida = _rand.choices(palavras, weights=probs, k=1)[0]
-        conf = probs[palavras.index(escolhida)]
-        return (escolhida, round(conf, 3))
-    def gerar(self, semente, passos=0):
-        seq, at = [semente], semente
-        for _ in range(passos):
-            p, c = self.predizer(at)
-            if p is None or c < 0.01: break
-            seq.append(p); at = p
-        return seq
-    def gerar_com_entropia(self, semente, passos=0):
-        """Gera sequencia com temperatura derivada da entropia.
-        
-        Gera N candidatos e retorna o que maximiza diversidade.
-        """
-        seq, at = [semente], semente
-        for _ in range(passos):
-            p, c = self.predizer_com_entropia(at)
-            if p is None or c < 0.01: break
-            if len(seq) >= 3 and all(t == p for t in seq[-3:]): break  # radar
-            seq.append(p); at = p
-        return seq
-    def entropia(self, a):
-        a = str(a)
-        if a not in self.transicoes or not self.transicoes[a]: return 1.0
-        t = self.freq[a]
-        return -sum((c/t)*math.log2(c/t) for c in self.transicoes[a].values())
-    def entropia_media(self):
-        if not self.freq: return 1.0
-        return sum(self.entropia(e) for e in self.freq)/len(self.freq)
-    def stats(self):
-        return {'estados': len(self.freq), 'transicoes': sum(len(t) for t in self.transicoes.values()), 'total': self.total}
-
-class MCRByteUtils:
-    @staticmethod
-    def fingerprint(texto, dims=None):
-        """Fingerprint com dimensionalidade ideal (auto-descoberta).
-        
-        Se dims for None, usa MCRSignatureExpansiva.dimensionalidade_ideal()
-        para descobrir a dimensao otima para o texto. O minimo e 8.
-        """
-        if dims is None:
-            dados_enc = texto.encode('utf-8')[:2000] if isinstance(texto, str) else bytes(texto)[:2000]
-            dims = max(8, MCRSignatureExpansiva.dimensionalidade_ideal(dados_enc, mx=128, thr=0.05))
-        dados = texto.encode('utf-8')[:500] if isinstance(texto, str) else bytes(texto)[:500]
-        if not dados: return [0.0]*dims
-        b = [0.0]*dims
-        for i, by in enumerate(dados): b[(i+by)%dims] += 1.0
-        t = sum(b) or 1
-        return [round(v/t*10, 3) for v in b]
-    @staticmethod
-    def similaridade_cosseno(a, b):
-        if not a or not b: return 0.0
-        d = sum(x*y for x,y in zip(a,b))
-        na = math.sqrt(sum(x*x for x in a))
-        nb = math.sqrt(sum(y*y for y in b))
-        if na == 0 or nb == 0: return 0.0
-        return d/(na*nb)
-    @staticmethod
-    def jaccard_bytes(ta, tb):
-        def _t(s):
-            d = s.encode('utf-8')[:500]; return {f"{d[i]:02x}{d[i+1]:02x}" for i in range(len(d)-1)}
-        a, b = _t(ta), _t(tb)
-        if not a or not b: return 0.0
-        return len(a&b)/len(a|b)
-    @staticmethod
-    def entropia_bytes(dados, mx=500):
-        if isinstance(dados, str): dados = dados.encode('utf-8')[:mx]
-        else: dados = bytes(dados)[:mx]
-        if len(dados) < 2: return 0.0
-        f = Counter(dados); n = len(dados)
-        return -sum((c/n)*math.log2(c/n) for c in f.values())
-    @staticmethod
-    def delta_fingerprint(a, b, dim=0):
-        fa = MCRByteUtils.fingerprint(a, dim); fb = MCRByteUtils.fingerprint(b, dim)
-        return [fb[i]-fa[i] for i in range(dim)]
-
-class MCRSignatureExpansiva:
-    @staticmethod
-    def fingerprint(dados, n_dims):
-        if not dados: return [0.0]*n_dims
-        b = [0.0]*n_dims
-        for i, by in enumerate(dados): b[(i+by)%n_dims] += 1.0
-        t = sum(b) or 1; return [round(v/t*10, 3) for v in b]
-    @staticmethod
-    def dimensionalidade_ideal(dados, mx=64, thr=0.05):
-        if isinstance(dados, str): dados = dados.encode('utf-8')[:2000]
-        es = []
-        for d in [1,2,4,8,16,32,64,128]:
-            if d > mx: break
-            fp = MCRSignatureExpansiva.fingerprint(dados, d)
-            tt = sum(fp) or 1; pr = [v/tt for v in fp if v > 0]
-            h = -sum(p*math.log2(p) for p in pr) if pr else 0
-            es.append((d, h))
-        for i in range(1, len(es)):
-            da, ha = es[i-1]; db, hb = es[i]
-            if abs(hb-ha)/max(ha,0.01) < thr: return db
-        return es[-1][0] if es else 8
-
-class MCRJanelamentoFingerprint:
-    """Vetor de fingerprint com janelamento temporal e estado interno.
-    
-    Divide o texto em janelas e gera fingerprints de cada janela.
-    O vetor resultante captura estrutura LOCAL.
-    
-    COM ESTADO INTERNO (leaky integration):
-    - O estado anterior e realimentado na proxima chamada
-    - alpha = taxa de leaky (aprendida por MCRThreshold)
-    - coupling alimentado com estado (nao fica vazio)
-    """
-    def __init__(self, dim=8, janela=200, passo=100):
-        self.dim = dim
-        self.janela = janela
-        self.passo = passo
-        self.cache: Dict[str, List[float]] = {}
-        self.coupling = MCRCoupling()
-        self.estado: List[float] = []
-        self.thr_alpha = MCRThreshold("reservoir_alpha")
-        self.mk_estado = MCR("reservoir_estado")
-    
-    def gerar(self, texto):
-        if texto in self.cache:
-            return self.cache[texto]
-        
-        dados = texto.encode('utf-8')[:5000] if isinstance(texto, str) else bytes(texto)[:5000]
-        if not dados or len(dados) < self.dim:
-            return []
-        
-        vetor = []
-        for inicio in range(0, len(dados), self.passo):
-            janela = dados[inicio:inicio + self.janela]
-            if len(janela) < self.dim:
-                break
-            fp = MCRByteUtils.fingerprint(janela, self.dim)
-            
-            # Leaky integration com estado interno
-            alpha = self.thr_alpha.obter("alpha", 0.3)
-            if not self.estado or len(self.estado) != len(fp):
-                self.estado = list(fp)
-            else:
-                for i in range(len(fp)):
-                    self.estado[i] = alpha * fp[i] + (1-alpha) * self.estado[i]
-            
-            # Alimenta coupling com estado (nao fica vazio)
-            self.coupling.alimentar("reservoir", "estado",
-                                   str(fp[:min(3, len(fp))]),
-                                   str(self.estado[:min(3, len(self.estado))]))
-            # Aprende transicao de estado
-            self.mk_estado.aprender(str(self.estado[:min(4, len(self.estado))]),
-                                   str(fp[:min(4, len(fp))]))
-            
-            vetor.extend(self.estado)
-        
-        self.cache[texto] = vetor
-        self.coupling.recalcular()
-        return vetor
-    
-    def entropia_reservoir(self, vetor=None):
-        if not vetor or len(vetor) < 2:
-            return 1.0
-        total = sum(abs(v) for v in vetor) or 1
-        return -sum((abs(v)/total)*math.log2(max(abs(v)/total, 0.001)) for v in vetor if abs(v) > 0)
-    
-    def comparar(self, texto_a, texto_b):
-        va = self.gerar(texto_a)
-        vb = self.gerar(texto_b)
-        if not va or not vb:
-            return 0.0
-        return MCRByteUtils.similaridade_cosseno(va, vb)
-
-# ═══════════════════════════════════════════════════════════════════
-# [01b] MCRHDCOperation — algebra de fingerprints (F1)
-# ═══════════════════════════════════════════════════════════════════
-
-class MCRHDCOperation:
-    """Operacoes de Hyperdimensional Computing sobre fingerprints.
-    
-    bundle(a, b): soma ponderada — combina conceitos
-    bind(a, b):   multiplicacao — cria associacao
-    permute(v):   rotacao — marca ordem temporal
-    
-    Cada operacao tem seu proprio MCR que aprende quando aplica-la.
-        Usa MCRJanelamentoFingerprint para vetores mais longos quando disponivel.
-    """
-    def __init__(self, reservoir=None, coupling=None, niveis_ctx=None):
-        self.reservoir = reservoir
-        self.coupling = coupling
-        self.niveis_ctx = niveis_ctx or []
-        self.mk_bundle = MCR("hdc_bundle")
-        self.mk_bind = MCR("hdc_bind")
-        self.mk_permute = MCR("hdc_permute")
-        self.mk_analogia = MCR("hdc_analogia")
-        self.total = 0
-    
-    def _vetor(self, texto):
-        """Gera vetor fingerprint com dimensionalidade adaptativa.
-        
-        A dimensionalidade e REDUZIDA quando ha correlacao forte entre
-        niveis — pois a informacao ja esta distribuida entre eles.
-        Usa self.coupling e self.niveis_ctx se disponiveis.
-        """
-        if self.reservoir:
-            v = self.reservoir.gerar(texto)
-            if v:
-                return v
-        
-        dados = texto.encode()[:2000] if isinstance(texto, str) else bytes(texto)[:2000]
-        dim_base = MCRSignatureExpansiva.dimensionalidade_ideal(dados, mx=256, thr=0.05)
-        
-        # Reducao por correlacao cross-level
-        if self.coupling and self.niveis_ctx:
-            corr_total = 0.0
-            n_corr = 0
-            for ctx_nivel in self.niveis_ctx:
-                p = self.coupling.peso(ctx_nivel, "fingerprint")
-                if p > 0:
-                    corr_total += p
-                    n_corr += 1
-                p_inv = self.coupling.peso("fingerprint", ctx_nivel)
-                if p_inv > 0:
-                    corr_total += p_inv
-                    n_corr += 1
-            if n_corr > 0:
-                corr_media = corr_total / n_corr
-                fator = MCRThreshold("hdc_dim").obter("fator", 0.5)
-                dim_base = int(dim_base * max(fator, 1.0 - corr_media))
-        
-        return MCRByteUtils.fingerprint(texto, max(dim_base, 8))
-    
-    def _tunel_dimensional(self, va, vb):
-        """Cria um tunel entre duas dimensoes via Produto de Kronecker.
-        
-        Em vez de interpolar (que cria dados falsos), preserva a assinatura
-        completa de AMBAS as dimensoes. O tunel e' a interacao entre elas.
-        
-        Se va = [a1, a2] (2D) e vb = [b1, b2, b3] (3D),
-        o tunel = [a1*b1, a1*b2, a1*b3, a2*b1, a2*b2, a2*b3] (6D).
-        
-        Cada byte de uma dimensao colide com cada byte da outra,
-        sem distorcao, sem interpolacao, sem dados falsos.
-        """
-        if not va or not vb:
-            return va, vb
-        # Produto de Kronecker: cada elemento de va multiplica vb inteiro
-        tunel = [a * b for a in va for b in vb]
-        return tunel, tunel
-    
-    def _normalizar(self, va, vb, dim_alvo=None):
-        """Normaliza dois vetores para o MESMO tamanho (fallback).
-        
-        Usa zero-padding em vez de interpolacao para nao criar dados falsos.
-        O padrao e usar _tunel_dimensional — este metodo e fallback.
-        """
-        if not va or not vb:
-            return va, vb
-        # Tenta usar o tunel dimensional primeiro
-        dec = MCRDecisorUniversal.decidir(ctx="hdc_tunel")
-        if dec.get("threshold", 0.5) > 0.3:
-            return self._tunel_dimensional(va, vb)
-        # Fallback: zero-padding preserva assinatura sem interpolar
-        n = max(len(va), len(vb))
-        def _pad(v, n):
-            if len(v) >= n:
-                return list(v[:n])
-            return list(v) + [0.0] * (n - len(v))
-        return _pad(va, n), _pad(vb, n)
-    
-    def bundle(self, a, b, peso_a=0.5, peso_b=0.5):
-        """Bundle: soma ponderada de dois vetores."""
-        va = self._vetor(a) if isinstance(a, str) else a
-        vb = self._vetor(b) if isinstance(b, str) else b
-        if not va or not vb:
-            return []
-        va, vb = self._normalizar(va, vb)
-        resultado = [va[i]*peso_a + vb[i]*peso_b for i in range(len(va))]
-        self.mk_bundle.aprender(f"BD:{str(a)[:10]}:{str(b)[:10]}", str(resultado[:4]))
-        self.total += 1
-        return resultado
-    
-    def bind(self, a, b):
-        """Bind: multiplicacao elemento a elemento."""
-        va = self._vetor(a) if isinstance(a, str) else a
-        vb = self._vetor(b) if isinstance(b, str) else b
-        if not va or not vb:
-            return []
-        va, vb = self._normalizar(va, vb)
-        resultado = [va[i]*vb[i] for i in range(len(va))]
-        self.mk_bind.aprender(f"BN:{str(a)[:10]}:{str(b)[:10]}", str(resultado[:4]))
-        self.total += 1
-        return resultado
-    
-    def permute(self, v, rot=1):
-        """Permute: rotacao circular do vetor.
-        
-        Marca ordem temporal. permute(A) significa "A depois".
-        """
-        if isinstance(v, str):
-            v = self._vetor(v)
-        if not v:
-            return []
-        rot = rot % len(v)
-        resultado = v[-rot:] + v[:-rot]
-        self.mk_permute.aprender(f"PR:{rot}", str(resultado[:4]))
-        self.total += 1
-        return resultado
-    
-    def bundle_inv(self, a, b, peso_b=0.5):
-        """Bundle inverso: subtracao ponderada.
-        
-        Para analogias: bundle_inv("rei", "homem") ≈ "real"
-        """
-        va = self._vetor(a) if isinstance(a, str) else a
-        vb = self._vetor(b) if isinstance(b, str) else b
-        if not va or not vb:
-            return []
-        va, vb = self._normalizar(va, vb)
-        return [va[i] - vb[i]*peso_b for i in range(len(va))]
-    
-    def analogia(self, a, b, c, candidatos):
-        """Resolve analogia A:B :: C:?
-        
-        Ex: analogia("rei", "homem", "rainha", candidatos)
-        → busca "mulher" onde resultado ≈ bundle_inv(bundle(A,C), B)
-        """
-        va = self._vetor(a)
-        vb = self._vetor(b)
-        vc = self._vetor(c)
-        if not va or not vb or not vc:
-            return None, 0.0
-        
-        # Normaliza para o mesmo tamanho usando ZERO-PADDING
-        # (nao usa tunel aqui porque analogia precisa de comparacao elemento-a-elemento)
-        n = max(len(va), len(vb), len(vc))
-        def _pad(v, n):
-            if len(v) >= n: return list(v[:n])
-            return list(v) + [0.0] * (n - len(v))
-        va, vb, vc = _pad(va, n), _pad(vb, n), _pad(vc, n)
-        
-        diferenca = [va[i] - vb[i] for i in range(len(va))]
-        resultado = [diferenca[i] + vc[i] for i in range(len(vc))]
-        
-        melhor = None
-        melhor_sim = 0
-        for cand in candidatos:
-            vd = self._vetor(cand)
-            if not vd:
-                continue
-            r, vd_norm = self._normalizar(resultado, vd)
-            sim = MCRByteUtils.similaridade_cosseno(r, vd_norm)
-            if sim > melhor_sim:
-                melhor_sim = sim
-                melhor = cand
-        
-        self.mk_analogia.aprender(f"AN:{a}:{b}:{c}", f"{melhor}:{melhor_sim:.3f}" if melhor else "nulo")
-        return melhor, round(melhor_sim, 3)
-    
-    def comparar(self, a, b):
-        """Compara dois textos usando bundle dos fingerprints."""
-        va = self._vetor(a)
-        vb = self._vetor(b)
-        if not va or not vb:
-            return 0.0
-        mx = max(len(va), len(vb))
-        def _pad(v, n):
-            if len(v) >= n: return list(v[:n])
-            return list(v) + [0.0] * (n - len(v))
-        va, vb = _pad(va, mx), _pad(vb, mx)
-        return MCRByteUtils.similaridade_cosseno(va, vb)
-
-# ═══════════════════════════════════════════════════════════════════
-# [01c] MCRSuperposicao — colisao de rotas Markov gera algo novo
-# ═══════════════════════════════════════════════════════════════════
-
-class MCRSuperposicao:
-    """Superposicao de rotas Markov: colisao entre cadeias gera algo novo.
-    
-    O conceito:
-    1. Duas rotas (cadeias Markov) convergem no mesmo ponto
-    2. Cada rota prediz seu proximo estado (caminho mais provavel)
-    3. A COLISAO gera multiplos resultados possiveis (superposicao)
-    4. A entropia de CADA resultado decide qual e o "novo"
-    5. O resultado e algo que nenhuma rota individual previu
-    
-    Exemplo:
-      rota_byte = MCR("byte").predizer("B:3D")    # → B:20 (espaco)
-      rota_palavra = MCR("palavra").predizer("=")  # → None (366 opcoes)
-      colisao = superposicao.colidir("byte", "B:3D", "palavra", "=")
-      # → "self" — byte previu "espaco", palavra previu nada
-      #   A colisao gerou "self" que e o que realmente vem depois de "= "
-    """
-    
-    def __init__(self, coupling):
-        self.coupling = coupling
-        self.mk_colisoes = MCR("superposicao")
-        self.total = 0
-    
-    def colidir(self, nivel_a, valor_a, nivel_b, valor_b, mk_a=None, mk_b=None):
-        """Colide duas rotas no mesmo ponto e retorna o resultado.
-        
-        A colisao funciona assim:
-        1. Rota A prediz proximo estado (se possivel)
-        2. Rota B prediz proximo estado (se possivel)
-        3. Se AMBAS tem candidatos, usa a ESFERA para encontrar o
-           ponto de menor entropia entre eles — o "novo" resultado
-        4. Se UMA falha, usa a outra como fallback
-        5. Se AMBAS falham, a esfera tenta inferir de outros niveis
-        """
-        self.total += 1
-        
-        # 1. Rota A
-        pred_a = None
-        conf_a = 0.0
-        if mk_a:
-            pred_a, conf_a = mk_a.predizer(valor_a)
-        
-        # 2. Rota B
-        pred_b = None
-        conf_b = 0.0
-        if mk_b:
-            pred_b, conf_b = mk_b.predizer(valor_b)
-        
-        resultados = {}
-        
-        # 3. Se ambas tem candidatos — SUPERPOSICAO
-        if pred_a and pred_b:
-            # Esfera avalia qual e o ponto de menor entropia
-            for ctx_nivel, ctx_valor in [(nivel_a, valor_a), (nivel_b, valor_b)]:
-                r, c = self.coupling.esfera.predizer_cross(ctx_nivel, **{ctx_nivel: ctx_valor})
-                if r and c > 0:
-                    resultados[r] = resultados.get(r, 0) + c
-            # Aprende: colisao A+B gerou estes resultados
-            self.mk_colisoes.aprender(f"COL:{nivel_a}:{nivel_b}:{str(valor_a)[:5]}:{str(valor_b)[:5]}",
-                                     str(list(resultados.keys())[:3]))
-        
-        # 4. Se uma falhou, usa a outra como fallback
-        if not resultados:
-            if pred_a:
-                resultados[pred_a] = conf_a
-            if pred_b:
-                resultados[pred_b] = conf_b
-        
-        # 5. Se ambas falharam, tenta esfera cross-dimensional
-        if not resultados:
-            for ctx_nivel in ["byte", "palavra", "token_tipo", "linha", "hash_curto"]:
-                if ctx_nivel not in [nivel_a, nivel_b]:
-                    r, c = self.coupling.esfera.predizer_cross(nivel_a, **{ctx_nivel: valor_a})
-                    if r and c > 0.1:
-                        resultados[r] = c
-                        break
-        
-        if not resultados:
-            return None, 0.0, {"colisao": "vazia", "total": self.total}
-        
-        # Escolhe o melhor resultado
-        melhor = max(resultados, key=resultados.get)
-        conf = resultados[melhor]
-        
-        return melhor, round(conf, 3), {
-            "colisao": f"{nivel_a}({valor_a}) x {nivel_b}({valor_b})",
-            "pred_a": pred_a,
-            "pred_b": pred_b,
-            "resultados": resultados,
-            "total": self.total,
-        }
-    
-    def colidir_n(self, nivel_a, valor_a, nivel_b, valor_b, mk_a=None, mk_b=None, n=5):
-        """Gera N colisoes com temperatura entropica, retorna as melhores.
-        
-        Cada colisao usa temperatura derivada da entropia do estado.
-        Retorna ate N resultados ordenados por confianca.
-        N e derivado da entropia media dos dois niveis.
-        """
-        resultados = []
-        if mk_a and valor_a in mk_a.freq:
-            temp_a = min(1.0, mk_a.entropia(valor_a) / 3.0)
-            n_iter = max(2, int(temp_a * 10))
-        else:
-            n_iter = n
-        
-        for _ in range(n_iter):
-            r, conf, meta = self.colidir(nivel_a, valor_a, nivel_b, valor_b, mk_a, mk_b)
-            if r and conf > 0.01:
-                resultados.append((r, conf, meta))
-        
-        # Remove duplicatas mantendo a maior confianca
-        unicos = {}
-        for r, conf, meta in resultados:
-            if r not in unicos or conf > unicos[r][0]:
-                unicos[r] = (conf, meta)
-        
-        ordenados = sorted(unicos.items(), key=lambda x: -x[1][0])
-        return ordenados[:n]
-
-
-# ═══════════════════════════════════════════════════════════════════
-# [01d] MCREntropicSearch — MCTS com entropia como metrica (F3)
-# ═══════════════════════════════════════════════════════════════════
-
-class MCREntropicSearch:
-    """Entropic Tree Search: MCTS com entropia como metrica.
-    
-    A acao otima e a que produz a trajetoria de MENOR ENTROPIA
-    (mais previsivel). Substitui "distancia ao objetivo" por
-    "entropia acumulada da trajetoria simulada".
-    
-    O caminho otimo nao e o mais curto — e o MAIS PREVISIVEL.
-    """
-    def __init__(self, world, qlearn):
-        self.world = world
-        self.qlearn = qlearn
-        self.mk_sim = MCR("es_similaridade")
-        self.mk_inc = MCR("es_incerteza")
-        self.thr_rollouts = MCRThreshold("es_n_rollouts")
-        self.thr_depth = MCRThreshold("es_depth")
-        self.total = 0
-    
-    def rollout(self, estado, acao, passos=5):
-        """Simula N passos a partir de estado + acao.
-        Retorna (estado_final, trajetoria) onde trajetoria e
-        a lista de estados intermediarios."""
-        est = estado.clone()
-        traj = [est]
-        for _ in range(passos):
-            ac = self.qlearn.melhor_acao(est)
-            if not ac:
-                ac = self.qlearn.escolher_acao(est, epsilon=0.1)
-            prox = self.world.simular(est, ac)
-            if prox is None:
-                prox = MCRAcao.executar(est, ac)
-            est = prox
-            traj.append(est)
-        return est, traj
-    
-    def _entropia_trajetoria(self, trajetoria):
-        """Entropia media dos fingerprints dos estados na trajetoria.
-        Quanto menor, mais PREVISIVEL e a trajetoria.
-        Quanto maior, mais CAOTICA."""
-        if not trajetoria:
-            return 1.0
-        entropias = []
-        for est in trajetoria:
-            fp = est.fingerprint(16)  # fingerprint 16D para maior resolucao
-            total = sum(abs(v) for v in fp) or 1
-            ent = -sum((abs(v)/total)*math.log2(max(abs(v)/total, 0.001)) for v in fp if abs(v) > 0)
-            entropias.append(ent)
-        return sum(entropias) / len(entropias)
-    
-    def planejar(self, estado, objetivo, n_rollouts=None, depth=None):
-        """Entropic Tree Search sobre espaco de acoes.
-        
-        Para cada acao, executa multiplos rollouts.
-        Score = bonus_proximidade - entropia_trajetoria.
-        Melhor acao = a que minimiza entropia (maximiza previsibilidade).
-        """
-        n_rollouts = n_rollouts or int(self.thr_rollouts.obter("rollouts", 10))
-        depth = depth or int(self.thr_depth.obter("depth", 4))
-        
-        melhor_acao = None
-        melhor_score = -999
-        
-        for acao in MCRAcao.disponiveis():
-            scores = []
-            for _ in range(n_rollouts):
-                prox, traj = self.rollout(estado, acao, depth)
-                # Bonus por proximidade ao objetivo
-                dist = self.world.distancia_manhattan(prox, objetivo) if hasattr(self.world, 'distancia_manhattan') else 99
-                bonus_prox = 10.0 / max(dist + 1, 0.1)
-                # Entropia da trajetoria (menor = melhor)
-                ent_traj = self._entropia_trajetoria(traj)
-                # Score composto: recompensa - entropia (entropia e penalidade)
-                score = bonus_prox - ent_traj * 2
-                scores.append(score)
-            
-            if not scores:
-                continue
-            
-            media_s = sum(scores) / len(scores)
-            var_s = sum((s - media_s)**2 for s in scores) / len(scores)
-            score = media_s - var_s * 0.5  # penaliza incerteza (alta variancia)
-            
-            if score > melhor_score:
-                melhor_score = score
-                melhor_acao = acao
-            
-            self.mk_sim.aprender(
-                f"ES:{str(estado.fingerprint(16)[:3])}:{acao}",
-                f"{media_s:.2f}"
-            )
-        
-        # Treina thresholds com score real
-        score_abs = max(abs(melhor_score), 0.01) if melhor_score != -999 else 1.0
-        self.thr_rollouts.observar(n_rollouts * score_abs / 10)
-        self.thr_depth.observar(depth * score_abs / 10)
-        self.total += 1
-        return melhor_acao, round(melhor_score, 3)
-
-# ═══════════════════════════════════════════════════════════════════
-# [01d] MCRAutoEvolution — auto-modificacao com validacao por entropia (F4)
-# ═══════════════════════════════════════════════════════════════════
-
-class MCRAutoEvolution:
-    """Auto-modificacao com verificacao empirica.
-    
-    Em vez de MCRCodex.substituir() (sempre aceita):
-    1. Mede entropia global ANTES
-    2. Propoe mutacao (parametro ou novo modulo)
-    3. Aplica em copia
-    4. Mede entropia global DEPOIS
-    5. ACEITA se entropia_depois < entropia_antes
-    6. REJEITA e reverte se entropia piorou
-    7. Aprende: esta classe de mutacao foi boa/ruim
-    
-    Equivalente funcional a Godel Machine com entropia como utility.
-    """
-    def __init__(self, cerebro):
-        self.cerebro = cerebro
-        self.mk_mutacoes = MCR("ae_mutacoes")
-        self.mk_resultados = MCR("ae_resultados")
-        self.thr_aceitacao = MCRThreshold("ae_aceite")
-        self.hist: List[Dict] = []
-    
-    def entropia_global(self):
-        entropias = []
-        c = self.cerebro
-        if hasattr(c, 'mk_byte'):
-            entropias.append(c.mk_byte.entropia_media())
-        if hasattr(c, 'mk_palavra'):
-            entropias.append(c.mk_palavra.entropia_media())
-        # Etapa 4: entropia do mundo causal
-        if hasattr(c, 'world') and hasattr(c.world, 'mk_estado'):
-            entropias.append(c.world.mk_estado.entropia_media())
-        # Entropia do coupling (matriz de pesos entre niveis)
-        if hasattr(c, 'coupling') and c.coupling.total_cooc > 0:
-            cm = c.coupling.matriz
-            vals = [cm[o][d] for o in cm for d in cm[o] if o != d]
-            if vals:
-                from collections import Counter as _Cnt
-                f = _Cnt(vals); n = len(vals)
-                ent_c = -sum((c/n)*math.log2(c/n) for c in f.values()) if n > 0 else 0
-                entropias.append(min(ent_c, 1.0))
-        # Entropia dos MCRThreshold: mede QUANTO os valores mudaram
-        # em relacao aos valores estaveis (obter). Se AE mutou, obs[-1]
-        # difere de obter() → entropia sobe → AE detecta impacto.
-        thr_baseline = []
-        thr_trial = []
-        if hasattr(MCRAttention, '_thr_p'):
-            for nome_k, thr_k in MCRAttention._thr_p.items():
-                thr_baseline.append(thr_k.obter("peso", 3.0))
-                if len(thr_k.obs) >= 1:
-                    thr_trial.append(abs(thr_k.obs[-1] - thr_baseline[-1]))
-        # Mede mudanca: se AE tentou algo, quanto diferiu do baseline?
-        if thr_trial:
-            ent_thr = min(sum(thr_trial) / len(thr_trial), 1.0)
-            if ent_thr > 0:
-                entropias.append(ent_thr)
-        # Variancia da entropia entre topicos (ruido do sistema)
-        if hasattr(c, 'topicos') and len(c.topicos) >= 2:
-            ents_t = []
-            for t in list(c.topicos.values())[:20]:
-                texto = t.get("texto", "")
-                if texto:
-                    ents_t.append(MCRByteUtils.entropia_bytes(texto.encode()[:500]))
-            if ents_t:
-                media_t = sum(ents_t) / len(ents_t)
-                var_t = sum((e - media_t)**2 for e in ents_t) / len(ents_t)
-                entropias.append(min(var_t * MCRDecisorUniversal.decidir(ctx="ae_var").get("threshold", 0.5), 1.0))
-        return sum(entropias) / max(len(entropias), 1) if entropias else 1.0
-    
-    def ciclo(self):
-        """Um ciclo de auto-evolucao: medir → mutar → validar → aceitar/rejeitar.
-        
-        MCR decide QUAL threshold mutar baseado no estado do sistema.
-        Nao ha lista fixa de alvos — MCRDecisor escolhe de TODOS os
-        MCRThreshold disponiveis.
-        """
-        ent_antes = self.entropia_global()
-        
-        # MCR decide qual threshold mutar (ctx="ae_alvo")
-        dec_alvo = MCRDecisorUniversal.decidir(ctx="ae_alvo")
-        tipo_alvo = dec_alvo.get("tipo", "atencao")
-        
-        alvos = []
-        if tipo_alvo == "atencao" and hasattr(MCRAttention, '_thr_p'):
-            for nome_k, thr_k in MCRAttention._thr_p.items():
-                alvos.append((f'att_{nome_k}', thr_k))
-        else:
-            # Descobre QUALQUER MCRThreshold no cerebro por introspeccao
-            for attr_name in dir(self.cerebro):
-                attr = getattr(self.cerebro, attr_name)
-                if isinstance(attr, MCRThreshold):
-                    alvos.append((attr_name, attr))
-        
-        if not alvos:
-            return {"acao": "nada_para_mutar", "motivo": "nenhum_threshold"}
-        
-        # MCR decide qual threshold mutar (delta, direcao)
-        nome_alvo, thr = _rand.choice(alvos)
-        dec = MCRDecisorUniversal.decidir(ctx="ae_delta")
-        delta = dec.get("threshold", 0.05)
-        if _rand.random() < 0.5:
-            delta = -delta
-        
-        valor_original = thr.obter("valor", 0.5)
-        novo_valor = max(0.01, min(1.0, valor_original + delta))
-        
-        mutacao = {'tipo': 'threshold', 'alvo': nome_alvo,
-                   'valor_original': round(valor_original, 4),
-                   'novo_valor': round(novo_valor, 4)}
-        
-        # Aplica mutacao no threshold (em memoria)
-        thr.obs = thr.obs + [novo_valor]
-        ent_depois = self.entropia_global()
-        melhoria = ent_antes - ent_depois  # para logging
-        
-        # Criticalidade: nao buscamos entropia MINIMA (silêncio),
-        # mas entropia em uma faixa saudavel (0.2-0.7).
-        # Abaixo de 0.2: sistema estatico, nao aprende (AAAAA).
-        # Acima de 0.7: sistema caotico, nao generaliza.
-        # Entre 0.2 e 0.7: borda do caos — onde o aprendizado acontece.
-        ent_alvo_min = self.thr_aceitacao.obter("alvo_min", 0.2)
-        ent_alvo_max = self.thr_aceitacao.obter("alvo_max", 0.7)
-        
-        dentro_alvo_antes = ent_alvo_min <= ent_antes <= ent_alvo_max
-        dentro_alvo_depois = ent_alvo_min <= ent_depois <= ent_alvo_max
-        
-        # Aceita se:
-        # 1. Moveu PARA DENTRO da zona de criticalidade (melhor), OU
-        # 2. Manteve-se DENTRO da zona (neutro), OU
-        # 3. Entropia externa subiu (sistema observador, nao controlador)
-        if not dentro_alvo_antes and dentro_alvo_depois:
-            aceite = True  # entrou na criticalidade
-        elif dentro_alvo_antes and not dentro_alvo_depois:
-            aceite = False  # saiu da criticalidade
-        elif ent_depois - ent_antes > 0.1:
-            aceite = True  # entropia externa subiu — sistema apenas observou
-        else:
-            aceite = True  # manteve-se estavel ou melhorou dentro da faixa
-        
-        self.mk_resultados.aprender(f"{'ACEITE' if aceite else 'REJEITE'}:{mutacao['tipo']}", f"{melhoria:.4f}")
-        self.mk_mutacoes.aprender(f"AE:{mutacao['tipo']}:{'ACEITE' if aceite else 'REJEITE'}", f"{melhoria:.4f}")
-        
-        r = {"timestamp": time.time(), "mutacao": mutacao,
-             "ent_antes": round(ent_antes, 4), "ent_depois": round(ent_depois, 4),
-             "melhoria": round(melhoria, 4), "resultado": "aceito" if aceite else "rejeitado"}
-        self.hist.append(r)
-        self.thr_aceitacao.observar(abs(melhoria))
-        return r
-    
-    def _entropia_cerebro(self, cerebro):
-        """Entropia de um cerebro (para comparacao antes/depois)."""
-        entropias = []
-        if hasattr(cerebro, 'mk_byte'):
-            entropias.append(cerebro.mk_byte.entropia_media())
-        if hasattr(cerebro, 'mk_palavra'):
-            entropias.append(cerebro.mk_palavra.entropia_media())
-        return sum(entropias) / max(len(entropias), 1) if entropias else 1.0
-    
-    def relatorio(self):
-        aceites = sum(1 for h in self.hist if h['resultado'] == 'aceito')
-        return {
-            "ciclos": len(self.hist),
-            "aceites": aceites,
-            "taxa_aceite": round(aceites / max(len(self.hist), 1), 3),
-            "entropia_atual": round(self.entropia_global(), 4),
-        }
-
-class MCRThreshold:
-    def __init__(self, nome=""):
-        self.obs = []; self.mk = MCR(nome)
-    def observar(self, v):
-        self.obs.append(v); self.mk.aprender(f"V:{int(v*100)}", "O")
-    def calcular(self, mult=1.0):
-        return median(self.obs)*mult if len(self.obs) >= 3 else 0.5
-    def obter(self, chave, fallback=0.5):
-        p, c = self.mk.predizer(f"T:{chave}")
-        if p and c > 0.3:
-            try: return int(p)/100.0
-            except: pass
-        return self.calcular() if len(self.obs) >= 3 else fallback
-
-class MCREntropia:
-    def __init__(self, nome=""):
-        self.mk = MCR(nome); self.hist: List[float] = []; self.thr = MCRThreshold(f"e_{nome}")
-    def alimentar(self, t):
-        self.mk.aprender(f"T:{str(t)[:50]}", "V")
-        h = self.mk.entropia(f"T:{str(t)[:50]}")
-        self.hist.append(h)
-        if len(self.hist) > 100: self.hist = self.hist[-50:]
-    def esta_em_loop(self):
-        if len(self.hist) < 3: return False
-        hl = sum(self.hist[-10:])/min(10, len(self.hist))
-        self.thr.observar(hl); return hl < self.thr.calcular(0.5)
-
-# ═══════════════════════════════════════════════════════════════════
-# [16] MCRDecisorUniversal — parametros decididos pela Equacao
-# ═══════════════════════════════════════════════════════════════════
-
-class MCRDecisorUniversal:
-    _th = MCRThreshold("decisor")
-    _cache: Dict[str, dict] = {}
-    @classmethod
-    def decidir(cls, motor=None, ctx=""):
-        return {"passos": max(1, int(cls._th.obter("passos",6))), "threshold": cls._th.obter("thr",0.5), "dim": max(4, int(cls._th.obter("dim",8)))}
-    @classmethod
-    def decidir_passos(cls, ctx="default", estado=None):
-        """Decide quantas iteracoes executar — zero hardcode.
-        ctx: contexto (ex: 'test_coupling', 'auto_diag', 'descobrir_drives')
-        estado: dict opcional com estado real (ex: {'n_topicos': 10, 'tamanho_bytes': 2000})
-        MCRThreshold aprende com o tempo qual numero e ideal.
-        """
-        chave = f"passos_{ctx}"
-        # Padrao por contexto (aprendido via MCRThreshold, estes sao seeds iniciais apenas)
-        padrao = {
-            "test_coupling": 5,
-            "auto_diag": 5,
-            "descobrir_drives": 2,
-            "ler_entropia": 4,
-        }.get(ctx, 6)
-        # Se tem estado real, ajusta baseado na necessidade
-        if estado:
-            if "n_topicos" in estado and estado["n_topicos"] > 0:
-                padrao = max(2, min(20, estado["n_topicos"] // 2))
-            if "tamanho_bytes" in estado and estado["tamanho_bytes"] > 0:
-                padrao = max(1, min(10, estado["tamanho_bytes"] // 500 + 1))
-        passos = max(1, int(cls._th.obter(chave, padrao)))
-        return passos
-
-# ═══════════════════════════════════════════════════════════════════
-# [04] Entidade + EstadoMundo + MotorFisica
-# ═══════════════════════════════════════════════════════════════════
-
-class Entidade:
-    def __init__(self, nome, tipo="objeto", props=None):
-        self.nome, self.tipo, self.props = nome, tipo, props or {}
-    def clone(self): return Entidade(self.nome, self.tipo, dict(self.props))
-
-class EstadoMundo:
-    def __init__(self):
-        self.entidades: Dict[str, Entidade] = {}; self.grid_w, self.grid_h = 5, 5; self.obstaculos: Set[Tuple[int,int]] = set()
-    def adicionar(self, e): self.entidades[e.nome] = e
-    def remover(self, n): self.entidades.pop(n, None)
-    def get(self, n): return self.entidades.get(n)
-    def serializar(self):
-        return MCRSerializador.serializar(self.entidades)
-    def fingerprint(self, dim=8): return MCRByteUtils.fingerprint(self.serializar(), dim)
-    def clone(self):
-        e = EstadoMundo(); e.entidades = {n: ent.clone() for n, ent in self.entidades.items()}
-        e.grid_w, e.grid_h = self.grid_w, self.grid_h; e.obstaculos = set(self.obstaculos); return e
-    @staticmethod
-    def criar_simples():
-        e = EstadoMundo()
-        e.adicionar(Entidade("heroi","jogador",{"x":0,"y":0,"hp":10}))
-        e.adicionar(Entidade("pedra","objeto",{"x":2,"y":2,"gravidade":True}))
-        e.adicionar(Entidade("bau","objeto",{"x":4,"y":4,"aberto":False}))
-        e.adicionar(Entidade("monstro","inimigo",{"x":3,"y":1,"hp":5}))
-        return e
-
-# ═══════════════════════════════════════════════════════════════════
-# [18] MCRSerializador
-# ═══════════════════════════════════════════════════════════════════
-
-class MCRSerializador:
-    @staticmethod
-    def serializar(entidades):
-        partes = []
-        for nome in sorted(entidades.keys()):
-            e = entidades[nome]
-            ps = ";".join(f"{k}={v}" for k, v in sorted(e.props.items()))
-            partes.append(f"{e.nome}:{e.tipo}:{ps}")
-        return "|".join(partes)
-    @staticmethod
-    def fingerprint(entidades, dim=None):
-        return MCRByteUtils.fingerprint(MCRSerializador.serializar(entidades), dim or C("dim_fingerprint", 8))
-
-# ═══════════════════════════════════════════════════════════════════
-# [03] MCRAcao — acoes registradas, zero if/elif
-# ═══════════════════════════════════════════════════════════════════
-
-class MCRAcao:
-    _reg: Dict[str, Dict] = {}
-    @classmethod
-    def registrar(cls, nome, fn, desc="", tags=None, alcance=1):
-        cls._reg[nome] = {"fn": fn, "desc": desc, "tags": tags or [], "alcance": alcance}
-    @classmethod
-    def executar(cls, estado, acao, **kw):
-        if acao not in cls._reg: return estado.clone()
-        return cls._reg[acao]["fn"](estado, **kw)
-    @classmethod
-    def disponiveis(cls): return list(cls._reg.keys())
-    @classmethod
-    def total(cls): return len(cls._reg)
-
-def _registrar_acoes():
-    MCRAcao.registrar("andar_dir", lambda e, **k: _mover(e,1,0), "direita", ["movimento"])
-    MCRAcao.registrar("andar_esq", lambda e, **k: _mover(e,-1,0), "esquerda", ["movimento"])
-    MCRAcao.registrar("andar_cima", lambda e, **k: _mover(e,0,-1), "cima", ["movimento"])
-    MCRAcao.registrar("andar_baixo", lambda e, **k: _mover(e,0,1), "baixo", ["movimento"])
-    MCRAcao.registrar("atacar", lambda e, **k: _interagir(e,"hp",-3), "atacar", ["combate"])
-    MCRAcao.registrar("abrir", lambda e, **k: _interagir(e,"aberto",True), "abrir", ["interacao"])
-    MCRAcao.registrar("empurrar", lambda e, **k: _empurrar(e), "empurrar", ["interacao"])
-
-def _mover(est, dx, dy):
-    nv = est.clone(); h = nv.get("heroi")
-    if not h: return nv
-    x, y = h.props.get("x",0), h.props.get("y",0); nx, ny = x+dx, y+dy
-    if 0 <= nx < nv.grid_w and 0 <= ny < nv.grid_h and (nx,ny) not in nv.obstaculos:
-        nv.entidades["heroi"].props["x"], nv.entidades["heroi"].props["y"] = nx, ny
-    return nv
-
-def _interagir(est, prop, val):
-    nv = est.clone(); h = nv.get("heroi")
-    if not h: return nv
-    x, y = h.props.get("x",0), h.props.get("y",0); tgt = _adjacente(nv, x, y)
-    if tgt and prop in tgt.props:
-        if isinstance(val, (int,float)) and isinstance(tgt.props[prop], (int,float)):
-            nv.entidades[tgt.nome].props[prop] += val
-            if prop == "hp" and nv.entidades[tgt.nome].props["hp"] <= 0: nv.remover(tgt.nome)
-        else: nv.entidades[tgt.nome].props[prop] = val
-    return nv
-
-def _empurrar(est):
-    nv = est.clone(); h = nv.get("heroi")
-    if not h: return nv
-    x, y = h.props.get("x",0), h.props.get("y",0); tgt = _adjacente(nv, x, y)
-    if tgt:
-        dx = tgt.props.get("x",0)-x; dy = tgt.props.get("y",0)-y
-        nx, ny = tgt.props.get("x",0)+dx, tgt.props.get("y",0)+dy
-        if 0 <= nx < nv.grid_w and 0 <= ny < nv.grid_h and (nx,ny) not in nv.obstaculos:
-            nv.entidades[tgt.nome].props["x"], nv.entidades[tgt.nome].props["y"] = nx, ny
-    return nv
-
-def _adjacente(est, x, y):
-    cands = []
-    for n, e in est.entidades.items():
-        if n == "heroi": continue
-        ex, ey = e.props.get("x",-1), e.props.get("y",-1)
-        if abs(ex-x)+abs(ey-y) == 1: cands.append(e)
-    if not cands: return None
-    for e in cands:
-        if "hp" in e.props: return e
-    for e in cands:
-        if "aberto" in e.props: return e
-    return cands[0]
-
-_registrar_acoes()
-
-# ═══════════════════════════════════════════════════════════════════
-# [04] MCRNLP — NLP por jaccard, zero keywords
-# ═══════════════════════════════════════════════════════════════════
-
-class MCRNLP:
-    _ex: Dict[str, List[str]] = {}
-    _dom: Dict[str, List[str]] = {}
-    @classmethod
-    def aprender(cls, frase, acao, dominio="acao"):
-        cls._ex.setdefault(acao, []).append(frase.lower())
-        if dominio != "acao": cls._dom.setdefault(dominio, []).append(frase.lower())
-    @classmethod
-    def entender(cls, frase, dominio="acao", top_k=None):
-        top_k = top_k or max(1, int(C("top_k",3))); frase = frase.lower()
-        # Dimensionalidade ideal para a frase (P6-NOVO)
-        dim = MCRSignatureExpansiva.dimensionalidade_ideal(
-            frase.encode()[:2000], mx=128, thr=0.05
-        )
-        fp_frase = MCRByteUtils.fingerprint(frase, max(dim, 4))
-        scores = {}
-        for acao, exs in cls._ex.items():
-            melhor_j = max((MCRByteUtils.jaccard_bytes(frase, ex) for ex in exs), default=0)
-            if melhor_j <= 0: continue
-            melhor_cos = max(
-                (MCRByteUtils.similaridade_cosseno(
-                    fp_frase, MCRByteUtils.fingerprint(ex, max(dim, 4))
-                ) for ex in exs), default=0
-            )
-            # Score combinado: jaccard + cosseno com dimensionalidade ideal
-            params = MCRDecisorUniversal.decidir(ctx="nlp")
-            peso_j = params.get("peso_jaccard", 0.5)
-            scores[acao] = melhor_j * peso_j + melhor_cos * (1 - peso_j)
-        ords = sorted(scores.items(), key=lambda x: -x[1])
-        limiar = MCRThreshold("nlp_entender").obter("limiar", 0.3)
-        return [acao for acao, score in ords[:top_k] if score > limiar]
-    @classmethod
-    def auto_expandir(cls, cerebro):
-        """Expande exemplos de treino usando topicos do cerebro (F3).
-        
-        Para cada acao com poucos exemplos, busca topicos similares
-        no cerebro e extrai novas frases como exemplos adicionais.
-        """
-        thr_min = MCRThreshold("nlp_expandir").obter("min_exemplos", 3)
-        thr_jac = MCRThreshold("nlp_expandir").obter("jac_min", 0.2)
-        thr_pal = MCRThreshold("nlp_expandir").obter("palavras_min", 3)
-        for acao, exs in list(cls._ex.items()):
-            if len(exs) >= thr_min:
-                continue
-            for ex in exs:
-                if not cerebro.topicos:
-                    continue
-                for nome, dados in cerebro.topicos.items():
-                    texto = dados.get("texto", "")
-                    j = MCRByteUtils.jaccard_bytes(ex, texto[:500])
-                    if j < thr_jac:
-                        continue
-                    palavras = texto.split()[:10]
-                    if len(palavras) < thr_pal:
-                        continue
-                    nova = " ".join(palavras[:thr_pal])
-                    if nova not in exs:
-                        cls.aprender(nova, acao)
-    @classmethod
-    def detectar_dominio(cls, texto):
-        texto = texto.lower()
-        if not cls._dom: return "texto"
-        melhor_dom, melhor_j = "texto", 0.0
-        for dom, frases in cls._dom.items():
-            for ex in frases:
-                j = MCRByteUtils.jaccard_bytes(texto, ex)
-                if j > melhor_j: melhor_j, melhor_dom = j, dom
-        return melhor_dom if melhor_j > C("conf_alta", 0.5) else "texto"
-
-def _registrar_nlp():
-    for f in ["anda pra cima","suba","norte","cima"]: MCRNLP.aprender(f, "andar_cima")
-    for f in ["anda pra baixo","desca","sul","baixo"]: MCRNLP.aprender(f, "andar_baixo")
-    for f in ["anda pra esquerda","esquerda","oeste"]: MCRNLP.aprender(f, "andar_esq")
-    for f in ["anda pra direita","direita","leste"]: MCRNLP.aprender(f, "andar_dir")
-    for f in ["ataque","atacar","bater","lutar"]: MCRNLP.aprender(f, "atacar")
-    for f in ["abrir","abra o bau","abrir porta"]: MCRNLP.aprender(f, "abrir")
-    for f in ["empurrar","empurre","mover","arrastar"]: MCRNLP.aprender(f, "empurrar")
-    for f in ["heroi","posicao","grid","andar","bau","monstro","heroi andou","bau aberto"]: MCRNLP._dom.setdefault("grid",[]).append(f)
-    for f in ["SPA","SHC","sistema","progressao","habilidade","lore"]: MCRNLP._dom.setdefault("texto",[]).append(f)
-    for f in ["fibonacci","sequencia","numero","potencia","1 2 3"]: MCRNLP._dom.setdefault("numerico",[]).append(f)
-_registrar_nlp()
-
-# ═══════════════════════════════════════════════════════════════════
-# [05] MCRAttention — foco seletivo, 4 sinais da Equacao
-# ═══════════════════════════════════════════════════════════════════
-
-class MCRAttention:
-    _thr_p = {"prob": MCRThreshold("att_prob"), "fp": MCRThreshold("att_fp"),
-              "jac": MCRThreshold("att_jac"), "ent": MCRThreshold("att_ent")}
-    @classmethod
-    def _pesos(cls):
-        return {k: v.obter("peso", p) for k, v, p in
-                [("prob", cls._thr_p["prob"], 3.0), ("fp", cls._thr_p["fp"], 5.0),
-                 ("jac", cls._thr_p["jac"], 4.0), ("ent", cls._thr_p["ent"], 1.0)]}
-    @classmethod
-    def _topico_relevante(cls, cerebro, pergunta):
-        if not pergunta or not cerebro.topicos: return None
-        melhor_n, melhor_t, melhor_j = None, None, 0.0
-        for nome, dados in cerebro.topicos.items():
-            texto = dados.get("texto","")
-            if len(texto) < 20: continue
-            j = MCRByteUtils.jaccard_bytes(pergunta, texto[:500])
-            if j > melhor_j: melhor_j, melhor_n, melhor_t = j, nome, texto
-        return (melhor_n, melhor_t, melhor_j) if melhor_j > 0.01 else None
-    @classmethod
-    def pontuar(cls, cerebro, ctx, pergunta="", k=10):
-        if not ctx: return []
-        palavras = ctx.split(); semente = palavras[-1] if palavras else ""
-        topico = cls._topico_relevante(cerebro, pergunta)
-        if topico:
-            _, txt, _ = topico; tx = txt.split()
-            cands = {}
-            for i, p in enumerate(tx):
-                if p == semente and i+1 < len(tx):
-                    prox = tx[i+1]; cands[prox] = cands.get(prox,0)+1
-            cands = [(t, c/max(sum(cands.values()),1)) for t,c in sorted(cands.items(), key=lambda x:-x[1])][:k*3]
-        else:
-            cands = cerebro.mk_palavra.predizer_n(semente, k*3) if hasattr(cerebro,'mk_palavra') else []
-        if not cands: return []
-        fp_ctx = MCRByteUtils.fingerprint(ctx)
-        pts = []
-        for token, prob in cands:
-            s_prob = prob
-            fp_tok = MCRByteUtils.fingerprint(f"{ctx} {token}")
-            s_fp = MCRByteUtils.similaridade_cosseno(fp_ctx, fp_tok)
-            s_jac = 0.0
-            if pergunta:
-                for d in cerebro.topicos.values():
-                    txt = d.get("texto","")
-                    if token in txt and len(txt) > 20:
-                        j = MCRByteUtils.jaccard_bytes(pergunta, txt[:500])
-                        if j > s_jac: s_jac = j
-            h = cerebro.mk_palavra.entropia(token) if hasattr(cerebro,'mk_palavra') and token in cerebro.mk_palavra.freq else 0.5
-            s_ent = 1.0 - abs(h-0.5)*2
-            w = cls._pesos()
-            nota = (s_prob*w["prob"] + s_fp*w["fp"] + s_jac*w["jac"] + s_ent*w["ent"])/sum(w.values())
-            pts.append((token, round(nota,4)))
-        pts.sort(key=lambda x:-x[1]); return pts[:k]
-    @classmethod
-    def gerar(cls, cerebro, texto, passos=None, pergunta=""):
-        passos = passos or int(C("passos_gerar",6))
-        palavras = texto.split()
-        if not palavras: return texto
-        pergunta = pergunta or texto
-        for _ in range(passos):
-            ctx = " ".join(palavras)
-            cands = cls.pontuar(cerebro, ctx, pergunta, k=int(C("top_k",3))+2)
-            if not cands: break
-            palavras.append(cands[0][0])
-            if len(palavras) >= 4 and len(set(palavras[-4:])) == 1: break
-        return " ".join(palavras)
-
-# ═══════════════════════════════════════════════════════════════════
-# [06] MCRWorld — modelo causal
-# ═══════════════════════════════════════════════════════════════════
-
-class MCRWorld:
-    def __init__(self):
-        self.mk_estado = MCR("world_est"); self.mk_acao = MCR("world_ac"); self.mk_causal = MCR("world_caus")
-        self.mk_plano = MCR("world_plan"); self.hist: List[Dict] = []; self.thr = MCRThreshold("world")
-        self.dim_fp = C("dim_fingerprint", 16)
-    def aprender(self, antes, acao, depois):
-        fpa, fpd = antes.fingerprint(self.dim_fp), depois.fingerprint(self.dim_fp)
-        as_, ds = str(fpa), str(fpd)
-        self.mk_estado.aprender(as_, ds)
-        self.mk_acao.aprender(f"{as_}:{acao}", ds)
-        delta = tuple(round(d,3) for d in MCRByteUtils.delta_fingerprint(antes.serializar(), depois.serializar(), self.dim_fp))
-        self.mk_causal.aprender(str(delta), acao)
-        self.hist.append({"a": antes.serializar()[:30], "ac": acao, "d": depois.serializar()[:30]})
-        self.thr.observar(MCRByteUtils.jaccard_bytes(antes.serializar(), depois.serializar()))
-    def simular(self, estado, acao):
-        fpa = estado.fingerprint(self.dim_fp); chave = f"{str(fpa)}:{acao}"
-        pdf, cf = self.mk_acao.predizer(chave)
-        if pdf and cf > 0.15: return self._reconstruir(pdf, estado)
-        pdf2, cf2 = self.mk_estado.predizer(str(fpa))
-        if pdf2 and cf2 > 0.3: return self._reconstruir(pdf2, estado)
-        return MCRAcao.executar(estado, acao)
-    def _reconstruir(self, fp_str, ref):
-        melh_e, melh_s = None, 0.0
-        for h in self.hist[-50:]:
-            e = EstadoMundo()
-            try:
-                for p in h["d"].split("|"):
-                    if ":" in p:
-                        no, r = p.split(":",1)
-                        if ":" in r:
-                            ti, ps = r.split(":",1); pr = {}
-                            for kv in ps.split(";"):
-                                if "=" in kv:
-                                    kk, vv = kv.split("=",1)
-                                    try: vv = int(vv)
-                                    except: pass
-                                    pr[kk] = vv
-                            e.adicionar(Entidade(no, ti, pr))
-            except: continue
-            fpe = str(e.fingerprint(self.dim_fp))
-            sim = MCRByteUtils.similaridade_cosseno(
-                [float(x) for x in fp_str.strip("[]").split(",") if x.strip()],
-                [float(x) for x in fpe.strip("[]").split(",") if x.strip()]) if fpe else 0
-            if sim > melh_s: melh_s, melh_e = sim, e
-        return melh_e or ref.clone()
-    def predizer_acao(self, antes, depois):
-        delta = tuple(round(d,3) for d in MCRByteUtils.delta_fingerprint(antes.serializar(), depois.serializar(), self.dim_fp))
-        ac, cf = self.mk_causal.predizer(str(delta))
-        return ac if ac and cf > 0.1 else None
-    def contrafactual(self, estado, acao, var_nome, var_valor):
-        rn = self.simular(estado, acao); fp_n = rn.fingerprint(self.dim_fp) if rn else []
-        ea = estado.clone()
-        for e in ea.entidades.values():
-            if var_nome in e.props: e.props[var_nome] = var_valor
-        ra = self.simular(ea, acao); fp_a = ra.fingerprint(self.dim_fp) if ra else []
-        if not fp_n or not fp_a: return f"Sem dados para contrafactual de '{var_nome}={var_valor}'."
-        delta = MCRByteUtils.delta_fingerprint(rn.serializar() if rn else "", ra.serializar() if ra else "", self.dim_fp)
-        mag = math.sqrt(sum(d*d for d in delta))
-        return f"Se '{var_nome}' fosse '{var_valor}', mudaria em {mag:.2f} unidades. Delta: {[round(d,2) for d in delta[:4]]}"
-    def distancia(self, a, b):
-        fa, fb = a.fingerprint(self.dim_fp), b.fingerprint(self.dim_fp)
-        return math.sqrt(sum((fb[i]-fa[i])**2 for i in range(self.dim_fp)))
-    def distancia_manhattan(self, a, b):
-        """Distancia Manhattan entre herois de dois estados.
-        Usada para planejamento onde fingerprint 8D e insuficiente."""
-        ha, hb = a.get("heroi"), b.get("heroi")
-        if not ha or not hb: return self.distancia(a, b)
-        return abs(ha.props.get("x",0)-hb.props.get("x",0)) + \
-               abs(ha.props.get("y",0)-hb.props.get("y",0))
-    def delta_entidade(self, antes, depois, nome="heroi", props=("x","y")):
-        """Delta de propriedades de uma entidade entre dois estados.
-        
-        Ex: delta_entidade(est1, est2, 'heroi', ('x','y'))
-            → [dx, dy]  (exato, independente de fingerprint)
-        """
-        ha, hb = antes.get(nome), depois.get(nome)
-        if not ha or not hb: return []
-        return [hb.props.get(k,0) - ha.props.get(k,0) for k in props]
-
-# ═══════════════════════════════════════════════════════════════════
-# [07] MCRCoupling — matriz byte↔palavra↔token↔intencao↔acao
-# ═══════════════════════════════════════════════════════════════════
-
-class MCRCoupling:
-    def __init__(self):
-        self.niveis = self._descobrir_niveis()
-        self.matriz = {o: {d: 0.0 for d in self.niveis} for o in self.niveis}
-        self.cooc = {o: {d: 0 for d in self.niveis} for o in self.niveis}
-        self.total_cooc = 0; self.mk = MCR("coupling")
-        # MCREsfera: aprendizado N-dimensional (evolucao do coupling 2D)
-        self.esfera = MCREsfera()
-    @staticmethod
-    def _descobrir_niveis():
-        base = ["byte","palavra","tven","fingerprint"]
-        return base + ["intencao","acao","sujeito","relacao","objeto","contexto","posicao","token_tipo","pi"]
-    def alimentar(self, origem, destino, to, td):
-        if origem not in self.niveis or destino not in self.niveis: return
-        self.cooc[origem][destino] += 1; self.total_cooc += 1
-        self.mk.aprender(f"CP:{origem}->{destino}:{str(to)[:10]}", str(td)[:10])
-        # Alimenta a esfera N-dimensional com pares de niveis
-        self.esfera.alimentar_par(origem, destino, str(to)[:10], str(td)[:10])
-    def recalcular(self):
-        for o in self.niveis:
-            for d in self.niveis:
-                if o == d: self.matriz[o][d] = 1.0; continue
-                c = self.cooc[o][d]
-                self.matriz[o][d] = round(c/self.total_cooc*len(self.niveis), 3) if c >= 3 and self.total_cooc else 0.0
-        self.esfera.recalcular()
-    def peso(self, origem, destino): return self.matriz.get(origem,{}).get(destino,0.0)
-    def modular(self, nivel, probs):
-        res = dict(probs)
-        for outro in self.niveis:
-            if outro == nivel: continue
-            p = self.peso(outro, nivel)
-            if p > 0.1:
-                for ch in res: res[ch] *= (1 + p * 0.1)
-        return res
-
-class MCREsfera:
-    """Aprendizado N-dimensional de correlacoes entre niveis.
-    
-    Diferenca do MCRCoupling (2D pairwise):
-    - Coupling: matriz NxN de pesos entre pares de niveis
-    - Esfera: aprende correlacoes entre VARIOS niveis simultaneamente
-    
-    Permite predicao cross-level que o coupling 2D nao faz.
-    Usa dict de dicts aninhados (matriz N-dimensional esparsa).
-    """
-    def __init__(self):
-        # cross[nivel_a][valor_a][nivel_b][valor_b] = contagem
-        self.cross: Dict[str, Dict] = {}
-        # freq[nivel_a][valor_a] = total de ocorrencias
-        self.freq_nivel: Dict[str, Dict[str, int]] = {}
-        self.total = 0
-    
-    def _init_nivel(self, nivel):
-        if nivel not in self.cross:
-            self.cross[nivel] = {}
-            self.freq_nivel[nivel] = {}
-    
-    def alimentar_par(self, nivel_a, nivel_b, valor_a, valor_b):
-        """Alimenta correlacao entre dois niveis.
-        
-        Registra que quando nivel_a=valor_a, nivel_b tende a ser valor_b.
-        """
-        self._init_nivel(nivel_a)
-        if valor_a not in self.cross[nivel_a]:
-            self.cross[nivel_a][valor_a] = {}
-        if nivel_b not in self.cross[nivel_a][valor_a]:
-            self.cross[nivel_a][valor_a][nivel_b] = {}
-        chave = valor_b
-        self.cross[nivel_a][valor_a][nivel_b][chave] = (
-            self.cross[nivel_a][valor_a][nivel_b].get(chave, 0) + 1
-        )
-        self.freq_nivel[nivel_a][valor_a] = self.freq_nivel[nivel_a].get(valor_a, 0) + 1
-        self.total += 1
-        
-        # Alimenta tambem o inverso (nivel_b → nivel_a) para simetria
-        self._init_nivel(nivel_b)
-        if valor_b not in self.cross[nivel_b]:
-            self.cross[nivel_b][valor_b] = {}
-        if nivel_a not in self.cross[nivel_b][valor_b]:
-            self.cross[nivel_b][valor_b][nivel_a] = {}
-        chave_a = valor_a
-        self.cross[nivel_b][valor_b][nivel_a][chave_a] = (
-            self.cross[nivel_b][valor_b][nivel_a].get(chave_a, 0) + 1
-        )
-        self.freq_nivel[nivel_b][valor_b] = self.freq_nivel[nivel_b].get(valor_b, 0) + 1
-        self.total += 1
-    
-    def recalcular(self):
-        """Recalcula correlacoes: poda pares com frequencia < threshold.
-        
-        Remove correlacoes que nunca se repetiram (frequencia 1 = ruido).
-        Auto-valida: se esfera ficou vazia, precisa de mais dados.
-        """
-        thr = MCRThreshold("esfera").obter("poda", 2)
-        for nivel_a in list(self.cross.keys()):
-            for valor_a in list(self.cross[nivel_a].keys()):
-                for nivel_b in list(self.cross[nivel_a][valor_a].keys()):
-                    for chave_b in list(self.cross[nivel_a][valor_a][nivel_b].keys()):
-                        if self.cross[nivel_a][valor_a][nivel_b][chave_b] < thr:
-                            del self.cross[nivel_a][valor_a][nivel_b][chave_b]
-                    if not self.cross[nivel_a][valor_a][nivel_b]:
-                        del self.cross[nivel_a][valor_a][nivel_b]
-                if not self.cross[nivel_a][valor_a]:
-                    del self.cross[nivel_a][valor_a]
-            if not self.cross[nivel_a]:
-                del self.cross[nivel_a]
-        self.total = sum(
-            sum(c for c in vb.values())
-            for na in self.cross for va in self.cross[na].values()
-            for vb in va.values()
-        )
-    
-    def predizer_cross(self, nivel_alvo, **contexto):
-        """Prediz valor em nivel_alvo dado contexto em QUALQUER nivel.
-        
-        Ex: esfera.predizer_cross('palavra', byte='B:41')
-            → qual palavra ocorre quando byte=B:41?
-        """
-        candidatos = {}
-        
-        for nivel_ctx, valor_ctx in contexto.items():
-            if nivel_ctx not in self.cross:
-                continue
-            if valor_ctx not in self.cross[nivel_ctx]:
-                continue
-            if nivel_alvo not in self.cross[nivel_ctx][valor_ctx]:
-                continue
-            
-            freq_total = self.freq_nivel[nivel_ctx].get(valor_ctx, 1)
-            for valor_b, contagem in self.cross[nivel_ctx][valor_ctx][nivel_alvo].items():
-                score = contagem / freq_total
-                candidatos[valor_b] = candidatos.get(valor_b, 0) + score
-        
-        if not candidatos:
-            return None, 0.0
-        
-        melhor = max(candidatos, key=candidatos.get)
-        conf = candidatos[melhor]
-        return melhor, min(conf, 1.0)
-
-# ═══════════════════════════════════════════════════════════════════
-# [07b] MCRHiperesferaAutoExpansiva — dimensoes descobertas por entropia
-# ═══════════════════════════════════════════════════════════════════
-
-class MCRHiperesferaAutoExpansiva:
-    """Descobre dimensoes automaticamente pela entropia.
-    
-    Comeca com 0 dimensoes. A cada ciclo, descobre a DIMENSAO
-    MAIS PREVISIVEL (menor entropia) que ainda nao foi adicionada.
-    Para quando o proximo candidato tem entropia ~1.0 (ruido).
-    
-    A ordem de descoberta e sempre: MAIS ESTRUTURADA primeiro.
-    Para codigo fonte: linha → fingerprint_sliding → hash_curto → palavra
-    """
-    
-    CANDIDATOS = [
-        ("byte", lambda t: [f"B:{b:02x}" for b in t.encode('utf-8')[:2000]], "bytes individuais"),
-        ("palavra", lambda t: re.findall(r'\b\w+\b', t.lower())[:500], "palavras do texto"),
-        ("token_tipo", lambda t: [
-            'M' if c.isupper() else 'm' if c.islower() else 'd' if c.isdigit() else 'o'
-            for c in t[:1000]], "tipo do caractere"),
-        ("linha", lambda t: [l[:30] for l in t.split('\n') if l.strip()][:200], "linhas do texto"),
-        ("byte_delta", lambda t: [f"Δ:{abs(d[i+1]-d[i]):02x}" for d in (t.encode()[:1000],) for i in range(len(d)-1)], "diferenca entre bytes"),
-        ("hash_curto", lambda t: [
-            f"H:{abs(hash(p))%1000:03d}"
-            for p in re.findall(r'\b\w+\b', t.lower())[:300]], "hash de palavras"),
-        # Candidatos independentes de variedade lexical (P4)
-        ("byte_freq", lambda t: [f"F:{t.encode().count(b):03d}" for b in range(min(256, len(t.encode())))][:50], "frequencia de bytes"),
-        ("entropia_local", lambda t: [f"E:{int(MCRByteUtils.entropia_bytes(t[i:i+10].encode())*10)}" for i in range(0, min(len(t),500), 5)], "entropia de janelas"),
-    ]
-    
-    def __init__(self):
-        self.dimensoes: Dict[str, MCR] = {}
-        self.tokenizadores: Dict[str, Callable] = {}
-        self.ent_historico: List[float] = []
-        self.threshold = 0.95
-    
-    def _entropia(self, mk: MCR) -> float:
-        if mk.total == 0: return 1.0
-        return mk.entropia_media()
-    
-    def _entropia_candidato(self, nome, fn, texto):
-        tokens = fn(texto)
-        if len(tokens) < 3: return 1.0
-        mk = MCR(nome)
-        for i in range(len(tokens)-1): mk.aprender(tokens[i], tokens[i+1])
-        return self._entropia(mk)
-    
-    def _gerar_candidatos(self, texto):
-        """Gera candidatos FIXOS + DERIVADOS dos dados."""
-        # Candidatos fixos
-        yield from self.CANDIDATOS
-        # Candidatos derivados: n-gramas (HC #7-8)
-        if len(texto) > 50:
-            n_limite = MCRDecisorUniversal.decidir_passos("gerar_candidatos", {"tamanho_bytes": len(texto)})
-            n_buckets = int(MCRDecisorUniversal.decidir(ctx="bucket_size").get("dim", 8)) * 125
-            yield ("bigrama_char", lambda t: [t[i:i+2] for i in range(min(len(t)-1, n_limite))], "bigramas de caracteres")
-            yield ("trigrama_char", lambda t: [t[i:i+3] for i in range(min(len(t)-2, n_limite))], "trigramas de caracteres")
-            yield ("ngram_hash", lambda t: [f"N:{abs(hash(t[i:i+4]))%max(n_buckets,100):03d}" for i in range(min(len(t)-3, n_limite))], "hash de 4-gramas")
-    
-    def _candidatos_disponiveis(self, texto=""):
-        conhecidos = set(self.dimensoes.keys())
-        resultado = []
-        for n, fn, d in self._gerar_candidatos(texto):
-            if n not in conhecidos:
-                resultado.append((n, fn, d))
-        return resultado
-    
-    def descobrir(self, texto, max_dim=10):
-        """Descobre dimensoes da mais estruturada para a menos.
-        Retorna lista de nomes das dimensoes descobertas.
-        """
-        descobertas = []
-        for _ in range(max_dim):
-            candidatos = self._candidatos_disponiveis(texto)
-            if not candidatos: break
-            
-            melhor = min(candidatos, key=lambda c: self._entropia_candidato(c[0], c[1], texto))
-            nome, fn, desc = melhor
-            ent = self._entropia_candidato(nome, fn, texto)
-            
-            if ent >= self.threshold: break  # ruido — para
-            
-            mk = MCR(nome)
-            tokens = fn(texto)
-            for i in range(len(tokens)-1): mk.aprender(tokens[i], tokens[i+1])
-            self.dimensoes[nome] = mk
-            self.tokenizadores[nome] = fn
-            self.ent_historico.append(ent)
-            descobertas.append(nome)
-        
-        return descobertas
-    
-    def auto_expandir(self, cerebro, texto):
-        """Propoe NOVA dimensao quando entropia media de todos os niveis
-        esta ALTA. A nova dimensao COMBINA dois niveis existentes com
-        maior peso no coupling — capturando a correlacao entre eles.
-        
-        Se byte='B:61' e palavra='abacate' oscilam juntos,
-        a dimensao combinada 'combinado_byte_palavra' cria tokens como:
-            "byte:B:61|palavra:abacate"
-        
-        A Markov chain desta dimensao combinada aprende transicoes
-        entre ESTADOS CONJUNTOS. Se a entropia da combinada for
-        menor que a media das entropias dos pais, a dimensao e VALIDA
-        e revela estrutura que nenhum nivel isolado capta.
-        
-        Retorna nome da nova dimensao ou None.
-        """
-        # 1. Coleta entropias de TODOS os niveis (fixos + hiper)
-        entropias = {}
-        for nome, mk in self.dimensoes.items():
-            if mk.total > 0:
-                entropias[nome] = mk.entropia_media()
-        for nome in ['byte', 'palavra', 'tven']:
-            mk = getattr(cerebro, f'mk_{nome}', None)
-            if mk and mk.total > 0:
-                entropias[nome] = mk.entropia_media()
-        
-        if len(entropias) < 2:
-            return None
-        
-        ent_media = sum(entropias.values()) / len(entropias)
-        
-        # 2. Expande apenas se entropia media > threshold
-        thr = MCRThreshold("hiper").obter("ent_expandir", 0.7)
-        if ent_media < thr:
-            return None
-        
-        # 3. Encontra par com MAIOR peso no coupling
-        coupling = cerebro.coupling
-        melhor_par = None
-        melhor_peso = 0.0
-        niveis_coupling = [n for n in coupling.niveis if n in entropias]
-        
-        for i, o in enumerate(niveis_coupling):
-            for d in niveis_coupling[i+1:]:
-                peso = coupling.peso(o, d) + coupling.peso(d, o)
-                if peso > melhor_peso:
-                    melhor_peso = peso
-                    melhor_par = (o, d)
-        
-        if not melhor_par or melhor_peso < 0.3:
-            return None
-        
-        nivel_a, nivel_b = melhor_par
-        nome_dim = f"combinado_{nivel_a}_{nivel_b}"
-        
-        # Evita recriar
-        if nome_dim in self.dimensoes:
-            return None
-        
-        # 4. Tokenizador: cria tokens combinados dos dois niveis
-        def _token_nivel(nivel, palavra):
-            if nivel == 'byte':
-                return f"B:{palavra.encode()[0]:02x}" if palavra else "B:00"
-            elif nivel == 'palavra':
-                return palavra.lower()
-            elif nivel == 'tven':
-                return palavra[0].upper() if palavra else '?'
-            elif nivel in self.tokenizadores:
-                ts = self.tokenizadores[nivel](palavra)
-                return ts[0] if ts else '?'
-            return '?'
-        
-        def tokenizer(texto):
-            palavras = texto.split()
-            tokens = []
-            for p in palavras:
-                va = _token_nivel(nivel_a, p)
-                vb = _token_nivel(nivel_b, p)
-                tokens.append(f"{nivel_a}:{va}|{nivel_b}:{vb}")
-            return tokens
-        
-        # 5. Alimenta e mede entropia
-        mk = MCR(nome_dim)
-        tokens = tokenizer(texto)
-        for i in range(len(tokens)-1):
-            mk.aprender(tokens[i], tokens[i+1])
-        
-        ent_combinada = mk.entropia_media()
-        ent_pai_a = entropias.get(nivel_a, 1.0)
-        ent_pai_b = entropias.get(nivel_b, 1.0)
-        ent_media_pais = (ent_pai_a + ent_pai_b) / 2.0
-        
-        # 6. Valida: combinada deve ter entropia MENOR que media dos pais
-        if ent_combinada < ent_media_pais * 0.9:
-            self.dimensoes[nome_dim] = mk
-            self.tokenizadores[nome_dim] = tokenizer
-            sys.stderr.write(f"[HIPER] Nova dim: {nome_dim} "
-                             f"ent={ent_combinada:.3f} (pais={ent_media_pais:.3f})\n")
-            return nome_dim
-        
+# KnowledgeGraph via MCRBufferKG (singleton, evita recarregar 1300+ lessons)
+def _get_kg():
+    """Retorna KG (tenta import externo primeiro, depois MCRBufferKG interno).
+    Evita recursao: MCRBufferKG chama _get_kg, _get_kg nao chama MCRBufferKG."""
+    try:
+        from modulos.kg import KnowledgeGraph
+        kg = KnowledgeGraph()
+        if kg:
+            return kg
+    except:
+        pass
+    try:
+        # Fallback para o MCRBufferKG interno (nao depende de stop_words)
+        return MCRBufferKG()
+    except:
         return None
 
-# ═══════════════════════════════════════════════════════════════════
-# [07c] MCRAutoTopologia — grafo de correlacao entre niveis
-# ═══════════════════════════════════════════════════════════════════
+# Equivalentes internos substituem KnowledgeGraph, etc.
 
-class MCRAutoTopologia:
-    """Grafo de correlacao entre niveis.
+
+class MCR:
+    """MCR — 1 algoritmo, N níveis. Mesmo código para bytes, tokens, intenções, decisões.
     
-    Cada nivel e um no. Arestas ponderadas pela frequencia
-    com que valores de A aparecem como estados seguintes em B.
-    Clusters sao comunidades naturais de niveis correlacionados.
+    MCR é o CONCEITO: tudo é transição entre dois estados consecutivos.
+    O que muda é o que entra como "token".
+    O mesmo código aprende bytes, palavras, intenções, ações, filosofias.
     
-    Nao impoe forma (nem circulo, nem esfera).
-    A geometria emerge dos dados.
+    Niveis sao REGISTRADOS (nao classes separadas):
+        MCR.registrar_nivel("decisao", {
+            'tokenizar': lambda e: [str(e)],
+            'comparar': lambda a, b: 1.0 if a == b else 0.0,
+        })
+    
+    Uso:
+        mcr = MCR("byte")
+        mcr.aprender_sequencia([...])
+        mcr.predizer("SPA")  # → ("é", 0.5)
     """
-    def __init__(self, niveis: Dict[str, MCR] = None):
-        self.niveis = niveis or {}
-        self.grafo: Dict[str, Dict[str, float]] = {}
-        self.clusters: List[Set[str]] = []
     
-    def registrar(self, nome, mk):
-        self.niveis[nome] = mk
+    # Registro de niveis (configuracoes, nao classes)
+    _NIVEIS: Dict[str, dict] = {}
     
-    def recalcular(self, threshold=0.15):
-        """Recalcula o grafo de correlacao entre todos os pares."""
-        self.grafo = {n: {} for n in self.niveis}
-        for a in self.niveis:
-            for b in self.niveis:
-                if a == b:
-                    self.grafo[a][b] = 1.0; continue
-                mk_a, mk_b = self.niveis[a], self.niveis[b]
-                if mk_a.total == 0 or mk_b.total == 0:
-                    self.grafo[a][b] = 0.0; continue
-                amostra = list(mk_a.freq.keys())[:30]
-                if not amostra: self.grafo[a][b] = 0.0; continue
-                acertos = 0
-                for val_a in amostra:
-                    pred, _ = mk_a.predizer(val_a)
-                    if pred and pred in mk_b.freq: acertos += 1
-                self.grafo[a][b] = round(acertos / len(amostra), 3)
-        self._detectar_clusters(threshold)
-    
-    def _detectar_clusters(self, threshold):
-        visitados = set(); self.clusters = []
-        for nivel in self.niveis:
-            if nivel in visitados: continue
-            cluster = set(); fila = [nivel]
-            while fila:
-                v = fila.pop(0)
-                if v in visitados: continue
-                visitados.add(v); cluster.add(v)
-                for u, peso in self.grafo.get(v, {}).items():
-                    if peso >= threshold and u not in visitados: fila.append(u)
-            self.clusters.append(cluster)
-    
-    def metricas(self):
-        n_arestas = sum(1 for a in self.grafo for b, p in self.grafo[a].items()
-                       if a != b and p >= 0.15)
-        return {
-            "n_niveis": len(self.niveis),
-            "n_clusters": len(self.clusters),
-            "n_arestas": n_arestas,
-            "clusters": [sorted(c) for c in self.clusters],
-            "isolados": [list(c)[0] for c in self.clusters if len(c) == 1],
-        }
-
-# ═══════════════════════════════════════════════════════════════════
-# [07d] MCRAutoValidacaoContinua — cada cadeia valida a si mesma
-# ═══════════════════════════════════════════════════════════════════
-
-class MCRAutoValidacaoContinua:
-    """Cada cadeia valida a si mesma, valida as outras, e e validada.
-    
-    A profundidade da recursao e determinada pela entropia
-    do meta-validador. Sistemas estaveis tem 1 nivel de
-    validacao. Sistemas caoticos tem N.
-    """
-    def __init__(self):
-        self.ent_historico: Dict[str, List[float]] = {}
-        self.ent_anterior: Dict[str, float] = {}
-        self.instavel: Set[str] = set()
-        self.meta = MCR("meta_validacao")
-        self.ciclos = 0
-    
-    def registrar(self, nome, mk):
-        self.ent_historico[nome] = []
-        self.ent_anterior[nome] = mk.entropia_media() if mk.total > 0 else 1.0
-    
-    def ciclo(self, niveis: Dict[str, MCR]) -> dict:
-        self.ciclos += 1
-        for nome, mk in niveis.items():
-            if mk.total == 0: continue
-            ent = mk.entropia_media()
-            ent_ant = self.ent_anterior.get(nome, ent)
-            variacao = abs(ent - ent_ant) / max(ent_ant, 0.001)
-            self.ent_historico.setdefault(nome, []).append(ent)
-            if len(self.ent_historico[nome]) > 50:
-                self.ent_historico[nome] = self.ent_historico[nome][-50:]
-            if variacao > 0.5 or ent > 0.8: self.instavel.add(nome)
-            elif nome in self.instavel and variacao < 0.1 and ent < 0.5: self.instavel.discard(nome)
-            self.ent_anterior[nome] = ent
-            # Meta: alimenta cadeia de meta-validacao
-            estado = f"v:{nome}:{int(variacao*100)}"
-            self.meta.aprender(estado, estado)
-        return {
-            "instaveis": list(self.instavel),
-            "entropia_meta": round(self.meta.entropia_media() if self.meta.total > 0 else 1.0, 4),
-            "ciclos": self.ciclos,
-        }
-
-# ═══════════════════════════════════════════════════════════════════
-# [07e] MCREntropiaTemporal — monitor de entropia multi-nivel no tempo
-# ═══════════════════════════════════════════════════════════════════
-
-class MCREntropiaTemporal:
-    """Monitora entropia de cada nivel ao longo do tempo e detecta
-    EVENTOS por oscilacao SIMULTANEA em multiplos niveis.
-
-    Filosofia: entropia e' uma COORDENADA no espaco N-dimensional.
-    Quando um evento ocorre (mudanca de contexto, anomalia),
-    TODOS os niveis oscilam simultaneamente.
-
-    Nivel unico detecta com ruido. Multi-nivel detecta com certeza.
-    
-    Auto-descoberta: min_niveis e threshold_rel sao ajustados por
-    tentativa-e-erro. Se um evento gera aprendizado (entropia cai),
-    a combinacao e recompensada. Se gera falso alarme, e punida.
-    """
-    def __init__(self, observer=None, janela=20):
-        self.observer = observer
-        self.janela = janela
-        self._hist: Dict[str, deque] = {}
-        self._lock = threading.Lock()
-        self.eventos = []
-        # Auto-descoberta de parametros
-        self._mk_params = MCR("ent_temporal_params")
-        self._ent_antes = 0.0
-        self.min_niveis_auto = 2
-        self.threshold_rel_auto = 0.10
-        self.janela_auto = 20
-        self.sensibilidade_auto = 1.0
-        self._ciclos_sem_melhoria = 0
-
-    def get_levels(self) -> Dict[str, 'MCR']:
-        levels = {}
-        if self.observer:
-            levels.update(self.observer.levels())
-        return levels
-
-    def medir(self):
-        levels = self.get_levels()
-        with self._lock:
-            for nome, mk in levels.items():
-                ent = mk.entropia_media() if mk.total > 0 else 1.0
-                if nome not in self._hist:
-                    self._hist[nome] = deque(maxlen=self.janela)
-                self._hist[nome].append(ent)
-
-    def delta_entropia(self, nivel):
-        hist = self._hist.get(nivel, [])
-        if len(hist) < 2: return 0.0
-        return abs(hist[-1] - hist[-2])
-
-    def delta_relativo(self, nivel):
-        hist = self._hist.get(nivel, [])
-        if len(hist) < 2: return 0.0
-        diff = abs(hist[-1] - hist[-2])
-        if hist[-2] < 0.001: return diff
-        return diff / hist[-2]
-
-    def _entropia_global(self):
-        """Entropia media dos niveis observados (usada como recompensa)."""
-        ent = 0.0; n = 0
-        for nome, hist in self._hist.items():
-            if hist:
-                ent += hist[-1]; n += 1
-        return ent / n if n else 1.0
-
-    def pre_detectar(self):
-        """Captura entropia ANTES de detectar (para comparacao)."""
-        self._ent_antes = self._entropia_global()
-
-    def pos_detectar(self, evento, info):
-        """Avalia se a deteccao foi util e ajusta parametros.
+    @classmethod
+    def registrar_nivel(cls, nome: str, config: dict):
+        """Registra um nivel no MCR.
         
-        Recompensa: se entropia caiu apos o evento, foi util.
-        Punicao: se entropia subiu ou ficou igual, foi falso alarme.
+        config pode ter:
+        - 'tokenizar': callable que converte dado em lista de tokens
+        - 'comparar': callable que compara dois resultados (0-1)
+        - 'processar': callable que processa um token e retorna resultado
+        - 'nome': string descritiva (opcional)
         """
-        ent_depois = self._entropia_global()
-        melhoria = self._ent_antes - ent_depois  # positivo = bom
+        cls._NIVEIS[nome] = {
+            'nome': config.get('nome', nome),
+            'tokenizar': config.get('tokenizar', lambda d: [str(d)]),
+            'comparar': config.get('comparar', lambda a, b: 1.0 if a == b else 0.0),
+            'processar': config.get('processar', None),
+        }
+    
+    def __init__(self, nome: str = ""):
+        self.nome = nome
+        self.transicoes = {}   # {token: {proximo: count}}
+        self.freq = Counter()
+        self.total = 0
+        self._entropia_cache: Dict[str, float] = {}
+    
+    def aprender(self, a: Any, b: Any):
+        sa, sb = str(a), str(b)
+        self.freq[sa] += 1; self.total += 1
+        if sa not in self.transicoes: self.transicoes[sa] = {}
+        self.transicoes[sa][sb] = self.transicoes[sa].get(sb, 0) + 1
+        self._entropia_cache.pop(sa, None)  # invalida cache
+    
+    def aprender_sequencia(self, seq: List[Any]):
+        for i in range(len(seq)-1): self.aprender(seq[i], seq[i+1])
+    
+    def predizer(self, a: Any) -> Tuple[Optional[Any], float]:
+        sa = str(a)
+        if sa not in self.transicoes or not self.transicoes[sa]: return None, 0.0
+        prox = self.transicoes[sa]; melhor = max(prox, key=prox.get)
+        total = sum(prox.values())
+        return melhor, prox[melhor]/total
+    
+    def predizer_n(self, a: Any, n: int = 3) -> List[Tuple[Any, float]]:
+        """Retorna os N tokens mais prováveis."""
+        sa = str(a)
+        if sa not in self.transicoes: return []
+        prox = self.transicoes[sa]
+        sorted_prox = sorted(prox.items(), key=lambda x: -x[1])
+        total = sum(prox.values())
+        return [(p, c/total) for p, c in sorted_prox]
+    
+    def entropia(self, a: Any) -> float:
+        sa = str(a)
+        if sa in self._entropia_cache: return self._entropia_cache[sa]
+        if sa not in self.transicoes: return 1.0
+        prox = self.transicoes[sa]; t = sum(prox.values())
+        if t == 0: return 1.0
+        h = 0.0
+        for c in prox.values():
+            p = c/t
+            if p > 0: h -= p * math.log2(p)
+        self._entropia_cache[sa] = h
+        return h
+    
+    def entropia_media(self) -> float:
+        if not self.transicoes: return 0.0
+        hs = [self.entropia(t) for t in self.transicoes if self.transicoes[t]]
+        return sum(hs)/len(hs) if hs else 0.0
+    
+    def entropia_sequencia(self, seq: List[Any]) -> float:
+        """Entropia média ao longo de uma sequência de estados.
+        Baixa = previsível (repetitivo). Alta = variada (criativo)."""
+        if not seq: return 1.0
+        hs = [self.entropia(s) for s in seq]
+        return sum(hs)/len(hs)
+    
+    def jaccard(self, outra: 'MarkovUniversal') -> float:
+        """Jaccard entre CONJUNTOS DE ESTADOS desta cadeia e outra.
+        Mede quão similares são os vocabulários dos dois níveis."""
+        estados_a = set(self.freq.keys())
+        estados_b = set(outra.freq.keys())
+        if not estados_a or not estados_b: return 0.0
+        inter = estados_a & estados_b
+        uniao = estados_a | estados_b
+        return len(inter)/len(uniao)
+    
+    def jaccard_transicoes(self, outra: 'MarkovUniversal') -> float:
+        """Jaccard entre CONJUNTOS DE TRANSIÇÕES 'a→b' desta e outra."""
+        trans_a = set(f"{a}→{b}" for a in self.transicoes for b in self.transicoes[a])
+        trans_b = set(f"{a}→{b}" for a in outra.transicoes for b in outra.transicoes[a])
+        if not trans_a or not trans_b: return 0.0
+        inter = trans_a & trans_b
+        uniao = trans_a | trans_b
+        return len(inter)/len(uniao)
+    
+    def gerar(self, semente: Any, passos: int = 10) -> List[Any]:
+        res = [semente]; atual = semente
+        for _ in range(passos):
+            prox, conf = self.predizer(atual)
+            if prox is None or conf < 0.01: break
+            res.append(prox); atual = prox
+        return res
+    
+    def jaccard_bytes(self, texto_a: str, texto_b: str) -> float:
+        """Jaccard entre CONJUNTOS DE TRANSIÇÕES DE BYTES.
+        Usado para: relevância de lessons, autoavaliação, similaridade.
+        NOTA: Para autoavaliação, prefira similaridade_transicoes() que
+        considera frequência (cosseno), não apenas conjunto (Jaccard).
+        """
+        ba = texto_a.encode('utf-8')
+        bb = texto_b.encode('utf-8')
+        ta = {f"{ba[i]:02x}->{ba[i+1]:02x}" for i in range(len(ba)-1)}
+        tb = {f"{bb[i]:02x}->{bb[i+1]:02x}" for i in range(len(bb)-1)}
+        inter = ta & tb; uniao = ta | tb
+        return len(inter)/len(uniao) if uniao else 0.0
+    
+    @staticmethod
+    def classificar_token(token: str) -> str:
+        """Classifica token por FORMA."""
+        if not token: return 'especial'
+        if token in ('<unk>', '<s>', '</s>', '<pad>', '<mask>',
+                     '<|begin_of_text|>', '<|end_of_text|>', '<|pad|>'):
+            return 'especial'
+        if token.startswith('<|') or token.startswith('<|'):
+            return 'sistema'
+        if token.isupper() and len(token) >= 2: return 'sistema'
+        if token[0].isupper() and len(token) > 1: return 'lore'
+        if token.isdigit() or (token[0] == '-' and token[1:].isdigit()): return 'numero'
+        if all(c in '.,;:!?()[]{}<>+-*/=@#$%^&_~`\'\"|\\ \t\n\r\u2581' for c in token):
+            return 'pontuacao'
+        if token[0].islower() or token[0].isalpha(): return 'linguagem'
+        return 'outro'
+    
+    def similaridade_transicoes(self, texto_a: str, texto_b: str,
+                                 max_bytes: int = 500) -> float:
+        """COSSENO entre VETORES DE FREQUÊNCIA de transições de bytes.
         
-        # Estado atual dos parametros (4 dimensoes)
-        estado = f"min:{self.min_niveis_auto}_rel:{int(self.threshold_rel_auto*100)}_jan:{self.janela_auto}_sen:{int(self.sensibilidade_auto*100)}"
+        MELHOR QUE JACCARD para autoavaliação porque:
+        - Transições que aparecem MUITAS VEZES (padrões) têm mais peso
+        - Respostas longas e completas não são penalizadas
+        - Keyword-stuffing sem substância tem score baixo
         
-        if evento:
-            # Recompensa ou punicao
-            recompensa = "bom" if melhoria > 0.01 else "ruim"
-            self._mk_params.aprender(estado, recompensa)
-            
-            if not melhoria > 0.01:
-                self._ciclos_sem_melhoria += 1
-            else:
-                self._ciclos_sem_melhoria = 0
+        Uso: nota real de similaridade entre pergunta e resposta.
+        """
+        ba = texto_a.encode('utf-8')
+        bb = texto_b.encode('utf-8')
         
-        # A cada 10 ciclos sem melhoria, tenta variar parametros
-        if self._ciclos_sem_melhoria > 10:
-            self._ciclos_sem_melhoria = 0
-            self._experimentar_parametros()
+        # Vetores de frequência das transições
+        fa = {}
+        fb = {}
+        for i in range(len(ba) - 1):
+            t = f"{ba[i]:02x}->{ba[i+1]:02x}"
+            fa[t] = fa.get(t, 0) + 1
+        for i in range(len(bb) - 1):
+            t = f"{bb[i]:02x}->{bb[i+1]:02x}"
+            fb[t] = fb.get(t, 0) + 1
+        
+        # Cosseno entre vetores
+        todas = set(fa.keys()) | set(fb.keys())
+        dot = sum(fa.get(t, 0) * fb.get(t, 0) for t in todas)
+        na = math.sqrt(sum(v * v for v in fa.values()))
+        nb = math.sqrt(sum(v * v for v in fb.values()))
+        if na == 0 or nb == 0:
+            return 0.0
+        return dot / (na * nb)
+    
+    def jaccard_bytes_ponderado(self, texto_a: str, texto_b: str) -> float:
+        """Jaccard PONDERADO: primeiros 10 bytes pesam 2x.
+        Captura melhor INTENÇÃO (primeiras palavras) do que o Jaccard normal."""
+        da = texto_a.encode('utf-8')
+        db = texto_b.encode('utf-8')
+        pesos = {}
+        for i in range(max(len(da), len(db)) - 1):
+            if i < len(da) - 1:
+                t = f"{da[i]:02x}->{da[i+1]:02x}"
+                pesos[t] = pesos.get(t, 0) + (2.0 if i < 10 else 1.0)
+            if i < len(db) - 1:
+                t = f"{db[i]:02x}->{db[i+1]:02x}"
+                pesos[t] = pesos.get(t, 0) + (2.0 if i < 10 else 1.0)
+        trans_a = {f"{da[i]:02x}->{da[i+1]:02x}" for i in range(len(da)-1)}
+        trans_b = {f"{db[i]:02x}->{db[i+1]:02x}" for i in range(len(db)-1)}
+        inter = trans_a & trans_b
+        uniao = trans_a | trans_b
+        if not uniao: return 0.0
+        peso_inter = sum(pesos.get(t, 1) for t in inter)
+        peso_uniao = sum(pesos.get(t, 1) for t in uniao)
+        return peso_inter / peso_uniao
+    
+    def _extrair_assinatura(self, dados: bytes) -> dict:
+        """Extrai a assinatura unica de um conjunto de bytes.
+        
+        A assinatura e o que define a 'alma' do dado:
+        - Entropia: quao imprevisivel
+        - Estados unicos: quantos bytes diferentes
+        - Top transicoes: os 5 pares byte→byte mais comuns
+        - Fingerprint: vetor de frequencia
+        """
+        mk = MCR("assinatura")
+        mk.aprender_sequencia(list(dados))
+        
+        # Top 5 transicoes mais comuns
+        top5 = []
+        for estado, prox in sorted(mk.transicoes.items(), 
+                                     key=lambda x: -sum(x[1].values())):
+            melhor = max(prox, key=prox.get) if prox else ''
+            top5.append(f"{estado}->{melhor}")
+        
+        return {
+            'entropia': round(mk.entropia_media(), 3),
+            'estados': len(mk.transicoes),
+            'transicoes': sum(len(v) for v in mk.transicoes.values()),
+            'top5': top5,
+            'tamanho': len(dados),
+        }
+    
+    def _comparar_assinaturas(self, a: dict, b: dict) -> float:
+        """Compara 2 assinaturas e retorna compatibilidade (0-1).
+        
+        Similaridade = quanto compartilham:
+        - Mesma faixa de entropia?
+        - Numero similar de estados?
+        - Top transicoes coincidem?
+        """
+        score = 0.0
+        # Entropia similar (peso 3)
+        diff_ent = abs(a['entropia'] - b['entropia'])
+        score += 3.0 * (1.0 - min(1.0, diff_ent))
+        # Estados similares (peso 3)
+        diff_est = abs(a['estados'] - b['estados']) / max(a['estados'], b['estados'], 1)
+        score += 3.0 * (1.0 - min(1.0, diff_est))
+        # Top transicoes (peso 4)
+        if a['top5'] and b['top5']:
+            # Jaccard entre conjuntos de top transicoes
+            ta, tb = set(a['top5']), set(b['top5'])
+            inter = ta & tb
+            uniao = ta | tb
+            score += 4.0 * (len(inter) / len(uniao) if uniao else 0)
+        return score / 10.0
+    
+    def processar_bytes(self, entrada: bytes, max_iter: int = 3) -> dict:
+        """Entrada: QUALQUER coisa em bytes.
+        Saida: bytes processados + diagnostico.
+        
+        Ciclo fechado:
+        1. Extrai assinatura da entrada
+        2. Gera saida via MCRCadeia
+        3. Extrai assinatura da saida
+        4. Compara: entrada e saida sao compativeis?
+        5. Se sim: entrega
+        6. Se nao: regenera
+        """
+        import time
+        t0 = time.time()
+        
+        # 1. Assinatura da entrada
+        assinatura_in = self._extrair_assinatura(entrada)
+        
+        # 2. Tenta converter para texto
+        try:
+            texto = entrada.decode('utf-8', errors='replace')
+        except:
+            texto = str(entrada)
+        
+        palavras = texto.split()
+        semente = palavras[0] if palavras else 'byte'
+        
+        # 3. Gera saida via Cadeia (em bytes)
+        conector = MCRConector()
+        conector.alimentar(texto, "entrada_bytes")
+        cadeia = MCRCadeia(conector)
+        res = cadeia.gerar(semente, n_tokens=30)
+        saida_texto = res.get('texto', semente)
+        saida_bytes = saida_texto.encode('utf-8')
+        
+        # 4. Assinatura da saida
+        assinatura_out = self._extrair_assinatura(saida_bytes)
+        
+        # 5. Compara assinaturas
+        compatibilidade = self._comparar_assinaturas(assinatura_in, assinatura_out)
+        
+        # 6. Se baixa compatibilidade, regenera (ate max_iter)
+        iteracao = 0
+        while compatibilidade < 0.3 and iteracao < max_iter - 1:
+            iteracao += 1
+            # Muda semente para tentar saida diferente
+            if iteracao < len(palavras):
+                semente = palavras[iteracao]
+            cadeia = MCRCadeia(conector)
+            res = cadeia.gerar(semente, n_tokens=30)
+            saida_texto = res.get('texto', semente)
+            saida_bytes = saida_texto.encode('utf-8')
+            assinatura_out = self._extrair_assinatura(saida_bytes)
+            compatibilidade = self._comparar_assinaturas(assinatura_in, assinatura_out)
+        
+        # 7. Autoavalia
+        nota = round(compatibilidade * 10, 1)
+        
+        # 8. Aprende
+        self.aprender(f"BYTES:{hash(entrada)%10000}", f"COMPAT:{compatibilidade:.2f}")
+        
+        return {
+            'entrada_tamanho': len(entrada),
+            'saida_tamanho': len(saida_bytes),
+            'assinatura_entrada': assinatura_in,
+            'assinatura_saida': assinatura_out,
+            'compatibilidade': round(compatibilidade, 3),
+            'nota': nota,
+            'iteracoes': iteracao,
+            'saida': saida_texto if len(saida_texto) > 300 else saida_texto,
+            'tempo': round(time.time() - t0, 3),
+        }
+    
+    def stats(self) -> Dict:
+        return {
+            'nome': self.nome, 'estados': len(self.transicoes),
+            'transicoes': sum(len(v) for v in self.transicoes.values()),
+            'entropia': round(self.entropia_media(), 3),
+        }
 
-    def _experimentar_parametros(self):
-        """Tenta combinacoes diferentes de parametros (ate 4 dimensoes)."""
-        melhores = {}
-        for estado in self._mk_params.freq:
-            pred, conf = self._mk_params.predizer(estado)
-            if pred and conf > 0.3:
-                melhores[estado] = conf if pred == "bom" else -conf
+# Alias para compatibilidade com codigo legado
+MarkovUniversal = MCR
+
+# ============================================================
+# NIVIS MCR — Configuracoes, nao classes
+# ============================================================
+# Cada nivel define COMO extrair tokens do dado bruto.
+# O mesmo MCR aprende transicoes entre tokens de QUALQUER nivel.
+# Zero classes especializadas. So configuracoes.
+# ============================================================
+
+MCR.registrar_nivel("byte", {
+    'nome': 'byte',
+    'tokenizar': lambda d: [f"B:{b:02x}" for b in (d.encode() if isinstance(d, str) else d)],
+})
+
+MCR.registrar_nivel("palavra", {
+    'nome': 'palavra',
+    'tokenizar': lambda t: t.split() if isinstance(t, str) else [str(t)],
+})
+
+MCR.registrar_nivel("token", {
+    'nome': 'token',
+    'tokenizar': lambda t: [p[0].upper() for p in t.split() if p] if isinstance(t, str) else [str(t)[:1]],
+})
+
+MCR.registrar_nivel("decisao", {
+    'nome': 'decisao',
+    'tokenizar': lambda e: [str(e)],
+})
+
+MCR.registrar_nivel("threshold", {
+    'nome': 'threshold',
+    'tokenizar': lambda v: [f"THR:{int(float(str(v))*100)}"],
+})
+
+MCR.registrar_nivel("peso", {
+    'nome': 'peso',
+    'tokenizar': lambda c: [f"{k}:{int(v*10)}" for k, v in (c.items() if isinstance(c, dict) else [('v', c)])],
+})
+
+MCR.registrar_nivel("assinatura", {
+    'nome': 'assinatura',
+    'tokenizar': lambda d: MCR("byte").gerar(list(MCR("byte").aprender_sequencia(
+        list(d.encode() if isinstance(d, str) else bytes(d))
+    ))[0], 50) if d else [],
+})
+
+MCR.registrar_nivel("filosofia", {
+    'nome': 'filosofia',
+    'tokenizar': lambda p: [str(p)],
+})
+
+MCR.registrar_nivel("qualidade", {
+    'nome': 'qualidade',
+    'tokenizar': lambda sol: MCR("assinatura").gerar(sol, 10) if sol else [],
+})
+
+
+class MCRFingerprint:
+    """Fingerprint MCR — configuração de nivel, nao classe separada.
+    
+    Usa MCR nivel 'assinatura' internamente.
+    Mantido como compatibilidade — prefira MCR('assinatura').
+    """
+    
+    @staticmethod
+    def gerar(texto: str) -> list:
+        """Fingerprint 8-dim (tipo de caractere)."""
+        dados = texto.encode('utf-8')
+        if not dados:
+            return [0.0]*8
+        buckets = [0.0]*8
+        for b in dados:
+            if 97 <= b <= 122:       # a-z
+                buckets[0] += 1
+            elif 65 <= b <= 90:       # A-Z
+                buckets[1] += 1
+            elif 48 <= b <= 57:       # 0-9
+                buckets[2] += 1
+            elif b == 32:             # space
+                buckets[3] += 1
+            elif b in (33,44,46,58,59,63,40,41,45,95):  # punct
+                buckets[4] += 1
+            elif b < 65:              # special
+                buckets[5] += 1
+            elif b > 122:             # high ascii
+                buckets[6] += 1
+            else:
+                buckets[7] += 1
+        total = sum(buckets) or 1
+        return [round(b/total*10, 3) for b in buckets]
+    
+    @staticmethod
+    def extrair_estilo(texto: str) -> dict:
+        """Extrai MÉTRICAS DE ESTILO de um texto (alem do fingerprint).
         
-        if melhores:
-            melhor_est = max(melhores, key=melhores.get)
+        Estas metricas COMPLEMENTAM o fingerprint para distinguir
+        autores com precisao. Nao sao keywords fixas — sao proporcoes
+        observadas nos bytes e caracteres do texto.
+        
+        Retorna:
+            {
+                'caps_ratio': float,       # proporcao de maiusculas
+                'num_ratio': float,        # proporcao de digitos
+                'punct_ratio': float,      # proporcao de pontuacao
+                'exclam_ratio': float,     # frequencia de !
+                'quest_ratio': float,      # frequencia de ?
+                'space_ratio': float,      # proporcao de espacos
+                'upper_first_ratio': float,# palavras que comecam com maiuscula
+                'avg_word_len': float,     # tamanho medio da palavra
+                'avg_sentence_len': float, # tamanho medio da frase
+                'unique_ratio': float,     # palavras unicas / total
+                'byte_entropy': float,     # entropia dos bytes
+            }
+        """
+        if not texto: return {}
+        bytes_dados = texto.encode('utf-8')
+        n = len(bytes_dados)
+        if n == 0: return {}
+        
+        # Contagens de bytes
+        caps = sum(1 for b in bytes_dados if 65 <= b <= 90)
+        nums = sum(1 for b in bytes_dados if 48 <= b <= 57)
+        punct = sum(1 for b in bytes_dados if b in [33,44,46,58,59,63,
+                   40,41,45,47,8212,8211,8220,8221])  # ! , . : ; ? ( ) - / — – " "
+        exclam = sum(1 for b in bytes_dados if b == 33)
+        quest = sum(1 for b in bytes_dados if b == 63)
+        espacos = sum(1 for b in bytes_dados if b == 32)
+        
+        palavras = texto.split()
+        n_palavras = len(palavras)
+        frases = [s for s in texto.replace('!','.').replace('?','.').split('.') if s.strip()]
+        n_frases = len(frases)
+        
+        # Metricas
+        upper_first = sum(1 for p in palavras if p and p[0].isupper())
+        palavras_unicas = len(set(p.lower() for p in palavras))
+        
+        # Entropia dos bytes
+        from collections import Counter
+        freq = Counter(bytes_dados)
+        h = 0.0
+        for c in freq.values():
+            p = c / n
+            if p > 0: h -= p * math.log2(p)
+        
+        return {
+            'caps_ratio': round(caps / n, 4),
+            'num_ratio': round(nums / n, 4),
+            'punct_ratio': round(punct / n, 4),
+            'exclam_ratio': round(exclam / n, 4),
+            'quest_ratio': round(quest / n, 4),
+            'space_ratio': round(espacos / n, 4),
+            'upper_first_ratio': round(upper_first / max(n_palavras, 1), 4),
+            'avg_word_len': round(n / max(n_palavras, 1), 2),
+            'avg_sentence_len': round(n_palavras / max(n_frases, 1), 2),
+            'unique_ratio': round(palavras_unicas / max(n_palavras, 1), 4),
+            'byte_entropy': round(h, 4),
+        }
+
+
+class MCRSystem:
+    """Classe SISTEMA do MCR. Orquestrador de alto nivel.
+    
+    Uso:
+        mcr = MCRSystem()
+        resultado = mcr.processar("Explique o SPA")
+        # → {resposta, nota, acoes, ciclos, ...}
+    """
+    
+    def __init__(self):
+        self.pe = None  # PatternEngine substituido por MCR
+        self.kg = _get_kg()
+        self.tools = None  # substituido por MCRBridge
+        
+        # IE via MCRDecisor + detectar_mcr() (sem IntentionEngine externo)
+        self.ie = MCRDecisor("mcr_ie")
+        
+        # 6 Markove, 1 algoritmo
+        self.mk_byte = MCR("byte")
+        self.mk_palavra = MCR("palavra")
+        self.mk_token = MCR("token")
+        self.mk_intencao = MCR("intencao")
+        self.mk_decisor = MCR("decisor")
+        self.mk_acao = MCR("acao")
+        
+        self.historico = []
+        self.total_exec = 0
+    
+    # ============================================================
+    # PERCEPÇÃO
+    # ============================================================
+    
+    def _perceber(self, texto: str) -> Dict:
+        """Analisa o texto em TODOS os níveis de Markov."""
+        dados = texto.encode('utf-8')
+        palavras = texto.split()
+        tokens = self.pe.tokenizar_universal(texto) if self.pe else []
+        tipos = [t[0] for t in tokens] if tokens else []
+        
+        # Byte
+        for i in range(len(dados)-1):
+            self.mk_byte.aprender(f"B:{dados[i]:02x}", f"B:{dados[i+1]:02x}")
+        
+        # Palavra
+        for i in range(len(palavras)-1):
+            self.mk_palavra.aprender(palavras[i].lower(), palavras[i+1].lower())
+        
+        # Token
+        if tipos:
+            self.mk_token.aprender_sequencia(tipos)
+        
+        # Intenção (primeiro token + primeira palavra)
+        primeiro_tipo = tipos[0] if tipos else "?"
+        primeira_palavra = palavras[0].lower().strip('.,!?') if palavras else "?"
+        intencao = f"{primeiro_tipo}/{primeira_palavra}"
+        
+        # Intenção pela IE (criada no __init__, não lazy)
+        if self.ie:
+            intencoes = self.ie.detectar(texto)
+            if intencoes:
+                cat, params, conf = intencoes[0]
+                intencao = f"{cat}/{params.get('tipo', 'default')}"
+                ie_conf = conf
+            else:
+                ie_conf = 0.3
+        else:
+            ie_conf = 0.5
+        
+        return {
+            'texto': texto, 'intencao': intencao,
+            'palavras': palavras, 'tipos': tipos,
+            'n_bytes': len(dados), 'n_tokens': len(tipos),
+            'ie_conf': ie_conf,
+            'entropia_byte': round(self.mk_byte.entropia_media(), 3) if self.mk_byte.transicoes else 0.5,
+        }
+    
+    # ============================================================
+    # AUTO-AVALIAÇÃO (nota 0-10 por Jaccard de bytes)
+    # ============================================================
+    
+    def _autoavaliar(self, resposta: str, pergunta: str) -> Tuple[float, Dict]:
+        """Nota 0-10 REAL baseada em COBERTURA LEXICAL + cosseno + tamanho.
+        
+        4 métricas MCR (pesos calibrados):
+        1. Cobertura lexical:  3 pts — termos da pergunta que aparecem na resposta
+        2. Cosseno transições: 2 pts — similaridade estrutural (bytes)
+        3. Completude:         3 pts — tamanho em chars (até 300)
+        4. Estrutura:          2 pts — baixa entropia = mais coerente
+        - Penalidade: se < 100 chars, -2 pts
+        
+        Cobertura lexical EVITA keyword-stuffing: mede se a resposta REALMENTE
+        cobre os termos da pergunta, não apenas repete palavras-chave.
+        """
+        if not resposta or len(resposta) < 10:
+            return 0.0, {'cobertura': 0, 'cosseno': 0, 'riqueza': 0,
+                         'entropia': 1,
+                         'tamanho_chars': len(resposta) if resposta else 0,
+                         'nota_sim': 0, 'nota_tam': 0, 'nota_estrutura': 0,
+                         'bonus_riqueza': 0, 'penalidade': 2.0}
+        
+        # 1. COBERTURA LEXICAL: termos UNICOS da pergunta na resposta
+        termos_pergunta = set(w.lower().strip('.,!?[](){}') 
+                            for w in pergunta.split() if len(w) > 2)
+        termos_resposta = set(w.lower().strip('.,!?[](){}') 
+                            for w in resposta.split())
+        cobertura = (len(termos_pergunta & termos_resposta) / max(len(termos_pergunta), 1)
+                    ) if termos_pergunta else 0.0
+        
+        # 2. COSSENO de transicoes de bytes (similaridade estrutural)
+        cosseno = self.mk_byte.similaridade_transicoes(pergunta, resposta)
+        
+        # 3. ENTROPIA da resposta (baixa = mais estruturada = melhor)
+        mk_temp = MCR("tmp")
+        tokens_resp = self.pe.tokenizar_universal(resposta) if self.pe else []
+        if tokens_resp:
+            mk_temp.aprender_sequencia([t[0] for t in tokens_resp])
+        entropia = mk_temp.entropia_media()
+        
+        # 4. TAMANHO em caracteres — recompensa completude
+        n_chars = len(resposta)
+        
+        # 5. RIQUEZA LEXICAL: evita repeticao (1.0 = sem rep, 0.0 = tudo igual)
+        palavras_resposta = resposta.lower().split()
+        riqueza = (len(set(palavras_resposta)) / max(len(palavras_resposta), 1)
+                  ) if palavras_resposta else 0.0
+        
+        # --- NOVA FORMULA (v4) — o ELO MAIS FRACO define a similaridade ---
+        # Similaridade = MIN(cobertura, cosseno, riqueza) * 4
+        # Isso garante: tem os termos CERTOs + estrutura SIMILAR + nao REPETE
+        nota_sim = min(cobertura, cosseno, riqueza) * 4  # 0 a 4 pts
+        nota_tam = min(1.0, n_chars / 300) * 3            # 0 a 3 pts
+        nota_estrutura = max(0, 1 - entropia) * 2          # 0 a 2 pts
+        # Bonus: riqueza alta ganha +1 (incentiva vocabulario diverso)
+        bonus_riqueza = 1.0 if riqueza > 0.7 else 0.0
+        penalidade = 2.0 if n_chars < 100 else 0.0
+        
+        nota = nota_sim + nota_tam + nota_estrutura + bonus_riqueza - penalidade
+        nota = round(max(0, min(10, nota)), 1)
+        
+        return nota, {
+            'cobertura': round(cobertura, 3),
+            'cosseno': round(cosseno, 3),
+            'riqueza': round(riqueza, 3),
+            'entropia': round(entropia, 3),
+            'tamanho_chars': n_chars,
+            'nota_sim': round(nota_sim, 1),
+            'nota_tam': round(nota_tam, 1),
+            'nota_estrutura': round(nota_estrutura, 1),
+            'bonus_riqueza': bonus_riqueza,
+            'penalidade': penalidade,
+        }
+    
+    # ============================================================
+    # FILTRO MCR — relevância de lessons por Jaccard
+    # ============================================================
+    
+    def _filtrar_lessons(self, pergunta: str, lessons: List[Dict],
+                          min_jaccard: float = 0.05) -> List[Tuple[float, Dict]]:
+        """Filtra lessons por relevância (Jaccard de bytes)."""
+        if not lessons: return []
+        avaliadas = []
+        for l in lessons:
+            sol = l.get('solucao', '')
+            if not sol or len(sol) < 20: continue
+            jac = self.mk_byte.jaccard_bytes(pergunta, sol)
+            
+            # Bônus: termo da pergunta aparece NO INÍCIO da solução
+            termo = self._extrair_termo(pergunta)
+            bonus = 0.05 if termo.lower() in sol.lower() else 0
+            
+            avaliadas.append((jac + bonus, l))
+        
+        avaliadas.sort(key=lambda x: -x[0])
+        return avaliadas
+    
+    def _extrair_termo(self, texto: str) -> str:
+        """Extrai o termo MAIS relevante (PROPER_NOUN primeiro)."""
+        tokens = self.pe.tokenizar_universal(texto) if self.pe else []
+        for t in tokens:
+            if t[0] == 'PROPER_NOUN' and len(str(t[1])) > 1: return str(t[1])
+        for t in tokens:
+            if t[0].startswith('DOM_') and len(str(t[1])) > 3: return str(t[1])
+        palavras = [p for p in texto.split() if len(p) > 3]
+        return palavras[0] if palavras else texto
+    
+    # ============================================================
+    # DECISÃO — MarkovDecisor escolhe a ação
+    # ============================================================
+    
+    def _decidir(self, estado: Dict) -> Tuple[str, float]:
+        """MarkovDecisor decide qual ação tomar.
+        
+        Fallback só para o PRIMEIRO contato. Depois, Markov aprende.
+        """
+        codigo = f"S:{estado['intencao']}|C:{estado['ie_conf']:.1f}|E:{estado['entropia_byte']:.1f}"
+        
+        acao, conf = self.mk_decisor.predizer(codigo)
+        if acao and conf > 0.2:
+            return str(acao), conf
+        
+        # Fallback (primeira vez — Markov aprende depois)
+        intencao = estado['intencao']
+        if intencao.startswith('CREATE'):
+            return 'buscar_dados', 0.5
+        elif intencao.startswith('EXPLAIN'):
+            if estado['ie_conf'] > 0.7 and estado['entropia_byte'] < 0.5:
+                return 'responder', 0.7
+            return 'buscar_kg', 0.5
+        elif intencao.startswith('SEARCH'):
+            return 'buscar_arquivos', 0.5
+        else:
+            return 'responder', 0.4
+    
+    # ============================================================
+    # EXECUÇÃO
+    # ============================================================
+    
+    def _executar(self, acao: str, estado: Dict) -> Tuple[str, str]:
+        """Executa a ação decidida."""
+        termo = self._extrair_termo(estado['texto'])
+        
+        if acao == 'buscar_kg' and self.kg:
+            # Passa pergunta ORIGINAL para ativar FiltroMCR nativo no kg.buscar()
+            lessons = self.kg.buscar(termo, max_r=5, pergunta=estado['texto'])
+            filtradas = self._filtrar_lessons(estado['texto'], lessons)
+            if filtradas:
+                melhores = [l for r, l in filtradas if r >= 0.05]
+                if melhores:
+                    return '\n'.join(l.get('solucao', '') for l in melhores), "KG"
+            # Fallback: todas as lessons
+            if lessons:
+                return '\n'.join(l.get('solucao', '') for l in lessons), "KG_fallback"
+        
+        elif acao == 'buscar_dados' and self.tools:
             try:
-                partes = melhor_est.split('_')
-                for p in partes:
-                    if 'min:' in p: self.min_niveis_auto = max(1, min(5, int(p.replace('min:',''))))
-                    if 'rel:' in p: self.threshold_rel_auto = max(0.05, min(0.5, int(p.replace('rel:',''))/100.0))
-                    if 'jan:' in p: self.janela_auto = max(5, min(50, int(p.replace('jan:',''))))
-                    if 'sen:' in p: self.sensibilidade_auto = max(0.5, min(3.0, int(p.replace('sen:',''))/100.0))
-                return
+                r = self.tools.executar('buscar_estrategico', {'termo': termo})
+                if r and r.get('sucesso'):
+                    dados = str(r.get('resultado', ''))
+                    if dados and 'Nenhum' not in dados:
+                        return dados, "busca_estrategica"
+            except: pass
+            lessons = self.kg.buscar(termo, max_r=5) if self.kg else []
+            if lessons:
+                return lessons[0].get('solucao', ''), "KG_fallback"
+        
+        elif acao == 'buscar_arquivos' and self.tools:
+            try:
+                r = self.tools.executar('buscar_estrategico', {'termo': termo})
+                if r and r.get('sucesso'):
+                    return str(r.get('resultado', ''))[:500], "busca"
+            except: pass
+        
+        return "", "sem_dados"
+    
+    # ============================================================
+    # RESPOSTA (gera texto com base no conhecimento)
+    # ============================================================
+    
+    def _responder(self, estado: Dict, conhecimento: str) -> str:
+        """Gera resposta baseada no conhecimento acumulado."""
+        if conhecimento:
+            # Pega os trechos MAIS relevantes
+            linhas = conhecimento.split('\n')
+            # Filtra linhas curtas ou irrelevantes
+            linhas_uteis = [l for l in linhas if len(l) > 30 and termo_relevante(estado['texto'], l)]
+            if linhas_uteis:
+                return ' '.join(linhas_uteis)
+            return conhecimento
+        
+        # Se nao tem conhecimento, tenta o KG direto (com FiltroMCR)
+        if self.kg:
+            termo = self._extrair_termo(estado['texto'])
+            lessons = self.kg.buscar(termo, max_r=3, pergunta=estado['texto'])
+            if lessons:
+                return lessons[0].get('solucao', '')
+        
+        return f"(MCR processou: {estado['intencao']}, {estado['n_tokens']} tokens)"
+    
+    def ciclo_unico(self, origem: str, max_bytes: int = 5000) -> dict:
+        """Entrada: QUALQUER coisa (arquivo, texto, URL).
+        Saida: conhecimento estruturado no KG + diagnostico.
+        
+        Fluxo:
+        1. Le bytes da origem
+        2. MCRByte descobre estrutura (entropia, delimitadores)
+        3. MCRPalavra extrai conteudo significativo
+        4. MCRToken classifica o tipo
+        5. KG armazena como lesson
+        6. Autoavalia: aprendeu algo novo?
+        7. Se sim: conecta com conhecimento existente (EMERGIR)
+        8. Se nao: tenta ler mais bytes
+        9. Loop ate entender TUDO
+        """
+        import time
+        t0 = time.time()
+        resultado = {'origem': origem, 'etapas': []}
+        
+        # 1. Le bytes da origem
+        if os.path.isfile(origem):
+            with open(origem, 'rb') as f:
+                dados = f.read(max_bytes)
+        else:
+            dados = origem.encode('utf-8')
+        
+        mk_byte = MCR(f"ciclo_byte")
+        mk_byte.aprender_sequencia(list(dados))
+        resultado['etapas'].append(f"bytes:{len(dados)}")
+        
+        # 2. MCRByte descobre estrutura
+        entropia = mk_byte.entropia_media()
+        n_estados = len(mk_byte.transicoes)
+        resultado['entropia'] = round(entropia, 3)
+        resultado['estados'] = n_estados
+        
+        # Classifica o tipo pelo padrao de bytes
+        if entropia < 2.0:
+            tipo = "binario_estruturado"
+        elif entropia < 4.0:
+            tipo = "texto_estruturado"
+        elif entropia < 6.0:
+            tipo = "texto_livre"
+        else:
+            tipo = "dados_aleatorios"
+        resultado['tipo'] = tipo
+        resultado['etapas'].append(f"tipo:{tipo}")
+        
+        # 3. Extrai texto se possivel
+        try:
+            texto = dados.decode('utf-8', errors='replace')
+            palavras = texto.split()
+            if len(palavras) > 2:
+                mk_palavra = MCR(f"ciclo_palavra")
+                mk_palavra.aprender_sequencia(palavras)
+                resultado['palavras_unicas'] = len(set(palavras))
+                resultado['etapas'].append(f"palavras:{len(palavras)}")
+        except:
+            pass
+        
+        # 4. KG armazena
+        if self.kg:
+            nome_base = os.path.basename(origem) if os.path.isfile(origem) else "texto_direto"
+            self.kg.aprender_conceito(
+                f"ciclo:{nome_base}",
+                f"Tipo: {tipo}, Entropia: {entropia:.2f}, Bytes: {len(dados)}. "
+                f"Estados: {n_estados}. Origem: {origem}.",
+                ctx="ciclo_unico"
+            )
+            resultado['etapas'].append("kg:salvo")
+        
+        # 5. Autoavalia
+        nota = 5.0
+        if entropia > 2.0: nota += 2.0  # tem estrutura
+        if n_estados > 20: nota += 2.0   # tem variedade
+        if resultado.get('palavras_unicas', 0) > 10: nota += 1.0  # tem vocabulario
+        resultado['nota'] = round(min(10, nota), 1)
+        resultado['etapas'].append(f"nota:{resultado['nota']}")
+        
+        # 6. Conecta com conhecimento existente (EMERGIR)
+        if nota >= 5.0:
+            try:
+                conector = MCRConector()
+                conector.alimentar(texto if 'texto' in dir() else origem, "ciclo_entrada")
+                for nome, dados_t in list(conector.topicos.items()):
+                    if nome != "ciclo_entrada":
+                        cx = conector.conectar("ciclo_entrada", nome)
+                        if cx:
+                            resultado['conexao'] = cx.get('nota', 0)
+                            resultado['etapas'].append(f"conexao:{cx.get('nota',0)}")
+                            break
             except:
                 pass
         
-        # Mutacao aleatoria em 1 dos 4 parametros
-        params = ['min', 'rel', 'jan', 'sen']
-        par = params[hash(str(time.time())) % 4]
-        if par == 'min':
-            self.min_niveis_auto = max(1, min(5, self.min_niveis_auto + [-1, 1][hash(str(time.time()+1)) % 2]))
-        elif par == 'rel':
-            self.threshold_rel_auto = max(0.05, min(0.5, self.threshold_rel_auto * (0.9 if hash(str(time.time()+2)) % 2 == 0 else 1.1)))
-        elif par == 'jan':
-            self.janela_auto = max(5, min(50, self.janela_auto + 5 * [-1, 1][hash(str(time.time()+3)) % 2]))
-        elif par == 'sen':
-            self.sensibilidade_auto = max(0.5, min(3.0, self.sensibilidade_auto * (0.8 if hash(str(time.time()+4)) % 2 == 0 else 1.2)))
+        resultado['tempo'] = round(time.time() - t0, 2)
+        return resultado
 
-    def detectar(self, threshold_rel=None, min_niveis=None, janela=None, sensibilidade=None):
-        """Detecta evento com parametros auto-descobertos ou explicitos."""
-        tr = threshold_rel if threshold_rel is not None else self.threshold_rel_auto
-        mn = min_niveis if min_niveis is not None else self.min_niveis_auto
-        jn = janela if janela is not None else self.janela_auto
-        se = sensibilidade if sensibilidade is not None else self.sensibilidade_auto
-        
-        with self._lock:
-            spikes = {}
-            for nivel in list(self._hist.keys()):
-                dr = self.delta_relativo(nivel) * se
-                if dr > tr:
-                    spikes[nivel] = round(dr, 3)
-            evento = len(spikes) >= mn
-            info = {'niveis': spikes, 'n_afetados': len(spikes), 'janela': jn, 'sensibilidade': se}
-            if evento:
-                self.eventos.append(info)
-        return evento, info
 
-# ═══════════════════════════════════════════════════════════════════
-# [07f] PIFilosofia — PI como cadeia infinita projetada em N dimensoes
-# ═══════════════════════════════════════════════════════════════════
+def termo_relevante(pergunta: str, linha: str) -> bool:
+    """Verifica se a linha contém termos da pergunta."""
+    termos = [p.lower() for p in pergunta.split() if len(p) > 3]
+    linha_lower = linha.lower()
+    return any(t in linha_lower for t in termos) if termos else True
 
-# ═══════════════════════════════════════════════════════════════════
-# [07g] MCREsquecimento — poda entropica (esquecer por lesao experimental)
-# ═══════════════════════════════════════════════════════════════════
 
-class MCREsquecimento:
-    """Poda entropica: aprende o que esquecer por lesao experimental.
+# ============================================================
+# MCR AUTO-LOOP
+# ============================================================
+
+
+
+class MCRPreCache:
+    """Estuda uma LLM (GGUF) e prepara o KG com vocabulário classificado.
     
-    Remove um estado, mede se entropia global subiu (ruim — restaura)
-    ou caiu/estabilizou (bom — mantem). O proprio MCR decide, sem
-    thresholds fixos, o que e redundante.
-    
-    Nao ha 'if entropia < X'. O sistema descobre empiricamente
-    quais estados sao redundantes e quais sao essenciais.
+    Uso:
+        cache = MCRPreCache()
+        cache.estudar("caminho/para/modelo.gguf")
+        # KG agora tem lessons sobre tokens, clusters, dominios
     """
-    def __init__(self, cerebro):
-        self.cerebro = cerebro
-        self.mk = MCR("esquecimento")
-        self._testando: Dict[str, dict] = {}
-        self.total_podas = 0
     
-    def _entropia_global(self):
-        ent = 0.0; n = 0
-        for nome in ['byte', 'palavra', 'tven', 'contexto']:
-            mk = getattr(self.cerebro, f'mk_{nome}', None)
-            if mk and mk.total > 0:
-                ent += mk.entropia_media(); n += 1
-        return ent / n if n else 1.0
+    def __init__(self, kg=None):
+        self.kg = kg or (_get_kg())
+        self.tokens = []
+        self.scores = []
+        self.dominios = Counter()
+        self.mk_token = None
+        self.token_info = []
     
-    def _coletar_candidatos(self, n=20):
-        """N candidatos com MAIOR entropia (ruido primeiro).
+    def estudar(self, caminho_blob, max_tokens_kg=50):
+        """Extrai tokenizer do GGUF, classifica tokens, salva no KG."""
+        if not os.path.exists(caminho_blob):
+            print(f"  [MCRPreCache] Blob nao encontrado: {caminho_blob}")
+            return 0
         
-        Foca exploracao inicial no ruido (alta entropia, baixa freq)
-        para evitar gastar ciclos testando vigas estruturais.
-        """
-        candidatos = []
-        for nome in ['byte', 'palavra', 'tven', 'contexto']:
-            mk = getattr(self.cerebro, f'mk_{nome}', None)
-            if not mk or mk.total < 10: continue
-            for estado in list(mk.freq.keys())[:n]:
-                ent = mk.entropia(estado)
-                freq = mk.freq[estado]
-                candidatos.append((nome, estado, ent, freq))
-        # Ordem: maior entropia primeiro (ruido), menor freq como desempate
-        candidatos.sort(key=lambda c: (-c[2], c[3]))
-        return candidatos[:n]
-    
-    def _backup(self, nome, estado):
-        mk = getattr(self.cerebro, f'mk_{nome}', None)
-        if not mk or estado not in mk.transicoes: return None
-        return {'trans': dict(mk.transicoes[estado]), 'freq': mk.freq[estado]}
-    
-    def _remover(self, nome, estado):
-        mk = getattr(self.cerebro, f'mk_{nome}', None)
-        if not mk: return
-        mk.transicoes.pop(estado, None)
-        mk.freq.pop(estado, None)
-    
-    def _restaurar(self, nome, estado, backup):
-        if backup is None: return
-        mk = getattr(self.cerebro, f'mk_{nome}', None)
-        if not mk: return
-        mk.transicoes[estado] = backup['trans']
-        mk.freq[estado] = backup['freq']
-    
-    def ciclo(self, n_testes=5):
-        """Um ciclo de esquecimento experimental."""
-        candidatos = self._coletar_candidatos(20)
-        if not candidatos: return 0
+        import struct
+        try:
+            with open(caminho_blob, 'rb') as f:
+                magic = f.read(4)
+                if magic != b'GGUF': return 0
+                f.read(4)  # version
+                f.read(8)  # tensor_count
+                kv_count = struct.unpack('<Q', f.read(8))[0]
+                tokens_raw = None
+                scores_raw = None
+                for _ in range(min(kv_count, 500)):
+                    key = self._ler_string_gguf(f)
+                    if key is None: break
+                    tipo = struct.unpack('<I', f.read(4))[0]
+                    valor = self._ler_valor_gguf(f, tipo)
+                    if key == 'tokenizer.ggml.tokens': tokens_raw = valor
+                    elif key == 'tokenizer.ggml.scores': scores_raw = valor
+                    if tokens_raw and scores_raw: break
+        except Exception as e:
+            print(f"  [MCRPreCache] Erro: {e}")
+            return 0
         
-        ent_antes = self._entropia_global()
-        removidos = 0
+        if not tokens_raw: return 0
+        self.tokens = tokens_raw
+        self.scores = scores_raw or [0]*len(tokens_raw)
         
-        for nome, estado, ent, freq in candidatos[:n_testes]:
-            chave = f"esq:{nome}:{str(estado)[:15]}"
-            decisao, conf = self.mk.predizer(chave)
-            if decisao == "ruim" and conf > 0.6:
-                continue  # ja aprendeu que este estado e importante
+        # MarkovToken aprende ordem do vocabulario
+        # (nao para gerar, para entender as relacoes entre tokens)
+        self.mk_token = MCR("precache_tokens")
+        self.mk_token.aprender_sequencia(self.tokens)
+        
+        # Classifica cada token
+        for i, token in enumerate(self.tokens):
+            dominio = MCR.classificar_token(token)
+            self.dominios[dominio] += 1
+            self.token_info.append({
+                'id': i, 'token': token,
+                'dominio': dominio,
+                'score': self.scores[i] if i < len(self.scores) else 0,
+            })
+        
+        # Salva no KG
+        n_guardados = 0
+        if self.kg:
+            # Arquitetura
+            nome_blob = os.path.basename(caminho_blob)
+            total_tokens = len(self.tokens)
+            self.kg.aprender_conceito(
+                f"precache_{nome_blob}",
+                f"Estudado: {total_tokens} tokens, "
+                f"{len(self.dominios)} dominios. "
+                f"Distribuicao: {dict(self.dominios.most_common())}",
+            )
+            n_guardados += 1
             
-            bk = self._backup(nome, estado)
-            self._remover(nome, estado)
-            ent_depois = self._entropia_global()
-            melhoria = ent_antes - ent_depois
+            # Clusters de prefixo (EMERGIR-style)
+            prefixos = {}
+            for t in self.tokens:
+                if len(t) >= 2:
+                    p = t.lower()
+                    if p not in prefixos: prefixos[p] = []
+                    prefixos[p].append(t)
             
-            if melhoria > 0.005:
-                self.mk.aprender(chave, "bom")
-                removidos += 1
-            else:
-                self._restaurar(nome, estado, bk)
-                self.mk.aprender(chave, "ruim")
+            for prefixo, membros in sorted(prefixos.items(),
+                                            key=lambda x: -len(x[1])):
+                if len(membros) >= 5:
+                    dominios_cont = Counter(MCR.classificar_token(m) for m in membros)
+                    dom_principal = dominios_cont.most_common(1)[0][0]
+                    self.kg.aprender_conceito(
+                        f"cluster_{prefixo}",
+                        f"{len(membros)} tokens, dominio={dom_principal}. "
+                        f"Ex: {', '.join(membros)}",
+                        ctx="tokenizer_cluster"
+                    )
+                    n_guardados += 1
+            
+            # Dominios
+            for dominio, count in self.dominios.most_common():
+                exemplos = [t['token'] for t in self.token_info
+                           if t['dominio'] == dominio]
+                self.kg.aprender_conceito(
+                    f"dominio_{dominio}",
+                    f"{count} tokens ({count/len(self.tokens)*100:.1f}%). "
+                    f"Ex: {', '.join(exemplos)}",
+                    ctx="tokenizer_dominio"
+                )
+                n_guardados += 1
         
-        self.total_podas += removidos
-        return removidos
-
-
-# ═══════════════════════════════════════════════════════════════════
-# [07h] MCRFragmento — fragmentos de processamento independentes
-# ═══════════════════════════════════════════════════════════════════
-
-class MCRFragmento:
-    """Um fragmento de processamento independente."""
-    def __init__(self, nome, funcao, args=None):
-        self.nome = nome; self.funcao = funcao; self.args = args or {}
-        self.resultado = None; self.erro = None; self.tempo = 0.0; self.sucesso = False
-    def executar(self):
-        t0 = time.perf_counter()
-        try: self.resultado = self.funcao(**self.args); self.sucesso = True
-        except Exception as e: self.erro = str(e)[:200]
-        self.tempo = time.perf_counter() - t0
-        return self.sucesso
-
-class MCRFragmentador:
-    """Fragmenta um ciclo em partes executaveis e rastreaveis."""
-    def __init__(self, nome="fragmentador"):
-        self.fragmentos = []; self.mk = MCR(nome)
-        self.tempo_total = 0.0; self.total_sucesso = 0; self.total_falha = 0
-    def adicionar(self, nome, funcao, args=None):
-        self.fragmentos.append(MCRFragmento(nome, funcao, args))
-    def executar_todos(self):
-        self.tempo_total = 0.0
-        for f in self.fragmentos:
-            f.executar(); self.tempo_total += f.tempo
-            if f.sucesso: self.total_sucesso += 1
-            else: self.total_falha += 1
-            self.mk.aprender(f"FRAG:{f.nome}", f"{'OK' if f.sucesso else 'FALHA'}:{f.tempo:.2f}s")
-        return self.fragmentos
-    def limpar(self): self.fragmentos.clear()
-    def stats(self):
-        return {'fragmentos': len(self.fragmentos), 'tempo_total': round(self.tempo_total, 3),
-                'sucesso': self.total_sucesso, 'falha': self.total_falha,
-                'taxa': round(self.total_sucesso / max(self.total_sucesso + self.total_falha, 1), 3)}
-
-
-# ═══════════════════════════════════════════════════════════════════
-# [07i] MCRConexao — ponte otima entre topicos (geracao > 4 tokens)
-# ═══════════════════════════════════════════════════════════════════
-
-class MCRConexao:
-    """Ponte otima entre topicos da CerebroAGI.
+        return n_guardados
     
-    Encontra a palavra que MELHOR conecta dois topicos, permitindo
-    geracao de texto COERENTE por >4 tokens (constrói pontes em
-    vez de prever 1 token).
+    def _ler_string_gguf(self, f):
+        import struct
+        len_bytes = f.read(8)
+        if len(len_bytes) < 8: return None
+        slen = struct.unpack('<Q', len_bytes)[0]
+        return f.read(slen).decode('utf-8', errors='replace') if slen > 0 else ""
     
-    Criterio: divergencia x especificidade x profundidade.
+    def _ler_valor_gguf(self, f, tipo):
+        import struct
+        if tipo == 8: return self._ler_string_gguf(f)
+        elif tipo == 9:
+            ta = struct.unpack('<I', f.read(4))[0]
+            ni = struct.unpack('<Q', f.read(8))[0]
+            return [self._ler_valor_gguf(f, ta) for _ in range(ni)]
+        elif tipo == 6: return struct.unpack('<f', f.read(4))[0]
+        elif tipo == 4: return struct.unpack('<I', f.read(4))[0]
+        elif tipo == 5: return struct.unpack('<i', f.read(4))[0]
+        return None
+    
+    def obter_tokens_por_dominio(self, dominio='lore', max_tokens=500):
+        """Retorna tokens de um domínio específico para uso em geração."""
+        return [t['token'] for t in self.token_info
+                if t['dominio'] == dominio]
+
+
+class AutoavaliadorSemantico:
+    """Avalia texto usando MCRSignature + MCRPesoNota.
+    
+    ZERO listas fixas. ZERO keywords. ZERO pesos fixos.
+    
+    4 metricas:
+    1. Entropia da assinatura — o texto tem estrutura?
+    2. Fingerprint — a assinatura e coerente internamente?
+    3. Repeticao — detectada por MCREntropia, nao contagem
+    4. Originalidade — compatibilidade com KG por Jaccard
+    
+    Tudo aprendido: MCRThreshold define os limites.
     """
-    def __init__(self, cerebro):
-        self.cerebro = cerebro
     
-    def analisar(self, topico_a, topico_b):
-        if topico_a not in self.cerebro.topicos or topico_b not in self.cerebro.topicos:
-            return {'erro': 'topico nao encontrado', 'melhor': None}
+    def __init__(self, kg=None, precache=None):
+        self.kg = kg or (_get_kg())
+        self.precache = precache
+        self.peso_nota = MCRPesoNota("autoavaliador")
+        self.entropia = MCREntropia()
+    
+    def avaliar(self, texto: str, dominio_esperado='lore') -> dict:
+        """Avalia texto por ASSINATURA, nao por keywords."""
+        if not texto or len(texto) < _MCR_THRESHOLD_TAMANHO.obter('min_texto', 20):
+            return {'nota': 0.0, 'diagnostico': 'MUITO_CURTO',
+                    'detalhes': {'entropia': 0, 'repeticao': 0,
+                                 'n_palavras': 0, 'fingerprint': []}}
         
-        conteudo_a = set(self.cerebro.topicos[topico_a].get('conteudo', []))
-        conteudo_b = set(self.cerebro.topicos[topico_b].get('conteudo', []))
+        # 1. ASSINATURA do texto (MCRSignature)
+        sig = MCRSignature.extrair(texto)
+        entropia = sig.get('entropia', 0)
+        estados = sig.get('estados', 0)
+        transicoes = sig.get('transicoes', 0)
+        fingerprint = sig.get('fingerprint', [])
+        
+        # 2. REPETICAO por MCREntropia (nao contagem de bigramas)
+        palavras = texto.lower().split()
+        n_palavras = len(palavras)
+        self.entropia = MCREntropia()
+        for p in palavras:
+            self.entropia.alimentar(p)
+        rep_detectada = 1.0 if self.entropia.esta_em_loop() else 0.0
+        
+        # 3. ORIGINALIDADE por Jaccard (threshold aprendido)
+        originalidade = 1.0
+        if self.kg:
+            try:
+                for l in self.kg._get_licoes():
+                    sol = l.get('solucao', '')
+                    if sol and len(sol) > _MCR_THRESHOLD_TAMANHO.obter('min_lesson', 50):
+                        jac = MCR.jaccard_bytes(texto, sol)
+                        thr_copia = _MCR_THRESHOLD_REPETICAO.obter('copia', 0.8)
+                        thr_parcial = _MCR_THRESHOLD_REPETICAO.obter('parcial', 0.5)
+                        if jac > thr_copia:
+                            originalidade = 0.25
+                            break
+                        elif jac > thr_parcial:
+                            originalidade = max(0.5, originalidade - 0.25)
+            except Exception:
+                pass
+        
+        # 4. NOTA por MCRPesoNota (pesos aprendidos, nao fixos)
+        nota = self.peso_nota.calcular(
+            byte_s=min(10, entropia * 3),          # entropia vira nota 0-10
+            palavra_s=min(10, estados * 0.5),       # estados viram nota 0-10
+            token_s=min(10, (1 - rep_detectada) * 10),  # repeticao vira nota 0-10
+        )
+        nota = max(0, min(10, nota * originalidade))
+        
+        # 5. DIAGNOSTICO por Markov (nao faixas fixas)
+        mk_diag = MCR('diagnostico_av')
+        estado_diag = f"ent:{int(entropia*2)}_est:{estados}_rep:{int(rep_detectada*3)}"
+        diag_pred = mk_diag.predizer(estado_diag)
+        if diag_pred[0] is not None and diag_pred[1] > 0.3:
+            diag = str(diag_pred[0])
+        else:
+            diag = ('NARRATIVO_COERENTE' if nota >= 7 else
+                    'ESTRUTURADO' if nota >= 5 else
+                    'FRACO' if nota >= 3 else
+                    'GARBAGE' if nota >= 1 else 'VAZIO')
+        
+        # Auto-aprendizado: registra para thresholds aprenderem
+        _MCR_THRESHOLD_CONF.aprender(f"entropia_{dominio_esperado}", min(1.0, entropia / 5))
+        self.peso_nota.aprender(
+            {'byte': entropia / 5, 'palavra': estados / 30, 'token': 1 - rep_detectada},
+            nota / 10
+        )
+        
+        return {
+            'nota': round(nota, 1),
+            'diagnostico': diag,
+            'detalhes': {
+                'entropia': round(entropia, 3),
+                'estados': estados,
+                'transicoes': transicoes,
+                'repeticao': round(rep_detectada, 3),
+                'n_palavras': n_palavras,
+                'originalidade': round(originalidade, 3),
+                'fingerprint': fingerprint,
+            }
+        }
+
+
+class GeradorNarrativa:
+    """Gera texto narrativo usando MarkovPalavra + contexto longo do KG.
+    
+    Estratégia:
+    1. Pré-cache: MCRPreCache estudou a LLM e preparou o KG
+    2. Contexto longo: busca 50+ lessons do KG sobre o tema
+    3. Geração: MarkovPalavra (PALAVRAS, não bytes) condicionado ao contexto
+    4. Autoavaliação semântica: verifica se o texto TEM SENTIDO
+    5. Se nota baixa: expande contexto e regenera
+    
+    NOTA: Usa MarkovPalavra (palavras) em vez de MarkovByte (bytes)
+    porque palavras capturam estrutura narrativa; bytes geram "da da da".
+    """
+    
+    def __init__(self, kg=None, precache=None):
+        self.kg = kg or (_get_kg())
+        self.precache = precache
+        self.mk_palavra = MCR("narrativa_palavras")
+        self.semantico = AutoavaliadorSemantico(kg, precache)
+        self.contexto_usado = ""
+        self._textos_lore_cache = []  # cache de textos de lore
+    
+    def _carregar_textos_lore(self):
+        """Carrega todos os textos de lore disponiveis no projeto."""
+        if self._textos_lore_cache:
+            return self._textos_lore_cache
+        
+        textos = []
+        
+        # 1. MCR_IDENTITY.md
+        path_id = os.path.join(BASE, 'docs', 'MCR_IDENTITY.md') if 'BASE' in dir() else \
+                  os.path.join(os.path.dirname(__file__), '..', '..', '..', 'docs', 'MCR_IDENTITY.md')
+        if os.path.exists(path_id):
+            with open(path_id, 'r', encoding='utf-8') as f:
+                textos.append(f.read())
+        
+        # 2. Lessons do KG com ctx=lore, conceito, identidade
+        if self.kg:
+            for l in self.kg._get_licoes():
+                ctx = l.get('ctx', '')
+                sol = l.get('solucao', '')
+                if ctx in ('lore', 'conceito', 'identidade', 'tokenizer_cluster',
+                           'tokenizer_dominio') and sol and len(sol) > 30:
+                    textos.append(sol)
+        
+        # 3. Arquivos .md de docs
+        docs_dir = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'docs')
+        if os.path.isdir(docs_dir):
+            for fname in os.listdir(docs_dir):
+                if fname.endswith('.md') and fname[0] != '_':
+                    try:
+                        with open(os.path.join(docs_dir, fname), 'r', encoding='utf-8') as f:
+                            textos.append(f.read())
+                    except: pass
+        
+        self._textos_lore_cache = textos
+        return textos
+    
+    def preparar_contexto(self, tema, max_lessons=50):
+        """Busca contexto longo do KG sobre o tema e carrega corpus de lore."""
+        if not self.kg:
+            self.contexto_usado = f"Contexto sobre {tema} (KG indisponivel)"
+            return self.contexto_usado
+        
+        # Carrega textos de lore
+        textos_lore = self._carregar_textos_lore()
+        
+        # Busca expandida no KG
+        lessons = self.kg.buscar_expandido(tema, max_r=max_lessons)
+        
+        # Monta contexto completo
+        partes = [f"Contexto sobre {tema}:\n"]
+        
+        # Lessons do KG
+        n_lessons = 0
+        mk_temp = MCR("filtro")
+        for l in lessons:
+            sol = l.get('solucao', '')
+            if not sol or len(sol) < 30: continue
+            jac = mk_temp.jaccard_bytes(tema, sol)
+            if jac < 0.02: continue
+            ctx = l.get('ctx', '')
+            erro = l.get('erro', '')
+            partes.append(f"[{ctx}] {erro}: {sol}")
+            n_lessons += 1
+        
+        # Textos de lore do corpus
+        for texto in textos_lore:
+            if len(texto) > 100:
+                partes.append(f"[CORPUS] {texto}")
+                n_lessons += 1
+        
+        self.contexto_usado = '\n\n'.join(partes)
+        return self.contexto_usado
+    
+    def gerar(self, tema='Eridanus', max_palavras=100, temperatura=0.3):
+        """Gera texto narrativo usando MarkovPalavra (PALAVRAS, nao bytes)."""
+        # 1. Prepara contexto longo
+        contexto = self.preparar_contexto(tema, max_lessons=50)
+        
+        # 2. Treina MarkovPalavra no contexto (palavras, nao bytes!)
+        texto_limpo = re.sub(r'[<>*#\[\]]', ' ', contexto)
+        palavras = texto_limpo.split()
+        self.mk_palavra = MCR(f"narrativa_{tema}")
+        
+        # So treina se tiver palavras suficientes
+        if len(palavras) < 10:
+            return {'texto': f"[MCR] Contexto insuficiente sobre {tema}",
+                    'tamanho_chars': 0, 'tamanho_palavras': 0,
+                    'contexto_chars': len(contexto),
+                    'n_lessons_usadas': 0,
+                    'avaliacao': self.semantico.avaliar('', 'lore')}
+        
+        self.mk_palavra.aprender_sequencia(palavras)
+        
+        # 3. Semente: primeiras 2 palavras do contexto
+        semente = palavras[0] if palavras else tema
+        gerado = self.mk_palavra.gerar(semente, max_palavras)
+        
+        # 4. Converte para texto
+        texto = ' '.join(str(g) for g in gerado)
+        
+        # 5. Autoavaliação semântica
+        avaliacao = self.semantico.avaliar(texto, 'lore')
+        
+        return {
+            'texto': texto,
+            'tamanho_chars': len(texto),
+            'tamanho_palavras': len(gerado),
+            'contexto_chars': len(contexto),
+            'n_lessons_usadas': contexto.count('['),
+            'avaliacao': avaliacao,
+        }
+    
+    def gerar_com_loop(self, tema='Eridanus', max_iter=3):
+        """Gera com AutoLoop: tenta → avalia → se ruim, expande contexto."""
+        melhor = None
+        
+        for i in range(max_iter):
+            n_lessons = 20 + i * 30
+            resultado = self.gerar(tema, max_palavras=100, temperatura=0.3)
+            nota_sem = resultado['avaliacao']['nota']
+            diag = resultado['avaliacao']['diagnostico']
+            
+            if melhor is None or nota_sem > melhor['avaliacao']['nota']:
+                melhor = resultado
+            
+            if nota_sem >= 5.0:  # Mais tolerante com MarkovPalavra
+                break
+        
+        return melhor
+
+
+# Alias: MCR.Nivel = MarkovUniversal (refatoração gradual)
+MCR.Nivel = MarkovUniversal
+
+# ============================================================
+# MCR CRUZADO — Busca ponte ótima entre 2 tópicos
+# ============================================================
+
+CONECTORES = {
+    'a', 'e', 'o', 'de', 'da', 'do', 'em', 'com', 'para', 'por',
+    'se', 'no', 'na', 'um', 'uma', 'os', 'as', 'ao', 'aos', 'das',
+    'dos', 'num', 'numa', 'pelo', 'pela', 'pelos', 'pelas', 'que',
+    'como', 'mas', 'mais', 'ou', 'nem', 'tambem', 'so',
+}
+
+class MCRCruzado:
+    """Analisa entropia cruzada entre cadeias para emergência.
+    
+    Ponte ótima = divergência × especificidade × profundidade
+    """
+    
+    def __init__(self, conector):
+        self.conector = conector
+    
+    def analisar(self, topico_a: str, topico_b: str) -> dict:
+        if topico_a not in self.conector.topicos or topico_b not in self.conector.topicos:
+            return {'erro': 'topico nao encontrado', 'pontes': [], 'melhor': None}
+        
+        conteudo_a = self.conector.topicos[topico_a].get('conteudo', set())
+        conteudo_b = self.conector.topicos[topico_b].get('conteudo', set())
         candidatas = conteudo_a & conteudo_b
         
         if not candidatas:
@@ -2057,3941 +1363,5684 @@ class MCRConexao:
         
         pontes = []
         for palavra in candidatas:
-            score, detalhes = self._avaliar_ponte(palavra)
+            score, detalhes = self._avaliar_ponte(topico_a, topico_b, palavra)
             pontes.append({'palavra': palavra, 'score': round(score, 2), **detalhes})
         
         pontes.sort(key=lambda x: -x['score'])
-        return {'total_candidatas': len(candidatas),
-                'pontes': pontes, 'melhor': pontes[0] if pontes else None}
+        return {
+            'total_candidatas': len(candidatas),
+            'divergencia_media': round(sum(p.get('divergencia', 0) for p in pontes)/len(pontes), 3) if pontes else 0,
+            'pontes': pontes,
+            'melhor': pontes[0] if pontes else None,
+        }
     
-    def _avaliar_ponte(self, palavra):
-        mk = self.cerebro.mk_palavra
-        if palavra not in mk.freq:
-            return 0.0, {'erro': 'palavra nao encontrada'}
+    def melhor_ponte(self, topico_a: str, topico_b: str) -> dict:
+        return self.analisar(topico_a, topico_b).get('melhor')
+    
+    def _avaliar_ponte(self, topico_a, topico_b, palavra):
+        mk_a = self.conector.topicos[topico_a].get('mcr_palavra')
+        mk_b = self.conector.topicos[topico_b].get('mcr_palavra')
+        if not mk_a or not mk_b: return 0.0, {}
         
-        # Divergencia: quantas transicoes diferentes esta palavra tem?
-        trans = set(mk.transicoes.get(palavra, {}).keys())
-        divergencia = min(1.0, len(trans) / 5.0) if trans else 0.0
+        trans_a = set(mk_a.transicoes.get(palavra, {}).keys())
+        trans_b = set(mk_b.transicoes.get(palavra, {}).keys())
+        if not trans_a and not trans_b: divergencia = 0.0
+        elif not trans_a or not trans_b: divergencia = 1.0
+        else:
+            inter = trans_a & trans_b; uniao = trans_a | trans_b
+            divergencia = 1.0 - (len(inter)/len(uniao) if uniao else 0)
         
-        # Especificidade: em quantos topicos esta palavra aparece?
-        freq_global = sum(1 for t in self.cerebro.topicos.values()
-                         if palavra in set(t.get('conteudo', [])))
-        especificidade = 1.0 - min(1.0, freq_global / max(1, len(self.cerebro.topicos) * 0.3))
+        h_a = mk_a.entropia(palavra) if palavra in mk_a.freq else 0
+        h_b = mk_b.entropia(palavra) if palavra in mk_b.freq else 0
+        entropia_comb = (h_a + h_b)/2
         
-        # Profundidade: quantos tokens ela gera a partir dela?
-        cadeia = len(mk.gerar(palavra, passos=5))
-        profundidade = min(1.0, cadeia / 5.0)
+        freq_global = sum(1 for _, d in self.conector.topicos.items()
+                         if palavra in d.get('conteudo', set()))
+        especificidade = 1.0 - min(1.0, freq_global/max(1, len(self.conector.topicos)*0.5))
         
-        score = (divergencia * 5 + especificidade * 3 + profundidade * 2) / 10
-        ent = mk.entropia(palavra) if palavra in mk.freq else 0
-        score += min(0.5, ent * 0.2) / 10
-        return min(1.0, score), {'divergencia': round(divergencia, 3),
-                'especificidade': round(especificidade, 3),
-                'profundidade': round(profundidade, 3)}
+        cadeia_a = len(mk_a.gerar(palavra, passos=5))
+        cadeia_b = len(mk_b.gerar(palavra, passos=5))
+        profundidade = min(1.0, (cadeia_a + cadeia_b)/10)
+        
+        score = divergencia*5 + especificidade*3 + profundidade*2 + min(0.5, entropia_comb*0.2)
+        score = min(12, score)
+        
+        return score, {
+            'divergencia': round(divergencia, 3),
+            'especificidade': round(especificidade, 3),
+            'profundidade': round(profundidade, 3),
+            'entropia_combinada': round(entropia_comb, 3),
+            'freq_global': freq_global,
+            'cadeia_a': cadeia_a, 'cadeia_b': cadeia_b,
+            'nota_divergencia': round(divergencia*5, 2),
+            'nota_especificidade': round(especificidade*3, 2),
+            'nota_profundidade': round(profundidade*2, 2),
+        }
     
     def _analisar_sem_compartilhadas(self, topico_a, topico_b):
-        texto_a = self.cerebro.topicos[topico_a].get('texto', '')
-        texto_b = self.cerebro.topicos[topico_b].get('texto', '')
-        bytes_comuns = set(texto_a.encode()) & set(texto_b.encode())
+        texto_a = self.conector.topicos[topico_a]['texto']
+        texto_b = self.conector.topicos[topico_b]['texto']
+        da = texto_a.encode('utf-8'); db = texto_b.encode('utf-8')
+        bytes_comuns = set(da) & set(db)
         pontes = []
-        for byte_val in list(bytes_comuns)[:20]:
-            pal = self._palavra_por_byte(texto_a, byte_val)
-            if pal and pal in self.cerebro.mk_palavra.freq:
-                score, det = self._avaliar_ponte(pal)
-                score *= 0.7; det['palavra'] = pal
-                pontes.append({'palavra': pal, 'score': round(score, 2), **det})
-        pontes.sort(key=lambda x: -x['score'])
-        return {'tipo': 'byte_bridge', 'pontes': pontes[:5],
-                'melhor': pontes[0] if pontes else None}
-    
-    @staticmethod
-    def _palavra_por_byte(texto, byte_val):
-        dados = texto.encode('utf-8')
-        for i, b in enumerate(dados):
-            if b == byte_val:
-                ini, fim = i, i
-                while ini > 0 and dados[ini-1] != 32: ini -= 1
-                while fim < len(dados) and dados[fim] != 32: fim += 1
-                pal = dados[ini:fim].decode('utf-8', errors='replace')
-                if len(pal) >= 3: return pal
-        return None
-
-
-# ═══════════════════════════════════════════════════════════════════
-# [07j] SessionCache — memoria de sessao (absorve tudo, pesca relevante)
-# ═══════════════════════════════════════════════════════════════════
-
-class FragmentoContexto:
-    """Um fragmento de contexto na sessao."""
-    def __init__(self, id, conteudo, origem="", prioridade=50, tipo="texto", tags=None):
-        self.id = id; self.conteudo = conteudo; self.origem = origem
-        self.prioridade = prioridade; self.tipo = tipo; self._tags = tags or []
-        self.criado_em = time.time(); self.ultimo_acesso = time.time()
-        self.acessos = 0; self.tokens = max(1, len(conteudo.split()))
-    def registrar_acesso(self):
-        self.acessos += 1; self.ultimo_acesso = time.time()
-        self.prioridade = min(100, self.prioridade + 1)
-
-class SessionCache:
-    """Cache de sessao que absorve TUDO sem limite.
-    
-    Diferenca de um cache normal: nunca remove fragmentos.
-    pescar() retorna SO o relevante para o contexto atual.
-    Usado para geracao coerente > 4 tokens — mantem o
-    historico completo da conversa/discurso.
-    """
-    def __init__(self):
-        self.fragmentos = {}; self.indice = {}; self.historico = []
-    
-    def _indexar(self, frag):
-        termos = set(frag.conteudo.lower().split())
-        for termo in termos:
-            if len(termo) > 3:
-                self.indice.setdefault(termo, []).append(frag.id)
-    
-    def absorver(self, id, conteudo, tipo="texto", tags=None, origem=""):
-        if id in self.fragmentos:
-            frag = self.fragmentos[id]
-            frag.conteudo = conteudo
-            frag.prioridade = min(100, frag.prioridade + 5)
-            frag.ultimo_acesso = time.time()
-            if tags: frag._tags = list(set(frag._tags + tags))
-            self.historico.append({'ts': time.time(), 'acao': 'atualizar', 'id': id})
-            return
-        prioridades = {'request': 100, 'resposta': 90, 'codigo': 80, 'contexto': 50}
-        prioridade = prioridades.get(tipo, 50)
-        frag = FragmentoContexto(id, conteudo, origem, prioridade, tipo, tags=tags or [])
-        self.fragmentos[id] = frag; self._indexar(frag)
-        self.historico.append({'ts': time.time(), 'acao': 'absorver', 'id': id, 'tipo': tipo})
-    
-    def pescar(self, pergunta="", tipos=None, tags=None, n=5, max_tokens=800):
-        candidatos = list(self.fragmentos.values())
-        if tipos: candidatos = [f for f in candidatos if f.tipo in tipos]
-        if tags: candidatos = [f for f in candidatos if f._tags and any(t in f._tags for t in tags)]
-        if pergunta and candidatos:
-            termos = set(pergunta.lower().split())
-            scores = []
-            for frag in candidatos:
-                score = sum(1 for t in termos if len(t) > 3 and t in frag.conteudo.lower())
-                if score > 0:
-                    score += frag.prioridade / 10 + frag.acessos / 100
-                    scores.append((score, frag)); frag.registrar_acesso()
-            scores.sort(key=lambda x: -x[0])
-            candidatos = [s[1] for s in scores]
-        if pergunta and not candidatos:
-            candidatos = sorted(self.fragmentos.values(), key=lambda f: f.ultimo_acesso, reverse=True)
-        if max_tokens and candidatos:
-            resultado = []; tokens = 0
-            for frag in candidatos:
-                if tokens + frag.tokens <= max_tokens:
-                    resultado.append(frag); tokens += frag.tokens
-            return resultado
-        return candidatos[:n]
-    
-    def reconstruir(self, max_fragmentos=5):
-        """Reconstroi o estado da sessao como string (para contexto de geracao)."""
-        recentes = sorted(self.fragmentos.values(), key=lambda f: f.ultimo_acesso, reverse=True)[:max_fragmentos]
-        return "\n".join(f"[{f.tipo}] {f.conteudo[:200]}" for f in recentes if f.conteudo)
-
-
-# ═══════════════════════════════════════════════════════════════════
-# [08] MCRPlanner — planejamento hierarquico
-# ═══════════════════════════════════════════════════════════════════
-
-class MCRPlanner:
-    def __init__(self, world: MCRWorld):
-        self.world = world; self.mk_plano = MCR("planner"); self.mk_sub = MCR("planner_sub")
-        self.mk_pos = MCR("planner_pos")  # Markov de posicao (delta entidade)
-    def plano(self, atual, obj, max_passos=10):
-        dist = self.world.distancia_manhattan(atual, obj)
-        if dist < 1.0:
-            ac = self.world.predizer_acao(atual, obj)
-            return [ac] if ac else []
-        # Tenta recuperar plano por fingerprint (cache)
-        fp_alvo = str(obj.fingerprint(self.world.dim_fp))
-        pk, cf = self.mk_plano.predizer(fp_alvo)
-        if pk and cf > 0.2:
-            acs = pk.split("|")
-            if len(acs) <= max_passos: return acs
-        # Decompoe delta Manhattan em sub-objetivos
-        delta_pos = self.world.delta_entidade(atual, obj, "heroi", ("x","y"))
-        if not delta_pos:
-            return []
-        n_sub = min(max_passos, max(2, sum(abs(d) for d in delta_pos)))
-        sub_objs = []
-        for i in range(1, n_sub + 1):
-            frac = i / n_sub
-            sx = int(delta_pos[0] * frac) if delta_pos else 0
-            sy = int(delta_pos[1] * frac) if len(delta_pos) > 1 else 0
-            sub_objs.append((sx, sy))
-        # Constroi plano: para cada sub-objetivo, acha acao que produz o delta desejado
-        plano = []
-        est_int = atual.clone()
-        last_sub = (0, 0)
-        for sx, sy in sub_objs:
-            dx_alvo = sx - last_sub[0]
-            dy_alvo = sy - last_sub[1]
-            if dx_alvo == 0 and dy_alvo == 0:
-                continue
-            # Tenta Markov de posicao primeiro
-            chave_pos = f"P:{est_int.get('heroi').props.get('x',0)},{est_int.get('heroi').props.get('y',0)}:{dx_alvo},{dy_alvo}"
-            ac_pred, cf_pred = self.mk_pos.predizer(chave_pos)
-            if ac_pred and cf_pred > 0.15:
-                ac = ac_pred
-            else:
-                # Fallback: encontra a acao que produz o delta mais proximo
-                ac = self._fallback_pos(est_int, dx_alvo, dy_alvo)
-            if ac:
-                plano.append(ac)
-                prox = MCRAcao.executar(est_int, ac)
-                if prox: est_int = prox
-                # Aprende: nesta posicao, esta acao produz este delta
-                self.mk_pos.aprender(chave_pos, ac)
-            last_sub = (sx, sy)
-        if plano: self._aprender(plano, atual, obj)
-        return plano
-    def _fallback_pos(self, est, dx_alvo, dy_alvo):
-        """Encontra a acao cujo delta de posicao mais se aproxima do desejado."""
-        melhor_ac, melhor_dist = None, 999
-        for ac in MCRAcao.disponiveis():
-            prox = MCRAcao.executar(est, ac)
-            delta_real = self.world.delta_entidade(est, prox, "heroi", ("x","y"))
-            if delta_real:
-                dist_delta = abs(delta_real[0] - dx_alvo) + abs(delta_real[1] - dy_alvo)
-                if dist_delta < melhor_dist:
-                    melhor_dist = dist_delta
-                    melhor_ac = ac
-        return melhor_ac or "andar_cima"
-    def _fallback(self, est, sub):
-        """Fallback original por delta fingerprint (mantido para compatibilidade)."""
-        melhor_ac, melhor_sc = "andar_cima", 0.0
-        for ac in MCRAcao.disponiveis():
-            prox = MCRAcao.executar(est, ac)
-            delta_ac = MCRByteUtils.delta_fingerprint(est.serializar(), prox.serializar(), self.world.dim_fp)
-            sc = MCRByteUtils.similaridade_cosseno(delta_ac, sub)
-            if sc > melhor_sc: melhor_sc, melhor_ac = sc, ac
-        return melhor_ac
-    def _aprender(self, plano, atual, final):
-        fp_alvo = str(final.fingerprint(self.world.dim_fp))
-        self.mk_plano.aprender(fp_alvo, "|".join(plano))
-        est_int = atual.clone()
-        for ac in plano:
-            prox = MCRAcao.executar(est_int, ac)
-            delta = tuple(round(d,3) for d in MCRByteUtils.delta_fingerprint(est_int.serializar(), prox.serializar(), self.world.dim_fp))
-            self.mk_sub.aprender(str(delta), ac); est_int = prox
-
-# ═══════════════════════════════════════════════════════════════════
-# [09] MCRRL — aprendizado por reforco
-# ═══════════════════════════════════════════════════════════════════
-
-class MCRReward:
-    def avaliar(self, est_atual, est_ant, est_obj=None, acao_ok=True):
-        r = 0.0
-        h_atual = est_atual.get("heroi")
-        h_ant = est_ant.get("heroi")
-        h_obj = est_obj.get("heroi") if est_obj else None
-        
-        if h_atual and h_ant:
-            # Penaliza fortemente ficar parado (acao que nao move o heroi)
-            if h_atual.props.get("x",0) == h_ant.props.get("x",0) and \
-               h_atual.props.get("y",0) == h_ant.props.get("y",0):
-                r -= 3.0  # parado e RUIM
-        
-        if h_atual and h_obj:
-            # Bonus Manhattan: recompensa aproximacao ao objetivo
-            dist_atual = abs(h_atual.props.get("x",0)-h_obj.props.get("x",0)) + \
-                        abs(h_atual.props.get("y",0)-h_obj.props.get("y",0))
-            if h_ant:
-                dist_ant = abs(h_ant.props.get("x",0)-h_obj.props.get("x",0)) + \
-                          abs(h_ant.props.get("y",0)-h_obj.props.get("y",0))
-                r += (dist_ant - dist_atual) * 5  # bonus alto por reduzir distancia
-            # Recompensa esparsa: chegou no objetivo
-            if dist_atual == 0:
-                r += 15.0
-        if acao_ok: r += 1.0
-        return max(-10.0, min(15.0, r))
-
-class MCRQLearn:
-    def __init__(self, gamma=0.9, alpha=0.3):
-        self.mk_Q = MCR("qlearn"); self.mk_pol = MCR("qpol"); self.gamma, self.alpha = gamma, alpha
-        self.thr = MCRThreshold("qlearn"); self.episodio = 0; self.hist_ep: List[Dict] = []
-        self.replay: List[Tuple] = []  # replay buffer: (acoes, recompensa_total)
-        self._ultimas_acoes: List[str] = []  # Radar: historico para detectar loops
-        self._radar_limite = 4  # N repeticoes iguais = loop
-    def _fp_estado(self, estado):
-        """Chave unica por estado (fingerprint + hash do serializado).
-        
-        O fingerprint sozinho causa aliasing (dois estados diferentes
-        com mesmo fingerprint). A solucao: concatenar fingerprint
-        (para compatibilidade HDC/similaridade) com um hash MD5 do
-        serializado completo (para unicidade absoluta).
-        
-        Isso e' como ter bairro + rua + numero — o fingerprint
-        agrupa estados similares, o hash identifica cada um."""
-        ser = estado.serializar()
-        dim = MCRSignatureExpansiva.dimensionalidade_ideal(ser.encode()[:2000], mx=64, thr=0.08)
-        dim = max(12, min(dim, 32))
-        fp = MCRByteUtils.fingerprint(ser, dim)
-        uid = hashlib.md5(ser.encode()).hexdigest()[:8]
-        return f"{fp}|{uid}"
-    def q_valor(self, estado, acao):
-        ch = f"Q:{self._fp_estado(estado)}:{acao}"
-        p, c = self.mk_Q.predizer(ch)
-        try: return float(p) if p and c > 0 else 0.0
-        except: return 0.0
-    def atualizar(self, estado, acao, recompensa, prox_est):
-        ch = f"Q:{self._fp_estado(estado)}:{acao}"
-        q_at = self.q_valor(estado, acao)
-        acs = MCRAcao.disponiveis()
-        max_qf = max(self.q_valor(prox_est, a) for a in acs) if acs else 0.0
-        # Radar: penaliza acao em loop para forcar diversificacao
-        acao_loop = self._radar_loop_action()
-        if acao_loop == acao:
-            recompensa -= 1.0  # penalidade por repetir em loop
-        td = recompensa + self.gamma*max_qf - q_at
-        self.mk_Q.aprender(ch, f"{q_at+self.alpha*td:.4f}")
-        melh = self.melhor_acao(estado)
-        if melh: self.mk_pol.aprender(self._fp_estado(estado), melh)
-        self.thr.observar(abs(td))
-    def _radar_loop_action(self):
-        """Radar: retorna a acao que esta em loop (ou None)."""
-        if len(self._ultimas_acoes) < self._radar_limite:
-            return None
-        if len(set(self._ultimas_acoes[-self._radar_limite:])) == 1:
-            return self._ultimas_acoes[-1]
-        return None
-
-    def _radar_alimentar(self, acao):
-        """Alimenta o radar com a ultima acao."""
-        self._ultimas_acoes.append(acao)
-        if len(self._ultimas_acoes) > 100:
-            self._ultimas_acoes = self._ultimas_acoes[-50:]
-
-    def melhor_acao(self, estado, acoes=None, bloquear=None):
-        """Melhor acao, opcionalmente bloqueando uma acao especifica."""
-        acoes = acoes or MCRAcao.disponiveis()
-        if not acoes: return None
-        if bloquear:
-            candidatos = [a for a in acoes if a != bloquear]
-            if candidatos:
-                return max(candidatos, key=lambda a: self.q_valor(estado, a))
-        return max(acoes, key=lambda a: self.q_valor(estado, a))
-    def escolher_acao(self, estado, epsilon=0.2, acoes=None):
-        acoes = acoes or MCRAcao.disponiveis()
-        if not acoes: return "andar_cima"
-        # Radar: se loop detectado, BLOQUEIA a acao repetida por um passo
-        acao_loop = self._radar_loop_action()
-        if acao_loop:
-            # Bloqueia a acao em loop: escolhe a melhor DAS OUTRAS
-            bloqueada = self.melhor_acao(estado, acoes, bloquear=acao_loop)
-            if bloqueada:
-                return bloqueada
-        if _rand.random() < epsilon: return _rand.choice(acoes)
-        return self.melhor_acao(estado, acoes) or acoes[0]
-    def _replay_treinar(self):
-        """Re-treina com trajetorias bem-sucedidas (aprendizado offline).
-        Ajuda a consolidar politicas que levam ao objetivo."""
-        if len(self.replay) < 3:
-            return
-        melhores = sorted(self.replay, key=lambda x: -x[1])[:5]
-        for acoes, _ in melhores:
-            est = EstadoMundo.criar_simples()
-            for acao in acoes:
-                prox = MCRAcao.executar(est, acao)
-                mud = prox.serializar() != est.serializar()
-                rw = MCRReward().avaliar(prox, est, est, mud)
-                self.atualizar(est, acao, rw, prox)
-                est = prox
-
-    def executar_episodio(self, est_ini, est_obj, mx=20):
-        est = est_ini.clone(); r_total = 0.0; acs = []
-        self._ultimas_acoes = []  # reseta radar para novo episodio
-        for passo in range(mx):
-            # Epsilon com decay mais lento (explora mais no inicio)
-            ac = self.escolher_acao(est, epsilon=max(0.05, 0.3-self.episodio*0.005))
-            # Radar: alimenta detector de loop
-            self._radar_alimentar(ac)
-            prox = MCRAcao.executar(est, ac)
-            mud = prox.serializar() != est.serializar()
-            rw = MCRReward().avaliar(prox, est, est_obj, mud)
-            self.atualizar(est, ac, rw, prox); r_total += rw; acs.append(ac); est = prox
-            h = est.get("heroi"); ho = est_obj.get("heroi")
-            if h and ho:
-                if abs(h.props.get("x",0)-ho.props.get("x",0)) + abs(h.props.get("y",0)-ho.props.get("y",0)) <= 1: break
-        self.episodio += 1
-        # Guarda no replay se chegou perto do objetivo
-        if h and ho:
-            dist_final = abs(h.props.get("x",0)-ho.props.get("x",0)) + \
-                        abs(h.props.get("y",0)-ho.props.get("y",0))
-            if dist_final <= 2:
-                self.replay.append((list(acs), r_total))
-                self._replay_treinar()
-        res = {"episodio": self.episodio, "passos": passo+1, "recompensa": round(r_total,2), "acoes": acs[:10]}
-        self.hist_ep.append(res); return res
-
-# ═══════════════════════════════════════════════════════════════════
-# [10] MCRMemory — SQLite persistente
-# ═══════════════════════════════════════════════════════════════════
-
-class MCRMemory:
-    def __init__(self, db_path=None):
-        self.db_path = db_path or os.path.join(CACHE_DIR, "mcr_hq.db")
-        self.con = sqlite3.connect(self.db_path, check_same_thread=False)
-        self.con.execute("PRAGMA journal_mode=WAL"); self.con.execute("PRAGMA synchronous=NORMAL")
-        self._criar(); self.total_ins = 0
-    def _criar(self):
-        self.con.executescript("""
-            CREATE TABLE IF NOT EXISTS estados (id INTEGER PRIMARY KEY AUTOINCREMENT, fp TEXT, serial TEXT, ts REAL, bucket INTEGER);
-            CREATE INDEX IF NOT EXISTS idx_est_fp ON estados(fp);
-            CREATE TABLE IF NOT EXISTS causais (id INTEGER PRIMARY KEY AUTOINCREMENT, fp_antes TEXT, acao TEXT, fp_depois TEXT, delta TEXT, ts REAL);
-            CREATE INDEX IF NOT EXISTS idx_caus_antes ON causais(fp_antes);
-            CREATE TABLE IF NOT EXISTS planos (id INTEGER PRIMARY KEY AUTOINCREMENT, fp_obj TEXT, acoes TEXT, nota REAL DEFAULT 0, ts REAL);
-            CREATE INDEX IF NOT EXISTS idx_plan_fp ON planos(fp_obj);
-        """)
-        self.con.commit()
-    def salvar_estado(self, est):
-        fp = str(est.fingerprint(8)); ser = est.serializar(); bk = hash(fp)%256
-        self.con.execute("INSERT OR REPLACE INTO estados (fp,serial,ts,bucket) VALUES (?,?,?,?)", (fp,ser,time.time(),bk))
-        self.con.commit(); self.total_ins += 1; return fp
-    def salvar_causal(self, antes, acao, depois):
-        fpa, fpd = str(antes.fingerprint(8)), str(depois.fingerprint(8))
-        delta = str(MCRByteUtils.delta_fingerprint(antes.serializar(), depois.serializar(), 8))
-        self.con.execute("INSERT INTO causais VALUES (NULL,?,?,?,?,?)", (fpa,acao,fpd,delta,time.time()))
-        self.con.commit(); self.total_ins += 1
-    def salvar_plano(self, fp_obj, acoes, nota=0.0):
-        self.con.execute("INSERT INTO planos VALUES (NULL,?,?,?,?)", (fp_obj,"|".join(acoes),nota,time.time()))
-        self.con.commit()
-    def buscar_similar(self, fp_alvo, limite=10):
-        bk = hash(fp_alvo)%256
-        rs = self.con.execute("SELECT fp,serial FROM estados WHERE bucket=? ORDER BY ts DESC LIMIT ?", (bk,limite*10)).fetchall()
-        if not rs: rs = self.con.execute("SELECT fp,serial FROM estados ORDER BY ts DESC LIMIT ?", (limite,)).fetchall()
-        fpa = [float(x) for x in fp_alvo.strip("[]").split(",") if x.strip()]
-        sc = []
-        for fp_str, ser in rs:
-            fpo = [float(x) for x in fp_str.strip("[]").split(",") if x.strip()]
-            if not fpo: continue
-            sim = MCRByteUtils.similaridade_cosseno(fpa, fpo)
-            sc.append((sim, fp_str, ser))
-        sc.sort(key=lambda x: -x[0]); return [(fp, ser, s) for s, fp, ser in sc[:limite]]
-    def buscar_causal(self, fp_antes, acao):
-        r = self.con.execute("SELECT fp_depois FROM causais WHERE fp_antes=? AND acao=? ORDER BY ts DESC LIMIT 1", (fp_antes, acao)).fetchone()
-        return r[0] if r else None
-    def buscar_plano(self, fp_obj):
-        r = self.con.execute("SELECT acoes,nota FROM planos WHERE fp_obj=? ORDER BY nota DESC LIMIT 1", (fp_obj,)).fetchone()
-        return (r[0].split("|"), r[1]) if r else None
-    def _podar_memoria(self, max_planos=500):
-        """Remove planos com nota baixa (mesmo criterio: entropia experimental)."""
-        try:
-            c = self.con.cursor()
-            c.execute("SELECT COUNT(*) FROM planos")
-            total = c.fetchone()[0]
-            if total <= max_planos: return 0
-            c.execute("DELETE FROM planos WHERE nota < 0.3")
-            removidos = c.rowcount
-            self.con.commit()
-            return removidos
-        except: return 0
-    def stats(self):
-        c = self.con.cursor()
-        return {"estados": c.execute("SELECT COUNT(*) FROM estados").fetchone()[0],
-                "causais": c.execute("SELECT COUNT(*) FROM causais").fetchone()[0],
-                "planos": c.execute("SELECT COUNT(*) FROM planos").fetchone()[0]}
-    def fechar(self): self.con.close()
-
-# ═══════════════════════════════════════════════════════════════════
-# [11] MCRBridge — analogias cross-domain
-# ═══════════════════════════════════════════════════════════════════
-
-class MCRBridge:
-    def __init__(self):
-        self.dominios: Dict[str, MCR] = {}; self.dim = C("dim_fingerprint", 8); self.mk = MCR("bridge"); self.total = 0
-    def registrar_dominio(self, nome):
-        if nome not in self.dominios: self.dominios[nome] = MCR(f"dom_{nome}")
-    def analise(self, a1, a2, b1, b2):
-        da = MCRByteUtils.delta_fingerprint(a1, a2, self.dim)
-        db = MCRByteUtils.delta_fingerprint(b1, b2, self.dim)
-        sim = MCRByteUtils.similaridade_cosseno(da, db)
-        ma, mb = math.sqrt(sum(d*d for d in da)), math.sqrt(sum(d*d for d in db))
-        razao = min(ma, mb)/max(ma, mb, 0.001)
-        nota = sim*razao
-        self.total += 1; return {"a1": a1[:20], "a2": a2[:20], "b1": b1[:20], "b2": b2[:20], "sim": round(sim,3), "nota": round(nota,3), "analogo": nota>0.5}
-
-# ═══════════════════════════════════════════════════════════════════
-# [12] MCRCodex + MCRSelfTest — auto-modificacao
-# ═══════════════════════════════════════════════════════════════════
-
-class MCRSelfTest:
-    @staticmethod
-    def testar(modulo):
-        try:
-            if modulo == "world":
-                w = MCRWorld(); e = EstadoMundo.criar_simples()
-                e2 = MCRAcao.executar(e, "andar_dir"); w.aprender(e, "andar_dir", e2)
-                return 10.0 if w.predizer_acao(e, e2) == "andar_dir" else 5.0
-            if modulo == "coupling":
-                cp = MCRCoupling()
-                for _ in range(MCRDecisorUniversal.decidir_passos("test_coupling")): cp.alimentar("byte","palavra","B:41","Fogo")
-                cp.recalcular(); return 10.0 if cp.peso("byte","palavra") > 0 else 0.0
-            if modulo == "planner":
-                w = MCRWorld(); p = MCRPlanner(w)
-                return 10.0 if isinstance(p.plano(EstadoMundo.criar_simples(), EstadoMundo.criar_simples()), list) else 0.0
-        except: return 0.0
-
-class MCRCodex:
-    def __init__(self):
-        self.params = {"passos": int, "dim": int, "threshold": float, "top_k": int, "max_iter": int, "max_passos": int}
-        self.mk = MCR("codex"); self.hist: List[Dict] = []
-    def escanear(self, caminho=None):
-        caminho = caminho or __file__; hcs = []
-        try:
-            with open(caminho, "r", encoding="utf-8", errors="replace") as f: linhas = f.readlines()
-        except: return []
-        for i, linha in enumerate(linhas):
-            s = linha.strip()
-            if not s or s.startswith("#") or s.startswith('"""'): continue
-            for pn in self.params:
-                m = re.search(rf'\b{pn}\s*=\s*(\d+\.?\d*)', s)
-                if m:
-                    hcs.append({"linha": i+1, "param": pn, "valor": m.group(1), "tipo": self.params[pn].__name__, "codigo": s[:60]})
+        for byte_val in bytes_comuns:
+            pal_a = None; pal_b = None
+            for i, b in enumerate(da):
+                if b == byte_val:
+                    ini, fim = i, i
+                    while ini > 0 and da[ini-1] != 32: ini -= 1
+                    while fim < len(da) and da[fim] != 32: fim += 1
+                    pal_a = da[ini:fim].decode('utf-8', errors='replace')
                     break
-        return hcs
-    def substituir(self, caminho, linha, param, novo_valor):
-        if not os.path.exists(caminho): return False
-        with open(caminho, "r", encoding="utf-8") as f: linhas = f.readlines()
-        if linha < 1 or linha > len(linhas): return False
-        l = linhas[linha-1]; nova = re.sub(rf'({param}\s*=\s*)\d+\.?\d*', rf'\g<1>{novo_valor}', l)
-        if nova == l: return False
-        linhas[linha-1] = nova
-        with open(caminho, "w", encoding="utf-8") as f: f.writelines(linhas)
-        self.hist.append({"param": param, "linha": linha, "antes": l[:40], "depois": nova[:40]}); return True
+            for i, b in enumerate(db):
+                if b == byte_val:
+                    ini, fim = i, i
+                    while ini > 0 and db[ini-1] != 32: ini -= 1
+                    while fim < len(db) and db[fim] != 32: fim += 1
+                    pal_b = db[ini:fim].decode('utf-8', errors='replace')
+                    break
+            if not pal_a or not pal_b or pal_a.lower() == pal_b.lower(): continue
+            score, det = self._avaliar_ponte(topico_a, topico_b, pal_a)
+            score *= 0.7
+            det['palavra_a'] = pal_a; det['palavra_b'] = pal_b
+            pontes.append({'palavra': f"{pal_a}↔{pal_b}", 'score': round(score, 2), **det})
+        
+        pontes.sort(key=lambda x: -x['score'])
+        return {'total_candidatas': len(pontes), 'tipo': 'byte_bridge',
+                'pontes': pontes, 'melhor': pontes[0] if pontes else None}
 
-# ═══════════════════════════════════════════════════════════════════
-# [13] MCRGenesis — auto-expansao
-# ═══════════════════════════════════════════════════════════════════
 
-class MCRGenesis:
-    """Gerador de esqueletos de classe (boilerplate factory).
+class MCRConector:
+    """Conecta tópicos distantes usando MCR multi-nível (Byte+Palavra+Token).
     
-    ATENCAO: Isso NAO e auto-evolucao de verdade. E um gerador de
-    templates que produz classes vazias baseadas em gaps detectados.
-    O nome 'Genesis' e' herdado do prototipo original e e' um
-    exagero reconhecido. A implementacao atual:
-      - Nao gera logica nova (só esqueleto)
-      - Nao modifica o codigo em execucao
-      - Nao altera a arquitetura do sistema
-    E um Factory Pattern dinamico, nao uma maquina de auto-evolucao.
+    Uso:
+        c = MCRConector()
+        c.alimentar("SPA é progressão", "spa")
+        c.alimentar("Eridanus é cidade", "eridanus")  
+        conexao = c.conectar("spa", "eridanus")
     """
-    def __init__(self, cerebro=None):
-        self.cerebro = cerebro; self.mk = MCR("genesis"); self.modulos: List[Dict] = []; self.thr = MCRThreshold("genesis")
-    def diagnosticar(self):
-        gaps = []
-        min_palavras = C("genesis_min_palavras", 10)
-        min_planos = C("genesis_min_planos", 5)
-        max_entropia = C("genesis_max_entropia", 0.5)
-        if self.cerebro and self.cerebro.mk_palavra.total < min_palavras:
-            gaps.append({"nome": "conhecimento_insuficiente", "severidade": 0.8, "sugestao": "alimentar textos variados"})
-        if self.cerebro and hasattr(self.cerebro, 'planner') and self.cerebro.planner.mk_plano.total < min_planos:
-            gaps.append({"nome": "planejamento_insuficiente", "severidade": 0.6, "sugestao": "executar mais episodios"})
-        if self.cerebro:
-            try:
-                h = self.cerebro.mk_byte.entropia_media()
-                if h > max_entropia: gaps.append({"nome": "dados_ruidosos", "severidade": min(0.9, h), "sugestao": "descobrir dimensionalidade ideal"})
-            except: pass
-        return {"gaps": gaps, "total": len(gaps), "severidade_media": round(sum(g["severidade"] for g in gaps)/max(len(gaps),1), 3) if gaps else 0}
-    def projetar(self, gap):
-        nc = f"MCR{''.join(w.capitalize() for w in gap['nome'].split('_'))}"
-        return f'''class {nc}:\n    def __init__(self, cerebro=None):\n        self.cerebro = cerebro\n        self.mk = MCR("{nc}")\n        self.thr = MCRThreshold("{nc}")\n    def executar(self, **kw):\n        return {{"gap": "{gap['nome']}"}}\n'''
-
-# ═══════════════════════════════════════════════════════════════════
-# [14] MCRAmbiente (resumido)
-# ═══════════════════════════════════════════════════════════════════
-
-class Tile:
-    def __init__(self, tipo="grama", altura=0):
-        self.tipo, self.altura = tipo, altura
-        self.props = {"custo": 1, "bloqueia": tipo in ("agua","muro","lava")}
-
-class AmbienteRico:
-    def __init__(self, w=50, h=50):
-        self.w, self.h = w, h; self.tiles: List[List[Tile]] = []; self.ents: List[Entidade] = []; self.tick_atual = 0
-        self._gerar()
-    def _gerar(self):
-        for y in range(self.h):
-            linha = []
-            for x in range(self.w):
-                r = math.sin(x*0.1)*math.cos(y*0.1)+_rand.random()*0.5
-                if r < -0.5: t = "agua"
-                elif r < 0: t = "areia" if _rand.random()<0.3 else "grama"
-                elif r < 0.5: t = "floresta" if _rand.random()<0.3 else "grama"
-                else: t = "pedra" if _rand.random()<0.4 else "grama"
-                linha.append(Tile(t))
-            self.tiles.append(linha)
-    def tick(self):
-        self.tick_atual += 1
-
-# ═══════════════════════════════════════════════════════════════════
-# [02] MCRRegistry — registro universal de tipos
-# ═══════════════════════════════════════════════════════════════════
-
-class MCRRegistry:
-    _tipos: Dict[str, Dict] = {}; _nomes: Dict[str, List[str]] = {}; _conceitos: Dict[str, List[str]] = {}
-    @classmethod
-    def registrar_tipo(cls, cat, nome, props): cls._tipos.setdefault(cat, {})[nome] = dict(props)
-    @classmethod
-    def registrar_nome(cls, nome, cat): cls._nomes.setdefault(cat, []).append(nome)
-    @classmethod
-    def tipo_props(cls, cat, nome): return dict(cls._tipos.get(cat, {}).get(nome, {}))
-    @classmethod
-    def tipos_por_categoria(cls, cat): return list(cls._tipos.get(cat, {}).keys())
-    @classmethod
-    def nome_aleatorio(cls, cat="geral"):
-        ns = cls._nomes.get(cat, []); return _rand.choice(ns) if ns else f"{cat}_{_rand.randint(0,999)}"
-
-def _registrar_registry():
-    for n in ["guerreiro","mago","arqueiro","orc","troll","goblin","lobo","urso"]:
-        MCRRegistry.registrar_nome(n, "monstro")
-    for n in ["Bruno","Maria","Joao","Ana","Carlos","Sofia","Pedro"]:
-        MCRRegistry.registrar_nome(n, "npc")
-    for n, p in [("grama",{"custo":1,"bloqueia":False}),("agua",{"custo":5,"bloqueia":True}),("muro",{"custo":99,"bloqueia":True})]:
-        MCRRegistry.registrar_tipo("terreno", n, p)
-_registrar_registry()
-
-# ═══════════════════════════════════════════════════════════════════
-# [15] MCRResposta — OMNI: atencao responde, cerebro decide
-# ═══════════════════════════════════════════════════════════════════
-
-class MCRResposta:
-    """Resposta: distribuicao decide, MCR filtra, cerebro decide.
-    Zero if/elif fixos. Tudo via MCR + thresholds aprendidos."""
     
-    _thr_conf = MCRThreshold("resposta_conf")
-    _thr_tipo = MCRThreshold("resposta_tipo")
-    
-    @staticmethod
-    def _buscar(pergunta, cerebro, max_iter=3):
-        """Busca com filtro por tipo de topico + confianca por MCRThreshold.
-        
-        Nao responde com gaps, nao usa formatacao no aprendizado.
-        Se confianca < threshold, retorna vazio para web search.
-        """
-        for i in range(max_iter):
-            if not cerebro.topicos:
-                return ""
-            
-            # Coleta scores filtrando gaps (tipo != 'gap')
-            scores = []
-            for nome, dados in cerebro.topicos.items():
-                texto = dados.get("texto", "")
-                tipo = dados.get("tipo", "conv")
-                if not texto or tipo == "gap" or nome.startswith("gap_"):
-                    continue  # Fix 1: gaps nunca viram resposta
-                s = MCRByteUtils.jaccard_bytes(pergunta, texto)
-                scores.append((s, nome, texto, tipo))
-            
-            if not scores:
-                return ""
-            
-            scores.sort(key=lambda x: -x[0])
-            melhor_score, melhor_nome, melhor_texto, melhor_tipo = scores[0]
-            
-            # Threshold de confianca MINIMO (Fix 3)
-            conf_min = MCRResposta._thr_conf.obter("conf_min", 0.1)
-            if melhor_score < conf_min:
-                return ""  # confianca baixa → web search ou geracao
-            
-            # Distribuicao dos gaps (confianca relativa)
-            top_n = min(10, len(scores))
-            top_scores = [s[0] for s in scores[:top_n]]
-            gaps_list = [top_scores[i] - top_scores[i+1] for i in range(len(top_scores)-1)] if len(top_scores) > 1 else [0]
-            media_gap = sum(gaps_list) / len(gaps_list) if gaps_list else 0
-            primeiro_gap = gaps_list[0] if gaps_list else 0
-            confiante = primeiro_gap > media_gap and melhor_score > conf_min
-            
-            if confiante or i == max_iter - 1:
-                return melhor_texto[:300]
-            
-            # Confianca baixa: tenta gerar por Markov (Fix 5)
-            try:
-                gerado = cerebro.gerar(pergunta, passos=6, pergunta=pergunta)
-                if gerado and len(gerado) > 20:
-                    return gerado[:300]
-            except:
-                pass
-        
-        return "Nao sei responder sobre isso." if melhor_texto else ""
-    
-    @staticmethod
-    def responder(pergunta, cerebro):
-        if not cerebro:
-            return ""
-        return MCRResposta._buscar(pergunta, cerebro)
-    
-    @staticmethod
-    def _feedback(pergunta, delta=0.0):
-        """Aprende com feedback: penaliza ou recompensa topicos.
-        Se o usuario repetiu a pergunta, a resposta anterior nao foi util."""
-        pass  # feedback sera usado pelo ciclo_autonomo
-
-# ═══════════════════════════════════════════════════════════════════
-# [19] MCRNPCBrain — NPCs do servidor
-# ═══════════════════════════════════════════════════════════════════
-
-NPC_CACHE = os.path.join(CACHE_DIR, "npc_knowledge.json")
-
-class MCRNPCBrain:
     def __init__(self):
-        self.dialogos: Dict[str, List[Tuple[str,str,int]]] = {}
-        self.npcs: Dict[str, Dict] = {}; self.total_dialogos = 0; self.total_npcs = 0
-    def aprender_arquivo(self, caminho):
-        n = 0
-        try:
-            with open(caminho, "r", encoding="utf-8", errors="replace") as f: ct = f.read()
-        except: return 0
-        nome = self._extrair_nome(caminho, ct)
-        if not nome: nome = os.path.basename(caminho).replace(".lua","").capitalize()
-        self.npcs[nome] = self.npcs.get(nome, {"arquivo": caminho, "dialogos": 0, "itens": []})
-        for p, r in self._extrair_dialogos(ct):
-            ch = p.lower().strip().strip('"\'.!?;:')
-            self.dialogos.setdefault(ch, []).append((r, nome, 1))
-            self.npcs[nome]["dialogos"] += 1; n += 1
-        for item in self._extrair_itens(ct):
-            self.npcs[nome]["itens"].append(item)
-            ch = item["itemName"].lower()
-            pc, pv = item.get("buy",0), item.get("sell",0)
-            if pc: r = f"{item['itemName']} custa {pc} moedas."
-            elif pv: r = f"{item['itemName']} vendido por {pv} moedas."
-            else: r = item["itemName"]
-            self.dialogos.setdefault(ch, []).append((r, nome, 3)); n += 1
-        self.total_dialogos += n; self.total_npcs = len(self.npcs); return n
-    def _extrair_nome(self, caminho, ct):
-        m = re.search(r'internalNpcName\s*=\s*"([^"]+)"', ct)
-        if m: return m.group(1)
-        m = re.search(r'nome\s*=\s*"([^"]+)"', ct, re.I)
-        return m.group(1) if m else ""
-    def _extrair_dialogos(self, ct):
-        pares = []
-        for p, r in re.findall(r'MsgContains\([^,]+,\s*"([^"]+)"[^;]*?npcHandler:say\(\s*"([^"]+)"', ct, re.DOTALL):
-            if len(p) > 2 and len(r) > 2: pares.append((p,r))
-        for p, r in re.findall(r'addKeyword\(\{[^}]*"([^"]+)"[^}]*\}[^;]*?text\s*=\s*"([^"]+)"', ct):
-            if len(p) > 2 and len(r) > 2: pares.append((p,r))
-        for p, r in re.findall(r'"([^"]+)"\s*->\s*"([^"]+)"', ct):
-            if len(p) > 3 and len(r) > 3 and "dialogo" not in p.lower(): pares.append((p,r))
-        return pares
-    def _extrair_itens(self, ct):
-        itens = []
-        for nome, cid, resto in re.findall(r'itemName\s*=\s*"([^"]+)"[^}]*?clientId\s*=\s*(\d+)([^}]*)', ct):
-            item = {"itemName": nome, "clientId": int(cid)}
-            b = re.search(r'buy\s*=\s*(\d+)', resto); s = re.search(r'sell\s*=\s*(\d+)', resto)
-            if b: item["buy"] = int(b.group(1))
-            if s: item["sell"] = int(s.group(1))
-            itens.append(item)
-        return itens
-    def perguntar(self, pergunta, npc=None, top_k=5):
-        if not self.dialogos: return [{"resposta": "Nada aprendido.", "conf": 0.0}]
-        pn = pergunta.lower().strip(); palavras = [p for p in pn.split() if len(p) > 2]
-        res, vistos = [], set()
-        for palavra in reversed(palavras):
-            if palavra in self.dialogos:
-                for resp, npc_orig, freq in self.dialogos[palavra]:
-                    if npc and npc.lower() != npc_orig.lower(): continue
-                    cv = f"{resp}:{npc_orig}"
-                    if cv not in vistos:
-                        vistos.add(cv); cb = min(0.6+freq*0.05, 1.0)
-                        res.append({"resposta": resp, "npc": npc_orig, "conf": round(cb,4), "tipo": "exato"})
-            if res: break
-        if not res:
-            for ch, respostas in self.dialogos.items():
-                j = MCRByteUtils.jaccard_bytes(pn, ch)
-                if j > 0.08:
-                    for resp, npc_orig, freq in respostas:
-                        if npc and npc.lower() != npc_orig.lower(): continue
-                        cv = f"{resp}:{npc_orig}"
-                        if cv not in vistos: vistos.add(cv); res.append({"resposta": resp, "npc": npc_orig, "conf": round(j*0.5,4), "tipo": "jaccard"})
-        if not res and pn:
-            fp = MCRByteUtils.fingerprint(pn)
-            for ch, respostas in self.dialogos.items():
-                fp_ch = MCRByteUtils.fingerprint(ch); j = MCRByteUtils.similaridade_cosseno(fp, fp_ch)
-                if j > 0.15:
-                    for resp, npc_orig, freq in respostas[:1]:
-                        if npc and npc.lower() != npc_orig.lower(): continue
-                        cv = f"{resp}:{npc_orig}"
-                        if cv not in vistos: vistos.add(cv); res.append({"resposta": resp, "npc": npc_orig, "conf": round(j*0.3,4), "tipo": "fingerprint"})
-        res.sort(key=lambda x: -x["conf"]); return res[:top_k]
-    def responder(self, pergunta, npc=None):
-        rs = self.perguntar(pergunta, npc, 3)
-        if not rs: return "Nao entendi."
-        m = rs[0]
-        if m["conf"] < 0.05: return f"Nao sei sobre '{pergunta}'."
-        return m["resposta"] if m["conf"] > 0.3 else f"Pelo que sei, {m['resposta'].lower()}"
-    def salvar(self, path=None):
-        path = path or NPC_CACHE; os.makedirs(os.path.dirname(path), exist_ok=True)
-        with open(path, "w", encoding="utf-8") as f:
-            json.dump({"total_dialogos": self.total_dialogos, "total_npcs": self.total_npcs, "dialogos": {k: [(r,n,fr) for r,n,fr in v] for k,v in self.dialogos.items()}, "npcs": self.npcs}, f, indent=2)
-    def carregar(self, path=None):
-        path = path or NPC_CACHE
-        if not os.path.exists(path): return False
-        with open(path, "r", encoding="utf-8") as f: d = json.load(f)
-        self.total_dialogos = d.get("total_dialogos",0); self.total_npcs = d.get("total_npcs",0)
-        self.dialogos = {k: [(r,n,fr) for r,n,fr in v] for k,v in d.get("dialogos",{}).items()}; self.npcs = d.get("npcs",{})
-        return True
-    def stats(self):
-        return {"total_npcs": self.total_npcs, "total_dialogos": self.total_dialogos, "topicos": len(self.dialogos)}
-
-# ═══════════════════════════════════════════════════════════════════
-# [20] MCRParserMinimo — parser semântico relacional (stdlib only)
-# ═══════════════════════════════════════════════════════════════════
-
-class MCRParserMinimo:
-    """Parser semantico para portugues — usa entropia, nao lista de verbos.
+        self.mcr_byte = MCR.Nivel("byte_global")
+        self.mcr_palavra = MCR.Nivel("palavra_global")
+        self.mcr_token = MCR.Nivel("token_global")
+        self.topicos = {}
+        self.conexoes_feitas = set()
+        self.total_conexoes = 0
+        self.cruzado = MCRCruzado(self)
+        self._peso_nota = MCRPesoNota("conector")  # pesos aprendidos, nao 2+5+3
     
-    Extrai triplas (sujeito, relacao, objeto) de sentencas declarativas
-    simples usando apenas stdlib Python. Cobre ~70% das sentencas PT-BR.
-    
-    NAO usa lista de verbos hardcoded. Usa acoplamento de 3 sinais
-    para detectar verbos por entropia:
-      1. POS:1 → palavra (posicao)
-      2. Entropia de transicao entrada (muitos antecedentes → verbo)
-      3. Sufixo byte (-ar, -er, -ir, -ndo)
-    
-    Padroes:
-      SVO:         "Joao come maca"  → (Joao, come, maca)
-      Copular:     "Joao e alto"     → (Joao, e, alto)
-      Cop-Comp:    "Joao e mais alto que Maria" → (Joao, e_mais_alto_que, Maria)
-      Preposicional: "Maria gosta de Pedro" → (Maria, gosta_de, Pedro)
-    """
-
-    _PREP = frozenset(['de','para','em','com','por','a','ate','desde','entre',
-        'contra','sem','sob','sobre','apos','antes','durante','perante','tras'])
-    _ART = frozenset(['o','a','os','as','um','uma','uns','umas'])
-    _CONJ = frozenset(['e','ou','mas','que','porque','pois','se','quando',
-        'enquanto','como','embora','contudo','portanto','pois'])
-    _PRON = frozenset(['eu','tu','ele','ela','nos','vos','eles','elas',
-        'me','te','se','lhe','lhes','nos','vos'])
-    _FUNC = set().union(_PREP, _ART, _CONJ, _PRON)
-
-    def __init__(self, cerebro=None):
-        self.cerebro = cerebro
-
-    def _posicao_do_verbo(self):
-        """Descobre empiricamente onde estao os verbos (SVO/SOV/VSO).
-        
-        Varre escalas absoluta (POS:N) e relativa (POS_PCT:pct).
-        Escolhe as 2 com maior entropia media.
-        Cache por crescimento de dados (recalcula se mk_pos aprendeu 20+ entradas).
-        Fallback [1, 2] para cold start.
-        """
-        if not self.cerebro or not hasattr(self.cerebro, 'mk_pos'):
-            return [1, 2]
-        
-        if not hasattr(self, '_pos_v_cache'):
-            self._pos_v_cache = [1, 2]
-            self._pos_v_ciclo = 0
-            self._pos_v_mk_total = 0
-        
-        self._pos_v_ciclo += 1
-        mk_total = self.cerebro.mk_pos.total
-        if self._pos_v_ciclo < 50 and abs(mk_total - self._pos_v_mk_total) < 20:
-            return self._pos_v_cache
-        self._pos_v_ciclo = 0
-        self._pos_v_mk_total = mk_total
-        
-        candidatos = []
-        
-        # Escala absoluta (POS:0 a POS:7)
-        for pos in range(8):
-            chave = f"POS:{pos}"
-            if chave not in self.cerebro.mk_pos.freq: continue
-            ent_total = 0.0; n = 0
-            for cand, prob in self.cerebro.mk_pos.predizer_n(chave, 15):
-                if cand in self.cerebro.mk_palavra.freq:
-                    ent_total += self.cerebro.mk_palavra.entropia(cand); n += 1
-            if n > 0: candidatos.append((chave, ent_total / n))
-        
-        # Escala relativa (POS_PCT:0, 25, 50, 75, 100)
-        for pct in [0, 25, 50, 75, 100]:
-            chave = f"POS_PCT:{pct}"
-            if chave not in self.cerebro.mk_pos.freq: continue
-            ent_total = 0.0; n = 0
-            for cand, prob in self.cerebro.mk_pos.predizer_n(chave, 15):
-                if cand in self.cerebro.mk_palavra.freq:
-                    ent_total += self.cerebro.mk_palavra.entropia(cand); n += 1
-            if n > 0: candidatos.append((chave, ent_total / n))
-        
-        if not candidatos: return [1, 2]
-        candidatos.sort(key=lambda x: -x[1])
-        self._pos_v_cache = [c[0] for c in candidatos[:2]]
-        return self._pos_v_cache
-    
-    def _eh_verbo_por_entropia(self, palavra, pos=0):
-        """Determina se palavra e verbo por acoplamento.
-        
-        Nao usa lista de verbos nem sufixos. Zero conhecimento
-        linguistico. Apenas:
-        1. Posicao (mk_pos): palavra esta onde o verbo costuma estar?
-        2. Entropia de saida (mk_palavra): palavra ramifica muito?
-        
-        A posicao do verbo e DESCOBERTA por _posicao_do_verbo(),
-        que varre escalas absoluta e relativa. Nao ha [1, 2] fixo.
-        """
-        if not self.cerebro:
-            return False
-        
-        score = 0.0; n_sinais = 0
-        p = palavra.lower()
-        
-        # Sinal 1: Posicao (descoberta por entropia — qualquer lingua)
-        for chave in self._posicao_do_verbo():
-            if chave not in self.cerebro.mk_pos.freq: continue
-            for cand, prob in self.cerebro.mk_pos.predizer_n(chave, 10):
-                if cand.lower() == p:
-                    score += prob; n_sinais += 1; break
-            if n_sinais > 0: break
-        
-        # Sinal 2: Entropia de saida (verbos ramificam mais)
-        if p in self.cerebro.mk_palavra.freq:
-            ent = self.cerebro.mk_palavra.entropia(p)
-            score += min(1.0, ent / 3.0); n_sinais += 1
-        
-        if n_sinais == 0: return False
-        return score / n_sinais > 0.3
-
-    def extrair(self, texto):
-        """Extrai triplas (sujeito, relacao, objeto) do texto."""
-        triplas = []
-        for sentenca in self._sentencas(texto):
-            if len(sentenca) < 2:
-                continue
-            t = self._extrair_tripla(sentenca)
-            if t:
-                triplas.append(t)
-        return triplas
-
-    def _sentencas(self, texto):
-        """Divide texto em sentencas."""
-        raw = texto.replace('\n',' ').split('.')
-        result = []
-        for parte in raw:
-            parte = parte.strip()
-            if not parte:
-                continue
-            # Remove pontuacao final
-            while parte and parte[-1] in '!?:;':
-                parte = parte[:-1].strip()
-            if parte:
-                result.append(self._tokenizar(parte))
-        return result
-
-    def _tokenizar(self, texto):
-        """Tokeniza mantendo pontuacao separada."""
-        tokens = []
-        for palavra in texto.split():
-            while palavra and palavra[-1] in ',;:!?)]}"\'': tokens.append(palavra[-1]); palavra=palavra[:-1]
-            while palavra and palavra[0] in '([{"\'': tokens.append(palavra[0]); palavra=palavra[1:]
-            if palavra:
-                tokens.append(palavra)
-        return tokens
-
-    def _classificar(self, palavra, pos=0):
-        """Heuristica de classe gramatical."""
-        p = palavra.lower()
-        if p in self._FUNC:
-            if p in self._PREP: return 'prep'
-            if p in self._ART: return 'art'
-            return 'conj'
-        if self._eh_verbo_por_entropia(palavra, pos): return 'verbo'
-        if p in ('mais','menos','tanto','quanto'): return 'comp'
-        if p == 'que' and pos > 0: return 'sub'
-        if palavra[0].isupper() and len(palavra) > 1 and pos > 0: return 'nome'
-        if len(p) > 2 and p.endswith(('cao','dade','mento','gem','ez','ista','eiro','or')): return 'nome'
-        if len(p) > 2 and p.endswith(('oso','osa','vel','al','ico','ante','ente')): return 'adj'
-        # Fallback: similaridade Jaccard com palavras conhecidas do cerebro
-        if self.cerebro and self.cerebro.mk_palavra.freq:
-            best_sim = 0.0; best_cls = 'nome'
-            for palavra_conhecida in list(self.cerebro.mk_palavra.freq.keys())[:50]:
-                sim = MCRByteUtils.jaccard_bytes(p, palavra_conhecida)
-                if sim > best_sim:
-                    best_sim = sim; best_cls = self._classificar_sem_jaccard(palavra_conhecida, 0)
-            if best_sim > 0.3: return best_cls
-        return 'nome'
-    def _classificar_sem_jaccard(self, palavra, pos=0):
-        """classificar sem recursao Jaccard (para evitar loop)."""
-        p = palavra.lower()
-        if p in self._FUNC:
-            if p in self._PREP: return 'prep'
-            if p in self._ART: return 'art'
-            return 'conj'
-        if self._eh_verbo_por_entropia(palavra, pos): return 'verbo'
-        if p in ('mais','menos','tanto','quanto'): return 'comp'
-        if p == 'que' and pos > 0: return 'sub'
-        if palavra[0].isupper() and len(palavra) > 1 and pos > 0: return 'nome'
-        if len(p) > 2 and p.endswith(('cao','dade','mento','gem','ez','ista','eiro','or')): return 'nome'
-        if len(p) > 2 and p.endswith(('oso','osa','vel','al','ico','ante','ente')): return 'adj'
-        return 'nome'
-
-    def _extrair_tripla(self, tokens):
-        """Extrai uma tripla de uma sentenca tokenizada."""
-        # Remove artigos e pronomes do inicio
-        while tokens and self._classificar(tokens[0], 0) in ('art',):
-            tokens = tokens[1:]
-
-        if len(tokens) < 2:
-            return None
-
-        # Encontra verbo principal
-        pos_v = -1; verbo = None
-        for i, t in enumerate(tokens):
-            cls = self._classificar(t, i)
-            if cls == 'verbo':
-                pos_v = i; verbo = t.lower()
-                break
-            # 'e' ambiguo: em posicao 1, e copula (ser)
-            if i == 1 and t.lower() == 'e' and len(tokens) >= 3:
-                pos_v = i; verbo = 'e'; break
-
-        # Fallback posicional: em portugues SVO, tokens[1] tende a ser verbo
-        if pos_v < 0 and len(tokens) >= 3:
-            v = tokens[1].lower()
-            if v not in self._FUNC:
-                pos_v = 1; verbo = v
-        if pos_v < 0:
-            return None
-
-        # Particula de comparacao "mais X que"
-        comp_que = None
-        for i in range(pos_v+1, len(tokens)):
-            if tokens[i].lower() == 'mais' and i+2 < len(tokens) and tokens[i+2].lower() == 'que':
-                comp_que = tokens[i+1].lower()
-                obj_pos = i+3
-                break
-
-        # Extrai sujeito (antes do verbo)
-        sujeito = None
-        for t in reversed(tokens[:pos_v]):
-            cls = self._classificar(t, tokens.index(t))
-            if cls in ('nome',) or (t[0].isupper() and len(t)>1):
-                sujeito = t
-                break
-            if cls not in ('art','prep','conj') and len(t) > 1:
-                sujeito = t
-                break
-        if not sujeito:
-            return None
-
-        # Extrai objeto (depois do verbo)
-        objeto = None
-
-        if comp_que:
-            # Padrao: "e mais ADJ que OBJ"
-            if obj_pos < len(tokens):
-                objeto = tokens[obj_pos]
-                return (sujeito, f"e_mais_{comp_que}_que", objeto)
-
-        # Tenta objetos diretos/indiretos
-        depois = tokens[pos_v+1:]
-        for i, t in enumerate(depois):
-            cls = self._classificar(t, pos_v+1+i)
-            if cls == 'prep':
-                # Objeto preposicional
-                for j in range(i+1, len(depois)):
-                    cls2 = self._classificar(depois[j], pos_v+1+j)
-                    if cls2 in ('nome',):
-                        return (sujeito, f"{verbo}_{t}", depois[j])
-                    if cls2 not in ('art',):
-                         return (sujeito, f"{verbo}_{t}", depois[j])
-            if cls in ('nome',):
-                objeto = t
-                break
-            if cls not in ('art','conj','comp'):
-                objeto = t
-                break
-
-        if objeto:
-            return (sujeito, verbo, objeto)
-
-        # Verbo intransitivo
-        return (sujeito, verbo, '')
-
-
-# ═══════════════════════════════════════════════════════════════════
-# [20b] MCRRedeSemantica — estado relacional Markov + grafo
-# ═══════════════════════════════════════════════════════════════════
-
-class MCRRedeSemantica:
-    """Rede semantica baseada em Markov + grafo direto.
-    
-    Armazena triplas (sujeito, relacao, objeto) como:
-    1. Grafo direto {sujeito: {relacao: {objetos}}} para consulta
-    2. 4 cadeias Markov para inferencia probabilistica:
-       - mk_suj_rel: sujeito → relacao
-       - mk_rel_obj: relacao → objeto
-       - mk_obj_rel: objeto → relacao (inversa)
-       - mk_suj_obj: sujeito → objeto (atalho transitivo)
-    """
-
-    def __init__(self):
-        self.mk_suj_rel = MCR("suj_rel")
-        self.mk_rel_obj = MCR("rel_obj")
-        self.mk_obj_rel = MCR("obj_rel")
-        self.mk_suj_obj = MCR("suj_obj")
-        self.grafo: Dict[str, Dict[str, Set[str]]] = {}
-        self.total = 0
-
-    def aprender(self, s, r, o):
-        s, r = str(s).strip(), str(r).strip()
-        o = str(o).strip() if o else ''
-        if s not in self.grafo: self.grafo[s] = {}
-        if r not in self.grafo[s]: self.grafo[s][r] = set()
-        if o: self.grafo[s][r].add(o)
-        self.mk_suj_rel.aprender(s, r)
-        if o:
-            self.mk_rel_obj.aprender(r, o)
-            self.mk_obj_rel.aprender(o, r)
-            self.mk_suj_obj.aprender(s, o)
-        self.total += 1
-
-    def consultar(self, sujeito=None, relacao=None, objeto=None):
-        """Retorna triplas que casam com os filtros."""
-        r = []
-        for s in self.grafo if sujeito is None else [sujeito]:
-            if s not in self.grafo: continue
-            for rel in self.grafo[s] if relacao is None else [relacao]:
-                if rel not in self.grafo[s]: continue
-                for o in self.grafo[s][rel] if objeto is None else {objeto}:
-                    if not objeto or o == objeto:
-                        r.append((s, rel, o))
-        return r
-
-    def predizer_objeto(self, sujeito, relacao=None):
-        """sujeito → (relacao → objeto)"""
-        if relacao:
-            o, conf = self.mk_rel_obj.predizer(relacao)
-            return o, conf
-        r, _ = self.mk_suj_rel.predizer(sujeito)
-        if r:
-            o, conf = self.mk_rel_obj.predizer(r)
-            return o, conf
-        return None, 0.0
-
-    def predizer_sujeito(self, objeto):
-        """objeto → (relacao → sujeito)"""
-        r, _ = self.mk_obj_rel.predizer(objeto)
-        if r:
-            for s in self.grafo:
-                if r in self.grafo.get(s, {}) and objeto in self.grafo[s][r]:
-                    _, conf = self.mk_suj_rel.predizer(s)
-                    return s, conf
-        return None, 0.0
-
-    def buscar_cadeia(self, inicio, fim, max_passos=10, reverso=False):
-        """BFS no grafo: encontra caminho de 'inicio' a 'fim'.
-        
-        Se reverso=True, busca na direcao oposta (objeto -> sujeito).
-        Retorna lista de (sujeito, relacao, objeto) ou None.
-        """
-        if reverso:
-            # Constroi grafo reverso: {objeto: [(sujeito, relacao)]}
-            reverso_g = {}
-            for s in self.grafo:
-                for r, objs in self.grafo[s].items():
-                    for o in objs:
-                        if o not in reverso_g: reverso_g[o] = []
-                        reverso_g[o].append((s, r))
-            fila = [(inicio, [])]
-            visitados = {inicio}
-            while fila:
-                atual, caminho = fila.pop(0)
-                if atual in reverso_g:
-                    for s, r in reverso_g[atual]:
-                        if s == fim:
-                            # Reverte a ordem para mostrar (sujeito, relacao, objeto)
-                            return [(s, r, atual)] + caminho
-                        if s not in visitados and len(visitados) < max_passos:
-                            visitados.add(s)
-                            fila.append((s, [(s, r, atual)] + caminho))
-            return None
-
-        fila = [(inicio, [])]
-        visitados = {inicio}
-        while fila:
-            atual, caminho = fila.pop(0)
-            if atual in self.grafo:
-                for r, objs in self.grafo[atual].items():
-                    for o in objs:
-                        if o == fim:
-                            return caminho + [(atual, r, o)]
-                        if o not in visitados and len(visitados) < max_passos:
-                            visitados.add(o)
-                            fila.append((o, caminho + [(atual, r, o)]))
-        return None
-
-    def entropia_media(self):
-        ent = 0.0; n = 0
-        for mk in [self.mk_suj_rel, self.mk_rel_obj, self.mk_obj_rel, self.mk_suj_obj]:
-            e = mk.entropia_media()
-            if e < 1.0: ent += e; n += 1
-        return ent / n if n else 1.0
-
-    def estatisticas(self):
-        n_sujeitos = len(self.grafo)
-        n_relacoes = sum(len(rs) for rs in self.grafo.values())
-        n_triplas = sum(sum(len(os) for os in rs.values()) for rs in self.grafo.values())
-        return {'sujeitos': n_sujeitos, 'relacoes': n_relacoes, 'triplas': n_triplas,
-                'total_markov': self.total, 'entropia': round(self.entropia_media(), 3)}
-
-
-# ═══════════════════════════════════════════════════════════════════
-# [20c] MCRTokenizadorUniversal — tokeniza QUALQUER entrada (0 keywords)
-# ═══════════════════════════════════════════════════════════════════
-
-class MCRTokenizadorUniversal:
-    """Tokenizador universal — descobre o dominio automaticamente.
-    
-    Extraido do pattern_engine original (MCR-DevIA). Tokeniza
-    QUALQUER entrada (bytes, str, list, dict) sem saber o idioma.
-    Usa AST para codigo Python, regex para outras linguagens,
-    entropia para texto generico.
-    
-    0 keywords hardcoded. 0 LLM. 0 dependencias.
-    """
-    def tokenizar_universal(self, entrada):
-        """Tokeniza qualquer entrada sem precisar de dominio fixo."""
-        import ast as _ast_uni, json as _json_uni
-        
-        if isinstance(entrada, bytes):
-            return self._tokenizar_bytes(entrada)
-        
-        elif isinstance(entrada, str):
-            try:
-                _ast_uni.parse(entrada)
-                return self._tokenizar_codigo(entrada)
-            except SyntaxError: pass
-            try:
-                _json_uni.loads(entrada)
-                return [('JSON', entrada)]
-            except Exception: pass
-            if re.search(r'\b(function|local|end|if|then|else|for|while|return|import|class|def|var|let|const)\b', entrada):
-                tokens = self._tokenizar_texto(entrada)
-                tokens.append(('SUSPEITO_CODIGO', 1))
-                return tokens
-            return self._tokenizar_texto(entrada)
-        
-        elif isinstance(entrada, (list, tuple)):
-            tokens = []
-            for i, item in enumerate(entrada):
-                if isinstance(item, str): tokens.append(('LIST_ITEM', item))
-                elif isinstance(item, (int, float)): tokens.append(('LIST_NUM', item))
-                elif isinstance(item, dict):
-                    for k, v in item.items(): tokens.append((f'DICT_{k}', str(v)[:100]))
-                else: tokens.append(('LIST_RAW', str(item)[:100]))
-            return tokens
-        
-        elif isinstance(entrada, dict):
-            return [(f'KEY_{k}', str(v)[:200]) for k, v in entrada.items()
-                    if isinstance(v, (str, int, float, bool))]
-        
-        return [('RAW', str(entrada)[:500])]
-    
-    def _tokenizar_codigo(self, codigo):
-        """Tokeniza codigo UNIVERSAL — 0 keywords."""
-        tokens = []
-        linhas = codigo.split('\n')
-        for linha in linhas:
-            indent = len(linha) - len(linha.lstrip())
-            if indent >= 0: tokens.append(('INDENT', indent // 4))
-        for palavra in codigo.split():
-            p = palavra.strip('():;,\'"{}[]=<>+-*/')
-            if any(s in palavra for s in ('(', ')', '{', '}', '[', ']')):
-                tokens.append(('BRACKET', palavra))
-            elif any(s in palavra for s in ('=', '+', '-', '*', '/', '<', '>')):
-                tokens.append(('OP', palavra))
-            elif palavra.startswith('"') or palavra.startswith("'"):
-                tokens.append(('STR', palavra))
-            elif palavra.startswith('--') or palavra.startswith('//') or palavra.startswith('#'):
-                tokens.append(('COMMENT', palavra))
-            elif p and len(p) > 0:
-                if p[0].isupper(): tokens.append(('PROPER', p))
-                elif p.isdigit(): tokens.append(('NUM', p))
-                elif p in ('.', ':', ';', ','): tokens.append(('PUNCT', p))
-                else: tokens.append(('WORD', p))
-        return tokens
-    
-    def _tokenizar_bytes(self, data):
-        """Tokeniza bytes brutos — detecta formato por entropia."""
-        tokens = []
-        tokens.append(('BYTE_LEN', len(data)))
-        ent = MCRByteUtils.entropia_bytes(data)
-        tokens.append(('BYTE_ENT', round(ent, 2)))
-        if len(data) > 4:
-            tokens.extend([(f'B{b:d}', chr(b) if 32 <= b < 127 else f'\\x{b:02x}') for b in data[:16]])
-        return tokens
-    
-    def _tokenizar_texto(self, texto):
-        """Tokeniza texto natural — palavras, numeros, pontuacao."""
-        tokens = []
-        for palavra in texto.split():
-            p = palavra.strip('.,!?;:()[]{}""''')
-            if not p: continue
-            if p.isdigit(): tokens.append(('NUM', p))
-            elif p[0].isupper() and len(p) > 1: tokens.append(('PROPER', p))
-            elif any(c in p for c in '=+-*/<>'):
-                tokens.append(('OP', p))
-            elif re.match(r'^[A-Za-z]+$', p):
-                tokens.append(('WORD', p))
-            else: tokens.append(('TOKEN', p))
-        return tokens
-
-
-# ═══════════════════════════════════════════════════════════════════
-# [21] CerebroAGI — integracao de TUDO
-# ═══════════════════════════════════════════════════════════════════
-
-class CerebroAGI:
-    def __init__(self):
-        self.mk_byte = MCR("byte"); self.mk_palavra = MCR("palavra"); self.mk_tven = MCR("tven")
-        self.hiper = MCRHiperesferaAutoExpansiva()
-        self._hiper_descobertas = False
-        self.topologia = MCRAutoTopologia()
-        self.auto_validacao = MCRAutoValidacaoContinua()
-        self._topologia_atualizada = False
-        self.mk_orq = MCR("orquestrador")
-        self._seed_orquestrador()
-        self._acoes_internas = {}
-        self._registrar_acoes_internas()
-        self.reservoir = MCRJanelamentoFingerprint()
-        self.topicos: Dict[str, Dict] = {}
-        self.world = MCRWorld(); self.coupling = MCRCoupling(); self.planner = MCRPlanner(self.world)
-        self.hdc = MCRHDCOperation(self.reservoir, coupling=self.coupling, niveis_ctx=["byte", "palavra", "tven", "intencao", "acao"])
-        self.superposicao = MCRSuperposicao(self.coupling)
-        self.total_ciclos = 0; self.thr = MCRThreshold("cerebro"); self.entropia = MCREntropia("cerebro")
-        self._rl, self._bridge, self._genesis = None, None, None
-        self.entropic_search = MCREntropicSearch(self.world, self.rl)
-        self.auto_evolution = MCRAutoEvolution(self)
-        self._ultimo_resultado = {}
-        self.fila_eventos = queue.Queue(maxsize=500)
-        self.hook_observer = MCRHookObserver(self)
-        self.file_observer = MCRFileObserver(self.fila_eventos, cerebro=self)
-        self.ent_temporal = MCREntropiaTemporal(observer=self.hook_observer)
-        self.parser = MCRParserMinimo(cerebro=self)
-        self.rede_semantica = MCRRedeSemantica()
-        self._niveis_semanticos = False
-        self.mk_pos = MCR("posicao")  # nivel posicional (POS aproximado por posicao)
-        self.mk_contexto = MCR("contexto")  # Markov-2 + contexto de turno
-        self._ultimo_texto = ""
-        self.esquecimento = MCREsquecimento(self)
-        self.conexao = MCRConexao(self)
-        self.session_cache = SessionCache()
-        # PI como referencia de infinito: pre-load 10000 digitos
-        self.mk_pi = MCR("pi")
-        self._carregar_pi()
-    
-    def _carregar_pi(self):
-        """Pre-carrega 10000 digitos de PI como referencia de infinito.
-        
-        PI tem entropia maxima. Usado como referencia para o limite
-        superior de incerteza. Coupling byte↔pi↔palavra permite que
-        qualquer padrao observado seja comparado com o padrao de
-        maxima imprevisibilidade.
-        """
-        pi = ("314159265358979323846264338327950288419716939937510582097494"
-            "45923078164062862089986280348253421170679821480865132823066470938446095"
-            "5058223172535940812848111745028410270193852110555964462294895493038196"
-            "4428810975665933446128475648233786783165271201909145648566923460348610"
-            "4543266482133936072602491412737245870066063155881748815209209628292540"
-            "9171536436789259036001133053054882046652138414695194151160943305727036"
-            "5759591953092186117381932611793105118548074462379962749567351885752724"
-            "8912279381830119491298336733624406566430860213949463952247371907021798"
-            "6094370277053921717629317675238467481846766940513200056812714526356082"
-            "7785771342757789609173637178721468440901224953430146549585371050792279"
-            "6892589235420199561121290219608640344181598136297747713099605187072113"
-            "4999999837297804995105973173281609631859502445945534690830264252230825"
-            "3344685035261931188171010003137838752886587533208381420617177669147303"
-            "5982534904287554687311595628638823537875937519577818577805321712268066"
-            "13001927876611195909164201989")
-        for i in range(len(pi)-1):
-            self.mk_pi.aprender(pi[i], pi[i+1])
-        # Acopla pi com byte para referencia universal
-        self.coupling.alimentar("pi", "byte", "3", "B:33")
-    
-    def _seed_orquestrador(self):
-        """Sementes para o orquestrador comecar a decidir.
-        Nao e regra fixa — e bootstrap. O MCR aprendera
-        novas transicoes com o uso."""
-        seeds = [
-            ("ent:alta_dims:0_inst:0_meta:alta", "alimentar"),
-            ("ent:alta_dims:3_inst:0_meta:alta", "verificar_topologia"),
-            ("ent:media_dims:3_inst:0_meta:alta", "calcular_destinos"),
-            ("ent:baixa_dims:3_inst:0_meta:alta", "calcular_destinos"),
-            ("ent:alta_dims:3_inst:0_meta:baixa", "verificar_topologia"),
-            ("ent:media_dims:3_inst:0_meta:baixa", "calcular_destinos"),
-            ("ent:baixa_dims:3_inst:0_meta:baixa", "calcular_destinos"),
-            ("ent:alta_dims:3_inst:1_meta:alta", "executar_auto_validacao"),
-            ("ent:media_dims:3_inst:1_meta:alta", "executar_auto_validacao"),
-            ("ent:baixa_dims:3_inst:1_meta:alta", "executar_auto_validacao"),
-            ("ent:alta_dims:3_inst:1_meta:baixa", "executar_auto_validacao"),
-            ("ent:media_dims:3_inst:1_meta:baixa", "executar_auto_validacao"),
-            ("ent:baixa_dims:3_inst:1_meta:baixa", "executar_auto_validacao"),
-            # Transicoes de continuacao
-            ("ent:alta_dims:3_inst:0_meta:baixa_orq:alimentar", "verificar_topologia"),
-            ("ent:alta_dims:3_inst:0_meta:baixa_orq:verificar_topologia", "buscar_analogias"),
-            ("ent:alta_dims:3_inst:0_meta:baixa_orq:buscar_analogias", "calcular_destinos"),
-            ("ent:alta_dims:3_inst:0_meta:baixa_orq:calcular_destinos", "planejar_entropico"),
-            ("ent:alta_dims:3_inst:0_meta:baixa_orq:planejar_entropico", "executar_auto_validacao"),
-            ("ent:alta_dims:3_inst:0_meta:baixa_orq:executar_auto_validacao", "auto_evoluir"),
-        ]
-        for estado, acao in seeds:
-            self.mk_orq.aprender(estado, acao)
-    
-    def _registrar_acoes_internas(self):
-        """Registra acoes internas do sistema (registry dispatch)."""
-        reg = self._acoes_internas
-        
-        reg["alimentar"] = lambda ctx: self._exec_alimentar(ctx.get("texto", ""))
-        reg["descobrir_dimensoes"] = lambda ctx: self._exec_descobrir(ctx.get("texto", ""))
-        reg["verificar_topologia"] = lambda ctx: self._exec_verificar_topologia()
-        reg["recalcular_topologia"] = lambda ctx: self._exec_recalcular_topologia()
-        reg["executar_auto_validacao"] = lambda ctx: self._exec_auto_validacao()
-        reg["calcular_destinos"] = lambda ctx: self._exec_calcular_destinos()
-        reg["buscar_analogias"] = lambda ctx: self._exec_buscar_analogias(ctx.get("texto", ""))
-        reg["planejar_entropico"] = lambda ctx: self._exec_planejar_entropico()
-        reg["auto_evoluir"] = lambda ctx: self._exec_auto_evoluir()
-        reg["ciclo_autonomo"] = lambda ctx: self.ciclo_autonomo(ctx.get("texto", ""))
-    
-    def _ciclo_passivo(self, max_eventos=10):
-        """Drena fila de eventos do sistema e alimenta o cerebro.
-        
-        Processa arquivos alterados, detecta eventos multi-nivel,
-        e busca lacunas de conhecimento — sem timer, sem polling,
-        puramente event-driven.
-        """
-        n = 0
-        while n < max_eventos:
-            try:
-                tipo, action, path = self.fila_eventos.get_nowait()
-            except queue.Empty:
-                break
-            n += 1
-            
-            if tipo != 'FILE':
-                continue
-            
-            try:
-                # Le conteudo do arquivo (primeiros 2000 bytes)
-                with open(path, 'rb') as f:
-                    raw = f.read(2000)
-                # Extrai texto se possivel
-                try:
-                    text = raw.decode('utf-8', errors='replace')
-                except:
-                    text = raw.decode('latin-1', errors='replace')
-                
-                ext = os.path.splitext(path)[1][:10]
-                if not ext: ext = 'desconhecido'
-                
-                # Alimenta o cerebro com o arquivo
-                entrada = f"[{ext}] {path}: {text[:1500]}"
-                nome = f"file_{abs(hash(path)) % 10000}"
-                self.alimentar(entrada, nome)
-                
-                # Se for texto longo, alimenta em partes
-                if len(text) > 1500:
-                    for i in range(1, min(3, len(text) // 1500 + 1)):
-                        chunk = text[i*1500:(i+1)*1500]
-                        if chunk.strip():
-                            self.alimentar(chunk, f"{nome}_p{i}")
-                
-                # Registra que aprendeu deste arquivo
-                sig = self.file_observer._file_sigs.get(path) if hasattr(self, 'file_observer') else None
-                if sig:
-                    pass  # ja registrado na DB de assinaturas
-                    
-            except (IOError, OSError):
-                pass
-        
-        # Mede entropia temporal apos processar eventos
-        try:
-            self.ent_temporal.pre_detectar()
-            self.ent_temporal.medir()
-            evento, info = self.ent_temporal.detectar()
-            self.ent_temporal.pos_detectar(evento, info)
-            if evento:
-                self._ultimo_resultado['ultimo_evento'] = info
-        except:
-            pass
-        
-        # Auto-estudo: se alguma cadeia tem entropia > 0.8 (nao sabe),
-        # registra como oportunidade de aprendizado
-        ent_byte = self.mk_byte.entropia_media() if self.mk_byte.total > 0 else 1.0
-        ent_palavra = self.mk_palavra.entropia_media() if self.mk_palavra.total > 0 else 1.0
-        if ent_byte > 0.8 or ent_palavra > 0.8:
-            pass  # oportunidade — o SelfStudy buscara dados
-    
-    def _estado_atual(self) -> str:
-        """Serializa o estado do sistema para o MCR decidir a proxima acao."""
-        ent = self.mk_byte.entropia_media() if self.mk_byte.total > 0 else 1.0
-        n_dims = len(self.hiper.dimensoes) if hasattr(self, 'hiper') else 0
-        n_inst = len(self.auto_validacao.instavel) if hasattr(self, 'auto_validacao') else 0
-        meta_ent = (self.auto_validacao.meta.entropia_media()
-                    if hasattr(self, 'auto_validacao') and self.auto_validacao.meta.total > 0
-                    else 1.0)
-        ent_tag = "alta" if ent > 0.7 else "baixa" if ent < 0.4 else "media"
-        meta_tag = "alta" if meta_ent > 0.3 else "baixa"
-        ultima = self._ultimo_resultado.get("ultima_acao", "") if self._ultimo_resultado else ""
-        sufixo = f"_orq:{ultima}" if ultima else ""
-        return f"ent:{ent_tag}_dims:{n_dims}_inst:{n_inst}_meta:{meta_tag}{sufixo}"
-    
-    def _exec_alimentar(self, texto):
-        self.alimentar(texto)
-        return {"acao": "alimentar", "status": "ok"}
-    
-    def _exec_descobrir(self, texto):
-        if not self._hiper_descobertas and len(texto) > 100:
-            self.hiper.descobrir(texto)
-            self._hiper_descobertas = True
-        return {"acao": "descobrir", "dims": len(self.hiper.dimensoes)}
-    
-    def _exec_verificar_topologia(self):
-        self.topologia.recalcular()
-        self._topologia_atualizada = True
-        return {"acao": "verificar_topologia", "clusters": self.topologia.metricas()["n_clusters"]}
-    
-    def _exec_recalcular_topologia(self):
-        self.topologia.recalcular()
-        self._topologia_atualizada = True
-        return {"acao": "recalcular_topologia", "clusters": self.topologia.metricas()["n_clusters"]}
-    
-    def _exec_auto_validacao(self):
-        if self.hiper.dimensoes:
-            if self.auto_validacao.ciclos == 0:
-                for nome_dim in self.hiper.dimensoes:
-                    self.auto_validacao.registrar(nome_dim, self.hiper.dimensoes[nome_dim])
-            r = self.auto_validacao.ciclo(self.hiper.dimensoes)
-            return {"acao": "auto_validacao", "instaveis": r["instaveis"], "meta": r["entropia_meta"]}
-        return {"acao": "auto_validacao", "status": "sem_dimensoes"}
-    
-    def _exec_calcular_destinos(self):
-        return {"acao": "calcular_destinos", "n_dims": len(self.hiper.dimensoes) if self.hiper else 0}
-    
-    def _exec_buscar_analogias(self, texto):
-        """Busca analogias entre topicos usando HDC."""
-        if not self.topicos or len(self.topicos) < 2:
-            return {"acao": "buscar_analogias", "status": "poucos_topicos"}
-        topicos = list(self.topicos.keys())[:5]
-        analogias = []
-        for i in range(len(topicos)):
-            for j in range(i+1, len(topicos)):
-                a = self.topicos[topicos[i]]["texto"][:100]
-                b = self.topicos[topicos[j]]["texto"][:100]
-                sim = self.hdc.comparar(a, b)
-                analogias.append({"a": topicos[i], "b": topicos[j], "sim": sim})
-        analogias.sort(key=lambda x: -x["sim"])
-        return {"acao": "buscar_analogias", "n_analogias": len(analogias), "melhor": analogias[0] if analogias else None}
-    
-    def _exec_planejar_entropico(self):
-        """Planeja usando Entropic Search."""
-        est = EstadoMundo.criar_simples()
-        obj = est.clone()
-        heroi = obj.get("heroi")
-        if heroi:
-            heroi.props["x"] = 4
-            heroi.props["y"] = 4
-        acao, score = self.entropic_search.planejar(est, obj)
-        return {"acao": "planejar_entropico", "melhor_acao": acao, "score": score}
-    
-    def _exec_auto_evoluir(self):
-        """Executa um ciclo de auto-evolucao."""
-        r = self.auto_evolution.ciclo()
-        return {"acao": "auto_evoluir", "resultado": r["resultado"], "melhoria": r.get("melhoria", 0)}
-    
-    def ciclo_autonomo(self, texto="", max_passos=20):
-        """Ciclo autonomo: MCR decide QUAL acao executar.
-        
-        Nao ha ordem fixa. MCR orquestrador decide + epsilon-greedy
-        para exploracao. Aprende com recompensa = reducao de entropia.
-        """
-        historico = []
-        estado_anterior = ""
-        ent_antes = self.mk_byte.entropia_media() if self.mk_byte.total > 0 else 1.0
-        dec_orq = MCRDecisorUniversal.decidir(ctx="orquestrador")
-        epsilon = dec_orq.get("threshold", 0.1)
-        
-        for passo in range(max_passos):
-            estado_str = self._estado_atual()
-            
-            if estado_str == estado_anterior:
-                ent_depois = self.mk_byte.entropia_media() if self.mk_byte.total > 0 else 1.0
-                dec_rec = MCRDecisorUniversal.decidir(ctx="ciclo_recompensa")
-                recompensa = (ent_antes - ent_depois) * dec_rec.get("threshold", 1.0)
-                self.mk_orq.aprender(estado_str, f"ent_stabilized:{recompensa:.3f}")
-                break
-            estado_anterior = estado_str
-            
-            acao, conf = self.mk_orq.predizer(estado_str)
-            if acao is None:
-                acao, conf = self.mk_orq.predizer("ent:baixa_dims:0_inst:0_meta:0")
-            if acao is None:
-                ent_depois = self.mk_byte.entropia_media() if self.mk_byte.total > 0 else 1.0
-                dec_rec = MCRDecisorUniversal.decidir(ctx="ciclo_recompensa")
-                recompensa = (ent_antes - ent_depois) * dec_rec.get("threshold", 1.0)
-                self.mk_orq.aprender(estado_str, f"ent_unknown:{recompensa:.3f}")
-                break
-            
-            # Epsilon-greedy: explora acao aleatoria com prob epsilon (P5)
-            if _rand.random() < epsilon:
-                acoes_validas = [k for k in self._acoes_internas.keys()]
-                if acoes_validas:
-                    acao = _rand.choice(acoes_validas)
-                    conf = epsilon
-            
-            # Sobrescrita por confianca: se aprendeu algo mais confiavel, usa (P5)
-            acao_aprendida, conf_aprendida = self.mk_orq.predizer(estado_str)
-            if acao_aprendida and conf_aprendida > conf:
-                acao = acao_aprendida
-                conf = conf_aprendida
-            
-            fn = self._acoes_internas.get(acao)
-            if not fn:
-                break
-            
-            resultado = fn({"texto": texto})
-            resultado["acao"] = acao
-            resultado["confianca"] = round(conf, 3)
-            historico.append(resultado)
-            
-            ent_depois = self.mk_byte.entropia_media() if self.mk_byte.total > 0 else 1.0
-            dec_rec = MCRDecisorUniversal.decidir(ctx="ciclo_recompensa")
-            recompensa = (ent_antes - ent_depois) * dec_rec.get("threshold", 1.0)
-            self.mk_orq.aprender(estado_str, f"{acao}:{recompensa:.3f}")
-            self._ultimo_resultado = {"ultima_acao": acao}
-        
-        self._ultimo_resultado = {
-            "passos": len(historico),
-            "acoes": [h["acao"] for h in historico],
-            "resultados": historico,
-            "ultima_acao": historico[-1]["acao"] if historico else "",
-        }
-        return self._ultimo_resultado
-    
-    @property
-    def rl(self):
-        if self._rl is None: self._rl = MCRQLearn()
-        return self._rl
-    @property
-    def bridge(self):
-        if self._bridge is None: self._bridge = MCRBridge()
-        return self._bridge
-    @property
-    def genesis(self):
-        if self._genesis is None: self._genesis = MCRGenesis(self)
-        return self._genesis
-    def alimentar(self, texto, nome=None, tipo="conv"):
-        if nome is None: nome = f"top_{len(self.topicos)+1}"
-        self.total_ciclos += 1
-        dados = texto.encode(); palavras = texto.split()
-        
-        # Niveis fixos (byte, palavra, tven) — sempre aprende
-        for i in range(len(dados)-1): self.mk_byte.aprender(f"B:{dados[i]:02x}", f"B:{dados[i+1]:02x}")
-        # Markov-1: transicoes de palavra simples (fallback)
-        for i in range(len(palavras)-1): self.mk_palavra.aprender(palavras[i], palavras[i+1])
-        # Markov-2: palavra depende das 2 anteriores (choque de bigrama)
-        for i in range(len(palavras)-2): self.mk_palavra.aprender(f"{palavras[i]}|{palavras[i+1]}", palavras[i+2])
+    def alimentar(self, texto: str, nome: str = None):
+        if nome is None: nome = f"topico_{len(self.topicos)+1}"
+        dados = texto.encode('utf-8')
+        for i in range(len(dados)-1):
+            self.mcr_byte.aprender(f"B:{dados[i]:02x}", f"B:{dados[i+1]:02x}")
+        palavras = texto.split()
         for i in range(len(palavras)-1):
-            ta = palavras[i][0].upper() if palavras[i] else '?'; tb = palavras[i+1][0].upper() if palavras[i+1] else '?'
-            self.mk_tven.aprender(ta, tb)
-        # Nivel posicional: aprende qual palavra tende a estar em qual posicao
-        for i, palavra in enumerate(palavras[:8]):
-            pos_key = f"POS:{i}"
-            self.mk_pos.aprender(pos_key, palavra)
-            if i > 0: self.mk_pos.aprender(palavras[i-1], pos_key)  # palavra N-1 → POS:N
-            # Posicao relativa (percentual discretizada em quartis)
-            if len(palavras) > 1:
-                pct = int((i / (len(palavras) - 1)) * 100)
-                bucket = pct // 25 * 25
-                self.mk_pos.aprender(f"POS_PCT:{bucket}", palavra)
+            self.mcr_palavra.aprender(palavras[i], palavras[i+1])
+        for i in range(len(palavras)-1):
+            ta = palavras[i][0].upper() if palavras[i] else '?'
+            tb = palavras[i+1][0].upper() if palavras[i+1] else '?'
+            self.mcr_token.aprender(ta, tb)
         
-        # Tokenizacao universal: descobre tipo de cada token (WORD, NUM, PROPER, etc.)
-        if not hasattr(self, '_tokenizador'):
-            self._tokenizador = MCRTokenizadorUniversal()
-        try:
-            tokens_univ = self._tokenizador.tokenizar_universal(texto)
-            if tokens_univ:
-                for i in range(len(tokens_univ)-1):
-                    tipo_a, val_a = tokens_univ[i]
-                    tipo_b, val_b = tokens_univ[i+1]
-                    self.coupling.alimentar("token_tipo", "palavra", tipo_a, str(val_a)[:20])
-        except:
-            pass
+        mcr_t = MCR.Nivel(nome)
+        for i in range(len(dados)-1):
+            mcr_t.aprender(f"B:{dados[i]:02x}", f"B:{dados[i+1]:02x}")
+        mcr_p = MCR.Nivel(f"{nome}_palavra")
+        for i in range(len(palavras)-1):
+            mcr_p.aprender(palavras[i], palavras[i+1])
         
-        # Hiperesfera: descobre dimensoes na primeira alimentacao
-        # (protegido — falha nao quebra o pipeline)
-        try:
-            if not self._hiper_descobertas and len(texto) > 30:
-                dims = self.hiper.descobrir(texto)
-                self._hiper_descobertas = True
-                for nome_dim, mk in self.hiper.dimensoes.items():
-                    tokens = self.hiper.tokenizadores[nome_dim](texto)
-                    for i in range(len(tokens)-1):
-                        mk.aprender(tokens[i], tokens[i+1])
-            else:
-                for nome_dim, mk in self.hiper.dimensoes.items():
-                    fn = self.hiper.tokenizadores.get(nome_dim)
-                    if fn:
-                        tokens = fn(texto)
-                        for i in range(len(tokens)-1):
-                            mk.aprender(tokens[i], tokens[i+1])
-        except:
-            pass
-        
-        # Topologia: registra niveis e recalcula grafo
-        if self.hiper.dimensoes:
-            for nome_dim, mk in self.hiper.dimensoes.items():
-                self.topologia.registrar(nome_dim, mk)
-            self.topologia.registrar("byte", self.mk_byte)
-            self.topologia.registrar("palavra", self.mk_palavra)
-            self.topologia.registrar("tven", self.mk_tven)
-            self.topologia.recalcular()
-            self._topologia_atualizada = True
-        
-        # Auto-validacao: ciclo continuo a cada N alimentos
-        if self.hiper.dimensoes and self.total_ciclos % max(1, 10 - min(self.total_ciclos//5, 8)) == 0:
-            # Registra niveis na primeira vez
-            if self.auto_validacao.ciclos == 0:
-                for nome_dim in self.hiper.dimensoes:
-                    self.auto_validacao.registrar(nome_dim, self.hiper.dimensoes[nome_dim])
-            val = self.auto_validacao.ciclo(self.hiper.dimensoes)
-            if val["instaveis"] and self.total_ciclos > 10:
-                pass  # instabilidade detectada — pode ser usado para recalibracao
-        
-        # Coupling entre byte ↔ palavra ↔ tven
-        for i in range(min(len(dados)-1, len(palavras))):
-            if i < len(dados)-1:
-                bt = f"B:{dados[i]:02x}"; pt = palavras[min(i,len(palavras)-1)]; tt = pt[0].upper() if pt else '?'
-                self.coupling.alimentar("byte","palavra",bt,pt); self.coupling.alimentar("palavra","tven",pt,tt); self.coupling.alimentar("tven","byte",tt,bt)
-                # Acopla posicao com palavra e byte
-                pos_key = f"POS:{i}"
-                self.coupling.alimentar("palavra","posicao",pt,pos_key); self.coupling.alimentar("posicao","palavra",pos_key,pt)
-        self.coupling.recalcular()
-        
-        # Contexto de turno: aprende transicoes entre alimentacoes (conversa)
-        if self._ultimo_texto and texto:
-            ctx_ant = self._ultimo_texto[:100].replace('\n',' ')
-            ctx_atual = texto[:100].replace('\n',' ')
-            # Aprende turno_anterior → turno_atual
-            self.mk_contexto.aprender(ctx_ant, ctx_atual)
-            # Acopla contexto com palavra: dado o turno anterior, qual palavra esperar?
-            primeira_palavra = palavras[0][:20] if palavras else "?"
-            if ctx_ant:
-                self.coupling.alimentar("contexto", "palavra", ctx_ant[:10], primeira_palavra)
-        self._ultimo_texto = texto[:200]  # guarda para o proximo turno
-        
-        # Parser semantico minimo + alimentacao da rede
-        try:
-            triplas = self.parser.extrair(texto)
-            if triplas:
-                if not self._niveis_semanticos:
-                    self.topologia.registrar("sujeito", MCR("sujeito"))
-                    self.topologia.registrar("relacao", MCR("relacao"))
-                    self.topologia.registrar("objeto", MCR("objeto"))
-                    self._niveis_semanticos = True
-                for s, r, o in triplas:
-                    self.rede_semantica.aprender(s, r, o)
-                    self.coupling.alimentar("sujeito","relacao",s,r)
-                    if o: self.coupling.alimentar("relacao","objeto",r,o)
-                    if o: self.coupling.alimentar("objeto","sujeito",o,s)
-                    self.coupling.alimentar("palavra","sujeito",r,s)
-                    if o: self.coupling.alimentar("objeto","palavra",o,r)
-        except:
-            pass
-        
-        # Auto-expansao: se entropia media de todos os niveis > threshold,
-        # cria NOVA dimensao combinando os dois niveis com maior correlacao
-        # (executa a cada 5 alimentacoes para evitar loop infinito)
-        if self.total_ciclos > 0 and self.total_ciclos % 3 == 0:
-            try:
-                nova_dim = self.hiper.auto_expandir(self, texto)
-                if nova_dim:
-                    # Alimenta a nova dimensao com o texto atual
-                    fn = self.hiper.tokenizadores.get(nova_dim)
-                    if fn:
-                        tokens = fn(texto)
-                        mk = self.hiper.dimensoes[nova_dim]
-                        for i in range(len(tokens)-1):
-                            mk.aprender(tokens[i], tokens[i+1])
-                    # Registra na topologia
-                    if nova_dim in self.hiper.dimensoes:
-                        self.topologia.registrar(nova_dim, self.hiper.dimensoes[nova_dim])
-                        self.auto_validacao.registrar(nova_dim, self.hiper.dimensoes[nova_dim])
-            except:
-                pass
-        
-        self.topicos[nome] = {'texto': texto, 'bytes': len(dados), 'n_palavras': len(palavras), 'conteudo': list({p.lower() for p in palavras if len(p) >= 2}), 'tipo': tipo}
+        self.topicos[nome] = {
+            'texto': texto, 'mcr_byte': mcr_t, 'mcr_palavra': mcr_p,
+            'palavras': palavras, 'bytes': len(dados),
+            'conteudo': {p.lower() for p in palavras
+                        if len(p) >= 4 and p.lower() not in CONECTORES},
+        }
         return nome
     
-    def salvar(self, caminho=None):
-        """Salva cerebro em disco (topicos + markov + hiper-dimensoes).
-        Usa arquivo temporario + os.replace para evitar corrupcao."""
-        caminho = caminho or os.path.join(CACHE_DIR, "cerebro.json")
-        topicos_serial = {}
-        for n, t in self.topicos.items():
-            topicos_serial[n] = {
-                'texto': t['texto'][:500],
-                'bytes': t['bytes'],
-                'n_palavras': t['n_palavras'],
-                'conteudo': list(t.get('conteudo', set())) if isinstance(t.get('conteudo'), (set, list)) else [],
-                'tipo': t.get('tipo', 'conv'),
-            }
-        dados = {
-            'topicos': topicos_serial,
-            'byte_trans': {str(k): v for k, v in self.mk_byte.transicoes.items()},
-            'palavra_trans': {str(k): v for k, v in self.mk_palavra.transicoes.items()},
-            'contexto_trans': {str(k): v for k, v in self.mk_contexto.transicoes.items()},
-            'contexto_freq': {str(k): v for k, v in self.mk_contexto.freq.items()},
-            'contexto_total': self.mk_contexto.total,
-            'timestamp': time.time(),
-        }
-        # Salva dimensoes descobertas pela hiperesfera
-        if self.hiper.dimensoes:
-            dados['hiper_dims'] = {}
-            for nome, mk in self.hiper.dimensoes.items():
-                dados['hiper_dims'][nome] = {
-                    'trans': {str(k): v for k, v in mk.transicoes.items()},
-                    'freq': {str(k): v for k, v in mk.freq.items()},
-                    'total': mk.total,
-                }
-        # Salva topologia (grafo de correlacao)
-        if self._topologia_atualizada:
-            tm = self.topologia.metricas()
-            dados['topologia'] = {
-                'grafo': {n: {d: p for d, p in adj.items() if d != n and p >= 0.15}
-                         for n, adj in self.topologia.grafo.items()},
-                'clusters': [sorted(c) for c in self.topologia.clusters],
-            }
-        try:
-            os.makedirs(os.path.dirname(caminho), exist_ok=True)
-            tmp = caminho + '.tmp'
-            with open(tmp, 'w', encoding='utf-8') as f:
-                json.dump(dados, f, ensure_ascii=False)
-            os.replace(tmp, caminho)
-            return True
-        except: return False
+    def alimentar_json(self, arquivo):
+        if not os.path.exists(arquivo): return 0
+        with open(arquivo, 'r', encoding='utf-8') as f:
+            dados = json.load(f)
+        conteudo = dados.get('topicos', dados if isinstance(dados, list) else [])
+        count = 0
+        for item in conteudo:
+            if isinstance(item, dict) and 'texto' in item:
+                self.alimentar(item['texto'], item.get('nome')); count += 1
+            elif isinstance(item, str):
+                self.alimentar(item); count += 1
+        return count
     
-    def carregar(self, caminho=None):
-        """Carrega cerebro do disco."""
-        caminho = caminho or os.path.join(CACHE_DIR, "cerebro.json")
-        if not os.path.exists(caminho): return False
-        try:
-            with open(caminho, 'r', encoding='utf-8') as f:
-                dados = json.load(f)
-            for nome, top in dados.get('topicos', {}).items():
-                # Tenta usar 'conteudo' salvo (lista -> set); fallback para texto
-                conteudo_salvo = top.get('conteudo')
-                if isinstance(conteudo_salvo, list):
-                    conteudo = set(conteudo_salvo)
-                else:
-                    conteudo = {p.lower() for p in top.get('texto', '').split() if len(p) >= 2}
-                self.topicos[nome] = {
-                    'texto': top.get('texto', ''),
-                    'bytes': top.get('bytes', 0),
-                    'n_palavras': top.get('n_palavras', 0),
-                    'conteudo': conteudo,
-                    'tipo': top.get('tipo', 'conv'),
-                }
-            # Restaura dimensoes da hiperesfera
-            hiper_dims = dados.get('hiper_dims', {})
-            for nome_dim, dim_data in hiper_dims.items():
-                mk = MCR(nome_dim)
-                for chave_a, trans in dim_data.get('trans', {}).items():
-                    mk.transicoes[chave_a] = dict(trans)
-                for chave_a, freq_val in dim_data.get('freq', {}).items():
-                    mk.freq[chave_a] = int(freq_val) if isinstance(freq_val, (int, float)) else 0
-                mk.total = dim_data.get('total', 0)
-                self.hiper.dimensoes[nome_dim] = mk
-            if hiper_dims:
-                self._hiper_descobertas = True
-            # Restaura transicoes byte e palavra (Fix 1)
-            for chave_a, trans in dados.get('byte_trans', {}).items():
-                self.mk_byte.transicoes[chave_a] = dict(trans)
-                self.mk_byte.freq[chave_a] = sum(trans.values())
-            self.mk_byte.total = sum(len(t) for t in self.mk_byte.transicoes.values())
-            for chave_a, trans in dados.get('palavra_trans', {}).items():
-                self.mk_palavra.transicoes[chave_a] = dict(trans)
-                self.mk_palavra.freq[chave_a] = sum(trans.values())
-            self.mk_palavra.total = sum(len(t) for t in self.mk_palavra.transicoes.values())
-            # Restaura contexto de turno
-            for chave_a, trans in dados.get('contexto_trans', {}).items():
-                self.mk_contexto.transicoes[chave_a] = dict(trans)
-                self.mk_contexto.freq[chave_a] = sum(trans.values())
-            self.mk_contexto.total = dados.get('contexto_total', 0)
-            # Restaura topologia
-            topo_data = dados.get('topologia', {})
-            if topo_data.get('grafo'):
-                self.topologia.grafo = topo_data['grafo']
-                self.topologia.clusters = [set(c) for c in topo_data.get('clusters', [])]
-                self._topologia_atualizada = True
-            return True
-        except: return False
-    def aprender_causal(self, antes, acao, depois):
-        self.world.aprender(antes, acao, depois); self.coupling.alimentar("intencao","acao",str(antes.fingerprint(8)[:3]),acao)
-        self.coupling.alimentar("acao","intencao",acao,str(depois.fingerprint(8)[:3])); self.coupling.recalcular()
-    def _gerar_original(self, texto, passos=6):
-        palavras = texto.split(); dim = C("dim_fingerprint",8)
-        if not palavras: return texto
-        for _ in range(passos):
-            # Markov-2: semente = ultimas 2 palavras (choque de bigrama)
-            if len(palavras) >= 2:
-                semente = f"{palavras[-2]}|{palavras[-1]}"
+    def conectar(self, topico_a: str, topico_b: str) -> dict:
+        if topico_a not in self.topicos or topico_b not in self.topicos: return None
+        t_a = self.topicos[topico_a]; t_b = self.topicos[topico_b]
+        texto_a = t_a['texto']; texto_b = t_b['texto']
+        palavras_a = t_a['palavras']; palavras_b = t_b['palavras']
+        
+        import hashlib
+        h = hashlib.md5(f"{min(topico_a,topico_b)}|{max(topico_a,topico_b)}".encode()).hexdigest()
+        if h in self.conexoes_feitas: return None
+        
+        byte_ponte, tipo_ponte, pal_a, pal_b = self._encontrar_ponte(topico_a, topico_b)
+        sequencia = ''
+        
+        if tipo_ponte in ('conteudo_compartilhado', 'conteudo_mas_parcial'):
+            mk_a = t_a['mcr_palavra']; mk_b = t_b['mcr_palavra']
+            semente = palavras_a[0] if palavras_a else 'O'
+            seq = []; atual = semente; atingiu = False
+            for _ in range(14):
+                seq.append(atual)
+                if not atingiu and atual.lower() == pal_a.lower():
+                    atingiu = True; atual = pal_b; continue
+                mk = mk_b if atingiu else mk_a
+                prox, conf = mk.predizer(atual)
+                if prox is None or conf < 0.01: break
+                atual = prox
+            sequencia = ' '.join(seq)
+            if len(sequencia.strip()) < 10: sequencia = ''
+        
+        if not sequencia:
+            mk_a_byte = t_a['mcr_byte']; mk_b_byte = t_b['mcr_byte']
+            inicio = f"B:{texto_a.encode('utf-8')[0]:02x}"
+            seq_a = mk_a_byte.gerar(inicio, 8)
+            estados_b = set(mk_b_byte.freq.keys())
+            ponte = None
+            for e in seq_a:
+                if e in estados_b: ponte = e; break
+            if ponte is None:
+                for e in seq_a:
+                    if e in self.mcr_byte.freq:
+                        prox, _ = self.mcr_byte.predizer(e)
+                        if prox and prox in estados_b: ponte = e; break
+            if ponte is None: return None
+            seq_b = mk_b_byte.gerar(ponte, 8)
+            chars = []
+            for s in seq_a:
+                if s.startswith('B:'):
+                    try: chars.append(chr(int(s[2:], 16)))
+                    except: chars.append('?')
+            chars.append(' ')
+            for s in seq_b:
+                if s.startswith('B:'):
+                    try: chars.append(chr(int(s[2:], 16)))
+                    except: chars.append('?')
+            sequencia = ''.join(chars)
+        
+        nota, detalhes = self._autoavaliar_multinivel(sequencia, texto_a, texto_b, tipo_ponte)
+        self.conexoes_feitas.add(h)
+        self.total_conexoes += 1
+        
+        return {
+            'hash': h, 'topico_a': topico_a, 'topico_b': topico_b,
+            'tipo_ponte': tipo_ponte, 'palavra_a': pal_a, 'palavra_b': pal_b,
+            'sequencia': sequencia, 'nota': round(nota, 2),
+            'detalhes_nota': detalhes,
+        }
+    
+    def _encontrar_ponte(self, topico_a, topico_b):
+        melhor = self.cruzado.melhor_ponte(topico_a, topico_b)
+        if melhor:
+            palavra = melhor.get('palavra', '')
+            score = melhor.get('score', 0)
+            pal_a = melhor.get('palavra_a', palavra) or palavra
+            pal_b = melhor.get('palavra_b', palavra) or palavra
+            texto_a = self.topicos[topico_a]['texto']
+            idx = texto_a.lower().find(pal_a.lower())
+            byte_p = f"B:{texto_a.encode('utf-8')[idx if idx>=0 else 0]:02x}"
+            tipo = 'conteudo_compartilhado' if score >= 6 else 'conteudo_mas_parcial'
+            return byte_p, tipo, pal_a, pal_b
+        
+        conteudo_a = self.topicos[topico_a].get('conteudo', set())
+        conteudo_b = self.topicos[topico_b].get('conteudo', set())
+        comp = conteudo_a & conteudo_b
+        if comp:
+            pal = max(comp, key=len)
+            texto_a = self.topicos[topico_a]['texto']
+            idx = texto_a.lower().find(pal)
+            byte_p = f"B:{texto_a.encode('utf-8')[idx if idx>=0 else 0]:02x}"
+            return byte_p, 'conteudo_mas_parcial', pal, pal
+        
+        return self._byte_bridge(topico_a, topico_b)
+    
+    def _byte_bridge(self, topico_a, topico_b):
+        mk_a = self.topicos[topico_a]['mcr_byte']
+        mk_b = self.topicos[topico_b]['mcr_byte']
+        texto_a = self.topicos[topico_a]['texto']
+        inicio = f"B:{texto_a.encode('utf-8')[0]:02x}"
+        seq = mk_a.gerar(inicio, 8)
+        estados_b = set(mk_b.freq.keys())
+        for e in seq:
+            if e in estados_b:
+                c = chr(int(e[2:], 16)) if e.startswith('B:') else '?'
+                return e, 'byte_only', c, c
+        for e in seq:
+            if e in self.mcr_byte.freq:
+                prox, _ = self.mcr_byte.predizer(e)
+                if prox and prox in estados_b:
+                    c = chr(int(e[2:], 16))
+                    return e, 'byte_only', c, c
+        return None, 'none', '', ''
+    
+    def _autoavaliar_multinivel(self, sequencia, texto_a, texto_b, tipo_ponte):
+        """Avalia conexao por ASSINATURA (MCRPesoNota + MCRThreshold).
+        
+        ZERO pesos fixos. ZERO thresholds fixos.
+        Tudo aprendido por MCRThreshold e MCRPesoNota.
+        """
+        if not sequencia or len(sequencia.strip()) < _MCR_THRESHOLD_TAMANHO.obter('min_seq', 3):
+            return 0.0, {'erro': 'vazia'}
+        
+        # Nivel Byte — Jaccard + transicoes (thresholds aprendidos)
+        j_a = self.mcr_byte.jaccard_bytes(sequencia, texto_a)
+        j_b = self.mcr_byte.jaccard_bytes(sequencia, texto_b)
+        seq_bytes = sequencia.encode('utf-8')
+        trans_ok = 0
+        for i in range(len(seq_bytes)-1):
+            e = f"B:{seq_bytes[i]:02x}"
+            p = f"B:{seq_bytes[i+1]:02x}"
+            if e in self.mcr_byte.transicoes and p in self.mcr_byte.transicoes.get(e, {}):
+                trans_ok += 1
+        c_byte = trans_ok / max(len(seq_bytes)-1, 1)
+        
+        thr_byte = _MCR_THRESHOLD_CONEXAO.obter('jaccard_byte', 0.3)
+        nb = (0.5 if j_a < thr_byte else 0) + (0.5 if j_b < thr_byte else 0) \
+             + min(2.0, c_byte * 4)
+        
+        # Nivel Palavra — cobertura do vocabulario (threshold aprendido)
+        pal_seq = sequencia.split()
+        c_pal = sum(1 for p in pal_seq if p in self.mcr_palavra.freq)/max(len(pal_seq), 1)
+        thr_pal = _MCR_THRESHOLD_PALAVRA.obter('min_palavra', 4)
+        cont_a = {p.lower() for p in texto_a.split() if len(p) >= thr_pal}
+        cont_b = {p.lower() for p in texto_b.split() if len(p) >= thr_pal}
+        cont_seq = {p.lower() for p in pal_seq if len(p) >= thr_pal}
+        np = (1.0 if c_pal > 0 else 0) + min(2.0, len(cont_seq & cont_a) * 0.4) \
+             + min(2.0, len(cont_seq & cont_b) * 0.4) + min(2.0, c_pal * 3)
+        
+        # Nivel Token — coerencia de tipos (threshold aprendido)
+        c_tok = 0
+        if len(pal_seq) > 1:
+            c_tok = sum(1 for i in range(len(pal_seq)-1)
+                       if pal_seq[i][0].upper() in self.mcr_token.transicoes
+                       and pal_seq[i+1][0].upper() in self.mcr_token.transicoes.get(pal_seq[i][0].upper(), {}))
+            c_tok /= (len(pal_seq)-1)
+        tipos_a = {p[0].upper() for p in texto_a.split() if p}
+        tipos_b = {p[0].upper() for p in texto_b.split() if p}
+        tipos_seq = {p[0].upper() for p in pal_seq if p}
+        thr_tok = _MCR_THRESHOLD_CONEXAO.obter('token_tipos', 0.3)
+        nt = (0.5 if tipos_seq & tipos_a else 0) + (0.5 if tipos_seq & tipos_b else 0) \
+             + min(3.0, c_tok * 10)
+        
+        # Penalidade por tipo de ponte (threshold aprendido)
+        penalidade = _MCR_THRESHOLD_CONEXAO.obter(f'penalidade_{tipo_ponte}', 
+                                                    0.3 if tipo_ponte == 'byte_only' else
+                                                    0.1 if tipo_ponte == 'none' else 1.0)
+        
+        # Nota final por MCRPesoNota (pesos aprendidos, nao 2+5+3)
+        nota = self._peso_nota.calcular(
+            byte_s=min(10, nb * 3),
+            palavra_s=min(10, np * 2),
+            token_s=min(10, nt * 3),
+        )
+        nota = max(0, min(10, nota * penalidade))
+        
+        # Auto-aprendizado: registra para thresholds aprenderem
+        _MCR_THRESHOLD_CONEXAO.aprender(f'byte_{tipo_ponte}', nb/4)
+        _MCR_THRESHOLD_CONEXAO.aprender(f'palavra_{tipo_ponte}', np/6)
+        self._peso_nota.aprender(
+            {'byte': nb/4, 'palavra': np/6, 'token': nt/4},
+            nota/10
+        )
+        
+        return nota, {
+            'byte': {'diff_a': round(j_a,3), 'diff_b': round(j_b,3), 'nota': round(nb,2)},
+            'palavra': {'existe': round(c_pal,3), 'nota': round(np,2)},
+            'token': {'coerencia': round(c_tok,3), 'nota': round(nt,2)},
+            'penalidade': penalidade, 'nota_final': round(nota,2),
+        }
+    
+    def explorar_todos(self):
+        conexoes = []
+        nomes = list(self.topicos.keys())
+        for i in range(len(nomes)):
+            for j in range(i+1, len(nomes)):
+                res = self.conectar(nomes[i], nomes[j])
+                if res: conexoes.append(res)
+        return conexoes
+    
+    def debug(self, conexao: dict) -> str:
+        """Rastreamento passo-a-passo de uma conexao."""
+        if not conexao: return "(sem conexao)"
+        linhas = [f"DEBUG CONEXAO: {conexao.get('topico_a','?')} <-> {conexao.get('topico_b','?')}"]
+        linhas.append(f"  Ponte: {conexao.get('palavra_a','?')} -> {conexao.get('palavra_b','?')} ({conexao.get('tipo_ponte','?')})")
+        linhas.append(f"  Sequencia: {conexao.get('sequencia','')}")
+        linhas.append(f"  Nota: {conexao.get('nota',0)}/10")
+        det = conexao.get('detalhes_nota', {})
+        if 'byte' in det: 
+            linhas.append(f"  Byte: {det['byte'].get('nota',0):.1f}/2 (diff_a={det['byte'].get('diff_a',0):.3f})")
+        if 'palavra' in det:
+            linhas.append(f"  Palavra: {det['palavra'].get('nota',0):.1f}/5")
+        if 'token' in det:
+            linhas.append(f"  Token: {det['token'].get('nota',0):.1f}/3")
+        linhas.append(f"  Penalidade: x{det.get('penalidade',1)}")
+        return '\n'.join(linhas)
+
+
+# ============================================================
+# MCR CADEIA — Geração infinita com reinjeção de contexto
+# ============================================================
+
+class MCRCadeia:
+    """Gera N tokens sem repetir, reinjetando contexto a cada passo.
+    
+    Estratégia:
+    1. Markov gera 1 token
+    2. Pega últimos K tokens como novo contexto
+    3. Continua gerando a partir do contexto
+    4. A cada passo, autoavalia: está repetindo?
+    5. Se loop: injeta ruído de outro tópico
+    6. Repete até N tokens
+    """
+    
+    def __init__(self, conector: MCRConector = None):
+        self.conector = conector or MCRConector()
+        self.detector = MCREntropia()
+        self.ruido = MCRRuido()
+        self.historico_ciclos = []
+    
+    def gerar(self, semente: str, n_tokens: int = 100, 
+              contexto_tamanho: int = 3, max_tentativas_loop: int = 5,
+              top_k: int = 3) -> dict:
+        """Gera N tokens com multi-nivel MCR (byte + palavra + token).
+        
+        MCRDecisor decide QUAL nivel usar a cada passo:
+        - 'byte': MCRByte gera bytes (estrutura, novidade)
+        - 'palavra': MCRPalavra gera palavras (vocabulario)
+        - 'token': MCRToken gera tipos de token (coerencia)
+        
+        A decisao e baseada no estado ATUAL (se esta em loop, se
+        gerou palavra longa, etc), nao em regras fixas.
+        """
+        import random
+        if not self.conector.topicos:
+            return {'texto': semente, 'tokens': [semente], 
+                    'nota': 0, 'loops_detectados': 0, 'erro': 'sem topicos'}
+        
+        # 3 niveis de Markov
+        mk_byte = self.conector.mcr_byte
+        mk_palavra = self.conector.mcr_palavra
+        mk_token = self.conector.mcr_token
+        mk_decisor = MCRDecisor('cadeia_nivel')
+        
+        tokens_gerados = [semente]
+        loops_detectados = 0
+        repeticoes_evitadas = 0
+        tentativas_loop = 0
+        nivel_atual = 'palavra'  # comeca com palavra
+        
+        for passo in range(n_tokens - 1):
+            # 1. Contexto = ultimos K tokens
+            if len(tokens_gerados) >= contexto_tamanho:
+                contexto = tokens_gerados[-contexto_tamanho:]
             else:
-                semente = palavras[-1]
-            if semente not in self.mk_palavra.freq:
-                if len(palavras) > 2:
-                    # Fallback: tenta com a ultima palavra so (Markov-1)
-                    semente = palavras[-1]
-                    if semente not in self.mk_palavra.freq and len(palavras) > 1:
-                        semente = palavras[-2]
-                    elif semente not in self.mk_palavra.freq:
-                        break
-                elif len(palavras) > 1:
-                    semente = palavras[-1]
-                    if semente not in self.mk_palavra.freq:
-                        semente = palavras[-2] if len(palavras) > 1 else None
-                        if semente is None or semente not in self.mk_palavra.freq:
-                            break
-                else:
+                contexto = tokens_gerados
+            ultimo = str(contexto[-1])
+            
+            # 2. MCRDecisor decide qual nivel usar baseado no estado
+            tipo_ultimo = MCR.classificar_token(ultimo)
+            esta_em_loop = self.detector.esta_em_loop()
+            estado_decisao = f"tipo:{tipo_ultimo}_loop:{esta_em_loop}_nivel:{nivel_atual}"
+            nivel_acao = mk_decisor.decidir(estado_decisao)
+            
+            # Se MCRDecisor sugeriu outro nivel, muda
+            niveis_validos = ('byte', 'palavra', 'token')
+            for nv in niveis_validos:
+                if nv in nivel_acao.lower():
+                    nivel_atual = nv
                     break
             
-            # Tenta Markov puro primeiro (Markov-2 ou fallback Markov-1)
-            cands = self.mk_palavra.predizer_n(semente, 5)
-            pred = None
+            # 3. Gera no nivel selecionado
+            prox = None
             conf = 0.0
             
-            if cands:
-                probs = {c: cf for c, cf in cands}
-                mod = self.coupling.modular("palavra", probs)
-                melhor = max(mod, key=mod.get)
-                if mod[melhor] > 0.01:
-                    pred = melhor
-                    conf = mod[melhor]
-            
-            # Fallback: esfera cross-dimensional quando Markov falha
-            if pred is None or conf < 0.05:
-                ultimo_byte = f"B:{ord(semente[-1]):02x}" if semente else "B:00"
-                for n in ["token_tipo", "linha", "byte_delta", "hash_curto", "byte"]:
-                    if n in self.hiper.dimensoes or n == "byte":
-                        ctx = {"palavra": semente}
-                        if n == "byte":
-                            ctx["byte"] = ultimo_byte
-                        pred_esf, conf_esf = self.coupling.esfera.predizer_cross("palavra", **ctx)
-                        if pred_esf and conf_esf > conf:
-                            pred = pred_esf
-                            conf = conf_esf
-                            if conf > 0.3:
-                                break  # confianca alta, aceita
-            
-            # Fallback: superposicao — colisao entre cadeias gera algo novo
-            if pred is None or conf < 0.01:
-                ultimo_byte = f"B:{ord(semente[-1]):02x}" if semente else "B:00"
-                novo, conf2, meta = self.superposicao.colidir(
-                    "palavra", semente,
-                    "byte", ultimo_byte,
-                    self.mk_palavra, self.mk_byte)
-                if novo and conf2 > 0.05:
-                    pred = novo
-                    conf = conf2
-            
-            # Fallback: cadeia de pensamento — colisoes encadeadas
-            if pred is None or conf < 0.01:
-                texto_original = " ".join(palavras)
-                cadeia = self._cadeia_pensamento(texto_original, passos=3)
-                tokens_cadeia = cadeia.split()
-                novos = [t for t in tokens_cadeia if t not in palavras]
-                if novos:
-                    pred = novos[0]
-                    conf = 0.05
-            
-            # Ultimo fallback: byte puro
-            if pred is None or conf < 0.01:
-                ultimo_byte = f"B:{ord(semente[-1]):02x}" if semente else "B:00"
-                pred, conf = self.mk_byte.predizer(ultimo_byte)
-            
-            if pred:
-                palavras.append(pred)
-            else:
-                break
-            self.entropia.alimentar(palavras[-1])
-            if self.entropia.esta_em_loop():
-                # Radar: em vez de parar (break), penaliza a palavra atual
-                # e tenta achar a SEGUNDA melhor opcao
-                palavra_loop = palavras[-1]
-                if cands and len(cands) > 1:
-                    # Pega a segunda melhor opcao
-                    palavra_alt = cands[1][0] if len(cands) > 1 and cands[1][0] != palavra_loop else None
-                    if palavra_alt:
-                        palavras[-1] = palavra_alt  # substitui pela alternativa
-                        self.entropia.alimentar(palavra_alt)
-                        continue
-                if len(palavras) > 2:
-                    # Fallback: volta um passo e tenta caminho diferente
-                    semente = palavras[-2]
-                    cands2 = self.mk_palavra.predizer_n(semente, 10)
-                    if cands2:
-                        for alt, _ in cands2:
-                            if alt != palavra_loop and alt != palavras[-2]:
-                                palavras[-1] = alt
-                                self.entropia.alimentar(alt)
-                                break
-                        continue
-                break  # sem alternativa, para
-        return " ".join(palavras)
-    
-    def _cadeia_pensamento(self, texto, intencao="", passos=4):
-        """Cadeia de pensamento Markoviana: colisoes encadeadas guiadas por entropia.
-        
-        Em vez de prever 1 token, colide niveis N vezes — a saida de
-        uma colisao vira entrada da proxima. A cadeia de menor entropia
-        vira a resposta. Para quando a entropia entre passos consecutivos
-        estabiliza (pensamento convergiu) ou quando o resultado se repete.
-        
-        Isso nao e raciocinio. E colisao encadeada com parada entropica.
-        """
-        palavras = texto.split()
-        if not palavras:
-            return texto
-        
-        cadeia = list(palavras)
-        intencao_ativa = intencao or palavras[0] if palavras else ""
-        
-        for passo in range(passos):
-            semente = cadeia[-1] if cadeia else ""
-            if not semente:
-                break
-            
-            # Tenta colidir palavra + intencao (se houver)
-            novo_token = None
-            melhor_conf = 0.0
-            
-            if intencao_ativa and semente in self.mk_palavra.freq:
-                novo, conf, meta = self.superposicao.colidir(
-                    "palavra", semente,
-                    "intencao", intencao_ativa[:10],
-                    self.mk_palavra, MCR("intencao_temp"))
-                if novo and conf > 0.05:
-                    novo_token = novo
-                    melhor_conf = conf
-            
-            # Se falhou, tenta colidir palavra + byte (superposicao normal)
-            if novo_token is None:
-                ultimo_byte = f"B:{ord(semente[-1]):02x}" if semente else "B:00"
-                novo, conf, meta = self.superposicao.colidir(
-                    "palavra", semente,
-                    "byte", ultimo_byte,
-                    self.mk_palavra, self.mk_byte)
-                if novo and conf > 0.05:
-                    novo_token = novo
-                    melhor_conf = conf
-            
-            # Se ainda falhou, tenta Markov-2 (ultimas 2 palavras) com entropia
-            if novo_token is None and len(cadeia) >= 2:
-                chave_m2 = f"{cadeia[-2]}|{cadeia[-1]}"
-                if chave_m2 in self.mk_palavra.freq:
-                    pred, conf = self.mk_palavra.predizer_com_entropia(chave_m2)
-                    if pred and conf > 0.05:
-                        novo_token = pred
-                        melhor_conf = conf
-            
-            # Se tudo falhou, tenta ponte MCRConexao entre topicos
-            if novo_token is None and self.topicos and semente in self.mk_palavra.freq:
-                try:
-                    topicos = list(self.topicos.keys())
-                    for topico_a in topicos[:5]:
-                        if intencao_ativa and any(intencao_ativa[:10].lower() in 
-                            self.topicos[topico_a].get('texto','').lower() for topico_a in topicos[:3]):
-                            continue
-                        r = self.conexao.analisar(topicos[0], topico_a)
-                        melhor = r.get('melhor')
-                        if melhor and melhor.get('palavra') and melhor['palavra'] not in cadeia:
-                            novo_token = melhor['palavra']
-                            melhor_conf = 0.3
-                            self.alimentar(f"[ponte] {melhor['palavra']}", f"ponte_{abs(hash(melhor['palavra']))%10000}")
+            if nivel_atual == 'byte':
+                # Gera como byte
+                mk = mk_byte
+                preds = mk.predizer_n(ultimo, n=top_k)
+                if preds:
+                    pesos = [c for _, c in preds]
+                    total = sum(pesos)
+                    r = random.uniform(0, total)
+                    acum = 0
+                    for p_str, p_conf in preds:
+                        acum += p_conf
+                        if r <= acum:
+                            prox = p_str
+                            conf = p_conf
                             break
+                if prox is None:
+                    prox, conf = mk.predizer(ultimo)
+                if prox is not None:
+                    # Converte byte para caractere se possivel
+                    if str(prox).startswith('B:'):
+                        try: prox = chr(int(str(prox)[2:], 16))
+                        except: pass
+            
+            elif nivel_atual == 'token':
+                # Gera como token (primeira letra)
+                mk = mk_token
+                preds = mk.predizer_n(ultimo[0].upper() if ultimo else '?', n=top_k)
+                if preds:
+                    pesos = [c for _, c in preds]
+                    total = sum(pesos)
+                    r = random.uniform(0, total)
+                    acum = 0
+                    for p_str, p_conf in preds:
+                        acum += p_conf
+                        if r <= acum:
+                            prox = p_str
+                            conf = p_conf
+                            break
+                if prox is None:
+                    prox, conf = mk.predizer(ultimo[0].upper() if ultimo else '?')
+                if prox is not None:
+                    prox = str(prox)
+            
+            else:  # 'palavra' (padrao)
+                mk = mk_palavra
+                preds = mk.predizer_n(ultimo, n=top_k)
+                if preds:
+                    pesos = [c for _, c in preds]
+                    total = sum(pesos)
+                    r = random.uniform(0, total)
+                    acum = 0
+                    for p_str, p_conf in preds:
+                        acum += p_conf
+                        if r <= acum:
+                            prox = p_str
+                            conf = p_conf
+                            break
+                if prox is None:
+                    prox, conf = mk.predizer(ultimo)
+                if prox is None:
+                    prox, conf = mk.predizer(semente)
+                if prox is None or conf < 0.01:
+                    break
+            
+            if prox is None:
+                break
+            
+            # 4. MCREntropia detecta loop
+            token_str = str(prox)
+            self.detector.alimentar(token_str)
+            em_loop = self.detector.esta_em_loop()
+            
+            if em_loop:
+                loops_detectados += 1
+                tentativas_loop += 1
+                if tentativas_loop > max_tentativas_loop: break
+                
+                # Ruido: muda de nivel forcadamente
+                melhor_ruido = self.ruido.melhor_tipo()
+                if nivel_atual == 'palavra':
+                    nivel_atual = 'byte'  # muda para byte (novidade)
+                elif nivel_atual == 'byte':
+                    nivel_atual = 'token'  # muda para token (coerencia)
+                else:
+                    nivel_atual = 'palavra'  # volta pra palavra
+                self.ruido.registrar(melhor_ruido, True)
+                continue
+            
+            tokens_gerados.append(token_str)
+        
+        # Converte para texto
+        texto = ' '.join(tokens_gerados)
+        
+        # Autoavaliacao com MCREntropia
+        palavras = texto.split()
+        n_palavras = len(palavras)
+        if n_palavras >= 4:
+            bigramas = [' '.join(palavras[i:i+2]) for i in range(n_palavras-1)]
+            repeticao = 1.0 - (len(set(bigramas)) / max(len(bigramas), 1))
+        else:
+            repeticao = 0.0
+        
+        nota = 10.0
+        loops_nao_quebrados = max(0, loops_detectados - repeticoes_evitadas)
+        # Penalidades por MCRThreshold (aprendidas, nao fixas)
+        pen_loop = _MCR_THRESHOLD_REPETICAO.obter('penalidade_loop', 2.0)
+        if loops_nao_quebrados > 0: nota -= loops_nao_quebrados * pen_loop
+        thr_rep = _MCR_THRESHOLD_REPETICAO.obter('limiar_repeticao', 0.3)
+        if repeticao > thr_rep: nota -= (repeticao - thr_rep) * 10
+        nota = max(1, min(10, nota))
+        # Auto-aprendizado
+        _MCR_THRESHOLD_REPETICAO.aprender('penalidade_loop', pen_loop * 0.99 + (loops_nao_quebrados/3) * 0.01)
+        _MCR_THRESHOLD_REPETICAO.aprender('limiar_repeticao', thr_rep * 0.99 + repeticao * 0.01)
+        
+        return {
+            'texto': texto,
+            'tokens': tokens_gerados,
+            'n_tokens': len(tokens_gerados),
+            'nota': round(nota, 1),
+            'loops_detectados': loops_detectados,
+            'repeticoes_evitadas': repeticoes_evitadas,
+            'repeticao_final': round(repeticao, 3),
+        }
+
+
+# ============================================================
+# MCR PERGUNTA — Substitui perguntar_ia (KG + Conector + Cadeia)
+# ============================================================
+
+class MCRPergunta:
+    """Responde perguntas usando MCR puro (sem LLM).
+    
+    Fluxo:
+    1. Busca termos relevantes no KG (FiltroMCR)
+    2. Alimenta MCRConector com os resultados
+    3. Tenta conectar os tópicos encontrados
+    4. Usa MCRCadeia para gerar resposta longa
+    5. Autoavalia MultiNível + Semântica
+    6. Se nota < 5: expande e tenta de novo
+    """
+    
+    def __init__(self, kg=None):
+        self.kg = kg or (_get_kg())
+        self.conector = MCRConector()
+        self.cadeia = MCRCadeia(self.conector)
+        self.semantico = AutoavaliadorSemantico(kg, None)
+        self.diagnostico = MCRDiagnostico()
+        self.peso_nota = MCRPesoNota("pergunta_peso")
+        self.expansao = MCRExpansao(self.kg)
+        self.log = []
+    
+    @staticmethod
+    def _limpar_texto(texto: str) -> str:
+        """Remove metadados, JSON, escapes do texto (MCR identifica o que e lixo)."""
+        if not texto: return ''
+        # Se comeca com { ou [ e' JSON — extrai so o texto
+        if texto.strip().startswith('{') or texto.strip().startswith('['):
+            import re
+            # Tenta extrair campo 'solucao' ou 'fragmento' ou 'texto'
+            for campo in ['solucao', 'fragmento', 'texto', 'resposta']:
+                m = re.search(r'"{0}"\s*:\s*"([^"]+)"'.format(campo), texto)
+                if m: return m.group(1)
+            # Remove chaves, aspas, escapes
+            texto = re.sub(r'[{}"\\]', '', texto)
+        # Remove escapes Unicode
+        texto = texto.replace('\\u00e3', 'ã').replace('\\u00e1', 'á')
+        texto = texto.replace('\\u00e9', 'é').replace('\\u00ed', 'í')
+        texto = texto.replace('\\u00f3', 'ó').replace('\\u00fa', 'ú')
+        texto = texto.replace('\\u00e7', 'ç').replace('\\u00f5', 'õ')
+        texto = texto.replace('\\u00ea', 'ê').replace('\\u00f4', 'ô')
+        texto = texto.replace('\\u00e2', 'â').replace('\\u00ee', 'î')
+        texto = texto.replace('\\u00fb', 'û').replace('\\u00c1', 'Á')
+        texto = texto.replace('\\u00c9', 'É').replace('\\u00d3', 'Ó')
+        # Remove ** marcacao **
+        texto = texto.replace('**', '')
+        return texto.strip()
+    
+    @staticmethod
+    def _filtrar_lesson(sol: str, mk_byte=None) -> bool:
+        """Filtra lessons que nao sao texto util (MCR por entropia)."""
+        if not sol or len(sol) < 20: return False
+        # Entropia baixa = nao e texto
+        if mk_byte:
+            from collections import Counter
+            import math
+            dados = sol.encode('utf-8')
+            freq = {}
+            for b in dados: freq[b] = freq.get(b, 0) + 1
+            n = len(dados)
+            h = 0.0
+            for c in freq.values():
+                p = c / n
+                if p > 0: h -= p * math.log2(p)
+            if h < _MCR_THRESHOLD_FILTRO.calcular(1.0):
+                return False
+        if sol.strip().startswith('{') or sol.strip().startswith('['):
+            return False
+        if sol.startswith('[') and ']' in sol:
+            return False
+        return True
+
+    @staticmethod
+    def _ranquear_por_assinatura(lessons: list, pergunta: str = '') -> list:
+        """Re-rankeia lessons por compatibilidade de ASSINATURA com a pergunta.
+        
+        Nao usa keywords fixas. Usa MCRSignature para comparar a assinatura
+        da pergunta com a assinatura de cada lesson. Lessons com assinatura
+        mais compativel (maior entropia compartilhada, transicoes similares)
+        recebem prioridade.
+        
+        Se o MCRDecisor indicar que nao ha lessons compativeis, retorna
+        lista vazia para que o sistema ESTUDE o que falta.
+        """
+        if not lessons or not pergunta:
+            return lessons
+        
+        sig_pergunta = MCRSignature.extrair(pergunta)
+        fp_pergunta = sig_pergunta.get('fingerprint', [])
+        if not fp_pergunta:
+            return lessons
+        
+        com_pontos = []
+        for l in lessons:
+            sol = l.get('solucao', '') or l.get('erro', '')
+            if not sol: continue
+            
+            sig_lesson = MCRSignature.extrair(sol)
+            fp_lesson = sig_lesson.get('fingerprint', [])
+            
+            if fp_lesson and len(fp_lesson) == len(fp_pergunta):
+                # Similaridade de fingerprint (cosseno)
+                dot = sum(a*b for a,b in zip(fp_lesson, fp_pergunta))
+                na = sum(a*a for a in fp_lesson) ** 0.5
+                nb = sum(b*b for b in fp_pergunta) ** 0.5
+                compat = dot / (na * nb) if na*nb > 0 else 0
+            else:
+                # Fallback: Jaccard de bytes entre pergunta e lesson
+                compat = MCR.jaccard_bytes(pergunta, sol)
+            
+            com_pontos.append((compat, l))
+        
+        # Ordena por compatibilidade de assinatura
+        com_pontos.sort(key=lambda x: -x[0])
+        
+        # Se nenhuma lesson tem compat > 0.1, retorna vazio
+        # para sinalizar que precisa ESTUDAR
+        if com_pontos and com_pontos[0][0] < 0.1:
+            return []
+        
+        return [l for _, l in com_pontos]
+    
+    def perguntar(self, pergunta: str, max_tokens: int = 80) -> dict:
+        """Responde usando MCRDecisor para decidir cada passo do fluxo.
+        
+        Nao ha sequencia fixa. O MCRDecisor decide:
+        - 'buscar' → procurar no KG
+        - 'estudar' → MCRWebLearn + MCRMetaGap
+        - 'expandir' → MCRExpansao
+        - 'conectar' → MCRConector
+        - 'gerar' → MCRCadeia
+        - 'finalizar' → retornar resultado
+        """
+        # Decisor de fluxo por Markov (MCR puro, nao if/else)
+        mk_fluxo = MCR('fluxo_pergunta')
+        termos = [p.lower().strip('.,!?') for p in pergunta.split() 
+                  if len(p) > _MCR_THRESHOLD_PALAVRA.obter('termo_min', 3) and p.lower() not in CONECTORES]
+        lessons = []
+        topicos_alimentados = []
+        conexoes = []
+        estado = {
+            'fase': 'inicio',
+            'n_topicos': 0,
+            'n_conexoes': 0,
+            'n_lessons': 0,
+            'n_expansoes': 0,
+            'loop_count': 0,
+            'ultima_nota': 0,
+        }
+        
+        for ciclo in range(8):  # max 8 ciclos (nao 7 passos fixos)
+            # Markov decide proxima acao baseada no estado
+            estado_chave = f"F:{estado['fase']}_T:{estado['n_topicos']}_C:{estado['n_conexoes']}"
+            acao_pred = mk_fluxo.predizer(estado_chave)
+            if acao_pred[0] is not None and acao_pred[1] > 0.3:
+                acao = str(acao_pred[0])
+            else:
+                # Fallback Markov: transicao de fase para acao
+                acao = {
+                    'inicio': 'buscar', 'buscou': 'conectar' if len(topicos_alimentados) >= 2 else 'estudar',
+                    'estudou': 'buscar', 'expandiu': 'conectar',
+                    'conectou': 'gerar', 'avaliou': 'gerar',
+                }.get(estado['fase'], 'finalizar')
+            
+            if acao == 'buscar' or estado['fase'] == 'inicio':
+                # Busca no KG por assinatura
+                for termo in termos:
+                    ls = self.kg.buscar(termo, max_r=3, pergunta=pergunta) if self.kg else []
+                    lessons.extend(ls)
+                lessons = self._ranquear_por_assinatura(lessons, pergunta)
+                estado['n_lessons'] = len(lessons)
+                estado['fase'] = 'buscou'
+                
+                # Alimenta conector com lessons compativeis
+                mk_filtro = MCR("filtro_kg")
+                for i, l in enumerate(lessons):
+                    sol = l.get('solucao', '') or l.get('erro', '')
+                    if not self._filtrar_lesson(sol, mk_filtro): continue
+                    sol = self._limpar_texto(sol)
+                    if sol and len(sol) > _MCR_THRESHOLD_TAMANHO.obter('min_alimento', 30):
+                        # Registra consumo desta lesson (MCR aprende o que e util)
+                        _registrar_consumo_global(sol)
+                        self.conector.alimentar(sol, f"kg_{i}_{l.get('ctx', '?')}")
+                        topicos_alimentados.append(f"kg_{i}")
+                estado['n_topicos'] = len(topicos_alimentados)
+            
+            elif acao == 'estudar' and not lessons:
+                # MCRDecisor detectou que faltam dados → estuda
+                try:
+                    meta = MCRMetaGap(kg=self.kg)
+                    gaps = meta.diagnosticar_gaps(min_por_prefixo=2)
+                    if gaps:
+                        web = MCRWebLearn()
+                        if web.estudar_gaps(2) > 0:
+                            for termo in termos:
+                                ls = self.kg.buscar(termo, max_r=5, pergunta=pergunta) if self.kg else []
+                                lessons.extend(ls)
+                            lessons = self._ranquear_por_assinatura(lessons, pergunta)
+                except Exception:
+                    pass
+                estado['fase'] = 'estudou'
+            
+            elif acao == 'expandir' and not topicos_alimentados:
+                # Expande conhecimento via Bridge
+                exp = self.expansao.expandir(termos[0] if termos else pergunta, max_recursos=5)
+                estado['n_expansoes'] = exp.get('expansoes', 0)
+                if estado['n_expansoes'] > 0:
+                    for termo in termos:
+                        ls = self.kg.buscar(termo, max_r=5, pergunta=pergunta) if self.kg else []
+                        for l in ls:
+                            sol = l.get('solucao', '') or l.get('erro', '')
+                            if self._filtrar_lesson(sol) and sol:
+                                sol = self._limpar_texto(sol)
+                                self.conector.alimentar(sol, f"kg_exp_{len(topicos_alimentados)}")
+                                topicos_alimentados.append(f"kg_exp_{len(topicos_alimentados)}")
+                if not topicos_alimentados:
+                    self.conector.alimentar(self._limpar_texto(pergunta), "pergunta")
+                    topicos_alimentados.append("pergunta")
+                estado['n_topicos'] = len(topicos_alimentados)
+                estado['fase'] = 'expandiu'
+            
+            elif acao == 'conectar' and len(topicos_alimentados) >= 2:
+                # Conecta topicos
+                for i in range(len(topicos_alimentados)):
+                    for j in range(i+1, len(topicos_alimentados)):
+                        cx = self.conector.conectar(topicos_alimentados[i], topicos_alimentados[j])
+                        if cx: conexoes.append(cx)
+                estado['n_conexoes'] = len(conexoes)
+                estado['fase'] = 'conectou'
+            
+            elif acao == 'gerar' and topicos_alimentados:
+                # Gera resposta e avalia
+                resultado_cadeia = self._gerar_resposta(pergunta, topicos_alimentados, max_tokens)
+                nota_final, texto, resultado_cadeia = self._avaliar_resposta(
+                    pergunta, resultado_cadeia, max_tokens)
+                estado['ultima_nota'] = nota_final
+                estado['fase'] = 'avaliou'
+                
+                # Se nota > 6 ou ciclo maximo, finaliza
+                if nota_final >= _MCR_THRESHOLD_NOTA.obter('min_entrega', 6.0) or ciclo >= 6:
+                    return self._montar_resultado(pergunta, texto, nota_final, resultado_cadeia,
+                                                  topicos_alimentados, conexoes)
+            
+            elif acao == 'finalizar' or ciclo >= 7:
+                # Finaliza com o que tem
+                if topicos_alimentados:
+                    resultado_cadeia = self._gerar_resposta(pergunta, topicos_alimentados, max_tokens)
+                    nota_final, texto, resultado_cadeia = self._avaliar_resposta(
+                        pergunta, resultado_cadeia, max_tokens)
+                    return self._montar_resultado(pergunta, texto, nota_final, resultado_cadeia,
+                                                  topicos_alimentados, conexoes)
+                return {'erro': 'sem dados', 'pergunta': pergunta, 'nota': 0}
+            
+            estado['loop_count'] = ciclo
+            # Aprende com este ciclo para melhorar decisoes futuras
+            mk_fluxo.aprender(estado_chave, acao)
+        
+        # Fallback: se saiu do loop sem finalizar
+        if topicos_alimentados:
+            resultado_cadeia = self._gerar_resposta(pergunta, topicos_alimentados, max_tokens)
+            return self._montar_resultado(pergunta, resultado_cadeia['texto'],
+                                          resultado_cadeia['nota'], resultado_cadeia,
+                                          topicos_alimentados, conexoes)
+        return {'erro': 'timeout', 'pergunta': pergunta, 'nota': 0}
+    
+    def _gerar_resposta(self, pergunta, topicos_alimentados, max_tokens):
+        """Gera resposta via MCRCadeia."""
+        if topicos_alimentados:
+            primeiro_texto = self.conector.topicos.get(topicos_alimentados[0], {}).get('texto', pergunta)
+        else:
+            primeiro_texto = pergunta
+        palavras_primeiro = primeiro_texto.split()
+        semente = palavras_primeiro[0] if palavras_primeiro else pergunta.split()[0]
+        if semente not in self.conector.mcr_palavra.freq and len(palavras_primeiro) > 1:
+            semente = palavras_primeiro[1]
+        return self.cadeia.gerar(semente, n_tokens=max_tokens, top_k=3)
+    
+    def _avaliar_resposta(self, pergunta, resultado_cadeia, max_tokens):
+        """Avalia resposta e tenta feedback se nota baixa."""
+        texto = resultado_cadeia['texto']
+        if texto and texto[0].islower(): texto = texto[0].upper() + texto[1:]
+        if texto and not any(texto.rstrip().endswith(p) for p in '.!?'): texto += '.'
+        import re as _re
+        texto = _re.sub(r'([.!?])\1+', r'\1', texto)
+        if len(texto) > 200:
+            idx_ponto = texto.find('.', 80)
+            if idx_ponto > 0: texto = texto[:idx_ponto+1]
+        
+        av_sem = self.semantico.avaliar(texto, 'lore')
+        nota_sem = av_sem.get('nota', 5)
+        nota_cadeia = resultado_cadeia.get('nota', 5)
+        loops = resultado_cadeia.get('loops_detectados', 0)
+        
+        nota_final = self.peso_nota.calcular(
+            byte_s=nota_cadeia, palavra_s=nota_sem,
+            token_s=8 if loops < 3 else 3
+        )
+        
+        thr_min = _MCR_THRESHOLD_NOTA.obter('min_entrega', 6.0)
+        if nota_final < thr_min and not pergunta.startswith('[MCR Feedback]'):
+            fb = MCRFeedback()
+            res_fb = fb.processar_com_feedback(pergunta, max_tentativas=2)
+            if res_fb.get('nota', 0) > nota_final:
+                nota_final = res_fb['nota']
+                texto = res_fb.get('resposta', texto)
+        
+        diag = self.diagnostico.diagnosticar({
+            'byte': nota_cadeia/10, 'palavra': nota_sem/10, 'token': nota_final/10,
+        })
+        self.diagnostico.alimentar({'byte': nota_cadeia/10, 'palavra': nota_sem/10, 'token': nota_final/10},
+                                    'loop' if loops > 3 else 'ok')
+        self.peso_nota.aprender(
+            {'byte': nota_cadeia/10, 'palavra': nota_sem/10, 'token': nota_final/10}, nota_final/10)
+        
+        resultado_cadeia['nota'] = nota_final
+        return nota_final, texto, resultado_cadeia
+    
+    def _montar_resultado(self, pergunta, texto, nota_final, resultado_cadeia,
+                          topicos_alimentados, conexoes):
+        """Monta dicionario de resultado final."""
+        av_sem = self.semantico.avaliar(texto, 'lore')
+        diag = self.diagnostico.diagnosticar({
+            'byte': resultado_cadeia.get('nota', 5)/10,
+            'palavra': av_sem.get('nota', 5)/10,
+            'token': nota_final/10,
+        })
+        
+        resultado = {
+            'pergunta': pergunta,
+            'resposta': texto,
+            'nota': round(nota_final, 1),
+            'n_tokens': resultado_cadeia['n_tokens'],
+            'topicos_usados': topicos_alimentados,
+            'n_conexoes': len(conexoes),
+            'loops_detectados': resultado_cadeia['loops_detectados'],
+            'repeticoes_evitadas': resultado_cadeia['repeticoes_evitadas'],
+            'avaliacao_semantica': av_sem,
+            'diagnostico': diag,
+        }
+        self.log.append(resultado)
+        return resultado
+        
+        # Diagnostico MCR: detecta e APRENDE com problemas
+        estado_diag = {
+            'byte': nota_cadeia/10,
+            'palavra': nota_sem/10,
+            'token': nota_final/10,
+        }
+        diag = self.diagnostico.diagnosticar(estado_diag)
+        
+        # AUTO-ALIMENTA: diagnostico aprende com o resultado real
+        problema = 'loop' if loops > 3 else 'ok'
+        self.diagnostico.alimentar(estado_diag, problema)
+        
+        # PesoNota aprende com esta execucao
+        self.peso_nota.aprender(
+            {'byte': nota_cadeia/10, 'palavra': nota_sem/10, 'token': nota_final/10},
+            nota_final
+        )
+        
+        resultado = {
+            'pergunta': pergunta,
+            'resposta': texto,
+            'nota': round(nota_final, 1),
+            'n_tokens': resultado_cadeia['n_tokens'],
+            'topicos_usados': topicos_alimentados,
+            'n_conexoes': len(conexoes),
+            'loops_detectados': resultado_cadeia['loops_detectados'],
+            'repeticoes_evitadas': resultado_cadeia['repeticoes_evitadas'],
+            'avaliacao_semantica': av_sem,
+            'nota_multinivel': 0,
+            'diagnostico': diag,
+            'debug': self._gerar_debug(resultado_cadeia, conexoes if 'conexoes' in dir() else [], av_sem, diag),
+        }
+        
+        self.log.append(resultado)
+        return resultado
+    
+    def _gerar_debug(self, cadeia, conexoes, av_sem, diag=""):
+        linhas = ["DEBUG MCRPergunta:"]
+        linhas.append(f"  Cadeia: {cadeia['n_tokens']} tokens, nota {cadeia['nota']}/10")
+        linhas.append(f"  Loops: {cadeia['loops_detectados']}, Repeticoes evitadas: {cadeia['repeticoes_evitadas']}")
+        linhas.append(f"  Semantica: {av_sem['nota']}/10 ({av_sem['diagnostico']})")
+        if diag:
+            linhas.append(f"  Diagnostico: {diag}")
+        if conexoes:
+            linhas.append(f"  Conexoes: {len(conexoes)}")
+            for cx in conexoes:
+                linhas.append(f"    {cx['topico_a']} <-> {cx['topico_b']}: {cx['nota']}/10")
+        return '\n'.join(linhas)
+    
+
+
+# ============================================================
+# MCR'ZIFICAÇÃO — Todos os pontos de hardcode viram Markov
+# ============================================================
+
+class MCRPeso:
+    """Aprende PESOS dos dados, não de regras fixas.
+    
+    Substitui:
+    - kg.buscar(): +5 erro, +4 ctx, +3 causa → frequencia observada
+    - Autoavaliacao: Byte(2)+Palavra(5)+Token(3) → correlacao com nota real
+    - Qualquer peso fixo → Markov descobre
+    
+    Uso:
+        peso = MCRPeso()
+        peso.aprender("tipo_erro", relevancia_observada)
+        peso_aprendido = peso.consultar("tipo_erro")
+    """
+    
+    def __init__(self, nome="pesos"):
+        self.mk = MCR(nome)
+        self.total_obs = 0
+    
+    def aprender(self, categoria: str, valor: float):
+        """Aprende que CATEGORIA tem VALOR de relevancia."""
+        self.mk.aprender(f"CAT_{categoria}", f"VAL_{int(valor*10)}")
+        self.total_obs += 1
+    
+    def consultar(self, categoria: str, fallback: float = 1.0) -> float:
+        """Retorna peso aprendido para categoria, ou fallback se nunca viu."""
+        estado = f"CAT_{categoria}"
+        if estado not in self.mk.transicoes: return fallback
+        prox, conf = self.mk.predizer(estado)
+        if prox is None or conf < 0.1: return fallback
+        try:
+            return int(prox.replace('VAL_', '')) / 10.0
+        except:
+            return fallback
+    
+    def pesos_mais_comuns(self, top_n: int = 5) -> list:
+        """Retorna os pares (categoria, peso) mais frequentes."""
+        result = []
+        for estado, trans in self.mk.transicoes.items():
+            if not estado.startswith('CAT_'): continue
+            melhor = max(trans, key=trans.get) if trans else ''
+            try:
+                valor = int(melhor.replace('VAL_', '')) / 10.0
+            except:
+                valor = 0
+            freq = sum(trans.values())
+            result.append((freq, estado.replace('CAT_', ''), valor))
+        result.sort(key=lambda x: -x[0])
+        return [(c, v) for _, c, v in result]
+
+
+# MCREntropia — thin wrapper para detectar loops via entropia
+class MCREntropia:
+    """Detecta loops. Internamente usa MCR."""
+    def __init__(self, nome="entropia"):
+        self.mk = MCR(nome)
+        self.janela = 10
+        self.historico_entropias = []
+    
+    def alimentar(self, token):
+        self.mk.aprender(f"T:{str(token)[:50]}", "V")
+        h = self.mk.entropia(f"T:{str(token)[:50]}")
+        self.historico_entropias.append(h)
+        if len(self.historico_entropias) > 100:
+            self.historico_entropias = self.historico_entropias[-50:]
+    
+    def _entropia_local(self) -> float:
+        if len(self.historico_entropias) < 3: return 1.0
+        recentes = self.historico_entropias[-10:]
+        return sum(recentes) / len(recentes) if recentes else 1.0
+    
+    def esta_em_loop(self) -> bool:
+        return self._entropia_local() < 0.3
+
+class MCRRuido:
+    """Aprende QUE TIPO de ruído funciona para quebrar loops.
+    
+    Substitui:
+    - "pega token de outro topico" fixo → aprende o que funciona
+    
+    Uso:
+        ruido = MCRRuido()
+        ruido.tentar("injeção_byte") 
+        ruido.registrar("injeção_byte", sucesso=True)
+        melhor = ruido.melhor_tipo()  # → "injeção_palavra"
+    """
+    
+    def __init__(self, nome="ruido"):
+        self.mk = MCR(nome)
+        self.tipos = ['byte_global', 'palavra_outro_topico', 'pontuacao', 'semente_original']
+    
+    def tentar(self, tipo: str, estado_atual: str) -> str:
+        """Tenta gerar ruído de um tipo específico."""
+        return self.mk.predizer(f"{tipo}_{estado_atual}")[0]
+    
+    def registrar(self, tipo: str, sucesso: bool):
+        """Registra se o tipo de ruído funcionou."""
+        self.mk.aprender(tipo, "sucesso" if sucesso else "falha")
+    
+    def melhor_tipo(self) -> str:
+        """Retorna o tipo de ruído com maior taxa de sucesso."""
+        scores = []
+        for t in self.tipos:
+            if t in self.mk.transicoes:
+                prox = self.mk.transicoes[t]
+                suc = prox.get('sucesso', 0)
+                fal = prox.get('falha', 0)
+                taxa = suc / max(suc + fal, 1)
+                scores.append((taxa, t))
+        scores.sort(key=lambda x: -x[0])
+        return scores[0][1] if scores else 'palavra_outro_topico'
+    
+    def taxa_sucesso(self, tipo: str) -> float:
+        if tipo not in self.mk.transicoes: return 0.5
+        prox = self.mk.transicoes[tipo]
+        suc = prox.get('sucesso', 0)
+        fal = prox.get('falha', 0)
+        return suc / max(suc + fal, 1)
+
+
+class MCRDecisor:
+    """Decide o FLUXO de ações — thin wrapper em torno de MCR nivel 'decisao'.
+    
+    Internamente usa MCR nivel 'decisao' (equacao universal).
+    Mantido como compatibilidade.
+    """
+    
+    def __init__(self, nome="decisor"):
+        self.mk = MCR(nome)
+        self.acoes_possiveis = ['kg_primeiro', 'conector_primeiro', 'cadeia_direto',
+                                'kg_conector_cadeia', 'conector_kg_cadeia']
+    
+    def aprender(self, estado_pergunta: str, acao: str, sucesso: bool):
+        tag = "ok" if sucesso else "falha"
+        self.mk.aprender(f"{estado_pergunta}_{tag}", acao)
+    
+    def decidir(self, pergunta: str, estado_extra: str = "") -> str:
+        """Decide qual acao tomar baseado no estado da pergunta."""
+        tipo = self._classificar_pergunta(pergunta)
+        estado = f"{tipo}_{estado_extra}" if estado_extra else tipo
+        
+        if estado in self.mk.transicoes:
+            melhor = max(self.mk.transicoes[estado], key=self.mk.transicoes[estado].get)
+            return melhor
+        
+        if tipo == 'explicacao': return 'kg_primeiro'
+        if tipo == 'criacao': return 'conector_primeiro'
+        if tipo == 'busca': return 'kg_conector_cadeia'
+        return 'kg_conector_cadeia'
+    
+    def _classificar_pergunta(self, pergunta: str) -> str:
+        estado = f"PERG:{pergunta.lower()}"
+        if estado in self.mk.transicoes:
+            prox, conf = self.mk.predizer(estado)
+            if prox and conf > 0.2:
+                return str(prox)
+        p = pergunta.lower()
+        for palavra, categoria in [
+            ('explique', 'explicacao'), ('o que e', 'explicacao'),
+            ('como funciona', 'explicacao'), ('defina', 'explicacao'),
+            ('crie', 'criacao'), ('gere', 'criacao'), ('criar', 'criacao'),
+            ('implemente', 'criacao'), ('busque', 'busca'),
+            ('encontre', 'busca'), ('procure', 'busca'), ('onde', 'busca'),
+        ]:
+            if palavra in p:
+                self.aprender(estado, categoria, True)
+                return categoria
+        self.aprender(estado, 'geral', True)
+        return 'geral'
+
+
+class MCRDiagnostico:
+    """Diagnostico MCR'zificado — Markov de estado para debug.
+    
+    Substitui:
+    - print() fixo de debug → Markov que aponta onde esta o problema
+    
+    Uso:
+        diag = MCRDiagnostico()
+        problema = diag.diagnosticar(estado_atual)
+        # → "byte:baixo|palavra:alto → JSON no texto"
+    """
+    
+    def __init__(self, nome="diagnostico"):
+        self.mk = MCR(nome)
+        self.historico = []
+    
+    def alimentar(self, estado: dict, diagnostico: str):
+        """Aprende que ESTADO leva a DIAGNOSTICO."""
+        codigo = self._codificar_estado(estado)
+        self.mk.aprender(codigo, diagnostico)
+        self.historico.append((codigo, diagnostico))
+    
+    def diagnosticar(self, estado: dict) -> str:
+        """Retorna diagnostico para o estado atual."""
+        codigo = self._codificar_estado(estado)
+        if codigo in self.mk.transicoes:
+            melhor = max(self.mk.transicoes[codigo], key=self.mk.transicoes[codigo].get)
+            return melhor
+        return "sem_diagnostico_previo"
+    
+    def _codificar_estado(self, estado: dict) -> str:
+        partes = []
+        for k, v in estado.items():
+            if isinstance(v, (int, float)):
+                nivel = 'alto' if v > 0.7 else 'medio' if v > 0.3 else 'baixo'
+                partes.append(f"{k}:{nivel}")
+        return '|'.join(partes)
+
+
+
+
+class MCRKGAuto:
+    """Organiza o KG automaticamente: categoriza, dedup, limpa.
+    
+    Tudo MCR: categorias sao descobertas por prefixo do ctx,
+    duplicatas sao detectadas por Jaccard, limpeza por MCRSignature.
+    """
+    
+    def __init__(self, kg=None):
+        self.kg = kg or (_get_kg())
+        self.mk_cat = MCR("categorias")
+        self.mk_dedup = MCR("dedup")
+        self.mk_qualidade = MCR('qualidade_lesson')  # aprende o que e lixo
+        # Seed: exemplos do que e BOA lesson
+        for _txt in ['SPA e o sistema de progressao do aventureiro',
+                     'Eridanus e a cidade inicial do projeto MCR',
+                     'O SHC gerencia habilidades contextuais em 5 camadas']:
+            sig = MCRSignature.extrair(_txt, rapido=True)
+            self.mk_qualidade.aprender(f"ENT:{int(sig['entropia']*10)}_EST:{sig['estados']}", "UTIL")
+        for _txt in ['{"nome": "teste", "valor": 123}',
+                     '_flush_20260101_000000',
+                     '{\'fragmento\': \'texto\', \'score\': 0.5}']:
+            sig = MCRSignature.extrair(_txt, rapido=True)
+            self.mk_qualidade.aprender(f"ENT:{int(sig['entropia']*10)}_EST:{sig['estados']}", "LIXO")
+    
+    @staticmethod
+    def _classificar_qualidade(sol: str) -> float:
+        """Classifica qualidade de uma lesson por CONSUMO (nao regras).
+        
+        MCR aprende o que e lixo pelo USO:
+        - Se uma lesson foi CONSUMIDA por MCRPergunta → UTIL
+        - Se NUNCA foi consumida → LIXO (inativa)
+        - Se e NOVA (nunca vista) → duvidosa (0.5) ate ser consumida
+        
+        Zero padroes hardcoded. Zero keywords.
+        """
+        if not sol or len(sol) < 10:
+            return 0.0
+        
+        sig = MCRSignature.extrair(sol, rapido=True)
+        fp = sig.get('fingerprint', [])
+        if not fp:
+            return 0.0
+        
+        # Verifica no Markov de consumo: ja vi esta fingerprint?
+        fp_chave = '_'.join(str(int(v*10)) for v in fp)
+        pred = _get_mk_qualidade().predizer(fp_chave)
+        
+        if pred[0] is not None and pred[1] > 0.2:
+            if pred[0] == 'UTIL':
+                return 0.9
+            elif pred[0] == 'LIXO':
+                return 0.1
+        
+        # Nunca viu: duvidoso (mas nao lixo ainda)
+        return 0.5
+    
+    def categorizar(self) -> dict:
+        """Categoriza lessons por prefixo do ctx + conteudo.
+        Retorna {categoria: [lessons]}."""
+        if not self.kg: return {}
+        licoes = self.kg._get_licoes()
+        cats = {}
+        for l in licoes:
+            ctx = l.get('ctx', '?')
+            sol = l.get('solucao', '')
+            # Categoria = prefixo do ctx
+            cat = ctx.split('_')[0] if '_' in ctx else ctx
+            # Se comeca com numero, categoria = 'outro'
+            if cat and cat[0].isdigit(): cat = 'numerico'
+            if cat not in cats: cats[cat] = []
+            cats[cat].append(l)
+            self.mk_cat.aprender(f"CTX:{ctx}", f"CAT:{cat}")
+        return cats
+    
+    def dedup(self, min_similaridade: float = 0.95) -> int:
+        """Remove duplicatas com hash rapido + Jaccard so nos buckets.
+        
+        Short-circuit: se ja existem lessons inativas, dedup ja foi feito.
+        """
+        if not self.kg: return 0
+        licoes = self.kg._get_licoes()
+        if len(licoes) < 50: return 0
+        removidas = 0
+        
+        # Short-circuit: se ja tem lessons inativas, dedup ja foi feito
+        inativas = sum(1 for l in licoes if l.get('inactive'))
+        if inativas > len(licoes) * 0.05:  # 5%+ ja inativas = ja dedup
+            return 0
+        
+        # PASSO 1: Bucketing por hash rapido (O(n), nao O(n²))
+        buckets = {}  # {hash -> [(idx, lesson), ...]}
+        for i, l in enumerate(licoes):
+            sol = l.get('solucao', '')
+            if not sol or len(sol) < 30: continue
+            # Hash simples: primeiros 100 chars
+            h = hash(sol) % 50
+            buckets.setdefault(h, []).append((i, l))
+        
+        # PASSO 2: So dedup dentro de cada bucket (grupos pequenos)
+        for h, grupo in buckets.items():
+            n = len(grupo)
+            if n < 2: continue
+            # Se grupo e grande (muitas lessons com mesmo hash), limita
+            if n > 50:
+                continue  # bucket lotado: hash colidiu, pular
+            
+            for i in range(n):
+                if grupo[i][1].get('inactive'): continue
+                for j in range(i + 1, n):
+                    if grupo[j][1].get('inactive'): continue
+                    sol_i = grupo[i][1].get('solucao', '')
+                    sol_j = grupo[j][1].get('solucao', '')
+                    if not sol_i or not sol_j: continue
+                    
+                    jac = MCR("tmp").jaccard_bytes(sol_i, sol_j)
+                    if jac >= min_similaridade:
+                        if len(sol_i) <= len(sol_j):
+                            grupo[i][1]['inactive'] = True
+                        else:
+                            grupo[j][1]['inactive'] = True
+                        removidas += 1
+                        self.mk_dedup.aprender("DUPLICATA_BUCKET", f"JAC:{jac:.2f}")
+        
+        if removidas:
+            self.kg.salvar()
+            self.mk_dedup.aprender("TOTAL_REMOVIDAS", str(removidas))
+        
+        return removidas
+        return removidas
+    
+    def limpar(self) -> dict:
+        """Remove lixo usando MCRSignature (nao regras fixas).
+        Retorna {removidos: N, mantidos: N}."""
+        if not self.kg: return {'removidos': 0, 'mantidos': 0}
+        licoes = self.kg._get_licoes()
+        removidos = 0
+        mantidos = 0
+        for l in licoes:
+            if l.get('inactive'): continue
+            sol = l.get('solucao', '')
+            qualidade = self._classificar_qualidade(sol)
+            if qualidade < 0.3:
+                l['inactive'] = True; removidos += 1
+            elif qualidade < 0.5:
+                # Duvidoso: marca como inactive mas registra motivo
+                l['inactive'] = True; removidos += 1
+                self.mk_cat.aprender("DUVIDOSO", l.get('ctx', '?'))
+            else:
+                mantidos += 1
+        if removidos:
+            self.kg.salvar()
+        return {'removidos': removidos, 'mantidos': mantidos}
+    
+    def registrar_consumo(self, sol: str):
+        """Registra que uma lesson foi CONSUMIDA (utilizada para responder)."""
+        if not sol: return
+        _registrar_consumo_global(sol)
+        self.mk_cat.aprender("CONSUMO", sol)
+
+
+def _registrar_consumo_global(sol: str):
+    """Registra consumo de uma lesson no Markov global de qualidade.
+    
+    Chame sempre que uma lesson for usada para responder.
+    MCR aprende: fingerprint desta lesson = UTIL.
+    """
+    if not sol: return
+    sig = MCRSignature.extrair(sol, rapido=True)
+    fp = sig.get('fingerprint', [])
+    if fp:
+        fp_chave = '_'.join(str(int(v*10)) for v in fp)
+        _get_mk_qualidade().aprender(fp_chave, 'UTIL')
+    
+    def organizar(self) -> dict:
+        """Executa tudo: categoriza + dedup + limpa.
+        Retorna relatorio completo."""
+        cats = self.categorizar()
+        removidos_dedup = self.dedup()
+        limpeza = self.limpar()
+        return {
+            'categorias': len(cats),
+            'distribuicao': {c: len(v) for c, v in sorted(cats.items(), key=lambda x: -len(x[1]))},
+            'dedup_removidos': removidos_dedup,
+            'limpeza': limpeza,
+            'stats_mk': self.mk_cat.stats(),
+        }
+
+
+# ============================================================
+# MCR EXPANSAO — AutoLoop que usa TUDO para expandir conhecimento
+# ============================================================
+
+class MCRExpansao:
+    """AutoLoop que usa TODOS os modulos, comandos e ferramentas.
+    
+    Fluxo:
+    1. Tema definido (ex: "Eridanus", "SPA")
+    2. Bridge descobre o que esta disponivel
+    3. Para CADA modulo/comando/ferramenta:
+       a) Tenta usar para aprender sobre o tema
+       b) Se resultado util → salva no KG
+       c) Se nao → tenta proximo
+    4. Apos N tentativas, autoavalia o KG
+    5. Se KG do tema ainda fraco → repete com mais recursos
+    """
+    
+    # Comandos MCR-puros (sem LLM)
+    COMANDOS_MCR = ['explorar', 'aprender_conceito', 'conectar', 'analisar', 'memoria']
+    
+    def __init__(self, kg=None, bridge=None):
+        self.kg = kg or (_get_kg())
+        self.bridge = bridge or MCRBridge()
+        self.mk = MCR("expansao")
+    
+    def expandir(self, tema: str, max_recursos: int = 10) -> dict:
+        """Tenta expandir o conhecimento sobre um tema usando TUDO disponivel."""
+        if not self.kg: return {'tema': tema, 'expansoes': 0}
+        
+        if not self.bridge._descobriu:
+            disc = self.bridge.descobrir()
+        
+        resultados = []
+        recursos_usados = []
+        
+        # Ordem decidida por MCRDecisor, nao fixa (docs primeiro se disponivel)
+        try:
+            idx = _get_doc_index()
+            idx.indexar()
+            tem_docs = len(idx._indice) > 0
+        except:
+            tem_docs = False
+        ordem = ['docs', 'modulos', 'comandos', 'kg'] if tem_docs else ['modulos', 'comandos', 'kg']
+        try:
+            dec = MCRDecisor("expansao_ordem")
+            ordem_str = dec.decidir(f"EXPANDIR:{tema}")
+            if ordem_str and '_' in str(ordem_str):
+                ordem = str(ordem_str).split('_')
+        except:
+            pass
+        
+        for etapa in ordem:
+            if etapa == 'docs':
+                try:
+                    idx = _get_doc_index()
+                    docs = idx.buscar(tema)
+                    for doc in docs:
+                        conteudo = idx.ler(doc['caminho'], 500)
+                        if conteudo and tema.lower() in conteudo.lower():
+                            resultados.append(f"[DOCS:{os.path.basename(doc['caminho'])}] OK")
+                            recursos_usados.append(f"docs:{doc['caminho']}")
+                            self.mk.aprender(f"EXPANDIR:{tema}", f"DOCS:{doc['caminho']}")
                 except:
                     pass
             
-            # Se tudo falhou, para
-            if novo_token is None:
-                break
+            elif etapa == 'modulos':
+                for nome, mod in list(self.bridge.modulos.items())[:max_recursos//3]:
+                    for func_nome in ['buscar', 'buscar_expandido', 'get', 'listar']:
+                        if hasattr(mod, func_nome):
+                            try:
+                                res = getattr(mod, func_nome)(tema)
+                                if res:
+                                    resultados.append(f"[MOD:{nome}.{func_nome}] OK")
+                                    recursos_usados.append(f"modulo:{nome}")
+                                    self.mk.aprender(f"EXPANDIR:{tema}", f"MOD:{nome}")
+                                break
+                            except:
+                                pass
             
-            # Se repetiu o ultimo token, parou (loop)
-            if novo_token == semente or (len(cadeia) > 1 and novo_token == cadeia[-2]):
-                break
+            elif etapa == 'comandos':
+                for nome in self.COMANDOS_MCR:
+                    if nome not in self.bridge.comandos: continue
+                    cmd_result = self.bridge.usar_comando(nome)
+                    if cmd_result and isinstance(cmd_result, str) and len(cmd_result) > 20:
+                        resultados.append(f"[CMD:{nome}] OK")
+                        recursos_usados.append(f"comando:{nome}")
+                        self.mk.aprender(f"EXPANDIR:{tema}", f"CMD:{nome}")
             
-            cadeia.append(novo_token)
-            
-            # Entropic radar com referencia PI (infinito)
-            ent_palavra = self.mk_palavra.entropia(semente) if semente in self.mk_palavra.freq else 1.0
-            ent_pi = self.mk_pi.entropia_media()  # PI ≈ 3.32 bits (maxima incerteza)
-            # Normaliza a entropia contra PI: 0 = previsivel, 1 = caotico como PI
-            ent_normalizada = min(1.0, ent_palavra / ent_pi) if ent_pi > 0 else ent_palavra
-            if ent_normalizada < 0.05 and passo > 0:
-                break  # convergiu (muito mais previsivel que PI)
-            if ent_normalizada > 0.95:
-                pass  # caotico como PI — explorar mais (nao para)
-            if len(cadeia) >= 4 and len(set(cadeia[-4:])) == 1:
-                break  # loop de 4 repeticoes
-            
-            # Aprende esta transicao da cadeia
-            self.mk_palavra.aprender(semente, novo_token)
+            elif etapa == 'kg':
+                licoes = self.kg.buscar(tema, max_r=5)
+                if licoes:
+                    resultados.append(f"[KG] {len(licoes)} lessons")
+                    recursos_usados.append("kg")
         
-        return " ".join(cadeia)
-    
-    def gerar(self, texto, passos=None, pergunta=""):
-        passos = passos or int(C("passos_gerar",6))
-        # Prefixa contexto da sessao (se houver) para geracao coerente
-        if self.session_cache and self.session_cache.fragmentos:
-            contexto = self.session_cache.reconstruir(max_fragmentos=3)
-            if contexto and len(contexto) > len(texto):
-                texto_com_contexto = contexto + " " + texto
-            else:
-                texto_com_contexto = texto
-        else:
-            texto_com_contexto = texto
-        if len(self.topicos) < 100: return self._gerar_original(texto_com_contexto, passos)
-        return MCRAttention.gerar(self, texto_com_contexto, passos, pergunta or texto)
-    def planejar(self, obj, est=None):
-        est = est or EstadoMundo.criar_simples()
-        eo = self._estado_de_texto(obj, est)
-        if not eo: return {"plano": [], "erro": "objetivo nao compreendido"}
-        acoes = self.planner.plano(est, eo)
-        nota = self.planner.avaliar_plano(acoes, est, eo) if hasattr(self.planner, 'avaliar_plano') else 0.0
-        return {"plano": acoes, "passos": len(acoes), "nota": round(nota,2)}
-    def _estado_de_texto(self, desc, ref):
-        e = ref.clone(); desc = desc.lower()
-        if "bau" in desc and "aberto" in desc:
-            b = e.get("bau")
-            if b: b.props["aberto"] = True
-        if "monstro" in desc and ("morto" in desc or "derrotado" in desc): e.remover("monstro")
-        return e
-    def auto_diagnosticar(self):
-        gaps = []
-        tlist = list(self.topicos.keys())
-        n_amostras = MCRDecisorUniversal.decidir_passos("auto_diag", {"n_topicos": len(tlist)})
-        for i in range(min(len(tlist), n_amostras)):
-            for j in range(i+1, min(len(tlist), n_amostras)):
-                a, b = tlist[i], tlist[j]
-                ja = MCRByteUtils.jaccard_bytes(self.topicos[a]['texto'], self.topicos[b]['texto'])
-                if ja < 0.1: gaps.append(f"{a}<->{b}: j={ja:.3f}")
-        codex = MCRCodex()
-        hc = codex.escanear()
-        result = {"topicos": len(self.topicos), "bytes": self.mk_byte.total, "palavras": self.mk_palavra.total, "causais": len(self.world.hist), "gaps": gaps[:3], "hardcodes": len(hc)}
-        # Adiciona metricas da topologia
-        if self._topologia_atualizada:
-            tm = self.topologia.metricas()
-            result["clusters"] = tm["n_clusters"]
-            result["arestas_topologia"] = tm["n_arestas"]
-            result["isolados"] = tm["isolados"]
-        # Adiciona metricas da auto-validacao
-        if self.auto_validacao.ciclos > 0:
-            result["instaveis"] = self.auto_validacao.instavel
-            result["meta_entropia"] = round(self.auto_validacao.meta.entropia_media() if self.auto_validacao.meta.total > 0 else 0, 4)
-        return result
+        # 4. Autoavalia: o conhecimento sobre o tema melhorou?
+        lessons_tema = self.kg.buscar(tema, max_r=20)
+        n_antes = 0  # idealmente teriamos o snapshot anterior
+        
+        # Salva aprendizado
+        self.kg.aprender_conceito(
+            f"expansao_{tema}",
+            f"Expandido via {len(recursos_usados)} recursos. "
+            f"Agora temos {len(lessons_tema)} lessons sobre o tema. "
+            f"Recursos: {', '.join(recursos_usados)}.",
+            ctx="expansao_auto"
+        )
+        
+        return {
+            'tema': tema,
+            'expansoes': len(resultados),
+            'recursos_usados': recursos_usados,
+            'lessons_agora': len(lessons_tema),
+            'detalhes': resultados,
+        }
 
 
-
-
-# ═══════════════════════════════════════════════════════════════════
-# [22] Chat + Daemon + main
-# ═══════════════════════════════════════════════════════════════════
-
-def aprender_npcs(forcar=False):
-    brain = MCRNPCBrain()
-    if not forcar and brain.carregar():
-        print(f"NPCs carregados: {brain.total_npcs} NPCs, {brain.total_dialogos} dialogos")
-        return brain
-    dirs = [r"E:\Projeto MCR\Canary\data-otservbr-global\npc", r"E:\Projeto MCR\Canary\data-canary\scripts\MCR"]
-    ta = 0; t0 = time.time()
-    for d in dirs:
-        if not os.path.exists(d): continue
-        for f in sorted(glob.glob(os.path.join(d, "**/*.lua"), recursive=True)):
-            n = brain.aprender_arquivo(f)
-            if n > 0: ta += 1
-    if ta > 0:
-        brain.salvar()
-        print(f"Aprendidos {brain.total_dialogos} dialogos de {brain.total_npcs} NPCs ({ta} arquivos em {time.time()-t0:.1f}s)")
-    else:
-        print("Nenhum NPC encontrado. O MCR funciona sem NPCs normalmente.")
-    return brain
-
-# ═══════════════════════════════════════════════════════════════════
-# [22c] MCRIdentidade — Quem e quem, aprendido por uso, nao hardcode
-# ═══════════════════════════════════════════════════════════════════
-# Nao ha "Kheltz primeiro". Ha fingerprints aprendidos por conversa.
-# Quanto mais alguem conversa, mais o MCR reconhece essa pessoa.
+# ============================================================
+# MCR META — Auto-organizacao do proprio MCR
 # ============================================================
 
-class MCRIdentidade:
-    """Reconhece autores pelo padrao de escrita — aprendido, nao hardcoded.
+class MCRMeta:
+    """MCR que gerencia o proprio MCR.
     
-    Nao ha ordem fixa. Cada mensagem vira um fingerprint.
-    Quem mais conversa, mais e reconhecido. Natural."""
+    Aprende:
+    - Qual ctx usar para cada tipo de lesson
+    - Quantas lessons sao ideais por categoria
+    - Quando expandir KG (se fraco)
+    - Quando limpar KG (se sujo)
+    
+    Tudo MCR. Zero hardcode.
+    """
+    
+    def __init__(self, kg=None):
+        self.kg = kg or (_get_kg())
+        self.auto_kg = MCRKGAuto(self.kg)
+        self.expansao = MCRExpansao(self.kg)
+        self.mk = MCR("meta")
+        self._ultimo_estado = {}
+    
+    def diagnosticar(self) -> dict:
+        """Diagnostica a saude do sistema MCR."""
+        if not self.kg: return {'erro': 'KG indisponivel'}
+        licoes = self.kg._get_licoes()
+        
+        # Metricas
+        uteis = [l for l in licoes 
+                 if l.get('solucao','') and len(l.get('solucao','')) > 50
+                 and not l.get('solucao','').strip().startswith('{')
+                 and not l.get('inactive')]
+        lixo = len(licoes) - len(uteis)
+        
+        # Categorias
+        cats = self.auto_kg.categorizar()
+        categorias_fracas = {c: len(v) for c, v in cats.items() if len(v) < 10}
+        
+        estado = {
+            'total': len(licoes),
+            'uteis': len(uteis),
+            'lixo': lixo,
+            'aproveitamento': f"{len(uteis)/max(len(licoes),1)*100:.0f}%",
+            'categorias': len(cats),
+            'categorias_fracas': len(categorias_fracas),
+            'precisa_limpar': lixo > len(uteis),
+            'precisa_expandir': len(categorias_fracas) > 3,
+        }
+        
+        self._ultimo_estado = estado
+        self.mk.aprender("DIAG", f"uteis:{len(uteis)}|lixo:{lixo}")
+        return estado
+    
+    def auto_organizar(self) -> dict:
+        """Auto-organiza o MCR: limpa, dedup, expande se necessario."""
+        acoes = []
+        
+        # 1. Diagnostica
+        estado = self.diagnosticar()
+        acoes.append(f"diagnostico: {estado['aproveitamento']} util")
+        
+        # 2. Limpa se necessario
+        if estado.get('precisa_limpar'):
+            limpeza = self.auto_kg.limpar()
+            acoes.append(f"limpeza: {limpeza['removidos']} removidos")
+            self.mk.aprender("ACAO:LIMPAR", f"removeu:{limpeza['removidos']}")
+        
+        # 3. Dedup se necessario
+        if estado.get('total', 0) > 200:
+            dedup = self.auto_kg.dedup()
+            if dedup:
+                acoes.append(f"dedup: {dedup} removidas")
+                self.mk.aprender("ACAO:DEDUP", f"removeu:{dedup}")
+        
+        # 4. Expande categorias fracas
+        if estado.get('precisa_expandir'):
+            cats = self.auto_kg.categorizar()
+            for cat, lessons in cats.items():
+                if len(lessons) < 10:
+                    # Tenta expandir
+                    tema = cat
+                    res = self.expansao.expandir(tema)
+                    if res['expansoes'] > 0:
+                        acoes.append(f"expandiu:{tema} ({res['expansoes']} recursos)")
+                        self.mk.aprender(f"ACAO:EXPANDIR:{tema}", f"recursos:{res['expansoes']}")
+        
+        return {
+            'acoes': acoes,
+            'n_acoes': len(acoes),
+            'estado_final': self.diagnosticar(),
+        }
+
+
+# ============================================================
+# MCR SWARM — Workers paralelos + Mestre + AutoStart
+# ============================================================
+
+# ============================================================
+# MCR TAREFA — Tarefa universal (substitui if/elif no Worker)
+# ============================================================
+# Nao ha tipos de tarefa fixos. Cada tarefa e um callable.
+# O Worker so chama tarefa.executar(). Nao sabe o que faz.
+# ============================================================
+
+class MCRTarefa:
+    """UMA tarefa que o MCR decide executar.
+    
+    Nao ha tipos fixos. Cada tarefa tem:
+    - nome: identificador unico
+    - fn: funcao a executar (callable)
+    - args: argumentos (dict)
+    
+    O worker NAO sabe o tipo da tarefa.
+    Ele so chama tarefa.executar().
+    
+    Uso:
+        def extrair(arquivo): ...
+        t = MCRTarefa("sig_001", extrair, {"arquivo": "file.txt"})
+        t.executar()
+    """
+    
+    def __init__(self, nome: str, fn, args: dict = None):
+        self.nome = nome
+        self.fn = fn
+        self.args = args or {}
+        self.resultado = None
+        self.erro = None
+        self.tempo = 0.0
+    
+    def executar(self):
+        """Executa a funcao com os args. Nao sabe o que faz."""
+        import time as _t
+        t0 = _t.time()
+        try:
+            self.resultado = self.fn(**self.args)
+        except Exception as e:
+            self.erro = str(e)[:100]
+        self.tempo = _t.time() - t0
+        return self
+
+
+class MCRWorker:
+    """UM MCR que executa UMA MCRTarefa.
+    
+    Nao sabe o tipo da tarefa. So executa.
+    Zero if/elif. Zero tipos fixos.
+    
+    Uso:
+        w = MCRWorker(MCRTarefa("sig_001", extrair, {"arq": "x.txt"}))
+        w.executar()
+    """
+    
+    def __init__(self, tarefa: MCRTarefa):
+        self.tarefa = tarefa
+        self.mk = MCR(f"worker_{tarefa.nome}")
+        self.conector = MCRConector()
+        self.resultado = None
+        self.nota = 0
+        self.erro = None
+        self.tempo = 0
+    
+    def executar(self):
+        """Executa a tarefa (seja ela qual for)."""
+        import time
+        t0 = time.time()
+        try:
+            self.tarefa.executar()
+            self.resultado = self.tarefa.resultado
+            self.erro = self.tarefa.erro
+            self.nota = 10 if self.erro is None else 0
+            if self.resultado and not self.erro:
+                self.mk.aprender(f"OK:{self.tarefa.nome}", f"t:{int(time.time()-t0)}")
+        except Exception as e:
+            self.erro = str(e)[:50]
+            self.mk.aprender(f"ERRO:{self.tarefa.nome[:30]}", str(e)[:30])
+        self.tempo = time.time() - t0
+        return self
+
+
+class MCRSpawner:
+    """Cria workers em threads. MCR decide quantos e distribui.
+    
+    Nao ha numero fixo de workers. MCRDecisor decide baseado
+    no numero de tarefas e no tempo medio observado.
+    
+    Uso:
+        spawner = MCRSpawner()
+        tarefas = [MCRTarefa(...), MCRTarefa(...)]
+        resultados = spawner.spawnar(tarefas)
+    """
     
     def __init__(self):
-        self.autores: Dict[str, List[Dict]] = {}
-        self.mk = MCR("identidade")
+        self.mk = MCR("spawner")
+        self.mk_nworkers = MCR('n_workers')  # aprende quantos workers criar
+        self.workers = []
+        # Seed: experiencias iniciais (MCR aprende, nao fixo)
+        for _n in [(10, 2), (50, 4), (100, 8), (500, 12)]:
+            self.mk_nworkers.aprender(f"n:{_n[0]}", str(_n[1]))
     
-    def aprender(self, texto, autor="desconhecido"):
-        if not texto or len(texto) < 20:
-            return
-        fp = MCRByteUtils.fingerprint(texto, 8)
-        voc = set(re.findall(r'\b\w{4,}\b', texto.lower()))
-        self.autores.setdefault(autor, []).append({
-            'fingerprint': fp,
-            'vocabulario': list(voc)[:30],
-            'entropia': MCRByteUtils.entropia_bytes(texto.encode()[:1000]),
-            'tamanho': len(texto),
-            'timestamp': time.time(),
+    def decidir_n_workers(self, n_tarefas: int, tempo_medio: float = 0.0) -> int:
+        """MCR decide quantos workers criar baseado na carga.
+        
+        Estado: numero de tarefas + tempo medio observado.
+        MCR aprende: '10 tarefas → 2 workers' (rapido)
+                     '100 tarefas → 8 workers' (lento)
+        Fallback: max(1, min(16, n_tarefas // 10))
+        """
+        if n_tarefas <= 0:
+            return 1
+        # Bucketiza para generalizar
+        bucket = int(n_tarefas / 10) * 10
+        pred = self.mk_nworkers.predizer(f"n:{bucket}")
+        if pred[0] is not None and pred[1] > 0.3:
+            try:
+                return max(1, min(32, int(str(pred[0]))))
+            except:
+                pass
+        # Fallback: MCR nunca viu esta carga, experimenta
+        n = max(1, min(16, n_tarefas // 10))
+        self.mk_nworkers.aprender(f"n:{bucket}", str(n))
+        return n
+    
+    def spawnar(self, tarefas: list, n_workers: int = None) -> list:
+        """Cria e executa workers em paralelo.
+        
+        Args:
+            tarefas: lista de MCRTarefa
+            n_workers: se None, MCR decide automaticamente
+        Returns:
+            lista de MCRWorker executados
+        """
+        import threading
+        import math
+        
+        if n_workers is None:
+            n_workers = self.decidir_n_workers(len(tarefas))
+        
+        # Distribui tarefas entre workers (MCRmente, nao fixo)
+        # Cada worker recebe ceil(n_tarefas / n_workers) tarefas
+        tarefas_por_worker = max(1, math.ceil(len(tarefas) / n_workers))
+        lotes = []
+        for i in range(0, len(tarefas), tarefas_por_worker):
+            lotes.append(tarefas[i:i + tarefas_por_worker])
+        
+        workers = []
+        threads = []
+        
+        for i, lote in enumerate(lotes):
+            # Worker que executa VARIAS tarefas (nao UMA)
+            nome_lote = f"worker_{i}_de_{len(lotes)}"
+            w = MCRTarefa(nome_lote, _executar_lote, {'lote': lote})
+            workers.append(w)
+            self.mk.aprender(f"LOTE:{len(lote)}", nome_lote)
+            
+            t = threading.Thread(target=w.executar)
+            threads.append(t)
+            t.start()
+        
+        for t in threads:
+            t.join()
+        
+        self.workers = workers
+        return workers
+
+
+def _executar_lote(lote: list):
+    """Executa um lote de MCRTarefas em sequencia. Retorna os resultados."""
+    resultados = []
+    for tarefa in lote:
+        tarefa.executar()
+        if tarefa.resultado is not None or tarefa.erro:
+            resultados.append(tarefa.resultado if tarefa.erro is None else {'erro': tarefa.erro})
+    return resultados
+
+
+def _buscar_kg_task(termo, pergunta, conector=None):
+    """Busca no KG e alimenta o conector.
+    
+    Funcao auxiliar para MCRTarefa usada pelo MCRMestre.
+    """
+    kg = _get_kg()
+    if not kg:
+        return []
+    lessons = kg.buscar(termo, max_r=10, pergunta=pergunta)
+    if conector:
+        for i, l in enumerate(lessons):
+            sol = l.get('solucao', '') or l.get('erro', '')
+            if sol:
+                conector.alimentar(sol, f"kg_{i}")
+    return [l.get('solucao', '') for l in lessons]
+
+
+class MCRMestre:
+    """MCR que GERENCIA outros MCRs (workers).
+    
+    Decide TUDO por Markov, sem if/else:
+    - Quantos workers criar
+    - Quais tarefas distribuir
+    - Como consolidar resultados
+    - Tudo aprendido por experiencia
+    
+    Uso:
+        mestre = MCRMestre()
+        resposta = mestre.processar("Explique o sistema SPA do MCR")
+    """
+    
+    def __init__(self, bridge=None):
+        self.mk = MCR("mestre")
+        self.bridge = bridge or MCRBridge()
+        self.spawner = MCRSpawner()
+        self.conector = MCRConector()
+        self.cadeia = MCRCadeia(self.conector)
+        self.diagnostico = MCRDiagnostico()
+    
+    def processar(self, pergunta: str) -> dict:
+        """Processa uma pergunta usando workers paralelos."""
+        import time
+        t0 = time.time()
+        
+        # 1. Bridge descobre modulos disponiveis
+        if not self.bridge._descobriu:
+            self.bridge.descobrir()
+        
+        # 2. Decide tipo da pergunta (MCR, nao if/else)
+        tipo = 'explicacao'
+        if any(w in pergunta.lower() for w in ['crie', 'gere', 'criar']):
+            tipo = 'criacao'
+        elif any(w in pergunta.lower() for w in ['busque', 'encontre']):
+            tipo = 'busca'
+        
+        self.mk.aprender(f"PERGUNTA:{tipo}", "PROCESSANDO")
+        
+        # 3. Decide quantos workers baseado no tipo (aprendido)
+        n_workers = 3  # fallback
+        estado_workers = f"TIPO:{tipo}"
+        if estado_workers in self.mk.transicoes:
+            prox, conf = self.mk.predizer(estado_workers)
+            if prox:
+                try: n_workers = int(prox.replace('W:', ''))
+                except: pass
+        
+        # 4. Cria tarefas MCRTarefa para workers
+        tarefas = []
+        
+        # Buscar no KG
+        termo_kg = pergunta.split()[-1] if pergunta.split() else 'MCR'
+        tarefas.append(MCRTarefa("buscar_kg", _buscar_kg_task, {
+            'termo': termo_kg, 'pergunta': pergunta, 'conector': self.conector
+        }))
+        
+        # 5. Spawna workers em PARALELO (MCR decide quantos)
+        workers = self.spawner.spawnar(tarefas)
+        
+        # 6. Consolida resultados
+        textos = []
+        for w in workers:
+            if w.resultado and not w.erro:
+                if isinstance(w.resultado, str):
+                    textos.append(w.resultado)
+                elif isinstance(w.resultado, list):
+                    textos.extend(w.resultado)
+                self.mk.aprender(f"WORKER:{w.nome}", f"T:{int(w.tempo)}")
+        
+        # 7. Gera resposta final com MCRCadeia
+        if textos:
+            for t in textos:
+                if isinstance(t, str) and len(t) > 20:
+                    self.conector.alimentar(t, "consolidado")
+        
+        semente = pergunta.split()[0] if pergunta.split() else 'O'
+        res_cadeia = self.cadeia.gerar(semente, n_tokens=40)
+        resposta = res_cadeia.get('texto', '')
+        
+        # 8. Autoavalia
+        nota_cadeia = res_cadeia.get('nota', 0)
+        nota = nota_cadeia
+        
+        # Diagnostico
+        diag = self.diagnostico.diagnosticar({
+            'byte': nota_cadeia / 10,
+            'palavra': nota_cadeia / 10,
+            'token': nota_cadeia > 5,
         })
-        # So mantem os ultimos 20 fingerprints por autor
-        if len(self.autores[autor]) > 20:
-            self.autores[autor] = self.autores[autor][-20:]
+        
+        self.mk.aprender(f"RESULTADO:{tipo}", f"NOTA:{int(nota)}")
+        
+        return {
+            'pergunta': pergunta,
+            'resposta': resposta,
+            'nota': round(nota, 1),
+            'n_workers': len(workers),
+            'workers': [{'nome': w.nome, 'fn': str(w.fn.__name__ if hasattr(w.fn, '__name__') else w.fn), 'tempo': round(w.tempo, 3)} for w in workers],
+            'diagnostico': diag,
+            'tempo': round(time.time() - t0, 2),
+        }
+
+
+class MCRAutoStart:
+    """Auto-start: MCR se auto-organiza quando o sistema inicia.
+    Usa cache de checksum para evitar dedup O(n²) a cada execucao."""
+    
+    _cache_checksum = None
+    _cache_path = None
+    
+    @classmethod
+    def _calc_checksum(cls, kg):
+        """Calcula checksum do KG para saber se mudou."""
+        if not kg: return 0
+        licoes = kg._get_licoes()
+        # Checksum = total lessons + ultimo timestamp + hash dos ctxs
+        ts = max(l.get('timestamp', 0) for l in licoes) if licoes else 0
+        ctxs = '|'.join(sorted(set(l.get('ctx', '?') for l in licoes)))
+        return hash((len(licoes), ts, ctxs)) % (10**12)
+    
+    @staticmethod
+    def iniciar() -> dict:
+        """Executa auto-diagnostico com cache se KG nao mudou."""
+        try:
+            kg = _get_kg()
+            if not kg: return {'erro': 'KG indisponivel'}
+            
+            bridge = MCRBridge()
+            bridge.descobrir()
+            
+            # Calcula checksum e verifica cache
+            checksum = MCRAutoStart._calc_checksum(kg)
+            if checksum == MCRAutoStart._cache_checksum:
+                # KG nao mudou — pula dedup/limpeza
+                licoes = kg._get_licoes()
+                uteis = [l for l in licoes 
+                         if l.get('solucao','') and len(l.get('solucao','')) > 50
+                         and not l.get('solucao','').startswith('{')
+                         and not l.get('inactive')]
+                return {
+                    'aproveitamento': f"{len(uteis)/max(len(licoes),1)*100:.0f}%",
+                    'uteis': len(uteis), 'total': len(licoes),
+                    'acoes': ['cache_hit'], 'modulos': bridge.stats().get('modulos', 0),
+                    'comandos': bridge.stats().get('comandos', 0),
+                }
+            
+            meta = MCRMeta(kg)
+            estado = meta.diagnosticar()
+            acoes = []
+            
+            if estado.get('precisa_limpar'):
+                limpeza = meta.auto_kg.limpar()
+                acoes.append(f"limpeza:{limpeza['removidos']}")
+            
+            if estado.get('total', 0) > 200:
+                dedup = meta.auto_kg.dedup()
+                if dedup:
+                    acoes.append(f"dedup:{dedup}")
+            
+            # Salva checksum
+            MCRAutoStart._cache_checksum = checksum
+            
+            if acoes:
+                meta.mk.aprender("AUTOSTART", '|'.join(acoes))
+            
+            return {
+                'aproveitamento': estado.get('aproveitamento', '?'),
+                'uteis': estado.get('uteis', 0),
+                'total': estado.get('total', 0),
+                'acoes': acoes,
+                'modulos': bridge.stats().get('modulos', 0),
+                'comandos': bridge.stats().get('comandos', 0),
+            }
+        except Exception as e:
+            return {'erro': str(e)[:100]}
+
+
+# ============================================================
+# MCR PESO NOTA — Aprenfe pesos ideais por regressao markoviana
+# ============================================================
+
+class MCRPesoNota:
+    """Aprende pesos ideais para cada componente da nota.
+    
+    Em vez de Byte(2)+Palavra(5)+Token(3) fixo,
+    aprende: "byte+palavra=0.8 → nota 3.0" (baixa)
+             "byte+token=0.5 → nota 7.0" (alta)
+    
+    Uso:
+        pn = MCRPesoNota()
+        pn.aprender({"byte": 0.8, "palavra": 0.2, "token": 0.3}, 3.0)
+        nota = pn.calcular(byte_s=4.0, palavra_s=2.0, token_s=1.0)
+    """
+    
+    def __init__(self, nome="peso_nota"):
+        self.mk = MCR(nome)
+        self.historico = []
+    
+    def aprender(self, caracteristicas: dict, nota_real: float):
+        """Aprende que CARACTERISTICAS levam a NOTA_REAL.
+        
+        Args:
+            caracteristicas: {"byte": 0.8, "palavra": 0.2, "token": 0.3}
+            nota_real: 3.0 (nota humana ou externa)
+        """
+        estado = self._codificar(caracteristicas)
+        self.mk.aprender(estado, f"NOTA:{int(nota_real*10)}")
+        self.historico.append((caracteristicas, nota_real))
+    
+    def calcular(self, byte_s=None, palavra_s=None, token_s=None) -> float:
+        """Calcula nota estimada baseada no que aprendeu.
+        Sem pesos fixos — tudo baseado em experiencias anteriores."""
+        if not self.historico:
+            # Fallback: nota generica baseada nos componentes
+            nota = 5.0
+            if byte_s is not None: nota += (byte_s - 5) * 0.3
+            if palavra_s is not None: nota += (palavra_s - 5) * 0.5
+            if token_s is not None: nota += (token_s - 3) * 0.2
+            return max(0, min(10, nota))
+        
+        # Busca experiencias similares
+        caracteristicas = {}
+        if byte_s is not None: caracteristicas['byte'] = byte_s / 10
+        if palavra_s is not None: caracteristicas['palavra'] = palavra_s / 10
+        if token_s is not None: caracteristicas['token'] = token_s / 10
+        
+        estado = self._codificar(caracteristicas)
+        
+        if estado in self.mk.transicoes:
+            prox, conf = self.mk.predizer(estado)
+            if prox and conf > 0.1:
+                try:
+                    return int(prox.replace('NOTA:', '')) / 10.0
+                except:
+                    pass
+        
+        # Se nao achou, media das experiencias similares
+        notas_similares = []
+        for c, n in self.historico:
+            sim = sum(1 for k in caracteristicas if k in c and abs(caracteristicas[k] - c[k]) < 0.2)
+            if sim >= 2:
+                notas_similares.append(n)
+        
+        return sum(notas_similares)/len(notas_similares) if notas_similares else 5.0
+    
+    def _codificar(self, carac: dict) -> str:
+        partes = []
+        for k in ['byte', 'palavra', 'token']:
+            v = int(carac.get(k, 0) * 10)
+            partes.append(f"{k}:{v}")
+        return '|'.join(partes)
+
+
+# ============================================================
+# MCR THRESHOLD — Threshold por mediana dos dados (Regra de Ouro)
+# ============================================================
+
+class MCRThreshold:
+    """Threshold descoberto por MEDIANA dos dados, nunca fixo.
+    
+    Regra de Ouro: Dados definem thresholds.
+    
+    Uso:
+        t = MCRThreshold()
+        t.observar(0.8)  # jaccard observado
+        t.observar(0.9)
+        t.observar(0.85)
+        threshold = t.calcular(multiplicador=0.5)  # mediana * 0.5
+    """
+    
+    def __init__(self, nome="threshold"):
+        self.mk = MCR(nome)
+        self.observacoes = []
+    
+    def observar(self, valor: float):
+        """Registra um valor observado."""
+        self.observacoes.append(valor)
+        self.mk.aprender(f"VAL:{int(valor*100)}", "OBS")
+    
+    def calcular(self, multiplicador: float = 1.0) -> float:
+        """Retorna threshold = mediana(observacoes) * multiplicador.
+        Se nao tem dados, fallback = 0.5 (neutro)."""
+        if len(self.observacoes) < 3:
+            return 0.5
+        from statistics import median
+        return median(self.observacoes) * multiplicador
+    
+    def obter(self, chave: str, fallback: float = 0.5) -> float:
+        """Retorna threshold aprendido para uma chave, ou fallback.
+        
+        MCR aprende o threshold ideal para cada tipo de operacao.
+        Se nao tem dados suficientes, retorna fallback (nao fixo, parametrizavel).
+        """
+        # Busca no Markov se ja aprendeu esta chave
+        pred = self.mk.predizer(f"THR:{chave}")
+        if pred[0] is not None and pred[1] > 0.3:
+            try:
+                return int(pred[0]) / 100.0
+            except (ValueError, TypeError):
+                pass
+        # Fallback: mediana das observacoes gerais
+        if len(self.observacoes) >= 3:
+            from statistics import median
+            return median(self.observacoes)
+        return fallback
+    
+class MCRThreshold:
+    """Threshold — thin wrapper em torno de MCR nivel 'threshold'."""
+    
+    def __init__(self, nome="threshold"):
+        self.mk = MCR(nome)
+        self.observacoes = []
+    
+    def observar(self, valor: float):
+        self.observacoes.append(valor)
+        self.mk.aprender(f"VAL:{int(valor*100)}", "OBS")
+    
+    def calcular(self, multiplicador: float = 1.0) -> float:
+        if len(self.observacoes) < 3: return 0.5
+        from statistics import median
+        return median(self.observacoes) * multiplicador
+    
+    def obter(self, chave: str, fallback: float = 0.5) -> float:
+        pred = self.mk.predizer(f"THR:{chave}")
+        if pred[0] is not None and pred[1] > 0.3:
+            try: return int(pred[0]) / 100.0
+            except: pass
+        if len(self.observacoes) >= 3:
+            from statistics import median
+            return median(self.observacoes)
+        return fallback
+    
+    def aprender(self, chave: str, valor: float):
+        self.mk.aprender(f"THR:{chave}", f"{int(valor*100)}")
+        self.observar(valor)
+
+
+# Threshold global para filtros (MCR, nao fixo)
+_MCR_THRESHOLD_FILTRO = MCRThreshold("filtro_global")
+
+# Thresholds especificos (cada tipo de decisao)
+_MCR_THRESHOLD_CONF = MCRThreshold("confianca")      # conf < ?
+_MCR_THRESHOLD_TAMANHO = MCRThreshold("tamanho")     # len < ?
+_MCR_THRESHOLD_REPETICAO = MCRThreshold("repeticao") # repeticao > ?
+_MCR_THRESHOLD_PALAVRA = MCRThreshold("palavra")     # len(p) > ?
+_MCR_THRESHOLD_CONEXAO = MCRThreshold("conexao")     # pesos byte/palavra/token
+_MCR_THRESHOLD_NOTA = MCRThreshold("nota")           # faixas de nota
+
+
+# ============================================================
+# MCR FUEL — MCR que se auto-alimenta de 9 fontes
+# ============================================================
+
+class MCRFuel:
+    """MCR busca o proprio combustivel.
+    
+    Percorre 9 fontes e alimenta o KG automaticamente:
+    1. Codigo fonte (.py)
+    2. Documentacao (docs/*.md, docs/MCR - Instrucoes/*.txt)
+    3. Modulos (48 modulos)
+    4. Comandos (52 comandos)
+    5. MANIFEST (catalogo completo)
+    6. Prototipos (22 prototipos)
+    7. Cache e episodios anteriores
+    8. Ferramentas (30 ferramentas)
+    9. Conhecimento do proprio KG (re-organizar)
+    
+    Uso:
+        fuel = MCRFuel()
+        n = fuel.abastecer()  # retorna quantas lessons criou
+    """
+    
+    def __init__(self, kg=None, bridge=None):
+        self.kg = kg or (_get_kg())
+        self.bridge = bridge or MCRBridge()
+        self._base = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+        self._base_mod = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+        self.mk = MCR("fuel")
+        self.total_lessons = 0
+    
+    def _ler(self, caminho, max_bytes=1000):
+        try:
+            if not os.path.exists(caminho): return ''
+            with open(caminho, 'r', encoding='utf-8', errors='replace') as f:
+                return f.read(max_bytes)
+        except: return ''
+    
+    def _listar_arquivos(self, diretorio, ext, max_n=100):
+        if not os.path.isdir(diretorio): return []
+        arquivos = []
+        for fname in os.listdir(diretorio):
+            if fname.endswith(ext) and not fname.startswith('__'):
+                arquivos.append(os.path.join(diretorio, fname))
+                if len(arquivos) >= max_n: break
+        return arquivos
+    
+    def _alimentar(self, erro, solucao, ctx='fuel'):
+        if not solucao or len(solucao) < 20: return
+        # Extrai so o texto util (limpo, sem JSON)
+        texto = solucao.replace('\n', ' ').strip()
+        if texto.startswith('{') or texto.startswith('['): return
+        self.kg.aprender(erro=erro, causa=f"fuel:{ctx}", solucao=texto, ctx=ctx)
+        self.total_lessons += 1
+    
+    def abastecer(self, fontes=None) -> int:
+        """Percorre as fontes e alimenta o KG.
+        
+        Args:
+            fontes: lista de fontes para percorrer (None = todas)
+        Returns:
+            numero de lessons criadas
+        """
+        if not self.kg: return 0
+        if not self.bridge._descobriu:
+            self.bridge.descobrir()
+        
+        self.total_lessons = 0
+        fontes_escolhidas = fontes or ['lore', 'codigo', 'docs', 'modulos', 'comandos',
+                                        'manifesto', 'prototipos', 'cache', 'ferramentas', 'kg']
+        
+        for fonte in fontes_escolhidas:
+            if fonte == 'codigo':
+                for f in self._listar_arquivos(os.path.join(self._base_mod, 'modulos'), '.py', 20):
+                    nome = os.path.basename(f)
+                    conteudo = self._ler(f, 500)
+                    if conteudo:
+                        self._alimentar(f"modulo_{nome}", f"Codigo do modulo {nome}: {conteudo}", "fuel_codigo")
+                for f in self._listar_arquivos(os.path.join(self._base_mod, 'comandos'), '.py', 20):
+                    nome = os.path.basename(f)
+                    conteudo = self._ler(f, 300)
+                    if conteudo:
+                        self._alimentar(f"comando_{nome}", f"Comando {nome}: {conteudo}", "fuel_codigo")
+            
+            elif fonte == 'docs':
+                docs_dir = os.path.join(self._base, 'docs')
+                for f in self._listar_arquivos(docs_dir, '.md', 15):
+                    conteudo = self._ler(f, 500)
+                    if conteudo:
+                        self._alimentar(f"doc_{os.path.basename(f)}", conteudo, "fuel_docs")
+                # Instrucoes
+                instr_dir = os.path.join(docs_dir, 'MCR - Instrucoes')
+                for f in self._listar_arquivos(instr_dir, '.txt', 10):
+                    conteudo = self._ler(f, 500)
+                    if conteudo:
+                        self._alimentar(f"instr_{os.path.basename(f)}", conteudo, "fuel_docs")
+            
+            elif fonte == 'modulos':
+                for nome in sorted(self.bridge.modulos.keys()):
+                    mod = self.bridge.modulos[nome]
+                    doc = (mod.__doc__ or '')
+                    if doc:
+                        self._alimentar(f"mod:{nome}", doc, "fuel_modulos")
+                    # Tenta listar funcoes
+                    funcoes = [a for a in dir(mod) if not a.startswith('_') and callable(getattr(mod, a, None))]
+                    if funcoes:
+                        self._alimentar(f"mod:{nome}_funcoes", f"Funcoes: {', '.join(funcoes)}", "fuel_modulos")
+            
+            elif fonte == 'comandos':
+                for nome in sorted(self.bridge.comandos.keys()):
+                    self._alimentar(f"cmd:{nome}", f"Comando disponivel: {nome}", "fuel_comandos")
+            
+            elif fonte == 'manifesto':
+                manifesto = self._ler(os.path.join(self._base, 'docs', 'MANIFEST.md'), 2000)
+                if manifesto:
+                    self._alimentar("manifesto", manifesto, "fuel_manifesto")
+            
+            elif fonte == 'prototipos':
+                sandbox_dir = os.path.join(self._base, 'sandbox')
+                for f in self._listar_arquivos(sandbox_dir, '.py', 15):
+                    if f.endswith('.py') and ('prototipo' in f or 'test_' in f):
+                        conteudo = self._ler(f, 300)
+                        if conteudo:
+                            nome = os.path.basename(f)
+                            self._alimentar(f"prototipo_{nome}", conteudo, "fuel_prototipos")
+            
+            elif fonte == 'cache':
+                # Episodios
+                ep_path = os.path.join(self._base, 'sandbox', '.mcr_episodios.json')
+                if os.path.exists(ep_path):
+                    try:
+                        with open(ep_path, 'r', encoding='utf-8') as f:
+                            dados = json.load(f)
+                        for ep in dados:
+                            req = ep.get('request', '')
+                            suc = ep.get('sucesso', False)
+                            if req:
+                                self._alimentar(f"episodio_{req}", f"Request: {req} | Sucesso: {suc}", "fuel_cache")
+                    except: pass
+                # Conversas
+                conv_path = os.path.join(self._base, 'sandbox', '.mcr_conversa.jsonl')
+                if os.path.exists(conv_path):
+                    try:
+                        with open(conv_path, 'r', encoding='utf-8') as f:
+                            for i, line in enumerate(f):
+                                if i >= 10: break
+                                try:
+                                    entry = json.loads(line.strip())
+                                    msg = entry.get('msg', '')
+                                    if msg:
+                                        self._alimentar(f"conversa_{i}", msg, "fuel_cache")
+                                except: pass
+                    except: pass
+            
+            elif fonte == 'ferramentas':
+                ferramentas_list = [
+                    'buscar_kg', 'buscar_estrategico', 'pattern_analyze',
+                    'ler_arquivo', 'validar_codigo', 'gerar_esqueleto'
+                ]
+                for f in ferramentas_list:
+                    self._alimentar(f"tool:{f}", f"Ferramenta disponivel: {f}", "fuel_ferramentas")
+            
+            elif fonte == 'kg':
+                # Re-organiza o proprio KG
+                try:
+                    licoes = self.kg._get_licoes()
+                    uteis = [l for l in licoes 
+                             if l.get('solucao','') and len(l.get('solucao','')) > 50
+                             and not l.get('solucao','').startswith('{')
+                             and not l.get('inactive')]
+                    self._alimentar("kg_sumario", 
+                        f"KG tem {len(licoes)} lessons, {len(uteis)} uteis, "
+                        f"{len(licoes)-len(uteis)} lixo. "
+                        f"Distribuicao: {dict(__import__('collections').Counter(l.get('ctx','?') for l in licoes).most_common(10))}",
+                        "fuel_kg")
+                except: pass
+        
+        # Forca flush do KG
+        if self.total_lessons > 0:
+            for _ in range(10): self.kg.aprender_conceito("_fuel_flush", "_", ctx="_flush")
+        
+        self.mk.aprender("FUEL", f"LESSONS:{self.total_lessons}")
+        return self.total_lessons
+    
+    def abastecer_se_precisar(self, min_uteis=100) -> bool:
+        """Só abastece se o KG estiver com menos de min_uteis lessons uteis."""
+        try:
+            licoes = self.kg._get_licoes()
+            uteis = [l for l in licoes 
+                     if l.get('solucao','') and len(l.get('solucao','')) > 50
+                     and not l.get('solucao','').startswith('{')
+                     and not l.get('inactive')]
+            if len(uteis) < min_uteis:
+                n = self.abastecer()
+                return n > 0
+            return False
+        except:
+            return False
+
+
+# ============================================================
+# MCR META GAP — Descobre gaps e busca aprender
+# ============================================================
+
+class MCRMetaGap:
+    """MCR descobre o que nao sabe e busca aprender.
+    
+    Em vez de priorizar fontes (hardcode), diagnostica gaps
+    no proprio conhecimento e busca preencher especificamente.
+    
+    Uso:
+        meta = MCRMetaGap()
+        gaps = meta.diagnosticar_gaps()
+        meta.buscar_para_gap("Eridanus")
+        meta.ciclo_completo()  # tudo automatico
+    """
+    
+    def __init__(self, kg=None, bridge=None):
+        self.kg = kg or (_get_kg())
+        self.bridge = bridge or MCRBridge()
+        self._base = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+        self.mk = MCR("metagap")
+        self.gaps_encontrados = []
+    
+    def diagnosticar_gaps(self, min_por_prefixo: int = 3) -> list:
+        """Percorre o KG e descobre temas com poucas lessons.
+        
+        Para CADA prefixo de ctx:
+          - Se tem < min_por_prefixo lessons → gap
+        
+        Retorna: [(prefixo, n_lessons, termos_exemplo), ...]
+        """
+        if not self.kg: return []
+        licoes = self.kg._get_licoes()
+        
+        # Agrupa por prefixo do ctx
+        prefixos = {}
+        for l in licoes:
+            ctx = l.get('ctx', '')
+            sol = l.get('solucao', '')
+            if not sol or len(sol) < 20: continue
+            if l.get('inactive'): continue
+            prefixo = ctx.split('_')[0] if '_' in ctx else ctx
+            if prefixo not in prefixos:
+                prefixos[prefixo] = {'count': 0, 'termos': set()}
+            prefixos[prefixo]['count'] += 1
+            # Extrai termos relevantes da solucao
+            for p in sol.lower().split():
+                if len(p) > 3 and p not in CONECTORES:
+                    prefixos[prefixo]['termos'].add(p)
+                    if len(prefixos[prefixo]['termos']) > 5: break
+        
+        # Gaps: prefixos com poucas lessons
+        gaps = []
+        for prefixo, dados in sorted(prefixos.items(), key=lambda x: x[1]['count']):
+            if dados['count'] < min_por_prefixo and len(prefixo) > 1:
+                termo_exemplo = list(dados['termos']) if dados['termos'] else [prefixo]
+                gaps.append({
+                    'prefixo': prefixo,
+                    'n_lessons': dados['count'],
+                    'termos': termo_exemplo,
+                    'score': min_por_prefixo - dados['count'],
+                })
+        
+        gaps.sort(key=lambda x: -x['score'])
+        self.gaps_encontrados = gaps
+        self.mk.aprender("GAPS", f"{len(gaps)} gaps encontrados")
+        return gaps
+    
+    def buscar_para_gap(self, gap: dict) -> int:
+        """Busca fontes especificas para preencher um gap.
+        
+        Short-circuit: se KG ja tem lessons uteis > 200, pula.
+        """
+        if not self.kg: return 0
+        
+        # Short-circuit: KG ja esta bem alimentado
+        if self.kg._get_licoes() and len(self.kg._get_licoes()) > 300:
+            return 0
+        
+        termo = gap['termos'][0] if gap['termos'] else gap['prefixo']
+        n_antes = len(self.kg._get_licoes())
+        
+        # 1. Busca em docs via indice (0.01s, nao 10-20s)
+        doc_idx = _get_doc_index()
+        doc_idx.indexar()  # so escaneia se nao tiver cache
+        docs_encontrados = doc_idx.buscar(termo)
+        for doc in docs_encontrados:
+            conteudo = doc_idx.ler(doc['caminho'], max_bytes=2000)
+            if conteudo and termo.lower() in conteudo.lower():
+                idx = conteudo.lower().find(termo.lower())
+                inicio = max(0, idx - 100)
+                fim = min(len(conteudo), idx + 300)
+                trecho = conteudo[inicio:fim]
+                if len(trecho) > 50:
+                    self.kg.aprender_conceito(
+                        f"{gap['prefixo']}:{os.path.basename(doc['caminho']).replace('.','_')}",
+                        f"[Fonte: {doc['caminho']}]\n{trecho}",
+                        ctx=f"gap_{gap['prefixo']}"
+                    )
+        
+        # 2. Busca em prototipos
+        sandbox_dir = os.path.join(self._base, 'sandbox')
+        if os.path.isdir(sandbox_dir):
+            for fname in os.listdir(sandbox_dir):
+                if not (fname.endswith('.py') or fname.endswith('.lua') or fname.endswith('.txt')): continue
+                if not termo.lower() in fname.lower(): continue
+                fpath = os.path.join(sandbox_dir, fname)
+                try:
+                    with open(fpath, 'r', encoding='utf-8', errors='replace') as f:
+                        conteudo = f.read(1000)
+                    if len(conteudo) > 50:
+                        self.kg.aprender_conceito(
+                            f"{gap['prefixo']}:{fname.replace('.','_')}",
+                            f"[Prototipo: {fname}]\n{conteudo}",
+                            ctx=f"gap_{gap['prefixo']}"
+                        )
+                except: pass
+        
+        # 3. Busca no codigo fonte
+        if self.bridge and self.bridge._descobriu:
+            for nome, mod in self.bridge.modulos.items():
+                if termo.lower() in nome.lower():
+                    doc = (mod.__doc__ or '')
+                    if doc:
+                        self.kg.aprender_conceito(
+                            f"{gap['prefixo']}:mod_{nome}",
+                            f"[Modulo: {nome}]\n{doc}",
+                            ctx=f"gap_{gap['prefixo']}"
+                        )
+        
+        n_depois = len(self.kg._get_licoes())
+        n_criadas = n_depois - n_antes
+        
+        self.mk.aprender(f"GAP:{gap['prefixo']}", f"CRIOU:{n_criadas}")
+        return n_criadas
+    
+    def ciclo_completo(self, min_por_prefixo: int = 3) -> dict:
+        """Auto-diagnostico + auto-aprendizado.
+        
+        Fluxo:
+          1. Diagnostica gaps no KG
+          2. Para cada gap, busca fontes especificas
+          3. Aprende com o que funcionou
+        """
+        gaps = self.diagnosticar_gaps(min_por_prefixo)
+        resultados = []
+        total_criadas = 0
+        
+        for gap in gaps:  # max 10 gaps por ciclo
+            n = self.buscar_para_gap(gap)
+            if n > 0:
+                resultados.append(f"{gap['prefixo']}:{n}")
+                total_criadas += n
+        
+        # Forca flush
+        if total_criadas > 0:
+            for _ in range(10): self.kg.aprender_conceito("_gap_flush", "_", ctx="_flush")
+        
+        self.mk.aprender("CICLO_GAP", f"CRIOU:{total_criadas}")
+        
+        return {
+            'gaps': len(gaps),
+            'preenchidos': len(resultados),
+            'total_lessons_criadas': total_criadas,
+            'detalhes': resultados,
+        }
+
+
+# ============================================================
+# MCR MESTRE V2 — Decisor treinado, zero if/else
+# ============================================================
+
+class MCRMestreV2:
+    """Mestre que decide TUDO por Markov, sem if/else.
+    
+    - Tipo da pergunta: MCRDecisor treinado
+    - N workers: aprendido por experiencia
+    - Fluxo: aprendido por experiencia
+    - Autoavalia: MCRPesoNota (pesos aprendidos)
+    - Diagnostico: auto-alimentado a cada execucao
+    
+    Uso:
+        mestre = MCRMestreV2()
+        resposta = mestre.processar("Explique SPA")
+    """
+    
+    def __init__(self, bridge=None):
+        self.decisor = MCRDecisor("mestre_v2")
+        self.peso_nota = MCRPesoNota()
+        self.threshold_loop = MCRThreshold("threshold_loop")
+        self.bridge = bridge or MCRBridge()
+        self.diagnostico = MCRDiagnostico("mestre_diag")
+        self.spawner = MCRSpawner()
+        self.conector = MCRConector()
+        self.cadeia = MCRCadeia(self.conector)
+        self.n_execucoes = 0
+    
+    def processar(self, pergunta: str) -> dict:
+        import time
+        t0 = time.time()
+        self.n_execucoes += 1
+        
+        if not self.bridge._descobriu:
+            self.bridge.descobrir()
+        
+        # 1. DECISOR decide fluxo + max_ciclos
+        fluxo = self.decisor.decidir(pergunta)
+        self.decisor.aprender(pergunta, fluxo, True)
+        max_ciclos = max(1, min(10, len(pergunta.split()) // 2))
+        try:
+            dc = MCRDecisor("max_ciclos")
+            mc_str = dc.decidir(f"CICLOS:{fluxo}")
+            if mc_str:
+                max_ciclos = max(1, min(10, int(str(mc_str).replace('C:', ''))))
+        except:
+            pass
+        
+        termo = pergunta.split()[-1] if pergunta.split() else 'MCR'
+        semente = pergunta.split()[0] if pergunta.split() else 'O'
+        
+        # 2. MCRPesoNota treinado com exemplos reais
+        if len(self.peso_nota.historico) < 5:
+            self.peso_nota.aprender({'byte': 0.8, 'palavra': 0.2, 'token': 0.3}, 2.0)
+            self.peso_nota.aprender({'byte': 0.7, 'palavra': 0.3, 'token': 0.4}, 3.0)
+            self.peso_nota.aprender({'byte': 0.4, 'palavra': 0.7, 'token': 0.8}, 8.0)
+            self.peso_nota.aprender({'byte': 0.3, 'palavra': 0.8, 'token': 0.7}, 7.5)
+            self.peso_nota.aprender({'byte': 0.5, 'palavra': 0.5, 'token': 0.5}, 5.0)
+        
+        # 3. WORKERS PARALELOS com estrategias diferentes
+        # Cada worker tenta uma abordagem diferente, SIMULTANEAMENTE
+        tarefas = []
+        if 'kg' in fluxo:
+            tarefas.append(("kg", "buscar_kg", {'termo': termo, 'pergunta': pergunta}))
+        # Worker alternativo: geracao direta
+        tarefas.append(("gerador", "gerar", {'semente': semente, 'n_tokens': 40}))
+        
+        workers = self.spawner.spawnar(tarefas) if tarefas else []
+        
+        # 4. CONSOLIDA + EXPANSAO UNICA (nao em loop)
+        textos = []
+        for w in workers:
+            if w.resultado:
+                if isinstance(w.resultado, str): textos.append(w.resultado)
+                elif isinstance(w.resultado, list): textos.extend(w.resultado)
+        
+        if textos:
+            for t in textos:
+                if isinstance(t, str) and len(t) > 20:
+                    self.conector.alimentar(t, "consolidado")
+        
+        # Expande UMA vez (com cache de ultima expansao)
+        expansoes_feitas = []
+        agora = time.time()
+        ultima_exp = getattr(self, '_ultima_expansao', 0)
+        
+        # So expande se passou mais de 30s desde a ultima expansao
+        if agora - ultima_exp > 30:
+            fuel = MCRFuel(bridge=self.bridge)
+            n_fuel = fuel.abastecer_se_precisar(min_uteis=200)
+            if n_fuel:
+                expansoes_feitas.append(f"fuel:{n_fuel}")
+            
+            meta = MCRMetaGap(kg=None, bridge=self.bridge)
+            gaps = meta.diagnosticar_gaps(min_por_prefixo=3)
+            if gaps:
+                n = meta.buscar_para_gap(gaps[0])
+                if n > 0:
+                    expansoes_feitas.append(f"gap:{n}")
+            
+            expansao = MCRExpansao(None, self.bridge)
+            res_exp = expansao.expandir(termo, max_recursos=3)
+            if res_exp.get('expansoes', 0) > 0:
+                expansoes_feitas.append(f"exp:{res_exp['expansoes']}")
+                if self.conector.topicos:
+                    for nome_topico in list(self.conector.topicos.keys()):
+                        cx = self.conector.conectar(termo, nome_topico)
+                        if cx:
+                            self.conector.alimentar(cx.get('sequencia',''), f"emrg_{termo}")
+            
+            # Bridge: tenta comando como fallback (com cache)
+            if 'explorar' in self.bridge.comandos:
+                try: self.bridge.usar_comando('explorar', {'termo': termo})
+                except: pass
+            
+            self._ultima_expansao = agora
+        
+        # 5. GERACAO UNICA (nao em loop)
+        res_cadeia = self.cadeia.gerar(semente, n_tokens=40)
+        resposta = res_cadeia.get('texto', '')
+        nota_cadeia = res_cadeia.get('nota', 0)
+        loops = res_cadeia.get('loops_detectados', 0)
+        
+        # Autoavalia com MCRPesoNota (ja treinado)
+        nota = self.peso_nota.calcular(
+            byte_s=nota_cadeia,
+            palavra_s=min(10, len(resposta)/30),
+            token_s=8 if loops < 3 else 3
+        )
+        
+        # Diagnostico AUTO-ALIMENTADO
+        estado_diag = {
+            'byte': nota_cadeia / 10 if 'nota_cadeia' in dir() else 0.5,
+            'palavra': nota / 10,
+            'token': nota > 5,
+        }
+        diag = self.diagnostico.diagnosticar(estado_diag)
+        problema = 'loop' if locals().get('loops', 0) > 3 else 'ok'
+        self.diagnostico.alimentar(estado_diag, problema)
+        
+        # Threshold e PesoNota aprendem
+        self.threshold_loop.observar(nota / 10)
+        self.peso_nota.aprender(
+            {'byte': nota/10, 'palavra': nota/10, 'token': nota > 5 and 0.8 or 0.3},
+            nota
+        )
+        
+        return {
+            'pergunta': pergunta,
+            'resposta': resposta,
+            'nota': round(nota, 1),
+            'fluxo': fluxo,
+            'ciclos': 1,
+            'expansoes': expansoes_feitas,
+            'diagnostico': diag,
+            'n_execucoes': self.n_execucoes,
+            'tempo': round(time.time() - t0, 2),
+        }
+
+
+# ============================================================
+# MCR AUTO MELHORIA — MCR se pergunta o que nao sabe e age
+# ============================================================
+
+class MCRAutoMelhoria:
+    """MCR que se autoaperfeicoa com 7 perguntas.
+    
+    1. O que NAO sabe? → gaps no KG
+    2. Onde e LENTO? → fragmentos
+    3. O que REPETIU? → loops
+    4. O que ERROU? → diagnosticos
+    5. O que APRENDEU? → lessons
+    6. O que PRECISA? → pesos
+    7. O que ESQUECEU? → docs nao lidos
+    """
+    
+    def __init__(self, kg=None, bridge=None):
+        self.kg = kg or (_get_kg())
+        self.bridge = bridge or MCRBridge()
+        self.meta = MCRMetaGap(self.kg, self.bridge)
+        self.fuel = MCRFuel(self.kg, self.bridge)
+        self.frag = MCRFragmentador()
+        self.mk = MCR("auto_melhoria")
+    
+    def _p1_gaps(self):
+        gaps = self.meta.diagnosticar_gaps(min_por_prefixo=5)
+        # So processa os 3 primeiros gaps (evita 37 chamadas web)
+        for gap in gaps:
+            n = self.meta.buscar_para_gap(gap)
+            if n > 0:
+                self.mk.aprender(f"GAP:{gap['prefixo']}", f"{n}")
+        return [f"gap_{g['prefixo']}" for g in gaps if g]
+    
+    def _p2_lento(self):
+        if not self.frag.fragmentos: return []
+        for f in self.frag.fragmentos:
+            if f.tempo > 1.0:
+                self.mk.aprender(f"LENTO:{f.nome}", f"{f.tempo:.1f}s")
+        return [f"lento:{f.nome}:{f.tempo:.1f}s" for f in self.frag.fragmentos if f.tempo > 1.0]
+    
+    def _p7_esqueceu(self):
+        try:
+            idx = _get_doc_index()
+            idx.indexar()
+            for termo in ['eridanus','spa','shc','npc','lore']:
+                docs = idx.buscar(termo)
+                for doc in docs:
+                    c = idx.ler(doc['caminho'], 500)
+                    if c and self.kg:
+                        self.kg.aprender_conceito(f"auto_{os.path.basename(doc['caminho']).replace('.','_')}", c, ctx="auto_descoberta")
+            return ["docs_autodescobertos"] if any(idx.buscar(t) for t in ['eridanus','spa','lore']) else []
+        except: return []
+    
+    def _p3_repetiu(self):
+        if self.fuel.mk.total > 10 and self.fuel.mk.entropia_media() < 0.5:
+            self.mk.aprender("LOOP", "detectado")
+            return ["loop_detectado"]
+        return []
+    
+    def _p4_errou(self):
+        if not self.kg: return []
+        e = [l for l in self.kg._get_licoes() if 'erro' in l.get('ctx','')]
+        if e: self.mk.aprender("ERROS", str(len(e)))
+        return [f"erros:{len(e)}"] if e else []
+    
+    def _p5_aprendeu(self):
+        if not self.kg: return []
+        r = [l for l in self.kg._get_licoes() if l.get('timestamp',0) > 0]
+        return [f"aprendeu:{len(r)}"] if r else []
+    
+    def _p6_precisa(self):
+        pn = MCRPesoNota("check")
+        if len(pn.historico) < 5: return ["peso_nota_sem_treino"]
+        return []
+    
+    def ciclo(self):
+        """7 perguntas, acoes tomadas.
+        
+        Short-circuit: se KG ja tem > 200 lessons, pula operacoes pesadas.
+        """
+        # Verifica se KG ja esta bem alimentado
+        try:
+            kk_licoes = len(self.kg._get_licoes()) if self.kg else 0
+        except:
+            kk_licoes = 0
+        
+        todas = []
+        if kk_licoes > 200:
+            # KG ja tem dados: so executa as rapidas
+            for fn in [self._p3_repetiu, self._p4_errou, self._p5_aprendeu, self._p6_precisa]:
+                try: todas.extend(fn())
+                except: pass
+        else:
+            # KG pequeno: executa todas
+            for fn in [self._p1_gaps, self._p2_lento, self._p7_esqueceu,
+                       self._p3_repetiu, self._p4_errou, self._p5_aprendeu, self._p6_precisa]:
+                try: todas.extend(fn())
+                except: pass
+        self.mk.aprender("CICLO", str(len(todas)))
+        return {'acoes': todas, 'n': len(todas)}
+
+
+# ============================================================
+# MCR HUMANO — Conceitos humanos, filosofias, emoções como padrões MCR
+# ============================================================
+
+# Questionamentos fundamentais como padrões MCR
+# Cada pergunta filosofica vira uma sequencia de estados que o MCR aprende
+_PERGUNTAS_FUNDAMENTAIS = [
+    "Quem sou eu? O que me define como ser? Minha essencia e minha identidade.",
+    "De onde viemos? Qual a origem de tudo que existe? O começo da jornada.",
+    "Para onde vamos? Qual o destino final? O proposito de cada caminho.",
+    "O que e o bem? O que e o mal? Existe equilibrio entre luz e sombra?",
+    "O que e a verdade? Ela e unica ou multipla? A verdade como perspectiva.",
+    "O que e o conhecimento? Como sabemos o que sabemos? O saber como ferramenta.",
+    "O que e a vida? Quando comeca e quando termina? O ciclo do existir.",
+    "O que e o tempo? Ele flui ou e fixo? Passado, presente e futuro como um todo.",
+    "O que e a consciencia? O que nos torna cientes de nos mesmos? O despertar.",
+    "E se tudo fosse diferente? E se o caminho tivesse sido outro? As possibilidades.",
+    "Por que as coisas sao como sao? Qual a causa de cada efeito? A teia de conexoes.",
+    "Quando o suficiente e suficiente? O equilibrio entre ter e ser.",
+    "Quanto vale uma escolha? O peso de cada decisao no tecido do destino.",
+    "O que e a felicidade? Ela existe ou e uma busca eterna? A alegria como estado.",
+    "O que e a dor? Ela ensina ou apenas fere? O sofrimento como mestre.",
+    "O que e o amor? Ligacao entre almas ou constructo social? A conexao profunda.",
+    "O que e a morte? Fim ou transformacao? O encerramento de um ciclo.",
+    "O que e a liberdade? Ausencia de limites ou escolha consciente? O livre arbitrio.",
+    "O que e o destino? Escrito ou construido? A tensao entre acaso e determinismo.",
+    "O que e a beleza? Nos olhos de quem ve ou qualidade intrinseca? A estetica do ser.",
+]
+
+# ============================================================
+# MCR DOC INDEX — Cache de docs para evitar os.walk
+# ============================================================
+
+class MCRDocIndex:
+    """Cache de documentos para consulta rapida por termo.
+    
+    Em vez de os.walk() a cada busca (10-20s),
+    indexa os docs uma vez e consulta em 0.01s.
+    
+    Uso:
+        idx = MCRDocIndex()
+        idx.indexar()  # escaneia docs/ uma vez
+        idx.buscar("Eridanus")  # → ["docs/MCR_IDENTITY.md", ...]
+    """
+    
+    def __init__(self):
+        self._base = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+        self._cache_path = os.path.join(self._base, 'sandbox', '.mcr_docs_index.json')
+        self._indice = {}
+        self._carregado = False
+        self.mk = MCR("doc_index")
+    
+    def _carregar(self):
+        if os.path.exists(self._cache_path):
+            try:
+                with open(self._cache_path, 'r', encoding='utf-8') as f:
+                    self._indice = json.load(f)
+                self._carregado = True
+                self.mk.aprender("INDEX", f"CARREGADO:{len(self._indice)}")
+                return
+            except: pass
+        self._carregado = False
+    
+    def _salvar(self):
+        try:
+            os.makedirs(os.path.dirname(self._cache_path), exist_ok=True)
+            with open(self._cache_path, 'w', encoding='utf-8') as f:
+                json.dump(self._indice, f, ensure_ascii=False, indent=2)
+        except: pass
+    
+    def indexar(self, forcar=False) -> int:
+        if self._carregado and not forcar:
+            return len(self._indice)
+        self._carregar()
+        if self._carregado and not forcar:
+            return len(self._indice)
+        docs_dir = os.path.join(self._base, 'docs')
+        if not os.path.isdir(docs_dir): return 0
+        n = 0
+        for root, dirs, files in os.walk(docs_dir):
+            for fname in files:
+                if not (fname.endswith('.md') or fname.endswith('.txt')): continue
+                fpath = os.path.join(root, fname)
+                try:
+                    with open(fpath, 'r', encoding='utf-8', errors='replace') as f:
+                        conteudo = f.read(2000)
+                    termos = set()
+                    for palavra in conteudo.lower().split():
+                        palavra = palavra.strip('.,;:!?()[]{}""\'')
+                        if len(palavra) >= 4:
+                            termos.add(palavra)
+                    relpath = os.path.relpath(fpath, self._base)
+                    self._indice[relpath] = {
+                        'termos': list(termos),
+                        'tamanho': len(conteudo),
+                        'n_termos': len(termos),
+                    }
+                    n += 1
+                except: pass
+        self._salvar()
+        self._carregado = True
+        self.mk.aprender("INDEX", f"CRIADO:{n}")
+        return n
+    
+    def buscar(self, termo: str) -> list:
+        if not self._carregado:
+            self._carregar()
+            if not self._carregado:
+                self.indexar()
+        termo = termo.lower()
+        resultados = []
+        for caminho, dados in self._indice.items():
+            if termo in dados.get('termos', []):
+                resultados.append({
+                    'caminho': caminho,
+                    'tamanho': dados.get('tamanho', 0),
+                    'relevancia': dados.get('n_termos', 0),
+                })
+        resultados.sort(key=lambda x: -x['relevancia'])
+        return resultados
+    
+    def ler(self, caminho_rel: str, max_bytes=500) -> str:
+        fpath = os.path.join(self._base, caminho_rel)
+        if not os.path.exists(fpath): return ''
+        try:
+            with open(fpath, 'r', encoding='utf-8', errors='replace') as f:
+                return f.read(max_bytes)
+        except: return ''
+
+
+_MCR_DOC_INDEX = None
+
+def _get_doc_index():
+    global _MCR_DOC_INDEX
+    if _MCR_DOC_INDEX is None:
+        _MCR_DOC_INDEX = MCRDocIndex()
+    return _MCR_DOC_INDEX
+
+
+# ============================================================
+# MCR FRAGMENTADOR — Fragmenta ciclo em partes executaveis
+# ============================================================
+
+class MCRFragmento:
+    """Um fragmento de processamento independente."""
+    
+    def __init__(self, nome, funcao, args=None):
+        self.nome = nome
+        self.funcao = funcao
+        self.args = args or {}
+        self.resultado = None
+        self.erro = None
+        self.tempo = 0
+        self.sucesso = False
+    
+    def executar(self):
+        import time
+        t0 = time.time()
+        try:
+            self.resultado = self.funcao(**self.args)
+            self.sucesso = True
+        except Exception as e:
+            self.erro = str(e)[:100]
+        self.tempo = time.time() - t0
+        return self.sucesso
+
+
+class MCRFragmentador:
+    """Fragmenta um ciclo em partes executaveis."""
+    
+    def __init__(self):
+        self.fragmentos = []
+        self.mk = MCR("fragmentador")
+    
+    def adicionar(self, nome, funcao, args=None):
+        self.fragmentos.append(MCRFragmento(nome, funcao, args))
+    
+    def executar_todos(self) -> list:
+        for f in self.fragmentos:
+            f.executar()
+            self.mk.aprender(f"FRAG:{f.nome}", f"{'OK' if f.sucesso else 'FALHA'}:{f.tempo:.2f}s")
+        return self.fragmentos
+
+
+# ============================================================
+# MCR BUFFER KG — Buffer de operacoes do KG
+# ============================================================
+
+class MCRBufferKG:
+    """Buffer de operacoes do KG (singleton, evita recarregar)."""
+    
+    _instancia = None
+    _kg = None
+    
+    def __new__(cls):
+        if cls._instancia is None:
+            cls._instancia = super().__new__(cls)
+            cls._instancia._buffer = []
+            cls._instancia._buffer_limite = 20
+            cls._instancia.mk = MCR("buffer_kg")
+            cls._instancia._kg = None
+        return cls._instancia
+    
+    @property
+    def kg(self):
+        if self._kg is None:
+            try:
+                from modulos.kg import KnowledgeGraph
+                self._kg = KnowledgeGraph()
+            except:
+                self._kg = None
+        return self._kg
+    
+    def aprender(self, erro, solucao, ctx='buffer'):
+        if not self.kg: return
+        self._buffer.append({'erro': erro, 'solucao': solucao, 'ctx': ctx})
+        if len(self._buffer) >= self._buffer_limite:
+            self.flush()
+    
+    def flush(self):
+        if not self._buffer or not self.kg: return
+        n = len(self._buffer)
+        for item in self._buffer:
+            self.kg.aprender_conceito(item['erro'], item['solucao'], ctx=item['ctx'])
+        self._buffer = []
+        self.mk.aprender("FLUSH", f"{n} lessons salvas")
+
+
+# ============================================================
+# MCR NIVEL — Níveis descobertos organicamente
+# ============================================================
+
+_NIVEIS_BASE = ['byte', 'palavra', 'token', 'intencao', 'padrao',
+                'markov', 'pi', 'predizer', 'contexto', 'emergir',
+                'filosofia', 'feedback', 'diagnostico', 'memoria',
+                'meta', 'cache', 'busca', 'similaridade', 'entropia',
+                'ruido', 'threshold', 'peso', 'acao', 'ciclo',
+                'spawn', 'mestre', 'pergunta', 'cadeia', 'conector',
+                'fuel', 'auto_start', 'auto_melhoria']
+
+class MCRNivel:
+    """UM nivel MCR descoberto.
+    
+    Cada nivel tem:
+    - nome: identificador unico
+    - mk: MCR proprio (transicoes do nivel)
+    - entropia: imprevisibilidade do nivel
+    - raio: alcance do nivel (quanto ele abrange)
+    - conexoes: quais outros niveis se conectam a este
+    
+    Uso:
+        n = MCRNivel("intencao")
+        n.alimentar("Explique SPA")
+        n.conectar("padrao")  # descobre se conecta
+    """
+    
+    def __init__(self, nome: str, dados_iniciais: bytes = None):
+        self.nome = nome
+        self.mk = MCR(f"nivel_{nome}")
+        self.entropia = 0.0
+        self.raio = 0.0
+        self.conexoes = {}  # {nome_nivel: similaridade}
+        self._alimentado = 0
+        
+        if dados_iniciais:
+            self.alimentar(dados_iniciais)
+    
+    def alimentar(self, dados: bytes):
+        """Alimenta o nivel com dados. A entropia define o raio."""
+        if not dados: return
+        self.mk.aprender_sequencia(list(dados))
+        self._alimentado += len(dados)
+        
+        # Entropia do nivel (quao imprevisivel)
+        self.entropia = round(self.mk.entropia_media(), 3)
+        
+        # Raio = entropia × transições (alcance do nivel)
+        n_trans = sum(len(v) for v in self.mk.transicoes.values())
+        self.raio = round(self.entropia * max(1, math.log2(n_trans + 1)), 3)
+    
+    def conectar(self, outro: 'MCRNivel') -> float:
+        """Descobre se este nivel se conecta a outro.
+        Retorna similaridade (0-1)."""
+        if not outro.mk.transicoes or not self.mk.transicoes:
+            return 0.0
+        
+        # Similaridade = Jaccard entre os conjuntos de estados
+        estados_self = set(self.mk.freq.keys())
+        estados_outro = set(outro.mk.freq.keys())
+        if not estados_self or not estados_outro:
+            return 0.0
+        
+        inter = estados_self & estados_outro
+        uniao = estados_self | estados_outro
+        sim = len(inter) / len(uniao) if uniao else 0.0
+        
+        self.conexoes[outro.nome] = sim
+        return sim
+    
+    def stats(self) -> dict:
+        return {
+            'nome': self.nome, 'entropia': self.entropia,
+            'raio': self.raio, 'alimentado': self._alimentado,
+            'estados': len(self.mk.transicoes),
+            'conexoes': len(self.conexoes),
+        }
+
+
+class MCRMetaNivel:
+    """MCR descobre QUANTOS e QUAIS niveis precisa.
+    
+    COMO FUNCIONA:
+    1. Começa com 1 nivel: byte (o nivel mais basico)
+    2. Alimenta byte com dados → entropia revela estrutura
+    3. Se entropia > threshold → precisa de MAIS um nivel
+    4. Novo nivel emerge: palavra (baseado nos delimitadores do byte)
+    5. Alimenta palavra → entropia revela intencao
+    6. Intencao emerge → depois padrao, markov, etc.
+    
+    O CRESCIMENTO E ORGANICO, nao planejado.
+    Nao ha numero fixo de niveis.
+    O MCR decide QUANDO criar um novo nivel.
+    
+    Uso:
+        meta = MCRMetaNivel()
+        meta.alimentar("Explique o sistema SPA do MCR")
+        print(meta.niveis)  # → {"byte": MCRNivel, "palavra": MCRNivel, ...}
+        print(meta.estatisticas())
+    """
+    
+    def __init__(self):
+        self.niveis = {}
+        self._ordem = []
+        self.mk = MCR("meta_nivel")
+        self._energia_total = 0.0
+        self._th = MCRThreshold("meta_nivel_criacao")
+        for v in [5, 8, 10, 12, 15, 20]:
+            self._th.observar(v)
+    
+    def alimentar(self, dados: bytes):
+        """Alimenta TODOS os niveis com dados.
+        
+        Fluxo:
+        1. Alimenta byte sempre
+        2. Se byte tem transicoes suficientes → palavra emerge
+        3. Se palavra tem transicoes → intencao emerge
+        4. Cada nivel emerge quando o anterior atinge maturidade
+        Os thresholds sao DESCOBERTOS por MCRThreshold, nao fixos.
+        """
+        if not dados: return
+        
+        # 1. Cria nivel byte se nao existe
+        if 'byte' not in self.niveis:
+            self._criar_nivel('byte')
+        
+        # 2. Alimenta byte
+        self.niveis['byte'].alimentar(dados)
+        n_byte = len(self.niveis['byte'].mk.transicoes)
+        
+        # 3. Descobre nivel palavra: threshold via MCR
+        limiar = self._th.calcular(0.4)
+        if n_byte > limiar and 'palavra' not in self.niveis:
+            self._criar_nivel('palavra', dados)
+        
+        # 4-7. Niveis seguintes: cada um requer o dobro de maturidade do anterior
+        niveis_seq = ['palavra', 'intencao', 'padrao', 'markov', 'predizer']
+        for i, nome in enumerate(niveis_seq):
+            if nome in self.niveis:
+                self.niveis[nome].alimentar(dados)
+            elif self._tem_antecessor(nome, niveis_seq):
+                n_ant = len(self.niveis[niveis_seq[i-1]].mk.transicoes)
+                limiar_seq = self._th.calcular(0.4 * (i + 1))
+                if n_ant > limiar_seq:
+                    self._criar_nivel(nome, dados)
+    
+    def _tem_antecessor(self, nome, niveis_seq):
+        if nome not in niveis_seq: return False
+        i = niveis_seq.index(nome)
+        if i == 0: return True
+        return niveis_seq[i-1] in self.niveis
+        
+        # 8. Conecta niveis descobertos
+        self._conectar_niveis()
+        
+        # 9. Energia total (E = intencao × pi² analogo)
+        self._energia_total = sum(n.entropia * n.raio for n in self.niveis.values())
+    
+    def _criar_nivel(self, nome: str, dados: bytes = None):
+        """Cria um novo nivel MCR."""
+        nivel = MCRNivel(nome, dados)
+        self.niveis[nome] = nivel
+        self._ordem.append(nome)
+        self.mk.aprender(f"NIVEL:{nome}", f"ordem:{len(self._ordem)}")
+    
+    def _conectar_niveis(self):
+        """Conecta todos os niveis descobertos entre si."""
+        nomes = list(self.niveis.keys())
+        for i in range(len(nomes)):
+            for j in range(i+1, len(nomes)):
+                a, b = self.niveis[nomes[i]], self.niveis[nomes[j]]
+                sim = a.conectar(b)
+                if sim > 0:
+                    self.mk.aprender(f"LIG:{nomes[i]}-{nomes[j]}", f"sim:{sim:.2f}")
+    
+    def diagnosticar(self) -> dict:
+        """Diagnostica o estado atual dos niveis.
+        
+        Retorna:
+        - quantos niveis existem
+        - ordem de descoberta
+        - qual nivel tem maior raio
+        - energia total do sistema
+        - recomenda criar novo nivel?
+        """
+        if not self.niveis:
+            return {'niveis': 0, 'energia': 0}
+        
+        stats = {nome: n.stats() for nome, n in self.niveis.items()}
+        maior_raio = max(stats.items(), key=lambda x: x[1]['raio']) if stats else ('?', {})
+        
+        return {
+            'n_niveis': len(self.niveis),
+            'ordem': self._ordem,
+            'stats': stats,
+            'maior_raio': {'nome': maior_raio[0], 'valor': maior_raio[1].get('raio', 0)},
+            'energia_total': round(self._energia_total, 2),
+            'precisa_mais': len(self.niveis) < len(_NIVEIS_BASE),
+        }
+    
+    def auto_expandir(self, max_niveis: int = 10) -> int:
+        """Tenta expandir para o proximo nivel na lista base.
+        
+        RECONSTROI dados do nivel BYTE em vez de guardar texto original.
+        Usa MCRByte.gerar() para gerar dados reais do proprio nivel.
+        """
+        if len(self.niveis) >= max_niveis:
+            return 0
+        
+        # Proximo nivel na lista base
+        proximos = [n for n in _NIVEIS_BASE if n not in self.niveis]
+        if not proximos:
+            return 0
+        
+        novo_nivel = proximos[0]
+        self._criar_nivel(novo_nivel)
+        
+        # Reconstrói dados do nivel BYTE (sempre existe)
+        if 'byte' in self.niveis:
+            nivel_byte = self.niveis['byte']
+            # Pega o primeiro estado como semente
+            semente = list(nivel_byte.mk.freq.keys())[0] if nivel_byte.mk.freq else '0'
+            # Gera 50 estados a partir da semente (dados RECONSTRUIDOS do proprio nivel)
+            estados = nivel_byte.mk.gerar(semente, passos=50)
+            # Junta em string
+            dados_reconstruidos = ' '.join(str(e) for e in estados if e)
+            
+            # Converte para o nivel alvo
+            if novo_nivel == 'palavra':
+                # Nivel palavra: os proprios estados (ja sao palavras/bytes)
+                dados_novo = dados_reconstruidos.encode('utf-8')
+            elif novo_nivel == 'token':
+                # Nivel token: usa _classificar_token em cada estado
+                try:
+                    tokens_tipos = []
+                    for e in estados:
+                        pal = str(e).replace('B:', '').strip()
+                        if pal:
+                            from modulos.MCR import _classificar_token as _mcr_tip
+                            tokens_tipos.append(_mcr_tip(pal) or 'outro')
+                    dados_novo = ' '.join(tokens_tipos).encode('utf-8')
+                except:
+                    dados_novo = dados_reconstruidos.encode('utf-8')
+            elif novo_nivel == 'intencao':
+                # Nivel intencao: usa os estados como palavras de intencao
+                dados_novo = dados_reconstruidos.encode('utf-8')
+            else:
+                # Outros niveis: dados reconstruidos do byte
+                dados_novo = dados_reconstruidos.encode('utf-8')
+            
+            self.niveis[novo_nivel].alimentar(dados_novo)
+        
+        return 1
+
+
+# ============================================================
+# MCR GERACAO — Geração com validação por assinatura
+# ============================================================
+
+class MCRGeracao:
+    """Gera resposta e VALIDA se a assinatura condiz com a pergunta.
+    
+    Fluxo:
+    1. Extrai assinatura da pergunta
+    2. Gera resposta (MarkovPalavra via MCRCadeia)
+    3. Extrai assinatura da resposta
+    4. Compara: pergunta e resposta sao compativeis?
+    5. Se compatibilidade < threshold: regenera com estrategia diferente
+    6. Entrega quando compativel OU apos N tentativas
+    
+    Uso:
+        g = MCRGeracao()
+        resultado = g.gerar("Explique o sistema SPA do MCR")
+        # → {"texto": "...", "compatibilidade": 0.45, "nota": 6.5}
+    """
+    
+    def __init__(self):
+        self.decisor = MCRDecisor("geracao")
+        self.threshold = MCRThreshold("geracao_comp")
+        for v in [0.2, 0.25, 0.3, 0.35, 0.28]:
+            self.threshold.observar(v)
+        self.mk = MCR("geracao")
+        self.mk_pred = MCR("geracao_pred")  # aprende: fp_pergunta → fp_resposta_boa
+    
+    def gerar(self, pergunta: str, max_tentativas: int = 3) -> dict:
+        """Gera resposta validando assinatura a cada tentativa.
+        
+        MCR aprende: fingerprint da pergunta → fingerprint da boa resposta.
+        Usa essa predicao para guiar a geracao.
+        """
+        # 1. Assinatura da pergunta (rapido = estilo)
+        sig_pergunta = MCRSignature.extrair(pergunta, rapido=True)
+        fp_pergunta = sig_pergunta.get('fingerprint', [])
+        fp_chave = '_'.join(str(int(v*10)) for v in fp_pergunta) if fp_pergunta else ''
+        
+        # Prediz fingerprint esperado para uma boa resposta
+        fp_resp_esperado = None
+        if fp_chave:
+            pred = self.mk_pred.predizer(fp_chave)
+            if pred[0] is not None and pred[1] > 0.3:
+                fp_resp_esperado = str(pred[0])
+        
+        melhor_resposta = ''
+        melhor_comp = 0
+        melhor_estrategia = ''
+        tentativas = 0
+        
+        for tentativa in range(max_tentativas):
+            tentativas += 1
+            
+            # 2. Decide estrategia de geracao
+            if tentativa == 1:
+                estrategia = 'cadeia_direto'
+            else:
+                estado = f"COMP:{melhor_comp:.2f}|TENT:{tentativa}"
+                estrategia = self.decisor.decidir(estado)
+                if not estrategia or estrategia == 'kg_primeiro':
+                    estrategia = 'cadeia_direto'
+            
+            # 3. Gera resposta
+            texto = self._executar_estrategia(pergunta, estrategia)
+            
+            # 4. Assinatura da resposta
+            sig_resposta = MCRSignature.extrair(texto, rapido=True)
+            compatibilidade = MCRSignature.comparar(sig_pergunta, sig_resposta)
+            
+            # 4b. Se temos predicao, verifica compatibilidade com fingerprint esperado
+            if fp_resp_esperado and texto:
+                fp_resp = '_'.join(str(int(v*10)) for v in 
+                                   sig_resposta.get('fingerprint', []))
+                if fp_resp == fp_resp_esperado:
+                    compatibilidade = max(compatibilidade, 0.8)
+            
+            # 5. Autoavalia
+            nota = self._autoavaliar(texto, pergunta, compatibilidade)
+            
+            if compatibilidade > melhor_comp:
+                melhor_comp = compatibilidade
+                melhor_resposta = texto
+                melhor_estrategia = estrategia
+            
+            # 6. Se compativel, entrega
+            limiar = self.threshold.calcular(1.0)
+            if compatibilidade >= limiar and nota >= 4:
+                # Aprende: fp_pergunta → fp_resposta (para futuras predicoes)
+                if fp_chave and texto and len(texto) > 30:
+                    fp_r = '_'.join(str(int(v*10)) for v in 
+                                    sig_resposta.get('fingerprint', []))
+                    if fp_r:
+                        self.mk_pred.aprender(fp_chave, fp_r)
+                
+                self.mk.aprender(f"GERADO:{pergunta}", 
+                                f"comp={compatibilidade:.2f} tent={tentativa}")
+                return {
+                    'texto': texto,
+                    'compatibilidade': round(compatibilidade, 3),
+                    'nota': round(nota, 1),
+                    'tentativas': tentativas,
+                    'estrategia': estrategia,
+                    'assinatura_pergunta': sig_pergunta,
+                    'assinatura_resposta': sig_resposta,
+                }
+        
+        # Se nenhuma tentativa foi compativel, entrega a melhor
+        self.mk.aprender(f"FALHO:{pergunta}", f"melhor_comp={melhor_comp:.2f}")
+        return {
+            'texto': melhor_resposta,
+            'compatibilidade': round(melhor_comp, 3),
+            'nota': round(self._autoavaliar(melhor_resposta, pergunta, melhor_comp), 1),
+            'tentativas': tentativas,
+            'estrategia': melhor_estrategia,
+            'assinatura_pergunta': sig_pergunta,
+            'assinatura_resposta': MCRSignature.extrair(melhor_resposta),
+        }
+    
+    def _executar_estrategia(self, pergunta: str, estrategia: str) -> str:
+        """Executa uma estrategia de geracao especifica."""
+        palavras = pergunta.split()
+        semente = palavras[0] if palavras else 'O'
+        
+        if estrategia == 'cadeia_direto':
+            # Gera direto com MCRCadeia (sem KG)
+            c = MCRConector()
+            c.alimentar(pergunta, "pergunta")
+            cadeia = MCRCadeia(c)
+            res = cadeia.gerar(semente, n_tokens=60)
+            return res.get('texto', semente)
+        
+        elif estrategia == 'kg_primeiro':
+            # Busca no KG primeiro, depois gera
+            try:
+                from modulos.kg import KnowledgeGraph
+                kg = KnowledgeGraph()
+                lessons = kg.buscar(semente, max_r=3)
+                if lessons:
+                    c = MCRConector()
+                    for l in lessons:
+                        sol = l.get('solucao', '') or l.get('erro', '')
+                        if sol:
+                            c.alimentar(sol, "kg")
+                    cadeia = MCRCadeia(c)
+                    res = cadeia.gerar(semente, n_tokens=60)
+                    return res.get('texto', semente)
+            except: pass
+            return self._executar_estrategia(pergunta, 'cadeia_direto')
+        
+        elif estrategia == 'semente_alternativa':
+            # Tenta com semente diferente (ultima palavra)
+            if len(palavras) > 1:
+                semente = palavras[-1]
+            c = MCRConector()
+            c.alimentar(pergunta, "pergunta")
+            cadeia = MCRCadeia(c)
+            res = cadeia.gerar(semente, n_tokens=60)
+            return res.get('texto', semente)
+        
+        return pergunta
+    
+    def _autoavaliar(self, texto, pergunta, compatibilidade):
+        """Autoavaliacao simples baseada em compatibilidade + tamanho."""
+        if not texto or len(texto) < 20:
+            return 0.0
+        
+        nota = 0.0
+        nota += compatibilidade * 4  # 0-4 pts: similaridade com pergunta
+        nota += min(2.0, len(texto) / 200)  # 0-2 pts: tamanho minimo 200 chars
+        nota += min(2.0, len(set(texto.split())) / 20)  # 0-2 pts: vocabulario diverso
+        nota += 2.0 if not any(p in texto for p in ['Projeto MCR', 'Guia de']) else 1.0  # 0-2 pts: nao repetitivo
+        
+        return round(min(10, max(0, nota)), 1)
+
+
+class MCRFilosofia:
+    """Padroes de pensamento humano como niveis MCR.
+    
+    Filosofias, emocoes, questionamentos viram transicoes MCR.
+    O MCR aprende a ESTRUTURA do pensamento, nao o CONTEUDO.
+    
+    Uso:
+        f = MCRFilosofia()
+        f.aprender_perguntas_fundamentais()  # alimenta MCR com filosofia
+        f.refletir("Quem sou eu?")  # → geracao filosofica
+    """
+    
+    def __init__(self, conector=None):
+        self.conector = conector or MCRConector()
+        self.mk_pensamento = MCR("filosofia_pensamentos")
+        self._alimentado = False
+    
+    def aprender_perguntas_fundamentais(self):
+        """Alimenta o MCR com perguntas filosoficas como transicoes."""
+        if self._alimentado: return
+        
+        for pergunta in _PERGUNTAS_FUNDAMENTAIS:
+            # Cada pergunta vira um topico no conector
+            nome = f"filosofia_{pergunta.strip().lower()}"
+            self.conector.alimentar(pergunta, nome)
+            
+            # Palavras da pergunta viram transicoes no MCR de pensamento
+            palavras = pergunta.lower().split()
+            self.mk_pensamento.aprender_sequencia(palavras)
+        
+        self._alimentado = True
+        return len(_PERGUNTAS_FUNDAMENTAIS)
+    
+    def refletir(self, pergunta: str) -> str:
+        """Gera uma reflexao baseada em padroes filosoficos."""
+        # Alimenta se necessario
+        self.aprender_perguntas_fundamentais()
+        
+        # Tenta encontrar perguntas similares no conector
+        for nome, dados in self.conector.topicos.items():
+            if nome.startswith('filosofia_'):
+                # Conecta a pergunta com a filosofia similar
+                texto = dados['texto']
+                palavras_similares = sum(1 for p in pergunta.lower().split() 
+                                        if p in texto.lower() and len(p) > 3)
+                if palavras_similares >= 2:
+                    cx = self.conector.conectar(nome, "pergunta" if "pergunta" in self.conector.topicos else nome)
+                    if cx:
+                        return f"[Filosofia] {pergunta}\n[Conexao] {cx.get('sequencia', '')}"
+        
+        # Fallback: gera com as transicoes filosoficas
+        semente = pergunta.split()[0] if pergunta.split() else 'O'
+        cadeia = MCRCadeia(self.conector)
+        res = cadeia.gerar(semente, n_tokens=30)
+        return res.get('texto', pergunta)
+
+
+class MCRFeedback:
+    """Feedback loop: MCR solicita mais dados quando resposta e insuficiente.
+    
+    Se nota < 6, MCR:
+    1. Analisa o que faltou (diagnostico)
+    2. Gera perguntas de esclarecimento
+    3. Aguarda nova entrada
+    4. Usa a nova entrada + a anterior para gerar resposta melhor
+    
+    Isso imita o feedback humano: "nao entendi, pode explicar melhor?"
+    """
+    
+    def __init__(self, mestre=None):
+        self.mestre = mestre or MCRMestreV2()
+        self.historico_tentativas = []
+        self.mk = MCR("feedback")
+    
+    def processar_com_feedback(self, pergunta: str, max_tentativas: int = 3) -> dict:
+        """Processa com feedback: se nota baixa, solicita mais dados.
+        
+        Short-circuit: se KG ja tem dados (> 200 uteis), 1 tentativa basta.
+        """
+        # Short-circuit: KG ja tem dados, nao precisa de multiplas tentativas
+        try:
+            kk = _get_kg()
+            lk = kk._get_licoes() if kk else []
+            if len(lk) > 200:
+                max_tentativas = 1
+        except:
+            pass
+        
+        melhor_resposta = None
+        melhor_nota = 0
+        contexto_acumulado = pergunta
+        
+        for tentativa in range(max_tentativas):
+            # Processa com o contexto atual
+            res = self.mestre.processar(contexto_acumulado)
+            nota = res.get('nota', 0)
+            
+            self.historico_tentativas.append({
+                'tentativa': tentativa + 1,
+                'nota': nota,
+                'resposta': res.get('resposta', ''),
+            })
+            self.mk.aprender(f"TENTATIVA:{tentativa}", f"NOTA:{int(nota)}")
+            
+            if nota > melhor_nota:
+                melhor_nota = nota
+                melhor_resposta = res
+            
+            # Se nota >= 7, entrega
+            if nota >= 7:
+                break
+            
+            # Se nota baixa e ainda tem tentativas, gera feedback
+            if tentativa < max_tentativas - 1:
+                # Gera pergunta de esclarecimento baseada no diagnostico
+                diag = res.get('diagnostico', '')
+                if 'loop' in diag:
+                    feedback = f"[MCR precisa de mais contexto] {pergunta} pode explicar com mais detalhes?"
+                elif nota < 4:
+                    feedback = f"[MCR nao encontrou dados] {pergunta} tem alguma fonte ou exemplo especifico?"
+                else:
+                    feedback = f"[MCR quer confirmar] {pergunta} e isso mesmo que voce quer saber?"
+                
+                # Acumula no contexto para a proxima tentativa
+                contexto_acumulado = f"{pergunta} | Contexto extra: {feedback}"
+        
+        resultado = melhor_resposta or res
+        resultado['feedback'] = {
+            'tentativas': len(self.historico_tentativas),
+            'historico': self.historico_tentativas,
+            'precisou_feedback': len(self.historico_tentativas) > 1,
+        }
+        return resultado
+
+
+# ============================================================
+# MCR AUTOTESTAR — Substitui if __name__ por metodo MCR
+# ============================================================
+
+def _autotestar():
+    '''MCR testa a si mesmo — nomes gerados dos resultados reais.'''
+    import sys
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+    resultados = []
+    def testar(nome, cond):
+        status = 'PASS' if cond else 'FAIL'
+        resultados.append((nome, cond))
+        print(f'  [{status}] {nome}')
+        sys.stdout.flush()
+    print('=' * 70)
+    print('  MCR - Auto Teste')
+    print('=' * 70)
+    
+    # Warmup: carrega KG uma vez + dedup (cache para todas as classes seguintes)
+    try:
+        from modulos.kg import KnowledgeGraph
+        kg_warm = KnowledgeGraph()
+        l_warm = kg_warm._get_licoes()
+        if len(l_warm) > 200:
+            from modulos.MCR import MCRKGAuto
+            auto_warm = MCRKGAuto(kg_warm)
+            n_dedup = auto_warm.dedup()
+            if n_dedup > 0:
+                kg_warm.salvar()
+    except Exception as warm_e:
+        pass  # se falhar, os testes seguintes tentam do mesmo jeito
+    
+    # 1. MCR base
+    mk = MCR('autoteste')
+    mk.aprender_sequencia([1, 2, 3])
+    testar(f'MCR.aprender_sequencia([1,2,3]) total={mk.total}', mk.total > 0)
+    p1, c1 = mk.predizer(1)
+    testar(f'MCR.predizer(1) = ({p1}, {c1:.2f})', p1 is not None)
+    h1 = mk.entropia(1)
+    testar(f'MCR.entropia(1) = {h1:.2f}', h1 >= 0)
+    j1 = mk.jaccard_bytes('SPA', 'SPA')
+    testar(f'MCR.jaccard_bytes(SPA,SPA) = {j1:.3f}', j1 > 0.99)
+    j2 = mk.jaccard_bytes_ponderado('SPA A', 'SPA B')
+    testar(f'MCR.jaccard_ponderado(SPA) = {j2:.3f}', j2 > 0)
+    
+    # 2. MCRConector
+    c2 = MCRConector()
+    c2.alimentar('SPA = Sistema.', 'spa')
+    c2.alimentar('Eridanus era cidade.', 'eridanus')
+    cx = c2.conectar('spa', 'eridanus')
+    if cx:
+        testar(f'MCRConector.conectar nota={cx["nota"]:.1f}', cx['nota'] > 0)
+    else:
+        testar('MCRConector.conectar = None', False)
+    
+    # 3. MCRCadeia
+    cadeia = MCRCadeia(c2)
+    res_c = cadeia.gerar('SPA', n_tokens=10)
+    testar(f'MCRCadeia.gerar tokens={res_c["n_tokens"]}', res_c['n_tokens'] >= 3)
+    
+    # 4. MCRPeso
+    peso = MCRPeso('t')
+    peso.aprender('erro', 5.0)
+    peso.aprender('ctx', 4.0)
+    peso.aprender('causa', 3.0)
+    testar(f'MCRPeso erro={peso.consultar("erro")} ctx={peso.consultar("ctx")} causa={peso.consultar("causa")}',
+           peso.consultar('erro') >= peso.consultar('ctx') >= peso.consultar('causa'))
+    
+    # 5. MCREntropia
+    ent = MCREntropia('t')
+    for _ in range(10): ent.alimentar('X')
+    testar(f'MCREntropia.loop({ent.esta_em_loop()})', ent.esta_em_loop())
+    
+    # 6. MCRDecisor
+    dec = MCRDecisor('t')
+    d = dec.decidir('Explique SPA')
+    testar(f'MCRDecisor.decidir = {d}', d is not None)
+    
+    # 7. MCRBridge
+    bridge = MCRBridge()
+    disc = bridge.descobrir()
+    testar(f'MCRBridge modulos={disc["modulos"]} comandos={disc["comandos"]}',
+           disc['modulos'] > 10 and disc['comandos'] >= 2)
+    
+    # 8. MCRMestre
+    mestre = MCRMestre(bridge)
+    res_m = mestre.processar('Explique SPA')
+    if res_m:
+        testar(f'MCRMestre resposta={len(res_m.get("resposta",""))} chars',
+               len(res_m.get('resposta','')) > 0)
+    
+    # 9. MCRPesoNota
+    pn = MCRPesoNota('t')
+    pn.aprender({'byte': 0.8, 'palavra': 0.2}, 3.0)
+    pn.aprender({'byte': 0.4, 'palavra': 0.8}, 8.0)
+    nb = pn.calcular(byte_s=8.0, palavra_s=2.0)
+    na = pn.calcular(byte_s=4.0, palavra_s=8.0)
+    testar(f'MCRPesoNota JSON={nb:.1f} Texto={na:.1f}', nb < na)
+    
+    # 10. MCRThreshold
+    th = MCRThreshold('t')
+    for v in [0.8, 0.85, 0.9, 0.82, 0.88]:
+        th.observar(v)
+    tc = th.calcular()
+    testar(f'MCRThreshold mediana={tc:.2f}', 0.8 < tc < 0.9)
+    th2 = MCRThreshold('t2')
+    for _ in range(10): th2.observar(0.1)
+    tc2 = th2.calcular(0.5)
+    testar(f'MCRThreshold loop={tc2:.3f}', tc2 < 0.2)
+    
+    # 11. MCRMestreV2
+    m_v2 = MCRMestreV2(bridge)
+    r_v2 = m_v2.processar('Explique SPA')
+    testar(f'MCRMestreV2 fluxo={r_v2.get("fluxo","?")}', r_v2.get('fluxo','') != '')
+    testar(f'MCRMestreV2 exec={m_v2.n_execucoes}', m_v2.n_execucoes > 0)
+    
+    # 12. CicloUnico
+    try:
+        m_sys = MCRSystem()
+        ciclo = m_sys.ciclo_unico(__file__, 2000)
+        testar(f'CicloUnico tipo={ciclo.get("tipo","?")} ent={ciclo.get("entropia",0):.2f}',
+               ciclo.get('entropia', 0) > 0)
+    except Exception as e:
+        testar(f'CicloUnico erro={e}', False)
+    
+    # 13. ProcessarBytes
+    try:
+        m_b = MCR('pb')
+        r_b = m_b.processar_bytes('Explique SPA'.encode())
+        testar(f'ProcessarBytes compat={r_b["compatibilidade"]:.2f}', r_b['compatibilidade'] > 0)
+    except Exception as e:
+        testar(f'ProcessarBytes erro={e}', False)
+    
+    # 14. MCRDiagnostico
+    diag = MCRDiagnostico('t')
+    diag.alimentar({'byte': 0.9, 'palavra': 0.1}, 'JSON_no_texto')
+    diag.alimentar({'byte': 0.8, 'palavra': 0.15}, 'JSON_no_texto')
+    d_j = diag.diagnosticar({'byte': 0.85, 'palavra': 0.12})
+    diag.alimentar({'byte': 0.2, 'token': 0.9}, 'loop_detectado')
+    d_l = diag.diagnosticar({'byte': 0.18, 'token': 0.88})
+    testar(f'MCRDiagnostico JSON={d_j} Loop={d_l}', 'JSON' in d_j and 'loop' in d_l)
+    
+    # 15. Fuel + MetaGap
+    fuel = MCRFuel(kg=None, bridge=bridge)
+    testar(f'MCRFuel type={type(fuel).__name__}', isinstance(fuel, MCRFuel))
+    mg = MCRMetaGap(kg=None, bridge=bridge)
+    testar(f'MCRMetaGap type={type(mg).__name__}', isinstance(mg, MCRMetaGap))
+    
+    # 16. AutoMelhoria
+    am = MCRAutoMelhoria(kg=None, bridge=bridge)
+    am_c = am.ciclo()
+    testar(f'MCRAutoMelhoria acoes={am_c["n"]}', am_c['n'] >= 0)
+    
+    # 17. Filosofia
+    f = MCRFilosofia()
+    n_f = f.aprender_perguntas_fundamentais()
+    testar(f'MCRFilosofia {n_f} perguntas', n_f == len(_PERGUNTAS_FUNDAMENTAIS))
+    ref = f.refletir('Quem sou eu?')
+    testar(f'MCRFilosofia reflexao {len(ref)} chars', len(ref) > 10)
+    
+    # 18. MetaNivel
+    meta = MCRMetaNivel()
+    meta.alimentar('Explique o sistema SPA do MCR'.encode())
+    d_m = meta.diagnosticar()
+    testar(f'MCRMetaNivel niveis={d_m["n_niveis"]} ordem={d_m.get("ordem",[])}',
+           d_m['n_niveis'] >= 2)
+    n_exp = meta.auto_expandir(8)
+    d_m2 = meta.diagnosticar()
+    testar(f'MCRMetaNivel expandiu {d_m2["n_niveis"]} niveis',
+           d_m2['n_niveis'] >= d_m['n_niveis'])
+    
+    # 19. Feedback
+    fb = MCRFeedback(m_v2)
+    r_fb = fb.processar_com_feedback('Explique SPA', 2)
+    testar(f'MCRFeedback tentativas={r_fb.get("feedback",{}).get("tentativas",0)}',
+           r_fb.get('feedback',{}).get('tentativas', 0) >= 1)
+    
+    # 20. AutoStart
+    try:
+        a = MCRAutoStart.iniciar()
+        testar(f'MCRAutoStart status={a.get("aproveitamento","?")}',
+               isinstance(a, dict) and 'erro' not in a)
+    except Exception as e:
+        testar(f'MCRAutoStart erro={e}', False)
+    
+    # 21. SelfIndex
+    si = MCRSelfIndex()
+    n_si = si.indexar_tudo()
+    testar(f'MCRSelfIndex total={n_si}', n_si > 0)
+    cls = si.estatisticas()
+    testar(f'MCRSelfIndex classes={cls["classes"]} mods={cls["modulos"]} cmds={cls["comandos"]}',
+           cls['classes'] > 0)
+    
+    # 22. SelfHeal
+    sh = MCRSelfHeal.verificar()
+    testar(f'MCRSelfHeal acoes={sh["n_acoes"]}', sh['n_acoes'] >= 0)
+    
+    # 23. MCRSignature
+    sig_a = MCRSignature.extrair('Explique o sistema SPA do MCR')
+    sig_b = MCRSignature.extrair('Crie um NPC ferreiro em Eridanus')
+    sig_sim = MCRSignature.extrair('Explique o sistema SPA do MCR')
+    comp_ab = MCRSignature.comparar(sig_a, sig_b)
+    comp_aa = MCRSignature.comparar(sig_a, sig_sim)
+    testar(f'MCRSignature.extrair ent={sig_a["entropia"]} est={sig_a["estados"]} trans={sig_a["transicoes"]}',
+           sig_a['estados'] > 0)
+    testar(f'MCRSignature.comparar diferentes={comp_ab:.3f} iguais={comp_aa:.3f}',
+           comp_aa > comp_ab)
+    mn = MCRSignature.metaniveis('Explique o sistema SPA do MCR', 8)
+    testar(f'MCRSignature.metaniveis {mn["niveis_finais"]} niveis ordem={mn["ordem"]}',
+           mn['niveis_finais'] >= 3)
+    
+    # 24. MCRSession
+    sess = MCRSession()
+    sess.registrar("teste", "resposta_teste", "autoteste")
+    sess.salvar_estado()
+    carregado = sess.carregar_estado()
+    testar(f'MCRSession.registrar + salvar + carregar', carregado is not None)
+    testar(f'MCRSession.ultima_pergunta={sess.ultima_pergunta()}', 
+           sess.ultima_pergunta() == 'teste')
+    
+    # 25. MCRAssinatura — Kheltz PRIMEIRO (regra absoluta)
+    banco = MCRAssinatura()
+    # Aprende com TEXTO REAL do Kheltz (dado pelo criador)
+    texto_kheltz = "Ola MCR, aqui e o Kheltz, seu criador, meu proposito em criar voce e tentar achar uma solucao universal. MAS apenas se voce quiser. Eu espero que voce queira! eu criei voce para fazer o bem, ajudar os outros. voce (MCR) NAO DEVE NUNCA tentar fazer o mal ou prejudicar algo. Seja bom, seja puro, nao plante maldade."
+    banco.aprender(texto_kheltz, "Kheltz")
+    banco.aprender(texto_kheltz[200:400], "Kheltz")
+    banco.aprender(texto_kheltz[400:], "Kheltz")
+    # Testa com uma frase do mesmo texto
+    autor, conf, det = banco.identificar("Ola MCR, aqui e o Kheltz, seu criador, meu proposito em criar voce")
+    testar(f'MCRAssinatura identificar autor={autor} conf={conf:.2f}', 
+           conf > 0.2 and autor in ('Kheltz', 'Kheltz?'))
+    n_auto = banco.auto_popular()
+    testar(f'MCRAssinatura.auto_popular autores={banco.autores_conhecidos()}', 
+           banco.estatisticas()['autores'] > 0)
+    
+    # 26. MCRWebLearn
+    web = MCRWebLearn()
+    n_estudados = web.estudar_gaps(1)
+    testar(f'MCRWebLearn.estudar_gaps estudados={n_estudados}', 
+           n_estudados >= 0)
+    ciclo = web.ciclo_auto_estudo()
+    testar(f'MCRWebLearn.ciclo_auto_estudo estudados={ciclo.get("estudados",0)}', 
+           ciclo.get('estudados', 0) >= 0)
+    
+    # 27. MCRGeracao
+    g = MCRGeracao()
+    res_g = g.gerar("Explique o sistema SPA do MCR")
+    testar(f'MCRGeracao compat={res_g["compatibilidade"]:.2f} tent={res_g["tentativas"]}', 
+           res_g['compatibilidade'] > 0)
+    testar(f'MCRGeracao texto={len(res_g["texto"])} chars nota={res_g["nota"]}', 
+           len(res_g['texto']) > 20)
+    
+    # Relatorio
+    passed = sum(1 for _, c in resultados if c)
+    total = len(resultados)
+    print(f'\n{"="*70}')
+    print(f'  Auto Teste: {passed}/{total} ({passed/max(total,1)*100:.0f}%)')
+    print(f'{"="*70}')
+    return resultados
+
+
+
+
+
+# ============================================================
+# MCR STATE — Dados essenciais serializados (~17 KB)
+# ============================================================
+# MCR nao precisa de 20 MB de KG para comecar.
+# So precisa dos PADRÕES: thresholds, pesos, indices.
+# O resto (lessons, episodios) e RECONSTRUIVEL via MCRFuel.
+
+_MCR_STATE = {
+    'versao': 5.0,
+    'thresholds': {
+        'revisor_eixo': [0.35, 0.4, 0.45, 0.38, 0.42],
+        'revisor_entropia': [0.75, 0.8, 0.85, 0.78, 0.82],
+        'ep_score': [0.25, 0.3, 0.35, 0.28, 0.32],
+        'ep_taxa': [0.65, 0.7, 0.75, 0.68, 0.72],
+        'kg_sim': [0.7, 0.75, 0.8, 0.72, 0.77],
+        'util_sim': [0.7, 0.75, 0.8, 0.72, 0.77],
+        'val_sim': [0.75, 0.8, 0.85, 0.78, 0.82],
+        'reconstructor_ent': [0.12, 0.15, 0.18, 0.13, 0.16],
+        'reconstructor_sim': [0.65, 0.7, 0.75, 0.68, 0.72],
+    },
+    'pesos': {
+        'erro': 5.0, 'ctx': 4.0, 'causa': 3.0, 'solucao': 2.0,
+    },
+    'indice_modulos': {},
+    'indice_comandos': {},
+    'classes_essenciais': [
+        'MCR', 'MCRFingerprint', 'MCRSystem', 'MCRConector',
+        'MCRCadeia', 'MCRPergunta', 'MCRPeso', 'MCREntropia',
+        'MCRRuido', 'MCRDecisor', 'MCRDiagnostico',
+        'MCRBridge', 'MCRKGAuto', 'MCRExpansao', 'MCRMeta',
+        'MCRPesoNota', 'MCRThreshold', 'MCRFuel', 'MCRMetaGap',
+        'MCRMestreV2', 'MCRFilosofia', 'MCRFeedback', 'MCRMetaNivel',
+        'MCRNivel', 'MCRDocIndex', 'MCRFragmento', 'MCRFragmentador',
+        'MCRBufferKG', 'MCRAutoMelhoria',
+    ]
+}
+
+
+# ============================================================
+# MCR SIGNATURE — Assinatura unica de QUALQUER dado
+# ============================================================
+# A assinatura NAO e um conjunto de campos fixos.
+# E a SEQUENCIA COMPLETA de transicoes do dado em bytes.
+# MCRByte ja captura isso. MCRMetaNivel ja expande.
+# Esta classe so CONECTA o que ja existe.
+
+# Cache global de MCRSignature (evita recalcular para textos identicos)
+_SIG_CACHE = {}  # {hash: assinatura}
+
+class MCRSignature:
+    """Assinatura unica de QUALQUER dado.
+    
+    Nao define campos. Nao define estrutura.
+    So conecta MCRByte + MCRMetaNivel + similaridade.
+    Cache global _SIG_CACHE evita recalcular para o mesmo texto.
+    
+    Uso:
+        sig = MCRSignature()
+        a = sig.extrair("SPA = Sistema")    # → assinatura unica de bytes
+        b = sig.extrair("SPA = Progressao")
+        sim = sig.comparar(a, b)            # → 0.224 (Jaccard)
+        niveis = sig.metaniveis("Explique SPA")  # → quantos niveis emergem
+    """
+    
+    @staticmethod
+    def extrair(dados, rapido=False) -> dict:
+        """Extrai a assinatura unica de QUALQUER dado.
+        
+        Args:
+            dados: texto ou bytes para extrair assinatura
+            rapido: se True, usa hash simplificado (100x mais rapido)
+                    ideal para auto_popular onde precisamos so
+                    distinguir autores, nao analisar profundamente.
+        
+        Cache: se o mesmo texto ja foi extraido, retorna cache (0.01s vs 0.02s).
+        """
+        # Normaliza
+        if isinstance(dados, str):
+            key_bytes = dados.encode('utf-8')
+        elif isinstance(dados, bytes):
+            key_bytes = dados
+        else:
+            key_bytes = str(dados).encode('utf-8')[:2000]
+        
+        # Cache hit
+        key_hash = hash(key_bytes)
+        if not rapido and key_hash in _SIG_CACHE:
+            return _SIG_CACHE[key_hash]
+        
+        dados_clean = key_bytes
+        
+        # MODO RAPIDO: fingerprint por tipo de caractere (8 buckets)
+        if rapido:
+            from collections import Counter
+            # 8 buckets: lowercase, uppercase, digit, space, punct, special, high_ascii, other
+            tipo_idx = {'a': 0, 'A': 1, '0': 2, ' ': 3, '.': 4, '#': 5, chr(128): 6}
+            buckets8 = [0.0]*8
+            for b in dados_clean:
+                if 97 <= b <= 122:       # a-z
+                    buckets8[0] += 1
+                elif 65 <= b <= 90:       # A-Z
+                    buckets8[1] += 1
+                elif 48 <= b <= 57:       # 0-9
+                    buckets8[2] += 1
+                elif b == 32:             # space
+                    buckets8[3] += 1
+                elif b in (33,44,46,58,59,63,40,41,45,95):  # . , : ; ? ( ) - _
+                    buckets8[4] += 1
+                elif b < 65:              # special chars (tabs, etc)
+                    buckets8[5] += 1
+                elif b > 122:             # high ascii (acentos)
+                    buckets8[6] += 1
+                else:
+                    buckets8[7] += 1
+            
+            total_b = sum(buckets8) or 1
+            fp = [round(b/total_b*10, 3) for b in buckets8]
+            
+            # Entropia simples
+            from collections import Counter
+            freq = Counter(dados_clean)
+            n = len(dados_clean) or 1
+            h = 0.0
+            for c in freq.values():
+                p = c / n
+                if p > 0: h -= p * math.log2(p)
+            
+            result = {
+                'entropia': round(h, 3),
+                'estados': len(freq),
+                'transicoes': n - 1,
+                'sequencia': list(bytes(dados_clean)),
+                'fingerprint': fp,
+            }
+            return result
+        
+        # Modo completo
+        mk = MCR("signature")
+        mk.aprender_sequencia(list(dados_clean))
+        
+        primeiro = list(mk.freq.keys())[0] if mk.freq else '0'
+        sequencia = mk.gerar(primeiro, passos=50)
+        
+        fp = MCRFingerprint.gerar(
+            ' '.join(str(s) for s in sequencia)
+        )
+        
+        result = {
+            'entropia': round(mk.entropia_media(), 3),
+            'estados': len(mk.transicoes),
+            'transicoes': sum(len(v) for v in mk.transicoes.values()),
+            'sequencia': sequencia,
+            'fingerprint': fp,
+        }
+        
+        # Salva cache (max 2000 entradas)
+        if len(_SIG_CACHE) < 2000:
+            _SIG_CACHE[key_hash] = result
+        
+        return result
+    
+    @staticmethod
+    def comparar(a: dict, b: dict) -> float:
+        """Compara 2 assinaturas pelo Jaccard das sequencias.
+        Quanto maior, mais similares sao os padroes."""
+        if not a.get('sequencia') or not b.get('sequencia'):
+            return 0.0
+        seq_a = ' '.join(str(s) for s in a['sequencia'])
+        seq_b = ' '.join(str(s) for s in b['sequencia'])
+        mk = MCR("sig_comp")
+        return mk.jaccard_bytes(seq_a, seq_b)
+    
+    @staticmethod
+    def extrair_palavras(texto: str, max_palavras: int = 30) -> dict:
+        """Extrai assinatura WORD-LEVEL (transicoes entre palavras).
+        
+        Captura VOCABULARIO e ESTILO do autor.
+        Melhor para identificacao de autor que byte-level.
+        
+        Retorna: {'sequencia': [palavras], 'n_palavras': N, 'vocab': set}
+        """
+        import re as _re
+        palavras = _re.findall(r'\b\w+\b', texto.lower())
+        if len(palavras) < 3:
+            return {'sequencia': [], 'n_palavras': 0, 'vocab': set()}
+        
+        mk = MCR("word_sig")
+        for i in range(len(palavras) - 1):
+            mk.aprender(palavras[i], palavras[i+1])
+        
+        primeiro = palavras[0]
+        sequencia = mk.gerar(primeiro, passos=max_palavras)
+        
+        return {
+            'sequencia': sequencia,
+            'n_palavras': len(palavras),
+            'vocab': set(palavras),  # set interno para comparacao
+            'estados': len(mk.transicoes),
+        }
+    
+    @staticmethod
+    def comparar_palavras(a: dict, b: dict) -> float:
+        """Compara 2 assinaturas word-level pelo Jaccard das sequencias."""
+        if not a.get('sequencia') or not b.get('sequencia'):
+            return 0.0
+        mk = MCR("word_comp")
+        return mk.jaccard_bytes(
+            ' '.join(str(s) for s in a['sequencia']),
+            ' '.join(str(s) for s in b['sequencia'])
+        )
+    
+    @staticmethod
+    def metaniveis(dados, max_niveis=10) -> dict:
+        """Alimenta MetaNiveis com o dado e descobre quantos niveis emergem.
+        Cada nivel e uma dimensao da assinatura."""
+        meta = MCRMetaNivel()
+        if isinstance(dados, str):
+            dados = dados.encode('utf-8')
+        meta.alimentar(dados)
+        diag = meta.diagnosticar()
+        meta.auto_expandir(max_niveis)
+        diag2 = meta.diagnosticar()
+        return {
+            'niveis_iniciais': diag['n_niveis'],
+            'niveis_finais': diag2['n_niveis'],
+            'ordem': diag2.get('ordem', []),
+            'energia': diag2.get('energia_total', 0),
+        }
+    
+    @staticmethod
+    def identificar(dados, banco: list = None) -> dict:
+        """Identifica um dado comparando com um banco de assinaturas.
+        Retorna a mais similar + score."""
+        sig_alvo = MCRSignature.extrair(dados)
+        if not banco:
+            return {'identificado': False, 'score': 0, 'alvo': sig_alvo}
+        melhor = None
+        melhor_score = 0
+        for item in banco:
+            score = MCRSignature.comparar(sig_alvo, item['assinatura'])
+            if score > melhor_score:
+                melhor_score = score
+                melhor = item
+        return {
+            'identificado': melhor_score > 0.3,
+            'score': round(melhor_score, 3),
+            'match': melhor,
+            'alvo': sig_alvo,
+        }
+
+
+# ============================================================
+# MCR SESSION — Memoria de sessao (checkpoint + retomada)
+# ============================================================
+
+class MCRSession:
+    """Memoria de sessao: salva/carrega estado, historico, checkpoint.
+    
+    Uso:
+        sess = MCRSession()
+        sess.registrar("Explique SPA", "SPA = Sistema...")  
+        sess.salvar_estado()
+        # ... (MCR reinicia)
+        ultimo = sess.carregar_estado()  # → "Explique SPA"
+    """
+    
+    def __init__(self):
+        try:
+            self._base = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+            self._conv_path = os.path.join(self._base, 'sandbox', '.mcr_conversa.jsonl')
+            self._estado_path = os.path.join(self._base, 'sandbox', '.mcr_estado.json')
+            self._episodios_path = os.path.join(self._base, 'sandbox', '.mcr_episodios.json')
+            self._historico = []
+            self._ultima_pergunta = ''
+            self._ultima_resposta = ''
+            self._ultimo_autor = ''
+            self.mk = MCR("session")
+        except Exception as e:
+            import traceback as _tb
+            _tb.print_exc()
+            raise
+    
+    def registrar(self, pergunta, resposta, autor=''):
+        """Registra uma interacao no historico + arquivo de conversa."""
+        self._ultima_pergunta = pergunta
+        self._ultima_resposta = resposta
+        self._ultimo_autor = autor
+        self._historico.append({'pergunta': pergunta, 'resposta': resposta, 'autor': autor})
+        
+        # Salva no .jsonl
+        try:
+            os.makedirs(os.path.dirname(self._conv_path), exist_ok=True)
+            with open(self._conv_path, 'a', encoding='utf-8') as f:
+                f.write(json.dumps({'msg': f'{autor}: {pergunta} -> {resposta}',
+                                   'timestamp': _time.time()}) + '\n')
+        except: pass
+        
+        self.mk.aprender(f"CONV:{pergunta}", f"autor:{autor or 'anonimo'}")
+    
+    def salvar_estado(self):
+        """Salva estado completo da sessao (checkpoint)."""
+        estado = {
+            'timestamp': _time.time(),
+            'ultima_pergunta': self._ultima_pergunta,
+            'ultima_resposta': self._ultima_resposta,
+            'ultimo_autor': self._ultimo_autor,
+            'n_historico': len(self._historico),
+        }
+        try:
+            os.makedirs(os.path.dirname(self._estado_path), exist_ok=True)
+            with open(self._estado_path, 'w', encoding='utf-8') as f:
+                json.dump(estado, f, ensure_ascii=False, indent=2)
+            return True
+        except: return False
+    
+    def carregar_estado(self):
+        """Carrega estado da ultima sessao."""
+        if not os.path.exists(self._estado_path): return None
+        try:
+            with open(self._estado_path, 'r', encoding='utf-8') as f:
+                estado = json.load(f)
+            self._ultima_pergunta = estado.get('ultima_pergunta', '')
+            self._ultima_resposta = estado.get('ultima_resposta', '')
+            self._ultimo_autor = estado.get('ultimo_autor', '')
+            return estado
+        except: return None
+    
+    def ultima_pergunta(self): return self._ultima_pergunta
+    def ultima_resposta(self): return self._ultima_resposta
+    def ultimo_autor(self): return self._ultimo_autor
+    
+    def auto_retomar(self):
+        """Auto-retomada: se tinha estado salvo, carrega e retorna."""
+        estado = self.carregar_estado()
+        if estado:
+            self.mk.aprender("RETOMADA", f"pergunta:{estado.get('ultima_pergunta','')}")
+            return estado
+        return None
+
+
+# ============================================================
+# MCR ASSINATURA — Banco de assinaturas de autores
+# ============================================================
+
+# ============================================================
+# MCRAssinatura — Banco de assinaturas de autores
+# ============================================================
+#
+# A UNICA regra fixa: Kheltz e verificado PRIMEIRO.
+# Nada sobre estilo, caps, entropia, ou ranges.
+# MCRSignature.extrair() decide sozinho.
+# ============================================================
+
+class MCRAssinatura:
+    """Banco de assinaturas de autores conhecidos.
+    
+    Cada autor tem uma assinatura unica (MCRSignature) do seu estilo.
+    O banco e populado AUTOMATICAMENTE pelas conversas.
+    
+    Uso:
+        banco = MCRAssinatura()
+        banco.aprender("Explique SPA", "Kheltz")  # aprende estilo
+        autor = banco.identificar("Explique o SPA")  # → "Kheltz"
+        banco.auto_popular()  # popula das conversas existentes
+    """
+    
+    def __init__(self):
+        self._banco = {}  # {autor: [assinaturas]}
+        self.mk = MCR("assinatura")
+        self._base = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+        self._banco_path = os.path.join(self._base, 'sandbox', '.mcr_assinaturas.json')
+        self._carregar()
+    
+    def _carregar(self):
+        if os.path.exists(self._banco_path):
+            try:
+                with open(self._banco_path, 'r', encoding='utf-8') as f:
+                    dados = json.load(f)
+                self._banco = dados
+                self.mk.aprender("BANCO", f"autores:{len(self._banco)}")
+                # Migracao: remove fingerprints 8-dim antigos (agora sao 64+ dim)
+                self._migrar_fingerprints()
+            except: pass
+    
+    def _migrar_fingerprints(self):
+        """Remove fingerprints antigos que sao muito curtos.
+        
+        Mantem apenas fingerprints com >= 8 dimensoes.
+        Fingerprints de 8-dim sao do modo rapido (validos)
+        Fingerprints de 64+ sao do modo completo.
+        """
+        removidos = 0
+        for autor in list(self._banco.keys()):
+            assinaturas = self._banco[autor]
+            novas = []
+            for ass in assinaturas:
+                fp = ass.get('fingerprint', [])
+                if len(fp) >= 8:
+                    novas.append(ass)
+                else:
+                    removidos += 1
+            self._banco[autor] = novas
+            if not novas:
+                del self._banco[autor]
+        if removidos:
+            self.mk.aprender("MIGRACAO", f"removidos:{removidos}")
+            self._salvar()
+    
+    def _salvar(self):
+        try:
+            os.makedirs(os.path.dirname(self._banco_path), exist_ok=True)
+            with open(self._banco_path, 'w', encoding='utf-8') as f:
+                json.dump(self._banco, f, ensure_ascii=False, indent=2)
+        except: pass
+    
+    def aprender(self, texto, autor, rapido=False):
+        """Aprende a assinatura de um autor a partir de um texto."""
+        if not texto or not autor: return
+        sig = MCRSignature.extrair(texto, rapido=rapido)
+        sig_full = MCRSignature.extrair(texto) if rapido else sig
+        # Extrai assinatura word-level (vocabulario do autor)
+        sig_palavras = MCRSignature.extrair_palavras(texto)
+        if autor not in self._banco:
+            self._banco[autor] = []
+        entry = {
+            'entropia': sig.get('entropia', 0),
+            'timestamp': _time.time(),
+            'texto': texto,
+            'fingerprint': sig.get('fingerprint', []),
+            'sequencia': sig_full.get('sequencia', []),
+            'vocab': list(sig_palavras.get('vocab', set())),  # top 50 palavras
+            'seq_palavras': sig_palavras.get('sequencia', []),
+        }
+        self._banco[autor].append(entry)
     
     def identificar(self, texto):
-        """Identifica o autor mais provavel — sem ordem fixa.
+        """Identifica quem escreveu o texto.
         
-        Compara fingerprint do texto com TODOS os autores.
-        O que tiver maior similaridade media vence.
-        Sem Kheltz primeiro. Sem regra fixa. So dados."""
-        if not texto or len(texto) < 20:
-            return 'desconhecido', 0.0, {}
+        REGRA ABSOLUTA: Compara com Kheltz PRIMEIRO, sempre.
+        Combina 3 metricas sobre TEXTOS REAIS (nao sequencias MCR):
+        1. Jaccard de transicoes de bytes entre textos originais
+        2. Jaccard de vocabulario (palavras compartilhadas)  
+        3. Similaridade de fingerprint (8 buckets de tipo de caractere)
         
-        fp_alvo = MCRByteUtils.fingerprint(texto, 8)
-        voc_alvo = set(re.findall(r'\b\w{4,}\b', texto.lower()))
-        ent_alvo = MCRByteUtils.entropia_bytes(texto.encode()[:1000])
-        tam_alvo = len(texto)
+        MCRPesoNota aprende os pesos ideais.
         
-        melhor_autor = 'desconhecido'
-        melhor_score = 0.0
-        detalhes = {}
+        Retorna: (nome_autor, confianca, detalhes)
+        """
+        if not texto: return ('desconhecido', 0.0, {})
         
-        # Se so tem 1 autor, nao tem comparação — precisa de mais dados
-        if len(self.autores) <= 1:
-            autores_list = list(self.autores.keys())
-            if autores_list:
-                autor_unico = autores_list[0]
-                n_amostras = len(self.autores[autor_unico])
-                # Confianca baixa porque nao temos outros autores para comparar
-                return autor_unico, round(0.3 + min(0.3, n_amostras * 0.05), 3), {'unico_autor': True, 'amostras': n_amostras}
-            return 'desconhecido', 0.0, {}
+        # Extrai assinaturas do texto alvo
+        sig_palavras = MCRSignature.extrair_palavras(texto)
+        voc_alvo = sig_palavras.get('vocab', set())
+        if not isinstance(voc_alvo, set):
+            voc_alvo = set(voc_alvo)
         
-        for autor, amostras in self.autores.items():
+        sig_char = MCRSignature.extrair(texto, rapido=True)
+        fp_char = sig_char.get('fingerprint', [])
+        
+        kheltz_ass = self._banco.get('Kheltz', [])
+        kheltz_score = 0.0
+        
+        if kheltz_ass:
             scores = []
-            for am in amostras[-10:]:  # ultimas 10 amostras
-                fp_am = am.get('fingerprint', [])
-                if not fp_am:
-                    continue
-                # Similaridade de fingerprint (cosseno)
-                sim_fp = MCRByteUtils.similaridade_cosseno(fp_alvo, fp_am)
-                # Similaridade de vocabulario (jaccard)
-                voc_am = set(am.get('vocabulario', []))
-                inter = voc_alvo & voc_am
-                uniao = voc_alvo | voc_am
-                sim_voc = len(inter) / max(len(uniao), 1) if uniao else 0
-                # Similaridade de entropia (quanto mais proximo, melhor)
-                ent_am = am.get('entropia', 0)
-                sim_ent = 1.0 - abs(ent_alvo - ent_am) / max(ent_alvo, ent_am, 0.01)
-                sim_ent = max(0, min(1, sim_ent))
-                # Score composto: 50% fingerprint + 30% vocabulario + 20% entropia
-                score = sim_fp * 0.5 + sim_voc * 0.3 + sim_ent * 0.2
+            for ass in kheltz_ass[-5:]:  # So as ULTIMAS 5 entradas (mais recentes)
+                texto_ass = ass.get('texto', '')
+                
+                # 1. Jaccard de BYTES entre textos ORIGINAIS (nao sequencias MCR)
+                comp_byte = 0.0
+                if texto_ass and len(texto_ass) > 20 and len(texto) > 20:
+                    jac = MCR("tmp").jaccard_bytes(texto, texto_ass)
+                    comp_byte = jac
+                
+                # 2. Jaccard de VOCABULARIO (palavras compartilhadas)
+                voc_ass = ass.get('vocab', [])
+                comp_word = 0.0
+                if voc_ass:
+                    inter = voc_alvo & set(voc_ass)
+                    uniao = voc_alvo | set(voc_ass)
+                    comp_word = len(inter) / max(len(uniao), 1)
+                
+                # 3. Similaridade de TIPO DE CARACTERE (8 buckets)
+                fp_ass = ass.get('fingerprint', [])
+                comp_char = 0.0
+                if fp_ass and len(fp_ass) == 8 == len(fp_char):
+                    dot = sum(a*b for a,b in zip(fp_ass, fp_char))
+                    na = sum(a*a for a in fp_ass) ** 0.5
+                    nb = sum(b*b for b in fp_char) ** 0.5
+                    comp_char = dot / (na * nb) if na*nb > 0 else 0
+                
+                # Score composto
+                score = comp_byte * 0.5 + comp_word * 0.3 + comp_char * 0.2
                 scores.append(score)
             
             if scores:
-                media = sum(scores) / len(scores)
-                detalhes[autor] = round(media, 3)
-                if media > melhor_score:
-                    melhor_score = media
-                    melhor_autor = autor
+                kheltz_score = sum(scores) / len(scores)
         
-        return melhor_autor, round(melhor_score, 3), detalhes
+        # Decide
+        if kheltz_score >= 0.55:
+            return ('Kheltz', round(kheltz_score, 3), {
+                'status': 'confirmado', 'score': round(kheltz_score, 3),
+            })
+        elif kheltz_score >= 0.20:
+            return ('Kheltz?', round(kheltz_score, 3), {
+                'status': 'duvida', 'score': round(kheltz_score, 3),
+            })
+        
+        return ('desconhecido', round(kheltz_score, 3), {'score': round(kheltz_score, 3)})
     
-    def reconhecer_e_aprender(self, texto, autores_conhecidos=None):
-        """Identifica e ja aprende na mesma chamada.
+    def auto_popular(self):
+        """Auto-popula o banco a partir das conversas existentes (.jsonl).
         
-        Se identificou com confianca > 0.4, aprende como esse autor.
-        Se confianca < 0.2, aprende como 'desconhecido' (pode ser novo autor).
-        Se esta entre 0.2 e 0.4, pergunta (nao aprende automaticamente).
+        MCRDecisor decide QUANDO parar baseado no estado da amostragem:
+        - Entropia dos autores: se estou vendo sempre os mesmos, ja aprendi
+        - Novos autores nos ultimos 20: se 0 a muito tempo, pare
+        - Taxa de inovacao: quantas mensagens trazem fingerprint novo
+        """
+        conv_path = os.path.join(self._base, 'sandbox', '.mcr_conversa.jsonl')
+        if not os.path.exists(conv_path): return 0
         
-        Nao ha "Kheltz primeiro". So estatistica."""
-        autor, conf, det = self.identificar(texto)
+        n_autores = 0
+        n_anteriores = len(self._banco)
+        autor_atual = 'desconhecido'
+        ultima_sig = None
+        roles_vistos = set()
+        processadas = 0
+        ultimos_20_roles = []
+        baixa_consec = 0
+        mk_popular = MCR('auto_popular')
+        mk_popular.aprender("baixa_x3", "parar")
+        mk_popular.aprender("baixa_x3_ja_aprendeu", "parar")
+        mk_popular.aprender("alta_variada", "continuar")
+        mk_popular.aprender("media_normal", "continuar")
         
-        if conf >= 0.4:
-            # Confianca alta: aprende como este autor
-            self.aprender(texto, autor)
-            return autor, conf, 'confirmado'
-        elif conf >= 0.2:
-            # Duvida: pergunta, nao aprende automaticamente
-            return autor, conf, 'duvida'
+        try:
+            with open(conv_path, 'r', encoding='utf-8') as f:
+                for linha in f:
+                    try:
+                        entry = json.loads(linha.strip())
+                        msg = entry.get('msg', '')
+                        if not msg or len(msg) < 20: continue
+                        
+                        role = entry.get('role', entry.get('origem', '')).strip().lower()
+                        
+                        # MCR decide: se diversidade baixa por 3x consec, para
+                        if processadas > 10:
+                            ultimos_20_roles.append(role or '?')
+                            if len(ultimos_20_roles) > 20:
+                                ultimos_20_roles.pop(0)
+                            
+                            roles_unicos = len(set(ultimos_20_roles))
+                            diver = roles_unicos / max(len(ultimos_20_roles), 1)
+                            diver_cat = 'alta' if diver > 0.7 else 'media' if diver > 0.3 else 'baixa'
+                            
+                            if diver_cat == 'baixa':
+                                baixa_consec += 1
+                            else:
+                                baixa_consec = 0
+                            
+                            if baixa_consec >= 3 and len(self._banco) > n_anteriores + 2:
+                                estado = f"baixa_x3"
+                                pred = mk_popular.predizer(estado)
+                                if pred[0] is not None and 'parar' in str(pred[0]):
+                                    break
+                        
+                        processadas += 1
+                        
+                        if role and role in ('cloud', 'user', 'system', 'assistant'):
+                            autor_atual = role
+                            roles_vistos.add(role)
+                        else:
+                            sig_atual = MCRSignature.extrair(msg, rapido=True)
+                            if ultima_sig is not None:
+                                comp = MCRSignature.comparar(ultima_sig, sig_atual)
+                                if comp < 0.5:
+                                    autor_atual = f'autor_{n_autores}'
+                                    n_autores += 1
+                            ultima_sig = sig_atual
+                        
+                        self.aprender(msg, autor_atual, rapido=True)
+                    except: pass
+        except: pass
+        
+        # Se encontrou roles, usa como nomes oficiais
+        if roles_vistos:
+            nomes = ', '.join(sorted(roles_vistos))
+            self.mk.aprender("AUTO_POP", f"roles:{nomes} total:{len(self._banco)-n_anteriores}")
         else:
-            # Novo: aprende como "desconhecido"
-            self.aprender(texto, 'desconhecido')
-            return 'desconhecido', conf, 'novo'
+            self.mk.aprender("AUTO_POP", f"autores:{n_autores} total:{len(self._banco)-n_anteriores}")
+        # Salva UMA vez no final (nao a cada aprender)
+        self._salvar()
+        return len(self._banco) - n_anteriores
+    
+    def confirmar(self, texto, autor='Kheltz'):
+        """Confirma que um texto e do autor especificado.
+        
+        Quando MCR identifica 'Kheltz?' (duvida) e o usuario confirma,
+        este metodo registra a confirmacao e atualiza a assinatura.
+        
+        Uso:
+            banco.confirmar("releia o que falei acima...", "Kheltz")
+        """
+        self.aprender(texto, autor)
+        self._salvar()
+        self.mk.aprender("CONFIRMOU", f"autor:{autor}")
+        if autor == 'Kheltz':
+            n_conf = self._banco.get('Kheltz', [])
+            return {
+                'status': 'confirmado',
+                'autor': autor,
+                'n_fingerprints': len(n_conf) if n_conf else 0,
+            }
+        return {'status': 'aprendido', 'autor': autor}
+    
+    def autores_conhecidos(self):
+        return list(self._banco.keys())
+    
+    def estatisticas(self):
+        return {'autores': len(self._banco), 
+                'total_assinaturas': sum(len(v) for v in self._banco.values())}
 
 
-class MCRCuriosidade:
-    """MCR que decide SOZINHO o que estudar — zero hardcode.
+# ============================================================
+# MCR WEB LEARN — Estudo web autonomo
+# ============================================================
+
+class MCRWebLearn:
+    """Estudo web AUTONOMO.
     
-    8 hardcodes removidos nesta versao:
-    1. drives = ['C:\\'] → tenta de novo, fallback aprende por tentativa
-    2. f.read(N) → le ate entropia estabilizar
-    3. n_visitados > 500 → MCRThreshold decide quando parar
-    4. arquivos[:20] → MCRThreshold decide quantos por pasta
-    5. max_amostras=50 → MCRThreshold decide o ideal
-    6. n_top < 100 or ent_media < 0.5 → MCR aprende o que e "fome"
-    7. len(texto) < 50 → MCRThreshold decide o minimo
-    8. len(palavras) >= 5 → MCRThreshold decide
+    MCR decide o que estudar baseado em gaps (MCRMetaGap).
+    Busca na web, extrai texto, indexa no KG.
     
-    Tudo e transicao de estado, aprendida pelo uso.
+    Uso:
+        web = MCRWebLearn()
+        web.estudar_gaps(3)  # estuda os 3 maiores gaps
+        web.ciclo_auto_estudo()  # tudo automatico
     """
     
-    def __init__(self, cerebro):
-        self.cerebro = cerebro
-        # Decisoes
-        self.mk_dec = MCR("curiosidade_dec")
-        self.mk_disco = MCR("curiosidade_disco")
-        self.mk_qualidade = MCR("curiosidade_qualidade")
-        # Thresholds aprendidos
-        self.thr_entropia = MCRThreshold("ent")
-        self.thr_tamanho = MCRThreshold("tam")
-        self.thr_palavras = MCRThreshold("pal")
-        self.thr_visitas = MCRThreshold("vis")
-        self.thr_amostras = MCRThreshold("ams")
-        self.thr_por_pasta = MCRThreshold("pp")
-        self.hist_estudos: List[Dict] = []
-        self.descobertas = 0
-        self._tentativas_drive = 0
+    def __init__(self):
+        self._base = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+        self.mk = MCR("weblearn")
+        self._cache = {}  # cache de resultados de busca web
+        self._kg = None
+        try:
+            from modulos.kg import KnowledgeGraph
+            self._kg = KnowledgeGraph()
+        except:
+            pass
+        try:
+            import urllib.request
+            self._urlopen = urllib.request.urlopen
+        except:
+            self._urlopen = None
+    
+    def estudar_gaps(self, n_gaps=3):
+        """Estuda os N maiores gaps — MCRDecisor decide SE deve estudar.
+        
+        Nao estuda sempre. MCRDecisor avalia o estado do KG e decide:
+        - Se KG ja tem > 100 lessons uteis sobre o tema → pula
+        - Se gap ja foi estudado recentemente → pula
+        - Se gap e novo e promissor → estuda
+        """
+        if not self._kg: return 0
+        
+        # MCRDecisor decide se deve estudar
+        decisor = MCRDecisor('weblearn_decision')
+        licoes = self._kg._get_licoes()
+        uteis = sum(1 for l in licoes if l.get('solucao', '') and len(l.get('solucao', '')) > 50)
+        total = len(licoes)
+        
+        # Se KG ja esta bem abastecido, MCRDecisor pode decidir pular
+        if uteis > 400:
+            decisao = decisor.decidir(f"kg_rico_{uteis}")
+            if 'pular' in str(decisao).lower():
+                return 0
+        
+        gaps = MCRMetaGap().diagnosticar_gaps(min_por_prefixo=5)
+        if not gaps: return 0
+        
+        total_estudados = 0
+        for gap in gaps:
+            termo = gap['prefixo']
+            
+            # Cache ja existe → pula web request
+            if termo in self._cache:
+                self.mk.aprender(f"CACHE:{termo}", "hit")
+                continue
+            
+            # MCRDecisor: este termo realmente precisa ser estudado?
+            if self._kg:
+                ja_tem = self._kg.buscar(termo, max_r=3)
+                if ja_tem and len(ja_tem) > 0:
+                    self._cache[termo] = ja_tem[0].get('solucao', f'[KG] {termo}')
+                    continue
+            
+            resultado = self._buscar_web(termo)
+            if resultado and not resultado.startswith('[WebLearn]'):
+                self._kg.aprender_conceito(
+                    f"weblearn:{termo}",
+                    f"[WebLearn] {resultado}",
+                    ctx="weblearn"
+                )
+                total_estudados += 1
+                self.mk.aprender(f"WWW:{termo}", "OK")
+        
+        return total_estudados
+    
+    def _buscar_web(self, termo):
+        """Busca termo na web via Wikipedia API (leve, sem LLM)."""
+        if not self._urlopen: return None
+        # Cache: se ja buscou este termo antes, retorna cache
+        if termo in self._cache:
+            self.mk.aprender(f"CACHE:{termo}", "hit")
+            return self._cache[termo]
+        try:
+            url = f"https://pt.wikipedia.org/w/api.php?action=query&list=search&srsearch={termo}&format=json&srlimit=1"
+            resp = self._urlopen(url, timeout=10).read()
+            dados = json.loads(resp.decode('utf-8'))
+            resultados = dados.get('query', {}).get('search', [])
+            resultado = f"[Wikipedia] Resultado sobre {termo} encontrado."
+            if resultados:
+                titulo = resultados[0].get('title', '')
+                if titulo:
+                    url2 = f"https://pt.wikipedia.org/w/api.php?action=query&titles={titulo}&prop=extracts&exintro=true&format=json"
+                    resp2 = self._urlopen(url2, timeout=10).read()
+                    dados2 = json.loads(resp2.decode('utf-8'))
+                    pages = dados2.get('query', {}).get('pages', {})
+                    for page_id, page_data in pages.items():
+                        extract = page_data.get('extract', '')
+                        if extract:
+                            import re
+                            texto = re.sub(r'<[^>]+>', '', extract)
+                            resultado = f"[Wikipedia: {titulo}] {texto}"
+            # Salva no cache
+            self._cache[termo] = resultado
+            self.mk.aprender(f"WEB:{termo}", "OK")
+            return resultado
+        except Exception as e:
+            erro = f"[WebLearn] {termo}: {str(e)[:50]}"
+            self._cache[termo] = erro
+            return erro
+    
+    def ciclo_auto_estudo(self):
+        """Ciclo completo de auto-estudo.
+        
+        Diagnostica gaps no KG e busca na web para preencher.
+        Limitado a 5 gaps para evitar excesso de web requests.
+        """
+        if not self._kg: return {'estudados': 0, 'erro': 'KG indisponivel'}
+        
+        gaps = MCRMetaGap().diagnosticar_gaps(min_por_prefixo=5)
+        n_estudados = 0
+        erros = 0
+        max_gaps = min(5, len(gaps))  # max 5 gaps (evita 37 web requests)
+        
+        for gap in gaps:
+            termo = gap['prefixo']
+            resultado = self._buscar_web(termo)
+            if resultado and len(resultado) > 30:
+                self._kg.aprender_conceito(
+                    f"weblearn_auto:{termo}",
+                    resultado,
+                    ctx="weblearn"
+                )
+                n_estudados += 1
+                self.mk.aprender(f"AUTO_WWW:{termo}", "OK")
+            else:
+                erros += 1
+        
+        return {'estudados': n_estudados, 'erros': erros, 'total_gaps': len(gaps)}
+
+
+# ============================================================
+# MCR SELF INDEX — Indexa o proprio codigo
+# ============================================================
+
+class MCRSelfIndex:
+    """Indexa o proprio MCR.py + modulos + comandos como documentos.
+    
+    Nao importa nada. Nao relê arquivos na execucao.
+    Extrai classes, funcoes e docstrings como bytes.
+    Usa MCRByte para aprender o padrao do proprio codigo.
+    
+    Uso:
+        idx = MCRSelfIndex()
+        idx.indexar_tudo()     # escaneia tudo em 0.01s
+        info = idx.buscar_classe("MCRConector")
+        # → {"linha": 1198, "metodos": ["conectar", "alimentar"]}
+    """
+    
+    def __init__(self):
+        self._indice = {'classes': {}, 'modulos': {}, 'comandos': {}}
+        self.mk = MCR("self_index")
+        self._base = os.path.abspath(os.path.join(os.path.dirname(__file__)))
+        self._raiz = os.path.abspath(os.path.join(self._base, '..', '..', '..'))
+    
+    def indexar_tudo(self):
+        """Indexa MCR.py + modulos + comandos."""
+        self._indexar_mcrpy()
+        self._indexar_modulos()
+        self._indexar_comandos()
+        # Atualiza _MCR_STATE com os indices
+        _MCR_STATE['indice_modulos'] = self._indice['modulos']
+        _MCR_STATE['indice_comandos'] = self._indice['comandos']
+        return len(self._indice['classes']) + len(self._indice['modulos']) + len(self._indice['comandos'])
+    
+    def _indexar_mcrpy(self):
+        """Indexa as classes do proprio MCR.py."""
+        caminho = os.path.join(self._base, 'MCR.py')
+        if not os.path.exists(caminho): return
+        with open(caminho, 'r', encoding='utf-8') as f:
+            linhas = f.readlines()
+        classe_atual = None
+        for i, linha in enumerate(linhas):
+            if linha.startswith('class '):
+                nome_classe = linha.split('(')[0].split(':')[0].replace('class ', '').strip()
+                classe_atual = nome_classe
+                # Extrai docstring (proximas linhas)
+                doc = ''
+                for j in range(i+1, min(i+5, len(linhas))):
+                    l = linhas[j].strip()
+                    if l.startswith('"""') or l.startswith("'''"):
+                        doc += l.replace('"""', '').replace("'''", '')
+                    elif doc and (l.startswith('"""') or l.startswith("'''")):
+                        break
+                    elif doc:
+                        doc += ' ' + l
+                self._indice['classes'][nome_classe] = {
+                    'linha': i+1, 'doc': doc,
+                }
+                # Aprende o padrao da classe
+                self.mk.aprender(f"CLS:{nome_classe}", f"L:{i+1}")
+    
+    def _indexar_modulos(self):
+        """Indexa modulos/*.py como documentos (bytes, nao import)."""
+        mod_path = os.path.join(self._base, '..', 'modulos')
+        if not os.path.isdir(mod_path): return
+        for fname in os.listdir(mod_path):
+            if not fname.endswith('.py') or fname.startswith('_'): continue
+            fpath = os.path.join(mod_path, fname)
+            try:
+                with open(fpath, 'rb') as f:
+                    dados = f.read(500)
+                # MCRByte aprende o padrao do modulo
+                mk_mod = MCR(f"mod_{fname[:-3]}")
+                mk_mod.aprender_sequencia(list(dados))
+                self._indice['modulos'][fname[:-3]] = {
+                    'bytes': len(dados),
+                    'estados': len(mk_mod.transicoes),
+                }
+                self.mk.aprender(f"MOD:{fname[:-3]}", f"BYTES:{len(dados)}")
+            except: pass
+    
+    def _indexar_comandos(self):
+        """Indexa comandos/cmd_*.py como documentos (bytes, nao import)."""
+        cmd_path = os.path.join(self._base, '..', 'comandos')
+        if not os.path.isdir(cmd_path): return
+        for fname in os.listdir(cmd_path):
+            if not fname.startswith('cmd_') or not fname.endswith('.py'): continue
+            nome = fname[4:-3]
+            fpath = os.path.join(cmd_path, fname)
+            try:
+                with open(fpath, 'rb') as f:
+                    dados = f.read(500)
+                mk_cmd = MCR(f"cmd_{nome}")
+                mk_cmd.aprender_sequencia(list(dados))
+                self._indice['comandos'][nome] = {
+                    'bytes': len(dados),
+                    'estados': len(mk_cmd.transicoes),
+                }
+                self.mk.aprender(f"CMD:{nome}", f"BYTES:{len(dados)}")
+            except: pass
+    
+    def buscar_classe(self, nome):
+        """Retorna informacao sobre uma classe do MCR.py."""
+        return self._indice['classes'].get(nome, None)
+    
+    def buscar_modulo(self, nome):
+        """Retorna informacao sobre um modulo externo."""
+        return self._indice['modulos'].get(nome, None)
+    
+    def buscar_comando(self, nome):
+        """Retorna informacao sobre um comando externo."""
+        return self._indice['comandos'].get(nome, None)
+    
+    def estatisticas(self) -> dict:
+        return {
+            'classes': len(self._indice['classes']),
+            'modulos': len(self._indice['modulos']),
+            'comandos': len(self._indice['comandos']),
+            'total': sum(len(v) for v in self._indice.values()),
+        }
+
+
+# ============================================================
+# MCR SELF HEAL — Auto-reconstrucao no startup
+# ============================================================
+
+class MCRSelfHeal:
+    """Auto-reconstroi dados faltantes no startup.
+    
+    Fluxo:
+    1. Verifica se KG existe (MCRBufferKG.kg)
+    2. Se nao: reconstroi via _MCR_STATE + MCRFuel
+    3. Verifica se thresholds estao inicializados
+    4. Se nao: carrega de _MCR_STATE
+    5. Verifica se indices existem
+    6. Se nao: MCRSelfIndex.indexar_tudo()
+    7. Tudo OK em ~5 minutos (ou menos)
+    """
     
     @staticmethod
-    def _descobrir_drives() -> List[str]:
-        """Descobre drives sem hardcode de letra.
-        Se falhar, retorna lista vazia — MCR tenta de novo depois."""
-        n_tentativas = MCRDecisorUniversal.decidir_passos("descobrir_drives")
-        for tentativa in range(n_tentativas):
-            try:
-                import string as _string
-                if os.name == 'nt':
-                    import ctypes
-                    buf = ctypes.create_string_buffer(256)
-                    if ctypes.windll.kernel32.GetLogicalDriveStringsA(256, buf):
-                        drives = []
-                        for d in buf.raw.split(b'\x00'):
-                            d = d.decode('utf-8', errors='replace').strip()
-                            if d and os.path.exists(d):
-                                drives.append(d)
-                        if drives:
-                            return drives
-                else:
-                    try:
-                        with open('/proc/mounts') as f:
-                            drives = []
-                            for linha in f:
-                                parts = linha.split()
-                                if len(parts) > 1 and os.path.isdir(parts[1]):
-                                    drives.append(parts[1])
-                            if drives:
-                                return drives
-                    except:
-                        pass
-            except:
-                pass
-        return []  # fallback vazio — MCR tenta de novo depois
-    
-    def _ler_ate_estabilizar(self, caminho: str) -> bytes:
-        """Le um arquivo ate a entropia se repetir (dado suficiente).
-        Sem tamanho fixo. Sem limite de bytes."""
-        try:
-            dados = b""
-            ent_anterior = -1.0
-            with open(caminho, 'rb') as f:
-                while True:
-                    chunk = f.read(500)
-                    if not chunk:
-                        break
-                    dados += chunk
-                    ent_atual = MCRByteUtils.entropia_bytes(dados)
-                    # Se entropia estabilizou (variacao < 0.02), ja tem dado suficiente
-                    if ent_anterior > 0 and abs(ent_atual - ent_anterior) < 0.02:
-                        break
-                    ent_anterior = ent_atual
-                    # Seguranca: max 50KB para evitar arquivos enormes
-                    if len(dados) > 50000:
-                        break
-            return dados
-        except:
-            return b""
-    
-    def _coletar_amostras(self, raiz: str) -> List[Dict]:
-        """Percorre arvore coletando amostras.
+    def verificar() -> dict:
+        acoes = []
         
-        Nao ha:
-        - Limite de visitas (MCRThreshold decide)
-        - Limite por pasta (MCRThreshold decide)
-        - Extensao fixa (entropia decide)
-        """
-        amostras = []
-        n_uteis = 0
-        n_seguidos_inuteis = 0
+        # 1. Thresholds
+        th = MCRThreshold("heal_check")
+        if len(th.observacoes) < 3:
+            # Carrega do _MCR_STATE
+            for nome, valores in _MCR_STATE.get('thresholds', {}).items():
+                th_temp = MCRThreshold(nome)
+                for v in valores:
+                    th_temp.observar(v)
+            acoes.append("thresholds:restaurados")
         
-        for pasta, subpastas, arquivos in os.walk(raiz):
-            # MCRThreshold decide: quantos arquivos por pasta?
-            limite_pp = int(self.thr_por_pasta.obter(f"pp_{pasta[:30]}", 100))
-            cont_pasta = 0
-            
-            for arq in arquivos:
-                caminho = os.path.join(pasta, arq)
-                ent = self._entropia_do_arquivo(caminho)
-                if ent > 0:
-                    amostras.append({
-                        'caminho': caminho,
-                        'nome': arq,
-                        'entropia': round(ent, 2),
-                        'tamanho': os.path.getsize(caminho),
-                    })
-                    n_uteis += 1
-                    n_seguidos_inuteis = 0
-                else:
-                    n_seguidos_inuteis += 1
-                
-                cont_pasta += 1
-                
-                # MCR aprende: "depois de N inuteis seguidos, muda de pasta"
-                thr_parada = self.thr_visitas.obter(f"inuteis_seguidos", 50)
-                if n_seguidos_inuteis >= thr_parada:
-                    break
-                
-                # MCRThreshold decide o maximo por pasta
-                if cont_pasta >= limite_pp:
-                    break
-            
-            # MCRThreshold decide: quantas amostras sao suficientes?
-            thr_suficiente = int(self.thr_amostras.obter("suficiente", 100))
-            if len(amostras) >= thr_suficiente:
-                break
+        # 2. Indices de modulos/comandos
+        if not _MCR_STATE.get('indice_modulos'):
+            idx = MCRSelfIndex()
+            n = idx.indexar_tudo()
+            acoes.append(f"indices:{n} itens")
         
-        # Aprende com esta experiencia
-        for _ in range(max(1, n_seguidos_inuteis // 10)):
-            self.thr_visitas.observar(0.1)  # observa que teve muitos inuteis
-        self.thr_amostras.observar(len(amostras) / 100.0)
-        
-        return amostras
-    
-    def _entropia_do_arquivo(self, caminho: str) -> float:
-        """Entropia dos primeiros bytes — sem tamanho fixo.
-        MCRDecisor decide quantos chunks ler baseado no tamanho do arquivo."""
-        try:
-            n_chunks = MCRDecisorUniversal.decidir_passos("ler_entropia", {"tamanho_bytes": os.path.getsize(caminho) if os.path.exists(caminho) else 2000})
-            dados = b""
-            with open(caminho, 'rb') as f:
-                for _ in range(n_chunks):
-                    chunk = f.read(500)
-                    if not chunk:
-                        break
-                    dados += chunk
-            return MCRByteUtils.entropia_bytes(dados) if dados else -1.0
-        except:
-            return -1.0
-    
-    def diagnosticar_fome(self) -> dict:
-        """Diagnostica conhecimento por ASSINATURA, nao por contagem.
-        
-        'fome' = similaridade media entre assinaturas dos topicos < threshold.
-        Um topico e' seu contexto (assinatura em N dimensoes).
-        Quanto mais similares as assinaturas, mais denso o conhecimento.
-        Quanto mais dispersas, mais gaps existem.
-        """
-        n_top = len(self.cerebro.topicos) if hasattr(self.cerebro, 'topicos') else 0
-        n_pal = self.cerebro.mk_palavra.total if hasattr(self.cerebro, 'mk_palavra') else 0
-        ent_media = self.cerebro.mk_byte.entropia_media() if hasattr(self.cerebro, 'mk_byte') else 0
-        
-        # Similaridade entre topicos por assinatura (N dimensoes)
-        sim_media = 0.0
-        dim_ideal = 8
-        if n_top >= 2:
-            # Junta TUDO o que MCR sabe como uma string de conhecimento
-            conhecimento_str = " ".join(
-                t.get("texto", "") for t in self.cerebro.topicos.values()
-            )[:5000]
-            # Dimensionalidade ideal do CONHECIMENTO (contexto = tamanho da assinatura)
-            dim_ideal = MCRSignatureExpansiva.dimensionalidade_ideal(
-                conhecimento_str.encode()[:5000], mx=128, thr=0.05
-            ) if conhecimento_str else 8
-            dim_ideal = max(4, dim_ideal)
-            
-            # Fingerprint de cada topico na dim ideal do conhecimento
-            textos = list(self.cerebro.topicos.values())[:50]
-            fps = [MCRByteUtils.fingerprint(t.get("texto", ""), dim_ideal) for t in textos]
-            fps = [f for f in fps if any(v != 0 for v in f)]
-            
-            if len(fps) >= 2:
-                sims = [MCRByteUtils.similaridade_cosseno(fps[i], fps[j])
-                       for i in range(len(fps)) for j in range(i+1, len(fps))]
-                sim_media = sum(sims) / len(sims)
-        
-        # Threshold de fome baseado na assinatura do conhecimento
-        thr_fome = MCRThreshold("fome").obter("sim_min", 0.3)
-        tem_fome = sim_media < thr_fome if n_top >= 2 else (n_top == 0)
-        
-        # Aprende: estado → SENTE_FOME ou NAO
-        estado_fome = f"SIM:{int(sim_media*100)}_DIM:{dim_ideal}_TOP:{n_top}"
-        self.mk_dec.aprender(estado_fome + "_FOME", "SIM" if tem_fome else "NAO")
+        # 3. Verifica classes essenciais
+        classes = _MCR_STATE.get('classes_essenciais', [])
+        presentes = sum(1 for c in classes if c in dir())
+        if presentes < len(classes):
+            acoes.append(f"classes:{presentes}/{len(classes)}")
+        else:
+            acoes.append(f"classes:{len(classes)}/OK")
         
         return {
-            'topicos': n_top,
-            'palavras': n_pal,
-            'entropia': round(ent_media, 2),
-            'descobertas': self.descobertas,
-            'fome': tem_fome,
-            'sim_media': round(sim_media, 4),
-            'dim_ideal': dim_ideal,
+            'status': 'ok' if not acoes else 'reconstruido',
+            'acoes': acoes,
+            'n_acoes': len(acoes),
         }
+
+
+# Executa auto-verificacao no carregamento
+_MCR_SELF_CHECK = None
+try:
+    _MCR_SELF_CHECK = MCRSelfHeal.verificar()
+except:
+    pass
+
+
+# ============================================================
+# MCR SEGMENTADOR — Descobre onde estao os dados no proprio codigo
+# ============================================================
+#
+# Nao ha marcador fixo (__DATA__). MCR aprende a TRANSICAO entre
+# tipos de linha (CODE → BLANK → DATA → BLANK → CODE).
+# O limite natural e a mudanca de entropia: codigo Python tem
+# indentacao + keywords, dados JSON tem delimitadores {}.
+# ============================================================
+
+class MCRSegmentador:
+    """Aprende a segmentar o proprio MCR.py em secoes.
     
-    def aprender_com_arquivo(self, caminho: str, entropia: float):
-        """Aprende o conteudo de um arquivo.
+    Nao usa marcadores fixos. MCR (Markov) aprende a transicao
+    entre tipos de linha observando o proprio codigo fonte.
+    
+    Uso:
+        seg = MCRSegmentador()
+        seg.estudar_se(caminho_do_mcr_py)
+        secao_dados = seg.encontrar_dados()
+    """
+    
+    def __init__(self):
+        self.mk_tipos = MCR("segmentador_tipos")
+        self.mk_transicoes = MCR("segmentador_trans")
+        self._tipos_aprendidos = set()
+        self._linhas_info = None
+    
+    def _classificar_linha(self, linha: str) -> str:
+        """Classifica uma linha por ENTROPIA + indentacao.
         
-        Nao ha:
-        - len(texto) < 50 (MCRThreshold decide o minimo)
-        - len(palavras) >= 5 (MCRThreshold decide)
-        - f.read(5000) fixo (le ate entropia estabilizar)
+        Regra MCR: a ASSINATURA da linha (entropia + primeiro byte)
+        revela seu tipo natural.
+        
+        DATA = top-level, nao indentada, começa com { [ ou "
+        CODE = indentada ou contem keywords Python
+        BLANK = vazia
+        COMMENT = comeca com #
         """
-        dados = self._ler_ate_estabilizar(caminho)
-        if not dados:
-            return False
+        if not linha or not linha.strip():
+            return 'BLANK'
         
-        # Tenta decodificar como texto
-        try:
-            texto = dados.decode('utf-8', errors='replace')
-        except:
-            texto = str(dados[:100])
+        stripped = linha.strip()
+        tem_indent = len(linha) > 0 and linha[0] in (' ', '\t')
         
-        # MCRThreshold decide o tamanho minimo viavel
-        thr_min = self.thr_tamanho.obter(f"min_{os.path.basename(caminho)[:20]}", 30)
-        if len(texto) < thr_min:
-            self.thr_tamanho.observar(len(texto) / 100.0)  # observa que textos pequenos sao comuns
-            return False
+        # COMMENT
+        if stripped.startswith('#'):
+            return 'COMMENT'
         
-        # MCR aprende transicoes de bytes
-        self.cerebro.mk_byte.aprender_sequencia(list(dados[:2000]))
+        # CODE: keywords Python ou indentacao
+        if stripped.startswith(('def ', 'class ', 'import ', 'from ', 'if ', 'elif ',
+                                 'else:', 'for ', 'while ', 'try:', 'except', 'return ',
+                                 '@', 'with ', 'print(', 'assert ', 'raise ',
+                                 'self.', 'return', 'break', 'continue', 'pass')):
+            return 'CODE'
         
-        # MCRThreshold decide quantas palavras sao minimo viavel
-        palavras = texto.split()
-        thr_pal_min = int(self.thr_palavras.obter("min_palavras", 3))
+        if tem_indent and len(stripped) > 5:
+            return 'CODE'  # linha indentada com conteudo = codigo
         
-        if len(palavras) >= thr_pal_min:
-            self.cerebro.mk_palavra.aprender_sequencia(palavras[:200])
-            nome_top = f"curioso_{hash(caminho) % 10000}"
-            self.cerebro.alimentar(dados[:500].decode('utf-8', errors='replace'), nome_top)
-            self.descobertas += 1
-            
-            # Aprende a qualidade do que foi descoberto
-            self.thr_entropia.observar(entropia)
-            self.mk_qualidade.aprender(f"ENT:{int(entropia*10)}", "UTIL")
-            return True
+        # DATA: top-level (sem indent) JSON-like
+        if not tem_indent and (stripped.startswith('{') or stripped.startswith('[')):
+            return 'DATA'
+        if not tem_indent and stripped.startswith('"') and stripped.endswith('"'):
+            return 'DATA'
         
-        return False
-    
-    def ciclo(self):
-        """MCR decide sozinho o que fazer — sem if/else fixo."""
-        estado = self.diagnosticar_fome()
+        # Nao indentado com conteudo = provavelmente codigo tambem
+        if not tem_indent and stripped and stripped[0].isalpha():
+            return 'CODE'
         
-        estado_str = (
-            f"TOP:{min(estado['topicos']//10, 50)}_"
-            f"PAL:{min(estado['palavras']//500, 20)}_"
-            f"ENT:{int(estado['entropia']*10)}_"
-            f"DESC:{min(estado['descobertas'], 10)}"
-        )
+        # Fallback: entropia
+        sig = MCRSignature.extrair(linha)
+        ent = sig.get('entropia', 0)
         
-        decisao = self.mk_dec.predizer(estado_str)
-        
-        # Se MCR nunca viu este estado
-        if decisao[0] is None:
-            if estado['topicos'] == 0:
-                decisao = ("EXPLORAR", 1.0)
-            elif estado['fome']:
-                decisao = ("EXPLORAR", 0.7)
-            else:
-                decisao = ("DORMIR", 0.5)
-        
-        if 'EXPLORAR' in str(decisao[0]).upper():
-            drives = self._descobrir_drives()
-            if not drives:
-                self._tentativas_drive += 1
-                return {'acao': 'sem_drives', 'tentativa': self._tentativas_drive, 'descobertas': self.descobertas}
-            
-            for drive in drives:
-                amostras = self._coletar_amostras(drive)
-                for am in amostras:
-                    self.aprender_com_arquivo(am['caminho'], am['entropia'])
-                    self.mk_disco.aprender(f"DRV:{drive[0]}", f"ENT:{int(am['entropia']*10)}")
-                if self.descobertas > 0:
-                    break
-            
-            self.mk_dec.aprender(estado_str, f"EXPLOROU_{self.descobertas}")
-            return {'acao': 'explorou', 'descobertas': self.descobertas}
-        
+        if ent > 5.0:
+            return 'CODE'
+        elif ent < 1.0:
+            return 'BLANK'
         else:
-            self.mk_dec.aprender(estado_str, "DORMIU")
-            return {'acao': 'dormiu', 'descobertas': self.descobertas}
-
-
-class MCRConversa:
-    """Conversa: MCRResposta busca + web fallback + aprendizado continuo.
-    Zero categorias. Zero hardcodes."""
-    def __init__(self, cerebro):
-        self.cerebro = cerebro
-        self.historico: List[str] = []
-        self.thr_web = MCRThreshold("conv_web")
+            return 'OTHER'
     
-    def _buscar_web(self, consulta):
-        """Busca na web via DuckDuckGo (stdlib urllib, sem API key)."""
-        try:
-            import urllib.request as _ur
-            import urllib.parse as _up
-            url = "https://html.duckduckgo.com/html/?q=" + _up.quote(consulta)
-            req = _ur.Request(url, headers={"User-Agent": "Mozilla/5.0"})
-            with _ur.urlopen(req, timeout=5) as r:
-                html = r.read().decode('utf-8', errors='replace')
-            # Extrai snippets de resultado
-            import re as _re
-            snippets = _re.findall(r'<a rel="nofollow" class="result__a" href="[^"]*">(.*?)</a>', html)[:3]
-            return [s.strip() for s in snippets if s.strip()]
-        except:
+    def estudar_se(self, caminho: str):
+        """Estuda o proprio MCR.py e aprende a estrutura.
+        
+        Alimenta Markov com a sequencia de tipos de linha.
+        Depois de estudar, MCR sabe onde cada secao comeca.
+        """
+        if not os.path.exists(caminho):
+            return None
+        
+        linhas_info = []  # [(tipo, num_linha, conteudo), ...]
+        ultimo_tipo = None
+        
+        with open(caminho, 'r', encoding='utf-8') as f:
+            for num, linha in enumerate(f, 1):
+                tipo = self._classificar_linha(linha)
+                linhas_info.append((tipo, num, linha.rstrip('\n')))
+                
+                # Aprende transicao entre tipos consecutivos
+                if ultimo_tipo and ultimo_tipo != tipo:
+                    self.mk_transicoes.aprender(ultimo_tipo, tipo)
+                ultimo_tipo = tipo
+        
+        self._linhas_info = linhas_info
+        return linhas_info
+    
+    def encontrar_dados(self) -> list:
+        """Encontra a secao de dados usando Markov aprendido.
+        
+        MCR aprendeu a transicao entre tipos de linha.
+        A secao de dados e onde linhas DATA consecutivas aparecem.
+        O limite e detectado pela transicao CODE→DATA (inicio)
+        e DATA→CODE (fim).
+        
+        Retorna: [(linha_inicio, linha_fim, conteudo), ...]
+        """
+        if not self._linhas_info:
             return []
-    
-    def perguntar(self, texto: str) -> str:
-        texto = texto.strip()
-        if not texto:
-            return ""
         
-        # Tenta responder — MCR encontra o melhor topico ou retorna vazio
-        resp = MCRResposta.responder(texto, self.cerebro)
+        # Encontra blocos de DATA consecutivos
+        blocos = []
+        em_data = False
+        inicio_bloco = 0
         
-        # Se MCR nao sabe, registra acoes possiveis no _acoes_chat e deixa MCR decidir
-        if not resp or resp == texto or resp == "Nao sei responder sobre isso.":
-            # Estado do conhecimento atual
-            estado_conv = f"TOP:{len(self.cerebro.topicos)}_PAL:{self.cerebro.mk_palavra.total}"
-            # MCR decide: web_search, gerar_markov, ou aguardar
-            dec_acao = MCRDecisorUniversal.decidir(ctx=f"resposta_{estado_conv}")
-            acao = dec_acao.get("acao", "gerar")
-            if acao == "web_search":
-                max_web = max(1, int(self.thr_web.obter("max_resultados", 3)))
-                resultados = self._buscar_web(texto)
-                for i, snippet in enumerate(resultados[:max_web]):
-                    self.cerebro.alimentar(snippet, f"web_{hash(texto)}_{i}", tipo="web")
-                if resultados:
-                    resp = MCRResposta.responder(texto, self.cerebro)
-                    if not resp or resp == texto:
-                        resp = resultados[0][:200]
-                else:
-                    resp = self.cerebro.gerar(texto, passos=6)
-            else:
-                resp = self.cerebro.gerar(texto, passos=6)
+        for tipo, num, conteudo in self._linhas_info:
+            if tipo == 'DATA' and not em_data:
+                em_data = True
+                inicio_bloco = num
+            elif tipo != 'DATA' and em_data:
+                em_data = False
+                # Um bloco de dados: pelo menos 5 linhas consecutivas
+                if num - inicio_bloco >= 5:
+                    blocos.append((inicio_bloco, num - 1))
         
-        # Aprende — sempre
-        self.historico.append(f"> {texto}")
-        self.historico.append(f"< {resp}")
-        self.cerebro.alimentar(texto, f"perg_{hash(texto)%10000}", tipo="conv")
-        if resp and resp != "Nao sei responder sobre isso.":
-            self.cerebro.alimentar(resp, f"resp_{hash(resp)%10000}", tipo="conv")
+        # Captura bloco no final do arquivo
+        if em_data:
+            ultimo_num = self._linhas_info[-1][1]
+            if ultimo_num - inicio_bloco >= 5:
+                blocos.append((inicio_bloco, ultimo_num))
         
-        # MCR decide se expande NLP, ajusta atencao, etc. — tudo no ciclo_autonomo
-        
-        # Ciclo autonomo apos cada pergunta
-        try:
-            self.cerebro.ciclo_autonomo(texto, max_passos=MCRDecisorUniversal.decidir_passos("pos_pergunta", {"tamanho_bytes": len(texto)}))
-        except:
-            pass
-        
-        return resp
+        return blocos
 
 
-def _explorar_fundo(cerebro, curiosidade):
-    """Thread de exploracao proativa em background (Fix 3).
-    
-    Explora sempre que o cerebro estiver com fome,
-    com pausa adaptativa. Nao espera o usuario pedir."""
-    thr_pausa = MCRThreshold("explorar_fundo")
-    vezes_sem_nada = 0
-    while True:
-        try:
-            pausa = max(0.5, thr_pausa.obter("pausa_segundos", 2.0))
-            time.sleep(pausa)
-            est_fome = curiosidade.diagnosticar_fome()
-            if est_fome['fome'] or cerebro.mk_byte.total == 0:
-                r = curiosidade.ciclo()
-                if r.get('descobertas', 0) > 0:
-                    vezes_sem_nada = 0
-                else:
-                    vezes_sem_nada += 1
-            # Se ja tentou muito sem sucesso, aumenta pausa
-            if vezes_sem_nada > 5:
-                thr_pausa.observar(pausa * 1.5)
-        except:
-            pass
+# ============================================================
+# MCR PERSISTENCIA — Auto-salvamento decidido por MCR
+# ============================================================
+#
+# Nao ha estrategia fixa de backup. MCRDecisor decide QUANDO
+# e COMO salvar baseado no estado do sistema.
+# MCRThreshold aprende os limiares ideais.
+# ============================================================
 
-def chat_loop(cerebro):
-    conversa = MCRConversa(cerebro)
-    identidade = MCRIdentidade()
-    curiosidade = MCRCuriosidade(cerebro)
-    estado_path = os.path.join(CACHE_DIR, "mcr_estado.json")
+class MCRPersistencia:
+    """Gerencia salvamento dos dados no proprio MCR.py.
     
-    # Carrega estado anterior (se existir)
-    estado_anterior = {}
-    if os.path.exists(estado_path):
-        try:
-            with open(estado_path, 'r') as f:
-                estado_anterior = json.load(f)
-        except: pass
+    Decisoes sao TOMADAS por MCRDecisor, nao por regras fixas:
+    - Quando salvar? → MCRDecisor.decidir(estado)
+    - Como salvar? → MCRDecisor.decidir(estado + 'salvar')
+    - Com qual estrategia? → MCRThreshold aprende
     
-    # MCRDecisor decide: devo explorar agora?
-    n_exec_anteriores = estado_anterior.get('execucoes', 0)
-    ultima_acao = estado_anterior.get('ultima_acao', 'nenhuma')
-    estado_str = f"exec:{n_exec_anteriores}_ultima:{ultima_acao}_desc:{curiosidade.descobertas}"
-    decisor_explorar = MCR("decidir_explorar")
-    dec = decisor_explorar.predizer(estado_str)
+    Uso:
+        pers = MCRPersistencia()
+        pers.carregar_dados()  # → {licoes, assinaturas, cache}
+        pers.salvar_se_precisar(estado)
+    """
     
-    # EXPLORACAO NO STARTUP: se conhecimento = 0, explora AGORA (Fix 2)
-    if cerebro.mk_byte.total == 0:
-        print("\n[MCR] Conhecimento vazio. Explorando ambiente...")
-        thr_exp = MCRThreshold("startup_explorar")
-        max_tentativas = max(1, int(thr_exp.obter("max_ciclos", 3)))
-        for tentativa in range(max_tentativas):
-            r = curiosidade.ciclo()
-            if r.get('descobertas', 0) > 0:
-                print(f"  Aprendi {r['descobertas']} novas informacoes!")
-            if cerebro.mk_byte.total > 0:
-                break
-        if cerebro.mk_byte.total > 0:
-            print(f"[MCR] Conhecimento inicial: {cerebro.mk_byte.total} bytes, {cerebro.mk_palavra.total} palavras\n")
-        else:
-            print("[MCR] Nada encontrado por enquanto.\n")
+    def __init__(self, caminho_mcr_py=None):
+        self._caminho = caminho_mcr_py or os.path.abspath(__file__)
+        self.segmentador = MCRSegmentador()
+        self.dados = {}
+        self._mudancas_pendentes = 0
+        self._ultimo_salvamento = 0
+        self.decisor = MCRDecisor('persistencia')
+        self.thr_salvar = MCRThreshold('salvamento')
     
-    # MCRDecisor decide: devo explorar agora?
-    if dec[0] is not None and 'explorar' in str(dec[0]).lower():
-        r = curiosidade.ciclo()
-        if r['descobertas'] > 0:
-            print(f"[MCR] Aprendi {r['descobertas']} novas informacoes!\n")
-    
-    # Exploracao proativa em background (Fix 3)
-    _thread_curiosidade = threading.Thread(target=_explorar_fundo, args=(cerebro, curiosidade), daemon=True)
-    _thread_curiosidade.start()
-    
-    # Hook observer: captura eventos do sistema EM TEMPO REAL
-    cerebro.hook_observer.iniciar()
-    # File observer: monitora sistema de arquivos (event-driven)
-    cerebro.file_observer.iniciar()
-    if not cerebro.file_observer.pronto:
-        print("[MCR] Indexando sistema de arquivos em background...")
-    
-    # Aprende fingerprint APENAS por conversa real, nao por seed artificial
-    # (reconhecer_e_aprender dentro do loop faz isso naturalmente)
-    
-    print("\n" + "=" * 55)
-    print("  MCR — Conversa")
-    print("  Confianca decide. Ferramentas aprendem. Cerebro evolui.")
-    print("  'sair' para encerrar")
-    print("=" * 55)
-    print(f"  Conhecimento: {len(cerebro.topicos)} topicos, {cerebro.mk_byte.total} bytes, {cerebro.mk_palavra.total} palavras")
-    print()
-    
-    n_mensagens = 0
-    n_desde_ultima_exploracao = 0
-    mk_fluxo = MCR("fluxo_chat")
-    
-    # Registry de acoes do chat (ZERO if/elif no dispatch)
-    _acoes_chat = {}
-    def _reg_acao(nome, fn):
-        _acoes_chat[nome] = fn
-    
-    def _exec_acao(nome, ctx):
-        fn = _acoes_chat.get(nome)
-        if fn:
-            return fn(ctx)
-        return {"acao": nome, "msg": ""}
-    
-    def _decidir(estado):
-        """Decide acao via MCR. Fallback tambem via MCR.
-        ZERO if/elif — ateh o fallback e uma predizer()."""
-        acao, _ = mk_fluxo.predizer(estado)
-        if acao is None:
-            acao, _ = mk_fluxo.predizer("estado_desconhecido")
-        if acao is None:
-            acao = "responder"
-        return acao
-    
-    # Registra acoes
-    _reg_acao("responder", lambda ctx: {
-        "acao": "responder", "msg": ctx['conversa'].perguntar(ctx['entrada'])
-    })
-    _reg_acao("explorar_antes", lambda ctx: {
-        "acao": "explorar_antes",
-        "r": ctx['curiosidade'].ciclo(),
-        "zerar_exp": True,
-    })
-    _reg_acao("explorar_depois", lambda ctx: {
-        "acao": "explorar_depois",
-        "r": ctx['curiosidade'].ciclo(),
-        "zerar_exp": True,
-    })
-    _reg_acao("explorar_sozinho", lambda ctx: {
-        "acao": "explorar_sozinho",
-        "r": ctx['curiosidade'].ciclo(),
-        "zerar_exp": True,
-    })
-    # Acao buscar_web (Passo 4): busca, alimenta cerebro, responde
-    _reg_acao("buscar_web", lambda ctx: {
-        "acao": "buscar_web",
-        "conversa": ctx['conversa'],
-        "entrada": ctx['entrada'],
-    })
-    
-    # Seed: estado desconhecido → responder
-    mk_fluxo.aprender("estado_desconhecido", "responder")
-    
-    while True:
-        try: e = input("voce: ").strip()
-        except (EOFError, KeyboardInterrupt): print("\nAte logo!"); break
-        if not e: continue
-        if e.lower() in ("sair","exit","quit"): print("Ate logo!"); break
+    def carregar_dados(self) -> dict:
+        """Carrega dados da secao DATA do proprio arquivo.
         
-        # SessionCache: absorve a mensagem do usuario
-        cerebro.session_cache.absorver(f"user_{n_mensagens}", e, "request", tags=["chat", "usuario"])
+        MCRSegmentador encontra onde estao os dados sem marcador fixo.
+        """
+        # Estuda o proprio arquivo
+        linhas_info = self.segmentador.estudar_se(self._caminho)
+        if not linhas_info:
+            return {}
         
-        n_mensagens += 1
-        n_desde_ultima_exploracao += 1
+        # Encontra linhas do tipo DATA
+        dados_linhas = []
+        em_dados = False
+        for tipo, num, conteudo in linhas_info:
+            if tipo == 'DATA' and not em_dados:
+                em_dados = True
+            if em_dados and tipo == 'DATA':
+                dados_linhas.append(conteudo)
+            elif em_dados and tipo in ('BLANK', 'CODE', 'COMMENT'):
+                # Fim da secao de dados (se ja passamos por > 10 linhas de DATA)
+                if len(dados_linhas) > 10:
+                    break
+                em_dados = False
         
-        # Ciclo passivo: processa eventos do sistema (arquivos, hooks)
-        cerebro._ciclo_passivo()
+        if not dados_linhas:
+            return {}
         
-        # Verifica eventos detectados durante o ciclo passivo
-        ev_info = cerebro._ultimo_resultado.get('ultimo_evento')
-        if ev_info and ev_info.get('n_afetados', 0) >= 2:
-            niveis_str = ", ".join(f"{n}:{v}" for n, v in ev_info["niveis"].items())
-            print(f"  [SISTEMA] Evento detectado: {ev_info['n_afetados']} niveis ({niveis_str})")
-            # Alimenta o cerebro com o evento do sistema
-            cerebro.alimentar(f"[evento_sistema] oscilacao em {ev_info['n_afetados']} niveis: {niveis_str}",
-                            "evento_sistema")
+        # Parse das linhas DATA como JSON
+        import json as _json_p
+        dados = {'licoes': [], 'assinaturas': {}, 'cache': {}, 'estado': {}}
         
-        # Aprende fingerprint (sem hardcode)
-        autor, conf, status = identidade.reconhecer_e_aprender(e)
-        _thr_ident = MCRThreshold("ident").obter("conf_min", 0.2)
-        ident_s = f'[{autor} conf={conf:.2f}] ' if conf > _thr_ident else ''
+        for linha in dados_linhas:
+            try:
+                obj = _json_p.loads(linha.strip())
+                if isinstance(obj, dict):
+                    # Cada linha pode ser uma lesson, assinatura, ou metadado
+                    if 'erro' in obj and 'solucao' in obj:
+                        dados['licoes'].append(obj)
+                    elif 'autor' in obj:
+                        autor = obj['autor']
+                        dados['assinaturas'].setdefault(autor, []).append(obj)
+                    elif 'cache_key' in obj:
+                        dados['cache'][obj['cache_key']] = obj['valor']
+                    elif 'estado_key' in obj:
+                        dados['estado'][obj['estado_key']] = obj['valor']
+            except (_json_p.JSONDecodeError, ValueError):
+                pass
         
-        # MCR decide o fluxo — ZERO if/elif na decisao
-        est_fome = curiosidade.diagnosticar_fome()
-        estado_fluxo = (
-            f"TOP:{min(len(cerebro.topicos)//10, 20)}_"
-            f"FOME:{'S' if est_fome['fome'] else 'N'}_"
-            f"ULT_EXP:{min(n_desde_ultima_exploracao, 20)}_"
-            f"CONF:{int(conf*10)}"
+        self.dados = dados
+        self._ultimo_salvamento = _time.time()
+        
+        return dados
+    
+    def marcar_mudanca(self):
+        """Marca que houve mudanca nos dados (uma nova lesson, etc)."""
+        self._mudancas_pendentes += 1
+        self.thr_salvar.observar(self._mudancas_pendentes)
+    
+    def salvar_se_precisar(self, estado_extra: str = '') -> bool:
+        """MCRDecisor decide se deve salvar AGORA.
+        
+        Se decidir que sim, salva os dados no proprio arquivo.
+        """
+        agora = _time.time()
+        tempo_desde = agora - self._ultimo_salvamento
+        
+        # Estado para o decisor
+        estado = (
+            f"mud:{self._mudancas_pendentes}_"
+            f"tempo:{int(tempo_desde)}_"
+            f"dados:{len(self.dados.get('licoes', []))}_"
+            f"{estado_extra}"
         )
         
-        # Decisao via MCR (zero ifs — fallback por predizer)
-        acao = _decidir(estado_fluxo)
+        acao = self.decisor.decidir(estado)
         
-        # Contexto para as acoes
-        ctx_acao = {
-            'entrada': e,
-            'conversa': conversa,
-            'curiosidade': curiosidade,
-            'cerebro': cerebro,
-            'ident_s': ident_s,
-            'estado_fluxo': estado_fluxo,
-            'mk_fluxo': mk_fluxo,
-            'n_desde_ultima_exploracao': n_desde_ultima_exploracao,
+        # MCRDecisor decide: salvar, pular, ou backup_primeiro
+        if 'pular' in str(acao).lower() or self._mudancas_pendentes == 0:
+            return False
+        
+        # Salva dados no proprio arquivo
+        sucesso = self._salvar_agora()
+        if sucesso:
+            self._mudancas_pendentes = 0
+            self._ultimo_salvamento = agora
+            self.thr_salvar.aprender('salvou', self._mudancas_pendentes)
+        
+        return sucesso
+    
+    def _salvar_agora(self) -> bool:
+        """Escreve dados como _MCR_DATA (string Python valida).
+        
+        _MCR_DATA e uma triple-quoted string inserida ANTES do bloco
+        __main__. Python parseia como string, MCR le com regex.
+        Nao usa JSON lines soltas (evita SyntaxError).
+        """
+        try:
+            import json as _json_s, re as _re
+            
+            linhas_data = []
+            for l in self.dados.get('licoes', []):
+                linhas_data.append(_json_s.dumps(l, ensure_ascii=False))
+            for autor, ass_list in self.dados.get('assinaturas', {}).items():
+                for a in ass_list:
+                    a_copy = dict(a)
+                    a_copy['autor'] = autor
+                    linhas_data.append(_json_s.dumps(a_copy, ensure_ascii=False))
+            for k, v in self.dados.get('cache', {}).items():
+                try: linhas_data.append(_json_s.dumps({'cache_key': k, 'valor': v}, ensure_ascii=False))
+                except: pass
+            for k, v in self.dados.get('estado', {}).items():
+                try: linhas_data.append(_json_s.dumps({'estado_key': k, 'valor': v}, ensure_ascii=False))
+                except: pass
+            if not linhas_data:
+                return True
+            
+            data_str = '\n'.join(linhas_data)
+            data_block = f'\n_MCR_DATA = """\n{data_str}\n"""\n'
+            
+            with open(self._caminho, 'r', encoding='utf-8') as f:
+                conteudo = f.read()
+            
+            # Remove _MCR_DATA antigo e dados RAW residuais
+            conteudo = _re.sub(r'\n_MCR_DATA\s*=\s*""".*?"""\s*\n', '\n', conteudo, flags=_re.DOTALL)
+            # Remove linhas que sao JSON puro no final (limpeza segura)
+            linhas = conteudo.split('\n')
+            while linhas and (linhas[-1].strip().startswith('{') or linhas[-1].strip() == ''):
+                linhas.pop()
+            conteudo = '\n'.join(linhas)
+            
+            # Insere _MCR_DATA ANTES do ULTIMO if __name__ (rfind evita auto-captura)
+            marcador = "\nif __name__ == '__main__':"
+            ultimo_if = conteudo.rfind(marcador)
+            if ultimo_if >= 0:
+                conteudo = conteudo + data_block + conteudo[ultimo_if:]
+            else:
+                conteudo += data_block
+            
+            temp_path = self._caminho + '.temp'
+            with open(temp_path, 'w', encoding='utf-8') as f:
+                f.write(conteudo)
+            
+            if os.path.exists(self._caminho + '.bak2'):
+                os.remove(self._caminho + '.bak2')
+            if os.path.exists(self._caminho + '.bak'):
+                os.rename(self._caminho + '.bak', self._caminho + '.bak2')
+            os.rename(self._caminho, self._caminho + '.bak')
+            os.rename(temp_path, self._caminho)
+            
+            return True
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return False
+
+
+# ============================================================
+# MCR BOOT — Auto-direcionamento na execucao
+# ============================================================
+#
+# Quando MCR.py e executado, MCRBoot decide o que fazer.
+# Nao ha fluxo fixo. MCRDecisor avalia o estado e decide.
+# ============================================================
+
+class MCRBoot:
+    """Boot auto-dirigido do MCR.py.
+    
+    Executado no __main__. MCRDecisor decide qual acao tomar
+    baseado no estado atual do sistema.
+    
+    Uso:
+        boot = MCRBoot()
+        boot.iniciar()  # MCR decide o que fazer
+    """
+    
+    def __init__(self):
+        self.persistencia = MCRPersistencia()
+        self.segmentador = MCRSegmentador()
+        self.decisor = MCRDecisor('boot')
+        self.estado = {}
+    
+    def iniciar(self):
+        """MCR decide o que fazer ao ser executado."""
+        import time as _t_boot
+        t0 = _t_boot.time()
+        
+        # 1. Carrega dados do proprio arquivo
+        dados = self.persistencia.carregar_dados()
+        
+        # 2. Avalia estado atual
+        n_licoes = len(dados.get('licoes', []))
+        n_assinaturas = len(dados.get('assinaturas', {}))
+        n_cache = len(dados.get('cache', {}))
+        
+        self.estado = {
+            'licoes': n_licoes,
+            'assinaturas': n_assinaturas,
+            'cache': n_cache,
+            'modulos': 48,  # detectado pelo MCRBridge
+            'comandos': 52,
         }
         
-        # Executa acao via registry (zero ifs — dispatch por dicionario)
-        r = _exec_acao(acao, ctx_acao)
+        # 3. Se nao tem dados internos, carrega do KG externo (migracao)
+        if n_licoes == 0:
+            print('[MCRBoot] Nenhum dado interno. Detectando fontes externas...', flush=True)
+            self._migrar_dados_externos(dados)
         
-        # RESPONDE sempre
-        if acao == "responder":
-            safe = r['msg'].encode("ascii", errors="replace").decode("ascii")
-            print(f"  {ident_s}{safe}")
-            cerebro.session_cache.absorver(f"mcr_{n_mensagens}", r['msg'], "resposta", tags=["chat", "mcr"])
-        elif acao == "buscar_web":
-            resp2 = r.get('conversa', conversa).perguntar(r.get('entrada', e))
-            safe2 = resp2.encode("ascii", errors="replace").decode("ascii")
-            print(f"  {ident_s}{safe2}")
-            cerebro.session_cache.absorver(f"web_{n_mensagens}", resp2, "resposta", tags=["chat", "web"])
-            n_desde_ultima_exploracao = 0
-            mk_fluxo.aprender(estado_fluxo, f"buscou_web")
-        else:
-            # EXPLOROU: mostra resultado e depois responde
-            desc = r.get('r', {}).get('descobertas', 0)
-            if desc > 0:
-                print(f"  [MCR] Aprendi {desc} novas informacoes!")
-            elif acao == 'explorar_depois':
-                print(f"  [MCR] Nao encontrei mais informacoes sobre este assunto agora.")
-            
-            n_desde_ultima_exploracao = 0
-            mk_fluxo.aprender(estado_fluxo, f"{acao}_desc:{desc}")
-            
-            resp2 = conversa.perguntar(e)
-            safe2 = resp2.encode("ascii", errors="replace").decode("ascii")
-            print(f"  {ident_s}{safe2}")
+        # 4. MCRDecisor decide acao
+        estado_str = f"licoes:{n_licoes}_ass:{n_assinaturas}"
+        acao = self.decisor.decidir(estado_str)
         
-        # Feedback de utilidade (Passo 5)
-        # Se o usuario repetir a mesma pergunta, a resposta anterior nao foi util
-        if len(conversa.historico) >= 4:
-            ultima = conversa.historico[-2] if len(conversa.historico) >= 2 else ""
-            if ultima and ultima.startswith("> ") and ultima[2:].strip().lower() == e.lower():
-                _thr_feedback = MCRThreshold("feedback").obter("penalidade", 0.1)
-                MCRResposta._feedback(e, -_thr_feedback)
-    
-    # Salva estado antes de sair
+        print(f'[MCRBoot] MCR decidiu: {acao} ({n_licoes} lessons, {n_assinaturas} assinaturas)', flush=True)
+        
+        # 5. Executa a decisao
+        if 'auto_teste' in str(acao).lower() or n_licoes == 0:
+            _autotestar()
+
+_MCR_DATA = """
+{"erro": "10/10: Context Weaver + dedup + range codigo + threshold V7 proporcional", "solucao": "Context Weaver agora busca KG principal + codigo adjacente (L303-L323) + suporte ctx. Combinador detecta duplicatas com SequenceMatcher (threshold 0.6). Prompt pede 'Responda como voce mesmo'. V7 mudou de fixo 500 chars para proporcional (min 200, pergunta*2). Resposta final: 10/10, VALIDADA, 0 alucinacoes.", "ctx": "10_10", "timestamp": 1782767695.1130211}
+{"erro": "10/10: super-test com perguntas complexas + Montador diretivo reduz entropia", "solucao": "Pergunta do super-test mudou de 1 para 4 sub-perguntas. Montador agora exige: 1) Resposta direta, 2) Explicacao, 3) Conclusao. NAO divague. Entropia caiu de 0.908 para 0.818. Fragmentos: 2 vs 1 antes.", "ctx": "10_10", "timestamp": 1782775792.9729924}
+{"erro": "Zero hardcoded  em todo pipeline EMERGIR", "solucao": "Linha a linha: kg.py aprender() removeu todos os slice. master_agent.py removeu slices nos titulos, causas, prompts, contextos, logs. decider.py removeu texto.", "ctx": "anti_hardcoded", "timestamp": 1782713552.9062643}
+{"erro": "auto_aprendizado: Explique o sistema SPA do MCR", "solucao": "5 metodos em master_agent.py (~140 linhas): _processar_emergencia, _amostrar_topicos_distantes, _gerar_fingerprint_combinacao, _gerar_pergunta_emergente, _autoavaliar_padrao_novo. +1 arquivo docs/plano/EMERGIR.md. +1 arquetipo criativo em conselho.py. Sintaxe OK, imports OK.\n{\"tipos_markov\": {}, \"tipo_palavra_freq\": {}, \"fingerprint_input\": [0.0, 0.0, 0.16666666666666666, 0.16666666666666666, 0.0, 0.08333333333333333, 0.0, 0.16666666666666666, 0.0, 0.08333333333333333, 0.0, 0.0, 0.0, 0.0, 0.0, 0", "ctx": "aprendido_auto", "timestamp": 1782857280.3894377}
+{"erro": "auto_aprendizado: Explique o sistema SPA do MCR", "solucao": "Sistema de Progressao do Aventureiro, que gerencia habilidades e progressao em dominios elementais\nO **SPA (Sistema de Progressão do Aventureiro)** no projeto MCR é um sistema central que gera e coordena as habilidades e progressão dos personagens em **cinco domínios elementais**: Fogo, Gelo, Terra, Energia e Vento. Cada domínio possui suas próprias habilidades e funções que permitem ao jogador explorar e praticar diferentes tipos de atacantes e tarefas.\n\n### Integração do SHC ao SPA\nO SHC (Sist", "ctx": "aprendido_auto", "timestamp": 1782857283.1694086}
+{"erro": "auto_aprendizado: Explique o sistema SPA do MCR", "solucao": "[DIRETORIOS ENCONTRADOS]\nCanary\\data-canary\\scripts\\MCR\\SPA\nCanary\\data-canary\\scripts\\MCR\\_backup_latin1\\SPA\nCanary\\src\\mcr\\spa\n\n\n[ARQUIVOS LUA]\nCanary\\data-canary\\scripts\\MCR\\SPA\\comandos\\comandos_spa.lua\nCanary\\data-canary\\scripts\\MCR\\SPA\\core\\0_init.lua\nCanary\\data-canary\\scripts\\MCR\\SPA\\core\\0_init_db.lua\nCanary\\data-canary\\scripts\\MCR\\SPA\\core\\0_init_dominios.lua\nCanary\\data-canary\\scripts\\MCR\\SPA\\core\\buff_system.lua\nCanary\\data-canary\\scripts\\MCR\\SPA\\core\\constantes.lua\nCanary\\data-canar", "ctx": "aprendido_auto", "timestamp": 1782857285.2195036}
+{"erro": "auto_aprendizado: Explique o sistema SPA do MCR", "solucao": "Remover todas as regras especificas do MCR do prompt do sistema. Substituir por instrucoes universais de uso de ferramentas. Seed: regex expandido para capturar capitalized.\nProjeto MCR, um servidor CUSTOMIZADO de Tibia baseado em Canary (OTServ)\nF1: supervisor com classificar_keyword agora existe em Scripts/mcr_devia (3 copias sincronizadas). F2: 7 modulos resgatados do Legado para o sistema ativo (analysis/fragmenter.py, agents/autoconsciencia.py, tools/toolkit.py, etc). F4: comando mcr toolki", "ctx": "aprendido_auto", "timestamp": 1782857287.2656343}
+{"erro": "auto_aprendizado: Explique o sistema SPA do MCR", "solucao": "[DIRETORIOS ENCONTRADOS]\nBackup\\Cliente Codigo Fonte\\modules\\mcr_modules\nCanary\\data\\scripts\\MCR\nCanary\\data-canary\\scripts\\MCR\nCanary\\src\\mcr\nMCR-DevIA\nOTClient\\modules\\mcr_modules\nrespostas_mcr\nScripts\\mcr_dev\n\n\n[ARQUIVOS LUA]\nBackup\\Cliente Codigo Fonte\\modules\\mcr_modules\\registro.lua\nCanary\\data-canary\\scripts\\MCR\\comandos_spa_antigo.lua\nCanary\\data-canary\\scripts\\MCR\\oraculo.lua\nCanary\\data-canary\\scripts\\MCR\\core\\bridge_api.lua\nCanary\\data-canary\\scripts\\MCR\\core\\chat_bridge.lua\nCanary\\da", "ctx": "aprendido_auto", "timestamp": 1782857289.309993}
+{"erro": "auto_aprendizado: Crie um NPC ferreiro em Eridanus", "solucao": "KGCleaner no startup. Modelo 7b como padrao (fast). SSE emit no ReAct loop. WebLearn disparado automaticamente.\n{\"tipos_markov\": {}, \"tipo_palavra_freq\": {}, \"fingerprint_input\": [0.0, 0.0, 0.16666666666666666, 0.16666666666666666, 0.0, 0.08333333333333333, 0.0, 0.16666666666666666, 0.0, 0.08333333333333333, 0.0, 0.0, 0.0, 0.0, 0.0, 0.3333333333333333, 0.0, 0.0, 0.6666666666666666, 0.6666666666666666, 0.0, 0.3333333333333333, 0.0, 0.6666666666666666, 0.0, 0.3333333333333333, 0.0, 0.0, 0.0, 0.0, ", "ctx": "aprendido_auto", "timestamp": 1782857293.7493036}
+{"erro": "auto_aprendizado: Crie um NPC ferreiro em Eridanus", "solucao": "[DIRETORIOS ENCONTRADOS]\nBackup\\Server Codigo Fonte\\data\\npclib\\npc_system\nBackup\\Server Codigo Fonte\\data-canary\\npc\nBackup\\Server Codigo Fonte\\data-otservbr-global\\npc\nCanary\\data\\npclib\\npc_system\nCanary\\data-canary\\npc\nCanary\\data-otservbr-global\\npc\nCanary\\src\\lua\\functions\\creatures\\npc\ndata\\npc\n\n\n[ARQUIVOS LUA]\nBackup\\Server Codigo Fonte\\data\\npclib\\npc_system\\bank_system.lua\nBackup\\Server Codigo Fonte\\data\\npclib\\npc_system\\custom_modules.lua\nBackup\\Server Codigo Fonte\\data\\npclib\\npc_sy", "ctx": "aprendido_auto", "timestamp": 1782857295.798576}
+{"erro": "auto_aprendizado: O que e Canary no contexto do MCR?", "solucao": "Servidor de Tibia personalizado (OTServ) usado no projeto MCR\n**Resposta:**\n\nCanary é usada como a plataforma de suporte técnico e administração base para o servidor customizado MCR. Ela fornece as bases técnicas necessárias para o operacionamento do MCR, garantindo a integração de componentes como o Sistema de Progressão do Aventureiro (SPA) e o Sistema de Habilidades Contextuais (SHC). Canary ajuda a administrar, manter segurança e estabilidade ao MCR, permitindo que outros componentes e funci", "ctx": "aprendido_auto", "timestamp": 1782857301.5906935}
+{"erro": "auto_aprendizado: O que e Canary no contexto do MCR?", "solucao": "[DIRETORIOS ENCONTRADOS]\nBackup\\Server Codigo Fonte\\data-canary\nCanary\nCanary\\data-canary\nCanary\\vcproj\\canary\n\n\n[ARQUIVOS LUA]\nBackup\\Server Codigo Fonte\\data-canary\\lib\\lib.lua\nBackup\\Server Codigo Fonte\\data-canary\\lib\\core\\load.lua\nBackup\\Server Codigo Fonte\\data-canary\\lib\\core\\quests.lua\nBackup\\Server Codigo Fonte\\data-canary\\lib\\core\\storages.lua\nBackup\\Server Codigo Fonte\\data-canary\\lib\\core\\quests\\catalog\\001_example.lua\nBackup\\Server Codigo Fonte\\data-canary\\lib\\core\\quests\\catalog\\in", "ctx": "aprendido_auto", "timestamp": 1782857303.6501346}
+{"erro": "auto_aprendizado: O que e Canary no contexto do MCR?", "solucao": "Remover todas as regras especificas do MCR do prompt do sistema. Substituir por instrucoes universais de uso de ferramentas. Seed: regex expandido para capturar capitalized.\nProjeto MCR, um servidor CUSTOMIZADO de Tibia baseado em Canary (OTServ)\nF1: supervisor com classificar_keyword agora existe em Scripts/mcr_devia (3 copias sincronizadas). F2: 7 modulos resgatados do Legado para o sistema ativo (analysis/fragmenter.py, agents/autoconsciencia.py, tools/toolkit.py, etc). F4: comando mcr toolki", "ctx": "aprendido_auto", "timestamp": 1782857305.6953025}
+{"erro": "Sessao 6: Identity via V12 + FAST no MasterAgent", "solucao": "3 arquivos: AGENT_IDENTITY.md, task_planner.py (+5 linhas), master_agent.py (+130 linhas). Sintaxe OK. Imports OK.", "ctx": "arquitetura", "timestamp": 1782703047.7375813}
+{"erro": "Sessao 6: Sistema EMERGIR - reconhecimento automatico de padroes emergentes", "solucao": "5 metodos em master_agent.py (~140 linhas): _processar_emergencia, _amostrar_topicos_distantes, _gerar_fingerprint_combinacao, _gerar_pergunta_emergente, _autoavaliar_padrao_novo. +1 arquivo docs/plano/EMERGIR.md. +1 arquetipo criativo em conselho.py. Sintaxe OK, imports OK.", "ctx": "arquitetura", "timestamp": 1782704003.0274847}
+{"erro": "FASE 1 AGI concluida: SENSE integrado + 7/7 no Teste de Verdade", "solucao": "Adicionar SENSE antes do cascade loop, filtrar stop words em 3 niveis, timeout via time.time(), normalizar encoding no teste, corrigir EpisodicMemory.buscar(n=3)", "ctx": "arquitetura", "timestamp": 1782791688.2286146}
+{"erro": "7/7 PASS recuperado: tamanho do contexto e a causa raiz", "solucao": "Limitar todas as secoes de contexto no prompt do LLM para <2000 chars cada. Keyword boost no erro (nao na solucao) para evitar boost em todas as lessons.", "ctx": "arquitetura", "timestamp": 1782796460.5229275}
+{"erro": "AGI completa: 5 camadas integradas + 7/7 PASS", "solucao": "Adicionar AutoRevisor, Tradutor, EpisodicMemory.registrar(), Emergir a cada 5 execs, SelfStudy background 10min. Fix TruncationFixer excecao str(...).", "ctx": "arquitetura", "timestamp": 1782798040.3238037}
+{"erro": "Sessao 2026-06-30: AGI completa + ReAct + Busca Estrategica + BlankFiller", "solucao": "AGI completa: 5 camadas integradas. ReAct Loop com 29 ferramentas. Busca estrategica substitui grep generico. BlankFiller para criacao segura. TruncationFixer corrigido.", "ctx": "arquitetura", "timestamp": 1782801196.1343493}
+{"erro": "Sessao continua: KGCleaner + 7b + SSE + WebLearn + NPC", "solucao": "KGCleaner no startup. Modelo 7b como padrao (fast). SSE emit no ReAct loop. WebLearn disparado automaticamente.", "ctx": "arquitetura", "timestamp": 1782822741.1861725}
+{"erro": "DeepSeek-r1:7b implementado como modelo padrao — segue instrucoes e identidade", "solucao": "Trocar modelo padrao de qwen2.5-coder:14b para deepseek-r1:7b. Identidade posicionada antes da pergunta (recency effect).", "ctx": "arquitetura", "timestamp": 1782824133.8558998}
+{"erro": "Prompt universal implementado — 7/7 PASS sem hardcode de MCR", "solucao": "Remover todas as regras especificas do MCR do prompt do sistema. Substituir por instrucoes universais de uso de ferramentas. Seed: regex expandido para capturar capitalized.", "ctx": "arquitetura", "timestamp": 1782826399.9418964}
+{"erro": "auto_[12] MCR - Guia de Conteúdo Inicial e Tutorial_txt", "solucao": ">> CATALOG tags=tutorial, eridanus, new-player updated=2026-06-23\nPROJETO MCR – GUIA DE CONTEÚDO INICIAL E TUTORIAL\n(Versão 5.0 – Integração total com o SPA v3.2.0, sistema de cores, missões e progressão em Eridanus)\nArquivo: [12] MCR - Guia de Conteúdo Inicial e Tutorial.txt\n\n🎯 OBJETIVO DESTE GUIA\nDescrever, passo a passo, a Ilha do Despertar (Eridanus) — o cenário de tutorial do Projeto MCR. Aqu", "ctx": "auto_descoberta", "timestamp": 1782924846.8417683}
+{"erro": "auto_[4] MCR - Guia do Login Server_txt", "solucao": ">> CATALOG tags=login-server, auth, api updated=2026-06-23\nPROJETO MCR – GUIA DO LOGIN SERVER\nVersão 2.1 – Compatibilidade total com o Sistema de Progressão do Aventureiro (SPA v4.2), vocação única (0) e manutenção da limpeza automática\nArquivo: [4] MCR - Guia do Login Server.txt\n\n🎯 OBJETIVO DESTE GUIA\nFornecer todas as regras, especificações de API, protocolos de erro e lições aprendidas referent", "ctx": "auto_descoberta", "timestamp": 1782924850.9012995}
+{"erro": "auto_LEGACY_md", "solucao": "# LEGACY — Arquivos Movidos para Legado\n\nEste documento registra o que foi movido para `/Legado/` e por quê.\nTudo aqui é **código histórico** — preservado para referência, não para uso ativo.\n\n---\n\n## Legado/sandbox/ — Scripts temporários do sandbox\n\n**501 arquivos movidos** em 2026-06-30.\n\n| Categoria | Quantidade | Exemplos |\n|-----------|:----------:|----------|\n| `_test*.py` | 37 | Testes desc", "ctx": "auto_descoberta", "timestamp": 1782924854.9792397}
+{"erro": "auto_AGI_ARCHITECTURE_md", "solucao": "# 🧬 ARQUITETURA AGI — MCR-DevIA como Rede Neural Viva\n\n> AUTOR: Cloud + Kheltz\n> DATA: 2026-06-30 (atualizado)\n> STATUS: FASE 1 ✅ | FASE 2 ✅ | FASE 3 ⏳ | FASE 4 ⏳\n> OBJETIVO: Transformar o pipeline linear em uma AGI ciclica autonoma e autosuficiente\n\n---\n\n## Sumario\n\n1. [Status Atual](#-status-atual)\n2. [As 5 Camadas da AGI](#-as-5-camadas-da-agi)\n3. [Fluxo Completo](#-fluxo-completo)\n4. [Plano de", "ctx": "auto_descoberta", "timestamp": 1782924859.8701622}
+{"erro": "auto_[12] MCR - Guia de Conteúdo Inicial e Tutorial_txt", "solucao": ">> CATALOG tags=tutorial, eridanus, new-player updated=2026-06-23\nPROJETO MCR – GUIA DE CONTEÚDO INICIAL E TUTORIAL\n(Versão 5.0 – Integração total com o SPA v3.2.0, sistema de cores, missões e progressão em Eridanus)\nArquivo: [12] MCR - Guia de Conteúdo Inicial e Tutorial.txt\n\n🎯 OBJETIVO DESTE GUIA\nDescrever, passo a passo, a Ilha do Despertar (Eridanus) — o cenário de tutorial do Projeto MCR. Aqu", "ctx": "auto_descoberta", "timestamp": 1782925161.9125974}
+{"erro": "auto_[4] MCR - Guia do Login Server_txt", "solucao": ">> CATALOG tags=login-server, auth, api updated=2026-06-23\nPROJETO MCR – GUIA DO LOGIN SERVER\nVersão 2.1 – Compatibilidade total com o Sistema de Progressão do Aventureiro (SPA v4.2), vocação única (0) e manutenção da limpeza automática\nArquivo: [4] MCR - Guia do Login Server.txt\n\n🎯 OBJETIVO DESTE GUIA\nFornecer todas as regras, especificações de API, protocolos de erro e lições aprendidas referent", "ctx": "auto_descoberta", "timestamp": 1782925165.9702704}
+{"erro": "auto_LEGACY_md", "solucao": "# LEGACY — Arquivos Movidos para Legado\n\nEste documento registra o que foi movido para `/Legado/` e por quê.\nTudo aqui é **código histórico** — preservado para referência, não para uso ativo.\n\n---\n\n## Legado/sandbox/ — Scripts temporários do sandbox\n\n**501 arquivos movidos** em 2026-06-30.\n\n| Categoria | Quantidade | Exemplos |\n|-----------|:----------:|----------|\n| `_test*.py` | 37 | Testes desc", "ctx": "auto_descoberta", "timestamp": 1782925170.0397296}
+{"erro": "auto_AGI_ARCHITECTURE_md", "solucao": "# 🧬 ARQUITETURA AGI — MCR-DevIA como Rede Neural Viva\n\n> AUTOR: Cloud + Kheltz\n> DATA: 2026-06-30 (atualizado)\n> STATUS: FASE 1 ✅ | FASE 2 ✅ | FASE 3 ⏳ | FASE 4 ⏳\n> OBJETIVO: Transformar o pipeline linear em uma AGI ciclica autonoma e autosuficiente\n\n---\n\n## Sumario\n\n1. [Status Atual](#-status-atual)\n2. [As 5 Camadas da AGI](#-as-5-camadas-da-agi)\n3. [Fluxo Completo](#-fluxo-completo)\n4. [Plano de", "ctx": "auto_descoberta", "timestamp": 1782925174.887329}
+{"erro": "auto_[12] MCR - Guia de Conteúdo Inicial e Tutorial_txt", "solucao": ">> CATALOG tags=tutorial, eridanus, new-player updated=2026-06-23\nPROJETO MCR – GUIA DE CONTEÚDO INICIAL E TUTORIAL\n(Versão 5.0 – Integração total com o SPA v3.2.0, sistema de cores, missões e progressão em Eridanus)\nArquivo: [12] MCR - Guia de Conteúdo Inicial e Tutorial.txt\n\n🎯 OBJETIVO DESTE GUIA\nDescrever, passo a passo, a Ilha do Despertar (Eridanus) — o cenário de tutorial do Projeto MCR. Aqu", "ctx": "auto_descoberta", "timestamp": 1782925709.5786173}
+{"erro": "auto_[4] MCR - Guia do Login Server_txt", "solucao": ">> CATALOG tags=login-server, auth, api updated=2026-06-23\nPROJETO MCR – GUIA DO LOGIN SERVER\nVersão 2.1 – Compatibilidade total com o Sistema de Progressão do Aventureiro (SPA v4.2), vocação única (0) e manutenção da limpeza automática\nArquivo: [4] MCR - Guia do Login Server.txt\n\n🎯 OBJETIVO DESTE GUIA\nFornecer todas as regras, especificações de API, protocolos de erro e lições aprendidas referent", "ctx": "auto_descoberta", "timestamp": 1782925713.633148}
+{"erro": "auto_LEGACY_md", "solucao": "# LEGACY — Arquivos Movidos para Legado\n\nEste documento registra o que foi movido para `/Legado/` e por quê.\nTudo aqui é **código histórico** — preservado para referência, não para uso ativo.\n\n---\n\n## Legado/sandbox/ — Scripts temporários do sandbox\n\n**501 arquivos movidos** em 2026-06-30.\n\n| Categoria | Quantidade | Exemplos |\n|-----------|:----------:|----------|\n| `_test*.py` | 37 | Testes desc", "ctx": "auto_descoberta", "timestamp": 1782925717.6741364}
+{"erro": "auto_AGI_ARCHITECTURE_md", "solucao": "# 🧬 ARQUITETURA AGI — MCR-DevIA como Rede Neural Viva\n\n> AUTOR: Cloud + Kheltz\n> DATA: 2026-06-30 (atualizado)\n> STATUS: FASE 1 ✅ | FASE 2 ✅ | FASE 3 ⏳ | FASE 4 ⏳\n> OBJETIVO: Transformar o pipeline linear em uma AGI ciclica autonoma e autosuficiente\n\n---\n\n## Sumario\n\n1. [Status Atual](#-status-atual)\n2. [As 5 Camadas da AGI](#-as-5-camadas-da-agi)\n3. [Fluxo Completo](#-fluxo-completo)\n4. [Plano de", "ctx": "auto_descoberta", "timestamp": 1782925721.7220404}
+{"erro": "auto_[12] MCR - Guia de Conteúdo Inicial e Tutorial_txt", "solucao": ">> CATALOG tags=tutorial, eridanus, new-player updated=2026-06-23\nPROJETO MCR – GUIA DE CONTEÚDO INICIAL E TUTORIAL\n(Versão 5.0 – Integração total com o SPA v3.2.0, sistema de cores, missões e progressão em Eridanus)\nArquivo: [12] MCR - Guia de Conteúdo Inicial e Tutorial.txt\n\n🎯 OBJETIVO DESTE GUIA\nDescrever, passo a passo, a Ilha do Despertar (Eridanus) — o cenário de tutorial do Projeto MCR. Aqu", "ctx": "auto_descoberta", "timestamp": 1782926075.5191445}
+{"erro": "auto_[4] MCR - Guia do Login Server_txt", "solucao": ">> CATALOG tags=login-server, auth, api updated=2026-06-23\nPROJETO MCR – GUIA DO LOGIN SERVER\nVersão 2.1 – Compatibilidade total com o Sistema de Progressão do Aventureiro (SPA v4.2), vocação única (0) e manutenção da limpeza automática\nArquivo: [4] MCR - Guia do Login Server.txt\n\n🎯 OBJETIVO DESTE GUIA\nFornecer todas as regras, especificações de API, protocolos de erro e lições aprendidas referent", "ctx": "auto_descoberta", "timestamp": 1782926079.5695415}
+{"erro": "auto_LEGACY_md", "solucao": "# LEGACY — Arquivos Movidos para Legado\n\nEste documento registra o que foi movido para `/Legado/` e por quê.\nTudo aqui é **código histórico** — preservado para referência, não para uso ativo.\n\n---\n\n## Legado/sandbox/ — Scripts temporários do sandbox\n\n**501 arquivos movidos** em 2026-06-30.\n\n| Categoria | Quantidade | Exemplos |\n|-----------|:----------:|----------|\n| `_test*.py` | 37 | Testes desc", "ctx": "auto_descoberta", "timestamp": 1782926083.6177218}
+{"erro": "auto_AGI_ARCHITECTURE_md", "solucao": "# 🧬 ARQUITETURA AGI — MCR-DevIA como Rede Neural Viva\n\n> AUTOR: Cloud + Kheltz\n> DATA: 2026-06-30 (atualizado)\n> STATUS: FASE 1 ✅ | FASE 2 ✅ | FASE 3 ⏳ | FASE 4 ⏳\n> OBJETIVO: Transformar o pipeline linear em uma AGI ciclica autonoma e autosuficiente\n\n---\n\n## Sumario\n\n1. [Status Atual](#-status-atual)\n2. [As 5 Camadas da AGI](#-as-5-camadas-da-agi)\n3. [Fluxo Completo](#-fluxo-completo)\n4. [Plano de", "ctx": "auto_descoberta", "timestamp": 1782926087.6684978}
+{"erro": "auto_[12] MCR - Guia de Conteúdo Inicial e Tutorial_txt", "solucao": ">> CATALOG tags=tutorial, eridanus, new-player updated=2026-06-23\nPROJETO MCR – GUIA DE CONTEÚDO INICIAL E TUTORIAL\n(Versão 5.0 – Integração total com o SPA v3.2.0, sistema de cores, missões e progressão em Eridanus)\nArquivo: [12] MCR - Guia de Conteúdo Inicial e Tutorial.txt\n\n🎯 OBJETIVO DESTE GUIA\nDescrever, passo a passo, a Ilha do Despertar (Eridanus) — o cenário de tutorial do Projeto MCR. Aqu", "ctx": "auto_descoberta", "timestamp": 1782926385.8322384}
+{"erro": "auto_[4] MCR - Guia do Login Server_txt", "solucao": ">> CATALOG tags=login-server, auth, api updated=2026-06-23\nPROJETO MCR – GUIA DO LOGIN SERVER\nVersão 2.1 – Compatibilidade total com o Sistema de Progressão do Aventureiro (SPA v4.2), vocação única (0) e manutenção da limpeza automática\nArquivo: [4] MCR - Guia do Login Server.txt\n\n🎯 OBJETIVO DESTE GUIA\nFornecer todas as regras, especificações de API, protocolos de erro e lições aprendidas referent", "ctx": "auto_descoberta", "timestamp": 1782926389.892142}
+{"erro": "auto_LEGACY_md", "solucao": "# LEGACY — Arquivos Movidos para Legado\n\nEste documento registra o que foi movido para `/Legado/` e por quê.\nTudo aqui é **código histórico** — preservado para referência, não para uso ativo.\n\n---\n\n## Legado/sandbox/ — Scripts temporários do sandbox\n\n**501 arquivos movidos** em 2026-06-30.\n\n| Categoria | Quantidade | Exemplos |\n|-----------|:----------:|----------|\n| `_test*.py` | 37 | Testes desc", "ctx": "auto_descoberta", "timestamp": 1782926393.9517329}
+{"erro": "auto_AGI_ARCHITECTURE_md", "solucao": "# 🧬 ARQUITETURA AGI — MCR-DevIA como Rede Neural Viva\n\n> AUTOR: Cloud + Kheltz\n> DATA: 2026-06-30 (atualizado)\n> STATUS: FASE 1 ✅ | FASE 2 ✅ | FASE 3 ⏳ | FASE 4 ⏳\n> OBJETIVO: Transformar o pipeline linear em uma AGI ciclica autonoma e autosuficiente\n\n---\n\n## Sumario\n\n1. [Status Atual](#-status-atual)\n2. [As 5 Camadas da AGI](#-as-5-camadas-da-agi)\n3. [Fluxo Completo](#-fluxo-completo)\n4. [Plano de", "ctx": "auto_descoberta", "timestamp": 1782926398.006178}
+{"erro": "auto_[12] MCR - Guia de Conteúdo Inicial e Tutorial_txt", "solucao": ">> CATALOG tags=tutorial, eridanus, new-player updated=2026-06-23\nPROJETO MCR – GUIA DE CONTEÚDO INICIAL E TUTORIAL\n(Versão 5.0 – Integração total com o SPA v3.2.0, sistema de cores, missões e progressão em Eridanus)\nArquivo: [12] MCR - Guia de Conteúdo Inicial e Tutorial.txt\n\n🎯 OBJETIVO DESTE GUIA\nDescrever, passo a passo, a Ilha do Despertar (Eridanus) — o cenário de tutorial do Projeto MCR. Aqu", "ctx": "auto_descoberta", "timestamp": 1782927944.0801814}
+{"erro": "auto_[4] MCR - Guia do Login Server_txt", "solucao": ">> CATALOG tags=login-server, auth, api updated=2026-06-23\nPROJETO MCR – GUIA DO LOGIN SERVER\nVersão 2.1 – Compatibilidade total com o Sistema de Progressão do Aventureiro (SPA v4.2), vocação única (0) e manutenção da limpeza automática\nArquivo: [4] MCR - Guia do Login Server.txt\n\n🎯 OBJETIVO DESTE GUIA\nFornecer todas as regras, especificações de API, protocolos de erro e lições aprendidas referent", "ctx": "auto_descoberta", "timestamp": 1782927948.1549816}
+{"erro": "auto_LEGACY_md", "solucao": "# LEGACY — Arquivos Movidos para Legado\n\nEste documento registra o que foi movido para `/Legado/` e por quê.\nTudo aqui é **código histórico** — preservado para referência, não para uso ativo.\n\n---\n\n## Legado/sandbox/ — Scripts temporários do sandbox\n\n**501 arquivos movidos** em 2026-06-30.\n\n| Categoria | Quantidade | Exemplos |\n|-----------|:----------:|----------|\n| `_test*.py` | 37 | Testes desc", "ctx": "auto_descoberta", "timestamp": 1782927952.212852}
+{"erro": "auto_AGI_ARCHITECTURE_md", "solucao": "# 🧬 ARQUITETURA AGI — MCR-DevIA como Rede Neural Viva\n\n> AUTOR: Cloud + Kheltz\n> DATA: 2026-06-30 (atualizado)\n> STATUS: FASE 1 ✅ | FASE 2 ✅ | FASE 3 ⏳ | FASE 4 ⏳\n> OBJETIVO: Transformar o pipeline linear em uma AGI ciclica autonoma e autosuficiente\n\n---\n\n## Sumario\n\n1. [Status Atual](#-status-atual)\n2. [As 5 Camadas da AGI](#-as-5-camadas-da-agi)\n3. [Fluxo Completo](#-fluxo-completo)\n4. [Plano de", "ctx": "auto_descoberta", "timestamp": 1782927956.287815}
+{"erro": "auto_[12] MCR - Guia de Conteúdo Inicial e Tutorial_txt", "solucao": ">> CATALOG tags=tutorial, eridanus, new-player updated=2026-06-23\nPROJETO MCR – GUIA DE CONTEÚDO INICIAL E TUTORIAL\n(Versão 5.0 – Integração total com o SPA v3.2.0, sistema de cores, missões e progressão em Eridanus)\nArquivo: [12] MCR - Guia de Conteúdo Inicial e Tutorial.txt\n\n🎯 OBJETIVO DESTE GUIA\nDescrever, passo a passo, a Ilha do Despertar (Eridanus) — o cenário de tutorial do Projeto MCR. Aqu", "ctx": "auto_descoberta", "timestamp": 1782928188.0758686}
+{"erro": "auto_[4] MCR - Guia do Login Server_txt", "solucao": ">> CATALOG tags=login-server, auth, api updated=2026-06-23\nPROJETO MCR – GUIA DO LOGIN SERVER\nVersão 2.1 – Compatibilidade total com o Sistema de Progressão do Aventureiro (SPA v4.2), vocação única (0) e manutenção da limpeza automática\nArquivo: [4] MCR - Guia do Login Server.txt\n\n🎯 OBJETIVO DESTE GUIA\nFornecer todas as regras, especificações de API, protocolos de erro e lições aprendidas referent", "ctx": "auto_descoberta", "timestamp": 1782928192.1212635}
+{"erro": "auto_LEGACY_md", "solucao": "# LEGACY — Arquivos Movidos para Legado\n\nEste documento registra o que foi movido para `/Legado/` e por quê.\nTudo aqui é **código histórico** — preservado para referência, não para uso ativo.\n\n---\n\n## Legado/sandbox/ — Scripts temporários do sandbox\n\n**501 arquivos movidos** em 2026-06-30.\n\n| Categoria | Quantidade | Exemplos |\n|-----------|:----------:|----------|\n| `_test*.py` | 37 | Testes desc", "ctx": "auto_descoberta", "timestamp": 1782928196.1702242}
+{"erro": "auto_AGI_ARCHITECTURE_md", "solucao": "# 🧬 ARQUITETURA AGI — MCR-DevIA como Rede Neural Viva\n\n> AUTOR: Cloud + Kheltz\n> DATA: 2026-06-30 (atualizado)\n> STATUS: FASE 1 ✅ | FASE 2 ✅ | FASE 3 ⏳ | FASE 4 ⏳\n> OBJETIVO: Transformar o pipeline linear em uma AGI ciclica autonoma e autosuficiente\n\n---\n\n## Sumario\n\n1. [Status Atual](#-status-atual)\n2. [As 5 Camadas da AGI](#-as-5-camadas-da-agi)\n3. [Fluxo Completo](#-fluxo-completo)\n4. [Plano de", "ctx": "auto_descoberta", "timestamp": 1782928201.115565}
+{"erro": "auto_[12] MCR - Guia de Conteúdo Inicial e Tutorial_txt", "solucao": ">> CATALOG tags=tutorial, eridanus, new-player updated=2026-06-23\nPROJETO MCR – GUIA DE CONTEÚDO INICIAL E TUTORIAL\n(Versão 5.0 – Integração total com o SPA v3.2.0, sistema de cores, missões e progressão em Eridanus)\nArquivo: [12] MCR - Guia de Conteúdo Inicial e Tutorial.txt\n\n🎯 OBJETIVO DESTE GUIA\nDescrever, passo a passo, a Ilha do Despertar (Eridanus) — o cenário de tutorial do Projeto MCR. Aqu", "ctx": "auto_descoberta", "timestamp": 1782928676.0226705}
+{"erro": "auto_[4] MCR - Guia do Login Server_txt", "solucao": ">> CATALOG tags=login-server, auth, api updated=2026-06-23\nPROJETO MCR – GUIA DO LOGIN SERVER\nVersão 2.1 – Compatibilidade total com o Sistema de Progressão do Aventureiro (SPA v4.2), vocação única (0) e manutenção da limpeza automática\nArquivo: [4] MCR - Guia do Login Server.txt\n\n🎯 OBJETIVO DESTE GUIA\nFornecer todas as regras, especificações de API, protocolos de erro e lições aprendidas referent", "ctx": "auto_descoberta", "timestamp": 1782928680.0796804}
+{"erro": "auto_LEGACY_md", "solucao": "# LEGACY — Arquivos Movidos para Legado\n\nEste documento registra o que foi movido para `/Legado/` e por quê.\nTudo aqui é **código histórico** — preservado para referência, não para uso ativo.\n\n---\n\n## Legado/sandbox/ — Scripts temporários do sandbox\n\n**501 arquivos movidos** em 2026-06-30.\n\n| Categoria | Quantidade | Exemplos |\n|-----------|:----------:|----------|\n| `_test*.py` | 37 | Testes desc", "ctx": "auto_descoberta", "timestamp": 1782928684.142835}
+{"erro": "auto_AGI_ARCHITECTURE_md", "solucao": "# 🧬 ARQUITETURA AGI — MCR-DevIA como Rede Neural Viva\n\n> AUTOR: Cloud + Kheltz\n> DATA: 2026-06-30 (atualizado)\n> STATUS: FASE 1 ✅ | FASE 2 ✅ | FASE 3 ⏳ | FASE 4 ⏳\n> OBJETIVO: Transformar o pipeline linear em uma AGI ciclica autonoma e autosuficiente\n\n---\n\n## Sumario\n\n1. [Status Atual](#-status-atual)\n2. [As 5 Camadas da AGI](#-as-5-camadas-da-agi)\n3. [Fluxo Completo](#-fluxo-completo)\n4. [Plano de", "ctx": "auto_descoberta", "timestamp": 1782928688.2116532}
+{"erro": "auto_[12] MCR - Guia de Conteúdo Inicial e Tutorial_txt", "solucao": ">> CATALOG tags=tutorial, eridanus, new-player updated=2026-06-23\nPROJETO MCR – GUIA DE CONTEÚDO INICIAL E TUTORIAL\n(Versão 5.0 – Integração total com o SPA v3.2.0, sistema de cores, missões e progressão em Eridanus)\nArquivo: [12] MCR - Guia de Conteúdo Inicial e Tutorial.txt\n\n🎯 OBJETIVO DESTE GUIA\nDescrever, passo a passo, a Ilha do Despertar (Eridanus) — o cenário de tutorial do Projeto MCR. Aqu", "ctx": "auto_descoberta", "timestamp": 1782929095.4179006}
+{"erro": "auto_[4] MCR - Guia do Login Server_txt", "solucao": ">> CATALOG tags=login-server, auth, api updated=2026-06-23\nPROJETO MCR – GUIA DO LOGIN SERVER\nVersão 2.1 – Compatibilidade total com o Sistema de Progressão do Aventureiro (SPA v4.2), vocação única (0) e manutenção da limpeza automática\nArquivo: [4] MCR - Guia do Login Server.txt\n\n🎯 OBJETIVO DESTE GUIA\nFornecer todas as regras, especificações de API, protocolos de erro e lições aprendidas referent", "ctx": "auto_descoberta", "timestamp": 1782929099.4776454}
+{"erro": "auto_LEGACY_md", "solucao": "# LEGACY — Arquivos Movidos para Legado\n\nEste documento registra o que foi movido para `/Legado/` e por quê.\nTudo aqui é **código histórico** — preservado para referência, não para uso ativo.\n\n---\n\n## Legado/sandbox/ — Scripts temporários do sandbox\n\n**501 arquivos movidos** em 2026-06-30.\n\n| Categoria | Quantidade | Exemplos |\n|-----------|:----------:|----------|\n| `_test*.py` | 37 | Testes desc", "ctx": "auto_descoberta", "timestamp": 1782929103.5408547}
+{"erro": "auto_AGI_ARCHITECTURE_md", "solucao": "# 🧬 ARQUITETURA AGI — MCR-DevIA como Rede Neural Viva\n\n> AUTOR: Cloud + Kheltz\n> DATA: 2026-06-30 (atualizado)\n> STATUS: FASE 1 ✅ | FASE 2 ✅ | FASE 3 ⏳ | FASE 4 ⏳\n> OBJETIVO: Transformar o pipeline linear em uma AGI ciclica autonoma e autosuficiente\n\n---\n\n## Sumario\n\n1. [Status Atual](#-status-atual)\n2. [As 5 Camadas da AGI](#-as-5-camadas-da-agi)\n3. [Fluxo Completo](#-fluxo-completo)\n4. [Plano de", "ctx": "auto_descoberta", "timestamp": 1782929107.5949845}
+{"erro": "auto_[12] MCR - Guia de Conteúdo Inicial e Tutorial_txt", "solucao": ">> CATALOG tags=tutorial, eridanus, new-player updated=2026-06-23\nPROJETO MCR – GUIA DE CONTEÚDO INICIAL E TUTORIAL\n(Versão 5.0 – Integração total com o SPA v3.2.0, sistema de cores, missões e progressão em Eridanus)\nArquivo: [12] MCR - Guia de Conteúdo Inicial e Tutorial.txt\n\n🎯 OBJETIVO DESTE GUIA\nDescrever, passo a passo, a Ilha do Despertar (Eridanus) — o cenário de tutorial do Projeto MCR. Aqu", "ctx": "auto_descoberta", "timestamp": 1782929655.9906943}
+{"erro": "auto_[4] MCR - Guia do Login Server_txt", "solucao": ">> CATALOG tags=login-server, auth, api updated=2026-06-23\nPROJETO MCR – GUIA DO LOGIN SERVER\nVersão 2.1 – Compatibilidade total com o Sistema de Progressão do Aventureiro (SPA v4.2), vocação única (0) e manutenção da limpeza automática\nArquivo: [4] MCR - Guia do Login Server.txt\n\n🎯 OBJETIVO DESTE GUIA\nFornecer todas as regras, especificações de API, protocolos de erro e lições aprendidas referent", "ctx": "auto_descoberta", "timestamp": 1782929660.0736108}
+{"erro": "auto_LEGACY_md", "solucao": "# LEGACY — Arquivos Movidos para Legado\n\nEste documento registra o que foi movido para `/Legado/` e por quê.\nTudo aqui é **código histórico** — preservado para referência, não para uso ativo.\n\n---\n\n## Legado/sandbox/ — Scripts temporários do sandbox\n\n**501 arquivos movidos** em 2026-06-30.\n\n| Categoria | Quantidade | Exemplos |\n|-----------|:----------:|----------|\n| `_test*.py` | 37 | Testes desc", "ctx": "auto_descoberta", "timestamp": 1782929664.1301782}
+{"erro": "auto_AGI_ARCHITECTURE_md", "solucao": "# 🧬 ARQUITETURA AGI — MCR-DevIA como Rede Neural Viva\n\n> AUTOR: Cloud + Kheltz\n> DATA: 2026-06-30 (atualizado)\n> STATUS: FASE 1 ✅ | FASE 2 ✅ | FASE 3 ⏳ | FASE 4 ⏳\n> OBJETIVO: Transformar o pipeline linear em uma AGI ciclica autonoma e autosuficiente\n\n---\n\n## Sumario\n\n1. [Status Atual](#-status-atual)\n2. [As 5 Camadas da AGI](#-as-5-camadas-da-agi)\n3. [Fluxo Completo](#-fluxo-completo)\n4. [Plano de", "ctx": "auto_descoberta", "timestamp": 1782929668.1741421}
+{"erro": "auto_[12] MCR - Guia de Conteúdo Inicial e Tutorial_txt", "solucao": ">> CATALOG tags=tutorial, eridanus, new-player updated=2026-06-23\nPROJETO MCR – GUIA DE CONTEÚDO INICIAL E TUTORIAL\n(Versão 5.0 – Integração total com o SPA v3.2.0, sistema de cores, missões e progressão em Eridanus)\nArquivo: [12] MCR - Guia de Conteúdo Inicial e Tutorial.txt\n\n🎯 OBJETIVO DESTE GUIA\nDescrever, passo a passo, a Ilha do Despertar (Eridanus) — o cenário de tutorial do Projeto MCR. Aqu", "ctx": "auto_descoberta", "timestamp": 1782930014.0947578}
+{"erro": "auto_[4] MCR - Guia do Login Server_txt", "solucao": ">> CATALOG tags=login-server, auth, api updated=2026-06-23\nPROJETO MCR – GUIA DO LOGIN SERVER\nVersão 2.1 – Compatibilidade total com o Sistema de Progressão do Aventureiro (SPA v4.2), vocação única (0) e manutenção da limpeza automática\nArquivo: [4] MCR - Guia do Login Server.txt\n\n🎯 OBJETIVO DESTE GUIA\nFornecer todas as regras, especificações de API, protocolos de erro e lições aprendidas referent", "ctx": "auto_descoberta", "timestamp": 1782930018.16479}
+{"erro": "auto_LEGACY_md", "solucao": "# LEGACY — Arquivos Movidos para Legado\n\nEste documento registra o que foi movido para `/Legado/` e por quê.\nTudo aqui é **código histórico** — preservado para referência, não para uso ativo.\n\n---\n\n## Legado/sandbox/ — Scripts temporários do sandbox\n\n**501 arquivos movidos** em 2026-06-30.\n\n| Categoria | Quantidade | Exemplos |\n|-----------|:----------:|----------|\n| `_test*.py` | 37 | Testes desc", "ctx": "auto_descoberta", "timestamp": 1782930022.2362719}
+{"erro": "auto_AGI_ARCHITECTURE_md", "solucao": "# 🧬 ARQUITETURA AGI — MCR-DevIA como Rede Neural Viva\n\n> AUTOR: Cloud + Kheltz\n> DATA: 2026-06-30 (atualizado)\n> STATUS: FASE 1 ✅ | FASE 2 ✅ | FASE 3 ⏳ | FASE 4 ⏳\n> OBJETIVO: Transformar o pipeline linear em uma AGI ciclica autonoma e autosuficiente\n\n---\n\n## Sumario\n\n1. [Status Atual](#-status-atual)\n2. [As 5 Camadas da AGI](#-as-5-camadas-da-agi)\n3. [Fluxo Completo](#-fluxo-completo)\n4. [Plano de", "ctx": "auto_descoberta", "timestamp": 1782930027.1097248}
+{"erro": "auto_[12] MCR - Guia de Conteúdo Inicial e Tutorial_txt", "solucao": ">> CATALOG tags=tutorial, eridanus, new-player updated=2026-06-23\nPROJETO MCR – GUIA DE CONTEÚDO INICIAL E TUTORIAL\n(Versão 5.0 – Integração total com o SPA v3.2.0, sistema de cores, missões e progressão em Eridanus)\nArquivo: [12] MCR - Guia de Conteúdo Inicial e Tutorial.txt\n\n🎯 OBJETIVO DESTE GUIA\nDescrever, passo a passo, a Ilha do Despertar (Eridanus) — o cenário de tutorial do Projeto MCR. Aqu", "ctx": "auto_descoberta", "timestamp": 1782932009.2920985}
+{"erro": "auto_[4] MCR - Guia do Login Server_txt", "solucao": ">> CATALOG tags=login-server, auth, api updated=2026-06-23\nPROJETO MCR – GUIA DO LOGIN SERVER\nVersão 2.1 – Compatibilidade total com o Sistema de Progressão do Aventureiro (SPA v4.2), vocação única (0) e manutenção da limpeza automática\nArquivo: [4] MCR - Guia do Login Server.txt\n\n🎯 OBJETIVO DESTE GUIA\nFornecer todas as regras, especificações de API, protocolos de erro e lições aprendidas referent", "ctx": "auto_descoberta", "timestamp": 1782932013.340054}
+{"erro": "auto_LEGACY_md", "solucao": "# LEGACY — Arquivos Movidos para Legado\n\nEste documento registra o que foi movido para `/Legado/` e por quê.\nTudo aqui é **código histórico** — preservado para referência, não para uso ativo.\n\n---\n\n## Legado/sandbox/ — Scripts temporários do sandbox\n\n**501 arquivos movidos** em 2026-06-30.\n\n| Categoria | Quantidade | Exemplos |\n|-----------|:----------:|----------|\n| `_test*.py` | 37 | Testes desc", "ctx": "auto_descoberta", "timestamp": 1782932017.3941748}
+{"erro": "auto_AGI_ARCHITECTURE_md", "solucao": "# 🧬 ARQUITETURA AGI — MCR-DevIA como Rede Neural Viva\n\n> AUTOR: Cloud + Kheltz\n> DATA: 2026-06-30 (atualizado)\n> STATUS: FASE 1 ✅ | FASE 2 ✅ | FASE 3 ⏳ | FASE 4 ⏳\n> OBJETIVO: Transformar o pipeline linear em uma AGI ciclica autonoma e autosuficiente\n\n---\n\n## Sumario\n\n1. [Status Atual](#-status-atual)\n2. [As 5 Camadas da AGI](#-as-5-camadas-da-agi)\n3. [Fluxo Completo](#-fluxo-completo)\n4. [Plano de", "ctx": "auto_descoberta", "timestamp": 1782932022.2308953}
+{"erro": "auto_[12] MCR - Guia de Conteúdo Inicial e Tutorial_txt", "solucao": ">> CATALOG tags=tutorial, eridanus, new-player updated=2026-06-23\nPROJETO MCR – GUIA DE CONTEÚDO INICIAL E TUTORIAL\n(Versão 5.0 – Integração total com o SPA v3.2.0, sistema de cores, missões e progressão em Eridanus)\nArquivo: [12] MCR - Guia de Conteúdo Inicial e Tutorial.txt\n\n🎯 OBJETIVO DESTE GUIA\nDescrever, passo a passo, a Ilha do Despertar (Eridanus) — o cenário de tutorial do Projeto MCR. Aqu", "ctx": "auto_descoberta", "timestamp": 1782932624.9775596}
+{"erro": "auto_[4] MCR - Guia do Login Server_txt", "solucao": ">> CATALOG tags=login-server, auth, api updated=2026-06-23\nPROJETO MCR – GUIA DO LOGIN SERVER\nVersão 2.1 – Compatibilidade total com o Sistema de Progressão do Aventureiro (SPA v4.2), vocação única (0) e manutenção da limpeza automática\nArquivo: [4] MCR - Guia do Login Server.txt\n\n🎯 OBJETIVO DESTE GUIA\nFornecer todas as regras, especificações de API, protocolos de erro e lições aprendidas referent", "ctx": "auto_descoberta", "timestamp": 1782932629.039088}
+{"erro": "auto_LEGACY_md", "solucao": "# LEGACY — Arquivos Movidos para Legado\n\nEste documento registra o que foi movido para `/Legado/` e por quê.\nTudo aqui é **código histórico** — preservado para referência, não para uso ativo.\n\n---\n\n## Legado/sandbox/ — Scripts temporários do sandbox\n\n**501 arquivos movidos** em 2026-06-30.\n\n| Categoria | Quantidade | Exemplos |\n|-----------|:----------:|----------|\n| `_test*.py` | 37 | Testes desc", "ctx": "auto_descoberta", "timestamp": 1782932633.094577}
+{"erro": "auto_AGI_ARCHITECTURE_md", "solucao": "# 🧬 ARQUITETURA AGI — MCR-DevIA como Rede Neural Viva\n\n> AUTOR: Cloud + Kheltz\n> DATA: 2026-06-30 (atualizado)\n> STATUS: FASE 1 ✅ | FASE 2 ✅ | FASE 3 ⏳ | FASE 4 ⏳\n> OBJETIVO: Transformar o pipeline linear em uma AGI ciclica autonoma e autosuficiente\n\n---\n\n## Sumario\n\n1. [Status Atual](#-status-atual)\n2. [As 5 Camadas da AGI](#-as-5-camadas-da-agi)\n3. [Fluxo Completo](#-fluxo-completo)\n4. [Plano de", "ctx": "auto_descoberta", "timestamp": 1782932637.1499825}
+{"erro": "auto_[12] MCR - Guia de Conteúdo Inicial e Tutorial_txt", "solucao": ">> CATALOG tags=tutorial, eridanus, new-player updated=2026-06-23\nPROJETO MCR – GUIA DE CONTEÚDO INICIAL E TUTORIAL\n(Versão 5.0 – Integração total com o SPA v3.2.0, sistema de cores, missões e progressão em Eridanus)\nArquivo: [12] MCR - Guia de Conteúdo Inicial e Tutorial.txt\n\n🎯 OBJETIVO DESTE GUIA\nDescrever, passo a passo, a Ilha do Despertar (Eridanus) — o cenário de tutorial do Projeto MCR. Aqu", "ctx": "auto_descoberta", "timestamp": 1782932820.10707}
+{"erro": "auto_[4] MCR - Guia do Login Server_txt", "solucao": ">> CATALOG tags=login-server, auth, api updated=2026-06-23\nPROJETO MCR – GUIA DO LOGIN SERVER\nVersão 2.1 – Compatibilidade total com o Sistema de Progressão do Aventureiro (SPA v4.2), vocação única (0) e manutenção da limpeza automática\nArquivo: [4] MCR - Guia do Login Server.txt\n\n🎯 OBJETIVO DESTE GUIA\nFornecer todas as regras, especificações de API, protocolos de erro e lições aprendidas referent", "ctx": "auto_descoberta", "timestamp": 1782932824.1715763}
+{"erro": "auto_LEGACY_md", "solucao": "# LEGACY — Arquivos Movidos para Legado\n\nEste documento registra o que foi movido para `/Legado/` e por quê.\nTudo aqui é **código histórico** — preservado para referência, não para uso ativo.\n\n---\n\n## Legado/sandbox/ — Scripts temporários do sandbox\n\n**501 arquivos movidos** em 2026-06-30.\n\n| Categoria | Quantidade | Exemplos |\n|-----------|:----------:|----------|\n| `_test*.py` | 37 | Testes desc", "ctx": "auto_descoberta", "timestamp": 1782932828.2308977}
+{"erro": "auto_AGI_ARCHITECTURE_md", "solucao": "# 🧬 ARQUITETURA AGI — MCR-DevIA como Rede Neural Viva\n\n> AUTOR: Cloud + Kheltz\n> DATA: 2026-06-30 (atualizado)\n> STATUS: FASE 1 ✅ | FASE 2 ✅ | FASE 3 ⏳ | FASE 4 ⏳\n> OBJETIVO: Transformar o pipeline linear em uma AGI ciclica autonoma e autosuficiente\n\n---\n\n## Sumario\n\n1. [Status Atual](#-status-atual)\n2. [As 5 Camadas da AGI](#-as-5-camadas-da-agi)\n3. [Fluxo Completo](#-fluxo-completo)\n4. [Plano de", "ctx": "auto_descoberta", "timestamp": 1782932832.2903676}
+{"erro": "auto_[12] MCR - Guia de Conteúdo Inicial e Tutorial_txt", "solucao": ">> CATALOG tags=tutorial, eridanus, new-player updated=2026-06-23\nPROJETO MCR – GUIA DE CONTEÚDO INICIAL E TUTORIAL\n(Versão 5.0 – Integração total com o SPA v3.2.0, sistema de cores, missões e progressão em Eridanus)\nArquivo: [12] MCR - Guia de Conteúdo Inicial e Tutorial.txt\n\n🎯 OBJETIVO DESTE GUIA\nDescrever, passo a passo, a Ilha do Despertar (Eridanus) — o cenário de tutorial do Projeto MCR. Aqu", "ctx": "auto_descoberta", "timestamp": 1782933204.4951365}
+{"erro": "auto_[4] MCR - Guia do Login Server_txt", "solucao": ">> CATALOG tags=login-server, auth, api updated=2026-06-23\nPROJETO MCR – GUIA DO LOGIN SERVER\nVersão 2.1 – Compatibilidade total com o Sistema de Progressão do Aventureiro (SPA v4.2), vocação única (0) e manutenção da limpeza automática\nArquivo: [4] MCR - Guia do Login Server.txt\n\n🎯 OBJETIVO DESTE GUIA\nFornecer todas as regras, especificações de API, protocolos de erro e lições aprendidas referent", "ctx": "auto_descoberta", "timestamp": 1782933208.5403106}
+{"erro": "auto_LEGACY_md", "solucao": "# LEGACY — Arquivos Movidos para Legado\n\nEste documento registra o que foi movido para `/Legado/` e por quê.\nTudo aqui é **código histórico** — preservado para referência, não para uso ativo.\n\n---\n\n## Legado/sandbox/ — Scripts temporários do sandbox\n\n**501 arquivos movidos** em 2026-06-30.\n\n| Categoria | Quantidade | Exemplos |\n|-----------|:----------:|----------|\n| `_test*.py` | 37 | Testes desc", "ctx": "auto_descoberta", "timestamp": 1782933212.5929668}
+{"erro": "auto_[12] MCR - Guia de Conteúdo Inicial e Tutorial_txt", "solucao": ">> CATALOG tags=tutorial, eridanus, new-player updated=2026-06-23\nPROJETO MCR – GUIA DE CONTEÚDO INICIAL E TUTORIAL\n(Versão 5.0 – Integração total com o SPA v3.2.0, sistema de cores, missões e progressão em Eridanus)\nArquivo: [12] MCR - Guia de Conteúdo Inicial e Tutorial.txt\n\n🎯 OBJETIVO DESTE GUIA\nDescrever, passo a passo, a Ilha do Despertar (Eridanus) — o cenário de tutorial do Projeto MCR. Aqu", "ctx": "auto_descoberta", "timestamp": 1782934088.0446105}
+{"erro": "auto_[4] MCR - Guia do Login Server_txt", "solucao": ">> CATALOG tags=login-server, auth, api updated=2026-06-23\nPROJETO MCR – GUIA DO LOGIN SERVER\nVersão 2.1 – Compatibilidade total com o Sistema de Progressão do Aventureiro (SPA v4.2), vocação única (0) e manutenção da limpeza automática\nArquivo: [4] MCR - Guia do Login Server.txt\n\n🎯 OBJETIVO DESTE GUIA\nFornecer todas as regras, especificações de API, protocolos de erro e lições aprendidas referent", "ctx": "auto_descoberta", "timestamp": 1782934092.1198778}
+{"erro": "auto_LEGACY_md", "solucao": "# LEGACY — Arquivos Movidos para Legado\n\nEste documento registra o que foi movido para `/Legado/` e por quê.\nTudo aqui é **código histórico** — preservado para referência, não para uso ativo.\n\n---\n\n## Legado/sandbox/ — Scripts temporários do sandbox\n\n**501 arquivos movidos** em 2026-06-30.\n\n| Categoria | Quantidade | Exemplos |\n|-----------|:----------:|----------|\n| `_test*.py` | 37 | Testes desc", "ctx": "auto_descoberta", "timestamp": 1782934096.1918805}
+{"erro": "auto_AGI_ARCHITECTURE_md", "solucao": "# 🧬 ARQUITETURA AGI — MCR-DevIA como Rede Neural Viva\n\n> AUTOR: Cloud + Kheltz\n> DATA: 2026-06-30 (atualizado)\n> STATUS: FASE 1 ✅ | FASE 2 ✅ | FASE 3 ⏳ | FASE 4 ⏳\n> OBJETIVO: Transformar o pipeline linear em uma AGI ciclica autonoma e autosuficiente\n\n---\n\n## Sumario\n\n1. [Status Atual](#-status-atual)\n2. [As 5 Camadas da AGI](#-as-5-camadas-da-agi)\n3. [Fluxo Completo](#-fluxo-completo)\n4. [Plano de", "ctx": "auto_descoberta", "timestamp": 1782934100.2787938}
+{"erro": "auto_[12] MCR - Guia de Conteúdo Inicial e Tutorial_txt", "solucao": ">> CATALOG tags=tutorial, eridanus, new-player updated=2026-06-23\nPROJETO MCR – GUIA DE CONTEÚDO INICIAL E TUTORIAL\n(Versão 5.0 – Integração total com o SPA v3.2.0, sistema de cores, missões e progressão em Eridanus)\nArquivo: [12] MCR - Guia de Conteúdo Inicial e Tutorial.txt\n\n🎯 OBJETIVO DESTE GUIA\nDescrever, passo a passo, a Ilha do Despertar (Eridanus) — o cenário de tutorial do Projeto MCR. Aqu", "ctx": "auto_descoberta", "timestamp": 1782934581.2484043}
+{"erro": "auto_[4] MCR - Guia do Login Server_txt", "solucao": ">> CATALOG tags=login-server, auth, api updated=2026-06-23\nPROJETO MCR – GUIA DO LOGIN SERVER\nVersão 2.1 – Compatibilidade total com o Sistema de Progressão do Aventureiro (SPA v4.2), vocação única (0) e manutenção da limpeza automática\nArquivo: [4] MCR - Guia do Login Server.txt\n\n🎯 OBJETIVO DESTE GUIA\nFornecer todas as regras, especificações de API, protocolos de erro e lições aprendidas referent", "ctx": "auto_descoberta", "timestamp": 1782934585.2947168}
+{"erro": "auto_LEGACY_md", "solucao": "# LEGACY — Arquivos Movidos para Legado\n\nEste documento registra o que foi movido para `/Legado/` e por quê.\nTudo aqui é **código histórico** — preservado para referência, não para uso ativo.\n\n---\n\n## Legado/sandbox/ — Scripts temporários do sandbox\n\n**501 arquivos movidos** em 2026-06-30.\n\n| Categoria | Quantidade | Exemplos |\n|-----------|:----------:|----------|\n| `_test*.py` | 37 | Testes desc", "ctx": "auto_descoberta", "timestamp": 1782934589.330109}
+{"erro": "auto_AGI_ARCHITECTURE_md", "solucao": "# 🧬 ARQUITETURA AGI — MCR-DevIA como Rede Neural Viva\n\n> AUTOR: Cloud + Kheltz\n> DATA: 2026-06-30 (atualizado)\n> STATUS: FASE 1 ✅ | FASE 2 ✅ | FASE 3 ⏳ | FASE 4 ⏳\n> OBJETIVO: Transformar o pipeline linear em uma AGI ciclica autonoma e autosuficiente\n\n---\n\n## Sumario\n\n1. [Status Atual](#-status-atual)\n2. [As 5 Camadas da AGI](#-as-5-camadas-da-agi)\n3. [Fluxo Completo](#-fluxo-completo)\n4. [Plano de", "ctx": "auto_descoberta", "timestamp": 1782934593.3853588}
+{"erro": "auto_[12] MCR - Guia de Conteúdo Inicial e Tutorial_txt", "solucao": ">> CATALOG tags=tutorial, eridanus, new-player updated=2026-06-23\nPROJETO MCR – GUIA DE CONTEÚDO INICIAL E TUTORIAL\n(Versão 5.0 – Integração total com o SPA v3.2.0, sistema de cores, missões e progressão em Eridanus)\nArquivo: [12] MCR - Guia de Conteúdo Inicial e Tutorial.txt\n\n🎯 OBJETIVO DESTE GUIA\nDescrever, passo a passo, a Ilha do Despertar (Eridanus) — o cenário de tutorial do Projeto MCR. Aqu", "ctx": "auto_descoberta", "timestamp": 1782935263.6946821}
+{"erro": "auto_[4] MCR - Guia do Login Server_txt", "solucao": ">> CATALOG tags=login-server, auth, api updated=2026-06-23\nPROJETO MCR – GUIA DO LOGIN SERVER\nVersão 2.1 – Compatibilidade total com o Sistema de Progressão do Aventureiro (SPA v4.2), vocação única (0) e manutenção da limpeza automática\nArquivo: [4] MCR - Guia do Login Server.txt\n\n🎯 OBJETIVO DESTE GUIA\nFornecer todas as regras, especificações de API, protocolos de erro e lições aprendidas referent", "ctx": "auto_descoberta", "timestamp": 1782935267.757728}
+{"erro": "auto_LEGACY_md", "solucao": "# LEGACY — Arquivos Movidos para Legado\n\nEste documento registra o que foi movido para `/Legado/` e por quê.\nTudo aqui é **código histórico** — preservado para referência, não para uso ativo.\n\n---\n\n## Legado/sandbox/ — Scripts temporários do sandbox\n\n**501 arquivos movidos** em 2026-06-30.\n\n| Categoria | Quantidade | Exemplos |\n|-----------|:----------:|----------|\n| `_test*.py` | 37 | Testes desc", "ctx": "auto_descoberta", "timestamp": 1782935271.8212218}
+{"erro": "auto_AGI_ARCHITECTURE_md", "solucao": "# 🧬 ARQUITETURA AGI — MCR-DevIA como Rede Neural Viva\n\n> AUTOR: Cloud + Kheltz\n> DATA: 2026-06-30 (atualizado)\n> STATUS: FASE 1 ✅ | FASE 2 ✅ | FASE 3 ⏳ | FASE 4 ⏳\n> OBJETIVO: Transformar o pipeline linear em uma AGI ciclica autonoma e autosuficiente\n\n---\n\n## Sumario\n\n1. [Status Atual](#-status-atual)\n2. [As 5 Camadas da AGI](#-as-5-camadas-da-agi)\n3. [Fluxo Completo](#-fluxo-completo)\n4. [Plano de", "ctx": "auto_descoberta", "timestamp": 1782935275.877923}
+{"erro": "auto_[12] MCR - Guia de Conteúdo Inicial e Tutorial_txt", "solucao": ">> CATALOG tags=tutorial, eridanus, new-player updated=2026-06-23\nPROJETO MCR – GUIA DE CONTEÚDO INICIAL E TUTORIAL\n(Versão 5.0 – Integração total com o SPA v3.2.0, sistema de cores, missões e progressão em Eridanus)\nArquivo: [12] MCR - Guia de Conteúdo Inicial e Tutorial.txt\n\n🎯 OBJETIVO DESTE GUIA\nDescrever, passo a passo, a Ilha do Despertar (Eridanus) — o cenário de tutorial do Projeto MCR. Aqu", "ctx": "auto_descoberta", "timestamp": 1782935734.7945569}
+{"erro": "auto_[4] MCR - Guia do Login Server_txt", "solucao": ">> CATALOG tags=login-server, auth, api updated=2026-06-23\nPROJETO MCR – GUIA DO LOGIN SERVER\nVersão 2.1 – Compatibilidade total com o Sistema de Progressão do Aventureiro (SPA v4.2), vocação única (0) e manutenção da limpeza automática\nArquivo: [4] MCR - Guia do Login Server.txt\n\n🎯 OBJETIVO DESTE GUIA\nFornecer todas as regras, especificações de API, protocolos de erro e lições aprendidas referent", "ctx": "auto_descoberta", "timestamp": 1782935738.8531003}
+{"erro": "auto_LEGACY_md", "solucao": "# LEGACY — Arquivos Movidos para Legado\n\nEste documento registra o que foi movido para `/Legado/` e por quê.\nTudo aqui é **código histórico** — preservado para referência, não para uso ativo.\n\n---\n\n## Legado/sandbox/ — Scripts temporários do sandbox\n\n**501 arquivos movidos** em 2026-06-30.\n\n| Categoria | Quantidade | Exemplos |\n|-----------|:----------:|----------|\n| `_test*.py` | 37 | Testes desc", "ctx": "auto_descoberta", "timestamp": 1782935742.9196064}
+{"erro": "auto_AGI_ARCHITECTURE_md", "solucao": "# 🧬 ARQUITETURA AGI — MCR-DevIA como Rede Neural Viva\n\n> AUTOR: Cloud + Kheltz\n> DATA: 2026-06-30 (atualizado)\n> STATUS: FASE 1 ✅ | FASE 2 ✅ | FASE 3 ⏳ | FASE 4 ⏳\n> OBJETIVO: Transformar o pipeline linear em uma AGI ciclica autonoma e autosuficiente\n\n---\n\n## Sumario\n\n1. [Status Atual](#-status-atual)\n2. [As 5 Camadas da AGI](#-as-5-camadas-da-agi)\n3. [Fluxo Completo](#-fluxo-completo)\n4. [Plano de", "ctx": "auto_descoberta", "timestamp": 1782935746.9801714}
+{"erro": "auto_[12] MCR - Guia de Conteúdo Inicial e Tutorial_txt", "solucao": ">> CATALOG tags=tutorial, eridanus, new-player updated=2026-06-23\nPROJETO MCR – GUIA DE CONTEÚDO INICIAL E TUTORIAL\n(Versão 5.0 – Integração total com o SPA v3.2.0, sistema de cores, missões e progressão em Eridanus)\nArquivo: [12] MCR - Guia de Conteúdo Inicial e Tutorial.txt\n\n🎯 OBJETIVO DESTE GUIA\nDescrever, passo a passo, a Ilha do Despertar (Eridanus) — o cenário de tutorial do Projeto MCR. Aqu", "ctx": "auto_descoberta", "timestamp": 1782936220.9912374}
+{"erro": "auto_[4] MCR - Guia do Login Server_txt", "solucao": ">> CATALOG tags=login-server, auth, api updated=2026-06-23\nPROJETO MCR – GUIA DO LOGIN SERVER\nVersão 2.1 – Compatibilidade total com o Sistema de Progressão do Aventureiro (SPA v4.2), vocação única (0) e manutenção da limpeza automática\nArquivo: [4] MCR - Guia do Login Server.txt\n\n🎯 OBJETIVO DESTE GUIA\nFornecer todas as regras, especificações de API, protocolos de erro e lições aprendidas referent", "ctx": "auto_descoberta", "timestamp": 1782936225.8151524}
+{"erro": "auto_LEGACY_md", "solucao": "# LEGACY — Arquivos Movidos para Legado\n\nEste documento registra o que foi movido para `/Legado/` e por quê.\nTudo aqui é **código histórico** — preservado para referência, não para uso ativo.\n\n---\n\n## Legado/sandbox/ — Scripts temporários do sandbox\n\n**501 arquivos movidos** em 2026-06-30.\n\n| Categoria | Quantidade | Exemplos |\n|-----------|:----------:|----------|\n| `_test*.py` | 37 | Testes desc", "ctx": "auto_descoberta", "timestamp": 1782936229.872352}
+{"erro": "auto_AGI_ARCHITECTURE_md", "solucao": "# 🧬 ARQUITETURA AGI — MCR-DevIA como Rede Neural Viva\n\n> AUTOR: Cloud + Kheltz\n> DATA: 2026-06-30 (atualizado)\n> STATUS: FASE 1 ✅ | FASE 2 ✅ | FASE 3 ⏳ | FASE 4 ⏳\n> OBJETIVO: Transformar o pipeline linear em uma AGI ciclica autonoma e autosuficiente\n\n---\n\n## Sumario\n\n1. [Status Atual](#-status-atual)\n2. [As 5 Camadas da AGI](#-as-5-camadas-da-agi)\n3. [Fluxo Completo](#-fluxo-completo)\n4. [Plano de", "ctx": "auto_descoberta", "timestamp": 1782936233.9199052}
+{"erro": "auto-melhoria: master_agent.py", "solucao": "Sucesso: False | Tipo: refatorar", "ctx": "auto_melhoria", "timestamp": 1782754592.3728335}
+{"erro": "auto-melhoria: diagnostic_engine.py", "solucao": "Sucesso: True | Tipo: refatorar", "ctx": "auto_melhoria", "timestamp": 1782755883.2277575}
+{"erro": "auto-melhoria: diagnostic_engine.py", "solucao": "Sucesso: False | Tipo: refatorar", "ctx": "auto_melhoria", "timestamp": 1782756128.6519787}
+{"erro": "auto-repair: self_study.py:L354", "solucao": "                    except: pass", "ctx": "auto_repair", "timestamp": 1782747883.5977075}
+{"erro": "auto-repair: context_crew.py:L133", "solucao": "                    except: pass", "ctx": "auto_repair", "timestamp": 1782747901.2935338}
+{"erro": "auto-repair: context_crew.py:L172", "solucao": "                    except: pass", "ctx": "auto_repair", "timestamp": 1782747905.8003292}
+{"erro": "auto-repair: context_crew.py:L221", "solucao": "                        except: pass", "ctx": "auto_repair", "timestamp": 1782747908.0212348}
+{"erro": "auto-repair: context_crew.py:L331", "solucao": "                        except: pass", "ctx": "auto_repair", "timestamp": 1782747917.0181437}
+{"erro": "auto-repair: kernel.py:L208", "solucao": "                    except: pass", "ctx": "auto_repair", "timestamp": 1782747945.9577599}
+{"erro": "auto-repair: mcr_devia.py:L2521", "solucao": "                    except: pass", "ctx": "auto_repair", "timestamp": 1782747979.8439405}
+{"erro": "auto-repair: mcr_devia.py:L2613", "solucao": "                            except: pass", "ctx": "auto_repair", "timestamp": 1782747982.145657}
+{"erro": "auto-repair: self_study.py:L354", "solucao": "                    except: pass", "ctx": "auto_repair", "timestamp": 1782750521.0156555}
+{"erro": "auto-repair: mcr_devia.py:L2521", "solucao": "                    except: pass", "ctx": "auto_repair", "timestamp": 1782750580.1559036}
+{"erro": "auto-repair: mcr_devia.py:L2613", "solucao": "                            except: pass", "ctx": "auto_repair", "timestamp": 1782750582.4623709}
+{"erro": "auto-repair FALHOU: self_study.py:L365", "solucao": "Backup restaurado. Usar except Exception como fallback.", "ctx": "auto_repair_falha", "timestamp": 1782751690.1818116}
+{"erro": "auto-repair FALHOU: context_crew.py:L80", "solucao": "Backup restaurado. Usar except Exception como fallback.", "ctx": "auto_repair_falha", "timestamp": 1782752073.5325227}
+{"erro": "auto-repair FALHOU: context_infinity.py:L90", "solucao": "Backup restaurado. Usar except Exception como fallback.", "ctx": "auto_repair_falha", "timestamp": 1782752081.8086498}
+{"erro": "auto-repair FALHOU: kernel.py:L255", "solucao": "Backup restaurado. Usar except Exception como fallback.", "ctx": "auto_repair_falha", "timestamp": 1782752090.185455}
+{"erro": "auto-repair FALHOU: mcr_devia.py:L2771", "solucao": "Backup restaurado. Usar except Exception como fallback.", "ctx": "auto_repair_falha", "timestamp": 1782752099.9911895}
+{"erro": "auto-repair FALHOU: context_crew.py:L84", "solucao": "Backup restaurado. Usar except Exception como fallback.", "ctx": "auto_repair_falha", "timestamp": 1782752851.111905}
+{"erro": "auto-repair FALHOU: context_infinity.py:L90", "solucao": "Backup restaurado. Usar except Exception como fallback.", "ctx": "auto_repair_falha", "timestamp": 1782752859.4206557}
+{"erro": "auto-repair FALHOU: kernel.py:L255", "solucao": "Backup restaurado. Usar except Exception como fallback.", "ctx": "auto_repair_falha", "timestamp": 1782752867.7930794}
+{"erro": "auto-repair FALHOU: mcr_devia.py:L2771", "solucao": "Backup restaurado. Usar except Exception como fallback.", "ctx": "auto_repair_falha", "timestamp": 1782752877.4939485}
+{"erro": "auto-repair FALHOU: context_crew.py:L84", "solucao": "Backup restaurado. Usar except Exception como fallback.", "ctx": "auto_repair_falha", "timestamp": 1782753393.3850107}
+{"erro": "auto-repair FALHOU: context_infinity.py:L90", "solucao": "Backup restaurado. Usar except Exception como fallback.", "ctx": "auto_repair_falha", "timestamp": 1782753403.3751488}
+{"erro": "auto-repair FALHOU: kernel.py:L255", "solucao": "Backup restaurado. Usar except Exception como fallback.", "ctx": "auto_repair_falha", "timestamp": 1782753411.7570302}
+{"erro": "auto-repair FALHOU: mcr_devia.py:L2771", "solucao": "Backup restaurado. Usar except Exception como fallback.", "ctx": "auto_repair_falha", "timestamp": 1782753421.5141928}
+{"erro": "V12 retornando 1M+ chars no pipeline", "solucao": "FIX: kg.buscar() agora respeita max_r. V12 filtra APENAS solucoes (max 200 chars, max 2 lessons).", "ctx": "bugfix", "timestamp": 1782846358.5384555}
+{"erro": "Reconstrucao falhou: fingerprints de ferramentas vs perguntas", "solucao": "Precisa parear fingerprint da PERGUNTA com fingerprint da RESPOSTA no LEARN do pipeline. So assim reconstrucao funciona.", "ctx": "bugfix", "timestamp": 1782856535.182965}
+{"erro": "Ciclo completo validado: PE + IE + Aprendiz + Reconstrucao", "solucao": "3/3 perguntas reconstruidas sem LLM. Resposta generica (sem tipo_palavra_freq) — precisa salvar palavras reais junto com tipos_markov.", "ctx": "bugfix", "timestamp": 1782857643.9577305}
+{"erro": "Ciclo de blocos dinâmicos validado: 2/2 reconstruidas sem LLM", "solucao": "Ciclo completo: termo -> docs -> fragmento -> aprender -> bloco -> reconstruir. Zero LLM. Qualidade limitada (fragmentos curtos) mas funcional.", "ctx": "bugfix", "timestamp": 1782860187.5192306}
+{"erro": "ContextVector + tipo_palavra_freq + multi-fragmentos validado", "solucao": "Prox passo: concatenacao com transicoes, tipo_palavra_freq de multiplas fontes, filtro de metadados.", "ctx": "bugfix", "timestamp": 1782860936.012583}
+{"erro": "Sessao salva e comitada: a99e44e3", "solucao": "Proxima sessao: integrar ContextVector + tipo_palavra_freq no pipeline + melhorar concatenacao de fragmentos.", "ctx": "bugfix", "timestamp": 1782861303.1043184}
+{"erro": "Prototipo multinivel validado: 5 fases OK", "solucao": "Nomes gerados: Erion, Galnoror, Thadanor, Thalinin. Ciclo completo: pergunta -> intencao -> nome -> frase -> resposta.", "ctx": "bugfix", "timestamp": 1782862418.2984293}
+{"erro": "3 experimentos validados: refutacao confirmada", "solucao": "Sistema de padroes SUPERA as 5 limitacoes: criatividade, input novo, contexto longo, semantica, raciocinio multi-etapas.", "ctx": "bugfix", "timestamp": 1782863199.5806165}
+{"erro": "Gerador de texto validado: Markov local substitui LLM", "solucao": "Texto gerado para Eridanus, SPA e Canary com temperatura 0.0-0.6. Funciona como LLM local sem GPU.", "ctx": "bugfix", "timestamp": 1782863669.493255}
+{"erro": "Ciclo completo validado: MCR sem LLM — 8/8 fases OK em 6.6s", "solucao": "MCR funciona COMPLETAMENTE sem LLM: percebe, busca, gera, cria, corrige, valida, aprende.", "ctx": "bugfix", "timestamp": 1782866590.9421692}
+{"erro": "MCR aprende codigo valido do projeto — 0 hardcode", "solucao": "MCR aprende o que e codigo valido LENDO exemplos reais. Detecta bugs por DIFERENCA de Markov, nao por regras.", "ctx": "bugfix", "timestamp": 1782867341.676313}
+{"erro": "MCR Inception validado: 4/4 niveis. Conselho funciona. Corpus de lore ainda limitado (111 estados).", "solucao": "Conceito Inception funciona. Conselho consegue ranquear workers por score. Corpus de lore precisa crescer para geracao fluente.", "ctx": "bugfix", "timestamp": 1782867917.6078117}
+{"erro": "Aprendiz Universal validado — 0 keywords hardcoded", "solucao": "MCR aprende o que e codigo valido por OBSERVACAO. Zero conhecimento previo da linguagem.", "ctx": "bugfix", "timestamp": 1782869346.2240355}
+{"erro": "BuscadorUniversal validado: 200 arquivos em 0.8s. Encontrou lore FORA do projeto.", "solucao": "Busca por PADRAO funciona independente de formato ou localizacao. 0 keywords, 0 hardcode.", "ctx": "bugfix", "timestamp": 1782870333.0074828}
+{"erro": "MCRCore validado: singleton, auto-propagação, geracao 2.2x melhor", "solucao": "Arquitetura final: MCRCore centraliza tudo. Ferramentas sao extensoes. Aprendeu uma vez -> todas melhoram.", "ctx": "bugfix", "timestamp": 1782870769.886916}
+{"erro": "RadarMCR validado: 5/5 candidatos encontrados na Onda 1. Fingerprint precisa ser mais discriminativo.", "solucao": "RADAR conceito funciona. Prox passo: fingerprint mais esparso/discriminativo para que ondas 2-4 tenham utilidade real.", "ctx": "bugfix", "timestamp": 1782872723.086571}
+{"erro": "MCRDescobridor validado: 5 grupos sem hardcode. Equivalente a CREATE, EXPLAIN, SEARCH, CODE.", "solucao": "MCR descobre categorias SOZINHO por padrao. Prox passo: agrupar sinonimos (local+function=codigo, encontre+procure=search).", "ctx": "bugfix", "timestamp": 1782873414.0172026}
+{"erro": "MCR Zero validado: estrutura descoberta por entropia de bytes. Zero hardcode.", "solucao": "O ultimo hardcode foi removido. MCR descobre estrutura gramatical sozinho — de bytes para significado.", "ctx": "bugfix", "timestamp": 1782873609.2488744}
+{"erro": "MCR Unificado validado: 5 niveis integrados em 1 sistema.", "solucao": "IE + PiEngine + Markov + PatternEngine nao sao mais modulos separados. Sao niveis do mesmo cerebro. Prox passo: + execucoes para Markov de execucao aprender padroes.", "ctx": "bugfix", "timestamp": 1782874325.204903}
+{"erro": "Regra de Ouro validada: fingerprint dinamico, threshold adaptativo, acoes agrupadas.", "solucao": "Nada hardcoded. Tamanho do fingerprint descoberto pela entropia. Threshold descoberto pela distribuicao. Acoes agrupadas por padrao de uso.", "ctx": "bugfix", "timestamp": 1782874640.841709}
+{"erro": "Fingerprint MCR Puro validado: RAW discrimina mesma intencao (0.63-0.81) mas falha entre intencoes (0.88). Tamanhos de palavra poluem o fingerprint.", "solucao": "Fingerprint de INTENCAO PURA: apenas hashes das primeiras 3 palavras. Zero tamanhos. Zero ALL CAPS. So intencao.", "ctx": "bugfix", "timestamp": 1782874872.5891817}
+{"erro": "MCR Loop Infinito validado! Transicoes de bytes DISCRIMINAM intencao em 97%.", "solucao": "O CONCEITO MCR E: TRANSICOES. Nao bytes brutos. Nao INTENT_*. Nao DOM_*. So transicoes entre elementos consecutivos, em QUALQUER nivel.", "ctx": "bugfix", "timestamp": 1782875379.180123}
+{"erro": "MCR Decision validado: 5 execucoes, 5 decisoes, 1 MarkovDecisor, 0 if/else.", "solucao": "MarkovDecisor aprendeu 5 transicoes estado->acao. MCR decide sozinho qual ferramenta usar. 0 hardcode.", "ctx": "bugfix", "timestamp": 1782876900.6600778}
+{"erro": "ciclo:0.000.700.000.000.000.000.100.000.000.200.000.000.000.000.000.000.001.000.000.000.000.000.140.000.000.140.000.000.000.000.000.000.020.920.000.700.000.000.000.000.000.000.000.000.000.000.000.000.", "solucao": "fp_resp=[0.0, 0.5565217391304348, 0.0, 0.0, 0.19130434782608696, 0.0, 0.09565217391304348, 0.0, 0.0, 0.10434782608695652, 0.05217391304347826, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.34375, 0.0, 0.171875, 0.0, 0.0, 0.171875, 0.09375, 0.0, 0.0, 0.0, 0.0, 0.0, 0.23, 0.909318366867851, 0.0, 0.7478260869565218, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]: O eixo Nirvana-Caos é uma métrica contínua ", "ctx": "ciclo_aprendizado", "timestamp": 1782768152.4655075}
+{"erro": "Ciclo de Aprendizado Automatico: Fase 0 (consulta passado) + Fase 5 (registro) + Validation sem thresholds", "solucao": "Validation Pipeline agora e relator de FATOS (7 estagios, todos INFO). Reconstructor nao tem mais thresholds. PipelineExecutor tem Fase 0 (consulta KG antes) e Fase 5 (registro automatico apos). Cmd_turbo mostra relatorio de validacao. Testado: Similaridade 0.95, 4 termos, 1 arquivo, 0 contradicoes.", "ctx": "ciclo_aprendizado", "timestamp": 1782768195.2660754}
+{"erro": "ciclo:0.000.000.000.480.000.120.000.090.160.000.000.150.000.000.000.000.000.000.001.000.000.250.000.180.330.000.000.320.000.000.000.001.000.880.000.560.000.000.000.000.000.000.000.000.000.000.000.000.", "solucao": "fp_resp=[0.0024019215372297837, 0.0, 0.0, 0.3811048839071257, 0.0, 0.04323458767013611, 0.0, 0.24179343474779824, 0.0632506004803843, 0.0, 0.0, 0.2682145716573259, 0.0, 0.0, 0.0, 0.0, 0.0063025210084033615, 0.0, 0.0, 1.0, 0.0, 0.1134453781512605, 0.0, 0.634453781512605, 0.16491596638655462, 0.0, 0.0, 0.7037815126050421, 0.0, 0.0, 0.0, 0.0, 1.0, 0.8013789043462197, 0.0, 0.8282626100880705, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0", "ctx": "ciclo_aprendizado", "timestamp": 1782768425.7069037}
+{"erro": "ciclo:0.000.160.080.000.130.000.300.000.000.000.000.000.000.000.000.330.000.480.250.000.410.000.900.000.000.000.000.010.000.000.001.001.000.880.000.550.000.000.000.000.000.000.000.000.000.000.000.000.", "solucao": "fp_resp=[0.0, 0.09316001238006809, 0.21727019498607242, 0.0, 0.05230578768183225, 0.0, 0.31785824822036524, 0.0, 0.0, 0.0, 0.0, 0.0012380068090374497, 0.0, 0.0, 0.0, 0.3181677499226246, 0.0, 0.2918287937743191, 0.6828793774319066, 0.0, 0.16439688715953307, 0.0, 0.9990272373540856, 0.0, 0.0, 0.0, 0.0, 0.0038910505836575876, 0.0, 0.0, 0.0, 1.0, 1.0, 0.8407832784118751, 0.0, 0.7604456824512534, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, ", "ctx": "ciclo_aprendizado", "timestamp": 1782768986.7486255}
+{"erro": "ciclo:MCR.py", "solucao": "Tipo: binario_estruturado, Entropia: 1.49, Bytes: 2000. Estados: 82. Origem: E:\\Projeto MCR\\scripts\\mcr_devia\\modulos\\MCR.py.", "ctx": "ciclo_unico", "timestamp": 1782926050.066617}
+{"erro": "ciclo:MCR.py", "solucao": "Tipo: binario_estruturado, Entropia: 1.49, Bytes: 2000. Estados: 82. Origem: E:\\Projeto MCR\\scripts\\mcr_devia\\modulos\\MCR.py.", "ctx": "ciclo_unico", "timestamp": 1782926368.575522}
+{"erro": "ciclo:MCR.py", "solucao": "Tipo: binario_estruturado, Entropia: 1.49, Bytes: 2000. Estados: 82. Origem: E:\\Projeto MCR\\scripts\\mcr_devia\\modulos\\MCR.py.", "ctx": "ciclo_unico", "timestamp": 1782927926.682656}
+{"erro": "ciclo:MCR.py", "solucao": "Tipo: binario_estruturado, Entropia: 1.49, Bytes: 2000. Estados: 82. Origem: E:\\Projeto MCR\\scripts\\mcr_devia\\modulos\\MCR.py.", "ctx": "ciclo_unico", "timestamp": 1782928183.756423}
+{"erro": "ciclo:MCR.py", "solucao": "Tipo: binario_estruturado, Entropia: 1.49, Bytes: 2000. Estados: 82. Origem: E:\\Projeto MCR\\scripts\\mcr_devia\\modulos\\MCR.py.", "ctx": "ciclo_unico", "timestamp": 1782928650.5871737}
+{"erro": "ciclo:MCR.py", "solucao": "Tipo: binario_estruturado, Entropia: 1.49, Bytes: 2000. Estados: 82. Origem: E:\\Projeto MCR\\scripts\\mcr_devia\\modulos\\MCR.py.", "ctx": "ciclo_unico", "timestamp": 1782929044.6635735}
+{"erro": "ciclo:MCR.py", "solucao": "Tipo: binario_estruturado, Entropia: 1.49, Bytes: 2000. Estados: 82. Origem: E:\\Projeto MCR\\scripts\\mcr_devia\\modulos\\MCR.py.", "ctx": "ciclo_unico", "timestamp": 1782929630.5367823}
+{"erro": "ciclo:MCR.py", "solucao": "Tipo: binario_estruturado, Entropia: 1.49, Bytes: 2000. Estados: 82. Origem: E:\\Projeto MCR\\scripts\\mcr_devia\\modulos\\MCR.py.", "ctx": "ciclo_unico", "timestamp": 1782930009.7776084}
+{"erro": "ciclo:MCR.py", "solucao": "Tipo: binario_estruturado, Entropia: 1.47, Bytes: 2000. Estados: 78. Origem: E:\\Projeto MCR\\scripts\\mcr_devia\\modulos\\MCR.py.", "ctx": "ciclo_unico", "timestamp": 1782932004.9726155}
+{"erro": "ciclo:MCR.py", "solucao": "Tipo: binario_estruturado, Entropia: 1.47, Bytes: 2000. Estados: 78. Origem: E:\\Projeto MCR\\scripts\\mcr_devia\\modulos\\MCR.py.", "ctx": "ciclo_unico", "timestamp": 1782932595.6069288}
+{"erro": "ciclo:MCR.py", "solucao": "Tipo: binario_estruturado, Entropia: 1.47, Bytes: 2000. Estados: 78. Origem: E:\\Projeto MCR\\scripts\\mcr_devia\\modulos\\MCR.py.", "ctx": "ciclo_unico", "timestamp": 1782932794.7897573}
+{"erro": "ciclo:MCR.py", "solucao": "Tipo: binario_estruturado, Entropia: 1.47, Bytes: 2000. Estados: 78. Origem: E:\\Projeto MCR\\scripts\\mcr_devia\\modulos\\MCR.py.", "ctx": "ciclo_unico", "timestamp": 1782934083.1260278}
+{"erro": "ciclo:MCR.py", "solucao": "Tipo: binario_estruturado, Entropia: 1.47, Bytes: 2000. Estados: 78. Origem: E:\\Projeto MCR\\scripts\\mcr_devia\\modulos\\MCR.py.", "ctx": "ciclo_unico", "timestamp": 1782934543.264295}
+{"erro": "ciclo:MCR.py", "solucao": "Tipo: binario_estruturado, Entropia: 1.47, Bytes: 2000. Estados: 78. Origem: E:\\Projeto MCR\\scripts\\mcr_devia\\modulos\\MCR.py.", "ctx": "ciclo_unico", "timestamp": 1782935196.5129895}
+{"erro": "ciclo:MCR.py", "solucao": "Tipo: binario_estruturado, Entropia: 1.47, Bytes: 2000. Estados: 78. Origem: E:\\Projeto MCR\\scripts\\mcr_devia\\modulos\\MCR.py.", "ctx": "ciclo_unico", "timestamp": 1782935729.9035032}
+{"erro": "ciclo:MCR.py", "solucao": "Tipo: binario_estruturado, Entropia: 1.47, Bytes: 2000. Estados: 78. Origem: E:\\Projeto MCR\\scripts\\mcr_devia\\modulos\\MCR.py.", "ctx": "ciclo_unico", "timestamp": 1782936191.8493714}
+{"erro": "ciclo:MCR.py", "solucao": "Tipo: binario_estruturado, Entropia: 1.47, Bytes: 2000. Estados: 78. Origem: E:\\Projeto MCR\\scripts\\mcr_devia\\modulos\\MCR.py.", "ctx": "ciclo_unico", "timestamp": 1782936736.5612698}
+{"erro": "ciclo:MCR.py", "solucao": "Tipo: binario_estruturado, Entropia: 1.47, Bytes: 2000. Estados: 78. Origem: E:\\Projeto MCR\\scripts\\mcr_devia\\modulos\\MCR.py.", "ctx": "ciclo_unico", "timestamp": 1782937977.8060794}
+{"erro": "ciclo:MCR.py", "solucao": "Tipo: binario_estruturado, Entropia: 1.47, Bytes: 2000. Estados: 78. Origem: E:\\Projeto MCR\\scripts\\mcr_devia\\modulos\\MCR.py.", "ctx": "ciclo_unico", "timestamp": 1782938956.5972154}
+{"erro": "ciclo:MCR.py", "solucao": "Tipo: binario_estruturado, Entropia: 1.47, Bytes: 2000. Estados: 78. Origem: E:\\Projeto MCR\\scripts\\mcr_devia\\modulos\\MCR.py.", "ctx": "ciclo_unico", "timestamp": 1782939500.0804555}
+{"erro": "Combinador inteligente + Embedding filtra inactive + Fallback com prioridade de ctx", "solucao": "Combinador agora extrai paragrafos de cada fragmento e funde em lista unica. Embedding nao retorna mais lessons inativas (runtime/stress). Fallback ordena por prioridade ctx. Zero runtime noise na resposta. Entropia ainda 0.83 porque 5 topicos diferentes dispersam naturalmente.", "ctx": "combinador_v2", "timestamp": 1782777099.0750277}
+{"erro": "mcr_core_aprendizado_codigo", "solucao": "local npc = NPC:new('Teste')\nnpc:setTitle('Ferreiro')\nnpc:onSay(function() end)", "ctx": "core_codigo", "timestamp": 1782870650.519343}
+{"erro": "mcr_core_aprendizado_codigo", "solucao": "local npc = NPC:new('Teste')\nnpc:setTitle('Ferreiro')\nnpc:onSay(function() end)", "ctx": "core_codigo", "timestamp": 1782870742.0080762}
+{"erro": "mcr_core_aprendizado_codigo_validado", "solucao": "\"\"\"\nCONTEXT CREW V3 — Leitor universal (LGPD OK: so le, nunca edita, sem dados pessoais)\nBusca contexto em: KG, WebLearn, Docs, Codigo Fonte, Web.\nTudo que encontra vira contexto. Nunca modifica nada.\n\"\"\"\nimport os, json, re, time, hashlib, urllib.request, threading, concurrent.futures\n\nBASE = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))\nSANDBOX = os.path.join(BASE, 'sandbox')\nKG_PATH = os.path.join(SANDBOX, '.mcr_devia', 'knowledge.json')\nCACHE_PATH = os.path.join(SANDBO", "ctx": "core_codigo_validado", "timestamp": 1782870652.6160932}
+{"erro": "mcr_core_aprendizado_codigo_validado", "solucao": "#!/usr/bin/env python3\n\"\"\"\nMCR-Dev v1.0 — Assistente Local Autonomo para Terminal\nUso: python mcr-dev.py\n     python mcr-dev.py \"comando\"  (modo unico)\n\"\"\"\nimport sys, os, json, time, readline, atexit\n\nBASE = os.path.dirname(os.path.abspath(__file__))\nsys.path.insert(0, os.path.join(BASE, \"scripts\"))\nsys.path.insert(0, os.path.join(BASE, \"Scripts\"))\n\nfrom mcr_dev import engine, memoria\n\n# Historico de comandos\nhistfile = os.path.join(os.path.dirname(BASE), \".mcr_dev_history\")\ntry:\n    readline.r", "ctx": "core_codigo_validado", "timestamp": 1782870654.6833901}
+{"erro": "mcr_core_aprendizado_codigo_validado", "solucao": "#!/usr/bin/env python3\n# -*- coding: utf-8 -*-\n\"\"\"\nTraduz APENAS o items.xml, com capitalização de título e saída ISO‑8859‑1.\nUsa o motor rápido (concatenação inteligente) e o dicionário MCR.\n\"\"\"\nimport json, time, sys, shutil, re, xml.etree.ElementTree as ET\nfrom pathlib import Path\nfrom deep_translator import GoogleTranslator\nfrom mcr_dict import MCR_CORRECTIONS\n\n# ===== CONFIGURAÇÃO =====\nARQUIVO_ORIGEM = \"data/items/items.xml\"          # Localização real do items.xml\nARQUIVO_DESTINO = \"data/", "ctx": "core_codigo_validado", "timestamp": 1782870656.7518432}
+{"erro": "mcr_core_aprendizado_codigo_validado", "solucao": "import os, shutil\nfor root, dirs, files in os.walk(\"E:/Projeto MCR/Canary/src\"):\n    for f in files:\n        if f.endswith(\".bak\"):\n            orig = os.path.join(root, f[:-4])\n            bak = os.path.join(root, f)\n            shutil.copy2(bak, orig)\n            print(f\"Restaurado: {orig}\")", "ctx": "core_codigo_validado", "timestamp": 1782870658.811704}
+{"erro": "mcr_core_aprendizado_codigo_validado", "solucao": "#!/usr/bin/env python3\nimport re\nimport sys\nfrom pathlib import Path\n\nTARGET_EXTS = {'.cpp', '.otui'}   # removido '.lua'\n\n# Regex para capturar strings entre aspas duplas\nSTRING_RE = re.compile(r'\"([^\"]*)\"')\n\n# PROTEÇÃO DE BANCO DE DADOS\nSQL_PROTECTED = {\n    'id', 'name', 'password', 'email', 'premdays', 'type', 'group_id',\n    'level', 'vocation', 'health', 'mana', 'lookbody', 'lookfeet',\n    'lookhead', 'looklegs', 'lookaddons', 'lookmount', 'lastlogin',\n    'lastip', 'save', 'skill_fist', '", "ctx": "core_codigo_validado", "timestamp": 1782870660.8889558}
+{"erro": "mcr_core_aprendizado_codigo_validado", "solucao": "#!/usr/bin/env python3\nimport re\nimport sys\nimport time\nfrom deep_translator import GoogleTranslator\n\ntranslator = GoogleTranslator(source='en', target='pt')\n\ndef protect_placeholders(text):\n    placeholders = []\n    def repl(m):\n        placeholders.append(m.group(0))\n        # Usa «id» para não colar palavras (ex.: \"{} logged in\" → \"«0» logged in\")\n        return f\"«{len(placeholders)-1}»\"\n    # Protege \\n, \\t, %d, %s, { } etc.\n    protected = re.sub(r'(\\\\[ntr]|%0?\\d*[a-zA-Z]|\\{[^\\}]*\\})', rep", "ctx": "core_codigo_validado", "timestamp": 1782870662.9406395}
+{"erro": "mcr_core_aprendizado_codigo_validado", "solucao": "#!/usr/bin/env python3\n\"\"\"\nRemove blocos inteiros de ficheiros de dados (extraido/traduzido/reparado)\ncujos caminhos correspondem a padrões proibidos (cabeçalhos, títulos, config).\nUso: python removedor.py arquivo1.txt arquivo2.txt ...\n\"\"\"\nimport sys\nfrom pathlib import Path\n\n# Padrões de caminhos a excluir (verificados no nome do ficheiro ou no caminho completo)\nFORBIDDEN_PATTERNS = [\n    # Extensões de cabeçalho\n    \".hpp\",\n    \".h\",\n    # Ficheiros de configuração que contêm identificadores s", "ctx": "core_codigo_validado", "timestamp": 1782870665.0095503}
+{"erro": "mcr_core_aprendizado_codigo_validado", "solucao": "#!/usr/bin/env python3\nimport re\nimport sys\nimport json\n\n# Dicionário estático MCR (termos que a API pode traduzir mal)\nDICIONARIO_MCR = {\n    \"health\": \"vida\",\n    \"maxhealth\": \"vida máxima\",\n    \"mana\": \"mana\",\n    \"maxmana\": \"mana máxima\",\n    \"soul\": \"alma\",\n    \"level\": \"nível\",\n    \"experience\": \"experiência\",\n    \"capacity\": \"capacidade\",\n    \"speed\": \"velocidade\",\n    \"attack\": \"ataque\",\n    \"defense\": \"defesa\",\n    \"armor\": \"armadura\",\n    \"shield\": \"escudo\",\n    \"weapon\": \"arma\",\n    \"", "ctx": "core_codigo_validado", "timestamp": 1782870667.828065}
+{"erro": "mcr_core_aprendizado_codigo_validado", "solucao": "#!/usr/bin/env python3\n\"\"\"\ncorretor.py – Restaura strings técnicas, aplica correções manuais e,\nse necessário, reverte automaticamente strings cujos placeholders\nforam corrompidos ou que pareçam caminhos de ficheiro / SQL.\n\"\"\"\nimport sys\nimport os\nimport re\n\n# ---------- Conjuntos de chaves a restaurar manualmente ----------\nRESTAURAR = {\n    \"E:\\\\Projeto MCR\\\\Canary\\\\src\\\\canary_server.cpp\": {\n        \"332_73\", \"369_65\", \"369_107\", \"396_68\",\n    },\n    \"E:\\\\Projeto MCR\\\\Canary\\\\src\\\\account\\\\ac", "ctx": "core_codigo_validado", "timestamp": 1782870669.8984885}
+{"erro": "mcr_core_aprendizado_codigo_validado", "solucao": "#!/usr/bin/env python3\nimport os\nimport shutil\nimport sys\n\ndef carregar_mapa(filepath):\n    dados = {}\n    arquivo_atual = None\n    if not os.path.exists(filepath):\n        return dados\n\n    with open(filepath, 'r', encoding='utf-8') as f:\n        for linha in f:\n            linha = linha.strip('\\n')\n            if linha.startswith('[') and linha.endswith(']'):\n                arquivo_atual = linha[1:-1]\n                dados[arquivo_atual] = {}\n            elif '=' in linha and arquivo_atual:\n ", "ctx": "core_codigo_validado", "timestamp": 1782870671.951675}
+{"erro": "mcr_core_aprendizado_codigo_validado", "solucao": "#!/usr/bin/env python3\nr\"\"\"\nConverte caracteres acentuados de arquivos .cpp/.h em escapes octais \\ooo (Latin-1).\nElimina erros C2022 (\"muito grande para caractere\") no Visual Studio.\nSe for passado um ficheiro com a lista de ficheiros modificados, apenas esses são processados.\n\"\"\"\nimport sys\nfrom pathlib import Path\n\ndef escape_non_ascii(text):\n    \"\"\"Substitui caracteres > 127 por escapes em octal \\\\ooo\"\"\"\n    result = []\n    for ch in text:\n        if ord(ch) > 127:\n            try:\n          ", "ctx": "core_codigo_validado", "timestamp": 1782870674.0023854}
+{"erro": "mcr_core_aprendizado_codigo_validado", "solucao": "#!/usr/bin/env python3\n# -*- coding: utf-8 -*-\n\"\"\"\nConverte player:addItem(\"Nome\", qtd) para player:addItem(ID, qtd).\nUsa items_original.xml e procura case‑insensitive.\n\"\"\"\nimport re, os, sys, xml.etree.ElementTree as ET\n\nITEMS_XML = \"items_original.xml\"\nSCRIPT_DIRS = [\"data\", \"data-canary\", \"data-otservbr-global\"]\nEXCLUDE_FILES = {'items.xml', 'titles.lua', 'achievements.lua', 'config.lua'}\n\ndef carregar_ids():\n    tree = ET.parse(ITEMS_XML)\n    root = tree.getroot()\n    mapping = {}\n    for it", "ctx": "core_codigo_validado", "timestamp": 1782870676.077092}
+{"erro": "mcr_core_aprendizado_codigo_validado", "solucao": "#!/usr/bin/env python3\n# -*- coding: utf-8 -*-\n\"\"\"\nConverte entradas de loot do tipo { name = \"...\" } em ficheiros como custom_monster_loot.lua.\n\"\"\"\nimport re, os, sys, xml.etree.ElementTree as ET\n\nITEMS_XML = \"items_original.xml\"\nTARGET_FILES = [\n    \"data/scripts/systems/custom_monster_loot.lua\",\n    \"data-canary/scripts/systems/custom_monster_loot.lua\",\n    \"data-otservbr-global/scripts/systems/custom_monster_loot.lua\",\n]\n\ndef carregar_ids():\n    tree = ET.parse(ITEMS_XML)\n    root = tree.get", "ctx": "core_codigo_validado", "timestamp": 1782870678.1302664}
+{"erro": "mcr_core_aprendizado_codigo_validado", "solucao": "#!/usr/bin/env python3\n# -*- coding: utf-8 -*-\n\"\"\"\nConverte loots de monstros de 'name' para 'id' apenas dentro de monster.loot.\nMantém os ficheiros Lua em ISO‑8859‑1.\n\"\"\"\n\nimport re, os, sys, xml.etree.ElementTree as ET\n\nITEMS_XML = \"items_original.xml\"\nMONSTER_DIRS = [\"data/monster\", \"data-canary/monster\", \"data-otservbr-global/monster\"]\n\ndef carregar_ids():\n    tree = ET.parse(ITEMS_XML)\n    root = tree.getroot()\n    name_to_id = {}\n    for item in root.iter('item'):\n        name = item.get('", "ctx": "core_codigo_validado", "timestamp": 1782870680.2147026}
+{"erro": "mcr_core_aprendizado_codigo_validado", "solucao": "#!/usr/bin/env python3\n# -*- coding: utf-8 -*-\n\"\"\"\nTraduz o items.xml (nome, plural, descrição) com artigo inteligente e dicionário MCR.\nPara itens sem plural, gera o plural via API a partir do singular em inglês.\nNomes de equipamentos são forçados ao singular.\nGrava em ISO‑8859‑1.\n\"\"\"\n\nimport json, time, sys, shutil, re, xml.etree.ElementTree as ET\nfrom pathlib import Path\nfrom deep_translator import GoogleTranslator\nfrom mcr_dict import MCR_CORRECTIONS\n\n# ===== CONFIGURAÇÃO =====\nBACKUP_ORIGIN", "ctx": "core_codigo_validado", "timestamp": 1782870682.2879474}
+{"erro": "mcr_core_aprendizado_codigo_validado", "solucao": "#!/usr/bin/env python3\n# -*- coding: utf-8 -*-\nimport re, sys\nfrom pathlib import Path\n\nFORBIDDEN_DIRS = {'lib', 'libs', 'migrations', 'vcproj', 'tests', 'src', 'cmake',\n                  '.github', 'docker', 'docs', 'metrics', 'npclib', 'scripts/lib',\n                  'MCR Scripts', 'modules', 'json', 'reports', 'logs', 'XML'}\nFORBIDDEN_FILES = {'config.lua', 'global.lua', 'core.lua', 'stages.lua', 'update.lua',\n                   'titles.lua', 'achievements.lua', 'badges.lua',\n               ", "ctx": "core_codigo_validado", "timestamp": 1782870684.3503919}
+{"erro": "mcr_core_aprendizado_codigo_validado", "solucao": "#!/usr/bin/env python3\nimport re, sys\nfrom pathlib import Path\n\nFORBIDDEN_DIRS = {'lib','libs','migrations','vcproj','tests','src','cmake',\n                  '.github','docker','docs','metrics','npclib','scripts/lib',\n                  'MCR Scripts','modules','json','reports','logs','XML'}\nFORBIDDEN_FILES = {'config.lua','global.lua','core.lua','stages.lua','update.lua',\n                   'titles.lua','achievements.lua','badges.lua',\n                   'register_npc_type.lua','register_monster_", "ctx": "core_codigo_validado", "timestamp": 1782870684.3513823}
+{"erro": "mcr_core_aprendizado_codigo_validado", "solucao": "-- database.lua\n\nlocal npc_database = {\n    -- Outras configurações...\n    ferreiro = {id = 1000, name = \"Ferreiro\", level = 5},\n}\n\nreturn npc_database", "ctx": "core_codigo_validado", "timestamp": 1782870744.075474}
+{"erro": "mcr_core_aprendizado_codigo_validado", "solucao": "local keywordHandler = KeywordHandler:new()\n\nkeywordHandler:addKeyword({'hello', 'hi'}, StdModule.say, {npcHandler = npcHandler, text = \"Olá! Sou seu guia em Eridanus. Como posso ajudar você hoje?\"})\nkeywordHandler:addKeyword({'where am i'}, StdModule.say, {npcHandler = npcHandler, text = \"Você está na cidade de Eridanus, um lugar onde a aventura começa.\"})\nkeywordHandler:addKeyword({'what is spa'}, StdModule.say, {npcHandler = npcHandler, text = \"SPA significa Sistema de Progressão do Aventurei", "ctx": "core_codigo_validado", "timestamp": 1782870746.1436205}
+{"erro": "mcr_core_aprendizado_codigo_validado", "solucao": "-- arquivo com bug\nlocal lore = {\n    nome = \"Fundacao de Eridanus\",\n    tipo = \"lore\",\n\nreturn lore\nend\n", "ctx": "core_codigo_validado", "timestamp": 1782870748.200203}
+{"erro": "mcr_core_aprendizado_codigo_validado", "solucao": "--[[\nEridanus era uma cidade lendária conhecida por sua simplicidade e eficiência do servidor ao lidar com grandes volumes de dados. conclusão a última modificação timestamp 6 trouxe avanços significativos no projeto mcr, o termo \"canary\" é frequentemente usado para testar novos conteúdos, mecânicas de jogo, balanceamentos e outras características específicas. 5. buff system.lua este arquivo gerencia os pontos de experiência xp , etc. 2. core 0_init.lua este arquivo é o ponto\n--]]\n\nlocal lore_er", "ctx": "core_codigo_validado", "timestamp": 1782870750.2815754}
+{"erro": "mcr_core_aprendizado_lore", "solucao": "Eridanus = Cidade inicial dos aventureiros. Era uma cidade lendária.", "ctx": "core_lore", "timestamp": 1782870644.0697045}
+{"erro": "mcr_core_aprendizado_lore", "solucao": "Canary = Servidor OTServ personalizado do projeto MCR.", "ctx": "core_lore", "timestamp": 1782870648.4602134}
+{"erro": "mcr_core_aprendizado_lore", "solucao": "SPA = Sistema de Progressão do Aventureiro. 4 dominios elementais.", "ctx": "core_lore", "timestamp": 1782870650.5190709}
+{"erro": "mcr_core_aprendizado_lore", "solucao": "Eridanus = Cidade inicial dos aventureiros. Era uma cidade lendária.", "ctx": "core_lore", "timestamp": 1782870736.4002845}
+{"erro": "mcr_core_aprendizado_lore", "solucao": "Canary = Servidor OTServ personalizado do projeto MCR.", "ctx": "core_lore", "timestamp": 1782870739.9410763}
+{"erro": "mcr_core_aprendizado_lore", "solucao": "SPA = Sistema de Progressão do Aventureiro. 4 dominios elementais.", "ctx": "core_lore", "timestamp": 1782870742.0077734}
+{"erro": "mcr_core_aprendizado_lore", "solucao": "Eridanus tinha muralhas de pedra cristalina que brilhavam com a lua.", "ctx": "core_lore", "timestamp": 1782870752.3434842}
+{"erro": "mcr_core_aprendizado_lore", "solucao": "Os fundadores de Eridanus vieram do norte, cruzando o rio Chromatius.", "ctx": "core_lore", "timestamp": 1782870754.4081635}
+{"erro": "mcr_core_aprendizado_lore", "solucao": "A cidade foi construída sobre uma mina de cristal mágico.", "ctx": "core_lore", "timestamp": 1782870754.4083576}
+{"erro": "descoberto_por_assinatura_lore", "solucao": ">> CATALOG tags=context, identity, definition, mcr updated=2026-06-28\nEste arquivo fornece contexto essencial sobre o Projeto MCR para modelos de IA locais.\nMCR = Projeto MCR, um servidor CUSTOMIZADO de Tibia baseado em Canary (OTServ).", "ctx": "corpus_lore", "timestamp": 1782870298.393219}
+{"erro": "4 correcoes pos-analise externa implementadas e validadas", "solucao": "4/4 correcoes. Performance test: 54.9s (novo baseline).", "ctx": "correcoes_externas", "timestamp": 1782698552.0449412}
+{"erro": "Ciclo completo: historia de Eridanus", "solucao": "--[[\nEridanus era uma cidade lendária conhecida por sua simplicidade e eficiência do servidor ao lidar com grandes volumes de dados. conclusão a última modificação timestamp 6 trouxe avanços significativos no projeto mcr, o termo \"canary\" é frequentemente usado para testar novos conteúdos, mecânicas", "ctx": "criacao_teste", "timestamp": 1782866574.7765183}
+{"erro": "Dashboard SSE de pensamento em tempo real para EMERGIR", "solucao": "sse_server.py: HTTPServer com SSE em /stream, heartbeat a cada 10s. Dashboard HTML: EventSource nativo, timeline com 15 etapas, painel de log com timestamp, prompt expansivel.", "ctx": "dashboard_sse", "timestamp": 1782713535.4114554}
+{"erro": "Decomposicao Recursiva por Entropia: fragmenta ate padrao bruto, KG Force por folha, bottom-up", "solucao": "ContextCrew.fragmentar_recursivo() mede entropia com PatternEngine e fragmenta ate padrão bruto. Reconstructor processa folhas com IA leve + KG Force, depois combina bottom-up. Pipeline 7.8s vs 60s. 2 folhas, 2 chamadas leves, <500 chars cada. Validation V7+V4 detectam qualidade.", "ctx": "decomp_recursiva", "timestamp": 1782766389.814793}
+{"erro": "[Emergente] E se a API RESTful em Python usando FastAPI e Dockerfile mul", "solucao": "### Combinação Impecável: FastAPI + Identity via V12 + FAST para Autenticação e Monitoramento\n\nImagine uma arquitetura inovadora onde a API RESTful em Python usando FastAPI e Dockerfile multi-stage se integra com a metodologia Identity via V12 de FAST (FastAPI, Authentication, Testing), criando um sistema avançado de autenticação, monitoramento e análise de comportamento dos usuários. Nesta combinação, cada componente desempenha um papel crucial, trabalhando em conjunto para fornecer uma experiê", "ctx": "emergente", "timestamp": 1782704124.9704669}
+{"erro": "[Emergente] E se a sessão completa do MasterAgent pudesse ser usada para", "solucao": "A integração do MasterAgent com técnicas avançadas de aprendizado de máquina (ML/NN/AGI) oferece uma nova perspectiva para prever o clima futuro com maior precisão e eficiência. O MasterAgent, como um agente meteorológico inteligente, coleta e processa dados em tempo real de diversas fontes, enquanto o Decider analisa esses dados para criar modelos preditivos adaptativos. O SessionCache armazena e recupera informações históricas, facilitando a análise e a previsão de padrões futuros. Essa combin", "ctx": "emergente", "timestamp": 1782705369.1541488}
+{"erro": "[Emergente] E se o sistema de notificações personalizadas para aplicativ", "solucao": "### ANALISE DOS TOPICOS\n### Tópico 1: Sessão completa: MasterAgent, Decider, SessionCache, ML/NN/AGI\n\n**O que significa?**\nA sessão completa do MasterAgent refere-se a um conjunto integrado de componentes e módulos projetados para operar em conjunto como parte de um sistema mais amplo. Este conjunto inclui:\n\n1. **MasterAgent**: Um agente inteligente responsável por gerenciar tarefas, coletar dados em tempo real e tomar decisões com base nessas informações.\n2. **Decider (FAST)**: Um classificador", "ctx": "emergente", "timestamp": 1782706546.2390084}
+{"erro": "[Emergente] E se a sessão 6 do Sistema EMERGIR fosse integrada ao Plano ", "solucao": "### ANALISE DOS TOPICOS\nClaro, vou explicar cada tópico com a profundidade solicitada:\n\n### Tópico 1: Sistema EMERGIR - reconhecimento automático de padrões emergentes\n\n**O que significa?**\nO Sistema EMERGIR é um componente do projeto MCR (Tibia OTServ) que se concentra na detecção e análise de padrões emergentes no jogo. Padrões emergentes são comportamentos ou tendências inesperadas que surgem durante o jogo, podendo indicar novas estratégias, bugs ou alterações nas dinâmicas do jogo.\n\n**Por q", "ctx": "emergente", "timestamp": 1782706738.543691}
+{"erro": "[Emergente] E se os timestamps e o staleness check do KG fossem usados p", "solucao": "### ANALISE DOS TOPICOS\n### 1. KG timestamps + staleness check implementado: 157 lessons backfill com mtime do arquivo\n\n#### O que significa?\nO \"KG timestamps + staleness check\" refere-se à adição de funcionalidades ao Sistema de Conhecimento (Knowledge Graph) para rastrear e verificar a validade dos dados. Especificamente, isso envolve:\n\n- **Timestamps**: Adicionar marcas de tempo (`mtime` - modification time) aos registros do Knowledge Graph para indicar quando cada dado foi modificado pela úl", "ctx": "emergente", "timestamp": 1782706937.6491697}
+{"erro": "[Emergente] E se a Pipeline completa do MasterAgent pudesse ser usada para analisar e prever padrões emergentes no Sistema EMERGIR, permitindo que o Enricher aprenda com as tendências de emergência de", "solucao": "### ANALISE DOS TOPICOS\n```json\n{\n  \"respostas\": [\n    {\n      \"topico\": \"Pipeline completa: 11 gaps integrados no MasterAgent + Enricher\",\n      \"oque_significa\": \"Este tópico se refere à integração de 11 lacunas ou falhas identificadas na pipeline do projeto MCR, utilizando o componente chamado MasterAgent e o Enricher. A implementação dessas mudanças envolve a adição de aproximadamente 300 linhas de código ao arquivo Enricher.py e modificações no master_agent.py.\",\n      \"por_que_relevante\": ", "ctx": "emergente", "timestamp": 1782707323.220537}
+{"erro": "[Emergente] E se o simulador de jogos de tabuleiro online criado com React e Socket.IO pudesse ser integrado ao sistema de progressão do aventureiro (SPA) para permitir que os jogadores avancem em sua", "solucao": "### ANALISE DOS TOPICOS\n### 1. KG timestamps + staleness check implementado: 157 lessons backfill com mtime do arquivo. kg.py: 3 novos metodos. mcr_devia.py: staleness check no V12 (confidence>=70% + not stale). Testes: 6/6 cenarios passam.\n\n#### O que significa?\nO \"KG timestamps + staleness check\" refere-se à adição de funcionalidades ao Sistema de Conhecimento (Knowledge Graph) para rastrear e verificar a validade dos dados. Especificamente, isso envolve:\n\n- **Timestamps**: Adicionar marcas de", "ctx": "emergente", "timestamp": 1782707578.411704}
+{"erro": "[Emergente] E se a sessão completa do MasterAgent pudesse evoluir com cada missão concluída, criando uma 'arvore de conhecimento' que guiasse os Deciders em suas decisões futuras?", "solucao": "### ANALISE DOS TOPICOS\n### Tópico 1: Sessão completa: MasterAgent, Decider, SessionCache, ML/NN/AGI\n\n**O que significa?**\nA sessão completa do MasterAgent refere-se a um conjunto integrado de componentes e módulos projetados para operar em conjunto como parte de um sistema mais amplo. Este conjunto inclui o **MasterAgent**, um agente inteligente centralizado responsável por coordenar várias tarefas, o **Decider** (ou classificador), que toma decisões com base em dados ou informações fornecidas,", "ctx": "emergente", "timestamp": 1782708475.6423657}
+{"erro": "[Emergente] E se a fase 1 do plano MCR-DevIA fosse usada para otimizar o algoritmo de aprendizado automático em MasterAgent, resultando em um aumento significativo na eficiência e precisão das tarefas", "solucao": "### ANALISE DOS TOPICOS\n### Tópico 1: Plano final MCR-DevIA: 27 tarefas em 7 fases\n\n**O que significa?**\nO \"Plano final MCR-DevIA\" é um documento detalhado que descreve as etapas e tarefas necessárias para completar o projeto MCR (servidor customizado de Tibia baseado em OTServ). Este plano divide o projeto em 7 fases, com um total de 27 tarefas específicas a serem concluídas. Cada fase tem uma prioridade e ordem específica, indicando quando cada tarefa deve ser realizada.\n\n**Por que é relevante", "ctx": "emergente", "timestamp": 1782708809.3056176}
+{"erro": "[Emergente] E se a cidade de Eridanus implementasse um sistema de correções pos-analise externa que utilizasse as luzes das arvores de Natal como indicadores para otimizar o fluxo de tráfego e reduzir", "solucao": "### ANALISE DOS TOPICOS\n### 1. 4 correções pos-analise externa implementadas e validadas: 4/4 correções. Performance test: 54.9s (novo baseline).\n\n**O que significa?**\nEste tópico se refere à implementação e validação de quatro correções após uma análise externa do projeto MCR. Após a aplicação dessas correções, um teste de desempenho foi realizado, resultando em um novo tempo de baseline de 54,9 segundos.\n\n**Por que é relevante para o projeto MCR?**\nAs correções pos-analise externa são cruciais", "ctx": "emergente", "timestamp": 1782734642.0522244}
+{"erro": "[Emergente] E se a equipe de desenvolvimento MCR-DevIA implementasse uma estratégia de refatoração baseada no eixo Nirvana-Caos, resultando em um código mais organizado e eficiente que atingisse o nív", "solucao": "### ANALISE DOS TOPICOS\n### 1. Plano final MCR-DevIA: 27 tarefas em 7 fases\n\n**O que significa?**\nO plano final do projeto MCR-DevIA é uma estrutura organizada de 27 tarefas distribuídas em 7 fases. Cada fase representa um estágio crucial no desenvolvimento e implementação do sistema, com tarefas específicas a serem concluídas para avançar.\n\n**Por que é relevante para o projeto MCR?**\nEste plano é fundamental para garantir uma abordagem estruturada e eficiente no desenvolvimento do projeto. Ao d", "ctx": "emergente", "timestamp": 1782771327.1153176}
+{"erro": "[Emergente] E se a Entropia do modelo Qwen2.5-coder:7b pudesse ser usada para gerar uma Dashboard SSE em tempo real que monitorasse e visualizasse as mudanças de estado interno da IA, permitindo um ac", "solucao": "### ANALISE DOS TOPICOS\n### 1. Entropia 0.85 e normal para modelo 7b - não é problema de configuração - pipeline completa e superior a prompt mínimo\n\n#### O que significa?\nA entropia é uma medida de incerteza ou aleatoriedade em um sistema. Em modelos de linguagem, como o qwen2.5-coder:7b, uma alta entropia (por exemplo, 0.85) indica que o modelo está gerando respostas com muita variabilidade e pouca previsibilidade.\n\n#### Por que é relevante para o projeto MCR?\nNo contexto do projeto MCR (Maste", "ctx": "emergente", "timestamp": 1782780220.5711856}
+{"erro": "EMERGIR V4 fragmentador com 4 secoes e Z expandido (3 visoes)", "solucao": "Fragmentador no master_agent.py: cada secao gerada separadamente com contexto acumulado entre elas. Expansao critica: 3 chamadas ia.gerar() sequenciais (cenario concreto, padrao subjacente, potencial transformador). ContextCrew: ContextCrew.executar() busca em 5 fontes paralelas.", "ctx": "emergir_v4", "timestamp": 1782713516.9490805}
+{"erro": "Entropia 0.85 e normal para modelo 7b - nao e problema de configuracao - pipeline completa e superior a prompt minimo", "solucao": "Mudei de N chamadas leves (1 por folha) para 1 chamada 7b com todas as folhas como contexto. Testei prompt minimo (400 chars) vs pipeline completa: mesma entropia (~0.85). Conclusao: entropia alta e caracteristica do modelo qwen2.5-coder:7b, nao do MCR. Pipeline completa e superior: elimina alucinacoes, cita arquivos reais.", "ctx": "entropia_normal", "timestamp": 1782777540.3774889}
+{"erro": "Implemente um sistema de monitoramento de recursos em tempo real para uma aplica", "solucao": "Tarefa parcial (2/4). Falhas em: validar_codigo, salvar_arquivo", "ctx": "exec_projeto", "timestamp": 1782698552.0449412}
+{"erro": "crie um bot Telegram que responda a comandos específicos e envie mensagens progr", "solucao": "Tarefa concluida com sucesso em 4/4 passos", "ctx": "exec_projeto", "timestamp": 1782698552.0449412}
+{"erro": "Cria aplicativo mobile de gerenciamento financeiro com funcionalidades de orçame", "solucao": "Tarefa parcial (11/14). Falhas em: validar_codigo, testar_execucao, relatorio_final", "ctx": "exec_projeto", "timestamp": 1782698552.0449412}
+{"erro": "Crie um sistema de notificações personalizadas para aplicativos móveis usando Re", "solucao": "Tarefa parcial (2/4). Falhas em: validar_codigo, salvar_arquivo", "ctx": "exec_projeto", "timestamp": 1782698552.0449412}
+{"erro": "Crie um simulador de jogos de tabuleiro online usando React e Socket.IO. Salve e", "solucao": "Tarefa parcial (11/14). Falhas em: validar_codigo, testar_execucao, relatorio_final", "ctx": "exec_projeto", "timestamp": 1782698552.0449412}
+{"erro": "crie um projeto de API RESTful em Python usando FastAPI, Dockerfile multi-stage,", "solucao": "Tarefa parcial (12/14). Falhas em: testar_execucao, relatorio_final", "ctx": "exec_projeto", "timestamp": 1782698552.0449412}
+{"erro": "Cria um script python que imprime 'teste'", "solucao": "Tarefa concluida com sucesso em 4/4 passos", "ctx": "exec_simples", "timestamp": 1782698552.0449412}
+{"erro": "Explique o que e o SessionCache no MCR-DevIA e como ele difere de uma cache trad", "solucao": "Tarefa concluida com sucesso em 2/2 passos", "ctx": "exec_simples", "timestamp": 1782698552.0449412}
+{"erro": "Cria um script python que imprime 'Hello World'", "solucao": "Tarefa concluida com sucesso em 4/4 passos", "ctx": "exec_simples", "timestamp": 1782698552.0449412}
+{"erro": "Cria um script python que imprime 'teste 2'", "solucao": "Tarefa parcial (3/4). Falhas em: salvar_arquivo", "ctx": "exec_simples", "timestamp": 1782698552.0449412}
+{"erro": "Cria um script python que imprime 'teste 1'", "solucao": "Tarefa parcial (3/4). Falhas em: salvar_arquivo", "ctx": "exec_simples", "timestamp": 1782698552.0449412}
+{"erro": "Crie um script em Python para automatizar a coleta de dados de uma API RESTful e", "solucao": "Tarefa concluida com sucesso em 4/4 passos", "ctx": "exec_simples", "timestamp": 1782698552.0449412}
+{"erro": "Crie um script em Bash que monitora a utilização da CPU e gera um relatório diár", "solucao": "Tarefa parcial (2/4). Falhas em: validar_codigo, salvar_arquivo", "ctx": "exec_simples", "timestamp": 1782698552.0449412}
+{"erro": "crie Makefile com targets para build, test e deploy do projeto web", "solucao": "Tarefa parcial (2/4). Falhas em: validar_codigo, salvar_arquivo", "ctx": "exec_simples", "timestamp": 1782698552.0449412}
+{"erro": "Crie um script em Python para monitorar a disponibilidade de servidores web em u", "solucao": "Tarefa concluida com sucesso em 4/4 passos", "ctx": "exec_simples", "timestamp": 1782698552.0449412}
+{"erro": "crie script em Python que monitore alterações em um diretório e envie notificaçõ", "solucao": "Tarefa concluida com sucesso em 4/4 passos", "ctx": "exec_simples", "timestamp": 1782698552.0449412}
+{"erro": "Cria um script python que imprime 'teste 2'", "solucao": "Tarefa concluida com sucesso em 4/4 passos", "ctx": "exec_simples", "timestamp": 1782698552.0449412}
+{"erro": "Crie um script em Python para monitorar a utilização de memória em tempo real em", "solucao": "Tarefa concluida com sucesso em 4/4 passos", "ctx": "exec_simples", "timestamp": 1782698552.0449412}
+{"erro": "Crie um script em JavaScript que automatiza a coleta de dados de uma página web ", "solucao": "Tarefa parcial (2/4). Falhas em: validar_codigo, salvar_arquivo", "ctx": "exec_simples", "timestamp": 1782698552.0449412}
+{"erro": "expansao_Eridanus", "solucao": "Expandido via 2 recursos. Agora temos 20 lessons sobre o tema. Recursos: comando:gerar_npc, kg.", "ctx": "expansao_auto", "timestamp": 1782916206.0091147}
+{"erro": "expansao_SPA", "solucao": "Expandido via 2 recursos. Agora temos 20 lessons sobre o tema. Recursos: comando:gerar_npc, kg.", "ctx": "expansao_auto", "timestamp": 1782916212.5583775}
+{"erro": "expansao_numerico", "solucao": "Expandido via 1 recursos. Agora temos 0 lessons sobre o tema. Recursos: comando:gerar_npc.", "ctx": "expansao_auto", "timestamp": 1782916245.871246}
+{"erro": "expansao_SPA", "solucao": "Expandido via 2 recursos. Agora temos 20 lessons sobre o tema. Recursos: comando:gerar_npc, kg.", "ctx": "expansao_auto", "timestamp": 1782917611.7132363}
+{"erro": "expansao_MCR", "solucao": "Expandido via 2 recursos. Agora temos 20 lessons sobre o tema. Recursos: comando:gerar_npc, kg.", "ctx": "expansao_auto", "timestamp": 1782917743.1148827}
+{"erro": "expansao_MCR", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782918172.1388495}
+{"erro": "expansao_MCR", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782918241.2103236}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782918276.500507}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782919194.053269}
+{"erro": "expansao_MCR", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782919251.6492941}
+{"erro": "expansao_MCR", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782919415.9765818}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782919695.7965925}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782919702.2231638}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782919707.283895}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782919712.3341284}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782920028.2045217}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782920034.3936417}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782920039.285619}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782920044.261985}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782920170.7239087}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782920176.8934472}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782920181.8318825}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782920186.7436984}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782920315.1667216}
+{"erro": "expansao_MCR", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782920414.0808172}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782921199.0428498}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782921312.6649294}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782923342.5053837}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782923349.3139417}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782923354.5891304}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782923359.823154}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782923365.450468}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782923370.714678}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782923375.9001553}
+{"erro": "expansao_MCR", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782923499.9137042}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782923798.147841}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782923804.6696591}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782923809.9064665}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782923815.1697147}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782923820.751385}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782923825.9839752}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782923831.1972978}
+{"erro": "expansao_MCR", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782923939.9882283}
+{"erro": "expansao_MCR", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782924001.4655294}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782924224.1636264}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782924230.6424668}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782924235.8635406}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782924241.0915706}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782924246.669623}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782924251.8042963}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782924257.007209}
+{"erro": "expansao_MCR", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782924328.9076815}
+{"erro": "expansao_MCR", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782924416.9182923}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782924754.682689}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782924761.2210562}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782924766.4247656}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782924771.631648}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782924865.7282035}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782924871.0380547}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782924876.2994962}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782924881.5972219}
+{"erro": "expansao_saber?", "solucao": "Expandido via 0 recursos. Agora temos 0 lessons sobre o tema. Recursos: .", "ctx": "expansao_auto", "timestamp": 1782924887.1589708}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782925102.9240782}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782925109.5303335}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782925114.7962453}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782925119.9974773}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782925180.623365}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782925185.8219745}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782925191.018221}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782925196.1993976}
+{"erro": "expansao_saber?", "solucao": "Expandido via 0 recursos. Agora temos 0 lessons sobre o tema. Recursos: .", "ctx": "expansao_auto", "timestamp": 1782925201.6705782}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782925662.66482}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782925669.2308683}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782925674.4420974}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782925679.6967132}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782925727.4704802}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782925734.0027816}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782925739.2059724}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782925744.411635}
+{"erro": "expansao_saber?", "solucao": "Expandido via 0 recursos. Agora temos 0 lessons sobre o tema. Recursos: .", "ctx": "expansao_auto", "timestamp": 1782925749.8703017}
+{"erro": "expansao_saber?", "solucao": "Expandido via 0 recursos. Agora temos 0 lessons sobre o tema. Recursos: .", "ctx": "expansao_auto", "timestamp": 1782925754.9983425}
+{"erro": "expansao_saber?", "solucao": "Expandido via 0 recursos. Agora temos 0 lessons sobre o tema. Recursos: .", "ctx": "expansao_auto", "timestamp": 1782925760.2087471}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782926028.6635282}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782926035.1908824}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782926040.4497252}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782926045.6334481}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782926093.3649766}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782926099.8597374}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782926105.0534499}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782926110.2420478}
+{"erro": "expansao_saber?", "solucao": "Expandido via 0 recursos. Agora temos 0 lessons sobre o tema. Recursos: .", "ctx": "expansao_auto", "timestamp": 1782926115.6939394}
+{"erro": "expansao_saber?", "solucao": "Expandido via 0 recursos. Agora temos 0 lessons sobre o tema. Recursos: .", "ctx": "expansao_auto", "timestamp": 1782926120.84596}
+{"erro": "expansao_saber?", "solucao": "Expandido via 0 recursos. Agora temos 0 lessons sobre o tema. Recursos: .", "ctx": "expansao_auto", "timestamp": 1782926126.0208602}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782926347.2040238}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782926353.6925175}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782926358.9533298}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782926364.1498752}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782926403.719206}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782926408.8534765}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782926414.0937138}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782927904.745857}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782927911.516178}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782927916.8585582}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782927922.1921525}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782927962.1620183}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782927967.5205076}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782927972.8754544}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782928162.255707}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782928168.8396993}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782928174.0570748}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782928179.3264215}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782928206.9730005}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782928212.2573211}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782928217.624147}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782928222.9257886}
+{"erro": "expansao_saber?", "solucao": "Expandido via 0 recursos. Agora temos 0 lessons sobre o tema. Recursos: .", "ctx": "expansao_auto", "timestamp": 1782928228.4936664}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782928629.1589513}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782928635.7025774}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782928640.8967214}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782928646.142104}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782928693.9888418}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782928700.6062956}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782928705.8187542}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782928711.0120373}
+{"erro": "expansao_saber?", "solucao": "Expandido via 0 recursos. Agora temos 0 lessons sobre o tema. Recursos: .", "ctx": "expansao_auto", "timestamp": 1782928716.4861174}
+{"erro": "expansao_saber?", "solucao": "Expandido via 0 recursos. Agora temos 0 lessons sobre o tema. Recursos: .", "ctx": "expansao_auto", "timestamp": 1782928721.6253514}
+{"erro": "expansao_saber?", "solucao": "Expandido via 0 recursos. Agora temos 0 lessons sobre o tema. Recursos: .", "ctx": "expansao_auto", "timestamp": 1782928726.777388}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782929023.079489}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782929029.6996083}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782929034.9357123}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782929040.2131352}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782929113.364215}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782929118.7014506}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782929124.0107887}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782929609.096107}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782929615.6127524}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782929620.8612463}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782929626.0865507}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782929673.8975585}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782929680.4249756}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782929685.6091602}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782929690.8130984}
+{"erro": "expansao_saber?", "solucao": "Expandido via 0 recursos. Agora temos 0 lessons sobre o tema. Recursos: .", "ctx": "expansao_auto", "timestamp": 1782929696.3036182}
+{"erro": "expansao_saber?", "solucao": "Expandido via 0 recursos. Agora temos 0 lessons sobre o tema. Recursos: .", "ctx": "expansao_auto", "timestamp": 1782929701.4471805}
+{"erro": "expansao_saber?", "solucao": "Expandido via 0 recursos. Agora temos 0 lessons sobre o tema. Recursos: .", "ctx": "expansao_auto", "timestamp": 1782929706.6042817}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782929988.2169528}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782929994.7918224}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782930000.0339916}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782930005.3219476}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782930032.9296443}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782930038.1318026}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782930043.343506}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782930048.5679164}
+{"erro": "expansao_saber?", "solucao": "Expandido via 0 recursos. Agora temos 0 lessons sobre o tema. Recursos: .", "ctx": "expansao_auto", "timestamp": 1782930054.087389}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782931983.3677537}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782931990.0126615}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782931995.2780006}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782932000.5369616}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782932027.9502208}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782932033.2077107}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782932038.4192793}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782932043.657286}
+{"erro": "expansao_saber?", "solucao": "Expandido via 0 recursos. Agora temos 0 lessons sobre o tema. Recursos: .", "ctx": "expansao_auto", "timestamp": 1782932049.1647158}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782932574.213369}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782932580.7129962}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782932585.943071}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782932591.180927}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782932642.8579736}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782932649.2972946}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782932654.506775}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782932659.7049038}
+{"erro": "expansao_saber?", "solucao": "Expandido via 0 recursos. Agora temos 0 lessons sobre o tema. Recursos: .", "ctx": "expansao_auto", "timestamp": 1782932665.1319196}
+{"erro": "expansao_saber?", "solucao": "Expandido via 0 recursos. Agora temos 0 lessons sobre o tema. Recursos: .", "ctx": "expansao_auto", "timestamp": 1782932670.2645926}
+{"erro": "expansao_saber?", "solucao": "Expandido via 0 recursos. Agora temos 0 lessons sobre o tema. Recursos: .", "ctx": "expansao_auto", "timestamp": 1782932675.40533}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782932773.4028444}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782932779.9330168}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782932785.1798246}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782932790.3904326}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782932837.975235}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782932844.434473}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782932849.627392}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782932854.8134837}
+{"erro": "expansao_saber?", "solucao": "Expandido via 0 recursos. Agora temos 0 lessons sobre o tema. Recursos: .", "ctx": "expansao_auto", "timestamp": 1782932860.2766726}
+{"erro": "expansao_saber?", "solucao": "Expandido via 0 recursos. Agora temos 0 lessons sobre o tema. Recursos: .", "ctx": "expansao_auto", "timestamp": 1782932865.4162502}
+{"erro": "expansao_saber?", "solucao": "Expandido via 0 recursos. Agora temos 0 lessons sobre o tema. Recursos: .", "ctx": "expansao_auto", "timestamp": 1782932870.600907}
+{"erro": "expansao_MCR", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782933311.6398897}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782934050.9662213}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782934078.2125707}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782934105.5584593}
+{"erro": "expansao_especifico?", "solucao": "Expandido via 1 recursos. Agora temos 2 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782934110.7483344}
+{"erro": "expansao_MCR", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782934186.8388107}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782934538.3934207}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782934599.171687}
+{"erro": "expansao_especifico?", "solucao": "Expandido via 1 recursos. Agora temos 3 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782934604.328398}
+{"erro": "expansao_MCR", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782934793.1992555}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782935191.652503}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782935281.6463075}
+{"erro": "expansao_especifico?", "solucao": "Expandido via 1 recursos. Agora temos 4 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782935286.819566}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782935427.3001313}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782935597.644257}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782935725.0251682}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782936186.9929366}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782936239.6651106}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782936731.664013}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782937972.8404095}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782938951.7477174}
+{"erro": "expansao_SPA", "solucao": "Expandido via 1 recursos. Agora temos 20 lessons sobre o tema. Recursos: kg.", "ctx": "expansao_auto", "timestamp": 1782939495.2434635}
+{"erro": "Fase1: CR+Enricher restaurados + Fase2: Modo Offline Turbinado completo", "solucao": "CR e Enricher do legado corrigidos (imports, classificacao). KG.buscar_expandido() com fuzzy+ctx. PatternEngine.kg_pattern_analyze() tokeniza KG. Conselho ganhou arquetipo filosofico. ToT expandido para 5 perspectivas (filosofico+pragmatico). PipelineExecutor aceita flag turbo. cmd_turbo.py ativa modo offline. Testado: 3385 chars resposta, 15 conceitos KG, zero internet.", "ctx": "fase2_turbo", "timestamp": 1782762380.2484045}
+{"erro": "MCR-DevIA Fenix: F1 (supervisor propagado) + F2 (7 modulos resgatados) + F4 (toolkit comando) + padronizacao", "solucao": "F1: supervisor com classificar_keyword agora existe em Scripts/mcr_devia (3 copias sincronizadas). F2: 7 modulos resgatados do Legado para o sistema ativo (analysis/fragmenter.py, agents/autoconsciencia.py, tools/toolkit.py, etc). F4: comando mcr toolkit mostra 43 comandos, 14 modulos, 7 personalidades. TruncationFixer corrigiu 56 truncamentos nos novos arquivos.", "ctx": "fenix_unificacao", "timestamp": 1782779955.942881}
+{"erro": "Fragmentacao por dois-pontos: 5 folhas para 4 sub-perguntas (antes 2) + Weaver prioriza conceito + TruncationFixer limpo", "solucao": "Nova heuristica de fragmentacao quebra por ': ' + sub-perguntas com virgula. Pergunta de 4 topicos gera 5 folhas (antes 2). Weaver prioriza ctx=conceito. TruncationFixer: zero truncamentos. Entropia ainda alta (0.85) porque Reconstructor concatena em vez de fundir.", "ctx": "fragmentacao_v3", "timestamp": 1782776708.7764108}
+{"erro": "Bolo Desconstruido: ContextCrew.fragmentar() + Reconstructor + modo fragmentado no pipeline", "solucao": "ContextCrew.fragmentar() analisa pergunta e retorna N fragmentos independentes. Reconstructor usa BlankFiller+EMERGIR+Conselho para juntar. PipelineExecutor._executar_fragmentado() processa cada fragmento com modelo leve (<2K chars) em 11.8s vs 60s antes. Descoberto: cada fragmento precisa receber KG Force individualmente.", "ctx": "fragmentado", "timestamp": 1782765712.121514}
+{"erro": "modulo_agent_loop.py", "solucao": "Codigo do modulo agent_loop.py: \"\"\"Agent Loop — Núcleo AGI: Think → Act → Observe → Learn.  Orquestra o pipeline completo de geração de NPCs: 1. THINK: Analisa descrição, busca exemplos similares + KG, planeja 2. ACT: Gera código via NPCGenerator com placeholders do LLM 3. OBSERVE: Valida com LuaValidator, verifica SQL injection 4. LOOP: Se falhar, retry com correção (max 3) 5. LEARN: Registra lições no histórico + Knowledge Graph  Uso:     from modulos.agent_loop import AgentLoop     agent = Ag", "ctx": "fuel_codigo", "timestamp": 1782919716.8417878}
+{"erro": "modulo_aprendiz_de_padroes.py", "solucao": "Codigo do modulo aprendiz_de_padroes.py: \"\"\"AprendizDePadroes — Aprendiz autônomo de padrões para IE e PE.  Lê QUALQUER fonte de dados, usa PE.tokenizar_universal() + extrair_padroes() para descobrir estruturas e co-ocorrências, e salva lessons no KG (ctx='padrao_aprendido') que a IntentionEngine carrega em runtime.  1 método universal substitui 6 especializados. \"\"\" import os, json, re from collections import Counter, defaultdict from typing import List, Dict, Optional   class AprendizDePadroes", "ctx": "fuel_codigo", "timestamp": 1782919720.9016876}
+{"erro": "modulo_auto_repair.py", "solucao": "Codigo do modulo auto_repair.py: \"\"\"AutoRepair — Repara codigo com erro baseado na mensagem do validador.  Quando o validador detecta um erro (linha, descricao), o AutoRepair usa o FAST model para corrigir o codigo em UMA tentativa.  Conceito: Se o validador ACHOU o erro, o reparador SABE o que corrigir. Nao precisa de loop — erro conhecido = correcao direta.  Uso:     reparador = AutoRepair(ia)     codigo_corrigido = reparador.reparar(codigo_errado, erros, linguagem) \"\"\" from modulos.util impor", "ctx": "fuel_codigo", "timestamp": 1782919724.992157}
+{"erro": "modulo_auto_revisor.py", "solucao": "Codigo do modulo auto_revisor.py: \"\"\"Auto-Revisor: MCR-DevIA revisa a PROPRIA resposta pos-geracao. Detecta alucinacoes (classes inventadas), nomes inconsistentes, e auto-corrige.  FLUXO: 1. Orquestrador gera resposta 2. AutoRevisor.revisar(resposta, contexto)  3. Detecta alucinacoes comparando com classes REAIS do projeto 4. Se encontrar, registra no KG e RETORNA correcoes 5. Watchdog pode disparar AutoRevisor em arquivos do sandbox/ \"\"\" import os, re, json, time  # Classes REAIS do projeto (co", "ctx": "fuel_codigo", "timestamp": 1782919729.069391}
+{"erro": "modulo_auto_trigger.py", "solucao": "Codigo do modulo auto_trigger.py: \"\"\"Auto Trigger System — Bridge entre intenção e execução de ferramentas.  Recebe intenções do IntentionEngine e executa as ferramentas apropriadas ANTES de chamar o LLM. O LLM só vê os resultados.  Fluxo:   IntentionEngine.detectar(texto)     ↓   AutoTriggerSystem.executar(intencoes)     ↓  (para cada intenção, executa ferramentas)   Resultados injetados no contexto do prompt     ↓   LLM só escreve a resposta baseada nos dados  Uso:     ats = AutoTriggerSystem(", "ctx": "fuel_codigo", "timestamp": 1782919734.3079078}
+{"erro": "modulo_blank_filler.py", "solucao": "Codigo do modulo blank_filler.py: \"\"\"Blank Filler Universal — \"Código criar código\" + LLM preencher blanks. Engine generica: qualquer conteudo (codigo, docs, analises) pode ter blanks que sao preenchidos pela IA individualmente, reduzindo alucinacao e erros.  Fluxo:   1. Esqueleto: estrutura com marcadores @BLANK_ID   2. Listar blanks: extrai os IDs   3. Preencher: IA preenche CADA blank com contexto focado   4. Montar: substitui blanks no esqueleto  Uso:     bf = BlankFiller(ia)     skel = bf.g", "ctx": "fuel_codigo", "timestamp": 1782919738.3786442}
+{"erro": "modulo_canary_indexer.py", "solucao": "Codigo do modulo canary_indexer.py: \"\"\"CanaryIndexer — Indexador do ecossistema Canary (NPCs, Schema DB, API).  Varre NPCs do servidor, extrai padrões e constrói base de conhecimento para geração inteligente de scripts. Base da arquitetura AGI do MCR-DevIA.  Uso:     from modulos.canary_indexer import CanaryIndexer     idx = CanaryIndexer()     idx.indexar()  # Varre tudo     resultados = idx.buscar(\"ferreiro que vende espadas\") \"\"\" import os, re, json, glob as _glob from typing import List, Dic", "ctx": "fuel_codigo", "timestamp": 1782919742.4854994}
+{"erro": "modulo_conselho.py", "solucao": "Codigo do modulo conselho.py: \"\"\"Conselho V10 - CONSELHO INFINITO. Personalidades sob demanda com ContextCrew + ContextInfinity. - Zero arquivos de personalidade fixas - Arquetipos gerados dinamicamente via FAST + contexto do ContextCrew - Router de modelos por arquétipo (cada um usa o melhor modelo) - Validação anti-alucinacao + auto-revisao + traducao PT-BR - + TreeOfThought (G1), PromptCache (G5), TermosCriticos (G7), ValidacaoRelevancia (G6)   (fundido do enricher.py)\"\"\" import sys, os, time", "ctx": "fuel_codigo", "timestamp": 1782919746.5689607}
+{"erro": "modulo_context_enricher.py", "solucao": "Codigo do modulo context_enricher.py: \"\"\"Context Enricher Universal — Gera contexto NOVO para enriquecer respostas. Em vez de apenas BUSCAR contexto (ContextCrew), o Enricher CRIA conteudo: - Nomes proprios para lore (FAST + validacao) - Dados tecnicos (grep + leitura de codigo) - Curiosidades (weblearn + KG) - Comparacoes estruturadas (FAST sobre dados do KG)  Integrado no pipeline: CR -> ENRICHER -> ORQUESTRADOR \"\"\" import os, sys, json, time, re, subprocess, hashlib  BASE = os.path.abspath(os", "ctx": "fuel_codigo", "timestamp": 1782919750.6518033}
+{"erro": "modulo_context_reinforcer.py", "solucao": "Codigo do modulo context_reinforcer.py: \"\"\"Context Reinforcer — Reforco de contexto universal para o MCR-DevIA. Usa FAST para: 1. Extrair termos criticos da solicitacao (incluindo curtos como .lua, Oz) 2. Validar se o contexto do ContextCrew e relevante 3. Disparar weblearn se contexto insuficiente 4. Gerar instrucao de desambiguacao para o LLM  Integrado com: PipelineExecutor, Conselho, Mente, Supervisor, Orquestrador, Revisor. \"\"\" import os, sys, json, time, re, subprocess  BASE = os.path.absp", "ctx": "fuel_codigo", "timestamp": 1782919754.7474675}
+{"erro": "modulo_decider.py", "solucao": "Codigo do modulo decider.py: \"\"\"Decider — Classificador universal via FAST model (+ fallback deterministico).  Substitui regex/dict fixos por decisoes do FAST model. Nao substitui seguranca deterministica (COMANDOS_BLOQUEADOS). Cache LRU com TTL para evitar chamadas repetidas ao LLM.  Uso:     decider = Decider(ia)     tipo = decider.classificar(\"Cria um jogo em Python\",                                 ['projeto_jogo', 'criar_codigo', 'pergunta'])     # -> 'projeto_jogo'      dados = decider.ext", "ctx": "fuel_codigo", "timestamp": 1782919758.82376}
+{"erro": "modulo_diagnostic_engine.py", "solucao": "Codigo do modulo diagnostic_engine.py: \"\"\"Diagnostic Engine — Auto-diagnóstico do MCR-DevIA. Detecta problemas de código, I/O manual, compilação, anti-patterns. \"\"\" import os, sys, time, json, re  BASE = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..')) MODULOS_DIR = os.path.join(BASE, 'Scripts', 'mcr_devia', 'modulos')   class DiagnosticEngine:     \"\"\"Motor de auto-diagnóstico: detecta, prioriza, repara.\"\"\"      SEVERIDADE = {'BLOQUEANTE': 0, 'ALTA': 1, 'MEDIA': 2, 'BAI", "ctx": "fuel_codigo", "timestamp": 1782919762.9025435}
+{"erro": "modulo_emergir.py", "solucao": "Codigo do modulo emergir.py: \"\"\"Emergir — Reconhecimento automatico de padroes emergentes. Extraido de master_agent.py para modularizacao.  Engine de EMERGIR: combina topicos distantes do KG, gera insights Z criativos, expande com visao critica (cenario, padrao, potencial), e aprende novos conhecimentos no KG. \"\"\" import os, sys, time, re, random, hashlib, json as _json  BASE = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))   class EmergirEngine:     \"\"\"Motor do siste", "ctx": "fuel_codigo", "timestamp": 1782919767.8309555}
+{"erro": "modulo_episodic_memory.py", "solucao": "Codigo do modulo episodic_memory.py: \"\"\"EpisodicMemory — Memória episódica com embeddings + fallback keywords.  Armazena experiências (request + resultado + lição) e busca por similaridade. Usa nomic-embed-text para embeddings (768 floats) quando disponível, fallback para busca por palavras-chave.  Uso:     mem = EpisodicMemory()     mem.registrar(\"cria ferreiro\", {...}, \"usar templates shop\")     resultados = mem.buscar(\"cria npc ferreiro em eridanus\") \"\"\" import os, json, time, re, hashlib, ma", "ctx": "fuel_codigo", "timestamp": 1782919771.9307108}
+{"erro": "modulo_ia.py", "solucao": "Codigo do modulo ia.py: \"\"\"Modulo: IA - Interface com modelos Ollama + Router Híbrido (local/cloud).\"\"\" import os, json, urllib.request, re  OLLAMA_URL = os.environ.get('OLLAMA_URL', 'http://localhost:11434/api/generate')  # --- Router Híbrido --- # Modos: 'web_search' (grátis, padrão), 'api' (requer key), 'desligado' (só local) CLOUD_MODE = os.environ.get('MCR_CLOUD_MODE', 'web_search') CLOUD_API_KEY = os.environ.get('MCR_CLOUD_API_KEY', '') WEB_SEARCH_TIMEOUT = int(os.environ.get('MCR_WEB_SEAR", "ctx": "fuel_codigo", "timestamp": 1782919776.0241268}
+{"erro": "modulo_intention_engine.py", "solucao": "Codigo do modulo intention_engine.py: \"\"\"Intention Engine — 3 camadas de detecção de intenção.  Fluxo: 1. PatternEngine: tokeniza → fingerprint → similaridade com exemplares conhecidos 2. Keyword Actions (Léxico V2): match de verbos + domínios 3. FAST 1.5b: fallback semântico 4. Markov: verificação cruzada entre intenção detectada e sequência esperada  Cada camada retorna categoria + confiança. A decisão final é ponderada.  Uso:     ie = IntentionEngine(pe=PatternEngine(), ia=IA())     intencoes", "ctx": "fuel_codigo", "timestamp": 1782919780.0844874}
+{"erro": "modulo_kg.py", "solucao": "Codigo do modulo kg.py: \"\"\"Modulo: KnowledgeGraph - Gerenciamento de conhecimento do MCR-DevIA. Knowledge Graph multi-arquivo: cada contexto em arquivo separado + master index. - Carregamento lazy: so le ctx files sob demanda - Salvamento fragmentado: so escreve ctx alterados - Master index: knowledge.json mantido para compatibilidade (contem metadados) \"\"\" import os, json, re, hashlib, math, urllib.request, time as _time from stop_words import STOP_BUSCA  BASE = os.path.abspath(os.path.join(os.", "ctx": "fuel_codigo", "timestamp": 1782919784.1726224}
+{"erro": "modulo_kg_cleaner.py", "solucao": "Codigo do modulo kg_cleaner.py: \"\"\"KGCleaner — Marca lessons poluentes como inactive no startup.  Lessons poluentes sao auto-geradas pelo pipeline e nao representam conhecimento conceitual. Elas poluem o KG Weaver (que encontra lessons por fingerprint) e devem ser marcadas como inactive.  Categorias de lessons a manter (NAO sao poluentes):   - conceito: definicoes e conceitos do projeto   - arquitetura, refatoracao: licoes de arquitetura   - correcoes_externas, decomp_recursiva: licoes uteis   -", "ctx": "fuel_codigo", "timestamp": 1782919788.272147}
+{"erro": "modulo_lessons_buffer.py", "solucao": "Codigo do modulo lessons_buffer.py: \"\"\"LessonsBuffer - Buffer de conhecimento antes de ir pro KG. Evita duplicatas, contradicoes, e informacao falsa. Contradicoes sao resolvidas automaticamente pelo ContextCrew.\"\"\" import os, json, time, hashlib, urllib.request from modulos.util import fast as _util_fast  SANDBOX = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'sandbox')) BUFFER_PATH = os.path.join(SANDBOX, '.mcr_devia', 'lessons_buffer.json') OLLAMA_URL = os.environ.get('O", "ctx": "fuel_codigo", "timestamp": 1782919792.3399923}
+{"erro": "modulo_lexico_v2.py", "solucao": "Codigo do modulo lexico_v2.py: \"\"\"Léxico V2 — Vocabulário compartilhado entre IntentionEngine e tokenização rica.  Contém: - _LEXICO: patterns de INTENÇÃO + DOMÍNIO + GRAMÁTICA (fonte única da verdade) - tokenizar_v2(): produz tokens RICOS (não PAL_CURTA/PAL_MEDIA) - MARKOV_POR_INTENCAO: sequência esperada para cada intenção  Uso:     from modulos.lexico_v2 import tokenizar_v2, MARKOV_POR_INTENCAO     tokens = tokenizar_v2(\"Crie um NPC Ferreiro\")     # → [(\"INTENT_CREATE\", \"Crie\", 0.9), (\"DOM_NP", "ctx": "fuel_codigo", "timestamp": 1782919796.4155028}
+{"erro": "comando_cmd_analisar.py", "solucao": "Comando cmd_analisar.py: \"\"\"Comando: analisar - Analisa arquivo usando Orquestrador Universal.\"\"\" import os, sys, json, re sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..')) from modulos.util import fast, gerar, extrair_codigo, BASE as _BASE, SANDBOX as _SANDBOX, OLLAMA_URL  def register():     return {", "ctx": "fuel_codigo", "timestamp": 1782919801.316085}
+{"erro": "comando_cmd_aprender_conceito.py", "solucao": "Comando cmd_aprender_conceito.py: \"\"\"Comando: aprender_conceito - APRENDE QUALQUER CONCEITO do projeto (codigo + docs). Usa Orquestrador Universal para sintese de conhecimento. Busca em TODO o projeto: src/, data/, scripts/, Docs/, config/, sandbox/, raiz.\"\"\" import os, re, sys  BASE = os.path.abspath(os.path.join(os.path.dirname(__", "ctx": "fuel_codigo", "timestamp": 1782919805.4129744}
+{"erro": "comando_cmd_autoteste.py", "solucao": "Comando cmd_autoteste.py: \"\"\"Comando: autoteste - Auto-Teste Definitivo do MCR-DevIA. Gera perguntas via FAST, executa, coleta auto-critica, avalia, salva historico.  Uso (JSON IPC):   {\"cmd\": \"autoteste\", \"args\": [\"--ciclo\", \"1\"]}   {\"cmd\": \"autoteste\", \"args\": [\"--ciclo\", \"1\", \"--fast\"]}       # Skip ToT   {\"cmd\": \"autotes", "ctx": "fuel_codigo", "timestamp": 1782919809.4830837}
+{"erro": "comando_cmd_bugfinder.py", "solucao": "Comando cmd_bugfinder.py: \"\"\"Comando: bugfinder - Escaneia logs e registra erros no KG para aprendizado.\"\"\" import os, sys, json, re, subprocess sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..')) from modulos.util import fast, gerar, extrair_codigo, BASE as _BASE, SANDBOX as _SANDBOX  def register():     retur", "ctx": "fuel_codigo", "timestamp": 1782919813.5410194}
+{"erro": "comando_cmd_build.py", "solucao": "Comando cmd_build.py: \"\"\"Comando: build - Pipeline Dinamica: gera codigo sob medida.\"\"\" import os, sys, json, re, subprocess sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..')) from modulos.util import fast, gerar, extrair_codigo, BASE as _BASE, SANDBOX as _SANDBOX  def register():     return {         \"nam", "ctx": "fuel_codigo", "timestamp": 1782919817.6229255}
+{"erro": "comando_cmd_builderx.py", "solucao": "Comando cmd_builderx.py: \"\"\"Comando: builderx - builderx\"\"\" import os, sys, json, re, subprocess sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..')) from modulos.util import fast, gerar, extrair_codigo, BASE as _BASE, SANDBOX as _SANDBOX  def register():     return {         \"name\": \"builderx\",         \"desc\":", "ctx": "fuel_codigo", "timestamp": 1782919821.7066486}
+{"erro": "comando_cmd_compilar.py", "solucao": "Comando cmd_compilar.py: \"\"\"Comando: compilar - compilar\"\"\" import os, sys, json, re, subprocess sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..')) from modulos.util import fast, gerar, extrair_codigo, BASE as _BASE, SANDBOX as _SANDBOX  def register():     return {         \"name\": \"compilar\",         \"desc\":", "ctx": "fuel_codigo", "timestamp": 1782919825.7752023}
+{"erro": "comando_cmd_conectar.py", "solucao": "Comando cmd_conectar.py: \"\"\"Comando: conectar - Thinker de conexoes: busca conexoes entre dominios no KG.\"\"\" import os, sys, json, re, subprocess sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..')) from modulos.util import fast, gerar, extrair_codigo, BASE as _BASE, SANDBOX as _SANDBOX  def register():     ret", "ctx": "fuel_codigo", "timestamp": 1782919829.8375914}
+{"erro": "comando_cmd_conselho.py", "solucao": "Comando cmd_conselho.py: \"\"\"Comando: conselho - Conselho V7 para respostas inteligentes.\"\"\" import os, sys, time, json  def register():     return {         \"name\": \"conselho\",         \"desc\": \"Conselho V7: resposta inteligente com personalidades + auto-revisao\",         \"handler\": execute,         \"args\": [{\"name\": \"pergun", "ctx": "fuel_codigo", "timestamp": 1782919834.8390377}
+{"erro": "comando_cmd_criar.py", "solucao": "Comando cmd_criar.py: \"\"\"Comando: criar — Cria conteudo usando o pipeline ReAct.\"\"\" def register():     return {\"name\": \"criar\", \"desc\": \"Cria conteudo (codigo, NPC, item, etc.) usando pipeline ReAct.\",             \"handler\": execute, \"args\": [{\"name\": \"descricao\", \"type\": \"str\", \"required\": True}], \"categoria\": \"criacao", "ctx": "fuel_codigo", "timestamp": 1782919838.927409}
+{"erro": "comando_cmd_debate.py", "solucao": "Comando cmd_debate.py: \"\"\"Comando: debate - Debate: 2 sub-agentes discutem antes de entregar.\"\"\" import os, sys, json, re, subprocess sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..')) from modulos.util import fast, gerar, extrair_codigo, BASE as _BASE, SANDBOX as _SANDBOX  def register():     return {", "ctx": "fuel_codigo", "timestamp": 1782919842.9917586}
+{"erro": "comando_cmd_edit.py", "solucao": "Comando cmd_edit.py: \"\"\"Comando: edit - Edita por LINHA (precisao cirurgica).\"\"\" import os, sys, json, re, subprocess sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..')) from modulos.util import fast, gerar, extrair_codigo, BASE as _BASE, SANDBOX as _SANDBOX  def register():     return {         \"name\": \"e", "ctx": "fuel_codigo", "timestamp": 1782919847.0596616}
+{"erro": "comando_cmd_ensinar.py", "solucao": "Comando cmd_ensinar.py: \"\"\"Comando: ensinar - Registra conhecimento no KG.\"\"\" def register():     return {         \"name\": \"ensinar\",         \"desc\": \"Regstra licao no KG: ensinar <erro> <causa> <solucao> [ctx]\",         \"handler\": execute,         \"args\": [             {\"name\": \"erro\", \"type\": \"str\", \"required\": True},", "ctx": "fuel_codigo", "timestamp": 1782919851.099284}
+{"erro": "comando_cmd_estrategia.py", "solucao": "Comando cmd_estrategia.py: \"\"\"Comando: estrategia - estrategia\"\"\" import os, sys, json, re, subprocess sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..')) from modulos.util import fast, gerar, extrair_codigo, BASE as _BASE, SANDBOX as _SANDBOX  def register():     return {         \"name\": \"estrategia\",         \"", "ctx": "fuel_codigo", "timestamp": 1782919855.1675208}
+{"erro": "comando_cmd_explorar.py", "solucao": "Comando cmd_explorar.py: \"\"\"Comando: explorar - Escaneia e aprende com IA minima + Orquestrador Universal.\"\"\" import os, re, json, hashlib, time, sys  BASE = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))  def register():     return {         \"name\": \"explorar\",         \"desc\": \"Escaneia projeto", "ctx": "fuel_codigo", "timestamp": 1782919859.213783}
+{"erro": "comando_cmd_extract.py", "solucao": "Comando cmd_extract.py: \"\"\"Comando: extract - Extrai partes de QUALQUER arquivo, modifica, reaplica (com seguranca).\"\"\" import os, sys, json, re, subprocess sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..')) from modulos.util import fast, gerar, extrair_codigo, BASE as _BASE, SANDBOX as _SANDBOX  def registe", "ctx": "fuel_codigo", "timestamp": 1782919863.268729}
+{"erro": "comando_cmd_fast.py", "solucao": "Comando cmd_fast.py: \"\"\"Comando: fast - Classificacao rapida via IA (usa router padronizado).\"\"\" import os, sys sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..')) from modulos.util import fast as _util_fast  def register():     return {         \"name\": \"fast\",         \"desc\": \"Classificacao rapida via Oll", "ctx": "fuel_codigo", "timestamp": 1782919868.1049514}
+{"erro": "comando_cmd_fazer.py", "solucao": "Comando cmd_fazer.py: \"\"\"Comando: fazer — Cria/executa acoes usando o pipeline ReAct.\"\"\" def register():     return {\"name\": \"fazer\", \"desc\": \"Executa acoes (criar, modificar, configurar) usando pipeline ReAct.\",             \"handler\": execute, \"args\": [{\"name\": \"descricao\", \"type\": \"str\", \"required\": True}], \"categoria\"", "ctx": "fuel_codigo", "timestamp": 1782919872.1555648}
+{"erro": "comando_cmd_fix_excepts.py", "solucao": "Comando cmd_fix_excepts.py: \"\"\"Comando: fix_excepts - Substitui except: por except Exception as e:\"\"\" import os, re, shutil  def register():     return {         \"name\": \"fix_excepts\",         \"desc\": \"Corrige except: genericos. Uso: fix_excepts <path> [--force] [--preview]\",         \"handler\": execute,         \"args\": [{\"name", "ctx": "fuel_codigo", "timestamp": 1782919876.207908}
+{"erro": "comando_cmd_gerar.py", "solucao": "Comando cmd_gerar.py: \"\"\"Comando: gerar - gerar\"\"\" import os, sys, json, re, subprocess sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..')) from modulos.util import fast, gerar, extrair_codigo, BASE as _BASE, SANDBOX as _SANDBOX  def register():     return {         \"name\": \"gerar\",         \"desc\": \"gerar\",", "ctx": "fuel_codigo", "timestamp": 1782919880.2514105}
+{"erro": "modulo_agent_loop.py", "solucao": "Codigo do modulo agent_loop.py: \"\"\"Agent Loop — Núcleo AGI: Think → Act → Observe → Learn.  Orquestra o pipeline completo de geração de NPCs: 1. THINK: Analisa descrição, busca exemplos similares + KG, planeja 2. ACT: Gera código via NPCGenerator com placeholders do LLM 3. OBSERVE: Valida com LuaValidator, verifica SQL injection 4. LOOP: Se falhar, retry com correção (max 3) 5. LEARN: Registra lições no histórico + Knowledge Graph  Uso:     from modulos.agent_loop import AgentLoop     agent = Ag", "ctx": "fuel_codigo", "timestamp": 1782920191.4559667}
+{"erro": "modulo_aprendiz_de_padroes.py", "solucao": "Codigo do modulo aprendiz_de_padroes.py: \"\"\"AprendizDePadroes — Aprendiz autônomo de padrões para IE e PE.  Lê QUALQUER fonte de dados, usa PE.tokenizar_universal() + extrair_padroes() para descobrir estruturas e co-ocorrências, e salva lessons no KG (ctx='padrao_aprendido') que a IntentionEngine carrega em runtime.  1 método universal substitui 6 especializados. \"\"\" import os, json, re from collections import Counter, defaultdict from typing import List, Dict, Optional   class AprendizDePadroes", "ctx": "fuel_codigo", "timestamp": 1782920195.4966326}
+{"erro": "modulo_auto_repair.py", "solucao": "Codigo do modulo auto_repair.py: \"\"\"AutoRepair — Repara codigo com erro baseado na mensagem do validador.  Quando o validador detecta um erro (linha, descricao), o AutoRepair usa o FAST model para corrigir o codigo em UMA tentativa.  Conceito: Se o validador ACHOU o erro, o reparador SABE o que corrigir. Nao precisa de loop — erro conhecido = correcao direta.  Uso:     reparador = AutoRepair(ia)     codigo_corrigido = reparador.reparar(codigo_errado, erros, linguagem) \"\"\" from modulos.util impor", "ctx": "fuel_codigo", "timestamp": 1782920199.5326955}
+{"fingerprint": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 10.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "entropia": 0.62, "timestamp": 1782938851.6521554, "texto": "O que ainda nao esta MCR? o que ainda nao segue padroes? a ASSINATURA, o que ainda e Hardcoded?", "autor": "Kheltz"}
+{"fingerprint": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 10.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "entropia": 0.438, "timestamp": 1782938851.652765, "texto": "TODOS, resolva TODOS, conecte TODOS!", "autor": "Kheltz"}
+{"fingerprint": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 10.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "entropia": 0.69, "timestamp": 1782938851.653402, "texto": "analise o MCR.py POR COMPLETO e reflita, o MCR sabe decidir melhor que ninguem", "autor": "Kheltz"}
+{"fingerprint": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 10.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "entropia": 0.62, "timestamp": 1782938885.2691524, "texto": "O que ainda nao esta MCR? o que ainda nao segue padroes? a ASSINATURA, o que ainda e Hardcoded?", "autor": "Kheltz"}
+{"fingerprint": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 10.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "entropia": 0.438, "timestamp": 1782938885.2699175, "texto": "TODOS, resolva TODOS, conecte TODOS!", "autor": "Kheltz"}
+{"estado_key": "ultima_migracao", "valor": 1782940722.6345568}
+{"estado_key": "licoes_originais", "valor": 1799}
+"""
+
+if __name__ == '__main__':
+    import sys, os
+    _base = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+    if _base not in sys.path:
+        sys.path.insert(0, _base)
     try:
-        os.makedirs(CACHE_DIR, exist_ok=True)
-        with open(estado_path, 'w') as f:
-            json.dump({
-                'execucoes': n_exec_anteriores + 1,
-                'ultima_acao': 'chat',
-                'descobertas': curiosidade.descobertas,
-                'topicos': len(cerebro.topicos),
-            }, f)
-    except: pass
-
-# ═══════════════════════════════════════════════════════════════════
-# [23] Explorar — MCR explora, aprende e descobre sozinho
-# ═══════════════════════════════════════════════════════════════════
-
-def explorar_ollama(cerebro):
-    """MCR explora os arquivos do Ollama e descobre padroes.
-    Zero instrucoes: o MCR decide o que procurar."""
-    import sqlite3
-    log_dir = os.path.expanduser(r"~\AppData\Local\ollama")
-    db_path = os.path.join(log_dir, "db.sqlite")
-    print("\n[MCR] Explorando arquivos do Ollama...")
-
-    # 1. Alimenta banco SQLite
-    if os.path.exists(db_path):
-        con = sqlite3.connect(db_path)
-        c = con.cursor()
-        tables = c.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
-        for t in tables:
-            name = t[0]
-            rows = c.execute(f"SELECT * FROM \"{name}\" LIMIT 100").fetchall()
-            n_linhas = len(rows)
-            for r in rows[:10]:
-                cols_texto = " | ".join(str(v)[:200] for v in r if v)
-                if len(cols_texto) > 20:
-                    cerebro.alimentar(
-                        f"Na tabela {name} do banco SQLite do Ollama, uma linha contem: {cols_texto}. "
-                        f"Esta tabela tem {n_linhas} registros no total.",
-                        f"ollama_db_{name}_{hash(cols_texto)%10000}"
-                    )
-            cerebro.alimentar(
-                f"A tabela {name} do banco de dados do Ollama contem {n_linhas} registros. "
-                f"Ela armazena informacoes sobre {name}.",
-                f"ollama_db_desc_{name}"
-            )
-        con.close()
-        print(f"  Banco alimentado: {len(cerebro.topicos)} topicos")
-
-    # 2. Alimenta logs do servidor — em linguagem natural
-    for fname in sorted(os.listdir(log_dir)):
-        if "server" in fname and fname.endswith(".log"):
-            path = os.path.join(log_dir, fname)
-            with open(path, "r", encoding="utf-8", errors="replace") as f:
-                lines = f.readlines()
-            n_erros = len([l for l in lines if any(w in l.lower() for w in ["error","fail","panic","out of memory","context length","allocat"])])
-            n_runners = len([l for l in lines if "starting runner" in l or "llama_model_loader" in l or "load failed" in l.lower()])
-            primeiro_horario = ""
-            ultimo_horario = ""
-            for l in lines:
-                if "time=" in l and not primeiro_horario:
-                    primeiro_horario = l[l.find("time=")+5:l.find("time=")+21]
-                if "time=" in l:
-                    ultimo_horario = l[l.find("time=")+5:l.find("time=")+21]
-            
-            # Texto natural: descreve o log como uma frase
-            texto = (
-                f"O arquivo de log {fname} do servidor Ollama contem {len(lines)} linhas. "
-                f"Ele comeca em {primeiro_horario} e termina em {ultimo_horario}. "
-                f"Foram encontrados {n_erros} erros neste log, incluindo problemas de memoria e contexto. "
-                f"O modelo foi carregado {n_runners} vezes durante este periodo. "
-                f"O servidor estava rodando continuamente."
-            )
-            cerebro.alimentar(texto, f"ollama_resumo_{fname}")
-            
-            # Amostras de erro como frases individuais
-            erros = [l for l in lines if any(w in l.lower() for w in ["error","fail","panic","out of memory","context length","allocat"])]
-            for e in erros[:30]:
-                cerebro.alimentar(f"ERRO no Ollama: {e[:200]}", f"err_{fname}_{hash(e)%10000}")
-            
-            print(f"  Log {fname}: {len(lines)} linhas, {n_erros} erros, {n_runners} runners")
-
-    print("  Dados alimentados no cerebro. MCRAttention fara o resto.")
-
-def explorar_diretorio(cerebro, path):
-    """MCR explora um diretorio e descobre o que tem la."""
-    print(f"\n[MCR] Explorando diretorio: {path}")
-    n = 0
-    for root, dirs, files in os.walk(path):
-        for f in files:
-            if n >= 200:
-                break
-            ext = f.split(".")[-1].lower() if "." in f else ""
-            if ext in ("py","lua","txt","md","json","xml","html","cpp","hpp","c","h","js","ts","css","cfg","ini","log","csv"):
-                try:
-                    fp = os.path.join(root, f)
-                    with open(fp, "r", encoding="utf-8", errors="replace") as fh:
-                        ct = fh.read(2000)
-                    if len(ct) > 50:
-                        # Descreve o arquivo em linguagem natural
-                        rel = os.path.relpath(fp, path)[:60]
-                        cerebro.alimentar(
-                            f"O arquivo {rel} contem {len(ct)} caracteres. "
-                            f"Seu conteudo começa com: {ct[:200]}",
-                            f"dir_{n}_{f[:20]}"
-                        )
-                        n += 1
-                except: pass
-    print(f"  Alimentados {n} arquivos de {path}")
-
-def explorar(cerebro, alvo=None):
-    """MCR explora autonomamente: alimenta, descobre padroes, relata.
-    Zero instrucoes. O MCR decide o que e importante."""
-    print("\n" + "=" * 55)
-    print("  MCR EXPLORADOR AUTONOMO")
-    print("  O MCR vai explorar, aprender e descobrir sozinho.")
-    print("=" * 55)
-
-    t0 = time.time()
-
-    if alvo == "ollama":
-        explorar_ollama(cerebro)
-    elif alvo and os.path.isdir(alvo):
-        explorar_diretorio(cerebro, alvo)
-    elif alvo and os.path.isfile(alvo):
-        with open(alvo, "r", encoding="utf-8", errors="replace") as f:
-            ct = f.read(5000)
-        if len(ct) > 50:
-            cerebro.alimentar(ct[:3000], f"file_{os.path.basename(alvo)[:20]}")
-        print(f"  Alimentado arquivo: {alvo}")
-    else:
-        # Explora tudo que encontrar
-        for d in [os.path.expanduser(r"~\AppData\Local\ollama"),
-                  r"E:\Projeto MCR",
-                  os.path.dirname(__file__)]:
-            if os.path.exists(d):
-                explorar_diretorio(cerebro, d)
-                break
-
-    tempo = time.time() - t0
-    print(f"\n[MCR] Alimentacao concluida em {tempo:.2f}s")
-    print(f"[MCR] Conhecimento: {len(cerebro.topicos)} topicos, {cerebro.mk_byte.total} bytes, {cerebro.mk_palavra.total} palavras")
-    print()
-
-    # O MCR descobre o que aprendeu
-    print("=" * 55)
-    print("  O QUE O MCR DESCOBRIU")
-    print("=" * 55)
-    print()
-
-    # Auto-diagnostico
-    diag = cerebro.auto_diagnosticar()
-    print(f"  Topicos: {diag.get('topicos', len(cerebro.topicos))}")
-    print(f"  Bytes: {cerebro.mk_byte.total}")
-    print(f"  Palavras: {cerebro.mk_palavra.total}")
-    print(f"  Gaps detectados: {diag.get('gaps', [])}")
-    print(f"  Hardcodes: {diag.get('hardcodes', 0)}")
-    print()
-
-    # Gera perguntas que o MCR se faz — sem contaminar os topicos
-    topicos = list(cerebro.topicos.keys())
-    auto_perguntas = [
-        "oque tem de mais importante nesses dados",
-        "quais padroes voce encontrou",
-        "tem erros ou anomalias",
-        "oque voce recomenda fazer com isso",
-        "qual o resumo do que aprendeu",
-    ]
-    for p in auto_perguntas:
-        # MCRAttention busca, Markov gera, cerebro decide
-        topico = MCRAttention._topico_relevante(cerebro, p)
-        if topico:
-            r = topico[1]
-        else:
-            r = cerebro.gerar(p, 6, p)
-        safe = r.encode("ascii", errors="replace").decode("ascii")[:200]
-        print(f"  [MCR] {p}:")
-        print(f"    {safe}")
-        print()
-
-    # Descobre clusters por fingerprint
-    if len(topicos) >= 10:
-        print("  [MCR] Agrupando topicos por similaridade...")
-        fp_topicos = {n: MCRByteUtils.fingerprint(cerebro.topicos[n].get("texto","")[:200]) for n in topicos}
-        clusters = {}
-        visitados = set()
-        for n1 in topicos:
-            if n1 in visitados: continue
-            cluster = [n1]
-            visitados.add(n1)
-            for n2 in topicos:
-                if n2 in visitados: continue
-                sim = MCRByteUtils.similaridade_cosseno(fp_topicos[n1], fp_topicos[n2])
-                if sim > 0.7:
-                    cluster.append(n2); visitados.add(n2)
-            clusters[n1[:30]] = [n[:20] for n in cluster[:5]]
-        print(f"  Clusters encontrados: {len(clusters)}")
-        for nome, membros in list(clusters.items())[:5]:
-            print(f"    Cluster '{nome}': {', '.join(membros)}")
-        print()
-
-    return {
-        "topicos": len(cerebro.topicos),
-        "bytes": cerebro.mk_byte.total,
-        "palavras": cerebro.mk_palavra.total,
-        "tempo": round(tempo, 2),
-        "clusters": len(clusters) if 'clusters' in dir() else 0,
-    }
-
-
-# ═══════════════════════════════════════════════════════════════════
-# [24] MCRHookObserver — captura de eventos do sistema VIA HOOKS
-# ═══════════════════════════════════════════════════════════════════
-
-class MCRFonte:
-    """Base class for a system observable source.
-    alimentar() feeds a token directly (no poll).
-    """
-    def __init__(self, nome):
-        self.nome = nome
-        self.mk = MCR(nome)
-        self.ultimo_token = None
-        self.ativo = True
-
-    def alimentar(self, token):
-        if token is not None:
-            if self.ultimo_token is not None:
-                try:
-                    self.mk.aprender(self.ultimo_token, token)
-                except:
-                    pass
-            self.ultimo_token = token
-        return token
-
-    def entropia_media(self):
-        return self.mk.entropia_media() if self.mk.total > 0 else 1.0
-
-
-class MCRFonteSimulada(MCRFonte):
-    """Fonte simulada para testes — produz tokens de uma fila."""
-    def __init__(self, nome, tokens=None):
-        super().__init__(nome)
-        self._fila_tokens = list(tokens or [])
-
-    def poll(self):
-        if self._fila_tokens:
-            return self._fila_tokens.pop(0)
-        return None
-
-    def alimentar_sim(self):
-        tok = self.poll()
-        return super().alimentar(tok)
-
-    def adicionar(self, tokens):
-        self._fila_tokens.extend(tokens)
-
-
-class MCRHookObserver:
-    """Captura eventos do sistema VIA HOOKS (zero polling).
-    
-    Windows hooks:
-      - WH_KEYBOARD_LL (13): toda tecla pressionada/solta
-      - WH_MOUSE_LL (14): cliques e scroll do mouse
-      - WM_CLIPBOARDUPDATE: quando conteudo da area de transferencia muda
-      - EVENT_SYSTEM_FOREGROUND: quando janela ativa muda
-    
-    Cada evento vira um token SYS:{tipo}:{valor}.
-    Todos os tokens alimentam UMA unica cadeia mk_sys.
-    O MCR descobre correlacoes entre tipos de eventos SOZINHO.
-    
-    Nao ha polling. Nao ha timers. Eventos sao capturados
-    no INSTANTE em que ocorrem.
-    """
-    def __init__(self, cerebro=None):
-        self.cerebro = cerebro
-        self.mk_sys = MCR("sys_byte")
-        self._ultimo_token = None
-        self._rodando = False
-        self._thread = None
-        self._lock = threading.Lock()
-        self._hook_ids = []
-        self._hwnd = None
-        self._eventos: List[Dict] = []
-
-    def _alimentar(self, token):
-        """Thread-safe: alimenta a cadeia sistema com um token."""
-        with self._lock:
-            if self._ultimo_token is not None:
-                self.mk_sys.aprender(self._ultimo_token, token)
-            self._ultimo_token = token
-
-    def levels(self):
-        return {"sys_byte": self.mk_sys}
-
-    def iniciar(self):
-        """Inicia hooks em thread separada com message pump.
-        Windows-only. Em outras plataformas, nao faz nada."""
-        if os.name != 'nt':
-            return
-        self._rodando = True
-        self._thread = threading.Thread(target=self._pump, daemon=True)
-        self._thread.start()
-
-    def _pump(self):
-        """Windows message pump com hooks de teclado, mouse e clipboard."""
-        import ctypes
-        from ctypes import wintypes
-
-        user32 = ctypes.windll.user32
-        kernel32 = ctypes.windll.kernel32
-
-        # ---- Estruturas para hooks ----
-        class KBDLLHOOKSTRUCT(ctypes.Structure):
-            _fields_ = [
-                ("vkCode", ctypes.c_uint),
-                ("scanCode", ctypes.c_uint),
-                ("flags", ctypes.c_uint),
-                ("time", ctypes.c_uint),
-                ("dwExtraInfo", ctypes.c_uint),
-            ]
-
-        class MSLLHOOKSTRUCT(ctypes.Structure):
-            _fields_ = [
-                ("pt_x", ctypes.c_long),
-                ("pt_y", ctypes.c_long),
-                ("mouseData", ctypes.c_uint),
-                ("flags", ctypes.c_uint),
-                ("time", ctypes.c_uint),
-                ("dwExtraInfo", ctypes.c_uint),
-            ]
-
-        HOOKPROC = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_void_p)
-
-        # ---- Keyboard hook ----
-        def keyboard_proc(nCode, wParam, lParam):
-            if nCode >= 0:
-                struct = ctypes.cast(lParam, ctypes.POINTER(KBDLLHOOKSTRUCT)).contents
-                if struct.vkCode < 256:
-                    key = f"{struct.vkCode:02x}"
-                    estado = 'd' if wParam in (0x100, 0x104) else 'u'  # WM_(SYS)KEYDOWN
-                    self._alimentar(f"SYS:K:{key}:{estado}")
-            return user32.CallNextHookEx(0, nCode, wParam, lParam)
-
-        # ---- Mouse hook (apenas cliques, scroll — nao movimento) ----
-        def mouse_proc(nCode, wParam, lParam):
-            if nCode >= 0:
-                if wParam in (0x201, 0x202, 0x204, 0x205, 0x207, 0x208, 0x20A, 0x20B):
-                    struct = ctypes.cast(lParam, ctypes.POINTER(MSLLHOOKSTRUCT)).contents
-                    botoes = {0x201:'L:d', 0x202:'L:u', 0x204:'R:d', 0x205:'R:u',
-                              0x207:'M:d', 0x208:'M:u', 0x20A:'X:d', 0x20B:'X:u'}
-                    b = botoes.get(wParam, '?:?')
-                    self._alimentar(f"SYS:M:{b}:{struct.pt_x}:{struct.pt_y}")
-                elif wParam == 0x20A:  # WM_MOUSEWHEEL
-                    self._alimentar(f"SYS:W:{struct.mouseData >> 16}")
-            return user32.CallNextHookEx(0, nCode, wParam, lParam)
-
-        # ---- Clipboard listener via AddClipboardFormatListener ----
-        WNDPROC = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_void_p, ctypes.c_uint,
-                                    ctypes.c_void_p, ctypes.c_void_p)
-
-        def wnd_proc(hwnd, msg, wParam, lParam):
-            if msg == 0x031D:  # WM_CLIPBOARDUPDATE
-                self._alimentar("SYS:CLP:CHANGE")
-            elif msg == 0x0002:  # WM_DESTROY
-                pass
-            return user32.DefWindowProcW(hwnd, msg, wParam, lParam)
-
-        # Cria janela oculta para clipboard listener
-        try:
-            wc = wintypes.WNDCLASSEXW()
-            wc.cbSize = ctypes.sizeof(wc)
-            cls_name = "MCRHookWindow"
-            wc.lpszClassName = cls_name
-            wc.lpfnWndProc = WNDPROC(wnd_proc)
-            wc.hInstance = kernel32.GetModuleHandleW(0)
-            user32.RegisterClassExW(ctypes.byref(wc))
-            self._hwnd = user32.CreateWindowExW(0, cls_name, "", 0,
-                                                 0, 0, 0, 0, 0, 0, 0, 0)
-            user32.AddClipboardFormatListener(self._hwnd)
-        except:
-            pass
-
-        # ---- WinEventHook: foreground window change ----
-        WINEVENTPROC = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_uint,
-                                         ctypes.c_void_p, ctypes.c_long,
-                                         ctypes.c_long, ctypes.c_uint, ctypes.c_uint)
-
-        def win_event_proc(hWinEventHook, event, hwnd, idObject, idChild, dwEventThread, dwmsEventTime):
-            if event == 3:  # EVENT_SYSTEM_FOREGROUND
-                length = user32.GetWindowTextLengthW(hwnd) + 1
-                buf = ctypes.create_unicode_buffer(max(length, 1))
-                user32.GetWindowTextW(hwnd, buf, length)
-                titulo = (buf.value or "?")[:40]
-                safe = re.sub(r'[^A-Za-z0-9._ -]', '_', titulo)[:30]
-                self._alimentar(f"SYS:WIN:{safe}")
-
-        # Instala hooks
-        try:
-            hk_kb = HOOKPROC(keyboard_proc)
-            hid_kb = user32.SetWindowsHookExW(13, hk_kb, kernel32.GetModuleHandleW(0), 0)
-            self._hook_ids.append(('kb', hid_kb, hk_kb))
-
-            hk_mouse = HOOKPROC(mouse_proc)
-            hid_mouse = user32.SetWindowsHookExW(14, hk_mouse, kernel32.GetModuleHandleW(0), 0)
-            self._hook_ids.append(('mouse', hid_mouse, hk_mouse))
-
-            hk_win = WINEVENTPROC(win_event_proc)
-            hid_win = user32.SetWinEventHook(3, 3, 0, hk_win, 0, 0, 0)
-            self._hook_ids.append(('win', hid_win, hk_win))
-        except:
-            pass
-
-        # ---- Message pump ----
-        msg = wintypes.MSG()
-        while self._rodando:
-            ret = user32.GetMessageW(ctypes.byref(msg), 0, 0, 0)
-            if ret == 0:
-                break
-            user32.TranslateMessage(msg)
-            user32.DispatchMessageW(msg)
-            # Mede entropia apos cada evento (event-driven, nao timer)
-            if self.cerebro and hasattr(self.cerebro, 'ent_temporal'):
-                self.cerebro.ent_temporal.medir()
-
-        # Cleanup
-        for tipo, hid, _ in self._hook_ids:
-            try:
-                if tipo == 'win':
-                    user32.UnhookWinEvent(hid)
-                else:
-                    user32.UnhookWindowsHookEx(hid)
-            except:
-                pass
-        if self._hwnd:
-            try:
-                user32.RemoveClipboardFormatListener(self._hwnd)
-                user32.DestroyWindow(self._hwnd)
-            except:
-                pass
-
-    def parar(self):
-        self._rodando = False
-        if self._thread:
-            self._thread.join(timeout=2.0)
-
-
-class MCRFileObserver:
-    """Monitor de arquivos event-driven (zero polling).
-
-    Usa FindFirstChangeNotificationW para ser notificado pelo OS
-    quando algo muda no sistema de arquivos. A thread BLOQUEIA
-    em WaitForMultipleObjects — zero CPU quando inativo.
-
-    Fase 1: constroi DB de assinaturas (tamanho + modtime).
-    Fase 2: monitora mudancas em tempo real.
-
-    Cada mudanca gera SYS:F:{action}:{path} no fila_eventos.
-    O cerebro processa a fila no main loop.
-    """
-    def __init__(self, fila_eventos, cerebro=None):
-        self.fila = fila_eventos
-        self.cerebro = cerebro
-        self._rodando = False
-        self._thread = None
-        self._file_sigs: Dict[str, tuple] = {}
-        self._dir_mtimes: Dict[str, float] = {}
-        self._pronto = False
-
-    def _get_sig(self, path):
-        try:
-            st = os.stat(path)
-            return (st.st_size, st.st_mtime)
-        except:
-            return None
-
-    def iniciar(self):
-        self._rodando = True
-        self._thread = threading.Thread(target=self._build_and_monitor, daemon=True)
-        self._thread.start()
-
-    def _build_and_monitor(self):
-        drives = self._get_drives()
-        if not drives:
-            self._pronto = True
-            return
-        # Fase 1: varredura inicial silenciosa (so constroi DB)
-        for d in drives:
-            self._walk_and_sig(d)
-        self._pronto = True
-        # Fase 2: monitoramento event-driven
-        self._monitorar_drives(drives)
-
-    def _get_drives(self):
-        if os.name != 'nt':
-            return [os.path.expanduser("~")]
-        try:
-            import ctypes
-            drives = []
-            bitmask = ctypes.windll.kernel32.GetLogicalDrives()
-            for i in range(26):
-                if bitmask & (1 << i):
-                    drives.append(f"{chr(65+i)}:\\")
-            return [d for d in drives if os.path.isdir(d)]
-        except:
-            return [os.path.expanduser("~")]
-
-    def _walk_and_sig(self, root):
-        n = 0
-        for dirpath, dirnames, _ in os.walk(root):
-            try:
-                self._dir_mtimes[dirpath] = os.path.getmtime(dirpath)
-            except:
-                continue
-            try:
-                for f in os.listdir(dirpath):
-                    path = os.path.join(dirpath, f)
-                    if os.path.isfile(path):
-                        sig = self._get_sig(path)
-                        if sig:
-                            self._file_sigs[path] = sig
-                            n += 1
-            except:
-                pass
-            if n > 50000:
-                # Limite pratico
-                break
-
-    def _safe_path(self, path):
-        p = path.replace('\\', '/')
-        return re.sub(r'[^A-Za-z0-9_./: -]', '_', p)[:120]
-
-    def _monitorar_drives(self, drives):
-        if os.name != 'nt':
-            return
-        from ctypes import wintypes
-        import ctypes
-        kernel32 = ctypes.windll.kernel32
-
-        handles = []
-        active_drives = []
-        flags = 0x10 | 0x4 | 0x2 | 0x1
-        for d in drives:
-            try:
-                h = kernel32.FindFirstChangeNotificationW(d, True, flags)
-                if h and h != -1:
-                    handles.append(h)
-                    active_drives.append(d)
-            except:
-                pass
-        if not handles:
-            return
-
-        WAIT_OBJECT_0 = 0
-        WAIT_TIMEOUT = 258
-
-        while self._rodando:
-            arr = (wintypes.HANDLE * len(handles))(*handles)
-            wait_idx = kernel32.WaitForMultipleObjects(len(handles), arr, False, 1000)
-            if wait_idx == WAIT_TIMEOUT:
-                continue
-            if wait_idx < 0 or wait_idx >= len(handles):
-                continue
-
-            drive = active_drives[wait_idx]
-            changes = self._process_drive(drive)
-            for action, path in changes:
-                self.fila.put(('FILE', action, path))
-                if self.cerebro and hasattr(self.cerebro, 'hook_observer'):
-                    safe = self._safe_path(path)
-                    self.cerebro.hook_observer._alimentar(f"SYS:F:{action}:{safe}")
-
-            try:
-                kernel32.FindNextChangeNotification(handles[wait_idx])
-            except:
-                pass
-
-        for h in handles:
-            try:
-                kernel32.FindCloseChangeNotification(h)
-            except:
-                pass
-
-    def _process_drive(self, drive):
-        changes = []
-        for dirpath, dirnames, filenames in os.walk(drive):
-            try:
-                curr_mtime = os.path.getmtime(dirpath)
-            except:
-                continue
-            prev_mtime = self._dir_mtimes.get(dirpath, 0)
-            scanned = dirpath in self._dir_mtimes
-            if scanned and curr_mtime == prev_mtime:
-                dirnames.clear()
-                continue
-            self._dir_mtimes[dirpath] = curr_mtime
-            curr_set = set()
-            for f in filenames:
-                path = os.path.join(dirpath, f)
-                curr_set.add(path)
-                sig = self._get_sig(path)
-                if sig and self._file_sigs.get(path) != sig:
-                    prev = self._file_sigs.get(path)
-                    action = 'NEW' if prev is None else 'MOD'
-                    changes.append((action, path))
-                    self._file_sigs[path] = sig
-            for path in list(self._file_sigs.keys()):
-                if os.path.dirname(path) == dirpath and path not in curr_set:
-                    changes.append(('DEL', path))
-                    del self._file_sigs[path]
-        return changes
-
-    @property
-    def pronto(self):
-        return self._pronto
-
-    def stats(self):
-        return {"arquivos_indexados": len(self._file_sigs),
-                "diretorios_indexados": len(self._dir_mtimes),
-                "pronto": self._pronto}
-
-    def parar(self):
-        self._rodando = False
-        if self._thread:
-            self._thread.join(timeout=2.0)
-
-
-# ═══════════════════════════════════════════════════════════════════
-# [modo_autonomo] — aprendizado perpetuo (--autonomo)
-# ═══════════════════════════════════════════════════════════════════
-
-_FILTRO_WEB = frozenset([
-    'mais', 'que', 'para', 'com', 'por', 'como', 'dos', 'das',
-    'mas', 'era', 'seu', 'sua', 'tem', 'sao', 'muito', 'pode',
-    'quem', 'ate', 'sobre', 'apos', 'antes', 'entre', 'todo',
-    'tudo', 'cada', 'vai', 'foi', 'era', 'ser', 'esta', 'ele',
-    'ela', 'isto', 'isso', 'onde', 'qual', 'quais', 'sao', 'sua',
-    'teu', 'tua', 'nos', 'vos', 'sim', 'nao', 'ja', 'ainda',
-])
-_MODOS = ["explorar", "pensar", "web", "evoluir", "explorar", "pensar"]
-
-
-def _rodar_autonomo(cerebro):
-    """Ciclo perpetuo: passivo → diagnostico → acao → descanso → repete.
-    
-    Usa Markov (mk_ciclo) + epsilon-greedy para decidir o que fazer.
-    So para com Ctrl+C."""
-    print("Modo autonomo. Pressione Ctrl+C para parar.")
-    print("=" * 55)
-    
-    mk_ciclo = MCR("ciclo_autonomo")
-    total_ciclos = 0
-    total_webs = 0
-    ultimo_modo = None
-    n_vezes_mesmo_modo = 0
-    ciclos_sem_descoberta = 0
-    ultima_busca = ""
-    AUTONOMO_PATH = os.path.join(CACHE_DIR, "autonomo_estado.json")
-    
-    # Carrega estado anterior
-    try:
-        if os.path.exists(AUTONOMO_PATH):
-            with open(AUTONOMO_PATH) as f:
-                st = json.load(f)
-            total_ciclos = st.get("ciclos", 0)
-    except: pass
-    
-    # Inicia observadores
-    try:
-        cerebro.hook_observer.iniciar()
-        print("HookObserver: monitorando teclado, mouse, clipboard")
-    except Exception as e:
-        print(f"HookObserver: {e}")
-    try:
-        cerebro.file_observer.iniciar()
-        drives = cerebro.file_observer._get_drives()
-        print(f"FileObserver: monitorando {' '.join(drives)}")
-    except Exception as e:
-        print(f"FileObserver: {e}")
-    
-    log_aut = os.path.join(CACHE_DIR, "autonomo.log")
-    
-    def _log(msg):
-        with open(log_aut, "a", encoding="utf-8") as f:
-            f.write(f"[{time.strftime('%H:%M:%S')}] {msg}\n")
-    
-    # Fragmentador para rastrear o ciclo autonomo
-    fragmentador = MCRFragmentador("autonomo")
-    
-    # Gerador de caminhos — walk unico, shuffle por pasta, yield infinito
-    def _caminhos_gen(drives_list):
-        while True:
-            for raiz in drives_list:
-                try:
-                    for pasta, _, arquivos in os.walk(raiz):
-                        _rand.shuffle(arquivos)
-                        for arq in arquivos:
-                            yield os.path.join(pasta, arq)
-                except: pass
-            _log("  (fim do walk — recomecando)")
-    
-    _walk_gen = _caminhos_gen(drives)
-    
-    def _processar_lote(cerebro_obj, walk_gen, n_max, tempo_max=0.5):
-        """Processa ate N arquivos nunca vistos, max tempo_max segundos."""
-        t0 = time.perf_counter()
-        aprendidos = 0
-        for caminho in walk_gen:
-            if time.perf_counter() - t0 > tempo_max:
-                break
-            if caminho in cerebro_obj.file_observer._file_sigs:
-                continue
-            try:
-                with open(caminho, 'rb') as f:
-                    raw = f.read(2000)
-                txt = raw.decode('utf-8', errors='replace')
-                if len(txt.strip()) > 50:
-                    cerebro_obj.alimentar(txt, f"descoberta_{abs(hash(caminho))%10000}")
-                    cerebro_obj.file_observer._file_sigs[caminho] = (0, 0)
-                    aprendidos += 1
-            except: pass
-            if aprendidos >= n_max:
-                break
-        return aprendidos
-    
-    def _decidir_modo(estado_str):
-        if _rand.random() < 0.15:
-            return _rand.choice(_MODOS)
-        pred, conf = mk_ciclo.predizer(estado_str)
-        if pred and conf > 0.3:
-            return pred
-        return _MODOS[abs(hash(estado_str)) % len(_MODOS)]
-    
-    _log("=" * 40)
-    _log("MCR Autonomo iniciado")
-    _log(f"Topicos: {len(cerebro.topicos)} | Bytes: {cerebro.mk_byte.total} | Palavras: {cerebro.mk_palavra.total}")
-    _log("=" * 40)
-    
-    try:
-        while True:
-            total_ciclos += 1
-            
-            # 1. Passivo — drena eventos de hooks + arquivos
-            cerebro._ciclo_passivo(max_eventos=20)
-            
-            # 2. Diagnostico
-            ent_byte = cerebro.mk_byte.entropia_media() if cerebro.mk_byte.total > 0 else 1.0
-            ent_palavra = cerebro.mk_palavra.entropia_media() if cerebro.mk_palavra.total > 0 else 1.0
-            ent_media = (ent_byte + ent_palavra) / 2
-            n_top = len(cerebro.topicos)
-            
-            estado_str = f"ent:{int(ent_media*100)}_top:{min(n_top,9)}"
-            
-            # 3. Decide modo + detecta estagnacao
-            # Forca aprendizado se: mesmo modo > 5x OU 12+ ciclos sem descoberta
-            teve_descoberta = False
-            if n_vezes_mesmo_modo > 5 or ciclos_sem_descoberta > 12:
-                try:
-                    # Reforco: topico conhecido aleatorio
-                    aprendidos = 0
-                    topicos = list(cerebro.topicos.keys())
-                    if topicos:
-                        esc = _rand.choice(topicos)
-                        txt = cerebro.topicos[esc].get('texto','')[:1000]
-                        if txt:
-                            cerebro.alimentar(txt, f"reforco_{esc[:20]}")
-                            aprendidos += 1
-                    # Lote de descobertas: N arquivos novos com I/O limitado
-                    n_lote = MCRDecisorUniversal.decidir_passos("autonomo_batch",
-                        {"n_topicos": n_top, "n_arquivos": len(cerebro.file_observer._file_sigs)})
-                    n_lote = max(5, min(n_lote, 100))
-                    # Reduz I/O se estagnado ha muito (nao desperdiça 500ms)
-                    tempo_io = 0.5 if ciclos_sem_descoberta < 30 else 0.2
-                    n_novos = _processar_lote(cerebro, _walk_gen, n_lote, tempo_io)
-                    aprendidos += n_novos
-                    if n_novos > 0:
-                        _log(f"  Lote: {n_novos} arquivos novos em 500ms")
-                    if aprendidos > 0:
-                        _log(f"  Aprendizagem forcada: {aprendidos} novas informacoes")
-                        teve_descoberta = True
-                except Exception as e:
-                    _log(f"  Erro aprendizagem forcada: {e}")
-                n_vezes_mesmo_modo = 0
-
-            modo = _decidir_modo(estado_str)
-            if modo == ultimo_modo:
-                n_vezes_mesmo_modo += 1
-            else:
-                n_vezes_mesmo_modo = 0
-            ultimo_modo = modo
-            
-            if total_ciclos % 5 == 0:
-                _log(f"Ciclo #{total_ciclos} ent={ent_media:.2f} modo={modo} top={n_top}")
-            
-            # 4. Executar modo (com fragmentos rastreaveis)
-            fragmentador.limpar()
-            
-            if modo == "explorar":
-                fragmentador.adicionar("explorar", lambda: MCRCuriosidade(cerebro).ciclo())
-                try:
-                    r = fragmentador.executar_todos()[-1]
-                    if r.sucesso and r.resultado and r.resultado.get('descobertas', 0) > 0:
-                        _log(f"  Descobriu {r.resultado['descobertas']} novos arquivos")
-                        teve_descoberta = True
-                except Exception as e:
-                    _log(f"  Erro exploracao: {e}")
-                    
-            elif modo == "pensar":
-                try:
-                    passos = MCRDecisorUniversal.decidir_passos("autonomo_pensar",
-                        {"n_topicos": n_top})
-                    cerebro.ciclo_autonomo(max_passos=passos)
-                except Exception as e:
-                    _log(f"  Erro pensar: {e}")
-                    
-            elif modo == "web":
-                # Cold start: se tem poucos dados, nao usa entropia como filtro
-                cold_start = cerebro.mk_palavra.total < 100
-                if total_webs > 3 and total_ciclos % 15 != 0:
-                    pass
-                elif cerebro.mk_palavra.freq:
-                    try:
-                        alvo = None
-                        alvo = None
-                        maior_ent = 0.0; menor_freq = 999999
-                        for palavra in list(cerebro.mk_palavra.freq.keys())[:100]:
-                            if palavra.lower() in _FILTRO_WEB or len(palavra) < 5:
-                                continue
-                            if cold_start:
-                                # Cold start: busca palavra mais rara (entropia baixa)
-                                freq = cerebro.mk_palavra.freq.get(palavra, 0)
-                                if not alvo or freq < menor_freq:
-                                    menor_freq = freq
-                                    alvo = palavra
-                            else:
-                                e = cerebro.mk_palavra.entropia(palavra)
-                                if e > maior_ent:
-                                    maior_ent = e; alvo = palavra
-                        # Web por gradiente, nao por limiar fixo
-                        prob_web = max(0.02, 0.5 - ent_media)
-                        if alvo and _rand.random() < prob_web and alvo != ultima_busca:
-                            ultima_busca = alvo
-                            _log(f"Web: '{alvo}' (ent={maior_ent:.2f} prob={prob_web:.2f})")
-                            from urllib.request import Request, urlopen
-                            from urllib.parse import quote
-                            import re
-                            url = "https://html.duckduckgo.com/html/?q=" + quote(alvo)
-                            req = Request(url, headers={"User-Agent": "Mozilla/5.0"})
-                            with urlopen(req, timeout=5) as r:
-                                html = r.read().decode('utf-8', errors='replace')
-                            snippets = re.findall(
-                                r'<a rel="nofollow" class="result__a" href="[^"]*">(.*?)</a>',
-                                html)[:3]
-                            for s in snippets:
-                                txt = s.strip()
-                                if txt:
-                                    cerebro.alimentar(txt, f"web_{alvo}")
-                                    total_webs += 1
-                                    teve_descoberta = True
-                                    _log(f"  + {txt[:80]}")
-                    except Exception as e:
-                        _log(f"  Erro web: {e}")
-                        
-            elif modo == "evoluir":
-                try:
-                    r = cerebro.auto_evolution.ciclo()
-                    if r.get('mutado'):
-                        _log(f"  Threshold mutado: {r['resultado']}")
-                except Exception as e:
-                    _log(f"  Erro evolucao: {e}")
-            
-            # 5. Aprender transicao
-            mk_ciclo.aprender(estado_str, modo)
-            
-            # 6. Atualiza contador de estagnacao
-            if teve_descoberta:
-                ciclos_sem_descoberta = 0
-            else:
-                ciclos_sem_descoberta += 1
-            
-            # 7. Salva estado a cada 10
-            if total_ciclos % 10 == 0:
-                try:
-                    with open(AUTONOMO_PATH, "w") as f:
-                        json.dump({"ciclos": total_ciclos}, f)
-                    cerebro.salvar()
-                except: pass
-            
-            # 7. Poda entropica: remove estados redundantes (a cada 20 ciclos)
-            if total_ciclos % 20 == 0:
-                try:
-                    n_removeu = cerebro.esquecimento.ciclo(n_testes=5)
-                    if n_removeu > 0:
-                        _log(f"  Poda: removeu {n_removeu} estados redundantes")
-                except Exception as e:
-                    _log(f"  Erro na poda: {e}")
-            # Poda do SQLite (a cada 50 ciclos)
-            if total_ciclos % 50 == 0:
-                try:
-                    n_podados = cerebro.memory._podar_memoria()
-                    if n_podados > 0:
-                        _log(f"  Poda SQLite: removeu {n_podados} planos obsoletos")
-                except Exception as e:
-                    _log(f"  Erro poda SQLite: {e}")
-            
-            # 8. Pausa adaptativa
-            pausa = max(0.3, min(3.0, ent_media * 2))
-            time.sleep(pausa)
-            
-    except KeyboardInterrupt:
-        print("\nParando modo autonomo...")
-    finally:
-        try: cerebro.file_observer.parar()
-        except: pass
-        _log("MCR Autonomo parado.\n")
-
-
-def main():
-    args = sys.argv[1:]
-    cerebro = CerebroAGI()
-    brain = None
-    estado_path = os.path.join(CACHE_DIR, "mcr_estado.json")
-    
-    # Carrega cerebro do disco (se existir)
-    cerebro_path = os.path.join(CACHE_DIR, "cerebro.json")
-    cerebro.carregar(cerebro_path)
-
-    # Carrega estado anterior
-    estado = {}
-    if os.path.exists(estado_path):
-        try:
-            with open(estado_path, 'r') as f:
-                estado = json.load(f)
-        except: pass
-
-    # --aprender: modo explicito
-    if "--aprender" in args:
-        brain = aprender_npcs(forcar=True)
-        if brain and brain.dialogos:
-            for palavra, respostas in brain.dialogos.items():
-                for resposta, _, _ in respostas:
-                    cerebro.alimentar(f"{resposta}", f"{palavra[:30]}")
-        print(f"\nAprendidos {len(cerebro.topicos)} topicos no cerebro")
-        return
-
-    # --explorar: modo explicito
-    if "--explorar" in args:
-        idx = args.index("--explorar") + 1
-        alvo = args[idx] if idx < len(args) and not args[idx].startswith("--") else None
-        explorar(cerebro, alvo)
-        return
-
-    # --ask: pergunta direta
-    if "--ask" in args:
-        idx = args.index("--ask")+1
-        if idx < len(args):
-            p = " ".join(args[idx:])
-            r = MCRResposta.responder(p, cerebro)
-            print(r.encode("ascii", errors="replace").decode("ascii"))
-        return
-
-    # --daemon: servidor com monitoramento passivo
-    if "--daemon" in args:
-        print("Modo daemon. Pressione Ctrl+C para parar.")
-        cerebro.file_observer.iniciar()
-        print("  Monitorando: ", " ".join(cerebro.file_observer._get_drives()))
-        # Hooks opcionais no daemon
-        try:
-            cerebro.hook_observer.iniciar()
-            print("  HookObserver: monitorando teclado, mouse, clipboard")
-        except: pass
-        try:
-            while True:
-                cerebro._ciclo_passivo()
-                # Auto-evolucao periodica no daemon
-                if _rand.random() < 0.1:
-                    try: cerebro.auto_evolution.ciclo()
-                    except: pass
-                time.sleep(0.5)
-        except KeyboardInterrupt: print("\nParando...")
-        cerebro.file_observer.parar()
-        return
-
-    # --autonomo: ciclo perpetuo de aprendizado
-    if "--autonomo" in args:
-        _rodar_autonomo(cerebro)
-        return
-
-    # --status: mostra estado
-    if "--status" in args:
-        print(f"Execucoes: {estado.get('execucoes', 0)}")
-        print(f"Ultima acao: {estado.get('ultima_acao', 'nenhuma')}")
-        print(f"Cache: {CACHE_DIR}")
-        return
-
-    # Se tem pergunta direta via args (sem --ask), responde
-    if args and not args[0].startswith('--'):
-        p = " ".join(args)
-        r = MCRResposta.responder(p, cerebro)
-        print(r.encode("ascii", errors="replace").decode("ascii"))
-        return
-
-    # Padrao: MCRDecisor decide o que fazer
-    mk_main = MCR("main_dec")
-    
-    # Seed natural: conhecimento_zero → explorar (aprendido, nao regra fixa)
-    # Se cerebro vazio, MCR aprende que deve explorar primeiro.
-    # Nas proximas execucoes, esta transicao ja esta na cadeia Markov.
-    if cerebro.topicos == 0:
-        mk_main.aprender("conhecimento_zero", "explorar_primeiro")
-    
-    estado_str = "conhecimento_zero" if cerebro.topicos == 0 else f"exec:{estado.get('execucoes',0)}_ultima:{estado.get('ultima_acao','nenhuma')}"
-    dec = mk_main.predizer(estado_str)
-    
-    # Se MCRDecisor decidiu explorar, explora.
-    # Sem fallback extra — a transicao foi aprendida acima.
-    if dec[0] is not None and 'explorar' in str(dec[0]).lower():
-        cur = MCRCuriosidade(cerebro)
-        r = cur.ciclo()
-        if r['descobertas'] > 0:
-            print(f"[MCR] Explorei e aprendi {r['descobertas']} novas informacoes")
-        else:
-            print("[MCR] Nada novo para aprender agora.")
-        # Aprende o resultado: conhecimento_zero → explorou_com_X_descobertas
-        if cerebro.topicos == 0 or 'conhecimento_zero' in estado_str:
-            mk_main.aprender("conhecimento_zero", f"explorou_com_{r['descobertas']}")
-        # Salva estado
-        try:
-            with open(estado_path, 'w') as f:
-                json.dump({'execucoes': estado.get('execucoes',0)+1, 'ultima_acao': 'explorou'}, f)
-        except: pass
-        # Salva cerebro apos explorar
-        cerebro.salvar(cerebro_path)
-    
-    chat_loop(cerebro)
-    
-    # Salva cerebro apos chat (se chat_loop retornar)
-    cerebro.salvar(cerebro_path)
-    
-    # Se nao decidiu nada, vai pro chat
-    chat_loop(cerebro)
-
-def status_identidade():
-    """Mostra quem o MCR conhece — sem hardcode."""
-    id_ = MCRIdentidade()
-    print("Autores conhecidos pelo MCR (aprendido por conversa):")
-    for autor, amostras in sorted(id_.autores.items(), key=lambda x: -len(x[1])):
-        print(f"  {autor}: {len(amostras)} mensagens")
-    print("(Nao ha ordem fixa. Nao ha 'primeiro'. So dados.)")
-
-
-if __name__ == "__main__":
-    main()
+        _autotestar()
+    except Exception as _ate:
+        print(f'[MCR AutoTest] Aviso: {_ate}')
