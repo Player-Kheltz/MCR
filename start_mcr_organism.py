@@ -147,8 +147,17 @@ signal.signal(signal.SIGINT, _shutdown)
 signal.signal(signal.SIGTERM, _shutdown)
 
 # Mantem o processo vivo
-try:
-    while True:
-        time.sleep(1)
-except KeyboardInterrupt:
-    _shutdown()
+def _main():
+    signal.signal(signal.SIGINT, _shutdown)
+    signal.signal(signal.SIGTERM, _shutdown)
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        _shutdown()
+
+if __name__ == '__main__':
+    if '--conversar' in sys.argv or '-c' in sys.argv:
+        import mcr_terminal
+    else:
+        _main()
