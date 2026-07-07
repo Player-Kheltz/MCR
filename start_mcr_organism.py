@@ -30,6 +30,11 @@ print("[2/5] Carregando MCRSystem e Knowledge Graph...")
 _MCR_SYSTEM = None
 _MEMORIA = None
 try:
+    # Garante path para o modulo MCR.py
+    _kernel_path = str(DEVIA_KERNEL_DIR)
+    if _kernel_path not in sys.path:
+        sys.path.insert(0, _kernel_path)
+
     import MCR as _MCR_MOD
     if not hasattr(_MCR_MOD, 'MCRBridge'):
         class MCRBridge:
@@ -45,7 +50,10 @@ try:
         _MCR_SYSTEM.kg._lessons_cache = []
     print("  MCRSystem: ONLINE")
 except Exception as e:
-    print("  MCRSystem: %s" % e)
+    print("  MCRSystem: FALHA CRITICA — %s" % e)
+    print("  O organismo NAO pode funcionar sem o Sistema 1.")
+    print("  Verifique se MCR.py existe em: %s" % DEVIA_KERNEL_DIR)
+    sys.exit(1)
 
 # Memoria episodica
 try:
@@ -159,5 +167,12 @@ def _main():
 if __name__ == '__main__':
     if '--conversar' in sys.argv or '-c' in sys.argv:
         import mcr_terminal
+    elif '--autonomo' in sys.argv or '-a' in sys.argv:
+        from mcr_autonomo import CicloAutonomo
+        ciclo = CicloAutonomo()
+        try:
+            ciclo.executar()
+        except KeyboardInterrupt:
+            print('\n[Autonomo] Encerrado.')
     else:
         _main()
