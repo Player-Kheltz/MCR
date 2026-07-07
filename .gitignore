@@ -44,6 +44,16 @@ MCR-DevIA/
 respostas_cloud/
 respostas_mcr/
 
+# Reorg: vcpkg, build artifacts, node_modules
+server/vcpkg_installed/
+server/build/
+client/build/
+*.o
+*.obj
+*.exe
+*.lib
+*.dll
+
 # Temp
 *.tmp
 *.temp

@@ -1,0 +1,23 @@
+{
+  "nab_mcr_melhor": {
+    "f1": 0.0238,
+    "threshold": 0.01,
+    "tp": 6,
+    "fp": 14,
+    "fn": 479,
+    "recall": 0.0124,
+    "precision": 0.3
+  },
+  "cross_domain": {
+    "hd_similarity": 0.1223,
+    "code_entropy": 0.9752,
+    "lit_entropy": 0.9827,
+    "code_only_words": 381,
+    "lit_only_words": 979
+  },
+  "smd": {
+    "dimensoes": 38,
+    "amostras": 28479,
+    "dims_constantes": 8
+  }
+}

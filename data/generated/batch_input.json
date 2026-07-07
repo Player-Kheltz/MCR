@@ -1,0 +1,14 @@
+[
+  {
+    "classe": "criar_monster",
+    "prompt": "Crie um monstro de fogo chamado 'Golem de Magma' com 5000 HP, imune a fogo, fraco a gelo. Dropa 1-3 Crystal Coins (id 2160) e tem chance de dropar Magma Clump (id 18430). Nivel 80, experiencia 2000, velocidade 200, attack 150, defense 80. Elements: fogo=0, gelo=1.25, terra=0.8, energia=1.0."
+  },
+  {
+    "classe": "criar_npc",
+    "prompt": "Crie um NPC chamado 'Erelim, o Caca-Recompensas' que compra loot de monstros. Compra Crystal Coin (id 2160) por 10000 gold e Magma Clump (id 18430) por 500 gold. Use o formato Canary com KeywordHandler e npcConfig.shop."
+  },
+  {
+    "classe": "criar_habilidade_spa",
+    "prompt": "Crie uma habilidade SPA para o dominio Fogo (53) chamada 'Lava Eruptiva'. E single-target com dano_extra, chance de queimar (fire) em area. Foco minimo 60. Cooldown 15s. Custo 20 mana, 10 stamina. Use o golden example canary_spa_template."
+  }
+]

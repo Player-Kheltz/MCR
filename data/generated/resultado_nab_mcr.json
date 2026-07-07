@@ -1,0 +1,12 @@
+{
+  "dataset": "NAB ec2_cpu_utilization_24ae8d",
+  "total_samples": 4032,
+  "real_anomalies": 485,
+  "mcr_detections": 21,
+  "tp": 3,
+  "fp": 18,
+  "recall": 0.006185567010309278,
+  "precision": 0.14285714285714285,
+  "f1": 0.011857707509881422,
+  "time_s": 0.122
+}

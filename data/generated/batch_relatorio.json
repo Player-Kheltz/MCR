@@ -1,0 +1,42 @@
+{
+  "total_entradas": 3,
+  "arquivos_gerados": 4,
+  "arquivos_quarentena": 0,
+  "tempo_total": 282.3,
+  "resultados": [
+    {
+      "indice": 0,
+      "classe": "criar_habilidade_spa",
+      "tempo": 56.5,
+      "sintaxe_valida": null,
+      "tentativas": 0,
+      "arquivos": [
+        "golem_magma.lua"
+      ],
+      "erro": null
+    },
+    {
+      "indice": 1,
+      "classe": "criar_npc",
+      "tempo": 196.19,
+      "sintaxe_valida": null,
+      "tentativas": 0,
+      "arquivos": [
+        "golem_magma.lua"
+      ],
+      "erro": null
+    },
+    {
+      "indice": 2,
+      "classe": "criar_habilidade_spa",
+      "tempo": 29.6,
+      "sintaxe_valida": null,
+      "tentativas": 0,
+      "arquivos": [
+        "golem_magma.lua",
+        "habilidade_lava_eruptiva.lua"
+      ],
+      "erro": null
+    }
+  ]
+}
