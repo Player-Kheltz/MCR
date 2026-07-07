@@ -1,0 +1,45 @@
+{
+  "nab": {
+    "dataset": "NAB EC2 CPU",
+    "total": 4032,
+    "anomalias_reais": 485,
+    "metodos": {
+      "MCR Multi-nivel": {
+        "recall": 0.0,
+        "precision": 0,
+        "f1": 0,
+        "tp": 0,
+        "fp": 0,
+        "fn": 485,
+        "time_s": 1.186
+      },
+      "IQR 1.5x": {
+        "recall": 0.1856,
+        "precision": 0.119,
+        "f1": 0.145,
+        "tp": 90,
+        "fp": 666,
+        "fn": 395,
+        "time_s": 0.024
+      },
+      "3-Sigma": {
+        "recall": 0.0103,
+        "precision": 0.25,
+        "f1": 0.0198,
+        "tp": 5,
+        "fp": 15,
+        "fn": 480,
+        "time_s": 0.049
+      }
+    }
+  },
+  "smd": {
+    "dataset": "SMD (Server Machine)",
+    "total": 28479,
+    "dimensoes": 38,
+    "processado": 5000,
+    "eventos_multi_dim": 1,
+    "entropia_media_final": 1.688,
+    "time_s": 69.794
+  }
+}

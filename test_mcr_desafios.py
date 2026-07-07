@@ -249,24 +249,37 @@ def test_coupling_correlacao():
 # ???????????????????????????????????????????????????????????????????
 
 def test_superposicao_novidade():
-    """Superposicao gera algo NAO existente no treino?
-    Alimentamos texto com certos padroes. Colidimos byte+palavra
-    num ponto onde a combinacao gera algo que S? a fusao
-    dos dois niveis produz -- algo que nao apareceu literalmente
-    no texto de treino."""
+    """Superposicao colide dois niveis e retorna predicao combinada.
+    
+    O mecanismo: dados dois niveis (ex: palavra + tven), cada um
+    prediz seu proximo token. Se ambos predizem algo, a esfera
+    busca correlacao cruzada. Se um falha, usa o outro como fallback.
+    
+    Este teste verifica que a cascata de fallback funciona:
+    1. mk_palavra → prediz proxima palavra
+    2. mk_tven → prediz proximo tven
+    3. A colisao retorna a predicao mais relevante (nao None)
+    
+    Dados repetidos 3x para evitar poda da esfera (threshold=2)."""
     c = CerebroAGI()
     
-    texto = ("o sapo sabido subiu serra acima "
-             "a cobra curiosa correu colina abaixo "
-             "o passaro preto pulou pedra a pedra "
-             "a raposa rustica roeu resto de fruta ")
-    c.alimentar(texto.replace(" ", " "), "treino")
+    # Dados repetidos 3x: cada correlacao aparece >= 2x, esfera nao poda
+    texto_base = ("o sapo sabido subiu serra acima "
+                  "a cobra curiosa correu colina abaixo "
+                  "o passaro preto pulou pedra a pedra "
+                  "a raposa rustica roeu resto de fruta ")
+    texto = (texto_base + " " + texto_base + " " + texto_base)
+    c.alimentar(texto, "treino")
     
-    # Palavras que existem no treino
-    palavras_treino = set(texto.split())
+    # Alimenta explicitamente pares palavra->palavra na esfera
+    # para que colidir consiga consultar cross-correlacao palavra->palavra
+    palavras = texto.split()
+    for i in range(len(palavras) - 1):
+        c.coupling.esfera.alimentar_par("palavra", "palavra",
+                                        palavras[i], palavras[i+1])
     
-    # Tenta gerar algo NOVO via superposicao
-    palavras_geradas = set()
+    # Colide palavra + tven para cada contexto
+    resultados = []
     for ctx, nivel_a, nivel_b in [
         ("sapo", "palavra", "tven"),
         ("cobra", "palavra", "tven"),
@@ -279,15 +292,17 @@ def test_superposicao_novidade():
             nivel_b, tven_ctx,
             mk_a=c.mk_palavra, mk_b=c.mk_tven
         )
-        if r is None:
-            r, _ = c.coupling.esfera.predizer_cross("palavra", tven=tven_ctx)
-        if r and str(r) not in palavras_treino:
-            palavras_geradas.add(str(r))
+        resultados.append((ctx, r, conf))
     
-    print(f"\n  Palavras geradas via superposicao: {palavras_geradas}")
-    print(f"  Novas (nao no treino): {len(palavras_geradas)}")
-    check("[6] Superposicao: gerou algo novo", True,
-          f"geradas={palavras_geradas or 'nenhuma'}")
+    # Verifica: colidir retornou algo em pelo menos 1 caso
+    acertos = sum(1 for _, r, _ in resultados if r is not None)
+    print(f"\n  Resultados colidir:")
+    for ctx, r, conf in resultados:
+        print(f"    {ctx}: r={r} conf={conf}")
+    print(f"  Colisoes com resultado: {acertos}/4")
+    check("[6] Superposicao: colidir retorna resultado por fallback",
+          acertos > 0,
+          f"acertos={acertos}/4")
 
 # ???????????????????????????????????????????????????????????????????
 # TESTE 7: ESFERA -- predicao cross-level
@@ -298,15 +313,16 @@ def test_esfera_cross_level():
     Dado um byte, consegue prever a palavra? Dada uma palavra,
     consegue prever o tven? Cross-level e a essencia do multi-nivel.
     
-    Nota: esfera precisa de dados SUFICIENTES (cada correlacao
-    precisa aparecer >= 2x). Este teste documenta se o cross-level
-    esta funcionando com dados reais."""
+    Dados repetidos 3x para garantir correlacoes com freq >= 2
+    (threshold de poda da esfera), permitindo que a predicao funcione."""
     c = CerebroAGI()
     
-    texto = ("abacate amarelo azedo abriu "
-             "banana branca bonita brotou "
-             "caju carnudo caiu cedo "
-             "damasco doce danificou dois ")
+    # Dados repetidos 3x: cada correlacao aparece >= 2x
+    texto_base = ("abacate amarelo azedo abriu "
+                  "banana branca bonita brotou "
+                  "caju carnudo caiu cedo "
+                  "damasco doce danificou dois ")
+    texto = (texto_base + " " + texto_base + " " + texto_base)
     c.alimentar(texto, "treino")
     
     # Verifica estrutura da esfera
@@ -318,15 +334,29 @@ def test_esfera_cross_level():
     )
     
     # Tenta predizer a PALAVRA a partir de um byte especifico
+    # Usa byte da primeira letra de 'a' (abacate) — palavra repetida 3x
     by_a = f"B:{'a'.encode()[0]:02x}"
     r, conf = c.coupling.esfera.predizer_cross("palavra", byte=by_a)
     
     print(f"\n  Niveis na esfera: {n_niveis}")
     print(f"  Correlacoes totais: {n_correlacoes}")
     print(f"  Byte 'a' -> palavra: {r} (conf={conf:.3f})")
-    print(f"  (esfera precisa >= 2 repeticoes de cada correlacao)")
-    check("[7] Esfera: estrutura cross-level existe", n_niveis > 0 and n_correlacoes > 0,
-          f"niveis={n_niveis} corr={n_correlacoes}")
+    print(f"  (dados repetidos 3x, correlacao deve sobreviver a poda)")
+    
+    # Tenta acertos com primeiras letras de todas as palavras
+    alvos = {"abacate","amarelo","azedo","abriu","banana","branca","bonita","brotou",
+             "caju","carnudo","caiu","cedo","damasco","doce","danificou","dois"}
+    acertos = 0
+    for palavra in list(alvos)[:8]:
+        by = f"B:{palavra.encode()[0]:02x}"
+        r2, c2 = c.coupling.esfera.predizer_cross("palavra", byte=by)
+        if r2:
+            acertos += 1
+    
+    print(f"  Acertos byte_primeira_letra -> palavra: {acertos}/8")
+    check("[7] Esfera: predicao byte->palavra existe",
+          r is not None and conf > 0.01,
+          f"r={r} conf={conf:.3f} acertos={acertos}/8")
 
 # ???????????????????????????????????????????????????????????????????
 # TESTE 8: AUTO-EXPANSAO — dimensao nova por correlacao entre niveis
@@ -371,15 +401,41 @@ def test_auto_expansao():
     combinadas = [n for n in c.hiper.dimensoes if n.startswith("combinado_")]
     
     print(f"\n  Dimensoes combinadas encontradas: {len(combinadas)}")
+    ent_combinada = 1.0
+    ent_pais = 1.0
+    validacao = False
     for d in combinadas:
         mk = c.hiper.dimensoes[d]
-        print(f"    {d}: ent={mk.entropia_media():.3f} estados={len(mk.freq)}")
+        ent_combinada = mk.entropia_media()
+        print(f"    {d}: ent={ent_combinada:.3f} estados={len(mk.freq)}")
+        # Extrai nomes dos pais do nome: "combinado_A_B"
+        partes = d.split("_", 2)
+        if len(partes) == 3:
+            pai_a, pai_b = partes[1], partes[2]
+            # Pais podem ser dimensoes da hiperesfera OU niveis fixos do cerebro
+            mk_a = c.hiper.dimensoes.get(pai_a)
+            if mk_a is None:
+                mk_a = getattr(c, f'mk_{pai_a}', None)
+            mk_b = c.hiper.dimensoes.get(pai_b)
+            if mk_b is None:
+                mk_b = getattr(c, f'mk_{pai_b}', None)
+            if mk_a and mk_b and mk_a.total > 0 and mk_b.total > 0:
+                ent_a = mk_a.entropia_media()
+                ent_b = mk_b.entropia_media()
+                ent_pais = (ent_a + ent_b) / 2.0
+                print(f"      pai_a='{pai_a}' ent={ent_a:.3f} "
+                      f"pai_b='{pai_b}' ent={ent_b:.3f} "
+                      f"media={ent_pais:.3f}")
+                validacao = ent_combinada < ent_pais
+    
     print(f"  Dimensoes totais na hiperesfera: {len(c.hiper.dimensoes)}")
     for n in c.hiper.dimensoes:
         print(f"    {n}: ent={c.hiper.dimensoes[n].entropia_media():.3f}")
     
-    check("[8] Auto-expansao: mecanismo executou", True,
-          f"combinadas={len(combinadas)} totais={len(c.hiper.dimensoes)}")
+    check("[8] Auto-expansao: combinada reduz entropia dos pais",
+          len(combinadas) > 0 and validacao,
+          f"combinadas={len(combinadas)} "
+          f"ent_comb={ent_combinada:.3f} ent_pais={ent_pais:.3f}")
 
 # ???????????????????????????????????????????????????????????????????
 # MCREntropiaTemporal -- monitor de entropia multi-nivel no tempo
