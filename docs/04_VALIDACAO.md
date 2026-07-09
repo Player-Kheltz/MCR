@@ -1,3 +1,5 @@
+> **DocumentaÁ„o histÛrica.** Este documento descreve versıes anteriores do MCR.
+> Para o estado atual, veja [README.md](../README.md) e [MANIFESTO_MCR.md](../MANIFESTO_MCR.md).
 # Valida√ß√£o MCR
 
 O MCR foi testado contra **12 amostras** de 4 tipos diferentes para verificar se a Equa√ß√£o MCR distingue corretamente estrutura de ru√≠do.

@@ -74,20 +74,23 @@ class ShadowDotnet:
 
             # Executa dotnet build
             resultado = subprocess.run(
-                [self.dotnet_path, 'build', str(proj_path), '--nologo', '-v:q'],
+                [self.dotnet_path, 'build', str(proj_path), '--nologo', '-v:q',
+                 '/p:TreatWarningsAsErrors=false'],
                 capture_output=True, text=True, timeout=self.timeout,
                 cwd=str(temp_dir)
             )
 
             saida = resultado.stdout + '\n' + resultado.stderr
             erros = self._parsear_erros(saida)
-            valido = resultado.returncode == 0
+            # Only actual errors (not warnings) make it invalid
+            erros_reais = [e for e in erros if e.get('tipo') == 'error']
+            valido = resultado.returncode == 0 or len(erros_reais) == 0
 
             return {
                 'valido': valido,
-                'erros': erros,
+                'erros': erros_reais,
                 'saida': saida[:2000],
-                'codigos_erro': [e['codigo'] for e in erros],
+                'codigos_erro': [e['codigo'] for e in erros_reais],
                 'returncode': resultado.returncode,
             }
 

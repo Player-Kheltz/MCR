@@ -28,5 +28,20 @@ public class MCRNpcResponse
     [JsonPropertyName("mensagem")]
     public string? Mensagem { get; set; }
 
+    [JsonPropertyName("acao")]
+    public string? Acao { get; set; }
+
+    [JsonPropertyName("estado")]
+    public string? Estado { get; set; }
+
+    [JsonPropertyName("nota")]
+    public double Nota { get; set; }
+
+    [JsonPropertyName("n_tokens")]
+    public int NTokens { get; set; }
+
+    [JsonPropertyName("tamanho_gerado")]
+    public int TamanhoGerado { get; set; }
+
     public bool IsSuccess => Status == "ok";
 }

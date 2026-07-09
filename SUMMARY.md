@@ -1,6 +1,6 @@
 # MCR — Sumário
 
-## Core
+## Núcleo
 - `devia/kernel/MCR.py` — 7.072 linhas, 48 classes, stdlib puro
 - Cadeias Markov em 8+ níveis (byte, palavra, token, decisão, threshold, assinatura, filosofia, qualidade)
 - Acoplamento N-dimensional + superposição + auto-evolução

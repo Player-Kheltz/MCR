@@ -1,3 +1,5 @@
+> **DocumentaÁ„o histÛrica.** Este documento descreve versıes anteriores do MCR.
+> Para o estado atual, veja [README.md](../README.md) e [MANIFESTO_MCR.md](../MANIFESTO_MCR.md).
 # Compara√ß√£o MCR vs Outros Sistemas
 
 ## Tabela Comparativa

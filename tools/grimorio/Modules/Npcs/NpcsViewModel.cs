@@ -143,16 +143,26 @@ public class NpcsViewModel : ViewModelBase
             if (string.IsNullOrEmpty(tema)) return;
 
             var resultado = await _mcr.GerarNpcAsync(tema);
-            if (resultado is not null && resultado.IsSuccess)
+            if (resultado is not null)
             {
-                NpcName = resultado.Nome ?? tema;
-                NpcDescription = $"Gerado via MCR: {tema}";
-                StatusText = $"NPC {resultado.Nome} gerado via {resultado.Modo}";
-                await CarregarListaAsync();
-            }
-            else
-            {
-                StatusText = $"Erro: {resultado?.Mensagem ?? "Falha desconhecida"}";
+                if (resultado.IsSuccess)
+                {
+                    NpcName = resultado.Nome ?? tema;
+                    NpcDescription = resultado.Mensagem ?? $"Gerado via MCR: {tema}";
+                    StatusText = $"NPC {resultado.Nome} gerado via {resultado.Modo}";
+                    await CarregarListaAsync();
+                }
+                else if (resultado.Status == "erro_entropia")
+                {
+                    // Entropia insuficiente — nao e erro fatal, e estado do motor
+                    NpcName = tema;
+                    NpcDescription = resultado.Mensagem ?? "Conhecimento insuficiente";
+                    StatusText = $"[EXPANDIR] {resultado.Acao ?? "execute Cold Start"} (nota: {resultado.Nota})";
+                }
+                else
+                {
+                    StatusText = $"Erro: {resultado.Mensagem ?? "Falha desconhecida"}";
+                }
             }
         }
         catch (Exception ex)

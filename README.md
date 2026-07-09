@@ -7,14 +7,15 @@ MCR(nivel).aprender(a, b)  # learns that "a" leads to "b"
 MCR(nivel).predizer(a)      # most probable "b" given "a"
 ```
 
-MCR is a research experiment. Not an AGI, not a product, not a business.
-stdlib only. Zero GPU required for decisions.
+MCR é um experimento de pesquisa. Não é uma AGI, não é um produto, não é um negócio.
+Apenas stdlib. Zero GPU necessário para decisões.
 
-## What It Actually Does
+## O Que Realmente Faz
 
-### Core (devia/kernel/MCR.py — 7072 lines, 48 classes)
+### Núcleo (devia/kernel/MCR.py — 7072 linhas, 48 classes)
 
-| Capability | How |
+| Capacidade | Como |
+|-----------|------|
 |-----------|-----|
 | **Multi-level Markov** | Byte, palavra, token, decisão, threshold, assinatura, filosofia, qualidade |
 | **N-Dimensional Coupling** | Cross-level correlation via coupling matrix + esfera |
@@ -92,7 +93,7 @@ cold_start()
 
 ---
 
-## Architecture
+## Arquitetura
 
 ```
                       ┌──────────────────────┐
@@ -123,7 +124,7 @@ cold_start()
 
 ---
 
-## Files
+## Arquivos
 
 ```
 E:/MCR/
@@ -143,28 +144,28 @@ E:/MCR/
 
 ---
 
-## Philosophy
+## Filosofia
 
-> **Entropy is a coordinate, not a metric.**
-> It measures where the system is in N-dimensional space — not how "good" or "bad" it is.
+> **Entropia é uma coordenada, não uma métrica.**
+> Ela mede onde o sistema está no espaço N-dimensional — não quão "bom" ou "ruim" ele é.
 
-> **Criticality, not optimization.**
-> The system seeks the edge of chaos (entropy 0.2–0.7), not zero entropy. Dead systems have zero entropy. Learning happens at the boundary.
+> **Criticalidade, não otimização.**
+> O sistema busca a borda do caos (entropia 0.2–0.7), não entropia zero. Sistemas mortos têm entropia zero. Aprendizado acontece na fronteira.
 
-> **Observation, not control.**
-> The MCR is an observer in an open system. It cannot prevent entropy fluctuations. It learns from what it cannot control.
+> **Observação, não controle.**
+> O MCR é um observador em um sistema aberto. Ele não pode prevenir flutuações de entropia. Ele aprende com o que não pode controlar.
 
-> **Emergence, not programming.**
-> New dimensions auto-discover. Chains collide into novelty. The topology emerges from data. No human decides what the system should find.
-
----
-
-## License
-
-Dual-licensed under AGPL v3 or commercial license. See [LICENSE](LICENSE) and [LICENCA_COMERCIAL.md](LICENCA_COMERCIAL.md).
+> **Emergência, não programação.**
+> Novas dimensões se autodescobrem. Cadeias colidem em novidade. A topologia emerge dos dados. Nenhum humano decide o que o sistema deve encontrar.
 
 ---
 
-## Author
+## Licença
 
-**Kheltz** — Independent researcher.
+Dupla licença: AGPL v3 (código aberto) ou licença comercial. Veja [LICENSE](LICENSE) e [LICENCA_COMERCIAL.md](LICENCA_COMERCIAL.md).
+
+---
+
+## Autor
+
+**Kheltz** — Pesquisador independente.

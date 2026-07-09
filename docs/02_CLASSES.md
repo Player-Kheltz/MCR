@@ -1,3 +1,5 @@
+> **Documentação histórica.** Este documento descreve versões anteriores do MCR.
+> Para o estado atual, veja [README.md](../README.md) e [MANIFESTO_MCR.md](../MANIFESTO_MCR.md).
 # Classes MCR
 
 ## MCR â€” Markov Universal

@@ -168,46 +168,106 @@ class BridgeHandler(BaseHTTPRequestHandler):
                 self._send_json({'status': 'erro', 'mensagem': 'Campo "tema" obrigatorio'}, 400)
                 return
             try:
-                from mcr.mcr_world_builder import expandir_npc
-                from mcr.golden_templates import gerar_npc_canary, salvar_npc_parametrizado
-                from mcr.mcr_entity_validator import validate_entity
-                from mcr.mcr_world_state import _carregar
+                from devia.kernel.mcr_kernel.engine import MCR
+                from devia.kernel.mcr_kernel.memory import MCRConector, MCRCadeia, _get_kg
 
-                # Tenta usar o MCRWorldSystem se disponivel
-                if _world_system:
-                    estado = _carregar()
-                    estado_percebido = _world_system._perceber_estado(estado)
-                    resultado = _world_system._executar_expandir(
-                        tema, estado_percebido, estado, set())
-                    if resultado.get('sucesso'):
-                        self._send_json({
-                            'status': 'ok',
-                            'tipo': 'npc',
-                            'nome': resultado.get('entidade', ''),
-                            'arquivo': resultado.get('arquivo', ''),
-                            'modo': 'mcr_world_system',
-                        })
-                        return
+                conector = MCRConector()
 
-                # Fallback: golden template basico
-                params = {'name': tema.replace(' ', '_'), 'health': 100, 'looktype': 128}
-                codigo = gerar_npc_canary(params)
-                from mcr.mcr_world_builder import _validar_sintaxe, _validar_semantica
-                valido, _ = _validar_sintaxe(codigo)
-                apis = _validar_semantica(codigo, 'npc')
-                if valido and not apis:
-                    msg = salvar_npc_parametrizado(params)
+                # 1. Alimenta dados do Knowledge Graph se disponivel
+                kg = _get_kg()
+                if kg and hasattr(kg, 'buscar'):
+                    try:
+                        lessons = kg.buscar(tema, max_r=5) if hasattr(kg, 'buscar') else []
+                        if not lessons and hasattr(kg, '_get_licoes'):
+                            licoes = kg._get_licoes()
+                            for l in licoes[:20]:
+                                sol = l.get('solucao', '')
+                                if sol and len(sol) > 30:
+                                    conector.alimentar(sol[:1000], f"lesson_{l.get('ctx','?')}")
+                    except:
+                        pass
+
+                # 2. Alimenta o tema do usuario
+                conector.alimentar(
+                    f'{tema}. NPC com configuracao, dialogo e comportamento.',
+                    'tema_usuario'
+                )
+
+                # 3. Tenta usar MCRWorldSystem se configurado
+                if _world_system and hasattr(_world_system, 'ciclo'):
+                    try:
+                        from mcr.mcr_world_state import _carregar
+                        estado = _carregar()
+                        estado_percebido = _world_system._perceber_estado(estado)
+                        res_sys = _world_system.ciclo(tema, estado, max_entidades=1)
+                        if res_sys.get('sucesso', False):
+                            self._send_json({
+                                'status': 'ok',
+                                'tipo': 'npc',
+                                'nome': res_sys.get('nome', tema.replace(' ', '_')),
+                                'modo': 'mcr_world_system',
+                                'mensagem': str(res_sys.get('entidade', {}))[:500],
+                                'nota': res_sys.get('nota', 5),
+                            })
+                            return
+                    except:
+                        pass
+
+                # 4. Fallback: geracao via MCRCadeia pura
+                if not conector.topicos:
                     self._send_json({
-                        'status': 'ok',
-                        'tipo': 'npc',
-                        'nome': params['name'],
-                        'arquivo': str(msg).split('salvo em: ')[-1].strip() if 'salvo em:' in str(msg) else '',
-                        'modo': 'template',
-                    })
-                else:
-                    self._send_json({'status': 'erro', 'mensagem': 'Falha ao gerar NPC'}, 500)
+                        'status': 'erro_entropia',
+                        'mensagem': 'Conhecimento insuficiente — execute Cold Start para gerar entidades',
+                        'modo': 'entropia_insuficiente',
+                        'estado': 'EXPANDIR',
+                        'acao': 'execute Cold Start para minerar mais APIs',
+                        'nota': 0,
+                        'tamanho_gerado': 0,
+                    }, 200)
+                    return
+
+                cadeia = MCRCadeia(conector)
+                palavras_tema = tema.split()
+                semente = palavras_tema[0] if palavras_tema else 'NPC'
+                if semente not in conector.mcr_palavra.freq:
+                    # Encontra a primeira palavra conhecida
+                    for t, dados in conector.topicos.items():
+                        for p in dados.get('palavras', []):
+                            if p in conector.mcr_palavra.freq and len(p) > 2:
+                                semente = p
+                                break
+                        if semente in conector.mcr_palavra.freq:
+                            break
+
+                res = cadeia.gerar(semente, n_tokens=100, top_k=3)
+                texto_gerado = res.get('texto', '')
+                nota = res.get('nota', 0)
+
+                if len(texto_gerado) < 20 or nota < 3:
+                    self._send_json({
+                        'status': 'erro_entropia',
+                        'mensagem': 'Conhecimento insuficiente para gerar entidade com qualidade minima',
+                        'modo': 'entropia_insuficiente',
+                        'estado': 'EXPANDIR',
+                        'acao': 'execute Cold Start para minerar mais APIs',
+                        'nota': nota,
+                        'tamanho_gerado': len(texto_gerado),
+                    }, 200)
+                    return
+
+                self._send_json({
+                    'status': 'ok',
+                    'tipo': 'npc',
+                    'nome': tema.replace(' ', '_'),
+                    'modo': 'mcr_generativo',
+                    'mensagem': texto_gerado[:500],
+                    'nota': nota,
+                    'n_tokens': res.get('n_tokens', 0),
+                })
             except Exception as e:
-                self._send_json({'status': 'erro', 'mensagem': str(e)}, 500)
+                import traceback
+                traceback.print_exc()
+                self._send_json({'status': 'erro', 'mensagem': str(e)[:200]}, 500)
 
         else:
             self._send_json({'status': 'erro', 'mensagem': 'Endpoint nao encontrado'}, 404)
