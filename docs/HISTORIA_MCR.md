@@ -484,7 +484,7 @@ Ciclo 3: 0 hardcodes — MCR puro
 | **Autoavaliação em N níveis simultâneos** | `NOTA = (BYTE + PALAVRA + TOKEN) × (1-P)` avalia coerência em 3 níveis ao mesmo tempo, com penalidade por tipo de ponte. |
 | **Assinatura auto-expansiva** | `MCRSignatureExpansiva` descobre sozinha quantas dimensões um dado precisa (2, 4, 8, 16... 256). Sem tamanho fixo. |
 | **Ciclo fechado auto-reflexivo** | O MCR analisa, gera, autoavalia, decide parâmetros, detecta hardcodes no próprio código, e repete — tudo com a mesma equação. |
-| **17KB, 0 dependências, 0 GPU** | Nenhum sistema que faz análise multiformato + geração + autoavaliação + persistência + auto-diagnóstico cabe em 17KB sem dependências. |
+| **~438KB (MCR.py), 0 dependências, 0 GPU** | Nenhum sistema que faz análise multiformato + geração + autoavaliação + persistência + auto-diagnóstico cabe em ~438KB sem dependências. |
 
 ### O que o MCR provou:
 
@@ -495,7 +495,7 @@ Ciclo 3: 0 hardcodes — MCR puro
 | Gaps de primos | 44x melhor que baseline | Descobriu correlação replicável |
 | Nomes novos | 9/10 foneticamente válidos | Geração criativa sem template |
 | Código bom vs ruim | 4/5 entropia, 5/5 dimensão | Distingue qualidade sem exemplo |
-| Collatz + primos | 10x e 44x | Único sistema de 17KB que fez isso |
+| Collatz + primos | 10x e 44x | Único sistema que fez isso |
 | Auto-diagnóstico | Detectou próprio gap (natal) | Sabe onde é fraco |
 | Auto-hardcode | 21 hardcodes encontrados | Sabe onde errou |
 

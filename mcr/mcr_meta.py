@@ -113,7 +113,21 @@ class MCRMeta:
     Equacao PONTE_OTIMA = (5*DIVERGENCIA + 3*ESPECIFICIDADE + 2*PROFUNDIDADE) / 10
     """
 
-    # ... (rest of MCRMeta class follows)
+    @staticmethod
+    def _calcular_ponte_otima(api_calls: list, variaveis: list, tamanho_linhas: int = 50) -> float:
+        """Calcula PONTE_OTIMA para um unico padrao.
+        
+        Retorna score 0-10 onde:
+        10 = maxima divergencia (muitas APIs diferentes)
+              + maxima especificidade (muitas variaveis)
+              + maxima profundidade (arquivo grande)
+        """
+        divergencia = len(set(api_calls)) / max(len(api_calls), 1) if api_calls else 0.0
+        especificidade = len(set(variaveis)) / max(len(variaveis), 1) if variaveis else 0.3
+        profundidade = min(1.0, tamanho_linhas / 200.0)
+        nota = (5.0 * divergencia + 3.0 * especificidade + 2.0 * profundidade) / 10.0
+        return round(min(10.0, nota * 10.0), 2)
+
     @staticmethod
     def diagnosticar(kg_dir: Optional[Path] = None) -> Dict:
         kg_dir = kg_dir or KG_DIR
@@ -137,12 +151,8 @@ class MCRMeta:
             variaveis = p.get('variaveis', [])
             arquivo = Path(p.get('arquivo', '')).stem
 
-            divergencia = len(set(api_calls)) / max(len(api_calls), 1) if api_calls else 0.0
-            especificidade = len(set(variaveis)) / max(len(variaveis), 1) if variaveis else 0.3
-            profundidade = min(1.0, p.get('tamanho_linhas', 50) / 200.0)
-
-            nota = (5.0 * divergencia + 3.0 * especificidade + 2.0 * profundidade) / 10.0
-            nota = round(min(10.0, nota * 10.0), 2)
+            nota = MCRMeta._calcular_ponte_otima(
+                api_calls, variaveis, p.get('tamanho_linhas', 50))
 
             topicos[arquivo] = {
                 'arquivo': p.get('arquivo', ''),

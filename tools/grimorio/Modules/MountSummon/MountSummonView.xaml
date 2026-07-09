@@ -1,0 +1,44 @@
+<UserControl x:Class="MCR.Grimorio.Modules.MountSummon.MountSummonView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="{StaticResource BgDarkestBrush}">
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <Border Grid.Row="0" Background="{StaticResource BgMediumBrush}" BorderBrush="{StaticResource BorderBrush}"
+                BorderThickness="1" CornerRadius="6" Padding="14,10" Margin="0,0,0,10">
+            <StackPanel>
+                <TextBlock Text="🐉 Mount &amp; Summon" FontSize="18" FontWeight="SemiBold" Foreground="{StaticResource FgBrightBrush}" />
+                <TextBlock x:Name="DetectionText" FontSize="11" Foreground="{StaticResource AccentGreenBrush}" />
+            </StackPanel>
+        </Border>
+        <Border Grid.Row="1" Background="{StaticResource BgMediumBrush}" BorderBrush="{StaticResource BorderBrush}"
+                BorderThickness="1" CornerRadius="6" Padding="10" Margin="0,0,0,10">
+            <StackPanel Orientation="Horizontal">
+                <Button x:Name="ScanButton" Content="🔍 Escanear" Height="30" Click="ScanButton_Click" />
+            </StackPanel>
+        </Border>
+        <Border Grid.Row="2" Background="{StaticResource BgMediumBrush}"
+                BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="6">
+            <ListView x:Name="FileList" Background="Transparent" BorderThickness="0">
+            <ListView.ItemTemplate>
+                <DataTemplate>
+                    <Grid Margin="4,2">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="100" />
+                            <ColumnDefinition Width="80" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="{Binding Name}" FontSize="12" />
+                        <TextBlock Grid.Column="1" Text="{Binding Type}" FontSize="11" Foreground="{StaticResource AccentOrangeBrush}" />
+                        <TextBlock Grid.Column="2" Text="{Binding Size}" FontSize="11" Foreground="{StaticResource FgMutedBrush}" />
+                    </Grid>
+                </DataTemplate>
+            </ListView.ItemTemplate>
+        </ListView>
+        </Border>
+    </Grid>
+</UserControl>

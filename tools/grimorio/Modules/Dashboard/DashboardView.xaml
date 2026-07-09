@@ -1,0 +1,258 @@
+<UserControl x:Class="MCR.Grimorio.Modules.Dashboard.DashboardView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             mc:Ignorable="d"
+             d:DesignHeight="600" d:DesignWidth="900"
+             Background="{StaticResource BgDarkestBrush}">
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,20">
+            <TextBlock Text="Painel de Controle" FontSize="24"
+                       FontWeight="SemiBold" Foreground="{StaticResource FgBrightBrush}" />
+            <TextBlock Text="Status e ações do servidor" FontSize="13"
+                       Foreground="{StaticResource FgSecondaryBrush}" Margin="0,4,0,0" />
+        </StackPanel>
+
+        <!-- Status Cards -->
+        <Grid Grid.Row="1" Margin="0,0,0,12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Card: Status -->
+            <Border Grid.Column="0" Background="{StaticResource BgMediumBrush}"
+                    BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                    CornerRadius="6" Margin="0,0,8,0" Padding="16,12">
+                <StackPanel>
+                    <TextBlock Text="Servidor" FontSize="12"
+                               Foreground="{StaticResource FgSecondaryBrush}" />
+                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                        <Ellipse x:Name="StatusIndicator" Width="10" Height="10"
+                                 Fill="{StaticResource StatusStoppedBrush}" Margin="0,4,8,0" />
+                        <TextBlock x:Name="StatusText" Text="Parado" FontSize="18"
+                                   FontWeight="SemiBold"
+                                   Foreground="{StaticResource FgBrightBrush}" />
+                    </StackPanel>
+                    <TextBlock x:Name="PidText" Text="PID: ---" FontSize="12"
+                               Foreground="{StaticResource FgMutedBrush}"
+                               Margin="0,4,0,0" />
+                </StackPanel>
+            </Border>
+
+            <!-- Card: Players -->
+            <Border Grid.Column="1" Background="{StaticResource BgMediumBrush}"
+                    BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                    CornerRadius="6" Margin="8,0" Padding="16,12">
+                <StackPanel>
+                    <TextBlock Text="Jogadores" FontSize="12"
+                               Foreground="{StaticResource FgSecondaryBrush}" />
+                    <TextBlock x:Name="PlayersText" Text="0" FontSize="30"
+                               FontWeight="SemiBold"
+                               Foreground="{StaticResource AccentGreenBrush}"
+                               Margin="0,4,0,0" />
+                    <TextBlock Text="online agora" FontSize="12"
+                               Foreground="{StaticResource FgMutedBrush}" />
+                </StackPanel>
+            </Border>
+
+            <!-- Card: Uptime -->
+            <Border Grid.Column="2" Background="{StaticResource BgMediumBrush}"
+                    BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                    CornerRadius="6" Margin="8,0" Padding="16,12">
+                <StackPanel>
+                    <TextBlock Text="Tempo Online" FontSize="12"
+                               Foreground="{StaticResource FgSecondaryBrush}" />
+                    <TextBlock x:Name="UptimeText" Text="---" FontSize="18"
+                               FontWeight="SemiBold"
+                               Foreground="{StaticResource FgBrightBrush}"
+                               Margin="0,4,0,0" />
+                    <TextBlock Text="desde o último start" FontSize="12"
+                               Foreground="{StaticResource FgMutedBrush}" />
+                </StackPanel>
+            </Border>
+
+            <!-- Card: Caminho -->
+            <Border Grid.Column="3" Background="{StaticResource BgMediumBrush}"
+                    BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                    CornerRadius="6" Margin="8,0,0,0" Padding="16,12">
+                <StackPanel>
+                    <TextBlock Text="Servidor" FontSize="12"
+                               Foreground="{StaticResource FgSecondaryBrush}" />
+                    <TextBlock x:Name="PathText" Text="..." FontSize="12"
+                               Foreground="{StaticResource AccentOrangeBrush}"
+                               Margin="0,8,0,0" />
+                    <Button x:Name="OpenFolderButton" Content="Abrir Pasta"
+                            FontSize="11" Padding="8,2" HorizontalAlignment="Left"
+                            Margin="0,8,0,0" />
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- Performance Metrics -->
+        <Grid Grid.Row="2" Margin="0,0,0,12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <Border Grid.Column="0" Background="{StaticResource BgMediumBrush}"
+                    BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                    CornerRadius="6" Margin="0,0,6,0" Padding="12,10">
+                <StackPanel>
+                    <TextBlock Text="CPU" FontSize="11"
+                               Foreground="{StaticResource FgSecondaryBrush}" />
+                    <TextBlock Text="{Binding CpuDisplay}" FontSize="20"
+                               FontWeight="SemiBold"
+                               Foreground="{StaticResource AccentGreenBrush}"
+                               Margin="0,4,0,0" />
+                </StackPanel>
+            </Border>
+
+            <Border Grid.Column="1" Background="{StaticResource BgMediumBrush}"
+                    BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                    CornerRadius="6" Margin="6,0" Padding="12,10">
+                <StackPanel>
+                    <TextBlock Text="Memória" FontSize="11"
+                               Foreground="{StaticResource FgSecondaryBrush}" />
+                    <TextBlock Text="{Binding MemoryDisplay}" FontSize="20"
+                               FontWeight="SemiBold"
+                               Foreground="{StaticResource AccentOrangeBrush}"
+                               Margin="0,4,0,0" />
+                </StackPanel>
+            </Border>
+
+            <Border Grid.Column="2" Background="{StaticResource BgMediumBrush}"
+                    BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                    CornerRadius="6" Margin="6,0" Padding="12,10">
+                <StackPanel>
+                    <TextBlock Text="Tick Médio" FontSize="11"
+                               Foreground="{StaticResource FgSecondaryBrush}" />
+                    <TextBlock Text="{Binding TickTime}" FontSize="20"
+                               FontWeight="SemiBold"
+                               Foreground="{StaticResource FgBrightBrush}"
+                               Margin="0,4,0,0" />
+                </StackPanel>
+            </Border>
+
+            <Border Grid.Column="3" Background="{StaticResource BgMediumBrush}"
+                    BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                    CornerRadius="6" Margin="6,0,0,0" Padding="12,10">
+                <StackPanel>
+                    <TextBlock Text="Queries Lentas" FontSize="11"
+                               Foreground="{StaticResource FgSecondaryBrush}" />
+                    <TextBlock Text="{Binding SlowQueriesDisplay}" FontSize="20"
+                               FontWeight="SemiBold"
+                               Foreground="{StaticResource StatusStoppedBrush}"
+                               Margin="0,4,0,0" />
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- Actions and Log -->
+        <Grid Grid.Row="3">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Left: Actions -->
+            <StackPanel Grid.Column="0" Margin="0,0,16,0" Width="180">
+                <Button x:Name="StartButton" Content="▶  Iniciar Servidor"
+                        Style="{StaticResource PrimaryButton}" Height="36"
+                        Margin="0,0,0,8" />
+                <Button x:Name="StopButton" Content="■  Parar Servidor"
+                        Style="{StaticResource DangerButton}" Height="36"
+                        Margin="0,0,0,8" />
+                <Button x:Name="RestartButton" Content="↻  Reiniciar"
+                        Height="36" Margin="0,0,0,16" />
+                <Button x:Name="RefreshButton" Content="⟳  Atualizar"
+                        Height="36" Margin="0,0,0,0" />
+
+                <Separator Background="{StaticResource BorderBrush}"
+                           Margin="0,8" />
+
+                <TextBlock Text="Sprites" FontSize="12"
+                           Foreground="{StaticResource FgSecondaryBrush}"
+                           Margin="0,0,0,4" />
+                <TextBlock x:Name="SpriteStatus" Text="—" FontSize="11"
+                           Foreground="{StaticResource FgMutedBrush}"
+                           Margin="0,0,0,8" TextWrapping="Wrap" />
+
+                <Separator Background="{StaticResource BorderBrush}"
+                           Margin="0,8" />
+
+                <TextBlock Text="Banco de Dados" FontSize="12"
+                           Foreground="{StaticResource FgSecondaryBrush}"
+                           Margin="0,0,0,8" />
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                    <Ellipse x:Name="DbIndicator" Width="8" Height="8"
+                             Fill="{StaticResource StatusStoppedBrush}"
+                             Margin="0,4,8,0" />
+                    <TextBlock x:Name="DbStatusText" Text="Desconectado"
+                               FontSize="12"
+                               Foreground="{StaticResource FgMutedBrush}" />
+                </StackPanel>
+                <Button x:Name="DbConnectButton" Content="Conectar"
+                        Height="30" Margin="0,4,0,0" FontSize="12" />
+            </StackPanel>
+
+            <!-- Right: Log -->
+            <Border Grid.Column="1"
+                    Background="{StaticResource BgDarkBrush}"
+                    BorderBrush="{StaticResource BorderBrush}"
+                    BorderThickness="1" CornerRadius="4">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <Border Grid.Row="0" Background="{StaticResource BgLightBrush}"
+                            Padding="10,6">
+                        <Grid>
+                            <TextBlock Text="Log do Servidor" FontSize="12"
+                                       Foreground="{StaticResource FgSecondaryBrush}"
+                                       VerticalAlignment="Center" />
+                            <Button x:Name="ClearLogButton" Content="Limpar"
+                                    FontSize="11" Padding="6,2"
+                                    HorizontalAlignment="Right" />
+                        </Grid>
+                    </Border>
+
+                    <Border Grid.Row="1" Margin="0,0,0,0">
+                        <ScrollViewer x:Name="LogScrollViewer"
+                                      Background="{StaticResource BgDarkBrush}"
+                                      VerticalScrollBarVisibility="Auto">
+                            <ItemsControl x:Name="LogList"
+                                          Background="Transparent"
+                                          FontFamily="Consolas" FontSize="12">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding}"
+                                                   Foreground="{StaticResource FgPrimaryBrush}"
+                                                   Padding="8,1"
+                                                   TextWrapping="NoWrap" />
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </Border>
+                </Grid>
+            </Border>
+        </Grid>
+    </Grid>
+</UserControl>

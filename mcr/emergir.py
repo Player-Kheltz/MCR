@@ -241,6 +241,90 @@ class Emergir:
 
     # ─── Utilitarios ───────────────────────────────────────────
 
+    def gerar_ideias_tematicas(self, conceitos: list, n: int = 10) -> list:
+        """Gera ideias 'E se' combinando conceitos fornecidos.
+        
+        Args:
+            conceitos: lista de strings (ex: ["comerciante", "armadilha", ...])
+            n: numero maximo de ideias a retornar
+        
+        Returns:
+            lista de dicts com 'ideia' (string) e 'conceito_a', 'conceito_b'
+        """
+        import random
+        
+        if len(conceitos) < 2:
+            return [{'ideia': 'E se algo especial acontecesse neste mundo?',
+                     'conceito_a': conceitos[0] if conceitos else 'mundo',
+                     'conceito_b': 'destino'}]
+        
+        # Gera todas as combinacoes 2-a-2
+        combinacoes = []
+        for i in range(len(conceitos)):
+            for j in range(i + 1, len(conceitos)):
+                combinacoes.append((conceitos[i], conceitos[j]))
+        
+        random.shuffle(combinacoes)
+        
+        templates_ideia = [
+            "E se um {a} pudesse se transformar em um {b} quando algo extraordinario acontecesse?",
+            "E se um {a} e um {b} estivessem secretamente aliados em uma trama sombria?",
+            "E se o maior {a} da cidade fosse, na verdade, um {b} disfarcado?",
+            "E se um antigo {b} fosse descoberto dentro de um {a} abandonado?",
+            "E se um {a} local precisasse da ajuda de um {b} para resolver uma crise iminente?",
+            "E se um {a} e um {b} disputassem o controle da mesma regiao?",
+            "E se um humilde {a} encontrasse um {b} magico que mudaria sua vida para sempre?",
+            "E se um bando de {a} estivesse roubando {b} para financiar uma revolucao?",
+            "E se um {a} fosse amaldicoado a se tornar um {b} toda noite?",
+            "E se o comeco de um {a} dependesse da destruicao de um {b} ancestral?",
+        ]
+        
+        ideias = []
+        vistos = set()
+        
+        for a, b in combinacoes:
+            if len(ideias) >= n * 3:  # Gera mais que o necessario para filtrar
+                break
+            template = random.choice(templates_ideia)
+            # Alterna ordem para variedade
+            if random.random() < 0.5:
+                a, b = b, a
+            ideia_texto = template.format(a=a, b=b)
+            
+            # Filtro de similaridade (Jaccard)
+            palavras = set(ideia_texto.lower().split())
+            similar = False
+            for existente in vistos:
+                pal_existente = set(existente.lower().split())
+                inter = palavras & pal_existente
+                uniao = palavras | pal_existente
+                if len(inter) / len(uniao) > 0.6:
+                    similar = True
+                    break
+            
+            if not similar:
+                vistos.add(ideia_texto)
+                ideias.append({
+                    'ideia': ideia_texto,
+                    'conceito_a': a,
+                    'conceito_b': b,
+                })
+        
+        # Se ainda faltam ideias, complementa com variacoes LLM
+        if len(ideias) < n:
+            for a in conceitos:
+                if len(ideias) >= n:
+                    break
+                ideias.append({
+                    'ideia': "E se um %s misterioso aparecesse na cidade trazendo segredos do passado?" % a,
+                    'conceito_a': a,
+                    'conceito_b': 'misterio',
+                })
+        
+        print('[Emergir] %d ideias geradas de %d combinacoes' % (
+            min(len(ideias), n), len(combinacoes)))
+        return ideias[:n]
+
     def estatisticas(self) -> Dict:
         """Retorna estatisticas do motor criativo."""
         sandbox_count = len(list(SANDBOX_CRIATIVO_DIR.glob('*.lua'))) if SANDBOX_CRIATIVO_DIR.exists() else 0

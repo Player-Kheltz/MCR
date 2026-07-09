@@ -1,0 +1,1625 @@
+{
+  "total": 64,
+  "distribuicao": {
+    "app": 2,
+    "navbutton": 1,
+    "mcrdetectionresult": 1,
+    "minimaprenderer": 1,
+    "otbmreader": 1,
+    "interface_impl": 1,
+    "service": 12,
+    "unknown": 4,
+    "notify": 2,
+    "model": 1,
+    "itemdata": 1,
+    "tiledata": 1,
+    "monsterdata": 1,
+    "npcdata": 1,
+    "appsettings": 1,
+    "mainwindow": 2,
+    "mcrnpcrequest": 1,
+    "perturbrequest": 1,
+    "worldevent": 1,
+    "worldstatus": 1,
+    "config": 1,
+    "dashboard": 1,
+    "viewmodel": 5,
+    "database": 1,
+    "deploy": 1,
+    "items": 1,
+    "logs": 1,
+    "map": 1,
+    "mcrskills": 1,
+    "monsterlistitem": 1,
+    "mountsummon": 1,
+    "multipiso": 1,
+    "mundomcr": 1,
+    "npcdialogue": 1,
+    "npcs": 1,
+    "painelmcr": 1,
+    "protocol": 1,
+    "quests": 1,
+    "scripttreenode": 1,
+    "settings": 1,
+    "spawns": 1,
+    "tools": 1,
+    "generatedinternaltypehelper": 1
+  },
+  "assinaturas": [
+    {
+      "arquivo": "E:\\MCR\\tools\\grimorio\\App.xaml.cs",
+      "tipo": "app",
+      "api_calls": [
+        "method:FindOtbm",
+        "ServiceProvider.RegisterSingleton<IServerService>",
+        "method:RegisterServices",
+        "type:string",
+        "Directory.GetFiles",
+        "prop:SpriteStatus",
+        "prop:ItemsXmlPath",
+        "Path.Combine",
+        "method:AutoDetectPaths",
+        "Path.GetFullPath",
+        "using:System.Linq",
+        "new FileInfo",
+        "SettingsService.SetServerExeName",
+        "new ServerService",
+        "class:App",
+        "prop:CanaryExePath",
+        "new SpriteSheetService",
+        "SettingsService.SetOtclientPath",
+        "AutoDetectPaths",
+        "prop:SpriteSheets",
+        "prop:SettingsService",
+        "base.OnStartup",
+        "ServiceProvider.RegisterSingleton<IDatabaseService>",
+        "string.IsNullOrEmpty",
+        "method:OnStartup",
+        "SettingsService.GetOtclientPath",
+        "prop:DatabaseService",
+        "using:System.Windows",
+        "method:FindItemsXml",
+        "SettingsService.GetServerPath",
+        "FindItemsXml",
+        "method:ReinitializeAll",
+        "File.Exists",
+        "FindOtbm",
+        "SettingsService.GetServerExeName",
+        "method:InitDatabase",
+        "Directory.GetFiles(dir, \"*.otbm\")\n                .Where",
+        "type:serverPath",
+        "method:DetectCanaryExe",
+        "type:e",
+        "SettingsService.GetSprPath",
+        "base:Application",
+        "RegisterServices",
+        "InitSprites",
+        "using:System.IO",
+        "Directory.GetFiles(dir, \"*.otbm\")\n                .Where(f => new FileInfo(f).Length > 1024)\n                .ToArray",
+        "type:void",
+        "DatabaseService.Configure",
+        "using:MCR.Grimorio.Core.Services",
+        "Directory.Exists",
+        "InitDatabase",
+        "method:InitSprites",
+        "prop:OtbmPath",
+        "method:ReinitializeSpriteSheets",
+        "candidates.FirstOrDefault",
+        "type:SpriteSheetService?",
+        "DetectCanaryExe"
+      ],
+      "classes": [
+        {
+          "name": "App",
+          "bases": [
+            "Application"
+          ],
+          "modifiers": [
+            "public",
+            "partial"
+          ]
+        }
+      ],
+      "methods": [
+        {
+          "name": "OnStartup",
+          "return_type": "void",
+          "params": [
+            {
+              "type": "e"
+            }
+          ],
+          "modifiers": [
+            "protected",
+            "override"
+          ],
+          "generic_params": []
+        },
+        {
+          "name": "RegisterServices",
+          "return_type": "void",
+          "params": [],
+          "modifiers": [
+            "private"
+          ],
+          "generic_params": []
+        },
+        {
+          "name": "AutoDetectPaths",
+          "return_type": "void",
+          "params": [],
+          "modifiers": [
+            "private"
+          ],
+          "generic_params": []
+        },
+        {
+          "name": "DetectCanaryExe",
+          "return_type": "string",
+          "params": [
+            {
+              "type": "serverPath"
+            }
+          ],
+          "modifiers": [
+            "public"
+          ],
+          "generic_params": []
+        },
+        {
+          "name": "FindItemsXml",
+          "return_type": "string",
+          "params": [
+            {
+              "type": "serverPath"
+            }
+          ],
+          "modifiers": [
+            "public"
+          ],
+          "generic_params": []
+        },
+        {
+          "name": "FindOtbm",
+          "return_type": "string",
+          "params": [
+            {
+              "type": "serverPath"
+            }
+          ],
+          "modifiers": [
+            "public"
+          ],
+          "generic_params": []
+        },
+        {
+          "name": "InitDatabase",
+          "return_type": "void",
+          "params": [],
+          "modifiers": [
+            "private"
+          ],
+          "generic_params": []
+        },
+        {
+          "name": "InitSprites",
+          "return_type": "void",
+          "params": [],
+          "modifiers": [
+            "private"
+          ],
+          "generic_params": []
+        },
+        {
+          "name": "ReinitializeAll",
+          "return_type": "void",
+          "params": [],
+          "modifiers": [
+            "public"
+          ],
+          "generic_params": []
+        },
+        {
+          "name": "ReinitializeSpriteSheets",
+          "return_type": "void",
+          "params": [],
+          "modifiers": [
+            "public"
+          ],
+          "generic_params": []
+        }
+      ],
+      "properties": [
+        {
+          "name": "SettingsService",
+          "type": "",
+          "modifiers": [
+            "public"
+          ]
+        },
+        {
+          "name": "DatabaseService",
+          "type": "",
+          "modifiers": [
+            "public"
+          ]
+        },
+        {
+          "name": "SpriteSheets",
+          "type": "SpriteSheetService?",
+          "modifiers": [
+            "public"
+          ]
+        },
+        {
+          "name": "SpriteStatus",
+          "type": "string",
+          "modifiers": [
+            "public"
+          ]
+        },
+        {
+          "name": "OtbmPath",
+          "type": "string",
+          "modifiers": [
+            "public"
+          ]
+        },
+        {
+          "name": "ItemsXmlPath",
+          "type": "string",
+          "modifiers": [
+            "public"
+          ]
+        },
+        {
+          "name": "CanaryExePath",
+          "type": "string",
+          "modifiers": [
+            "public"
+          ]
+        }
+      ],
+      "invocations": [
+        "base.OnStartup",
+        "RegisterServices",
+        "AutoDetectPaths",
+        "InitDatabase",
+        "InitSprites",
+        "ServiceProvider.RegisterSingleton<IDatabaseService>",
+        "ServiceProvider.RegisterSingleton<IServerService>",
+        "new ServerService",
+        "SettingsService.GetServerPath",
+        "SettingsService.GetServerExeName",
+        "SettingsService.GetServerPath",
+        "Directory.Exists",
+        "DetectCanaryExe",
+        "FindItemsXml",
+        "FindOtbm",
+        "SettingsService.GetOtclientPath",
+        "string.IsNullOrEmpty",
+        "Directory.Exists",
+        "Path.GetFullPath",
+        "Path.Combine",
+        "SettingsService.SetOtclientPath",
+        "Path.Combine",
+        "File.Exists",
+        "SettingsService.SetServerExeName",
+        "Path.Combine",
+        "File.Exists",
+        "SettingsService.SetServerExeName",
+        "Path.Combine",
+        "Path.Combine",
+        "Path.Combine",
+        "Path.Combine",
+        "candidates.FirstOrDefault",
+        "Path.Combine",
+        "Path.Combine",
+        "Path.Combine",
+        "Directory.Exists",
+        "Directory.GetFiles(dir, \"*.otbm\")\n                .Where(f => new FileInfo(f).Length > 1024)\n                .ToArray",
+        "Directory.GetFiles(dir, \"*.otbm\")\n                .Where",
+        "Directory.GetFiles",
+        "new FileInfo",
+        "DatabaseService.Configure",
+        "SettingsService.GetSprPath",
+        "string.IsNullOrEmpty",
+        "Directory.Exists",
+        "new SpriteSheetService",
+        "AutoDetectPaths",
+        "InitDatabase",
+        "InitSprites",
+        "InitSprites"
+      ],
+      "attributes": [],
+      "fields": [],
+      "namespaces": [],
+      "usings": [
+        "System.IO",
+        "System.Linq",
+        "System.Windows",
+        "MCR.Grimorio.Core.Services"
+      ],
+      "interfaces": [],
+      "events": [],
+      "tamanho_linhas": 158
+    },
+    {
+      "arquivo": "E:\\MCR\\tools\\grimorio\\Controls\\NavButton.cs",
+      "tipo": "navbutton",
+      "api_calls": [
+        "DependencyProperty.Register",
+        "prop:Label",
+        "field:LabelProperty",
+        "base:Button",
+        "new FrameworkPropertyMetadata",
+        "GetValue",
+        "type:string",
+        "DefaultStyleKeyProperty.OverrideMetadata",
+        "prop:Icon",
+        "using:System.Windows.Media",
+        "field:IconProperty",
+        "nameof",
+        "class:NavButton",
+        "using:System.Windows",
+        "method:NavButton",
+        "SetValue",
+        "using:System.Windows.Controls"
+      ],
+      "classes": [
+        {
+          "name": "NavButton",
+          "bases": [
+            "Button"
+          ],
+          "modifiers": [
+            "public"
+          ]
+        }
+      ],
+      "methods": [
+        {
+          "name": "NavButton",
+          "params": [],
+          "modifiers": [
+            "static"
+          ]
+        }
+      ],
+      "properties": [
+        {
+          "name": "Icon",
+          "type": "string",
+          "modifiers": [
+            "public"
+          ]
+        },
+        {
+          "name": "Label",
+          "type": "string",
+          "modifiers": [
+            "public"
+          ]
+        }
+      ],
+      "invocations": [
+        "DependencyProperty.Register",
+        "nameof",
+        "DependencyProperty.Register",
+        "nameof",
+        "GetValue",
+        "SetValue",
+        "GetValue",
+        "SetValue",
+        "DefaultStyleKeyProperty.OverrideMetadata",
+        "new FrameworkPropertyMetadata"
+      ],
+      "attributes": [],
+      "fields": [
+        {
+          "name": "IconProperty",
+          "type": "",
+          "modifiers": [
+            "public",
+            "static",
+            "readonly"
+          ]
+        },
+        {
+          "name": "LabelProperty",
+          "type": "",
+          "modifiers": [
+            "public",
+            "static",
+            "readonly"
+          ]
+        }
+      ],
+      "namespaces": [],
+      "usings": [
+        "System.Windows",
+        "System.Windows.Controls",
+        "System.Windows.Media"
+      ],
+      "interfaces": [],
+      "events": [],
+      "tamanho_linhas": 33
+    },
+    {
+      "arquivo": "E:\\MCR\\tools\\grimorio\\Core\\Detection\\MCRDetector.cs",
+      "tipo": "mcrdetectionresult",
+      "api_calls": [
+        "new List<string>",
+        "type:string",
+        "Directory.GetFiles",
+        "new MCRDetectionResult",
+        "Path.Combine",
+        "field:_canaryDir",
+        "prop:HasMultiPiso",
+        "Path.GetFullPath",
+        "method:Detect",
+        "method:GetDetectionSummary",
+        "field:_cache",
+        "string.Join",
+        "prop:HasMountSummon",
+        "File.Exists",
+        "type:int",
+        "Detect",
+        "prop:IsMcrServer",
+        "prop:HasSkillsSpa",
+        "class:MCRDetector",
+        "using:System.IO",
+        "Directory.Exists",
+        "type:bool",
+        "method:MCRDetector",
+        "prop:DetectedModules",
+        "prop:HasNpcDialogue",
+        "class:MCRDetectionResult",
+        "parts.Add"
+      ],
+      "classes": [
+        {
+          "name": "MCRDetectionResult",
+          "bases": [],
+          "modifiers": [
+            "public"
+          ]
+        },
+        {
+          "name": "MCRDetector",
+          "bases": [],
+          "modifiers": [
+            "public"
+          ]
+        }
+      ],
+      "methods": [
+        {
+          "name": "MCRDetector",
+          "params": [],
+          "modifiers": [
+            "public"
+          ]
+        },
+        {
+          "name": "Detect",
+          "return_type": "",
+          "params": [],
+          "modifiers": [
+            "public"
+          ],
+          "generic_params": []
+        },
+        {
+          "name": "GetDetectionSummary",
+          "return_type": "string",
+          "params": [],
+          "modifiers": [
+            "public"
+          ],
+          "generic_params": []
+        }
+      ],
+      "properties": [
+        {
+          "name": "HasSkillsSpa",
+          "type": "bool",
+          "modifiers": [
+            "public"
+          ]
+        },
+        {
+          "name": "HasMultiPiso",
+          "type": "bool",
+          "modifiers": [
+            "public"
+          ]
+        },
+        {
+          "name": "HasMountSummon",
+          "type": "bool",
+          "modifiers": [
+            "public"
+          ]
+        },
+        {
+          "name": "HasNpcDialogue",
+          "type": "bool",
+          "modifiers": [
+            "public"
+          ]
+        },
+        {
+          "name": "IsMcrServer",
+          "type": "bool",
+          "modifiers": [
+            "public"
+          ]
+        },
+        {
+          "name": "DetectedModules",
+          "type": "int",
+          "modifiers": [
+            "public"
+          ]
+        }
+      ],
+      "invocations": [
+        "Path.GetFullPath",
+        "Path.Combine",
+        "new MCRDetectionResult",
+        "Directory.Exists",
+        "Path.Combine",
+        "Path.Combine",
+        "Directory.Exists",
+        "Directory.Exists",
+        "Path.Combine",
+        "File.Exists",
+        "Path.Combine",
+        "File.Exists",
+        "Path.Combine",
+        "Directory.Exists",
+        "Path.Combine",
+        "File.Exists",
+        "Path.Combine",
+        "File.Exists",
+        "Path.Combine",
+        "File.Exists",
+        "Path.Combine",
+        "Path.Combine",
+        "Directory.Exists",
+        "File.Exists",
+        "Path.Combine",
+        "File.Exists",
+        "Path.Combine",
+        "Directory.GetFiles",
+        "Detect",
+        "new List<string>",
+        "parts.Add",
+        "parts.Add",
+        "parts.Add",
+        "parts.Add",
+        "string.Join"
+      ],
+      "attributes": [],
+      "fields": [
+        {
+          "name": "_canaryDir",
+          "type": "",
+          "modifiers": [
+            "private",
+            "readonly"
+          ]
+        },
+        {
+          "name": "_cache",
+          "type": "",
+          "modifiers": [
+            "private"
+          ]
+        }
+      ],
+      "namespaces": [],
+      "usings": [
+        "System.IO"
+      ],
+      "interfaces": [],
+      "events": [],
+      "tamanho_linhas": 79
+    },
+    {
+      "arquivo": "E:\\MCR\\tools\\grimorio\\Core\\MinimapRenderer.cs",
+      "tipo": "minimaprenderer",
+      "api_calls": [
+        "type:tx",
+        "type:ty",
+        "Blend",
+        "class:MinimapRenderer",
+        "method:InvalidateCache",
+        "type:h",
+        "type:a",
+        "Math.Max",
+        "method:Render",
+        "method:GetTileColor",
+        "using:System",
+        "using:System.Windows.Media",
+        "type:gridLines",
+        "type:s",
+        "bmp.Unlock",
+        "method:DrawPlayers",
+        "Color.FromRgb",
+        "type:players",
+        "using:MCR.Grimorio.Data",
+        "type:lookup",
+        "CreateEmpty",
+        "method:HslToRgb",
+        "field:_cachedGrid",
+        "using:System.Windows",
+        "type:t",
+        "method:MinimapRenderer",
+        "bmp.AddDirtyRect",
+        "type:l",
+        "method:Darken",
+        "using:System.Windows.Media.Imaging",
+        "type:w",
+        "field:_mapData",
+        "field:_cachedFloor",
+        "GetTileColor",
+        "new WriteableBitmap",
+        "lookup.TryGetValue",
+        "method:Blend",
+        "type:b",
+        "method:CreateEmpty",
+        "type:floor",
+        "new Int32Rect",
+        "field:_palette",
+        "type:factor",
+        "type:c",
+        "method:GeneratePalette",
+        "type:bmp",
+        "GeneratePalette",
+        "HslToRgb",
+        "type:void",
+        "Darken",
+        "map.Floors.TryGetValue",
+        "field:_cachedZoom",
+        "using:System.Collections.Generic",
+        "bmp.Lock",
+        "field:_cached",
+        "new Dictionary<(int x, int y), TileData>",
+        "Math.Abs",
+        "type:zoom",
+        "type:map"
+      ],
+      "classes": [
+        {
+          "name": "MinimapRenderer",
+          "bases": [],
+          "modifiers": [
+            "public"
+          ]
+        }
+      ],
+      "methods": [
+        {
+          "name": "MinimapRenderer",
+          "params": [],
+          "modifiers": [
+            "static"
+          ]
+        },
+        {
+          "name": "Render",
+          "return_type": "",
+          "params": [
+            {
+              "type": "map"
+            },
+            {
+              "type": "floor"
+            },
+            {
+              "type": "zoom"
+            },
+            {
+              "type": "gridLines"
+            }
+          ],
+          "modifiers": [
+            "public"
+          ],
+          "generic_params": []
+        },
+        {
+          "name": "DrawPlayers",
+          "return_type": "void",
+          "params": [
+            {
+              "type": "bmp"
+            },
+            {
+              "type": "map"
+            },
+            {
+              "type": "floor"
+            },
+            {
+              "type": "zoom"
+            },
+            {
+              "type": "players"
+            }
+          ],
+          "modifiers": [
+            "public"
+          ],
+          "generic_params": []
+        },
+        {
+          "name": "InvalidateCache",
+          "return_type": "void",
+          "params": [],
+          "modifiers": [
+            "public"
+          ],
+          "generic_params": []
+        },
+        {
+          "name": "CreateEmpty",
+          "return_type": "",
+          "params": [
+            {
+              "type": "w"
+            },
+            {
+              "type": "h"
+            },
+            {
+              "type": "zoom"
+            }
+          ],
+          "modifiers": [
+            "private",
+            "static",
+            "unsafe"
+          ],
+          "generic_params": []
+        },
+        {
+          "name": "GetTileColor",
+          "return_type": "",
+          "params": [
+            {
+              "type": "lookup"
+            },
+            {
+              "type": "tx"
+            },
+            {
+              "type": "ty"
+            },
+            {
+              "type": "map"
+            }
+          ],
+          "modifiers": [
+            "private",
+            "static"
+          ],
+          "generic_params": []
+        },
+        {
+          "name": "Blend",
+          "return_type": "",
+          "params": [
+            {
+              "type": "a"
+            },
+            {
+              "type": "b"
+            },
+            {
+              "type": "t"
+            }
+          ],
+          "modifiers": [
+            "private",
+            "static"
+          ],
+          "generic_params": []
+        },
+        {
+          "name": "Darken",
+          "return_type": "",
+          "params": [
+            {
+              "type": "c"
+            },
+            {
+              "type": "factor"
+            }
+          ],
+          "modifiers": [
+            "private",
+            "static"
+          ],
+          "generic_params": []
+        },
+        {
+          "name": "GeneratePalette",
+          "return_type": "",
+          "params": [],
+          "modifiers": [
+            "private",
+            "static"
+          ],
+          "generic_params": []
+        },
+        {
+          "name": "HslToRgb",
+          "return_type": "",
+          "params": [
+            {
+              "type": "h"
+            },
+            {
+              "type": "s"
+            },
+            {
+              "type": "l"
+            }
+          ],
+          "modifiers": [
+            "private",
+            "static"
+          ],
+          "generic_params": []
+        }
+      ],
+      "properties": [],
+      "invocations": [
+        "GeneratePalette",
+        "map.Floors.TryGetValue",
+        "CreateEmpty",
+        "Math.Max",
+        "new WriteableBitmap",
+        "bmp.Lock",
+        "new Dictionary<(int x, int y), TileData>",
+        "GetTileColor",
+        "bmp.AddDirtyRect",
+        "new Int32Rect",
+        "bmp.Unlock",
+        "Math.Max",
+        "Math.Max",
+        "bmp.Lock",
+        "bmp.AddDirtyRect",
+        "new Int32Rect",
+        "bmp.Unlock",
+        "Math.Max",
+        "new WriteableBitmap",
+        "bmp.Lock",
+        "bmp.AddDirtyRect",
+        "new Int32Rect",
+        "bmp.Unlock",
+        "lookup.TryGetValue",
+        "Color.FromRgb",
+        "Blend",
+        "Color.FromRgb",
+        "Darken",
+        "Color.FromRgb",
+        "Color.FromRgb",
+        "Color.FromRgb",
+        "Color.FromRgb",
+        "Color.FromRgb",
+        "Color.FromRgb",
+        "Color.FromRgb",
+        "Color.FromRgb",
+        "Color.FromRgb",
+        "Color.FromRgb",
+        "Color.FromRgb",
+        "HslToRgb",
+        "Math.Abs",
+        "Math.Abs",
+        "Color.FromRgb"
+      ],
+      "attributes": [],
+      "fields": [
+        {
+          "name": "_palette",
+          "type": "",
+          "modifiers": [
+            "private",
+            "static",
+            "readonly"
+          ]
+        },
+        {
+          "name": "_mapData",
+          "type": "",
+          "modifiers": [
+            "private"
+          ]
+        },
+        {
+          "name": "_cached",
+          "type": "",
+          "modifiers": [
+            "private"
+          ]
+        },
+        {
+          "name": "_cachedZoom",
+          "type": "",
+          "modifiers": [
+            "private"
+          ]
+        },
+        {
+          "name": "_cachedFloor",
+          "type": "",
+          "modifiers": [
+            "private"
+          ]
+        },
+        {
+          "name": "_cachedGrid",
+          "type": "",
+          "modifiers": [
+            "private"
+          ]
+        }
+      ],
+      "namespaces": [],
+      "usings": [
+        "System",
+        "System.Collections.Generic",
+        "System.Windows",
+        "System.Windows.Media",
+        "System.Windows.Media.Imaging",
+        "MCR.Grimorio.Data"
+      ],
+      "interfaces": [],
+      "events": [],
+      "tamanho_linhas": 261
+    },
+    {
+      "arquivo": "E:\\MCR\\tools\\grimorio\\Core\\OtbmReader.cs",
+      "tipo": "otbmreader",
+      "api_calls": [
+        "tr.ReadByte",
+        "class:NodeDataReader",
+        "type:string",
+        "field:ATTR_COUNT",
+        "new OtbmTile",
+        "r.HasData",
+        "field:WAYPOINT",
+        "field:Offset",
+        "sk.Skip",
+        "tr.HasData",
+        "field:ATTR_TELE_DEST",
+        "field:Data",
+        "type:data",
+        "sr.ReadString",
+        "method:ReadItemNode",
+        "method:ReadTown",
+        "field:ATTR_ITEM",
+        "type:attr",
+        "new OtbmReader",
+        "type:int",
+        "field:MAP_DATA",
+        "method:Dispatch",
+        "method:BuildFloors",
+        "ReadWaypoint",
+        "method:ReadNode",
+        "ReadItemNode",
+        "r.Skip",
+        "field:ATTR_TEXT",
+        "list.Add",
+        "type:bool",
+        "tr.ReadU32",
+        "new TileData",
+        "field:ATTR_TILE_FLAGS",
+        "GetAttrSize",
+        "System.Diagnostics.Debug.WriteLine",
+        "method:ReadString",
+        "method:BuildMap",
+        "new OtbmTown",
+        "ReadTown",
+        "using:MCR.Grimorio.Data",
+        "r.ReadString",
+        "field:ATTR_DEPOT_ID",
+        "method:NodeDataReader",
+        "field:ITEM",
+        "field:ATTR_HOUSE_DOOR_ID",
+        "Dispatch",
+        "type:tile",
+        "field:ATTR_ACTION_ID",
+        "type:ushort",
+        "method:ReadU16",
+        "field:Type",
+        "new OtbmItem",
+        "new List<TileData>",
+        "_map.Waypoints.Add",
+        "field:ATTR_UNIQUE_ID",
+        "new List<OtbmItem>",
+        "new InvalidDataException",
+        "field:_root",
+        "type:void",
+        "field:NODE_START",
+        "method:PeekByte",
+        "dataStream.WriteByte",
+        "_map.Floors.TryGetValue",
+        "_map.Tiles.ContainsKey",
+        "field:ATTR_DESC",
+        "tile.Items.Add",
+        "ReadU16",
+        "tr.ReadU16",
+        "field:_pos",
+        "method:RunSelfTest",
+        "method:ReadByte",
+        "SkipAttributeMap",
+        "reader.ParseTree",
+        "method:HasData",
+        "field:TILE_AREA",
+        "new OtbmNode",
+        "method:ReadWaypoint",
+        "field:NODE_END",
+        "r.ReadU16",
+        "field:ATTR_CHARGES",
+        "method:ReadTileArea",
+        "type:node",
+        "method:GetAttrSize",
+        "_map.Towns.Add",
+        "dataStream.ToArray",
+        "type:byte",
+        "field:HOUSE_TILE",
+        "tr.Skip",
+        "new OtbmMapData",
+        "using:System.Text",
+        "File.ReadAllBytes",
+        "type:count",
+        "r.ReadU32",
+        "ReadNode",
+        "field:TOWNS",
+        "new MemoryStream",
+        "method:ParseTree",
+        "field:_data",
+        "new NodeDataReader",
+        "method:Skip",
+        "BuildFloors",
+        "r.ReadByte",
+        "field:TOWN",
+        "Array.Empty<byte>",
+        "type:r",
+        "method:Load",
+        "reader.BuildMap",
+        "method:ReadU32",
+        "field:ROOTV1",
+        "field:ATTR_ATTRIBUTE_MAP",
+        "class:OtbmNode",
+        "field:TILE",
+        "field:WAYPOINTS",
+        "Encoding.UTF8.GetString",
+        "field:Children",
+        "node.Children.Add",
+        "new EndOfStreamException",
+        "field:_map",
+        "method:SkipAttributeMap",
+        "using:System.IO",
+        "field:ESCAPE",
+        "ReadTileArea",
+        "sk.ReadByte",
+        "type:raw",
+        "new OtbmWaypoint",
+        "class:OtbmReader",
+        "method:OtbmReader",
+        "type:pos",
+        "r.PeekByte",
+        "type:path"
+      ],
+      "classes": [
+        {
+          "name": "OtbmReader",
+          "bases": [],
+          "modifiers": [
+            "public"
+          ]
+        },
+        {
+          "name": "OtbmNode",
+          "bases": [],
+          "modifiers": [
+            "private"
+          ]
+        },
+        {
+          "name": "NodeDataReader",
+          "bases": [],
+          "modifiers": [
+            "private"
+          ]
+        }
+      ],
+      "methods": [
+        {
+          "name": "OtbmReader",
+          "params": [],
+          "modifiers": [
+            "private"
+          ]
+        },
+        {
+          "name": "Load",
+          "return_type": "",
+          "params": [
+            {
+              "type": "path"
+            }
+          ],
+          "modifiers": [
+            "public",
+            "static"
+          ],
+          "generic_params": []
+        },
+        {
+          "name": "ParseTree",
+          "return_type": "void",
+          "params": [
+            {
+              "type": "path"
+            }
+          ],
+          "modifiers": [
+            "private"
+          ],
+          "generic_params": []
+        },
+        {
+          "name": "ReadNode",
+          "return_type": "",
+          "params": [
+            {
+              "type": "raw"
+            },
+            {
+              "type": "pos"
+            }
+          ],
+          "modifiers": [
+            "private"
+          ],
+          "generic_params": []
+        },
+        {
+          "name": "BuildMap",
+          "return_type": "",
+          "params": [],
+          "modifiers": [
+            "private"
+          ],
+          "generic_params": []
+        },
+        {
+          "name": "Dispatch",
+          "return_type": "void",
+          "params": [
+            {
+              "type": "node"
+            }
+          ],
+          "modifiers": [
+            "private"
+          ],
+          "generic_params": []
+        },
+        {
+          "name": "ReadTileArea",
+          "return_type": "void",
+          "params": [
+            {
+              "type": "node"
+            }
+          ],
+          "modifiers": [
+            "private"
+          ],
+          "generic_params": []
+        },
+        {
+          "name": "ReadItemNode",
+          "return_type": "void",
+          "params": [
+            {
+              "type": "tile"
+            },
+            {
+              "type": "node"
+            }
+          ],
+          "modifiers": [
+            "private"
+          ],
+          "generic_params": []
+        },
+        {
+          "name": "GetAttrSize",
+          "return_type": "int",
+          "params": [
+            {
+              "type": "attr"
+            },
+            {
+              "type": "r"
+            }
+          ],
+          "modifiers": [
+            "private"
+          ],
+          "generic_params": []
+        },
+        {
+          "name": "SkipAttributeMap",
+          "return_type": "int",
+          "params": [
+            {
+              "type": "r"
+            }
+          ],
+          "modifiers": [
+            "private"
+          ],
+          "generic_params": []
+        },
+        {
+          "name": "ReadTown",
+          "return_type": "void",
+          "params": [
+            {
+              "type": "node"
+            }
+          ],
+          "modifiers": [
+            "private"
+          ],
+          "generic_params": []
+        },
+        {
+          "name": "ReadWaypoint",
+          "return_type": "void",
+          "params": [
+            {
+              "type": "node"
+            }
+          ],
+          "modifiers": [
+            "private"
+          ],
+          "generic_params": []
+        },
+        {
+          "name": "BuildFloors",
+          "return_type": "void",
+          "params": [],
+          "modifiers": [
+            "private"
+          ],
+          "generic_params": []
+        },
+        {
+          "name": "NodeDataReader",
+          "params": [
+            {
+              "type": "data"
+            }
+          ],
+          "modifiers": [
+            "public"
+          ]
+        },
+        {
+          "name": "HasData",
+          "return_type": "bool",
+          "params": [],
+          "modifiers": [
+            "public"
+          ],
+          "generic_params": []
+        },
+        {
+          "name": "PeekByte",
+          "return_type": "byte",
+          "params": [],
+          "modifiers": [
+            "public"
+          ],
+          "generic_params": []
+        },
+        {
+          "name": "ReadByte",
+          "return_type": "byte",
+          "params": [],
+          "modifiers": [
+            "public"
+          ],
+          "generic_params": []
+        },
+        {
+          "name": "ReadU16",
+          "return_type": "ushort",
+          "params": [],
+          "modifiers": [
+            "public"
+          ],
+          "generic_params": []
+        },
+        {
+          "name": "ReadU32",
+          "return_type": "int",
+          "params": [],
+          "modifiers": [
+            "public"
+          ],
+          "generic_params": []
+        },
+        {
+          "name": "ReadString",
+          "return_type": "string",
+          "params": [],
+          "modifiers": [
+            "public"
+          ],
+          "generic_params": []
+        },
+        {
+          "name": "Skip",
+          "return_type": "void",
+          "params": [
+            {
+              "type": "count"
+            }
+          ],
+          "modifiers": [
+            "public"
+          ],
+          "generic_params": []
+        },
+        {
+          "name": "RunSelfTest",
+          "return_type": "bool",
+          "params": [],
+          "modifiers": [
+            "public",
+            "static"
+          ],
+          "generic_params": []
+        }
+      ],
+      "properties": [],
+      "invocations": [
+        "Array.Empty<byte>",
+        "new OtbmReader",
+        "reader.ParseTree",
+        "reader.BuildMap",
+        "System.Diagnostics.Debug.WriteLine",
+        "File.ReadAllBytes",
+        "new InvalidDataException",
+        "ReadNode",
+        "new OtbmNode",
+        "new EndOfStreamException",
+        "new MemoryStream",
+        "node.Children.Add",
+        "ReadNode",
+        "new EndOfStreamException",
+        "dataStream.WriteByte",
+        "dataStream.WriteByte",
+        "dataStream.ToArray",
+        "new OtbmMapData",
+        "new InvalidDataException",
+        "new NodeDataReader",
+        "r.ReadU32",
+        "r.ReadU16",
+        "r.ReadU16",
+        "Dispatch",
+        "BuildFloors",
+        "Dispatch",
+        "ReadTileArea",
+        "Dispatch",
+        "ReadTown",
+        "Dispatch",
+        "ReadWaypoint",
+        "new NodeDataReader",
+        "r.ReadU16",
+        "r.ReadU16",
+        "r.ReadByte",
+        "new NodeDataReader",
+        "tr.ReadByte",
+        "tr.ReadByte",
+        "new OtbmTile",
+        "new List<OtbmItem>",
+        "tr.ReadU32",
+        "tr.HasData",
+        "tr.ReadByte",
+        "tr.ReadU32",
+        "tr.ReadU16",
+        "tile.Items.Add",
+        "new OtbmItem",
+        "tr.Skip",
+        "GetAttrSize",
+        "ReadItemNode"
+      ],
+      "attributes": [],
+      "fields": [
+        {
+          "name": "NODE_START",
+          "type": "",
+          "modifiers": [
+            "private",
+            "const"
+          ]
+        },
+        {
+          "name": "NODE_END",
+          "type": "",
+          "modifiers": [
+            "private",
+            "const"
+          ]
+        },
+        {
+          "name": "ESCAPE",
+          "type": "",
+          "modifiers": [
+            "private",
+            "const"
+          ]
+        },
+        {
+          "name": "ROOTV1",
+          "type": "",
+          "modifiers": [
+            "private",
+            "const"
+          ]
+        },
+        {
+          "name": "MAP_DATA",
+          "type": "",
+          "modifiers": [
+            "private",
+            "const"
+          ]
+        },
+        {
+          "name": "TILE_AREA",
+          "type": "",
+          "modifiers": [
+            "private",
+            "const"
+          ]
+        },
+        {
+          "name": "TILE",
+          "type": "",
+          "modifiers": [
+            "private",
+            "const"
+          ]
+        },
+        {
+          "name": "ITEM",
+          "type": "",
+          "modifiers": [
+            "private",
+            "const"
+          ]
+        },
+        {
+          "name": "TOWNS",
+          "type": "",
+          "modifiers": [
+            "private",
+            "const"
+          ]
+        },
+        {
+          "name": "TOWN",
+          "type": "",
+          "modifiers": [
+            "private",
+            "const"
+          ]
+        },
+        {
+          "name": "HOUSE_TILE",
+          "type": "",
+          "modifiers": [
+            "private",
+            "const"
+          ]
+        },
+        {
+          "name": "WAYPOINTS",
+          "type": "",
+          "modifiers": [
+            "private",
+            "const"
+          ]
+        },
+        {
+          "name": "WAYPOINT",
+          "type": "",
+          "modifiers": [
+            "private",
+            "const"
+          ]
+        },
+        {
+          "name": "ATTR_TILE_FLAGS",
+          "type": "",
+          "modifiers": [
+            "private",
+            "const"
+          ]
+        },
+        {
+          "name": "ATTR_ITEM",
+          "type": "",
+          "modifiers": [
+            "private",
+            "const"
+          ]
+        },
+        {
+          "name": "ATTR_COUNT",
+          "type": "",
+          "modifiers": [
+            "private",
+            "const"
+          ]
+        },
+        {
+          "name": "ATTR_ACTION_ID",
+          "type": "",
+          "modifiers": [
+            "private",
+            "const"
+          ]
+        },
+        {
+          "name": "ATTR_UNIQUE_ID",
+          "type": "",
+          "modifiers": [
+            "private",
+            "const"
+          ]
+        },
+        {
+          "name": "ATTR_CHARGES",
+          "type": "",
+          "modifiers": [
+            "private",
+            "const"
+          ]
+        },
+        {
+          "name": "ATTR_TEXT",
+          "type": "",
+          "modifiers": [
+            "private",
+            "const"
+          ]
+        }
+      ],
+      "namespaces": [],
+      "usings": [
+        "System.IO",
+        "System.Text",
+        "MCR.Grimorio.Data"
+      ],
+      "interfaces": [],
+      "events": [],
+      "tamanho_linhas": 428
+    }
+  ]
+}

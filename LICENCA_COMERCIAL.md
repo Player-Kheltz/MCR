@@ -1,5 +1,5 @@
 # LICENCA COMERCIAL MCR
-## Software: MCR (Multi-level Markov Experiment)
+## Software: MCR
 ## Autor/Criador: Kheltz (Player-Kheltz)
 ## Versao da Licenca: 1.0 — Julho 2026
 
@@ -102,5 +102,5 @@ O Criador se reserva o direito de atualizar estes termos a qualquer momento, med
 
 ---
 
-**MCR — 1 Equation, N Levels, 0 GPU. Multi-level Markov Experiment.**
+**MCR — 1 equação. N níveis. 0 hardcode.**
 **Criado por Kheltz (Player-Kheltz), 2026.**

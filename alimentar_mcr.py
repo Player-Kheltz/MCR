@@ -30,7 +30,7 @@ print('  KG: %s' % type(cerebro.kg).__name__)
 t0 = time.time()
 
 # Alimenta MK palavras com docs do projeto
-docs_dir = r'E:\Projeto MCR'
+docs_dir = os.path.dirname(os.path.abspath(__file__))
 lidos = 0
 
 for root, dirs, files in os.walk(docs_dir):

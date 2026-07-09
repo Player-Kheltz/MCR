@@ -1,0 +1,7 @@
+{
+  "metodoInexistente": {
+    "ocorrencias": 1,
+    "ultimo_erro": "[string \"<python>\"]:164: attempt to call a nil value (method 'metodoInexistente')\nstack traceback:\n\t[string \"<python>\"]:164: in main chunk",
+    "timestamp": "2026-07-09 00:09:50"
+  }
+}

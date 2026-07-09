@@ -1,0 +1,36 @@
+<UserControl x:Class="MCR.Grimorio.Modules.Protocol.ProtocolView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="{StaticResource BgDarkestBrush}">
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <StackPanel Grid.Row="0" Margin="0,0,0,16">
+            <TextBlock Text="Protocolo" FontSize="24" FontWeight="SemiBold" Foreground="{StaticResource FgBrightBrush}" />
+            <TextBlock Text="Opcodes, versões e configurações de rede" FontSize="13" Foreground="{StaticResource FgSecondaryBrush}" Margin="0,4,0,0" />
+        </StackPanel>
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Border Grid.Column="0" Background="{StaticResource BgMediumBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="4" Margin="0,0,8,0" Padding="16">
+                <StackPanel>
+                    <TextBlock Text="Opcodes" FontSize="16" FontWeight="SemiBold" Foreground="{StaticResource FgBrightBrush}" Margin="0,0,0,12" />
+                    <Button x:Name="LoadOpcodesButton" Content="📖 Carregar Opcodes" Height="36" Click="LoadOpcodesButton_Click" />
+                    <TextBox x:Name="OpcodesBox" Margin="0,12,0,0" IsReadOnly="True" FontFamily="Consolas" FontSize="11" Height="350" VerticalScrollBarVisibility="Auto" Background="{StaticResource BgDarkBrush}" BorderThickness="0" TextWrapping="NoWrap" />
+                </StackPanel>
+            </Border>
+            <Border Grid.Column="1" Background="{StaticResource BgMediumBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="4" Padding="16">
+                <StackPanel>
+                    <TextBlock Text="Config" FontSize="16" FontWeight="SemiBold" Foreground="{StaticResource FgBrightBrush}" Margin="0,0,0,12" />
+                    <TextBlock Text="Informações de rede do servidor:" FontSize="12" Foreground="{StaticResource FgSecondaryBrush}" Margin="0,0,0,8" />
+                    <Button x:Name="LoadServerInfoButton" Content="📡 Carregar Info" Height="36" Click="LoadServerInfoButton_Click" />
+                    <TextBox x:Name="ServerInfoBox" Margin="0,12,0,0" IsReadOnly="True" FontFamily="Consolas" FontSize="11" Height="350" VerticalScrollBarVisibility="Auto" Background="{StaticResource BgDarkBrush}" BorderThickness="0" TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Grid>
+</UserControl>

@@ -1,0 +1,260 @@
+>> CATALOG tags=skills, template, reference, game-design updated=2026-07-06
+PROJETO MCR – HABILIDADE GABARITO (Documento Canónico)
+Versão 5.0 – Sistema de Progressão do Aventureiro (SPA v5.0)
+Arquivo: [Gabarito] Habilidade Gabarito.txt
+
+🎯 OBJETIVO DESTE DOCUMENTO
+Este documento é a referência máxima para a criação de qualquer habilidade
+no Projeto MCR. Define a estrutura padrão obrigatória, os campos suportados,
+as regras de feedback narrativo e as diretrizes de implementação.
+
+O SPA adota uma arquitetura modular em três camadas:
+- Motor de Habilidades (motor_habilidades.lua v2.1) – 27+ tipos de efeitos
+- Definições de Habilidades (habilidades/*.lua) – apenas parâmetros, zero lógica
+- Narrativa (narrativa_habilidades.lua) – textos de feedback automáticos
+
+⚠️ MUDANÇAS DA VERSÃO 4.7 PARA 5.0
+- Estrutura padrão obrigatória unificada (template único)
+- Checklist de criação para evitar erros de sintaxe
+- Regras de balanceamento (cooldowns, prioridades, focoMin)
+- Tutorial de Sinergias entre domínios
+- Lista de erros comuns e como evitá-los
+- Validador automático em /validador (comando GM)
+
+============================================================================
+📦 ESTRUTURA PADRÃO OBRIGATÓRIA (TEMPLATE ÚNICO v5.0)
+============================================================================
+
+TODA habilidade DEVE seguir este template exato. Campos marcados com [O]
+são obrigatórios. [C] são condicionais. [OP] são opcionais.
+
+HABILIDADES[ID] = {
+    -- ====================================================================
+    -- [O] IDENTIDADE
+    -- ====================================================================
+    nome = "Nome Imersivo da Habilidade",       -- [O] PT-BR, acentuado
+    tipo = "gatilho",                           -- [O] "gatilho"|"passiva"|"toggle"|"transformacao"
+    dominio = {N},                              -- [O] ID do domínio principal
+    cooldown = N,                               -- [C] 0 para passivas. Gatilhos: 3-15s
+    categoria = "single",                       -- [O] single|aoe|debuff|buff|defense|finisher|sinergia|passiva
+
+    -- ====================================================================
+    -- [O] NARRATIVA
+    -- ====================================================================
+    descricao = "Frase imersiva de 1-2 linhas.", -- [O] Mínimo 20 caracteres
+    cor = COR.DOM_EXEMPLO,                       -- [O] Cor do domínio principal
+
+    -- ====================================================================
+    -- [O] CONFIGURAÇÃO DO EFEITO (gatilhos)
+    -- ====================================================================
+    efeitoConfig = {
+        tipo = "melee",                          -- [O] Ver tipos em "TIPOS DE EFEITO"
+        dano = N,                                -- [O] Multiplicador base de dano
+        percentual = N,                          -- [O] Fração do dano da arma (0.0-1.0)
+        elemento = COMBAT_PHYSICALDAMAGE,        -- [O] Tipo de dano elemental
+    },
+
+    -- ====================================================================
+    -- [C] POSTURA (Ímpeto[1] / Equilíbrio[2] / Guarda[3])
+    -- Sempre definir [1] e [3]; [2] é o valor base (omitir = usar base)
+    -- ====================================================================
+    postura = {
+        [1] = { efeitoConfig = { dano = N * 1.2 } },   -- Ímpeto: +20% dano
+        [3] = { efeitoConfig = { dano = N * 0.7 } },   -- Guarda: -30% dano
+    },
+
+    -- ====================================================================
+    -- [OP] NÍVEIS (marcos de progressão 5/10/15/20)
+    -- ====================================================================
+    niveis = {
+        [5] = { { mod = "efeitoConfig", dano = "*1.15" } },
+        [10] = { { mod = "efeitoConfig", alcance = 1 } },
+        [15] = { { mod = "efeitoConfig", raio = 1 } },
+        [20] = { { mod = "efeitoConfig", dano = "*1.5" } },
+    },
+
+    -- ====================================================================
+    -- [OP] CAMADAS SHC (Sistema de Habilidades Contextuais)
+    -- ====================================================================
+
+    -- Sinergias com outros domínios
+    sinergias = {
+        [DOM_ID] = {
+            descricao = "Efeito narrativo da sinergia.",
+            nivelMin = N,
+            efeitoConfig = { ... },
+        },
+    },
+
+    -- Estados de Alma (Vínculo / Lampejo)
+    estados = {
+        vinculo = { efeitoConfig = { dano = N * 1.5 } },
+        lampejo = { efeitoConfig = { dano = N * 2.0, custoMana = 0 } },
+    },
+
+    -- Condições contextuais de ativação
+    condicoes = {
+        cercado = { efeitoConfig = { raio = 2, dano = N * 1.3 } },
+        vidaBaixa = { efeitoConfig = { dano = N * 2.0 } },
+    },
+
+    -- ====================================================================
+    -- [OP] FOCO MÍNIMO
+    -- Distribuição TÍPICA:
+    --   0%  → habilidades básicas
+    --   25% → condições/efeitos especiais
+    --   50% → área/controle
+    --   75% → knockback/deslocamento
+    --   90% → finisher/ultimate
+    -- ====================================================================
+    condicaoFocoMin = 0,    -- 0 | 25 | 50 | 75 | 90
+
+    -- ====================================================================
+    -- [OP] PRIORIDADE (1-10)
+    -- Habilidades mais poderosas ou situacionais = maior prioridade
+    -- ====================================================================
+    prioridade = 5,
+}
+
+============================================================================
+📋 CHECKLIST DE CRIAÇÃO (NÃO PULE!)
+
+Antes de criar uma nova habilidade, verifique:
+
+[ ] 1. O nome está em PT-BR com acentuação?
+[ ] 2. A descrição tem MÍNIMO 20 caracteres?
+[ ] 3. A descrição é imersiva (não "Golpe que causa dano")?
+[ ] 4. O tipo é válido (gatilho/passiva/toggle/transformacao)?
+[ ] 5. O domínio ID existe no sistema?
+[ ] 6. A categoria é válida?
+[ ] 7. O efeitoConfig.tipo existe no MOTOR.efeitos?
+[ ] 8. A postura tem entries [1] e [3]?
+[ ] 9. Os níveis seguem o padrão [5][10][15][20]?
+[ ] 10. O condicaoFocoMin segue a distribuição típica (0/25/50/75/90)?
+[ ] 11. A prioridade está entre 1 e 10?
+[ ] 12. O cooldown está adequado à categoria?
+[ ] 13. Os { } estão todos fechados? (Conte as chaves!)
+[ ] 14. A vírgula final de cada campo está presente?
+[ ] 15. Executou /validador após criar?
+
+============================================================================
+📊 TABELA DE BALANCEAMENTO (REFERÊNCIA)
+============================================================================
+
+Categoria     | Cooldown  | Dano %   | Prioridade | FocoMin
+--------------|-----------|----------|------------|--------
+single        | 3-5s      | 0.5-0.7  | 4-7        | 0
+aoe           | 6-10s     | 0.3-0.5  | 5-8        | 50
+debuff        | 4-8s      | 0.2-0.4  | 3-6        | 25
+buff          | 8-12s     | —        | 4-7        | 25
+defense       | 6-10s     | 0.3-0.5  | 4-6        | 25
+finisher      | 12-18s    | 1.2-2.0  | 8-10       | 90
+sinergia      | 10-15s    | 0.5-1.5  | 7-10       | 50
+passiva       | 0         | —        | —          | —
+
+============================================================================
+🔗 TABELA DE SINERGIAS ENTRE DOMÍNIOS
+============================================================================
+
+Domínio Principal | Sinergias Recomendadas
+------------------|----------------------
+Combate (1)       | Lâminas(10), Machados(11), Clavas(12), Escudo(15)
+Magia (2)         | Fogo(23), Gelo(24), Terra(25), Energia(26), Sagrado(200)
+Ofícios (3)       | Runologia(22), Wands(210), Rods(211)
+Natureza (4)      | Sobrevivência(400), Terra(25), Veneno(25)
+Lâminas (10)      | Espadas Leves(100), Espadas Pesadas(101)
+Machados (11)     | Machados Leves(110), Machados Pesados(111)
+Clavas (12)       | Clavas Leves(112), Clavas Pesadas(113)
+Precisão (13)     | Arcos(120), Arremesso(140)
+Artes Marciais(14)| Lutador(130), Armas Punho(132), Bastões Arcanos(133)
+Escudo (15)       | Arremesso de Escudo(140), Combate(1)
+Elementos (20)    | Fogo(23), Gelo(24), Terra(25), Energia(26)
+Espectro (21)     | Sagrado(200), Morte(200)
+Runologia (22)    | Wands(210), Rods(211), Runas(212)
+
+============================================================================
+🔥 ERROS COMUNS (E COMO EVITÁ-LOS)
+============================================================================
+
+ERRO 1: "']' expected near '='"
+  CAUSA: HABILIDADES[ID] = { foi aberto mas nunca fechado com } antes do próximo
+  SOLUÇÃO: Conte os { } de cada entrada. Devem ter o mesmo número.
+
+ERRO 2: "unexpected symbol near '}'"  
+  CAUSA: } extra ou mal posicionado
+  SOLUÇÃO: Verifique se a vírgula após o último campo de uma tabela é opcional
+           mas NÃO pode haver }, vazio.
+
+ERRO 3: "'}' expected (to close '{' at line X)"
+  CAUSA: Um { foi aberto mas não fechado
+  SOLUÇÃO: Conte os pares {}. Use um editor que destaque chaves.
+
+ERRO 4: "attempt to index a nil value (field 'MOTOR')"
+  CAUSA: Tipo de efeito não registrado no motor_habilidades.lua
+  SOLUÇÃO: Verifique se efeitoConfig.tipo existe em MOTOR.efeitos
+
+ERRO 5: "HABILIDADES inicializada com 0 habilidades"
+  CAUSA: Nenhum arquivo de habilidade carregou (geralmente erro de sintaxe)
+  SOLUÇÃO: Execute /validador ou verifique os logs do servidor
+
+============================================================================
+💬 REGRAS DE FEEDBACK LIMPO (v3.3)
+============================================================================
+
+• Ataque SEM efeito:     "[Nome] Frase com {Alvo} colorido."
+• Ataque COM efeito:     "[Nome] Frase em {Alvo} - Efeito."
+• Defesa:                "[Nome] Frase contra {Alvo} - Efeito."
+• Começar com c("[Nome]", corDoDominio)
+• Usar c(t:getName(), COR.INIMIGO_MONSTRO) para alvo
+• Máximo 3-4 palavras coloridas por frase
+• NUNCA usar travessões longos (—). Usar hífen (-).
+• Cores: COR.COND_* para condições, COR.ACAO_* para ações
+
+============================================================================
+⚙️ TIPOS DE EFEITOS DO MOTOR (efeitoConfig.tipo)
+============================================================================
+
+[CLÁSSICOS]        [BUFFS]           [DEFESA]         [TEMPORAIS]
+dano_extra         buff_speed        defesa_cura      storm
+area_ground        buff_damage       defesa_barreira  orbit
+area_target        life_leech        defesa_contra    rain
+ricochete          mana_leech        _ataque          pulse
+knockback          next_condition                     trap
+condicao                                              field
+corrente
+rajada             [SINERGIAS]       [INVOCAÇÃO]
+finisher           sinergia          summon
+projectile         sinergia_
+melee              escalonada
+cone
+multi_hit
+explosion_ring
+field_aura
+buff
+debuff
+heal
+heal_over_time
+beam
+dash
+wall
+teleport
+chain
+toggle_effect
+aura
+detonate
+revive
+
+============================================================================
+📝 NOTAS FINAIS
+============================================================================
+
+- Use /validador (GM) após criar/modificar habilidades
+- Mantenha a faixa de IDs exclusiva por domínio
+- Teste cada habilidade com !platinar e !aprendertudo
+- Cores seguem COR v10.0 (texto_colorido.lua)
+- Passivas de vida/mana/velocidade: campo 'efeito' vazio
+- Efeitos temporais: máximo 2 ativos por jogador
+- Categoria é OBRIGATÓRIA para controle de execução
+- PT-BR com acentuação em TODAS as strings visíveis
+
+FIM DO HABILIDADE GABARITO — VERSÃO 5.0

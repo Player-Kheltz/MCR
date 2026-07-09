@@ -1,0 +1,127 @@
+<UserControl x:Class="MCR.Grimorio.Modules.Settings.SettingsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="{StaticResource BgDarkestBrush}">
+    <Grid Margin="30">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <StackPanel Grid.Row="0" Margin="0,0,0,24">
+            <TextBlock Text="Ajustes" FontSize="24" FontWeight="SemiBold" Foreground="{StaticResource FgBrightBrush}" />
+            <TextBlock Text="Configure os caminhos e credenciais do servidor" FontSize="13" Foreground="{StaticResource FgSecondaryBrush}" Margin="0,4,0,0" />
+        </StackPanel>
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <StackPanel MaxWidth="700">
+
+                <!-- Servidor -->
+                <Border Background="{StaticResource BgMediumBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="6" Padding="20" Margin="0,0,0,16">
+                    <StackPanel>
+                        <TextBlock Text="Servidor" FontSize="15" FontWeight="SemiBold" Foreground="{StaticResource FgBrightBrush}" Margin="0,0,0,12" />
+                        <TextBlock Text="Pasta do Canary" FontSize="11" Foreground="{StaticResource FgMutedBrush}" />
+                        <Grid Margin="0,4,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBox Grid.Column="0" x:Name="ServerPathBox" Padding="8,6" FontSize="13" IsReadOnly="True" />
+                            <Button Grid.Column="1" x:Name="BrowseServerButton" Content="..." Width="36" Margin="4,0,0,0" Click="BrowseServerButton_Click" />
+                        </Grid>
+                        <TextBlock Text="Executável do servidor" FontSize="11" Foreground="{StaticResource FgMutedBrush}" />
+                        <Grid Margin="0,4,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBox Grid.Column="0" x:Name="ServerExeBox" Padding="8,6" FontSize="13" />
+                            <Button Grid.Column="1" x:Name="BrowseExeButton" Content="📂" Width="36" Margin="4,0,0,0" Click="BrowseExeButton_Click" />
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- OTClient -->
+                <Border Background="{StaticResource BgMediumBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="6" Padding="20" Margin="0,0,0,16">
+                    <StackPanel>
+                        <TextBlock Text="OTClient (Sprites)" FontSize="15" FontWeight="SemiBold" Foreground="{StaticResource FgBrightBrush}" Margin="0,0,0,12" />
+                        <TextBlock Text="Pasta do OTClient Redemption" FontSize="11" Foreground="{StaticResource FgMutedBrush}" />
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBox Grid.Column="0" x:Name="OtclientPathBox" Padding="8,6" FontSize="13" IsReadOnly="True" />
+                            <Button Grid.Column="1" x:Name="BrowseOtclientButton" Content="..." Width="36" Margin="4,0,0,0" Click="BrowseOtclientButton_Click" />
+                        </Grid>
+                        <TextBlock x:Name="SpriteStatusText" FontSize="11" Foreground="{StaticResource FgMutedBrush}" Margin="0,6,0,0" TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+
+                <!-- Mapa -->
+                <Border Background="{StaticResource BgMediumBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="6" Padding="20" Margin="0,0,0,16">
+                    <StackPanel>
+                        <TextBlock Text="Mapa (.otbm)" FontSize="15" FontWeight="SemiBold" Foreground="{StaticResource FgBrightBrush}" Margin="0,0,0,12" />
+                        <TextBlock Text="Arquivo .otbm do servidor" FontSize="11" Foreground="{StaticResource FgMutedBrush}" />
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBox Grid.Column="0" x:Name="OtbmPathBox" Padding="8,6" FontSize="13" IsReadOnly="True" />
+                            <Button Grid.Column="1" x:Name="BrowseOtbmButton" Content="📂" Width="36" Margin="4,0,0,0" Click="BrowseOtbmButton_Click" />
+                        </Grid>
+                        <TextBlock x:Name="MapaStatusText" FontSize="11" Foreground="{StaticResource FgMutedBrush}" Margin="0,6,0,0" TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+
+                <!-- Banco de Dados -->
+                <Border Background="{StaticResource BgMediumBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="6" Padding="20" Margin="0,0,0,16">
+                    <StackPanel>
+                        <TextBlock Text="Banco de Dados" FontSize="15" FontWeight="SemiBold" Foreground="{StaticResource FgBrightBrush}" Margin="0,0,0,12" />
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="100" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                                <TextBlock Text="Host" FontSize="11" Foreground="{StaticResource FgMutedBrush}" />
+                                <TextBox x:Name="DbHostBox" Text="localhost" Margin="0,2,0,8" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Margin="8,0">
+                                <TextBlock Text="Porta" FontSize="11" Foreground="{StaticResource FgMutedBrush}" />
+                                <TextBox x:Name="DbPortBox" Text="3306" Margin="0,2,0,8" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="2" Margin="8,0,0,0">
+                                <TextBlock Text="Database" FontSize="11" Foreground="{StaticResource FgMutedBrush}" />
+                                <TextBox x:Name="DbNameBox" Text="mcr" Margin="0,2,0,8" />
+                            </StackPanel>
+                        </Grid>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                                <TextBlock Text="Usuário" FontSize="11" Foreground="{StaticResource FgMutedBrush}" />
+                                <TextBox x:Name="DbUserBox" Text="root" Margin="0,2,0,0" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Margin="8,0,0,0">
+                                <TextBlock Text="Senha" FontSize="11" Foreground="{StaticResource FgMutedBrush}" />
+                                <PasswordBox x:Name="DbPassBox" Margin="0,2,0,0" />
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,0,16">
+                    <Button x:Name="TestConnectionButton" Content="Testar Conexão" Height="36" Margin="0,0,8,0" Click="TestConnectionButton_Click" />
+                    <Button x:Name="SaveButton" Content="Salvar e Recarregar" Style="{StaticResource PrimaryButton}" Height="36" Click="SaveButton_Click" />
+                </StackPanel>
+
+                <Border x:Name="StatusBar" Background="{StaticResource BgDarkBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="4" Padding="12,8" Visibility="Collapsed">
+                    <TextBlock x:Name="StatusText" FontSize="12" />
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</UserControl>

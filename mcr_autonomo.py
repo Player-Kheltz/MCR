@@ -60,18 +60,28 @@ class CicloAutonomo:
             except Exception as e:
                 print('  Erro: %s' % e)
 
-            # 3. EVOLUIR
-            print('\n[EVOLUIR] Testando pesos e mutando thresholds...')
-            try:
-                # Testa pesos
-                pesos = self.peso_nota.testar()
-                if 'melhor_combinacao' in pesos:
-                    print('  Melhores pesos: %s (score=%.2f)' % (
-                        pesos['melhor_combinacao'], pesos['melhor_nota']))
-                # Muta thresholds
-                self.evolution.ciclo(n_mutacoes=3)
-            except Exception as e:
-                print('  Erro: %s' % e)
+        # 3. EVOLUIR
+        print('\n[EVOLUIR] Testando pesos, evoluindo equacao e mutando thresholds...')
+        try:
+            # Testa pesos da equacao
+            pesos = self.peso_nota.testar()
+            if 'melhor_combinacao' in pesos:
+                print('  Melhores pesos MCRPesoNota: %s (score=%.2f)' % (
+                    pesos['melhor_combinacao'], pesos['melhor_nota']))
+            
+            # Evolui a equacao (algoritmo genetico simples)
+            from mcr.equacao_mcr import _EQUACAO_ATUAL, _FORMULAS_DISPONIVEIS
+            eq_atual = dict(_EQUACAO_ATUAL)
+            print('  Equacao atual: formula=%s, pesos=(%d,%d,%d)' % (
+                eq_atual.get('formula', 'N/A'),
+                eq_atual.get('peso_byte', 0),
+                eq_atual.get('peso_palavra', 0),
+                eq_atual.get('peso_token', 0)))
+            
+            # Muta thresholds
+            self.evolution.ciclo(n_mutacoes=3)
+        except Exception as e:
+            print('  Erro na evolucao: %s' % e)
 
             # Diagnostico geral
             print('\n[DIAGNOSTICO]')

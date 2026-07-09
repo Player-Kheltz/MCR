@@ -1,103 +1,131 @@
-# MANIFESTO MCR-DevIA
-**Status do Ecossistema:** 7 FASES CONCLUIDAS — Organismo Operacional
+# MANIFESTO MCR
+
+**Status atual do ecossistema:** 8 FASES + Generalização (Fase D)
 **Hardware:** Ryzen 7 5800X3D | 32GB RAM | RTX 3080
-**Inicializacao:** `python start_mcr_organism.py`
+**Núcleo:** MCR.py (7.072 linhas, 48 classes, stdlib puro)
 
-## 1. Ativos em Producao (14 Modulos mcr/)
+---
 
-### Nucleo
-- `mcr/paths.py` — 27 constantes de caminho centralizadas
-- `mcr/encoding.py` — Leitura/escrita com encoding por extensao (.lua=Latin-1, resto=UTF-8)
+## 1. Arquitetura Atual
 
-### FASE 1 — PatternMiner (AST -> KG)
-- `mcr/pattern_miner.py` — Mineracao de AST tree-sitter C++/Lua
-- 2690 padroes no KG (1034 NPC + 1656 Monster)
+### Núcleo Cognitivo (devia/kernel/)
 
-### FASE 2 — Metacognicao (Gateway de Incerteza)
-- `mcr/metacognicao.py` — Threshold 0.70: <70% bloqueia LLM
-- Testado: NPC=0.87 APROVA, PvP=0.20 BLOQUEIA, Monster=0.71 APROVA
+| Componente | Linhas | Função |
+|-----------|--------|--------|
+| `MCR.py` | 7.072 | 48 classes — cadeias Markov multi-nível acopladas por entropia |
+| `LuaSyntaxValidator.py` | 138 | Validação de sintaxe Lua (sandbox LuaJIT + regex) |
 
-### FASE 3 — Auto-Curiosidade (Mente Inquieta)
-- `mcr/meta_gap.py` — Detector de lacunas (8 detectadas: raid, house, imbuement, etc.)
-- `mcr/auto_curiosidade.py` — Thread background de estudo autonomo
+### Pipeline de Mundo (mcr/ — 44 módulos)
 
-### FASE 4 — Validacao Empirica (Anti-Patterns)
-- `mcr/anti_pattern.py` — Classifica erros + registra no KG
-- `mcr/logwatcher_bridge.py` — Ponte LogWatcher -> Anti-Patterns
-- `mcr/anti_pattern_injector.py` — Injeta anti-patterns no prompt LLM
+| Módulo | Função |
+|--------|--------|
+| `mcr_world_builder.py` | Orquestrador de geração de código Canary (2 modos: padrão/fundação/iterativo) |
+| `mcr_world_system.py` | Motor Markoviano com 5 estados (EXPANDIR, CONECTAR, EQUILIBRAR, EVOLUIR, COMPENSAR) |
+| `mcr_world_state.py` | Estado persistente em `devia/world_state.json` |
+| `mcr_world_chronicle.py` | Crônica narrativa em `devia/world_chronicle.md` |
+| `mcr_world_foundation.py` | WorldSeed + validação de coerência + `world_event()` |
+| `mcr_world_seed.py` | Semente minimalista via Mistral |
+| `mcr_signature_cluster.py` | Descoberta automática de tipos por cluster de APIs |
+| `mcr_cold_start.py` | Cold Start tabula rasa (~2s) |
 
-### FASE 5 — Shadow Canary (Mock Lua)
-- `mcr/shadow_canary.py` — Ambiente mock de execucao Lua sem servidor
+### Inteligência e Validação
 
-### FASE 6 — Motor de Criatividade ("E se...?")
-- `mcr/emergir.py` — Ciclo: gerar ideia -> LLM -> validar -> promover
-- `mcr/sanity_validator.py` — 512 APIs base + KG
+| Módulo | Função |
+|--------|--------|
+| `sanity_validator.py` | **0 APIs hardcoded** — minera do C++/Lua em runtime via tree-sitter |
+| `shadow_canary.py` | Ambiente mock LuaJIT + auto-aprendizado por erro |
+| `anti_pattern.py` | Classificação de erros + registro no KG |
+| `metacognicao.py` | Gateway de Incerteza adaptativo (threshold 70%) |
+| `LuaSyntaxValidator.py` | Sandbox Lua + loadstring + correção por LLM |
 
-### FASE 7 — Caminho Druida (NPC Server)
-- `mcr/npc_sanity_filter.py` — Filtro de respostas (200 chars, sem codigo)
-- `mcr/npc_server.py` — Servidor TCP :7777 para dialogos NPC
-- `mcr/dialogue_miner.py` — Extracao de falas de NPCs .lua
-- `mcr/dialogue_trainer.py` — Treinamento MCR com dialogos reais
-- `mcr_npc_bridge.lua` — Bridge Canary -> Python Server
+### Criatividade e Geração
 
-## 2. Hardcodes Mapeados para Eliminacao
-- `_seeds_gerais` no `mcr_devia.py` -> Sera substituido por Auto-seeding
-- `MODELO_POR_CLASSE` -> Sera substituido por dinamicismo
-- `golden_examples/` -> Sera substituido por PatternMiner Dinamico
-- Caminhos `E:\Projeto MCR\` -> **RESOLVIDO** via `mcr/paths.py`
-- Encoding manual -> **RESOLVIDO** via `mcr/encoding.py`
+| Módulo | Função |
+|--------|--------|
+| `emergir.py` | Motor "E se..." conectando conceitos do KG |
+| `mcr_radar.py` | Busca semântica em 4 ondas (70/50/30/10%) |
+| `golden_templates.py` | Zero LLM, templates Canary canônicos |
+| `mcr_idea_to_spec.py` | Ideia → especificação JSON + golden examples |
+| `mcr_entity_factory.py` | 3 tiers (template/codificado/quest) |
+| `mcr_entity_validator.py` | Validação individual (nome único + coerência) |
 
-## 3. Como Iniciar o Organismo
+### Comunicação
+
+| Módulo | Função |
+|--------|--------|
+| `bridge_api.py` | HTTP REST :7778 (Grimório C# ↔ Python) |
+| `world_observer.py` | Observação de eventos do servidor → entropia |
+| `npc_server.py` | Socket TCP :7777 para diálogo NPC |
+
+### Auto-Evolução
+
+| Módulo | Função |
+|--------|--------|
+| `equacao_mcr.py` | `_EQUACAO_ATUAL` — 15 parâmetros, 8 fórmulas, 4 penalidades |
+| `mcr_meta.py` | `PONTE_OTIMA = (5*div + 3*esp + 2*prof) / 10` |
+| `mcr_auto_evolution.py` | Mutação de thresholds com medição de entropia |
+
+### Fases Completas (8 + Generalização)
+
+| Fase | Módulos | Descrição |
+|------|---------|-----------|
+| FASE 1 | `pattern_miner.py` | Tree-sitter → 2.690+ padrões no KG |
+| FASE 2 | `metacognicao.py` | Gateway de Incerteza adaptativo |
+| FASE 3 | `meta_gap.py`, `auto_curiosidade.py` | Detector de lacunas + thread background |
+| FASE 4 | `anti_pattern.py`, `logwatcher_bridge.py`, `anti_pattern_injector.py` | Loop de aprendizado com erros reais |
+| FASE 5 | `shadow_canary.py` | Mock LuaJIT com auto-aprendizado |
+| FASE 6 | `emergir.py`, `sanity_validator.py` | Motor de criatividade |
+| FASE 7 | `npc_server.py`, `dialogue_miner.py`, `dialogue_trainer.py` | NPC Server :7777 |
+| FASE 8 | `mcr_self.py`, `mcr_autobiography.py`, `mcr_inner_voice.py`, `mcr_conversa.py` | Consciência |
+| FASE D | `mcr_signature_cluster.py`, `mcr_cold_start.py` | Generalização — zero hardcode, aprendizado do zero |
+
+## 2. Validação (Zero Hardcode)
+
+O SanityValidator não possui **nenhuma API hardcoded**. Ele descobre as APIs do servidor em tempo de execução:
+
+1. **C++ source** — minera `server/src/` por `bindClassMemberFunction<...>("nome", ...)`
+2. **Scripts Lua** — minera `data-otservbr-global/npc/*.lua` por chamadas de função
+3. **Knowledge Graph** — carrega `devia/knowledge/patterns_*.json` (quando existente)
+
+Total: ~561 APIs descobertas dinamicamente.
+
+## 3. Cold Start (Prova de Generalização)
+
+O MCR pode aprender as regras de qualquer servidor do zero em ~2 segundos:
+
+```
+cold_start()
+├── Apaga Knowledge Graph
+├── Minera APIs do C++ (29) + scripts Lua (309)
+├── Forma 21+ clusters de assinatura
+├── Gera código Canary válido
+└── Valida em 3 camadas (sintaxe + semântica + sandbox)
+```
+
+## 4. Como Iniciar
 
 ```bash
-# Terminal unico: sobe tudo
+# Terminal único: sobe tudo
 python start_mcr_organism.py
 
-# Terminal 2 (opcional): Pipeline de geracao de codigo
-python devia/kernel/mcr_devia.py "Crie um NPC Guarda Real"
+# Bridge API (Grimório C#)
+python -c "from mcr.bridge_api import BridgeAPI; BridgeAPI().iniciar(); import time; time.sleep(99999)"
 
-# Teste rapido do NPC Server
-python -c "from mcr.npc_server import processar_dialogo; print(processar_dialogo({'npc_id':'Druida','player_id':'Kheltz','message':'Onde acho ervas?'}))"
+# Cold Start (aprender servidor do zero)
+python -c "from mcr.mcr_cold_start import cold_start; cold_start()"
 ```
 
-O `start_mcr_organism.py` faz:
-1. Carrega MCRSystem + KG
-2. Treina 448 NPCs com 4529 dialogos
-3. Inicia Auto-Curiosidade em background (ciclo 120s)
-4. Sobe servidor socket TCP :7777
-5. `Ctrl+C` desliga gracefulmente
+## 5. Métricas de Performance
 
-## 4. Arquitetura do Sistema
+| Operação | Tempo | GPU |
+|----------|-------|-----|
+| Pergunta conceitual (KG) | 0.007s | 0% |
+| Geração NPC Tier 1 (template) | <0.001s | 0% |
+| Geração NPC Tier 2 (codificar) | ~5-10s | 100% |
+| Pipeline iterativo (10 entidades) | ~2.8s | 0% (template) |
+| Validação Lua | <0.1s | 0% |
+| Cold Start completo | ~1.7s | 0% |
+| Mineração AST 2.690+ arquivos | ~2s | 0% |
+| NPC Server: 100 req | 100ms | 0% |
 
-```
-+-------------------+       +------------------+       +------------------+
-|   Markov Puro     | ----> |   KG (Memoria)   | ----> |   LLM (Geracao)  |
-| (MCRPergunta)     |       | (KnowledgeGraph) |       | (qwen2.5-coder)  |
-| 0.007s, zero GPU  |       | Lessons + Padroes |       | ~30s, RTX 3080   |
-+-------------------+       +------------------+       +------------------+
-         |                          |                          |
-         v                          v                          v
-+---------------------------------------------------------------+
-|                    MasterAgent (Orquestrador)                  |
-|  PERCEBER -> PLANEJAR -> EXECUTAR -> INTEGRAR -> APRENDER    |
-+---------------------------------------------------------------+
-         |                          |                          |
-         v                          v                          v
-+-------------------+       +------------------+       +------------------+
-|   LuaValidator    |       |  Shadow Canary   |       |  NPC Server      |
-| (Sintaxe + API)   |       | (Mock Lua)       |       | (TCP :7777)      |
-+-------------------+       +------------------+       +------------------+
-```
-
-## 5. Metricas de Performance
-
-| Operacao | Tempo | GPU | Descricao |
-|----------|-------|-----|-----------|
-| Pergunta conceitual (KG) | 0.007s | 0% | Markov puro, sem LLM |
-| Dialogo NPC | <0.001s | 0% | MCR treinado com 4529 falas |
-| Geracao de NPC | ~25s | 100% | LLM + Golden Example |
-| Geracao de sistema | ~33s | 100% | MasterAgent + LLM |
-| Validacao Lua | <0.1s | 0% | Sandbox + loadstring |
-| Mineracao 1027 NPCs | 2.0s | 0% | Tree-sitter AST (5800X3D) |
-| 100 req NPC Server | 100ms | 0% | <1ms cada, 0% GPU |
-| Resposta NPC (rede) | <1ms | 0% | Socket local + MCR puro |
+**MCR não é AGI. MCR é um experimento de pesquisa honesto.** Os resultados são mensuráveis, mas modestos em termos absolutos.

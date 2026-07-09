@@ -1,0 +1,251 @@
+<UserControl x:Class="MCR.Grimorio.Modules.MCRSkills.MCRSkillsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="{StaticResource BgDarkestBrush}">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <Grid Margin="16">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <!-- Header -->
+            <StackPanel Grid.Row="0" Margin="0,0,0,10">
+                <TextBlock Text="🎯 SPA Wizard — Criação de Habilidades" FontSize="18" FontWeight="SemiBold" Foreground="{StaticResource FgBrightBrush}" />
+                <TextBlock x:Name="DetectionText" FontSize="11" Foreground="{StaticResource AccentGreenBrush}" Margin="0,4,0,0" />
+            </StackPanel>
+
+            <!-- Panel 1: Domain -->
+            <Border Grid.Row="1" Background="{StaticResource BgMediumBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="6" Padding="14" Margin="0,0,0,8">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0" Margin="0,0,6,0">
+                        <TextBlock Text="Nome da Habilidade" FontSize="11" Foreground="{StaticResource FgMutedBrush}" />
+                        <TextBox x:Name="SkillNameBox" Text="Nova Habilidade" Margin="0,2,0,0" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" Margin="6,0">
+                        <TextBlock Text="Domínio ID" FontSize="11" Foreground="{StaticResource FgMutedBrush}" />
+                        <ComboBox x:Name="DomainIdBox" Margin="0,2,0,0" SelectedIndex="0">
+                            <ComboBoxItem Content="Combate (1)" />
+                            <ComboBoxItem Content="Magia (2)" />
+                            <ComboBoxItem Content="Lâminas (10)" />
+                            <ComboBoxItem Content="Machados (11)" />
+                            <ComboBoxItem Content="Clavas (12)" />
+                            <ComboBoxItem Content="Artes Marciais (14)" />
+                            <ComboBoxItem Content="Escudo (15)" />
+                            <ComboBoxItem Content="Elementos (20)" />
+                            <ComboBoxItem Content="Fogo (23)" />
+                            <ComboBoxItem Content="Gelo (24)" />
+                            <ComboBoxItem Content="Terra (25)" />
+                            <ComboBoxItem Content="Energia (26)" />
+                            <ComboBoxItem Content="Summon (28)" />
+                            <ComboBoxItem Content="Ofícios (3)" />
+                            <ComboBoxItem Content="Natureza (4)" />
+                            <ComboBoxItem Content="Espadas Leves (100)" />
+                            <ComboBoxItem Content="Espadas Pesadas (101)" />
+                            <ComboBoxItem Content="Clavas Leves (112)" />
+                            <ComboBoxItem Content="Clavas Pesadas (113)" />
+                            <ComboBoxItem Content="Arcos (120)" />
+                            <ComboBoxItem Content="Punho (132)" />
+                            <ComboBoxItem Content="Bastões Arcanos (133)" />
+                            <ComboBoxItem Content="Sagrado/Morte (200)" />
+                            <ComboBoxItem Content="Sobrevivência (400)" />
+                        </ComboBox>
+                    </StackPanel>
+                    <StackPanel Grid.Column="2" Margin="6,0,0,0">
+                        <TextBlock Text="Cor do Domínio" FontSize="11" Foreground="{StaticResource FgMutedBrush}" />
+                        <ComboBox x:Name="CorBox" Margin="0,2,0,0" SelectedIndex="0">
+                            <ComboBoxItem Content="COR.DOM_COMBATE_LAMINAS" />
+                            <ComboBoxItem Content="COR.DOM_COMBATE_IMPACTO" />
+                            <ComboBoxItem Content="COR.DOM_COMBATE_PRECISAO" />
+                            <ComboBoxItem Content="COR.DOM_COMBATE_ARTES_MARCIAIS" />
+                            <ComboBoxItem Content="COR.DOM_ESCUDO" />
+                            <ComboBoxItem Content="COR.DOM_MAGIA_FOGO" />
+                            <ComboBoxItem Content="COR.DOM_MAGIA_AGUA_GELO" />
+                            <ComboBoxItem Content="COR.DOM_MAGIA_TERRA" />
+                            <ComboBoxItem Content="COR.DOM_MAGIA_SAGRADO" />
+                            <ComboBoxItem Content="COR.DOM_MAGIA_RUNOLOGIA" />
+                            <ComboBoxItem Content="COR.DOM_OFICIO_CRAFT" />
+                            <ComboBoxItem Content="COR.DOM_NATUREZA_SOBREV" />
+                        </ComboBox>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- Panel 2: Type + Effect Config -->
+            <Border Grid.Row="2" Background="{StaticResource BgMediumBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="6" Padding="14" Margin="0,0,0,8">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <Grid Grid.Row="0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" Margin="0,0,6,0">
+                            <TextBlock Text="Tipo (gatilho/passiva/toggle)" FontSize="11" Foreground="{StaticResource FgMutedBrush}" />
+                            <ComboBox x:Name="SkillTypeBox" Margin="0,2,0,0" SelectedIndex="0">
+                                <ComboBoxItem Content="gatilho" />
+                                <ComboBoxItem Content="passiva" />
+                                <ComboBoxItem Content="transformacao" />
+                            </ComboBox>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Margin="6,0">
+                            <TextBlock Text="Categoria" FontSize="11" Foreground="{StaticResource FgMutedBrush}" />
+                            <ComboBox x:Name="CategoryBox" Margin="0,2,0,0" SelectedIndex="1">
+                                <ComboBoxItem Content="passiva" />
+                                <ComboBoxItem Content="single" />
+                                <ComboBoxItem Content="aoe" />
+                                <ComboBoxItem Content="debuff" />
+                                <ComboBoxItem Content="buff" />
+                                <ComboBoxItem Content="finisher" />
+                                <ComboBoxItem Content="sinergia" />
+                                <ComboBoxItem Content="defense" />
+                            </ComboBox>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2" Margin="6,0">
+                            <TextBlock Text="Tipo de Efeito" FontSize="11" Foreground="{StaticResource FgMutedBrush}" />
+                            <ComboBox x:Name="EffectTypeBox" Margin="0,2,0,0" SelectedIndex="0" SelectionChanged="EffectTypeBox_SelectionChanged">
+                                <ComboBoxItem Content="dano_extra" />
+                                <ComboBoxItem Content="area_ground" />
+                                <ComboBoxItem Content="area_target" />
+                                <ComboBoxItem Content="ricochete" />
+                                <ComboBoxItem Content="knockback" />
+                                <ComboBoxItem Content="rajada" />
+                                <ComboBoxItem Content="corrente" />
+                                <ComboBoxItem Content="finisher" />
+                                <ComboBoxItem Content="condicao" />
+                                <ComboBoxItem Content="buff_speed" />
+                                <ComboBoxItem Content="buff_damage" />
+                                <ComboBoxItem Content="life_leech" />
+                                <ComboBoxItem Content="defesa_cura" />
+                                <ComboBoxItem Content="defesa_barreira" />
+                                <ComboBoxItem Content="defesa_contra_ataque" />
+                                <ComboBoxItem Content="field" />
+                                <ComboBoxItem Content="sinergia" />
+                                <ComboBoxItem Content="storm" />
+                                <ComboBoxItem Content="orbit" />
+                                <ComboBoxItem Content="rain" />
+                                <ComboBoxItem Content="pulse" />
+                                <ComboBoxItem Content="trap" />
+                                <ComboBoxItem Content="summon" />
+                                <ComboBoxItem Content="melee" />
+                                <ComboBoxItem Content="projectile" />
+                                <ComboBoxItem Content="beam" />
+                                <ComboBoxItem Content="explosion_ring" />
+                            </ComboBox>
+                        </StackPanel>
+                        <StackPanel Grid.Column="3" Margin="6,0,0,0">
+                            <TextBlock Text="Elemento" FontSize="11" Foreground="{StaticResource FgMutedBrush}" />
+                            <ComboBox x:Name="ElementBox" Margin="0,2,0,0" SelectedIndex="0">
+                                <ComboBoxItem Content="COMBAT_PHYSICALDAMAGE" />
+                                <ComboBoxItem Content="COMBAT_FIREDAMAGE" />
+                                <ComboBoxItem Content="COMBAT_ICEDAMAGE" />
+                                <ComboBoxItem Content="COMBAT_EARTHDAMAGE" />
+                                <ComboBoxItem Content="COMBAT_ENERGYDAMAGE" />
+                                <ComboBoxItem Content="COMBAT_HOLYDAMAGE" />
+                                <ComboBoxItem Content="COMBAT_DEATHDAMAGE" />
+                            </ComboBox>
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- Dynamic Effect Params -->
+                    <Border Grid.Row="1" x:Name="EffectParamsPanel" Background="{StaticResource BgDarkBrush}" CornerRadius="4" Padding="10" Margin="0,8,0,0">
+                        <Grid x:Name="EffectParamsGrid">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </Border>
+
+            <!-- Panel 3: Cooldown + Level -->
+            <Border Grid.Row="3" Background="{StaticResource BgMediumBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="6" Padding="14" Margin="0,0,0,8">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0" Margin="0,0,6,0">
+                        <TextBlock Text="Cooldown (s)" FontSize="11" Foreground="{StaticResource FgMutedBrush}" />
+                        <TextBox x:Name="CooldownBox" Text="5" Margin="0,2,0,0" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" Margin="6,0">
+                        <TextBlock Text="Nível Mínimo" FontSize="11" Foreground="{StaticResource FgMutedBrush}" />
+                        <TextBox x:Name="MinLevelBox" Text="5" Margin="0,2,0,0" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="2" Margin="6,0">
+                        <TextBlock Text="Foco Mínimo %" FontSize="11" Foreground="{StaticResource FgMutedBrush}" />
+                        <TextBox x:Name="FocoMinBox" Text="25" Margin="0,2,0,0" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="3" Margin="6,0,0,0">
+                        <TextBlock Text="Descrição" FontSize="11" Foreground="{StaticResource FgMutedBrush}" />
+                        <TextBox x:Name="DescBox" Text="Uma habilidade poderosa." Margin="0,2,0,0" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- Panel 4: Posture Config -->
+            <Border Grid.Row="4" Background="{StaticResource BgMediumBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="6" Padding="14" Margin="0,0,0,8">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0" Margin="0,0,6,0">
+                        <TextBlock Text="Ímpeto: dano mult." FontSize="11" Foreground="{StaticResource FgMutedBrush}" />
+                        <TextBox x:Name="ImpetoBox" Text="1.2" Margin="0,2,0,0" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" Margin="6,0">
+                        <TextBlock Text="Guarda: dano mult." FontSize="11" Foreground="{StaticResource FgMutedBrush}" />
+                        <TextBox x:Name="GuardaBox" Text="0.7" Margin="0,2,0,0" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="2" Margin="6,0,0,0" VerticalAlignment="Bottom" HorizontalAlignment="Right">
+                        <Button x:Name="GenerateSkillBtn" Content="▶ Gerar Habilidade" Style="{StaticResource PrimaryButton}" Height="30" Width="160" Click="GenerateSkillBtn_Click" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- Output -->
+            <Grid Grid.Row="5" Margin="0,0,0,0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <TextBlock Grid.Row="0" Text="Código Gerado:" FontSize="11" Foreground="{StaticResource FgMutedBrush}" Margin="0,0,0,4" />
+                <TextBox Grid.Row="1" x:Name="OutputBox" IsReadOnly="True" FontFamily="Consolas" FontSize="10"
+                         Background="{StaticResource BgDarkBrush}" Foreground="{StaticResource FgPrimaryBrush}"
+                         BorderThickness="0" VerticalScrollBarVisibility="Auto" TextWrapping="Wrap"
+                         MinHeight="150" MaxHeight="400" />
+                <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,6,0,0">
+                    <Button x:Name="CopyBtn" Content="📋 Copiar" Height="30" Width="100" Click="CopyBtn_Click" />
+                </StackPanel>
+            </Grid>
+        </Grid>
+    </ScrollViewer>
+</UserControl>

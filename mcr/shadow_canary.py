@@ -4,10 +4,11 @@ import os
 import sys
 import time
 import re
+import json
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict, Optional, List
 
-from mcr.paths import DEVIA_KERNEL_DIR
+from mcr.paths import DEVIA_KERNEL_DIR, KG_DIR
 from mcr.encoding import read_file
 from mcr.anti_pattern import classificar_erro, registrar_anti_pattern
 
@@ -281,6 +282,8 @@ def executar_shadow_test(caminho_lua: Path) -> Dict:
                 registrar_anti_pattern(erro_anti)
                 resultado['anti_pattern_registrado'] = True
                 resultado['categoria'] = erro_anti['categoria']
+                # Auto-aprendizado Markov
+                aprender_com_erro(resultado)
             else:
                 resultado['anti_pattern_registrado'] = False
 
@@ -303,3 +306,106 @@ def executar_shadow_codigo(codigo: str) -> Dict:
             os.unlink(tmp)
         except Exception:
             pass
+
+
+def aprender_com_erro(resultado: Dict) -> Optional[str]:
+    """Aprende com um erro de execucao do Shadow Canary.
+    
+    Se o erro for 'attempt to index a nil value (field/global X)',
+    registra X como uma transicao Markov de penalidade no KG
+    para que o sistema evite usar X no futuro neste contexto.
+    
+    Args:
+        resultado: dict retornado por executar_shadow_test()
+    
+    Returns:
+        nome da API penalizada, ou None se nao houve aprendizado
+    """
+    if resultado.get('status') != 'crash':
+        return None
+
+    erro_msg = resultado.get('erro', '')
+    api_problematica = resultado.get('api_problematica', '')
+
+    # Extrai a API do erro se nao foi capturada
+    if not api_problematica:
+        m_api = re.search(r"(?:field|global)\s+'(\w+)'", erro_msg)
+        if m_api:
+            api_problematica = m_api.group(1)
+
+    if not api_problematica:
+        return None
+
+    # Registra como anti-pattern no KG
+    erro_classificado = classificar_erro(erro_msg, str(resultado.get('arquivo', '')))
+    erro_classificado['api_problematica'] = api_problematica
+    erro_classificado['categoria'] = 'runtime_shadow'
+
+    try:
+        registrar_anti_pattern(erro_classificado)
+    except Exception:
+        pass
+
+    # Registra como transicao Markov de penalidade
+    # Isso permite que o MCR Decisor aprenda "nao use X neste contexto"
+    _registrar_penalidade_markov(api_problematica, erro_msg)
+
+    print('[ShadowCanary] Aprendizado por erro: "%s" penalizado no KG' % api_problematica)
+    return api_problematica
+
+
+def _registrar_penalidade_markov(api: str, erro: str):
+    """Registra uma penalidade Markov no KG para uma API que falhou.
+    
+    Cria/atualiza um arquivo de penalidades que o MCRDecisor pode consultar.
+    """
+    penalidades_path = KG_DIR / 'shadow_penalidades.json'
+    penalidades = {}
+    if penalidades_path.exists():
+        try:
+            with open(penalidades_path, 'r', encoding='utf-8') as f:
+                penalidades = json.load(f)
+        except Exception:
+            pass
+
+    if api not in penalidades:
+        penalidades[api] = {
+            'ocorrencias': 0,
+            'ultimo_erro': '',
+            'timestamp': '',
+        }
+
+    penalidades[api]['ocorrencias'] += 1
+    penalidades[api]['ultimo_erro'] = erro[:200]
+    penalidades[api]['timestamp'] = time.strftime('%Y-%m-%d %H:%M:%S')
+
+    try:
+        KG_DIR.mkdir(parents=True, exist_ok=True)
+        with open(penalidades_path, 'w', encoding='utf-8') as f:
+            json.dump(penalidades, f, indent=2, ensure_ascii=False)
+    except Exception:
+        pass
+
+
+def consultar_penalidades(api: str = '') -> Dict:
+    """Retorna penalidades registradas para uma API ou todas.
+    
+    Usado pelo MCRDecisor para verificar se uma API e confiavel.
+    
+    Args:
+        api: nome da API (vazio = retorna todas)
+    
+    Returns:
+        dict com penalidades
+    """
+    penalidades_path = KG_DIR / 'shadow_penalidades.json'
+    if not penalidades_path.exists():
+        return {}
+    try:
+        with open(penalidades_path, 'r', encoding='utf-8') as f:
+            dados = json.load(f)
+        if api:
+            return dados.get(api, {})
+        return dados
+    except Exception:
+        return {}

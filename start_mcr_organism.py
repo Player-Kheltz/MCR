@@ -106,8 +106,19 @@ try:
 except Exception as e:
     print("  Auto-Curiosidade: %s" % e)
 
-# ─── 5. NPC Server (socket, blocking) ─────────────────────────
-print("[5/5] Iniciando NPC Server (TCP :7777)...")
+# ─── 5. Bridge API (HTTP REST :7778) ─────────────────────────
+print("[5/6] Iniciando Bridge API (HTTP :7778)...")
+_BRIDGE = None
+try:
+    from mcr.bridge_api import BridgeAPI
+    _BRIDGE = BridgeAPI()
+    _BRIDGE.iniciar()
+    print("  Bridge API (Grimorio): 127.0.0.1:7778")
+except Exception as e:
+    print("  Bridge API: %s" % e)
+
+# ─── 6. NPC Server (socket, blocking) ─────────────────────────
+print("[6/6] Iniciando NPC Server (TCP :7777)...")
 _SERVER = None
 try:
     from mcr.npc_server import NPCServer, _DIALOGUE_TRAINER, _MCR_SYSTEM as _NS_MCR
@@ -132,7 +143,8 @@ print("""
   Sistema 2 (LLM):       AGUARDANDO PIPELINE
   Auto-Curiosidade:      %s
   NPCs Vivos:            %d carregados
-  Socket TCP:            127.0.0.1:7777
+  Bridge API (Grimorio): 127.0.0.1:7778
+  Socket TCP (NPC):      127.0.0.1:7777
 ==================================================
   Pressione CTRL+C para desligar o organismo.
 ==================================================

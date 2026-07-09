@@ -1,0 +1,317 @@
+{
+  "npcs": {
+    "Valtorion": {
+      "file": "E:\\MCR\\server\\data-otservbr-global\\npc\\valtorion.lua",
+      "role": "Mestre de Negocios",
+      "quests": [
+        {
+          "instrucao": "Adicione uma quest onde o jogador precisa trazer 3 espadas encantadas (clientId=3745) para Valtorion em troca de 5000 de gold como recompensa. Use keywordHandler:addKeyword com StdModule.say e Callback para a logica da quest. Use storageValue para controlar o estado da quest.",
+          "timestamp": "2026-07-08 13:25:44",
+          "bloco_tamanho": 914
+        }
+      ],
+      "tamanho": 1946
+    },
+    "Aldric": {
+      "file": "E:\\MCR\\server\\data-otservbr-global\\npc\\aldric.lua",
+      "role": "figura do mundo de regiao desconhecida (Faccao: Comerciantes do Sol)",
+      "tamanho": 870,
+      "quests": []
+    },
+    "Mara": {
+      "file": "E:\\MCR\\server\\data-otservbr-global\\npc\\mara.lua",
+      "role": "figura do mundo de regiao desconhecida (Faccao: Guardiões da Noite)",
+      "tamanho": 805,
+      "quests": []
+    },
+    "Eliana": {
+      "file": "E:\\MCR\\server\\data-otservbr-global\\npc\\eliana.lua",
+      "role": "figura do mundo de regiao desconhecida",
+      "tamanho": 1083,
+      "quests": []
+    },
+    "Aldrin Forjador": {
+      "file": "E:\\MCR\\server\\data-otservbr-global\\npc\\aldrin_forjador.lua",
+      "role": "figura do mundo de regiao desconhecida (Faccao: Fábrica dos Forjadores)",
+      "tamanho": 1194,
+      "quests": []
+    },
+    "Elara Flores": {
+      "file": "E:\\MCR\\server\\data-otservbr-global\\npc\\elara_flores.lua",
+      "role": "figura do mundo de regiao desconhecida (Faccao: Comércio das Flores)",
+      "tamanho": 1183,
+      "quests": []
+    },
+    "Xavier Explorador": {
+      "file": "E:\\MCR\\server\\data-otservbr-global\\npc\\xavier_explorador.lua",
+      "role": "figura do mundo de regiao desconhecida (Faccao: Sociedade dos Exploradores)",
+      "tamanho": 2831,
+      "quests": [
+        {
+          "instrucao": "Adicione uma quest ao NPC 'Xavier Explorador'. Titulo: A Questão dos Forjadores. Objetivo: . Recompensa: . Use keywordHandler:addKeyword com StdModule.say para o dialogo da quest. Use storageValue para controlar o estado da quest.",
+          "timestamp": "2026-07-08 15:56:37",
+          "bloco_tamanho": 1559
+        }
+      ]
+    },
+    "Jorge": {
+      "file": "E:\\MCR\\server\\data-otservbr-global\\npc\\jorge.lua",
+      "role": "figura do mundo de regiao desconhecida (Faccao: Bruxos de Mercado)",
+      "tamanho": 2217,
+      "quests": [
+        {
+          "instrucao": "Adicione uma quest ao NPC 'Jorge'. Titulo: . Objetivo: . Recompensa: . Use keywordHandler:addKeyword com StdModule.say para o dialogo da quest. Use storageValue para controlar o estado da quest.",
+          "timestamp": "2026-07-08 15:58:14",
+          "bloco_tamanho": 1133
+        }
+      ]
+    },
+    "Amanda": {
+      "file": "E:\\MCR\\server\\data-otservbr-global\\npc\\amanda.lua",
+      "role": "figura do mundo de regiao desconhecida (Faccao: Guardiões da Vila)",
+      "tamanho": 978,
+      "quests": []
+    },
+    "Eliot": {
+      "file": "E:\\MCR\\server\\data-otservbr-global\\npc\\eliot.lua",
+      "role": "figura do mundo de regiao desconhecida (Faccao: Bruxos de Mercado)",
+      "tamanho": 994,
+      "quests": []
+    },
+    "Márcia": {
+      "file": "E:\\MCR\\server\\data-otservbr-global\\npc\\mrcia.lua",
+      "role": "figura do mundo de regiao desconhecida (Faccao: Comerciários da Feira)",
+      "tamanho": 2324,
+      "quests": [
+        {
+          "instrucao": "Adicione uma quest ao NPC 'Márcia'. Titulo: A Desaparecida Vendedora. Objetivo: . Recompensa: . Use keywordHandler:addKeyword com StdModule.say para o dialogo da quest. Use storageValue para controlar o estado da quest.",
+          "timestamp": "2026-07-08 16:00:55",
+          "bloco_tamanho": 1328
+        }
+      ]
+    },
+    "Ethan": {
+      "file": "E:\\MCR\\server\\data-otservbr-global\\npc\\ethan.lua",
+      "role": "figura do mundo de regiao desconhecida (Faccao: Artisanos dos Sussurros)",
+      "tamanho": 2396,
+      "quests": [
+        {
+          "instrucao": "Adicione uma quest ao NPC 'Ethan'. Titulo: O Enigma dos Sussurros. Objetivo: . Recompensa: . Use keywordHandler:addKeyword com StdModule.say para o dialogo da quest. Use storageValue para controlar o estado da quest.",
+          "timestamp": "2026-07-08 16:01:01",
+          "bloco_tamanho": 1521
+        }
+      ]
+    },
+    "Vilão": {
+      "file": "E:\\MCR\\server\\data-otservbr-global\\npc\\vilo.lua",
+      "role": "figura do mundo de regiao desconhecida",
+      "tamanho": 693,
+      "quests": []
+    },
+    "Eliana, Vendedora de Flores": {
+      "file": "E:\\MCR\\server\\data-otservbr-global\\npc\\eliana_vendedora_de_flores.lua",
+      "role": "figura do mundo de regiao desconhecida (Faccao: Comerciantes Tradicionais)",
+      "tamanho": 2255,
+      "quests": [
+        {
+          "instrucao": "Adicione uma quest ao NPC 'Eliana, Vendedora de Flores'. Titulo: Aprendendo Magia. Objetivo: . Recompensa: . Use keywordHandler:addKeyword com StdModule.say para o dialogo da quest. Use storageValue para controlar o estado da quest.",
+          "timestamp": "2026-07-08 16:13:47",
+          "bloco_tamanho": 1014
+        }
+      ]
+    },
+    "Márcio, Feiticeiro Aprendiz": {
+      "file": "E:\\MCR\\server\\data-otservbr-global\\npc\\mrcio_feiticeiro_aprendiz.lua",
+      "role": "figura do mundo de regiao desconhecida (Faccao: Feiticeiros Místicos)",
+      "tamanho": 1954,
+      "quests": [
+        {
+          "instrucao": "Adicione uma quest ao NPC 'Márcio, Feiticeiro Aprendiz'. Titulo: Desarmando Armadilhas. Objetivo: . Recompensa: . Use keywordHandler:addKeyword com StdModule.say para o dialogo da quest. Use storageValue para controlar o estado da quest.",
+          "timestamp": "2026-07-08 16:14:03",
+          "bloco_tamanho": 883
+        }
+      ]
+    },
+    "Lúcio, Comerciante de Armadilhas": {
+      "file": "E:\\MCR\\server\\data-otservbr-global\\npc\\lcio_comerciante_de_armadilhas.lua",
+      "role": "figura do mundo de regiao desconhecida (Faccao: Comerciantes Tradicionais)",
+      "tamanho": 2591,
+      "quests": [
+        {
+          "instrucao": "Adicione uma quest ao NPC 'Lúcio, Comerciante de Armadilhas'. Titulo: Alegria em Flores. Objetivo: . Recompensa: . Use keywordHandler:addKeyword com StdModule.say para o dialogo da quest. Use storageValue para controlar o estado da quest.",
+          "timestamp": "2026-07-08 16:13:37",
+          "bloco_tamanho": 1322
+        }
+      ]
+    },
+    "Mestre Ferreiro": {
+      "file": "E:\\MCR\\server\\data-otservbr-global\\npc\\mestre_ferreiro.lua",
+      "role": "Vendedor de armas e ferramentas de regiao desconhecida (Faccao: Ferreiros Unidos)",
+      "tamanho": 2260,
+      "quests": [
+        {
+          "instrucao": "Adicione uma quest ao NPC 'Mestre Ferreiro'. Titulo: A busca por uma espada lendária. Objetivo: Encontrar e trazer de volta a espada lendária da Ferreiros Unidos.. Recompensa: . Use keywordHandler:addKeyword com StdModule.say para o dialogo da quest. Use storageValue para controlar o estado da quest.",
+          "timestamp": "2026-07-08 16:38:37",
+          "bloco_tamanho": 806
+        }
+      ]
+    },
+    "Aurora Florestal": {
+      "file": "E:\\MCR\\server\\data-otservbr-global\\npc\\aurora_florestal.lua",
+      "role": "Vendedora de plantas e flores de regiao desconhecida (Faccao: Florescendo Jardinistas)",
+      "tamanho": 2740,
+      "quests": [
+        {
+          "instrucao": "Adicione uma quest ao NPC 'Aurora Florestal'. Titulo: Cura para uma flor morta. Objetivo: Coletar ingredientes para curar uma flor que foi morta por um feitiço maligno.. Recompensa: . Use keywordHandler:addKeyword com StdModule.say para o dialogo da quest. Use storageValue para controlar o estado da quest.",
+          "timestamp": "2026-07-08 16:38:55",
+          "bloco_tamanho": 1336
+        }
+      ]
+    },
+    "Mago Encantador": {
+      "file": "E:\\MCR\\server\\data-otservbr-global\\npc\\mago_encantador.lua",
+      "role": "Feiticeiro especializado em magia e pociones de regiao desconhecida (Faccao: Sacerdotes da Magia)",
+      "tamanho": 4328,
+      "quests": [
+        {
+          "instrucao": "Adicione uma quest ao NPC 'Mago Encantador'. Titulo: Despertar o poder da magia. Objetivo: Recolher ingredientes mágicos para despertar novamente a magia esquecida dos Sacerdotes da Magia.. Recompensa: . Use keywordHandler:addKeyword com StdModule.say para o dialogo da quest. Use storageValue para controlar o estado da quest.",
+          "timestamp": "2026-07-08 16:39:19",
+          "bloco_tamanho": 3081
+        }
+      ]
+    },
+    "Eliana, a Sábia Mercadora": {
+      "file": "E:\\MCR\\server\\data-otservbr-global\\npc\\eliana,_a_sábia_mercadora.lua",
+      "role": "vendedor",
+      "tier": "template"
+    },
+    "Mestre dos Leilões": {
+      "file": "E:\\MCR\\server\\data-otservbr-global\\npc\\mestre_dos_leiles.lua",
+      "role": "vendedor/mago",
+      "tier": "template"
+    },
+    "Escolta Segura": {
+      "file": "E:\\MCR\\server\\data-otservbr-global\\npc\\escolta_segura.lua",
+      "role": "escolta",
+      "tier": "codificado",
+      "quests": []
+    },
+    "Necromancer dos Mercadores": {
+      "file": "E:\\MCR\\server\\data-otservbr-global\\npc\\necromancer_dos_mercadores.lua",
+      "role": "mago",
+      "tier": "codificado",
+      "quests": []
+    },
+    "Mestre dos Tesouros": {
+      "file": "E:\\MCR\\server\\data-otservbr-global\\npc\\mestre_dos_tesouros.lua",
+      "role": "mago",
+      "tier": "codificado",
+      "quests": []
+    },
+    "Ferreiro Malvado": {
+      "file": "E:\\MCR\\server\\data-otservbr-global\\npc\\ferreiro_malvado.lua",
+      "role": "ferreiro",
+      "tier": "template"
+    },
+    "Elder Blacksmith": {
+      "file": "E:\\MCR\\server\\data-otservbr-global\\npc\\elder_blacksmith.lua",
+      "role": "ferreiro",
+      "tier": "template"
+    },
+    "Antigo Ferreiro": {
+      "file": "E:\\MCR\\server\\data-otservbr-global\\npc\\antigo_ferreiro.lua",
+      "role": "ferreiro",
+      "tier": "template"
+    },
+    "Mago das Poções": {
+      "file": "E:\\MCR\\server\\data-otservbr-global\\npc\\mago_das_poes.lua",
+      "role": "mago",
+      "tier": "codificado",
+      "quests": []
+    },
+    "Caravana de Mercadores": {
+      "file": "E:\\MCR\\server\\data-otservbr-global\\npc\\caravana_de_mercadores.lua",
+      "role": "guerreiro",
+      "tier": "codificado",
+      "quests": []
+    },
+    "Vendedor das Rotas Comerciais": {
+      "file": "E:\\MCR\\server\\data-otservbr-global\\npc\\vendedor_das_rotas_comerciais.lua",
+      "role": "vendedor",
+      "tier": "template"
+    },
+    "NPC_Ferreiro": {
+      "file": "E:\\MCR\\server\\data-otservbr-global\\npc\\npc_ferreiro.lua",
+      "role": "",
+      "tier": "template_radar",
+      "quests": []
+    },
+    "NPC_Cacador": {
+      "file": "E:\\MCR\\server\\data-otservbr-global\\npc\\npc_cacador.lua",
+      "role": "",
+      "tier": "template_radar",
+      "quests": []
+    },
+    "NPC_Curandeiro": {
+      "file": "E:\\MCR\\server\\data-otservbr-global\\npc\\npc_curandeiro.lua",
+      "role": "",
+      "tier": "template_radar",
+      "quests": []
+    },
+    "NPC_Vendedor": {
+      "file": "E:\\MCR\\server\\data-otservbr-global\\npc\\npc_vendedor.lua",
+      "role": "",
+      "tier": "template_radar",
+      "quests": []
+    },
+    "NPC_Guarda": {
+      "file": "E:\\MCR\\server\\data-otservbr-global\\npc\\npc_guarda.lua",
+      "role": "",
+      "tier": "template_radar",
+      "quests": []
+    },
+    "NPC_Alquimista": {
+      "file": "E:\\MCR\\server\\data-otservbr-global\\npc\\npc_alquimista.lua",
+      "role": "",
+      "tier": "template_radar",
+      "quests": []
+    }
+  },
+  "monstros": {
+    "Golem de Pedra": {
+      "file": "",
+      "habitat": "desconhecido",
+      "danger_level": "high"
+    },
+    "Lobo Sombrio": {
+      "file": "",
+      "habitat": "desconhecido",
+      "danger_level": "low"
+    },
+    "Morcego Venenoso": {
+      "file": "",
+      "habitat": "desconhecido",
+      "danger_level": "medium"
+    }
+  },
+  "lores": {},
+  "current_foundation": {
+    "world_seed_lite": {
+      "world_name": "Feira dos Mercadores",
+      "main_conflict": "Competição e alianças nas rotas comerciais da região",
+      "concepts": [
+        "mercador",
+        "caravana",
+        "rotas comerciais",
+        "escolta segura",
+        "contrabando",
+        "ferreiro",
+        "pocoes mágicas",
+        "moeda rara",
+        "leilão",
+        "guilda de mercadores"
+      ],
+      "theme": "Feira dos Mercadores"
+    }
+  }
+}

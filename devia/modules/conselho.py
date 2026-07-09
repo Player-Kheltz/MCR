@@ -2,25 +2,37 @@
 - Zero arquivos de personalidade fixas
 - Arquetipos gerados dinamicamente via FAST + contexto do ContextCrew
 - Router de modelos por arquétipo (cada um usa o melhor modelo)
-- Validação anti-alucinacao + auto-revisao + traducao PT-BR"""
-import sys, os, time, json, threading
+- Validação anti-alucinacao + auto-revisao + traducao PT-BR
+- + TreeOfThought (G1), PromptCache (G5), TermosCriticos (G7), ValidacaoRelevancia (G6)
+  (fundido do enricher.py)"""
+import sys, os, time, json, threading, re
+from collections import OrderedDict
 sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 os.environ['PYTHONIOENCODING'] = 'utf-8'
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 from modulos.util import gerar as _gerar, fast as _fast
 from modulos.tradutor import traduzir as _traduzir
-from modulos.orquestrador import Orquestrador as _Orquestrador, _TEMPLATES as _ORQ_TEMPLATES
 from modulos import memoria_conselho as _memoria  # Memoria individual por membro
+from modulos.decider import Decider  # G1, G6, G7
+from modulos.ia import IA
+
+# Orquestrador (template engine) — opcional, legado movido para /Legado
+_Orquestrador = None
+_ORQ_TEMPLATES = {}
+try:
+    from modulos.orquestrador import Orquestrador as _Orquestrador, _TEMPLATES as _ORQ_TEMPLATES
+except ImportError:
+    pass
 
 _MCR_IDENTITY = """CONTEXTO DO PROJETO MCR (leia antes de responder):
 - MCR = Projeto MCR, um servidor CUSTOMIZADO de Tibia baseado em Canary (OTServ)
-- SPA = Sistema de Progressao do Aventureiro (NUNCA e Single Page Application)
+- SPA = Sistema de Progressao do Aventureiro para evolucao em dominios elementais
 - SHC = Sistema de Habilidades Contextuais (5 camadas)
-- Canary = Servidor de Tibia personalizado (OTServ)
-- OTClient = Cliente customizado de Tibia
+- Canary = Servidor de Tibia personalizado (OTServ) usado no MCR
+- OTClient = Cliente customizado de Tibia usado com o servidor
 - Dominios = areas de conhecimento do SPA: Fogo, Gelo, Terra, Energia
-- Eridanus = Cidade inicial do projeto MCR
-- NUNCA confunda MCR com Minecraft. Este e um projeto de Tibia."""
+- Eridanus = Cidade inicial do projeto MCR, ponto de partida dos aventureiros
+- Projeto MCR = servidor customizado de Tibia, parte da comunidade OTServ"""
 
 # Router: mapeia cada arquétipo ao melhor modelo para aquela tarefa
 _ROUTER = {
@@ -33,6 +45,7 @@ _ROUTER = {
     "psicologo": "texto",           # llama3.1 (PT-BR natural)
     "tecnico": "code",              # qwen2.5-coder (codigo)
     "especialista": "pesado",       # qwen2.5-coder (completo)
+    "criativo": "leve",             # qwen2.5-coder (rapido, temp alta para criatividade)
 }
 
 # Prompts adaptativos para cada arquétipo (com placeholders)
@@ -109,6 +122,17 @@ Pergunta: {pergunta}
 ESPECIALISTA TECNICO - Implementacao e detalhes.
 Comandos, arquivos, parametros especificos.
 Implementacao concreta. 2-3 frases curtas:""",
+
+    "criativo": """{mcr}
+Contexto do ContextCrew: {ctx_crew}
+KG: {kg}
+Pergunta: {pergunta}
+
+CRIATIVO - Conexoes nao-obvias e inovacao.
+Combine conceitos de formas SURPREENDENTES.
+Pense em analogias, metaforas, possibilidades.
+O objetivo: gerar algo NOVO que nao estava explicito antes.
+3-4 frases criativas em PT-BR:""",
 }
 
 # Arquétipos base por tipo de pergunta (classificacao 0 IA)
@@ -118,8 +142,94 @@ _ARQUETIPOS_POR_TIPO = {
     'ambientacao': ['contador_historias', 'psicologo', 'estrategista'],
     'opiniao': ['estrategista', 'analista', 'psicologo'],
     'codigo': ['revisor_codigo', 'arquiteto', 'critico'],
+    'inovacao': ['criativo', 'estrategista', 'contador_historias'],
+    'filosofico': ['filosofo', 'analista', 'estrategista'],  # Modo Offline Turbinado
     'desconhecido': ['analista', 'critico', 'estrategista'],
 }
+
+
+# ============================================================
+# G1 — TREE OF THOUGHT (fundido do enricher.py)
+# ============================================================
+_CAMINHOS_TOT = {
+    "analitico": "Pense como um ANALISTA. Foque em dados, fatos, numeros, versoes, metricas e detalhes tecnicos. Seja especifico e preciso.",
+    "criativo": "Pense como um CONTADOR DE HISTORIAS. Use exemplos concretos, analogias, cenarios praticos e aplicacoes reais.",
+    "critico": "Pense como um CRITICO. Questione suposicoes, aponte limitacoes, riscos, pontos cegos. Nao aceite nada pelo valor nominal.",
+    "filosofico": "Pense como um FILOSOFO. Busque a essencia do problema. Qual o padrao universal? O que emerge quando isolamos as variaveis? Qual o eixo entre Nirvana e Caos? Nao se contente com a superficie.",  # NOVO
+    "pragmatico": "Pense como um PRAGMATICO. O que funciona na pratica? Qual a acao mais simples que resolve? Ignore teoria, foque no resultado concreto.",  # NOVO
+}
+
+def tree_of_thought(ia, prompt_base):
+    """Gera 3 perspectivas (analitico, criativo, critico) e sintetiza.
+    
+    [Conselho 2.0] Usa FAST em vez de 14b — contexto externo compensa.
+    """
+    perspectivas = {}
+    for nome, instrucao in _CAMINHOS_TOT.items():
+        prompt = f"{instrucao}\n\nResponda EXATAMENTE a pergunta abaixo:\n{prompt_base}"
+        resp = ia.fast(prompt, 0.3, 'leve')  # FAST em vez de 14b
+        if resp:
+            perspectivas[nome] = resp.strip()
+    if len(perspectivas) < 2:
+        return prompt_base
+    prompt_sintese = (
+        f"Perspectiva ANALITICA:\n{perspectivas.get('analitico', '')}\n"
+        f"Perspectiva CRIATIVA:\n{perspectivas.get('criativo', '')}\n"
+        f"Perspectiva CRITICA:\n{perspectivas.get('critico', '')}\n"
+        f"Sintetize em resposta UNICA, focando na pergunta original."
+    )
+    sintese = ia.fast(prompt_sintese, 0.3, 'leve')  # FAST em vez de 14b
+    return sintese or prompt_base
+
+
+# ============================================================
+# G5 — PROMPT CACHE LRU
+# ============================================================
+class PromptCache:
+    """Cache LRU de prompts enriquecidos."""
+    def __init__(self, max_size=64):
+        self._cache = OrderedDict()
+        self._max_size = max_size
+    def get(self, pergunta):
+        return self._cache.get(hash(pergunta) % 1000000)
+    def set(self, pergunta, prompt):
+        key = hash(pergunta) % 1000000
+        self._cache[key] = prompt
+        if len(self._cache) > self._max_size:
+            self._cache.popitem(last=False)
+
+
+# ============================================================
+# G7 — TERMOS CRITICOS (extracao melhorada)
+# ============================================================
+def extrair_termos_criticos(texto):
+    """Extrai termos relevantes incluindo siglas e extensoes (.lua, .py)."""
+    if not texto:
+        return []
+    termos = re.findall(r'\b[a-zA-Z.]{2,}\b', texto.lower())
+    stop = {'de','para','que','com','uma','era','mais','como','por','seu','sua',
+            'tem','ela','ele','voce','me','te','se','nos','lhe','das','dos',
+            'nas','nem','mas','sobre','isto','isso','aquele','este','essa',
+            'em','no','na','um','uns','umas','a','o','as','os','do','da','e'}
+    return [t for t in termos if t not in stop]
+
+
+# ============================================================
+# G6 — VALIDACAO DE RELEVANCIA
+# ============================================================
+def validar_relevancia(ia, pergunta, contexto):
+    """FAST valida se o contexto coletado e relevante para a pergunta."""
+    if not contexto:
+        return False
+    textos = ' '.join(t for _, t in contexto)
+    if not textos.strip() or len(textos) < 20:
+        return False
+    try:
+        prompt = f"Contexto: {textos}\nPergunta: {pergunta}\nEste contexto ajuda a responder? (sim/nao)"
+        resp = ia.fast(prompt, 0.1, 'leve').strip().lower()
+        return resp.startswith('sim')
+    except Exception:
+        return True
 
 
 class Conselho:
@@ -130,34 +240,27 @@ class Conselho:
         self.ia = ia
         self.ctx_crew = ctx_crew
         self.auto_componentes = auto_componentes
+        self._decider = Decider(ia=self.ia) if ia else Decider()
 
     def _classificar(self, texto):
-        """Classifica tipo de pergunta usando keywords (0 IA)."""
-        t = texto.lower()
-        if any(p in t for p in ['codigo', 'funcao', 'classe', 'metodo', 'bug', 'erro',
-                                 'python', 'lua', 'cpp', 'implementar', 'programar',
-                                 'compilar', 'sintaxe', 'log', 'stack trace']):
-            return 'codigo'
-        if any(p in t for p in ['lore', 'historia', 'historia', 'mundo',
-                                 'personagem', 'npc', 'cidade', 'reino',
-                                 'conto', 'narrativa', 'mitologia',
-                                 'heroi', 'batalha', 'era']):
-            return 'ambientacao'
-        if any(p in t for p in ['o que e', 'o que sao', 'o que eh', 'o que sao',
-                                 'o que eh', 'significa', 'definicao', 'definicao',
-                                 'conceito', 'como funciona', 'para que serve',
-                                 'qual a diferenca', 'explique', 'defina']):
-            return 'factual'
-        if any(p in t for p in ['estrategia', 'planejar', 'plano', 'projeto', 'migrar',
-                                 'prioridade', 'risco', 'decisao', 'qual o melhor',
-                                 'deveriamos', 'recomenda', 'melhor', 'pior',
-                                 'o que voce acha', 'voce deveria']):
-            return 'opiniao'
-        if any(p in t for p in ['como fazer', 'como criar', 'como usar',
-                                 'como implementar', 'como configurar',
-                                 'passo a passo', 'tutorial']):
-            return 'procedimental'
-        return 'desconhecido'
+        """Classifica tipo de pergunta via Decider (FAST model + exemplos)."""
+        return self._decider.classificar(
+            texto,
+            categorias=['codigo', 'ambientacao', 'factual', 'opiniao', 'procedimental', 'desconhecido'],
+            instrucao="Classifique o tipo da pergunta do usuario sobre o Projeto MCR.",
+            exemplos=[
+                ("como implementar um novo NPC em lua", "codigo"),
+                ("cria uma funcao em python pra calcular dano", "codigo"),
+                ("crie a lore da cidade de Eridanus", "ambientacao"),
+                ("conte a historia do heroi Kheltz", "ambientacao"),
+                ("o que e SPA", "factual"),
+                ("explique como funciona o sistema de habilidades", "factual"),
+                ("qual a melhor estrategia para balancear classes", "opiniao"),
+                ("o que voce acha de usar FastAPI vs Flask", "opiniao"),
+                ("como configurar o OTClient passo a passo", "procedimental"),
+                ("como criar um servidor do zero tutorial", "procedimental"),
+            ],
+        )
 
     def _ctx_infinity(self):
         """Le as ultimas mensagens do ContextInfinity (arquivo JSONL)."""
@@ -166,7 +269,7 @@ class Conselho:
         try:
             with open(p, 'r', encoding='utf-8') as f:
                 return '\n'.join(json.loads(l).get('msg', '') for l in f.readlines()[-5:] if l.strip())
-        except:
+        except Exception:
             return ""
 
     def _ctx_crew_contexto(self, pergunta):
@@ -184,16 +287,66 @@ class Conselho:
         if not self.kg:
             return ""
         try:
-            return '\n'.join(f"- {r.get('solucao', '')[:300]}" for r in self.kg.buscar(q, max_r=5))
-        except:
+            return '\n'.join(f"- {r.get('solucao', '')}" for r in self.kg.buscar(q, max_r=5))
+        except Exception:
             return ""
 
+    def _enriquecer_conselho(self, pergunta):
+        """Gera enriquecimento usando Context Enricher (substitui _componentes)."""
+        try:
+            from modulos.context_enricher import ContextEnricher
+            enricher = ContextEnricher(ctx_crew=self.ctx_crew, kg=self.kg)
+            resultado = enricher.enriquecer(pergunta, termos=None)
+            if resultado.get('valido') and resultado.get('conteudo'):
+                print(f'  [Conselho] Enricher OK: {resultado["tipo"]}')
+                return resultado['conteudo']
+        except Exception as e:
+            print(f'  [Conselho] Enricher ERRO: {e}')
+        return ""  # fallback: sem enriquecimento
+    
+    def enriquecer(self, pergunta):
+        """Interface publica: enriquece pergunta com KG + ctx_crew.
+        
+        Usado pelo MasterAgent para enriquecer prompts automaticamente.
+        Retorna pergunta enriquecida, ou pergunta original se sem contexto.
+        """
+        partes = [pergunta]
+        
+        # KG
+        if self.kg:
+            try:
+                lessons = self.kg.buscar(pergunta, max_r=3)
+                if lessons:
+                    ctx_kg = '\n'.join(f"KG: {l.get('solucao','')}" for l in lessons)
+                    partes.append(ctx_kg)
+            except Exception:
+                pass
+        
+        # ContextCrew
+        if self.ctx_crew:
+            try:
+                ctx_crew_txt = self.ctx_crew.executar(pergunta)
+                if ctx_crew_txt and len(ctx_crew_txt) > 20:
+                    partes.append(f"Contexto: {ctx_crew_txt}")
+            except Exception:
+                pass
+        
+        prompt_enriquecido = '\n\n'.join(partes)
+        return prompt_enriquecido if prompt_enriquecido != pergunta else pergunta
+    
     def _componentes(self, pergunta):
-        """Gera componentes (personagens, locais, artefatos) se for pergunta de lore."""
+        """Gera componentes (personagens, locais, artefatos) se for pergunta de lore.
+        Fallback: usa Enricher primeiro, se falhar usa metodo antigo."""
         if not self.kg or not self.auto_componentes:
             return ""
+        
+        # Tenta Enricher primeiro (universal, nao so lore)
+        enriquecido = self._enriquecer_conselho(pergunta)
+        if enriquecido:
+            return enriquecido
+        
+        # Fallback: metodo antigo (só para lore)
         p_lower = pergunta.lower()
-        # So gera componentes se for explicitamente sobre lore
         e_factual = any(pergunta.lower().startswith(p) for p in
                         ['o que e', 'o que eh', 'como funciona', 'como usar',
                          'para que serve', 'qual a diferenca', 'explique', 'defina'])
@@ -205,12 +358,10 @@ class Conselho:
                                                  'artefato', 'item', 'arma'])
         if not quer_lore:
             return ""
-        # Tenta buscar componentes existentes no KG
         resultados = self.kg.buscar(pergunta, max_r=15)
         comps = [r for r in resultados if r.get('ctx') == 'componente_historia']
         if comps:
-            return '\n'.join(f"[{c.get('erro', '')}] {c.get('solucao', '')[:300]}" for c in comps[:5])
-        # Gera novos componentes
+            return '\n'.join(f"[{c.get('erro', '')}] {c.get('solucao', '')}" for c in comps)
         print('  [Componentes] Gerando...')
         for tipo, prompt_t in [
             ("Personagens", f"Crie 2 personagens DETALHADOS para {pergunta} em Tibia."),
@@ -219,7 +370,7 @@ class Conselho:
         ]:
             r = _fast(prompt_t, 0.4, "leve") or ""
             if r:
-                self.kg.aprender(f"{tipo}: {pergunta}", "Gerado", r[:500], "componente_historia")
+                self.kg.aprender(f"{tipo}: {pergunta}", "Gerado", r, "componente_historia")
         return self._componentes(pergunta)  # Recursao 1x
 
     def _detectar_arquetipos(self, pergunta, tipo, ctx_crew_txt):
@@ -231,7 +382,7 @@ class Conselho:
         detect = _fast(
             f"{_MCR_IDENTITY}\n\n"
             f"Pergunta: {pergunta}\n"
-            f"Contexto do ContextCrew: {ctx_crew_txt[:500]}\n\n"
+            f"Contexto do ContextCrew: {ctx_crew_txt}\n\n"
             f"Tipo classificado: {tipo}\n"
             f"Arquetipos ja selecionados: {', '.join(base)}\n\n"
             f"Identifique ATE 2 arquetipos ADICIONAIS necessarios para responder "
@@ -242,7 +393,7 @@ class Conselho:
         ) or ""
 
         extras = [a.strip().lower() for a in detect.split(',') if a.strip().lower() in _ROUTER]
-        todos = base + extras[:2]
+        todos = base + extras
         # Remove duplicatas mantendo ordem
         vistos = set()
         resultado = []
@@ -269,20 +420,6 @@ class Conselho:
 
         print(f'[Conselho Infinito V10] Tipo: {tipo} | ContextCrew: {len(ctx_crew_txt)}c | KG: {len(kg)}c')
 
-        # 1.5 CONTEXT REINFORCER: valida contexto antes de deliberar
-        cr_instrucao = ""
-        cr_contexto = ""
-        try:
-            from modulos.context_reinforcer import ContextReinforcer
-            cr = ContextReinforcer(ctx_crew=self.ctx_crew, kg=self.kg)
-            cr_result = cr.reforcar(pergunta, self.ctx_crew)
-            if cr_result.get("instrucao"):
-                cr_instrucao = cr_result["instrucao"]
-            if cr_result.get("contexto") and cr_result.get("valido"):
-                cr_contexto = f"\n[CONTEXTO VALIDADO]\n{cr_result['contexto'][:500]}\n[/CONTEXTO]\n"
-        except Exception as e:
-            print(f"  [Conselho] CR ERRO: {e}")
-        
         # 2. DETECTAR ARQUETIPOS
         arquetipos = self._detectar_arquetipos(pergunta, tipo, ctx_crew_txt)
         if not arquetipos:
@@ -306,13 +443,11 @@ class Conselho:
                     orq = _Orquestrador(kg=self.kg, ia=self.ia, ctx_crew=self.ctx_crew)
                     params = {
                         "mcr": _MCR_IDENTITY,
-                        "ctx_crew": ctx_crew_txt[:800],
-                        "kg": kg[:800],
+                        "ctx_crew": ctx_crew_txt,
+                        "kg": kg,
                         "pergunta": pergunta,
-                        "ctx_infinity": ctx_infinity[:300],
+                        "ctx_infinity": ctx_infinity,
                         "memoria_pessoal": memoria_pessoal,
-                        "instrucao_contexto": cr_instrucao,
-                        "contexto_extra": cr_contexto,
                     }
                     r = orq.executar(orq_template_key, params, consulta=pergunta, temp=0.4)
                     if r and r.get("sucesso"):
@@ -320,10 +455,10 @@ class Conselho:
                         with lock:
                             resultados[nome] = opiniao
                         # Salva na memoria pessoal
-                        _memoria.salvar(nome, pergunta[:100], opiniao[:300],
-                                      padrao=f"deliberou sobre: {pergunta[:50]}", categoria="conselho")
+                        _memoria.salvar(nome, pergunta, opiniao,
+                                      padrao=f"deliberou sobre: {pergunta}", categoria="conselho")
                         return
-                except:
+                except Exception:
                     pass
                 usou_orquestrador = True
             
@@ -336,26 +471,22 @@ class Conselho:
             try:
                 prompt = prompt_t.format(
                     mcr=_MCR_IDENTITY,
-                    ctx_crew=ctx_crew_txt[:800],
-                    kg=kg[:800],
+                    ctx_crew=ctx_crew_txt,
+                    kg=kg,
                     pergunta=pergunta,
-                    ctx_infinity=ctx_infinity[:300],
+                    ctx_infinity=ctx_infinity,
                 )
-                # Injeta CR instruction + memoria pessoal
-                if cr_instrucao:
-                    prompt = cr_instrucao + "\n" + prompt
-                if cr_contexto:
-                    prompt = cr_contexto + "\n" + prompt
                 # Injeta memoria pessoal no prompt
                 if memoria_pessoal:
                     prompt += f"\n\nSUA MEMORIA PESSOAL:\n{memoria_pessoal}\n"
                 
-                opiniao = _gerar(prompt, 0.4, router) or _fast(prompt, 0.4, router) or ""
+                # [Conselho 2.0] FAST + contexto, sem 14b
+                opiniao = _fast(prompt, 0.4, router) or ""
                 with lock:
                     resultados[nome] = opiniao
                 # Salva na memoria pessoal
-                _memoria.salvar(nome, pergunta[:100], opiniao[:300],
-                              padrao=f"deliberou sobre: {pergunta[:50]}", categoria="conselho")
+                _memoria.salvar(nome, pergunta, opiniao,
+                              padrao=f"deliberou sobre: {pergunta}", categoria="conselho")
             except Exception as e:
                 with lock:
                     resultados[nome] = f'[ERRO] {e}'
@@ -388,10 +519,10 @@ class Conselho:
             from debate_protocol import Debate
             def _gerar_debate(p, t=0.5):
                 return _gerar(p, t, "conceito")
-            d = Debate(f"{pergunta} | {ctx_crew_txt[:100]}", gerar=_gerar_debate)
+            d = Debate(f"{pergunta} | {ctx_crew_txt}", gerar=_gerar_debate)
             debate_result = d.executar(pergunta, rodadas=1)
             if debate_result and len(debate_result) > 50:
-                debate_ctx = f"\n\nDebate (propositor + critico + conector):\n{debate_result[:800]}\n"
+                debate_ctx = f"\n\nDebate (propositor + critico + conector):\n{debate_result}\n"
                 print(f'  [Debate] Refinamento obtido ({len(debate_result)} chars)')
         except Exception as e:
             print(f'  [Debate] ERRO: {e}')
@@ -400,17 +531,17 @@ class Conselho:
         db = f"{_MCR_IDENTITY}\n\n"
         db += f"Pergunta: {pergunta}\n\n"
         if ctx_crew_txt:
-            db += f"CONTEXTO DO PROJETO (ContextCrew - 5 fontes):\n{ctx_crew_txt[:1500]}\n\n"
+            db += f"CONTEXTO DO PROJETO (ContextCrew - 5 fontes):\n{ctx_crew_txt}\n\n"
         if kg:
-            db += f"FATOS DO KG:\n{kg[:1000]}\n\n"
+            db += f"FATOS DO KG:\n{kg}\n\n"
         if ctx_infinity:
-            db += f"Historico recente (ContextInfinity):\n{ctx_infinity[:500]}\n\n"
+            db += f"Historico recente (ContextInfinity):\n{ctx_infinity}\n\n"
         if debate_ctx:
             db += debate_ctx
         for n, o in opinioes:
-            db += f"{n}: {o[:800]}\n\n"
+            db += f"{n}: {o}\n\n"
         if avaliacao_psicologo:
-            db += f"Psicologo: {avaliacao_psicologo[:300]}\n\n"
+            db += f"Psicologo: {avaliacao_psicologo}\n\n"
 
         db += ("VEREDITO FINAL - Exijo: RESPOSTA COMPLETA E DETALHADA em portugues brasileiro.\n"
                "Nomes proprios, numeros, descricoes vividas.\n"
@@ -418,38 +549,28 @@ class Conselho:
                "Nao invente significados para siglas - use os significados do CONTEXTO DO PROJETO MCR.\n"
                "Estruture em paragrafos se necessario.")
 
-        v = _gerar(db, 0.4, "pesado") or _fast(db, 0.4, "leve") or "Sem consenso"
+        v = _fast(db, 0.4, "leve") or "Sem consenso"  # [Conselho 2.0] FAST em vez de 14b
 
         # 6. VALIDACAO ANTI-ALUCINACAO
         if kg:
             prompt_val = (
                 f"CONTEXTO DO PROJETO:\n"
-                f"- MCR = servidor de Tibia (OTServ Canary). NUNCA e Minecraft.\n"
-                f"- SPA = Sistema de Progressao do Aventureiro. NUNCA e Single Page Application.\n"
-                f"- SHC = Sistema de Habilidades Contextuais\n"
-                f"- Eridanus = cidade inicial\n"
-                f"- Dominios = Fogo, Gelo, Terra, Energia\n"
-                f"- OTClient = cliente de Tibia\n\n"
-                f"FATOS DO KG:\n{kg[:1000]}\n\n"
-                f"Verifique se o texto ABAIXO tem ALGO que nao pertence ao projeto MCR (Tibia).\n"
-                f"Exemplos de ERROS COMUNS:\n"
-                f"- Chamar MCR de 'Mundo Criativo Real' (ERRADO)\n"
-                f"- Falar de microservicos, cloud, Docker, Kubernetes (NAO pertence ao MCR)\n"
-                f"- Falar de Minecraft, ogisos, iceblocks, creepers (OUTRO JOGO)\n"
-                f"- Falar de WoW, magias de D&D, etc (NAO e Tibia)\n"
-                f"- Interpretar SPA como Single Page Application\n\n"
-                f"Texto:\n{v[:1200]}\n\n"
+                f"{_MCR_IDENTITY}\n\n"
+                f"FATOS DO KG:\n{kg}\n\n"
+                f"Verifique se o texto ABAIXO esta consistente com o contexto do projeto MCR (Tibia).\n"
+                f"Cada afirmacao deve corresponder aos fatos listados acima.\n\n"
+                f"Texto:\n{v}\n\n"
                 f"Tem ALGUM erro no texto? Responda apenas:\n"
                 f"- OK (se tudo correto)\n"
                 f"- ERRO: (descreva o erro em 10 palavras)"
             )
             validacao = _fast(prompt_val, 0.1, "leve") or "OK"
             if 'ERRO' in validacao:
-                print(f'  [Validador] {validacao[:150]}')
+                print(f'  [Validador] {validacao}')
                 v = _gerar(
                     f"{_MCR_IDENTITY}\n\n"
                     f"Com base APENAS nos FATOS abaixo, responda em PT-BR:\n\n"
-                    f"FATOS DO PROJETO:\n{kg[:1200]}\n\n"
+                    f"FATOS DO PROJETO:\n{kg}\n\n"
                     f"Pergunta original: {pergunta}\n\n"
                     f"REGRAS:\n"
                     f"- Use SOMENTE os FATOS listados acima\n"
@@ -471,7 +592,7 @@ class Conselho:
             gaps.append("Resposta muito curta. Expanda.")
 
         avaliacao_generico = _fast(
-            f"Texto: {v[:600]}\n\nEste texto e GENERICO (responda apenas SIM ou NAO):", 0.2, "leve") or ""
+            f"Texto: {v}\n\nEste texto e GENERICO (responda apenas SIM ou NAO):", 0.2, "leve") or ""
         if 'SIM' in avaliacao_generico.upper() and 'NAO' not in avaliacao_generico.upper():
             gaps.append("Conteudo generico.")
 
@@ -479,12 +600,12 @@ class Conselho:
             for g in gaps:
                 print(f'  [Auto-revisao] Gap: {g}')
             v = _gerar(f"Melhore corrigindo:\n" + '\n'.join(f"- {g}" for g in gaps) +
-                       f"\n\nTexto:\n{v[:800]}\n\nTexto MELHORADO (mais detalhado, especifico):",
+                       f"\n\nTexto:\n{v}\n\nTexto MELHORADO (mais detalhado, especifico):",
                        0.4, "conceito") or v
 
         # 8. TRADUCAO PT-BR
         v_original = v
-        v = _traduzir(v[:4000], temp=0.3)
+        v = _traduzir(v, temp=0.3)
         if not v or v == v_original:
             v = v_original
         else:

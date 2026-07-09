@@ -8,7 +8,7 @@
 
 ## Abstract
 
-This paper presents MCR (Multi-level Cognitive Registry), a universal framework for information processing based on a single equation applied across arbitrarily many levels of abstraction. Unlike traditional approaches that require specialized algorithms for each domain (language, decision-making, reinforcement learning, planning, attention, memory), MCR uses the same core mechanism—Markov chain transitions—and simply changes the tokenization level. The entire framework fits in approximately 950 lines of Python code, requires zero GPU, zero LLM dependencies, and is self-modifying. We demonstrate MCR operating at eight distinct levels: byte, word, action, world state, reinforcement learning, planning, attention, and memory.
+This paper presents MCR, a universal framework for information processing based on a single equation applied across arbitrarily many levels of abstraction. Unlike traditional approaches that require specialized algorithms for each domain (language, decision-making, reinforcement learning, planning, attention, memory), MCR uses the same core mechanism—Markov chain transitions—and simply changes the tokenization level. The implementation comprises approximately 7072 lines of Python (48 classes, 44 supplementary modules), requires zero GPU, zero LLM dependencies, and is self-modifying. We demonstrate MCR operating at eight distinct levels: byte, word, action, world state, reinforcement learning, planning, attention, and memory.
 
 ---
 

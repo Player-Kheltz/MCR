@@ -1,0 +1,87 @@
+﻿<Window x:Class="MCR.Grimorio.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ctrl="clr-namespace:MCR.Grimorio.Controls"
+        Title="MCR Grimório" Height="780" Width="1200"
+        MinHeight="500" MinWidth="900"
+        WindowStartupLocation="CenterScreen"
+        Background="{StaticResource BgDarkestBrush}"
+        Foreground="{StaticResource FgPrimaryBrush}">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- Global Entropy Bar -->
+        <Border Grid.Row="0" Height="4" Background="#333"
+                x:Name="EntropyBarOuter">
+            <Border x:Name="EntropyBarInner" Width="0" Height="4"
+                    HorizontalAlignment="Left"
+                    Background="#4EC9B0" />
+        </Border>
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="200" />
+                <ColumnDefinition Width="5" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Sidebar -->
+            <Border Grid.Column="0" Background="{StaticResource BgDarkBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="48" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <Border Grid.Row="0" Background="{StaticResource BgLightBrush}" Padding="12,0">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="🜁" FontSize="20" VerticalAlignment="Center" />
+                            <TextBlock Text="MCR Grimório" FontSize="15" FontWeight="SemiBold" Foreground="{StaticResource AccentGreenBrush}" VerticalAlignment="Center" Margin="8,0,0,0" />
+                        </StackPanel>
+                    </Border>
+
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Background="Transparent" BorderThickness="0">
+                        <StackPanel Margin="0,4,0,0">
+
+                            <TextBlock Text="PRINCIPAL" FontSize="10" Foreground="{StaticResource FgMutedBrush}" Margin="12,8,12,2" />
+                            <ctrl:NavButton x:Name="NavPainelMCR" Icon="📊" Label="Painel MCR" Click="NavigateToPainelMCR" />
+                            <ctrl:NavButton x:Name="NavDatabase" Icon="🗄️" Label="Banco de Dados" Click="NavigateToDatabase" />
+                            <ctrl:NavButton x:Name="NavScripts" Icon="📜" Label="Scripts" Click="NavigateToScripts" />
+                            <ctrl:NavButton x:Name="NavConfig" Icon="⚙️" Label="Configuração" Click="NavigateToConfig" />
+
+                            <TextBlock Text="CONTEÚDO" FontSize="10" Foreground="{StaticResource FgMutedBrush}" Margin="12,8,12,2" />
+                            <ctrl:NavButton x:Name="NavMonsters" Icon="👾" Label="Monstros" Click="NavigateToMonsters" />
+                            <ctrl:NavButton x:Name="NavNpcs" Icon="🧙" Label="NPCs" Click="NavigateToNpcs" />
+                            <ctrl:NavButton x:Name="NavItems" Icon="🛡️" Label="Itens" Click="NavigateToItems" />
+                            <ctrl:NavButton x:Name="NavMap" Icon="🗺️" Label="Mapa" Click="NavigateToMapa" />
+
+                            <TextBlock Text="MCR" FontSize="10" Foreground="{StaticResource FgMutedBrush}" Margin="12,8,12,2" />
+                            <ctrl:NavButton x:Name="NavQuests" Icon="📋" Label="Quest Designer" Click="NavigateToQuests" />
+                            <ctrl:NavButton x:Name="NavMCRSkills" Icon="🎯" Label="Skills SPA" Click="NavigateToMCRSkills" />
+                            <ctrl:NavButton x:Name="NavNPCDialogue" Icon="💬" Label="Diálogo NPC" Click="NavigateToNPCDialogue" />
+
+                        </StackPanel>
+                    </ScrollViewer>
+
+                    <Border Grid.Row="2" Background="{StaticResource BgLightBrush}" Padding="0">
+                        <ctrl:NavButton x:Name="NavSettings" Icon="⚙️" Label="Ajustes" Click="NavigateToSettings" />
+                    </Border>
+                </Grid>
+            </Border>
+
+            <!-- GridSplitter -->
+            <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Stretch"
+                          Background="{StaticResource BgDarkestBrush}"
+                          BorderBrush="{StaticResource BorderBrush}"
+                          BorderThickness="0" ResizeBehavior="PreviousAndNext" />
+
+            <!-- Content -->
+            <ContentControl Grid.Column="2" x:Name="MainContent"
+                            Background="{StaticResource BgDarkestBrush}" />
+        </Grid>
+    </Grid>
+</Window>

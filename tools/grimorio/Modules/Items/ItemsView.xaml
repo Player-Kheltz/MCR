@@ -1,0 +1,152 @@
+<UserControl x:Class="MCR.Grimorio.Modules.Items.ItemsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="{StaticResource BgDarkestBrush}">
+    <Grid Margin="12">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="2*" />
+            <ColumnDefinition Width="5" />
+            <ColumnDefinition Width="3*" />
+        </Grid.ColumnDefinitions>
+
+        <!-- Left Panel -->
+        <Grid Grid.Column="0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <Border Grid.Row="0" Background="{StaticResource BgMediumBrush}" CornerRadius="6" Padding="10,8" Margin="0,0,0,6">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="🛡️" FontSize="18" VerticalAlignment="Center" Margin="0,0,8,0" />
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                        <TextBlock Text="Itens" FontSize="16" FontWeight="SemiBold" Foreground="{StaticResource FgBrightBrush}" />
+                        <TextBlock x:Name="StatusText" FontSize="11" Foreground="{StaticResource FgSecondaryBrush}" />
+                    </StackPanel>
+                    <Button Grid.Column="2" x:Name="LoadButton" Content="📂" Width="30" Height="26" Padding="0" Click="LoadButton_Click" />
+                </Grid>
+            </Border>
+
+            <Border Grid.Row="1" Background="{StaticResource BgMediumBrush}" CornerRadius="6" Padding="6" Margin="0,0,0,6">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="120" />
+                    </Grid.ColumnDefinitions>
+                    <TextBox x:Name="SearchBox" Padding="6,4" FontSize="12" TextChanged="SearchBox_TextChanged" />
+                    <ComboBox Grid.Column="1" x:Name="TypeFilter" Margin="4,0,0,0" FontSize="12" SelectionChanged="TypeFilter_SelectionChanged">
+                        <ComboBoxItem Content="Todos" IsSelected="True" />
+                    </ComboBox>
+                </Grid>
+            </Border>
+
+            <Border Grid.Row="2" Background="{StaticResource BgMediumBrush}" CornerRadius="6">
+                <ListView x:Name="ItemList" Background="Transparent" BorderThickness="0"
+                          VirtualizingPanel.ScrollUnit="Pixel"
+                          SelectionChanged="ItemList_SelectionChanged">
+                    <ListView.ItemTemplate>
+                        <DataTemplate>
+                            <Grid Height="34" Margin="4,1">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="28" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="50" />
+                                    <ColumnDefinition Width="80" />
+                                </Grid.ColumnDefinitions>
+                                <Border Grid.Column="0" Background="{StaticResource BgDarkBrush}" CornerRadius="3" Width="26" Height="26">
+                                    <Image Source="{Binding Sprite}" Width="26" Height="26" SnapsToDevicePixels="True" />
+                                </Border>
+                                <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="12" VerticalAlignment="Center" Margin="6,0" TextTrimming="CharacterEllipsis" Foreground="{StaticResource FgPrimaryBrush}" />
+                                <TextBlock Grid.Column="2" Text="{Binding Id, StringFormat='ID: {0}'}" FontSize="10" Foreground="{StaticResource FgMutedBrush}" VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="3" Text="{Binding Type}" FontSize="10" Foreground="{StaticResource AccentOrangeBrush}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                            </Grid>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView>
+            </Border>
+        </Grid>
+
+        <!-- GridSplitter -->
+        <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Stretch"
+                      Background="{StaticResource BgDarkestBrush}"
+                      BorderBrush="{StaticResource BorderBrush}" BorderThickness="0"
+                      ResizeBehavior="PreviousAndNext" />
+
+        <!-- Right Panel - Detail -->
+        <Grid Grid.Column="2">
+            <!-- Empty state -->
+            <Border x:Name="EmptyPanel" Background="{StaticResource BgMediumBrush}" CornerRadius="6" Visibility="Visible">
+                <TextBlock Text="Selecione um item na lista para ver detalhes" FontSize="14"
+                           Foreground="{StaticResource FgMutedBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Border>
+
+            <!-- Detail -->
+            <ScrollViewer x:Name="DetailScroll" Visibility="Collapsed">
+                <Border Background="{StaticResource BgMediumBrush}" CornerRadius="6" Padding="16">
+                    <StackPanel>
+                    <!-- Sprite -->
+                    <Border CornerRadius="6" HorizontalAlignment="Left" Width="80" Height="80" Margin="0,0,0,12">
+                        <Border.Background>
+                            <DrawingBrush Viewport="0,0,8,8" ViewportUnits="Absolute" TileMode="Tile">
+                                <DrawingBrush.Drawing>
+                                    <DrawingGroup>
+                                        <GeometryDrawing Geometry="M0,0 H4 V4 H0 Z" Brush="#CCCCCC" />
+                                        <GeometryDrawing Geometry="M4,4 H8 V8 H4 Z" Brush="#CCCCCC" />
+                                    </DrawingGroup>
+                                </DrawingBrush.Drawing>
+                            </DrawingBrush>
+                        </Border.Background>
+                        <Image x:Name="DetailSprite" Width="64" Height="64" Stretch="None" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+
+                    <TextBlock x:Name="DetailName" FontSize="20" FontWeight="SemiBold" Foreground="{StaticResource FgBrightBrush}" />
+                    <TextBlock x:Name="DetailId" FontSize="12" Foreground="{StaticResource FgMutedBrush}" Margin="0,2,0,4" />
+                    <TextBlock x:Name="DetailTypeWeight" FontSize="13" Foreground="{StaticResource AccentOrangeBrush}" Margin="0,0,0,12" />
+
+                    <!-- Description -->
+                    <Border x:Name="DetailDescPanel" Background="{StaticResource BgDarkBrush}" CornerRadius="4" Padding="10" Margin="0,0,0,12" Visibility="Collapsed">
+                        <TextBlock x:Name="DetailDescription" FontSize="12" Foreground="{StaticResource FgPrimaryBrush}" TextWrapping="Wrap" />
+                    </Border>
+
+                    <!-- Stats -->
+                    <Border x:Name="StatsPanel" Background="{StaticResource BgDarkBrush}" CornerRadius="4" Padding="10" Margin="0,0,0,12" Visibility="Collapsed">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" HorizontalAlignment="Center">
+                                <TextBlock Text="Ataque" FontSize="11" Foreground="{StaticResource FgMutedBrush}" HorizontalAlignment="Center" />
+                                <TextBlock x:Name="DetailAttack" FontSize="20" FontWeight="Bold" Foreground="{StaticResource AccentGreenBrush}" HorizontalAlignment="Center" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" HorizontalAlignment="Center">
+                                <TextBlock Text="Defesa" FontSize="11" Foreground="{StaticResource FgMutedBrush}" HorizontalAlignment="Center" />
+                                <TextBlock x:Name="DetailDefense" FontSize="20" FontWeight="Bold" Foreground="{StaticResource AccentOrangeBrush}" HorizontalAlignment="Center" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="2" HorizontalAlignment="Center">
+                                <TextBlock Text="Armadura" FontSize="11" Foreground="{StaticResource FgMutedBrush}" HorizontalAlignment="Center" />
+                                <TextBlock x:Name="DetailArmor" FontSize="20" FontWeight="Bold" Foreground="{StaticResource StatusStoppedBrush}" HorizontalAlignment="Center" />
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <!-- Container -->
+                    <Border x:Name="ContainerPanel" Background="{StaticResource BgDarkBrush}" CornerRadius="4" Padding="10" Visibility="Collapsed">
+                        <StackPanel>
+                            <TextBlock Text="Container" FontSize="11" Foreground="{StaticResource FgMutedBrush}" />
+                            <TextBlock x:Name="DetailContainerSize" FontSize="16" FontWeight="SemiBold" Foreground="{StaticResource FgBrightBrush}" />
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+                    </Border>
+            </ScrollViewer>
+        </Grid>
+    </Grid>
+</UserControl>

@@ -4,15 +4,15 @@ import sys, os, json, time
 
 BASE_MCR = r"E:\MCR"
 sys.path.insert(0, BASE_MCR)
-sys.path.insert(0, r"E:\Projeto MCR\historia\Scripts\mcr_devia\knowledge")
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "devia", "knowledge"))
 
-PROJETO = r"E:\Projeto MCR"
+PROJETO = os.path.dirname(os.path.abspath(__file__))
 
 # Importa e corrige NPC_DIRS global
 import canary_indexer
 canary_indexer.NPC_DIRS = [
-    os.path.join(PROJETO, "Canary", "data-otservbr-global", "npc"),
-    os.path.join(PROJETO, "Canary", "data-canary", "scripts", "MCR"),
+    os.path.join(PROJETO, "server", "data-otservbr-global", "npc"),
+    os.path.join(PROJETO, "server", "data-canary", "scripts", "MCR"),
 ]
 CanaryIndexer = canary_indexer.CanaryIndexer
 

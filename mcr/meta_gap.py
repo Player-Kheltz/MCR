@@ -9,6 +9,7 @@ from collections import defaultdict
 
 from mcr.paths import KG_DIR, CANARY_SRC_DIR, CANARY_DATA_DIR, CANARY_SCRIPTS_DIR
 from mcr.encoding import read_file
+from mcr.silent_log import log
 
 # Temas conhecidos do Canary (por diretorio/padrao de nome)
 _TEMAS_POR_DIRETORIO = {
@@ -80,7 +81,7 @@ class MetaGap:
                                         self.conhecidos.add(tema)
             except Exception:
                 pass
-        print(f'[MetaGap] Conhecidos: {len(self.conhecidos)} temas')
+        log('[MetaGap] Conhecidos: %d temas' % len(self.conhecidos))
 
     def detectar_lacunas(self) -> List[Dict]:
         """Varre o codigo-fonte do Canary e detecta lacunas no KG.
@@ -162,11 +163,11 @@ class MetaGap:
                 vistos.add(chave)
                 unicos.append(l)
 
-        print(f'[MetaGap] Lacunas detectadas: {len(unicos)}')
+        log('[MetaGap] Lacunas detectadas: {len(unicos)}')
         for l in unicos[:10]:
-            print(f'  - {l["tema"]}: {len(l["arquivos"])} arquivo(s) ({l["fonte"]})')
+            log('  - %s: %d arquivo(s) (%s)' % (l['tema'], len(l['arquivos']), l['fonte']))
         if len(unicos) > 10:
-            print(f'  ... e mais {len(unicos)-10} lacunas')
+            log('  ... e mais %d lacunas' % (len(unicos)-10))
 
         return unicos
 

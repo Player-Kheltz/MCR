@@ -5,20 +5,20 @@
 *July 2026*
 
 > **Disclaimer:** This whitepaper describes a **research experiment**, not a production system.  
-> The implementation (~5000 lines, Python stdlib) is a **prototype**. Claims about "general intelligence"  
+> The implementation (~7072 lines across 48 classes plus 44 Python modules, stdlib) is a **prototype**. Claims about "general intelligence"  
 > in the conclusion are **speculative hypotheses**, not demonstrated capabilities.  
 > MCR does not compete with LLMs, neural networks, or any commercial AI system.  
-> All code, tests, and results are公开 for independent verification.
+> All code, tests, and results are publicly available for independent verification.
 
 ---
 
 ## Abstract
 
-We present **MCR** (Multi-level Cognitive Registry), a single mathematical equation for information processing that operates identically across arbitrary levels of abstraction. Given a state space $S_n$ and a transition function $T_n: S_n \times S_n \to \mathbb{N}$, MCR learns the conditional probability distribution $P(b|a) = T_n(a,b) / \sum_{c \in S_n} T_n(a,c)$ for any level $n$. We prove that this equation is **level-invariant**: the same operator $T$ works for byte prediction, word generation, decision-making, causal modeling, reinforcement learning, hierarchical planning, attention, memory, semantic parsing, and relational reasoning — differing only in the definition of $S_n$.
+We present **MCR**, a single mathematical equation for information processing that operates identically across arbitrary levels of abstraction. Given a state space $S_n$ and a transition function $T_n: S_n \times S_n \to \mathbb{N}$, MCR learns the conditional probability distribution $P(b|a) = T_n(a,b) / \sum_{c \in S_n} T_n(a,c)$ for any level $n$. We prove that this equation is **level-invariant**: the same operator $T$ works for byte prediction, word generation, decision-making, causal modeling, reinforcement learning, hierarchical planning, attention, memory, semantic parsing, and relational reasoning — differing only in the definition of $S_n$.
 
 Beyond single-level prediction, we introduce **cross-level coupling** ($\text{MCRCoupling} + \text{MCREsfera}$), where N independent chains interact through an N-dimensional correlation matrix, enabling prediction at one level to be informed by patterns at another. We introduce **superposition** ($\text{MCRSuperposicao}$), where two chains collide to produce a token that neither predicted alone — a discrete mechanism for genuine novelty. We introduce **auto-validation** ($\text{MCRAutoValidacaoContinua}$), where the system recursively validates its own stability via entropy oscillation. We introduce **criticality** ($\text{MCRAutoEvolution}$), where the system modifies its own thresholds to maintain entropy at the edge of chaos (0.2–0.7), avoiding both silence (zero entropy) and noise (maximum entropy).
 
-An implementation in ~4650 lines of Python (zero GPU, zero LLM, zero external dependencies) with **449/449 tests passing** serves as constructive proof. The system passively observes its environment through Windows hooks (keyboard, mouse, clipboard, foreground window) and filesystem monitoring ($\text{FindFirstChangeNotificationW}$), feeds all events into a unified byte chain, and discovers correlations between all sources through multi-level entropy. We discuss theoretical implications for AGI, showing that general intelligence may emerge from hierarchical compositions of a single transition primitive rather than from specialized architectures.
+An implementation of ~7072 lines across 48 classes and 44 modules (zero GPU, zero LLM, zero external dependencies) serves as constructive proof. The system passively observes its environment through Windows hooks (keyboard, mouse, clipboard, foreground window) and filesystem monitoring ($\text{FindFirstChangeNotificationW}$), feeds all events into a unified byte chain, and discovers correlations between all sources through multi-level entropy. We discuss theoretical implications for AGI, showing that general intelligence may emerge from hierarchical compositions of a single transition primitive rather than from specialized architectures.
 
 ---
 
@@ -338,25 +338,7 @@ All events are encoded as `SYS:{source}:{action}:{data}` tokens in the `sys_byte
 
 ---
 
-## 14. Test Results
 
-The current implementation passes **449/449 tests** across 8 test suites:
-
-| Suite | Tests | Result |
-|-------|-------|--------|
-| `test_mcr_veracidade.py` | 194 | 10.0/10 |
-| `test_mcr_desafios.py` | 13 | 13/13 |
-| `test_mcr_comparativo.py` | 22 | 22/22 |
-| `test_mcr_comparativo_avancado.py` | 32 | 32/32 |
-| `test_bateria_real.py` | 12 | Pass |
-| `test_mcr_stress.py` | 100 | 100/100 |
-| `test_mcr_promessas.py` | 100 | 100/100 |
-| `test_silogismo.py` | 60 | 60/60 |
-| **Total** | **449** | **449/449 (100%)** |
-
-No test uses hardcoded results. All assertions compare MCR output to dynamically computed baselines in the same process.
-
----
 
 ## 15. Limitations and Open Questions
 
@@ -378,7 +360,7 @@ The MCR equation demonstrates that a single transition primitive — $T_n(a,b) \
 
 The implications for AGI are significant: if general intelligence requires learning transitions in increasingly abstract state spaces, and one equation operates across all such spaces with emergent coupling between them, then the path to AGI may be one of **level discovery and coupling** rather than **architecture invention**. The discovery of appropriate state representations at each level, and the automatic identification of which levels should couple, becomes the central research question — not the design of domain-specific algorithms.
 
-The complete implementation (~4650 lines, zero GPU, zero LLM, 449/449 tests) serves as constructive proof that this approach is not merely theoretical but realizable in a single file of Python stdlib.
+The complete implementation (~7072 lines across 48 classes and 44 modules, zero GPU, zero LLM) serves as constructive proof that this approach is not merely theoretical but realizable in Python stdlib.
 
 ---
 

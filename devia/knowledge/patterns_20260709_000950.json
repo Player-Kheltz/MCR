@@ -1,0 +1,26 @@
+{
+  "metadata": {
+    "criado": "2026-07-09 00:09:50"
+  },
+  "padroes": [],
+  "anti_patterns": [
+    {
+      "categoria": "api_inexistente",
+      "api_problematica": "metodoInexistente",
+      "arquivo": "C:\\Users\\Kheltz\\AppData\\Local\\Temp\\tmp8q2k8168.lua",
+      "mensagem_original": "[string \"<python>\"]:164: attempt to call a nil value (method 'metodoInexistente')\nstack traceback:\n\t[string \"<python>\"]:164: in main chunk",
+      "solucao_sugerida": "Revise o uso de metodoInexistente. Verifique se a funcao existe no objeto correto.",
+      "timestamp": "2026-07-09 00:09:50",
+      "ocorrencias": 1
+    },
+    {
+      "categoria": "runtime_shadow",
+      "api_problematica": "metodoInexistente",
+      "arquivo": "",
+      "mensagem_original": "[string \"<python>\"]:164: attempt to call a nil value (method 'metodoInexistente')\nstack traceback:\n\t[string \"<python>\"]:164: in main chunk",
+      "solucao_sugerida": "Revise o uso de metodoInexistente. Verifique se a funcao existe no objeto correto.",
+      "timestamp": "2026-07-09 00:09:50",
+      "ocorrencias": 1
+    }
+  ]
+}

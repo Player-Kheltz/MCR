@@ -1,131 +1,125 @@
-# MCR — Multi-level Markov Engine
+# MCR
 
-> 1 equation. N levels. 0 GPU. 0 LLM. 0 dependencies.
-> ~5000 lines of Python stdlib. **449/449 tests pass.**
+> 1 equação. N níveis. 0 hardcode.
 
 ```python
 MCR(nivel).aprender(a, b)  # learns that "a" leads to "b"
 MCR(nivel).predizer(a)      # most probable "b" given "a"
 ```
 
-## ⚠️ Please read this first
-
-**MCR is a research experiment, not an AGI, not a product, not a competitor to any AI system.**
-
-| MCR is NOT... | Because... |
-|---------------|-----------|
-| An AGI | No understanding, no consciousness, no reasoning. It counts transitions. |
-| A chatbot | Responses are Markov-generated bigrams — repetitive, no comprehension |
-| Production-ready | Prototype experiment by a single developer |
-| LLM competitor | GPT-4 generates more in 0.1s than MCR does in a day |
-| A business | Personal research project, dual-licensed AGPL v3 |
-
-**What MCR actually IS:** A multi-level Markov chain system where byte, word, semantic, and decision levels are coupled via entropy. An honest exploration of *how far a single equation can go when applied at every level of abstraction.* The results are measurable (449/449 tests), but modest in absolute terms. No claims beyond what the tests prove.
-
-The code is real. The tests pass. The limitations are documented. Judge accordingly.
-
----
+MCR is a research experiment. Not an AGI, not a product, not a business.
+stdlib only. Zero GPU required for decisions.
 
 ## What It Actually Does
 
-### Core (Stdlib Only)
+### Core (devia/kernel/MCR.py — 7072 lines, 48 classes)
 
 | Capability | How |
 |-----------|-----|
-| **Multi-level Markov** | Byte, palavra, tven, sujeito, relação, objeto, decisão, ação + auto-descobertos |
-| **N-Dimensional Coupling** | `MCRCoupling` + `MCREsfera` — cross-level correlation matrix |
-| **Superposition** | `MCRSuperposicao.colidir()` — two chains collide → novel token neither predicted alone |
-| **Auto-Validation** | `MCRAutoValidacaoContinua` — recursive self-validation by entropy |
-| **Criticality** | `MCRAutoEvolution` — self-modification at the edge of chaos (entropy 0.2–0.7) |
+| **Multi-level Markov** | Byte, palavra, token, decisão, threshold, assinatura, filosofia, qualidade |
+| **N-Dimensional Coupling** | Cross-level correlation via coupling matrix + esfera |
+| **Superposition** | Two Markov chains collide → novel token neither predicted alone |
+| **Auto-Validation** | Recursive self-validation by entropy |
+| **Criticality** | Self-modification at the edge of chaos (entropy 0.2–0.7) |
 | **Fingerprinting** | 8–128D projection with auto-dimensionality discovery |
 | **HDC** | Bundle, bind, permute, analogy: `rei − homem + mulher → rainha` |
-| **Semantic Parsing** | `MCRParserMinimo` — extracts (subject, relation, object) triples from Portuguese text |
-| **Relational State Space** | `MCRRedeSemantica` — subject→relation→object chains + transitive BFS |
+| **Semantic Parsing** | Extracts (subject, relation, object) triples from Portuguese text |
+| **Relational State Space** | subject→relation→object chains + transitive BFS |
+| **Self-Evolution** | `MCRAutoEvolution` — mutates thresholds, measures entropy impact, accepts/rejects |
 
-### Observation (Passive, Event-Driven)
+### Pipeline de Mundo (44 módulos em mcr/)
 
-| Source | Mechanism | Platform |
-|--------|-----------|----------|
-| **Keyboard** | Low-level hook (`WH_KEYBOARD_LL`) | Windows |
-| **Mouse** | Low-level hook (`WH_MOUSE_LL`) | Windows |
-| **Clipboard** | Polling window handle | Windows |
-| **Foreground Window** | `EVENT_SYSTEM_FOREGROUND` | Windows |
-| **Filesystem** | `FindFirstChangeNotificationW` + signature diff | Windows |
+| Módulo | Função |
+|--------|--------|
+| `mcr_world_builder.py` | Geração de código Lua Canary com validação dupla (sintaxe + semântica) |
+| `mcr_radar.py` | Busca semântica em 4 ondas (70/50/30/10% threshold) |
+| `emergir.py` | Motor de criatividade "E se..." conectando conceitos do KG |
+| `sanity_validator.py` | **0 APIs hardcoded** — minera APIs do C++ e Lua em runtime via tree-sitter |
+| `shadow_canary.py` | Ambiente mock LuaJIT + auto-aprendizado por erro |
+| `mcr_world_system.py` | Orquestrador Markoviano com 5 estados (EXPANDIR/CONECTAR/EQUILIBRAR/EVOLUIR/COMPENSAR) |
+| `mcr_world_state.py` | Estado do mundo persistente em `devia/world_state.json` |
+| `mcr_world_chronicle.py` | Crônica narrativa em `devia/world_chronicle.md` |
+| `mcr_world_foundation.py` | WorldSeed + validação de coerência temática + `world_event()` |
+| `mcr_signature_cluster.py` | Descoberta automática de tipos por cluster de APIs (27 clusters de 2.691 entidades) |
+| `mcr_cold_start.py` | Cold Start tabula rasa — aprende regras de qualquer servidor em ~2s |
+| `golden_templates.py` | Templates zero-LLM, 100% canônicos Canary |
+| `bridge_api.py` | HTTP REST :7778 — interface para Grimório C# |
+| `world_observer.py` | Observação de eventos do servidor → perturbações de entropia |
+| `metacognicao.py` | Gateway de Incerteza — threshold adaptativo 70% |
+| `anti_pattern.py` | Classificação de erros Lua + registro no KG |
+| `pattern_miner.py` | Tree-sitter AST → 2.690+ padrões no KG |
+| `mcr_entity_factory.py` | 3 tiers (template/codificado/quest) |
+| `mcr_entity_validator.py` | Validação individual de entidades |
+| `mcr_idea_to_spec.py` | Ideia → especificação JSON via LLM + golden examples |
+| `mcr_world_seed.py` | Semente minimalista (world_name + concepts) via Mistral |
+| `equacao_mcr.py` | Fonte da verdade: `_EQUACAO_ATUAL` com 15 parâmetros, 8 fórmulas |
+| `mcr_meta.py` | Auto-avaliação via `PONTE_OTIMA = (5*div + 3*esp + 2*prof) / 10` |
+| `mcr_auto_evolution.py` | Mutação de thresholds com medição de entropia |
+| `npc_server.py` | Servidor TCP :7777 para diálogo NPC |
+| +19 outros | — |
 
-All feed into a **single unified byte chain** (`sys_byte`). The MCR discovers correlations between ALL sources via multi-level entropy.
+### Validação (3 camadas)
 
-### Emergence
+| Camada | O que faz | Como |
+|--------|-----------|------|
+| **LuaValidator** | Verifica sintaxe Lua | Sandbox LuaJIT + regex fallback |
+| **SanityValidator** | Verifica APIs contra KG | 0 APIs hardcoded — minera do C++ em runtime |
+| **Shadow Canary** | Execução mock Lua | Detecta crashes antes da produção + auto-aprendizado |
 
-| Mechanism | What Emerges |
-|-----------|-------------|
-| **Superposition** | Tokens that NO single chain predicts — the collision of two Markov routes generates novelty |
-| **Hiperesfera Auto-Expansiva** | New tokenization dimensions from high-entropy data (bigrama, trigrama, byte_delta, hash, etc.) |
-| **Auto-Topology** | Correlation graph between levels — geometry emerges from data |
-| **Cross-Level Prediction** | The esfera predicts a word from a byte, a byte from an intention |
+### Cold Start (Agnóstico de Domínio)
 
-### Interaction
+O MCR pode ser plugado em qualquer servidor OTServ (ou qualquer projeto de código) e aprender suas regras do zero:
 
-```bash
-python MCR.py                          # chat — learns from conversation
-python MCR.py "explique o MCR"         # direct question
-python MCR.py --daemon                 # server — observes system in background
-python MCR.py --aprender               # feeds NPC dialogue files
+```
+cold_start()
+├── Apaga Knowledge Graph
+├── Minera APIs do C++ e Lua (tree-sitter)
+├── Forma clusters de assinatura (27 clusters de 2.691 entidades)
+├── Constrói meta-clusters (Monster group: 1.657, NPC group: 1.034)
+├── Gera código válido (SanityValidator + LuaValidator + Shadow Canary)
+└── Aprende com erros de execução (penalidades Markov)
 ```
 
----
+~2 segundos. Zero intervenção humana.
 
-## Test Results (449/449 — 100%)
+### Serviços de Rede
 
-| Suite | Tests | Result | What It Validates |
-|-------|-------|--------|-------------------|
-| `test_mcr_veracidade.py` | 194 | 10.0/10 | Every promise MCR makes |
-| `test_mcr_desafios.py` | 13 | 13/13 | Multi-level entropy, curiosity, coupling, superposition |
-| `test_mcr_comparativo.py` | 22 | 22/22 | vs simple baselines |
-| `test_mcr_comparativo_avancado.py` | 32 | 32/32 | vs known systems (Q-Learning, HDC, planning) |
-| `test_bateria_real.py` | 12 | Pass | Real-world behavioral validation |
-| `test_mcr_stress.py` | 100 | 100/100 | 10 rounds: 50K mass, 10 sources, 1000 auto-evolution cycles |
-| `test_mcr_promessas.py` | 100 | 100/100 | 10 promises validated |
-| `test_silogismo.py` | 60 | 60/60 | Semantic parser + transitive inference |
-| **Total** | **449** | **449/449** | **100% — zero hardcoded results** |
+| Serviço | Porta | Função |
+|---------|-------|--------|
+| NPC Server | 7777 | Socket TCP — diálogo NPC em tempo real |
+| Bridge API | 7778 | HTTP REST — interface Python↔C# |
+| Ollama | 11434 | LLM local (qwen2.5-coder:7b, mistral:7b) |
 
 ---
 
 ## Architecture
 
 ```
-Input (text, keys, mouse, clipboard, files, clock)
-    │
-    ▼
-┌──────────────────────────────────────────────────────────┐
-│  Multi-Level Parallel Markov Chains                      │
-│                                                          │
-│  ┌──────┐  ┌────────┐  ┌──────┐  ┌────────┐  ┌──────┐  │
-│  │ Byte │  │ Word   │  │ Tven │  │Subject │  │Relac │  │
-│  │→byte │  │→word   │  │→type │  │→relac  │  │→obj  │  │
-│  └──┬───┘  └───┬────┘  └──┬───┘  └───┬────┘  └──┬───┘  │
-│     │          │          │          │          │       │
-│  ┌──▼──────────▼──────────▼──────────▼──────────▼────┐  │
-│  │       MCRCoupling + MCREsfera (N×N)              │  │
-│  │  Cross-level correlation + N-dimensional esfera  │  │
-│  │  + MCRSuperposicao (collision → emergence)       │  │
-│  └──────────────────────────────────────────────────┘  │
-│     │          │          │          │          │       │
-│  ┌──▼──────────▼──────────▼──────────▼──────────▼────┐  │
-│  │  MCRAutoValidacaoContinua + MCRAutoEvolution     │  │
-│  │  (criticality: entropy 0.2–0.7, self-modify)     │  │
-│  └──────────────────────────────────────────────────┘  │
-│     │                                                  │
-│  ┌──▼──────────────────────────────────────────────┐  │
-│  │  MCRDecisorUniversal + mk_orq (Markov-decided)  │  │
-│  │  Zero if/elif — all decisions via predizer()    │  │
-│  └─────────────────────────────────────────────────┘  │
-└──────────────────────────────────────────────────────────┘
-    │
-    ▼
-Prediction / Generation / Action / Emergence
+                      ┌──────────────────────┐
+                      │     Bridge API       │
+                      │     (:7778 REST)     │
+                      └──────┬───────┬───────┘
+                             │       │
+              ┌──────────────┘       └──────────────┐
+              ▼                                      ▼
+   ┌──────────────────┐                  ┌─────────────────────┐
+   │  Grimório C# WPF │                  │  WorldObserver      │
+   │  (Painel Admin)  │                  │  (Eventos Servidor) │
+   └──────────────────┘                  └─────────────────────┘
+                                                   │
+                                                   ▼
+                                          ┌─────────────────┐
+                                          │ MCRWorldSystem   │
+                                          │ (Loop Markov)    │
+                                          └─────────────────┘
+                                                   │
+                                      ┌────────────┼────────────┐
+                                      ▼            ▼            ▼
+                               ┌──────────┐ ┌──────────┐ ┌──────────┐
+                               │ Emergir  │ │ RadarMCR │ │ expandir │
+                               │ (Ideias) │ │ (Busca)  │ │ (Injecao)│
+                               └──────────┘ └──────────┘ └──────────┘
 ```
-
-All levels learn simultaneously from every input. The coupling matrix captures correlations. The esfera enables cross-level prediction. The superposition generates what no chain predicted alone.
 
 ---
 
@@ -133,25 +127,18 @@ All levels learn simultaneously from every input. The coupling matrix captures c
 
 ```
 E:/MCR/
-├── MCR.py                   # ~4650 lines, stdlib only (ENTIRE system)
-├── test_mcr_veracidade.py       # 194 tests
-├── test_mcr_desafios.py         # 13 multi-level tests
-├── test_mcr_comparativo.py      # 22 vs baseline
-├── test_mcr_comparativo_avancado.py  # 32 vs known systems
-├── test_bateria_real.py         # 12 real-world tests
-├── test_mcr_stress.py           # 100 pts stress test
-├── test_mcr_promessas.py        # 100 pts promise validation
-├── test_silogismo.py            # 60 pts transitive inference
-├── docs/
-│   ├── MANIFESTO_MCR.md         # The philosophy
-│   ├── MCR_WHITEPAPER_EN.md     # Technical whitepaper
-│   ├── MCR_WHITEPAPER_PT.md     # Whitepaper (Portuguese)
-│   ├── REFLEXAO_MCR.md          # Reflection on the project
-│   ├── CONVERSA_FILOSOFICA.md    # The philosophical conversation
-│   ├── ESFERA_CONCEITO.md       # The esfera concept
-│   ├── TOPOLOGIA_EMERGENTE.md   # Emergent topology
-│   └── ...
-└── cache/                       # Learned data (gitignored)
+├── devia/kernel/MCR.py       # 7072 lines, 48 classes — núcleo Markov
+├── mcr/                       # 44 módulos Python
+├── server/                    # Canary (Tibia OT)
+├── client/                    # OTClient (jogadores)
+├── tools/
+│   ├── grimorio/              # Painel admin C# WPF
+│   └── login-server/          # Login server HTTP
+├── devia/
+│   ├── knowledge/             # Knowledge Graph
+│   ├── world_state.json       # Estado do mundo
+│   └── world_chronicle.md     # Crônica narrativa
+└── docs/                      # Documentação
 ```
 
 ---
@@ -174,12 +161,10 @@ E:/MCR/
 
 ## License
 
-**MCR** is dual-licensed under AGPL v3 (free) or commercial license. See [LICENSE](LICENSE) and [LICENCA_COMERCIAL.md](LICENCA_COMERCIAL.md).
+Dual-licensed under AGPL v3 or commercial license. See [LICENSE](LICENSE) and [LICENCA_COMERCIAL.md](LICENCA_COMERCIAL.md).
 
 ---
 
 ## Author
 
 **Kheltz** — Independent researcher.
-
-*How far can one Markov chain go when applied at every level, coupled by entropy, and left to emerge?* — Apparently, very far.

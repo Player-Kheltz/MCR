@@ -26,33 +26,74 @@ Thumbs.db
 scan_security*.py
 teste_persistencia.py
 
-# Prototypes and backups
+# Repositorios externos (cada um tem seu proprio repo)
+server/
+client/
+tools/map-editor/
+tools/login-server/
+
+# Backups e arquivos mortos
+Backup/
+ArquivosComplementares/
+historia/
+prototypes/
+nichos/
+Legado/
 agi_prototipo/
 backup_final/
 backup_universal/
 
-# ProjetoMCR server files (excluded from MCR repo)
-Canary/
-OTClient/
-LoginServer/
-MapEditor/
-data/
-Legado/
-MCR-DevIA/
-..bfg-report/
-.learn_db/
-respostas_cloud/
-respostas_mcr/
+# Temporarios MCR
+sandbox_criativo/
+ideas_que_funcionaram/
+MCR.rar
 
-# Reorg: vcpkg, build artifacts, node_modules
-server/vcpkg_installed/
-server/build/
-client/build/
-*.o
-*.obj
+# Compilados e binarios
 *.exe
 *.lib
 *.dll
+*.obj
+*.o
+*.rar
+*.zip
+*.7z
+*.exp
+*.pdb
+
+# Reorg: vcpkg, build artifacts
+server/vcpkg_installed/
+server/build/
+client/build/
+
+# Legacy: arquivos soltos na raiz que nao pertencem ao repo MCR
+sandbox/
+test_*.py
+debug_*.py
+exp1_*.py
+exp2_*.py
+resultado_*.json
+resultados.json
+teste_*.py
+test_*.py
+validacao_*.py
+check_*.py
+dbg_*.py
+reindex_*.py
+nab_*.csv
+smd_sample.txt
+*.csv
+run_test.py
+filtrar_scan.py
+scan_projeto.py
+self_calibrate.py
+mcr_devia_v2.py
+mundo_tibia.py
+npc_vivo.py
+percepcao.py
+rede_npcs.py
+hdc_core.py
+sdm_core.py
+fix_mcr_devia_v2.py
 
 # Temp
 *.tmp

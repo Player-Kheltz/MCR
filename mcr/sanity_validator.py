@@ -1,97 +1,163 @@
-"""mcr.sanity_validator — Valida se um script Lua chama apenas APIs que existem no Canary.
-Usa tree-sitter para extrair chamadas e compara contra o Knowledge Graph."""
+"""mcr.sanity_validator — Valida se um script Lua chama apenas APIs existentes.
+Usa tree-sitter para extrair chamadas e compara contra o Knowledge Graph.
+NENHUMA API hardcoded — tudo e aprendido do fonte ou do KG em tempo real."""
 import json
 import re
+import os
 from pathlib import Path
 from typing import List, Dict, Optional, Set
 
 from tree_sitter import Language, Parser
 import tree_sitter_lua
 
-from mcr.paths import KG_DIR
+from mcr.paths import KG_DIR, SERVER_DIR
 from mcr.encoding import read_file
 
-# Parser Lua unico
 _LUA_LANG = Language(tree_sitter_lua.language())
 _LUA_PARSER = Parser(_LUA_LANG)
 
+# Cache global de APIs (evita re-minerar a cada instancia)
+_APIS_CACHE: Set[str] = set()
+_APIS_CACHE_INICIALIZADO = False
+
 
 class SanityValidator:
-    """Valida scripts Lua contra as APIs conhecidas no KG."""
+    """Valida scripts Lua contra as APIs conhecidas.
+    
+    APIs sao descobertas dinamicamente de:
+    1. Fonte C++ do servidor (server/src/) — funcoes registradas no lua
+    2. Knowledge Graph (devia/knowledge/patterns_*.json) — chamadas reais
+    3. Scripts .lua existentes — chamadas adicionais
+    
+    Zero APIs hardcoded. Tudo aprendido do ambiente.
+    """
 
-    # APIs canonicas do Canary que sabemos que existem
-    _API_BASE = {
-        # Game
-        'game.createnpctype', 'game.createmonstertype', 'game.createmonster',
-        'game.createitem', 'game.getstoragevalue', 'game.setstoragevalue',
-        # NpcType
-        'npctype:register', 'npctype:register(keywordhandler)',
-        # NpcHandler
-        'npchandler:new', 'npchandler:addmodule',
-        # KeywordHandler
-        'keywordhandler:new',
-        # Action
-        'action', 'action:register', 'action:uid',
-        # Player
-        'player:sendtextmessage', 'player:additem', 'player:removeitem',
-        'player:getstoragevalue', 'player:setstoragevalue', 'player:getname',
-        'player:getposition', 'player:addmoney', 'player:removemoney',
-        # Position
-        'position',
-        # Message constants
-        'message_info_descr', 'message_event_advance', 'message_status_warning',
-        'message_default', 'message_failure', 'message_trade',
-        # FocusModule
-        'focusmodule:new',
-        # Item
-        'item:remove', 'item:getid', 'item:gettype',
-        # Container
-        'container',
-        # MonsterType
-        'monstertype:register',
-        # CreatureEvent
-        'creatureevent',
-        # GlobalEvent
-        'globalevent',
-        # TalkAction
-        'talkaction',
-        # MoveEvent
-        'moveevent',
-        # Spell
-        'spell',
-    }
-
-    def __init__(self, kg_dir: Optional[Path] = None):
+    def __init__(self, kg_dir: Optional[Path] = None, server_src_dir: Optional[Path] = None):
         self.kg_dir = kg_dir or KG_DIR
+        self.server_src_dir = server_src_dir or (SERVER_DIR / "src")
         self.api_conhecidas: Set[str] = set()
         self.padroes: List[Dict] = []
-        self._carregar_kg()
+        self._carregar_apis()
 
-    def _carregar_kg(self):
-        """Carrega APIs conhecidas do KG + base canonicas."""
-        # Comeca com as APIs canonicas
-        self.api_conhecidas = set(self._API_BASE)
+    # ─── Mineracao de APIs do C++ ──────────────────────────
 
-        if not self.kg_dir.exists():
-            print(f'[SanityValidator] KG nao encontrado: {self.kg_dir}, usando {len(self.api_conhecidas)} APIs base')
+    @staticmethod
+    def minerar_apis_do_cpp(src_dir: Path) -> Set[str]:
+        """Extrai nomes de funcoes Lua registradas no codigo fonte C++.
+        
+        Busca padroes como:
+        - g_lua.bindClassMemberFunction<Classe>("nome", ...)
+        - g_lua.bindGlobalFunction("nome", ...)
+        - lua_register(L, "nome", ...)
+        - .register("nome")
+        - registerMethod("nome")
+        """
+        apis: Set[str] = set()
+        if not src_dir.exists():
+            print(f'[SanityValidator] Diretorio C++ nao encontrado: {src_dir}')
+            return apis
+
+        padroes_cpp = [
+            r'bindClassMemberFunction\w*\s*<\w+>\s*\(\s*"(\w+)"',
+            r'bindGlobalFunction\s*\(\s*"(\w+)"',
+            r'lua_register\s*\([^,]+,\s*"(\w+)"',
+            r'registerMethod\s*\(\s*"(\w+)"',
+            r'registerFunction\s*\(\s*"(\w+)"',
+            r'\.register\s*\(\s*"(\w+)"',
+            r'CLASS_DECLARE\w*\s*\(\s*(\w+)',
+        ]
+
+        for fpath in sorted(src_dir.rglob('*.cpp')) if src_dir.exists() else []:
+            try:
+                with open(fpath, 'r', encoding='utf-8', errors='replace') as f:
+                    conteudo = f.read()
+            except Exception:
+                continue
+            for padrao in padroes_cpp:
+                for m in re.finditer(padrao, conteudo):
+                    nome = m.group(1).lower()
+                    if len(nome) > 2:
+                        apis.add(nome)
+
+        print(f'[SanityValidator] Mineradas {len(apis)} APIs do C++')
+        return apis
+
+    @staticmethod
+    def minerar_apis_dos_scripts(diretorio: Path) -> Set[str]:
+        """Extrai chamadas de funcao de todos os scripts .lua do diretorio."""
+        apis: Set[str] = set()
+        if not diretorio.exists():
+            return apis
+        for fpath in sorted(diretorio.rglob('*.lua'))[:500]:  # amostra 500
+            try:
+                codigo = read_file(fpath)
+            except Exception:
+                continue
+            if not codigo or len(codigo) < 20:
+                continue
+            try:
+                tree = _LUA_PARSER.parse(bytes(codigo, 'utf-8'))
+            except Exception:
+                continue
+
+            def _visitar(node):
+                if node.type == 'function_call':
+                    for child in node.children:
+                        if child.type in ('identifier', 'dot_index_expression',
+                                          'method_index_expression'):
+                            try:
+                                nome = child.text.decode('utf-8', errors='replace').strip().lower()
+                                if nome and len(nome) > 3 and ' ' not in nome:
+                                    apis.add(nome)
+                            except Exception:
+                                pass
+                for child in node.children:
+                    _visitar(child)
+
+            _visitar(tree.root_node)
+
+        print(f'[SanityValidator] Mineradas {len(apis)} APIs dos scripts .lua')
+        return apis
+
+    def _carregar_apis(self):
+        """Carrega APIs de TODAS as fontes: C++ + KG + scripts."""
+        global _APIS_CACHE, _APIS_CACHE_INICIALIZADO
+
+        # Se ja foi inicializado (cache), reusa
+        if _APIS_CACHE_INICIALIZADO:
+            self.api_conhecidas = set(_APIS_CACHE)
             return
 
-        for fpath in sorted(self.kg_dir.glob('patterns_*.json')):
-            try:
-                with open(fpath, 'r', encoding='utf-8') as f:
-                    dados = json.load(f)
-                items = dados.get('padroes', dados if isinstance(dados, list) else [])
-                self.padroes.extend(items)
-            except Exception as e:
-                print(f'[SanityValidator] Erro ao carregar {fpath.name}: {e}')
+        # 1. Mineracao do C++
+        if self.server_src_dir and self.server_src_dir.exists():
+            apis_cpp = self.minerar_apis_do_cpp(self.server_src_dir)
+            _APIS_CACHE.update(apis_cpp)
 
-        for p in self.padroes:
-            for api in p.get('api_calls', []):
-                # Normaliza: remove argumentos, deixa so o nome
-                nome_limpo = api.split('(')[0].strip()
-                self.api_conhecidas.add(nome_limpo.lower())
+        # 2. Knowledge Graph
+        if self.kg_dir and self.kg_dir.exists():
+            for fpath in sorted(self.kg_dir.glob('patterns_*.json')):
+                try:
+                    with open(fpath, 'r', encoding='utf-8') as f:
+                        dados = json.load(f)
+                    items = dados.get('padroes', dados if isinstance(dados, list) else [])
+                    self.padroes.extend(items)
+                except Exception:
+                    continue
+            for p in self.padroes:
+                for api in p.get('api_calls', []):
+                    nome_limpo = api.split('(')[0].strip().lower()
+                    if nome_limpo:
+                        _APIS_CACHE.add(nome_limpo)
 
-        print(f'[SanityValidator] {len(self.api_conhecidas)} APIs conhecidas carregadas')
+        # 3. Mineracao de scripts Lua existentes
+        npc_dir = SERVER_DIR / 'data-otservbr-global' / 'npc'
+        if npc_dir.exists():
+            apis_scripts = self.minerar_apis_dos_scripts(npc_dir)
+            _APIS_CACHE.update(apis_scripts)
+
+        self.api_conhecidas = set(_APIS_CACHE)
+        _APIS_CACHE_INICIALIZADO = True
+        print(f'[SanityValidator] {len(self.api_conhecidas)} APIs conhecidas carregadas (zero hardcode)')
 
     # ─── Extracao de chamadas do script ────────────────────────
 
@@ -132,11 +198,7 @@ class SanityValidator:
         return None
 
     def validar_script(self, caminho: Path) -> Dict:
-        """Valida um arquivo .lua contra as APIs conhecidas.
-        
-        Returns:
-            dict com 'valido', 'apis_conhecidas', 'apis_desconhecidas', 'total_chamadas'
-        """
+        """Valida um arquivo .lua contra as APIs conhecidas."""
         if not caminho.exists():
             return {'valido': False, 'erro': 'Arquivo nao encontrado', 'apis_conhecidas': [], 'apis_desconhecidas': []}
 
@@ -155,28 +217,21 @@ class SanityValidator:
 
         for ch in chamadas:
             ch_lower = ch.lower()
-            # Verifica se a API ou qualquer substring significativa dela e conhecida
-            # Ex: "Game.createNpcType" -> procura "createNpcType", "game.createnpctype"
             encontrou = False
             for api_kg in self.api_conhecidas:
-                # Caso 1: match exato (apos normalizar)
                 if ch_lower == api_kg:
                     encontrou = True
                     break
-                # Caso 2: a chamada usa um metodo que existe no KG como parte de objeto
-                # Ex: ch='player:addItem' e api_kg contem ':addItem' 
                 if ':' in ch_lower:
                     metodo = ch_lower.split(':')[-1]
                     if metodo and (api_kg.endswith(':' + metodo) or api_kg.endswith('.' + metodo)):
                         encontrou = True
                         break
-                # Caso 3: match por metodo final (ex: ch='Game.createNpcType' e api_kg='createNpcType')
                 if '.' in ch_lower or ':' in ch_lower:
                     ultima_parte = ch_lower.split('.')[-1].split(':')[-1]
                     if ultima_parte and len(ultima_parte) > 5 and api_kg.endswith(ultima_parte):
                         encontrou = True
                         break
-                # Caso 4: match exato do nome da funcao (sem prefixo de objeto)
                 if '.' not in ch_lower and ':' not in ch_lower:
                     if ch_lower == api_kg.split('.')[-1].split(':')[-1]:
                         encontrou = True
@@ -205,3 +260,10 @@ class SanityValidator:
         finally:
             import os
             os.unlink(tmp)
+
+    @staticmethod
+    def resetar_cache():
+        """Reseta o cache global de APIs (para cold start)."""
+        global _APIS_CACHE, _APIS_CACHE_INICIALIZADO
+        _APIS_CACHE = set()
+        _APIS_CACHE_INICIALIZADO = False

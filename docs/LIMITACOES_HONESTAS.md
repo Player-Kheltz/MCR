@@ -70,7 +70,7 @@ ciclos ou atratores dos quais não sai sozinho.
 
 ## 9. Testes são autônomos, não independentes
 
-Os 449/449 testes são executados pelo próprio MCR contra ele mesmo.
+Os testes são executados pelo próprio MCR contra ele mesmo.
 Não há validação por terceiros. Os testes verificam que o sistema
 faz o que promete, mas não que o que promete é útil ou correto.
 

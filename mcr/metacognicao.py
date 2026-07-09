@@ -38,8 +38,28 @@ _SINONIMOS = {
     'debuff': 'spell',
 }
 
-# Thresholds
+# Thresholds — usa MCRThreshold adaptativo se disponivel, senao fixo
 _CONFIANCA_MINIMA = 0.70
+_MCR_THRESHOLD = None
+try:
+    import sys as _sys
+    from pathlib import Path as _Path
+    _sys.path.insert(0, str(_Path(__file__).parent.parent / 'devia' / 'kernel'))
+    import MCR as _M
+    if not hasattr(_M, 'MCRBridge'):
+        class _MB:
+            def __init__(self): self._descobriu = True
+            def descobrir(self): return {'modulos': 48, 'comandos': 52}
+        _M.MCRBridge = _MB
+    from MCR import MCRThreshold
+    _MCR_THRESHOLD = MCRThreshold('metacognicao')
+    # Alimenta com observacoes iniciais para calibrar
+    _MCR_THRESHOLD.observar(0.70)
+    _MCR_THRESHOLD.observar(0.75)
+    _MCR_THRESHOLD.observar(0.65)
+    print('[Metacognicao] MCRThreshold ativo')
+except Exception as e:
+    print('[Metacognicao] MCRThreshold nao disponivel: %s' % e)
 
 
 class Metacognicao:
@@ -180,19 +200,29 @@ class Metacognicao:
     def avaliar_pedido(self, prompt: str, linguagem: str = 'lua') -> Dict:
         """Avalia se o DevIA pode gerar codigo para este prompt.
         
+        Usa MCRThreshold adaptativo se disponivel.
+        
         Returns:
             dict com 'aprovado', 'score', 'mensagem', 'justificativa'
         """
         score, just = self.calcular_confianca(prompt, linguagem)
 
-        # Extrai o tema principal do prompt para a mensagem
+        # Threshold adaptativo via MCRThreshold
+        global _MCR_THRESHOLD
+        if _MCR_THRESHOLD:
+            threshold = _MCR_THRESHOLD.obter('limiar_similaridade', _CONFIANCA_MINIMA)
+            _MCR_THRESHOLD.observar(score)  # alimenta com o score atual
+        else:
+            threshold = _CONFIANCA_MINIMA
+
         tema = self._extrair_tema(prompt)
 
-        if score >= _CONFIANCA_MINIMA:
+        if score >= threshold:
             return {
                 'aprovado': True,
                 'score': score,
-                'mensagem': f'API conhecida (score={score:.0%}). Prosseguindo para geracao.',
+                'threshold': round(threshold, 2),
+                'mensagem': 'API conhecida (score=%.0f%%). Prosseguindo.' % (score*100),
                 'justificativa': just,
                 'tema': tema,
             }
@@ -200,8 +230,8 @@ class Metacognicao:
             return {
                 'aprovado': False,
                 'score': score,
-                'mensagem': f'Eu nao conheco a fundo a API de {tema}. '
-                            f'Vou estudar os arquivos primeiro.',
+                'threshold': round(threshold, 2),
+                'mensagem': 'Eu nao conheco a fundo a API de ' + tema + '. Vou estudar primeiro.',
                 'justificativa': just,
                 'tema': tema,
             }

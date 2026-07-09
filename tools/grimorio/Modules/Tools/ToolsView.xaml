@@ -1,0 +1,78 @@
+<UserControl x:Class="MCR.Grimorio.Modules.Tools.ToolsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="{StaticResource BgDarkestBrush}">
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <StackPanel Grid.Row="0" Margin="0,0,0,16">
+            <TextBlock Text="Ferramentas" FontSize="24" FontWeight="SemiBold" Foreground="{StaticResource FgBrightBrush}" />
+            <TextBlock Text="Análise de balanceamento e utilitários" FontSize="13" Foreground="{StaticResource FgSecondaryBrush}" Margin="0,4,0,0" />
+        </StackPanel>
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <!-- Balance Analyzer -->
+            <Border Grid.Column="0" Background="{StaticResource BgMediumBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="4" Margin="0,0,8,0">
+                <Grid Margin="16">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0" Text="⚖️ Balance Analyzer" FontSize="16" FontWeight="SemiBold" Foreground="{StaticResource FgBrightBrush}" Margin="0,0,0,12" />
+                    <Button Grid.Row="1" x:Name="RunBalanceButton" Content="▶ Executar Análise" Style="{StaticResource PrimaryButton}" Height="36" Click="RunBalanceButton_Click" />
+                    <Grid Grid.Row="2" Margin="0,16,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="Média EXP" FontSize="11" Foreground="{StaticResource FgMutedBrush}" />
+                            <TextBlock x:Name="AvgExpText" Text="-" FontSize="18" Foreground="{StaticResource AccentOrangeBrush}" />
+                            <TextBlock Text="StdDev EXP" FontSize="11" Foreground="{StaticResource FgMutedBrush}" Margin="0,8,0,0" />
+                            <TextBlock x:Name="StdExpText" Text="-" FontSize="14" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="1">
+                            <TextBlock Text="Média HP" FontSize="11" Foreground="{StaticResource FgMutedBrush}" />
+                            <TextBlock x:Name="AvgHpText" Text="-" FontSize="18" Foreground="{StaticResource AccentGreenBrush}" />
+                            <TextBlock Text="StdDev HP" FontSize="11" Foreground="{StaticResource FgMutedBrush}" Margin="0,8,0,0" />
+                            <TextBlock x:Name="StdHpText" Text="-" FontSize="14" />
+                        </StackPanel>
+                    </Grid>
+                    <Separator Grid.Row="3" Background="{StaticResource BorderBrush}" Margin="0,16" />
+                    <TextBlock Grid.Row="4" Text="Outliers (>2σ):" FontSize="12" Foreground="{StaticResource FgSecondaryBrush}" Margin="0,0,0,4" />
+                    <ListView Grid.Row="4" x:Name="OutlierList" Background="Transparent" BorderThickness="0" Margin="0,16,0,0">
+                        <ListView.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Margin="0,2">
+                                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+                                    <TextBlock Text="{Binding Reason}" FontSize="11" Foreground="{StaticResource AccentRedBrush}" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+                </Grid>
+            </Border>
+            <!-- Lua Validator -->
+            <Border Grid.Column="1" Background="{StaticResource BgMediumBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="4">
+                <Grid Margin="16">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0" Text="🔧 Lua Validator" FontSize="16" FontWeight="SemiBold" Foreground="{StaticResource FgBrightBrush}" Margin="0,0,0,12" />
+                    <Button Grid.Row="1" x:Name="ValidateButton" Content="▶ Validar Scripts Lua" Height="36" Click="ValidateButton_Click" Margin="0,0,0,12" />
+                    <TextBox Grid.Row="2" x:Name="ValidationOutput" IsReadOnly="True" FontFamily="Consolas" FontSize="11" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" />
+                </Grid>
+            </Border>
+        </Grid>
+    </Grid>
+</UserControl>

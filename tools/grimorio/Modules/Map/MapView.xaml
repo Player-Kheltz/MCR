@@ -1,0 +1,45 @@
+<UserControl x:Class="MCR.Grimorio.Modules.Map.MapView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="{StaticResource BgDarkestBrush}">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Toolbar -->
+        <Border Grid.Row="0" Background="{StaticResource BgMediumBrush}" Padding="8,4">
+            <StackPanel Orientation="Horizontal">
+                <Button Content="📂" Width="32" Height="28" ToolTip="Carregar .otbm" Click="LoadMap_Click" Margin="0,0,8,0" />
+                <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" Margin="4,0" />
+                <TextBlock Text="Piso:" VerticalAlignment="Center" Margin="4,0" Foreground="{StaticResource FgMutedBrush}" />
+                <Button Content="▲" Width="24" Height="24" Click="FloorUp_Click" Margin="2,0" />
+                <TextBlock x:Name="FloorLabel" Text="7" VerticalAlignment="Center" Margin="4,0" Foreground="{StaticResource FgBrightBrush}" />
+                <Button Content="▼" Width="24" Height="24" Click="FloorDown_Click" Margin="2,0" />
+                <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" Margin="4,0" />
+                <Button Content="＋" Width="24" Height="24" Click="ZoomIn_Click" ToolTip="Zoom +" Margin="2,0" />
+                <TextBlock Text="{Binding ZoomLabel}" VerticalAlignment="Center" Margin="4,0" Foreground="{StaticResource FgBrightBrush}" />
+                <Button Content="−" Width="24" Height="24" Click="ZoomOut_Click" ToolTip="Zoom -" Margin="2,0" />
+                <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" Margin="4,0" />
+                <CheckBox Content="Grid" IsChecked="{Binding ShowGridLines}" Click="ToggleGrid_Click" VerticalAlignment="Center" Foreground="{StaticResource FgPrimaryBrush}" />
+                <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" Margin="4,0" />
+                <TextBlock x:Name="StatusText" VerticalAlignment="Center" FontSize="12" Foreground="{StaticResource FgMutedBrush}" />
+            </StackPanel>
+        </Border>
+
+        <!-- Mapa -->
+        <ScrollViewer x:Name="MapScrollViewer" Grid.Row="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
+                      PreviewMouseWheel="ScrollViewer_PreviewMouseWheel"
+                      Background="{StaticResource BgDarkBrush}">
+            <Image x:Name="MapImage" Stretch="None" RenderOptions.BitmapScalingMode="NearestNeighbor"
+                   MouseMove="MapImage_MouseMove" />
+        </ScrollViewer>
+
+        <!-- Status bar -->
+        <Border Grid.Row="2" Background="{StaticResource BgDarkBrush}" Padding="8,4">
+            <TextBlock x:Name="CoordText" FontSize="11" Foreground="{StaticResource FgMutedBrush}" />
+        </Border>
+    </Grid>
+</UserControl>

@@ -10,6 +10,19 @@ FLUXO:
 """
 import os, re, json, time
 
+# Thresholds MCR (aprendidos, nao fixos)
+try:
+    from modulos.MCR import MCRThreshold
+    _TH_EIXO = MCRThreshold("revisor_eixo")
+    _TH_ENT = MCRThreshold("revisor_entropia")
+    for v in [0.35, 0.4, 0.45, 0.38, 0.42]:
+        _TH_EIXO.observar(v)
+    for v in [0.75, 0.8, 0.85, 0.78, 0.82]:
+        _TH_ENT.observar(v)
+except ImportError:
+    _TH_EIXO = None
+    _TH_ENT = None
+
 # Classes REAIS do projeto (conhecidas no codigo)
 # MCR-DevIA pode aprender isso escaneando o projeto com grep
 _CLASSES_REAIS = set()
@@ -45,7 +58,7 @@ def escanear_classes(diretorio_base=None):
         for linha in (r2.stdout or '').split('\n'):
             if 'class ' in linha:
                 classes.add(linha.replace('class ', '').strip())
-    except:
+    except Exception:
         pass
     
     # Classes built-in comuns que sao validas
@@ -127,28 +140,20 @@ class AutoRevisor:
         
         return True  # Aceita por duvida
 
-    def revisar(self, texto_resposta, classes_permitidas=None, contexto_cr=""):
+    def revisar(self, texto_resposta, classes_permitidas=None, pergunta_original=""):
         """Revisa uma resposta. Retorna dict com alucinacoes encontradas.
         Usa heuristica universal (sem listas fixas, sem FAST).
         
         Args:
             texto_resposta: Texto da resposta gerada
             classes_permitidas: Ignorado (mantido para compatibilidade)
-            contexto_cr: Contexto do CR para verificar se foi usado na resposta
+            pergunta_original: Pergunta original (para verificar generica)
         
         Returns:
-            dict com {alucinacoes: [(classe, contexto)], total: N, sugestao: str}
+            dict com {alucinacoes: [(classe, contexto)], total: N, sugestao: str, generica: bool}
         """
         if not texto_resposta:
-            return {"alucinacoes": [], "total": 0, "sugestao": ""}
-        
-        # Verifica se contexto do CR foi usado na resposta
-        if contexto_cr and len(contexto_cr) > 50:
-            termos_cr = [w.lower() for w in contexto_cr.split() if len(w) > 4]
-            termos_encontrados = sum(1 for t in termos_cr if t in texto_resposta.lower())
-            if termos_encontrados < len(termos_cr) * 0.3 and len(termos_cr) > 3:
-                print(f'  [Auto-Revisor] ALERTA: resposta NAO usou contexto do CR '
-                      f'({termos_encontrados}/{len(termos_cr)} termos encontrados)')
+            return {"alucinacoes": [], "total": 0, "sugestao": "", "generica": False}
         
         # So analisa TEXTO (fora de blocos ```code```)
         partes = re.split(r'```(?:python)?\s*\n.*?```', texto_resposta, flags=re.DOTALL)
@@ -166,18 +171,33 @@ class AutoRevisor:
             if not self._heuristico(c, texto_resposta):
                 pos = texto_resposta.find(c)
                 ctx = texto_resposta[max(0,pos-40):pos+len(c)+40].replace('\n', ' ')
-                alucinacoes.append((c, ctx[:100]))
+                alucinacoes.append((c, ctx))
         
         sugestao = ""
         if alucinacoes:
-            classes_str = ', '.join(a[0] for a in alucinacoes[:5])
+            classes_str = ', '.join(a[0] for a in alucinacoes)
             sugestao = f"Classes suspeitas encontradas: {classes_str}. Verifique se existem no projeto."
         
         resultado = {
             "alucinacoes": alucinacoes,
             "total": len(alucinacoes),
             "sugestao": sugestao,
+            "generica": False,
         }
+        
+        # ENRICHER CHECK: se resposta e muito curta e pergunta foi fornecida,
+        # verifica se Enricher teria gerado conteudo util
+        if pergunta_original and len(texto_resposta) < 500:
+            try:
+                from modulos.context_enricher import ContextEnricher
+                enricher = ContextEnricher(kg=self.kg)
+                enr = enricher.enriquecer(pergunta_original)
+                if enr.get('valido') and enr.get('conteudo'):
+                    resultado['generica'] = True
+                    resultado['sugestao'] += ' | Resposta parece generica. Enricher poderia ter enriquecido.'
+                    print(f'  [Auto-Revisor] Resposta GENERICA detectada (Enricher disponivel)')
+            except Exception:
+                pass
         
         # Registra no KG se tiver acesso
         if resultado["total"] > 0 and self.kg:
@@ -188,14 +208,55 @@ class AutoRevisor:
                     f"classes={classes_str}, total={resultado['total']}",
                     "auto_revisor"
                 )
-            except:
+            except Exception:
                 pass
+        
+        # ===== PATTERN ENGINE CHECKS (eixo + entropia + n-grama) =====
+        try:
+            from modulos.pattern_engine import PatternEngine
+            _pe = PatternEngine()
+            _tokens = _pe.tokenizar(texto_resposta, 'texto')
+            _padroes = _pe.extrair_padroes(_tokens)
+            _eixo = _pe.eixo_nirvana_caos(_tokens)
+            
+            # Eixo check
+            resultado['eixo'] = round(_eixo, 3)
+            _limiar = _TH_EIXO.calcular(1.0) if _TH_EIXO else 0.4
+            if _eixo < _limiar:
+                resultado['sugestao'] += f' | Eixo baixo ({_eixo:.2f}) — resposta caotica'
+                resultado['total'] += 1
+                alucinacoes.append(('EIXO_CAOS', f'eixo={_eixo:.2f}'))
+            
+            # Entropia check
+            _entropia = _padroes.get('entropia', 0.5)
+            resultado['entropia'] = round(_entropia, 3)
+            _limiar_ent = _TH_ENT.calcular(1.0) if _TH_ENT else 0.8
+            if _entropia > _limiar_ent:
+                resultado['sugestao'] += f' | Entropia alta ({_entropia:.2f}) — resposta aleatoria'
+                resultado['total'] += 1
+                alucinacoes.append(('ENTROPIA_ALTA', f'entropia={_entropia:.2f}'))
+            
+            # N-grama repeticao check
+            _n_gramas = _padroes.get('n_gramas', {})
+            _trigramas = list(_n_gramas.get(3, {}).keys()) if isinstance(_n_gramas, dict) else []
+            if _trigramas and len(texto_resposta) > 200:
+                # Conta repeticoes de trigramas
+                from collections import Counter
+                palavras = re.findall(r'\w+', texto_resposta.lower())
+                trigramas = [' '.join(palavras[i:i+3]) for i in range(len(palavras)-2)]
+                repeticoes = sum(1 for _, count in Counter(trigramas).items() if count > 2)
+                if repeticoes > len(trigramas) * 0.1:  # mais de 10% de repeticoes
+                    resultado['sugestao'] += f' | {repeticoes} trigramas repetidos — resposta em loop'
+                    resultado['total'] += 1
+                    alucinacoes.append(('LOOP_NGRAMA', f'{repeticoes} trigramas repetidos'))
+        except Exception:
+            pass
         
         return resultado
     
-    def auto_corrigir(self, texto_resposta, classes_permitidas=None, contexto_cr=""):
+    def auto_corrigir(self, texto_resposta, classes_permitidas=None):
         """Auto-corrige alucinacoes: marca classes suspeitas APENAS no texto, nao em codigo."""
-        resultado = self.revisar(texto_resposta, classes_permitidas, contexto_cr)
+        resultado = self.revisar(texto_resposta, classes_permitidas)
         if resultado["total"] == 0:
             return texto_resposta, resultado
         
@@ -220,6 +281,61 @@ class AutoRevisor:
                 corrigido.append(parte)
         
         return ''.join(corrigido), resultado
+    
+    # ============================================================
+    # VALIDADORES DE CODIGO (extraidos do crew_deepseek.py legacy)
+    # ============================================================
+    
+    def validar_python(self, codigo):
+        """Valida código Python com AST. Retorna (valido, erro)."""
+        import ast
+        try:
+            ast.parse(codigo)
+            return True, ""
+        except SyntaxError as e:
+            return False, f"SyntaxError: {e}"
+    
+    def validar_lua(self, codigo):
+        """Valida código Lua com regras basicas (sem compilador nativo).
+        Retorna (valido, explicacao)."""
+        problemas = []
+        if codigo.count("function") != codigo.count("end"):
+            problemas.append("function/end mismatch")
+        ends = codigo.count("end")
+        functions = codigo.count("function")
+        ifs = codigo.count("if")
+        if ends < functions + ifs:
+            problemas.append("if/function sem end")
+        if codigo.count("(") != codigo.count(")"):
+            problemas.append("parentheses mismatch")
+        valido = len(problemas) == 0
+        return valido, "; ".join(problemas) if problemas else ""
+    
+    def validar_termos_contra_kg(self, texto, kg=None):
+        """Valida se termos compostos no texto existem no KG.
+        Retorna (valido, suspeitos)."""
+        if not kg:
+            return True, []
+        termos_compostos = set(re.findall(r"[A-Z][a-z]+\s+[A-Z][a-z]+", texto))
+        suspeitos = []
+        for termo in termos_compostos:
+            tl = termo.lower().strip()
+            existe = False
+            try:
+                results = kg.buscar(tl, max_r=3)
+                for r in results:
+                    texto_kg = (r.get('erro','') + ' ' + r.get('solucao','') + 
+                               ' ' + r.get('causa','') + ' ' + r.get('ctx','')).lower()
+                    if tl in texto_kg:
+                        existe = True
+                        break
+            except Exception:
+                pass
+            if not existe:
+                suspeitos.append(termo)
+        if suspeitos:
+            return False, suspeitos
+        return True, []
 
 
 # ============================================================
@@ -237,7 +353,7 @@ if __name__ == "__main__":
     # Teste
     escanear_classes()
     print(f"Classes reais encontradas: {len(_CLASSES_REAIS)}")
-    print(f"Exemplos: {list(_CLASSES_REAIS)[:10]}")
+    print(f"Exemplos: {list(_CLASSES_REAIS)}")
     
     revisor = AutoRevisor()
     teste = "A classe DataLoader faz a carga e DataProcessor transforma. DataLake e StreamSimulator sao reais."
