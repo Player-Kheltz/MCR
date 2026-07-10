@@ -27,6 +27,18 @@ from pathlib import Path
 from typing import Dict, List, Optional, Any
 
 
+def _detectar_dominio(minerador) -> str:
+    """Detecta o nome do dominio baseado no tipo do minerador."""
+    if minerador is None:
+        return 'lua'
+    nome = type(minerador).__name__
+    if 'Cpp' in nome:
+        return 'cpp'
+    if 'SQL' in nome:
+        return 'sql'
+    return 'csharp'
+
+
 def _minerador_lua_default(server_dir, kg_dir, canary_npc_dir, canary_monster_dir):
     """Minerador padrao para Lua — mantem compatibilidade com codigo legado."""
     from mcr.sanity_validator import SanityValidator, _APIS_CACHE, _APIS_CACHE_INICIALIZADO
@@ -112,7 +124,7 @@ def cold_start(
 
     relatorio = {
         'inicio': time.strftime('%Y-%m-%d %H:%M:%S'),
-        'dominio': 'csharp' if minerador is not None else 'lua',
+        'dominio': _detectar_dominio(minerador),
         'etapas': {},
         'erros': [],
     }
@@ -205,8 +217,10 @@ def cold_start(
             # Detecta dominio do executor
             from mcr.sanity_validator_cs import SanityValidatorCS
             from mcr.sanity_validator_sql import SanityValidatorSQL
+            from mcr.sanity_validator_cpp import SanityValidatorCpp
             is_sql = isinstance(minerador, SanityValidatorSQL) if minerador is not None else False
             is_cs = isinstance(minerador, SanityValidatorCS) if minerador is not None else False
+            is_cpp = isinstance(minerador, SanityValidatorCpp) if minerador is not None else False
 
             from devia.kernel.mcr_kernel.engine import MCR
             from devia.kernel.mcr_kernel.memory import MCRConector, MCRCadeia
@@ -245,6 +259,41 @@ def cold_start(
                         ');\n'
                         "INSERT INTO " + nome_tabela + " (id, name, value) VALUES (1, 'mcr', 42.0);\n"
                         'SELECT * FROM ' + nome_tabela + ';'
+                    )
+                    nota = 10
+                elif is_cpp:
+                    # ─── Geracao C++ ───
+                    classes_cpp = template_ent.get('classes', [])
+                    funcoes = template_ent.get('funcoes', [])
+                    namespaces = template_ent.get('namespaces', [])
+                    macros = template_ent.get('macros', [])
+
+                    nome_cls = classes_cpp[0] if classes_cpp else 'ColdStart'
+                    nome_fn = funcoes[0] if funcoes else 'run'
+                    ns = namespaces[0] if namespaces else 'mcr'
+
+                    snippet = (
+                        '#include <string>\n'
+                        '#include <vector>\n'
+                        '#include <iostream>\n'
+                        '\n'
+                        'namespace ' + ns + ' {\n'
+                        '\n'
+                        'class ' + nome_cls + ' {\n'
+                        'public:\n'
+                        '    ' + nome_cls + '(int id) : id_(id) {}\n'
+                        '    \n'
+                        '    void ' + nome_fn + '(const std::string& input) {\n'
+                        '        std::cout << input << std::endl;\n'
+                        '    }\n'
+                        '    \n'
+                        '    int get_id() const { return id_; }\n'
+                        '\n'
+                        'private:\n'
+                        '    int id_;\n'
+                        '};\n'
+                        '\n'
+                        '} // namespace ' + ns + '\n'
                     )
                     nota = 10
                 else:
