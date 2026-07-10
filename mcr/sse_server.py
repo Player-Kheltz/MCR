@@ -354,7 +354,37 @@ class _Handler(BaseHTTPRequestHandler):
             return
 
         if path == '/api/world/logs':
-            self._responder_json({'total': 0, 'items': []})
+            try:
+                from mcr.mcr_world_chronicle import get_chronicle
+                chronicle = get_chronicle(ultimas=50) if callable(get_chronicle) else []
+                logs = []
+                for entry in chronicle:
+                    if isinstance(entry, dict):
+                        logs.append({
+                            'hora': entry.get('timestamp', '')[:19],
+                            'tipo': 'info',
+                            'msg': f"{entry.get('evento', '')} | {entry.get('resumo', '')[:120]}"
+                        })
+                    elif isinstance(entry, str):
+                        logs.append({'hora': '', 'tipo': 'info', 'msg': entry[:200]})
+                arquivos_log = []
+                log_dir = os.path.join(BASE, 'logs')
+                if os.path.exists(log_dir):
+                    for f in sorted(os.listdir(log_dir))[-5:]:
+                        fpath = os.path.join(log_dir, f)
+                        if f.endswith('.log') and os.path.isfile(fpath):
+                            try:
+                                with open(fpath, 'r', encoding='utf-8') as lf:
+                                    for linha in lf.readlines()[-20:]:
+                                        linha = linha.strip()
+                                        if linha:
+                                            tipo = 'erro' if 'error' in linha.lower() or 'erro' in linha.lower() else 'aviso' if 'warn' in linha.lower() or 'aviso' in linha.lower() else 'info'
+                                            arquivos_log.append({'hora': f[:19], 'tipo': tipo, 'msg': linha[:200]})
+                            except: pass
+                todas = (arquivos_log + logs)[:100]
+                self._responder_json({'total': len(todas), 'items': todas})
+            except Exception as e:
+                self._responder_json({'total': 0, 'items': [], 'erro': str(e)})
             return
 
         # API: Status
