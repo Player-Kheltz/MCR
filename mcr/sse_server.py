@@ -263,9 +263,17 @@ class _Handler(BaseHTTPRequestHandler):
                     entropia = round(mk.entropia_media(), 3) if mk.transicoes else 0.5
                 except Exception:
                     pass
-                cronicas = []
+                ultimos_eventos = []
                 try:
-                    cronicas = get_chronicle(ultimas=5) if callable(get_chronicle) else []
+                    raw = get_chronicle(ultimas=5)
+                    if raw and isinstance(raw, str):
+                        for bloco in raw.split("\n## "):
+                            bloco = bloco.strip()
+                            if bloco:
+                                linhas = bloco.split('\n')
+                                cab = linhas[0][1:20] if linhas and linhas[0].startswith('[') else ''
+                                corpo = (linhas[1] if len(linhas) > 1 else linhas[0])[:120]
+                                ultimos_eventos.append(f"[{cab}] {corpo}")
                 except Exception:
                     pass
                 self._responder_json({
@@ -274,7 +282,7 @@ class _Handler(BaseHTTPRequestHandler):
                     'total_quests': total_quests,
                     'entropia': entropia,
                     'estado': 'EXPANDIR' if entropia > 0.7 else 'EQUILIBRAR' if entropia > 0.3 else 'CONECTAR',
-                    'ultimos_eventos': cronicas[:5] if isinstance(cronicas, list) else [],
+                    'ultimos_eventos': ultimos_eventos[:5],
                 })
             except Exception as e:
                 self._responder_json({'erro': str(e)}, 500)
@@ -355,18 +363,20 @@ class _Handler(BaseHTTPRequestHandler):
 
         if path == '/api/world/logs':
             try:
-                from mcr.mcr_world_chronicle import get_chronicle
-                chronicle = get_chronicle(ultimas=50) if callable(get_chronicle) else []
+                from mcr.mcr_world_chronicle import get_chronicle, CHRONICLE_FILE
                 logs = []
-                for entry in chronicle:
-                    if isinstance(entry, dict):
-                        logs.append({
-                            'hora': entry.get('timestamp', '')[:19],
-                            'tipo': 'info',
-                            'msg': f"{entry.get('evento', '')} | {entry.get('resumo', '')[:120]}"
-                        })
-                    elif isinstance(entry, str):
-                        logs.append({'hora': '', 'tipo': 'info', 'msg': entry[:200]})
+                cronica_texto = get_chronicle(ultimas=30)
+                if cronica_texto and isinstance(cronica_texto, str):
+                    blocos = cronica_texto.split("\n## ")
+                    for bloco in blocos:
+                        bloco = bloco.strip()
+                        if not bloco:
+                            continue
+                        linhas = bloco.split('\n')
+                        cab = linhas[0] if linhas else ''
+                        hora = cab[1:20] if cab.startswith('[') else ''
+                        corpo = '\n'.join(linhas[1:])[:200] if len(linhas) > 1 else ''
+                        logs.append({'hora': hora, 'tipo': 'info', 'msg': corpo or cab[:200]})
                 arquivos_log = []
                 log_dir = os.path.join(BASE, 'logs')
                 if os.path.exists(log_dir):
