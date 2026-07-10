@@ -1,17 +1,72 @@
-# MCR — Game Master Artificial (GMA) Station
+# MCR
 
-Sistema de geração, curadoria e gestão de conteúdo para servidores **Tibia OTServ** (Canary).
-Opera localmente com Ollama para criatividade e kernel Markov para decisões. Zero dependências de nuvem.
+> 1 equação. N níveis. 0 hardcode. 0 nuvem.
+
+MCR é um motor de **reconhecimento de padrões e geração por assinatura** que opera em múltiplos níveis de abstração simultaneamente. Python stdlib, zero dependências externas para o núcleo — nada de GPU, nada de nuvem.
+
+```python
+MCR(nivel).aprender(a, b)  # aprende que "a" leva a "b"
+MCR(nivel).predizer(a)      # "b" mais provável dado "a"
+```
+
+---
+
+## O Núcleo Universal
+
+### Equação MCR
+
+```
+PONTE_OTIMA = (divergencia × 5 + especificidade × 3 + profundidade × 2) / 10
+PENALIDADE  = dispersao_entropica / niveis_validos
+NOTA_FINAL  = PONTE_OTIMA × (1 − PENALIDADE)
+```
+
+Todos os thresholds, pesos e decisões emergem dos dados. Nenhum valor fixo. A equação se aplica a qualquer domínio: texto, código, binário, áudio, sequências numéricas.
+
+### Kernel Markov Multi-Nível
+
+| Capacidade | Descrição |
+|-----------|-----------|
+| **8 níveis** | Byte → palavra → token → intenção → decisão → assinatura → filosofia → qualidade |
+| **Acoplamento N-Dimensional** | Correlação cross-level via matriz de acoplamento |
+| **Superposição** | Duas cadeias colidem → token que nenhuma preveria sozinha |
+| **Auto-Validação** | Validação recursiva por entropia, sem ground truth |
+| **Criticalidade** | Auto-modificação na borda do caos (entropia 0.2–0.7) |
+| **Fingerprinting** | Projeção 8–128D com auto-descoberta de dimensão |
+| **HDC** | Bundle, bind, permute, analogia vetorial |
+| **Auto-Evolução** | Mutação de thresholds com medição de impacto na entropia |
+
+### Kernel Refatorado
+
+O núcleo monolito (`MCR.py`, ~7K linhas, 48 classes) está sendo modularizado em `devia/kernel/mcr_kernel/` (10 módulos):
+
+| Módulo | Função |
+|--------|--------|
+| `engine.py` | Motor principal — `compose_state()`, `compor_contexto()`, `gerar()` |
+| `decisor.py` | Decisões adaptativas — Ponte Ótima para pular parser |
+| `signature.py` | Assinatura multidimensional — `raw_token_set()`, fingerprint |
+| `memory.py` | Memória hierárquica — persistência entre sessões |
+| `meta.py` | Metacognição — auto-avaliação sobre o próprio kernel |
+| `evolution.py` | Auto-evolução — mutação e seleção de parâmetros |
+| `state.py` | Gerenciamento de estado do kernel |
+| `system.py` | Coordenação entre módulos |
+| `feedback.py` | Loop de feedback para aprendizado |
+| `persistence.py` | Serialização e salvamento |
+
+---
+
+## Aplicação Atual: GMA Station (Tibia OTServ)
+
+Tibia é o **berço** do MCR — o primeiro domínio de aplicação onde o sistema está sendo validado em produção. A Game Master Artificial Station conecta o kernel Markov a LLMs locais (Ollama) para gerar, curar e gerenciar conteúdo de servidores OTServ.
 
 ```
 HTTP SSE :8765 ─── Web Console (Alpine.js)
      │
-  Pipeline GMA
+  Pipeline de Mundo
      │
   ┌──┴───────────────────────┐
-  │  mcr_kernel (Markov)     │
-  │  MCR.py (48 classes)     │
-  │  WorldAnomalyDetector    │
+  │  mcr_kernel              │
+  │  MCR.py (Markov)         │
   │  Ensemble 7B             │
   │  Chain-of-Verification   │
   └──┬───────────────────────┘
@@ -27,86 +82,34 @@ HTTP SSE :8765 ─── Web Console (Alpine.js)
                      └─────────────┘
 ```
 
----
-
-## Componentes
-
-### Pipeline de Geração (58 módulos em `mcr/`)
+### Pipeline de Mundo (58 módulos em `mcr/`)
 
 | Módulo | Função |
 |--------|--------|
-| `pipeline_completo.py` | Orquestrador: VERIFICAR → INJETAR_CONTEXTO → LLM → ANOMALY_CHECK → CANONIZAR |
-| `sse_server.py` | Servidor HTTP SSE + REST (porta 8765) + chat streaming |
-| `prompts_criativos.py` | Model router (Mistral→narrativa, Qwen→código, DeepSeek→fallback) + templates |
+| `pipeline_completo.py` | Orquestrador: VERIFICAR → INJETAR → LLM → ANOMALY → CANONIZAR |
+| `sse_server.py` | Servidor HTTP SSE + REST (:8765) + chat streaming |
+| `prompts_criativos.py` | Roteador de modelos + templates de prompt |
 | `world_anomaly_detector.py` | Detecção adaptativa de anacronismos por entropia |
-| `world_observer.py` | Observação de eventos do servidor → perturbações de entropia |
-| `world_state.py` | Estado do mundo persistente em `devia/world_state.json` |
-| `world_chronicle.py` | Crônica narrativa em `devia/world_chronicle.md` |
-| `seed_world.py` | Canonização de conteúdo existente no banco de mundo |
-| `bridge_api.py` | HTTP REST :7778 — interface Python ↔ C# Grimório |
-| `ensemble_7b.py` | Ensemble paralelo 3 modelos com juiz Jaccard |
-| `chain_of_verification.py` | Pós-geração: verificação contra KG |
+| `world_observer.py` | Observação de eventos → perturbações de entropia |
+| `seed_world.py` | Canonização de conteúdo no banco de mundo |
+| `ensemble_7b.py` | Ensemble paralelo 3 modelos (Mistral/Qwen/DeepSeek) |
+| `chain_of_verification.py` | Pós-geração: verificação contra grafo de conhecimento |
 | `cache_hierarquico.py` | Cache L1→L2→L3 (dict→Markov→fingerprint→LLM) |
-| `prompt_compressor.py` | Compressão de contexto para janela 32K |
-| `signature_cluster.py` | Descoberta automática de tipos por cluster de APIs |
-| `anti_pattern.py` | Classificação de erros + registro no KG |
-| `pattern_miner.py` | Tree-sitter AST → padrões no KG |
+| `bridge_api.py` | HTTP REST (:7778) — interface Python ↔ C# |
 | `raw_miner.py` | Tokenização raw sem tree-sitter (85% coverage) |
-| `seed_markov.py` | Seed de cadeias Markov para bootstrap |
-| `shadow_canary.py` | Ambiente mock LuaJIT + auto-aprendizado |
-| `sanity_validator.py` | Validação de APIs contra KG (0 hardcoded) |
-| `mcr_auto_evolution.py` | Mutação de thresholds com medição de entropia |
-| `npc_server.py` | Servidor TCP :7777 para diálogo NPC |
-| `entity_factory.py` | 3 tiers (template/codificado/quest) |
-| `entity_validator.py` | Validação individual de entidades |
-| `idea_to_spec.py` | Ideia → especificação JSON via LLM + golden examples |
-| `world_foundation.py` | WorldSeed + coerência temática |
-| `metacognicao.py` | Gateway de Incerteza — threshold adaptativo |
-| +31 outros | — |
-
-### Núcleo Markov (`devia/kernel/`)
-
-| Capacidade | Como |
-|-----------|------|
-| Multi-level Markov | Byte, palavra, token, decisão, threshold, assinatura |
-| N-Dimensional Coupling | Matriz de acoplamento cross-level + esfera |
-| Superposition | Duas cadeias colidem → token que nenhuma preveria sozinha |
-| Auto-Validation | Validação recursiva por entropia |
-| Criticality | Auto-modificação na borda do caos (entropia 0.2–0.7) |
-| Fingerprinting | Projeção 8–128D com auto-descoberta de dimensão |
-| HDC | Bundle, bind, permute, analogia |
-| Self-Evolution | MCRAutoEvolution — muta thresholds, mede impacto |
-| Kernel Refatorado | `mcr_kernel/` (10 módulos: engine, decisor, signature, memory, etc.) |
+| +47 outros | — |
 
 ### Painel WPF (`tools/grimorio/`)
 
-- Interface administrativa C# .NET 8
-- Abas: Dashboard, NPCs, Quests, Scripts, Items, Database, Map, Config
-- Integração com Bridge API (:7778) + SSE Server (:8765)
-- Heatmap de entropia com overlay no mapa
+Interface administrativa C# .NET 8 com abas de Dashboard, NPCs, Quests, Scripts, Items, Database, Map, Config. Integração com Bridge API e SSE Server. Heatmap de entropia com overlay no mapa.
 
 ### Web Console (`mcr/sse_server.py` + `mcr/templates/dashboard.html`)
 
-- Interface web Alpine.js com 6 abas
-- Streaming de chat (tokens aparecem caractere por caractere)
-- Telemetria de entropia em tempo real
-- Sidebar colapsável, tema escuro
-- Zero pop-ups ou modais
+Interface web com Alpine.js, 6 abas, streaming de chat em tempo real (tokens caractere por caractere), telemetria de entropia, tema escuro, zero pop-ups.
 
 ---
 
-## Serviços de Rede
-
-| Serviço | Porta | Tecnologia | Função |
-|---------|-------|-----------|--------|
-| SSE Server | 8765 | Python ThreadingHTTPServer | API REST + SSE + chat streaming |
-| Bridge API | 7778 | Python HTTP | Interface Python ↔ C# |
-| NPC Server | 7777 | Socket TCP | Diálogo NPC em tempo real |
-| Ollama | 11434 | Local | LLMs (qwen2.5-coder:7b-32k, mistral:7b-32k, deepseek-r1:7b-32k) |
-
----
-
-## Modelos
+## Modelos (Ollama)
 
 | Modelo | Contexto | Função |
 |--------|----------|--------|
@@ -114,34 +117,32 @@ HTTP SSE :8765 ─── Web Console (Alpine.js)
 | `mistral:7b-32k` | 32K | Narrativa, NPCs, quests, lore |
 | `deepseek-r1:7b-32k` | 32K | Ensemble fallback, raciocínio |
 
-Benchmark: Mistral 7B → melhor para criatividade; Qwen 7B → melhor para código.
+Benchmark: Mistral 7B → melhor criatividade; Qwen 7B → melhor código.
 
 ---
 
-## Estrutura de Diretórios
+## Estrutura
 
 ```
 E:/MCR/
-├── mcr/                       # 58 módulos — pipeline GMA
+├── mcr/                       # 58 módulos — pipeline de mundo
 │   ├── sse_server.py          # Servidor web + streaming
 │   ├── pipeline_completo.py   # Orquestrador de geração
 │   ├── templates/             # Web Console (dashboard.html)
 │   └── ...
 ├── devia/
 │   ├── kernel/
-│   │   ├── MCR.py             # Núcleo Markov (48 classes)
+│   │   ├── MCR.py             # Núcleo Markov (48 classes, ~7K linhas)
 │   │   └── mcr_kernel/        # Kernel refatorado (10 módulos)
-│   ├── world_state.json       # Estado do mundo (40+ NPCs, lore)
+│   ├── world_state.json       # Estado do mundo
 │   └── world_chronicle.md     # Crônica narrativa
 ├── tools/
 │   └── grimorio/              # Painel admin C# WPF
 ├── docs/                      # Documentação atual
-│   ├── HISTORIA_MCR.md        # História completa do projeto
-│   ├── MCR_WHITEPAPER*.md     # Whitepapers
+│   ├── HISTORIA_MCR.md        # História completa (438 commits, 13 fases)
+│   ├── MCR_WHITEPAPER_*.md    # Whitepapers acadêmicos
 │   └── ...
-├── legacy/                    # Arquivo morto (histórico)
-│   ├── scripts/               # Scripts antigos
-│   └── docs/                  # Documentação arquivada
+├── legacy/                    # Arquivo morto (histórico preservado)
 ├── server/                    # Canary OTServ (sub-repo)
 ├── client/                    # OTClient (sub-repo)
 └── golden_examples/           # Exemplos canônicos
@@ -149,38 +150,25 @@ E:/MCR/
 
 ---
 
-## Setup Rápido
+## Setup
 
 ```powershell
-# 1. Instalar Python 3.10+ (stdlib apenas)
+# Núcleo (stdlib Python, sem instalação):
+python -c "from devia.kernel.MCR import MCRMotor; print('MCR pronto')"
 
-# 2. Instalar Ollama
-winget install Ollama.Ollama
-
-# 3. Baixar modelos 32K
-ollama pull qwen2.5-coder:7b-32k
-ollama pull mistral:7b-32k
-ollama pull deepseek-r1:7b-32k
-
-# 4. Iniciar servidor SSE
-python mcr/sse_server.py
-
-# 5. Abrir navegador
-# http://localhost:8765
-
-# Pipeline completa (gerar NPC, quest ou lore):
-python mcr/pipeline_completo.py --tipo npc --ideia "um mago ancião em Thais"
-
-# Worldbuilding inicial:
-python mcr/seed_world.py
+# Aplicação Tibia:
+# 1. Instalar Ollama
+# 2. ollama pull qwen2.5-coder:7b-32k
+# 3. ollama pull mistral:7b-32k
+# 4. python mcr/sse_server.py
+# 5. http://localhost:8765
 ```
 
 ---
 
 ## Licença
 
-Dupla licença: **AGPL v3** (código aberto) ou licença comercial.
-Veja [LICENSE](LICENSE) e [LICENCA_COMERCIAL.md](LICENCA_COMERCIAL.md).
+**AGPL v3** ou licença comercial. Veja [LICENSE](LICENSE) e [LICENCA_COMERCIAL.md](LICENCA_COMERCIAL.md).
 
 ---
 
