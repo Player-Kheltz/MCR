@@ -65,6 +65,17 @@ server/vcpkg_installed/
 server/build/
 client/build/
 
+# Logs de execucao
+*_err.txt
+*_out.txt
+bridge_test_log.txt
+
+# Python cache
+.pytest_cache/
+
+# Binarios grandes (mapas)
+*.otbm
+
 # Legacy: arquivos soltos na raiz que nao pertencem ao repo MCR
 sandbox/
 test_*.py
