@@ -233,3 +233,53 @@ O mundo Feira dos Mercadores é um campo de batalha onde as potências se enfren
 O mundo Feira dos Mercadores está em constante mudança. Novos recursos são descobertos e as regiões se enfrentam constantemente por controle sobre eles. As guildas de mercadores se esforçam para manter sua posição de liderança no mundo, enquanto outros grupos buscam derrubá-las para tomar seu lugar. O mundo Feira dos Mercadores é uma terra de aventuras, onde os heróis são testados em seus limites e as fortunas se interconectam constantemente. A corrida pela riqueza e o poder continua, mas a verdadeira riqueza está nas memórias de aqueles que passaram pelo mundo Feira dos Mercadores.
 
 _(Metadados: {"type": "world_expansion", "entidades": 10})_
+
+## [2026-07-09 23:56:15] Evento
+Eldon Oakheart, ferreiro elfco mistico, abriu sua forja em Vesperia. Dizem que ele tem um medo peculiar de borboletas, mas suas armas encantadas sao as melhores da regiao.
+
+_(Metadados: {"type": "npc_arrival", "entity": "Eldon Oakheart", "location": "Vesperia"})_
+
+## [2026-07-09 23:56:15] Evento
+Grimgor Fangshield, um orc de linhagem real capturado em batalha, foi designado para guardar a Ponte Ebonshard. Coleciona objetos exoticos e tem panico de passaros.
+
+_(Metadados: {"type": "npc_assignment", "entity": "Grimgor Fangshield", "location": "Ponte Ebonshard"})_
+
+## [2026-07-09 23:56:15] Evento
+A Forja Perdida: Aelindor, ferreiro de Thais, procura um aventureiro corajoso para recuperar suas ferramentas roubadas por goblins em um antigo vulcao abandonado.
+
+_(Metadados: {"type": "quest_offered", "entity": "Aelindor", "quest": "A Forja Perdida"})_
+
+## [2026-07-10 00:04:41] Evento
+A historia de Eldon Oakheart foi expandida:  Eldon Oakheart, o ferreiro místico elfo de Vesperia, teve uma origem humilde na floresta de Yalahar. A sua infância foi marcada pela harmonia com a natureza e pelas lendas do povo elfo. Porém, um inc
+
+_(Metadados: {"type": "expansion", "entity": "Eldon Oakheart", "entity_type": "npc"})_
+
+## [2026-07-10 00:41:13] Evento
+Garrick Stonehands chegou ao mundo.  NOME: Garrick Stonehands
+RACA: Humano
+SEXO: Masculino
+IDADE: 52 anos
+
+HISTORIA: Garrick é um pedreiro de longa data no Vemelka, tendo trabalhado na reconstrução de várias estruturas importantes em Th
+
+_(Metadados: {"type": "npc_arrival", "entity": "Garrick Stonehands", "classe": "criar_npc"})_
+
+## [2026-07-10 00:57:25] Evento
+Eldarion Thalassiel chegou ao mundo.  NOME: Eldarion Thalassiel
+RACA: Elfo
+SEXO: Masculino
+IDADE: 650 anos (aparencia de 30 anos)
+
+HISTORIA: Descendente direto da Casa Vingaard, Eldarion é um elfo que viveu durante muitas guerras e batal
+
+_(Metadados: {"type": "npc_arrival", "entity": "Eldarion Thalassiel", "classe": "criar_npc"})_
+
+## [2026-07-10 00:58:22] Evento
+Pedro Pedrasca chegou ao mundo.  NOME: Pedro Pedrasca
+RACA: Humano
+SEXO: Masculino
+IDADE: 52 anos
+
+HISTORIA: Por mais de trinta anos, Pedro trabalhou no famoso pão de Antica, mas sua vida mudou de forma inesperada quando ele foi acu
+
+_(Metadados: {"type": "npc_arrival", "entity": "Pedro Pedrasca", "classe": "criar_npc"})_

@@ -275,6 +275,69 @@
       "role": "",
       "tier": "template_radar",
       "quests": []
+    },
+    "Eldon Oakheart": {
+      "file": "npc_eldon_oakheart.lua",
+      "role": "Ferreiro Mistico",
+      "raca": "Elfo",
+      "sexo": "Masculino",
+      "idade": 400,
+      "local": "Vesperia (floresta de Yalahar)",
+      "personalidade": "Intuitivo, inquieto, solitario",
+      "traco_secreto": "Medo de borboletas",
+      "tier": "canon",
+      "relacoes": [
+        "reside_em:Yalahar",
+        "frequenta:Vesperia"
+      ],
+      "expansoes": [
+        " Eldon Oakheart, o ferreiro místico elfo de Vesperia, teve uma origem humilde na floresta de Yalahar. A sua infância foi marcada pela harmonia com a natureza e pelas lendas do povo elfo. Porém, um incidente traumático ocorrido na sua juventude contribuiu para que ele desenvolvesse um medo secreto de borboletas.\n\nQuando Eldon tinha cerca de 200 anos, sua aldeia foi invadida por uma horda de bestas selvagens, lideradas pelo terrível Sobrinho do Tempo Perdido. Na luta que se seguiu, Eldon e vários "
+      ]
+    },
+    "Grimgor Fangshield": {
+      "file": "npc_grimgor_fangshield.lua",
+      "role": "Guarda da Ponte",
+      "raca": "Orc",
+      "sexo": "Masculino",
+      "idade": 400,
+      "local": "Ponte Ebonshard",
+      "personalidade": "Determinado, timido, obcecado por colecionar",
+      "traco_secreto": "Medo irracional de passaros",
+      "tier": "canon",
+      "relacoes": [
+        "guarda:Ponte Ebonshard"
+      ]
+    },
+    "Aelindor": {
+      "file": "quest_npc_aelindor.lua",
+      "role": "Ferreiro de Thais (entregador de quest)",
+      "raca": "Elfo",
+      "sexo": "Masculino",
+      "local": "Thais",
+      "personalidade": "Sabio, dedicado, misterioso",
+      "tier": "canon",
+      "quests": [
+        "A Forja Perdida"
+      ],
+      "relacoes": [
+        "reside_em:Thais",
+        "oferece_quest:A Forja Perdida"
+      ]
+    },
+    "Garrick Stonehands": {
+      "file": "npc_garrick_stonehands.lua",
+      "role": "gerado_por_pipeline",
+      "tier": "rascunho"
+    },
+    "Eldarion Thalassiel": {
+      "file": "npc_eldarion_thalassiel.lua",
+      "role": "gerado_por_pipeline",
+      "tier": "rascunho"
+    },
+    "Pedro Pedrasca": {
+      "file": "npc_pedro_pedrasca.lua",
+      "role": "gerado_por_pipeline",
+      "tier": "rascunho"
     }
   },
   "monstros": {
@@ -294,7 +357,30 @@
       "danger_level": "medium"
     }
   },
-  "lores": {},
+  "lores": {
+    "Fundacao de Eridanus": {
+      "tipo": "mito_de_criacao",
+      "resumo": "Eridanus foi fundada apos um arco-iris divino sobre o rio Eridanos, unindo o mar de Ardor ao mar de Serpentes.",
+      "lugares_mencionados": [
+        "Erenor",
+        "Eridanos",
+        "Ardor",
+        "Serpentes",
+        "Telara",
+        "Thais"
+      ],
+      "tier": "canon"
+    },
+    "Origem do SPA": {
+      "tipo": "mito_de_sistema",
+      "resumo": "O Sistema de Progressao do Aventureiro (SPA) originou-se de um caminho oculto guardado pelo misterioso Conjurador do Caminho Escondido.",
+      "lugares_mencionados": [
+        "Valdoria",
+        "Tibia"
+      ],
+      "tier": "canon"
+    }
+  },
   "current_foundation": {
     "world_seed_lite": {
       "world_name": "Feira dos Mercadores",

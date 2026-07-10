@@ -106,6 +106,9 @@ hdc_core.py
 sdm_core.py
 fix_mcr_devia_v2.py
 
+# C# script artifacts
+*.csx
+
 # Temp
 *.tmp
 *.temp
