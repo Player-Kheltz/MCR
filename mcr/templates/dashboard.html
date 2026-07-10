@@ -1,152 +1,102 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" data-theme="business">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>MCR-DevIA — World Console</title>
 <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-<style>
-:root{--bg:#0d1117;--bg2:#161b22;--bg3:#21262d;--bg4:#30363d;--fg:#c9d1d9;--fg2:#8b949e;--fg3:#484f58;--blue:#58a6ff;--green:#3fb950;--orange:#d29922;--red:#f85149;--purple:#d2a8ff;--teal:#4EC9B0;--border:#30363d}
-*{margin:0;padding:0;box-sizing:border-box}
-body{font:13px -apple-system,'Segoe UI',sans-serif;background:var(--bg);color:var(--fg);height:100vh;display:flex;flex-direction:column;overflow:hidden}
-
-/* TOPBAR */
-#topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 12px;height:36px;display:flex;align-items:center;gap:12px;flex-shrink:0}
-#topbar h1{color:var(--blue);font-size:13px;font-weight:600;margin-right:auto}
-.status-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;background:var(--green)}
-.status-dot.off{background:var(--red);animation:none}
-.top-stat{font-size:10px;color:var(--fg2);display:flex;align-items:center;gap:4px}
-.top-stat .val{color:var(--fg);font-weight:600}
-.entropy-mini{width:60px;height:4px;background:var(--bg3);border-radius:2px;overflow:hidden}
-.entropy-mini .fill{height:100%;border-radius:2px;transition:width 1s,background 1s}
-
-/* LAYOUT */
-#main{flex:1;display:flex;overflow:hidden}
-
-/* SIDEBAR */
-#sidebar{width:44px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;align-items:center;padding:4px 0;gap:2px;flex-shrink:0}
-.sb-btn{width:32px;height:32px;border-radius:6px;border:none;background:transparent;color:var(--fg2);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:.15s;position:relative}
-.sb-btn:hover{background:var(--bg3);color:var(--fg)}
-.sb-btn.active{background:var(--blue);color:#fff}
-.sb-btn .tooltip{position:absolute;left:44px;background:var(--bg3);color:var(--fg);font-size:10px;padding:2px 6px;border-radius:3px;white-space:nowrap;opacity:0;pointer-events:none;transition:.15s}
-.sb-btn:hover .tooltip{opacity:1}
-.sb-spacer{flex:1}
-
-/* CONTENT */
-#content{flex:1;display:flex;overflow:hidden}
-#left-col{width:320px;min-width:260px;border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
-#right-col{flex:1;display:flex;flex-direction:column;overflow:hidden}
-
-/* CHAT */
-#chat-header{background:var(--bg2);padding:6px 10px;border-bottom:1px solid var(--border);font-size:10px;color:var(--fg2);text-transform:uppercase;letter-spacing:.5px;flex-shrink:0}
-#chat-msgs{flex:1;overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:4px}
-.msg{padding:8px 10px;border-radius:6px;font-size:12px;line-height:1.5;max-width:97%}
-.msg.user{background:#1f6feb22;border:1px solid #58a6ff33;align-self:flex-end;color:var(--fg)}
-.msg.bot{background:var(--bg3);border:1px solid var(--border);align-self:flex-start;color:var(--fg2)}
-.msg.bot.streaming{border-color:var(--blue)}
-.msg .meta{font-size:9px;color:var(--fg3);margin-top:4px}
-#chat-input-wrap{display:flex;gap:4px;padding:6px;background:var(--bg2);border-top:1px solid var(--border);flex-shrink:0}
-#chat-input-wrap textarea{flex:1;font:12px inherit;padding:6px 8px;background:var(--bg);color:var(--fg);border:1px solid var(--border);border-radius:4px;resize:none;height:36px;outline:none;transition:border-color .2s}
-#chat-input-wrap textarea:focus{border-color:var(--blue)}
-#chat-input-wrap button{padding:6px 16px;background:var(--blue);color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:12px;font-weight:500;transition:opacity .2s}
-#chat-input-wrap button:hover{opacity:.85}
-#chat-input-wrap button:disabled{opacity:.4;cursor:default}
-
-/* RIGHT PANEL */
-#view-header{background:var(--bg2);padding:6px 10px;border-bottom:1px solid var(--border);font-size:10px;color:var(--fg2);display:flex;justify-content:space-between;flex-shrink:0}
-#view-body{flex:1;overflow-y:auto;padding:10px;font:12px Consolas;white-space:pre-wrap;word-break:break-word;color:var(--fg2)}
-#view-body .cursor{display:inline-block;width:6px;height:12px;background:var(--blue);animation:blink .8s infinite;vertical-align:text-bottom;margin-left:1px}
-@keyframes blink{50%{opacity:0}}
-
-/* LOGS BAR */
-#logbar{background:var(--bg2);border-top:1px solid var(--border);padding:2px 8px;font:9px Consolas;color:var(--fg3);height:22px;display:flex;align-items:center;gap:6px;flex-shrink:0;overflow:hidden}
-#logbar .lg{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-
-/* CARDS */
-.card{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:8px;margin-bottom:6px;transition:border-color .2s}
-.card:hover{border-color:var(--blue)}
-.card .title{font-size:11px;color:var(--blue);font-weight:500}
-.card .sub{font-size:10px;color:var(--fg2)}
-.card .tag{display:inline-block;font-size:9px;padding:1px 5px;border-radius:3px;margin:2px}
-.tag.green{background:#23863633;color:var(--green)}
-.tag.blue{background:#1f6feb33;color:var(--blue)}
-.tag.orange{background:#d2992233;color:var(--orange)}
-.tag.purple{background:#d2a8ff33;color:var(--purple)}
-
-/* TELEMETRIA */
-.entropy-bar{height:24px;background:var(--bg);border-radius:4px;overflow:hidden;margin:4px 0;position:relative}
-.entropy-bar .fill{height:100%;border-radius:4px;transition:width .5s,background .5s}
-.stat-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;margin:4px 0}
-.stat-card{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:8px;text-align:center}
-.stat-card .val{font-size:22px;font-weight:700;color:var(--fg)}
-.stat-card .lbl{font-size:9px;color:var(--fg2);text-transform:uppercase;letter-spacing:.5px;margin-top:2px}
-.stat-card .val.green{color:var(--green)}.stat-card .val.blue{color:var(--blue)}.stat-card .val.orange{color:var(--orange)}
-
-/* TABLES (fallback para dados) */
-.tbl{width:100%;border-collapse:collapse;font-size:11px}
-.tbl th{text-align:left;padding:4px 6px;background:var(--bg2);color:var(--blue);font-size:9px;text-transform:uppercase;position:sticky;top:0}
-.tbl td{padding:4px 6px;border-bottom:1px solid var(--border);color:var(--fg2)}
-.tbl tr:hover td{background:#1f6feb11;color:var(--fg)}
-.btn-sm{padding:2px 8px;font-size:10px;border:none;border-radius:3px;cursor:pointer;color:#fff}
-.btn-sm.blue{background:var(--blue)}.btn-sm.green{background:var(--green)}.btn-sm:hover{opacity:.85}
-
-/* SCROLL */
-::-webkit-scrollbar{width:6px;height:6px}
-::-webkit-scrollbar-track{background:transparent}
-::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:3px}
-::-webkit-scrollbar-thumb:hover{background:var(--fg3)}
-</style>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://cdn.jsdelivr.net/npm/daisyui@4/dist/full.css" rel="stylesheet" type="text/css" />
+<script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.min.js"></script>
 </head>
-<body>
-<div id="topbar" x-data="topbarData()" x-init="init()">
-  <div class="status-dot" :class="{'off': !connected}"></div>
-  <h1>MCR-DevIA</h1>
-  <div class="entropy-mini"><div class="fill" :style="'width:'+entropyPct+'%;background:'+entropyColor"></div></div>
-  <span class="top-stat">🧙 <span class="val" x-text="npcs">—</span></span>
-  <span class="top-stat">📜 <span class="val" x-text="lores">—</span></span>
-  <span class="top-stat" :class="connected ? 'green' : ''"><span class="val" x-text="connected ? 'Conectado' : 'Offline'"></span></span>
+<body class="font-['-apple-system,Segoe_UI,sans-serif'] text-[13px] bg-base-100 text-base-content h-screen flex flex-col overflow-hidden">
+
+<div id="topbar" x-data="topbarData()" x-init="init()" class="bg-base-200 border-b border-base-300 px-3 h-9 flex items-center gap-3 shrink-0">
+  <div class="w-2 h-2 rounded-full shrink-0" :class="connected ? 'bg-success' : 'bg-error'"></div>
+  <h1 class="text-primary text-[13px] font-semibold mr-auto">MCR-DevIA</h1>
+  <div class="w-[60px] h-1 bg-base-300 rounded overflow-hidden"><div class="h-full rounded transition-all duration-1000" :style="'width:'+entropyPct+'%;background:'+entropyColor"></div></div>
+  <span class="text-[10px] text-base-content/60 flex items-center gap-1"><i data-lucide="users" data-lucide-size="14"></i> <span class="font-semibold text-base-content" x-text="npcs">—</span></span>
+  <span class="text-[10px] text-base-content/60 flex items-center gap-1"><i data-lucide="scroll-text" data-lucide-size="14"></i> <span class="font-semibold text-base-content" x-text="lores">—</span></span>
+  <span class="text-[10px] text-base-content/60 flex items-center gap-1"><span class="font-semibold" :class="connected ? 'text-success' : 'text-base-content'" x-text="connected ? 'Conectado' : 'Offline'"></span></span>
+  <select class="select select-xs select-ghost text-base-content/60 w-auto" x-model="theme" @change="setTheme">
+    <option value="forest">Forest</option>
+    <option value="light">Light</option>
+    <option value="dark">Dark</option>
+    <option value="dim">Dim</option>
+    <option value="cupcake">Cupcake</option>
+    <option value="retro">Retro</option>
+    <option value="cyberpunk">Cyberpunk</option>
+    <option value="synthwave">Synthwave</option>
+    <option value="dracula">Dracula</option>
+    <option value="night">Night</option>
+    <option value="coffee">Coffee</option>
+    <option value="winter">Winter</option>
+    <option value="nord">Nord</option>
+    <option value="luxury">Luxury</option>
+    <option value="business">Business</option>
+    <option value="acid">Acid</option>
+    <option value="lemonade">Lemonade</option>
+  </select>
 </div>
-<div id="main">
-  <div id="sidebar">
-    <button class="sb-btn active" data-view="chat" @click="switchView('chat')">💬<span class="tooltip">Chat</span></button>
-    <button class="sb-btn" data-view="telemetry" @click="switchView('telemetry')">📊<span class="tooltip">Telemetria</span></button>
-    <button class="sb-btn" data-view="npcs" @click="switchView('npcs')">🧙<span class="tooltip">NPCs</span></button>
-    <button class="sb-btn" data-view="quests" @click="switchView('quests')">📜<span class="tooltip">Quests</span></button>
-    <button class="sb-btn" data-view="map" @click="switchView('map')">🗺️<span class="tooltip">Mapa</span></button>
-    <div class="sb-spacer"></div>
-    <button class="sb-btn" @click="toggleLog()">📋<span class="tooltip">Logs</span></button>
+
+<div id="main" class="flex-1 flex overflow-hidden">
+  <div id="sidebar" class="w-11 bg-base-200 border-r border-base-300 flex flex-col items-center py-1 gap-0.5 shrink-0">
+    <div class="tooltip tooltip-right" data-tip="Chat">
+      <button class="btn btn-ghost btn-square btn-sm text-base-content/60" :class="currentView === 'chat' ? '!bg-primary !text-primary-content' : ''" data-view="chat" @click="switchView('chat')"><i data-lucide="message-square"></i></button>
+    </div>
+    <div class="tooltip tooltip-right" data-tip="Telemetria">
+      <button class="btn btn-ghost btn-square btn-sm text-base-content/60" :class="currentView === 'telemetry' ? '!bg-primary !text-primary-content' : ''" data-view="telemetry" @click="switchView('telemetry')"><i data-lucide="bar-chart-3"></i></button>
+    </div>
+    <div class="tooltip tooltip-right" data-tip="NPCs">
+      <button class="btn btn-ghost btn-square btn-sm text-base-content/60" :class="currentView === 'npcs' ? '!bg-primary !text-primary-content' : ''" data-view="npcs" @click="switchView('npcs')"><i data-lucide="users"></i></button>
+    </div>
+    <div class="tooltip tooltip-right" data-tip="Quests">
+      <button class="btn btn-ghost btn-square btn-sm text-base-content/60" :class="currentView === 'quests' ? '!bg-primary !text-primary-content' : ''" data-view="quests" @click="switchView('quests')"><i data-lucide="scroll-text"></i></button>
+    </div>
+    <div class="tooltip tooltip-right" data-tip="Mapa">
+      <button class="btn btn-ghost btn-square btn-sm text-base-content/60" :class="currentView === 'map' ? '!bg-primary !text-primary-content' : ''" data-view="map" @click="switchView('map')"><i data-lucide="map"></i></button>
+    </div>
+    <div class="flex-1"></div>
+    <div class="tooltip tooltip-right" data-tip="Logs">
+      <button class="btn btn-ghost btn-square btn-sm text-base-content/60" @click="toggleLog()"><i data-lucide="terminal"></i></button>
+    </div>
   </div>
-  <div id="content">
-    <div id="left-col" x-data="chatData()" x-init="init()">
-      <div id="chat-header">💬 Chat — digite um comando para o Guardião do Mundo</div>
-      <div id="chat-msgs">
+  <div id="content" class="flex-1 flex overflow-hidden">
+    <div id="left-col" class="w-[320px] min-w-[260px] border-r border-base-300 flex flex-col overflow-hidden" x-data="chatData()" x-init="init()">
+      <div id="chat-header" class="bg-base-200 px-2.5 py-1.5 border-b border-base-300 text-[10px] text-base-content/60 uppercase tracking-wide shrink-0 flex items-center gap-1"><i data-lucide="message-square" data-lucide-size="14"></i> Chat — digite um comando para o Guardião do Mundo</div>
+      <div id="chat-msgs" class="flex-1 overflow-y-auto p-2 flex flex-col gap-1">
         <template x-for="(m,i) in msgs" :key="i">
-          <div class="msg" :class="m.tipo == 'user' ? 'user' : 'bot' + (m.streaming ? ' streaming' : '')">
-            <span x-text="m.texto"></span><span x-show="m.streaming" class="cursor"></span>
-            <div x-show="m.meta" class="meta" x-text="m.meta"></div>
+          <div class="p-2.5 px-3 rounded-md text-[12px] leading-relaxed max-w-[97%]" :class="{
+            'bg-primary/10 border border-primary/20 self-end text-base-content': m.tipo === 'user',
+            'bg-base-300 border self-start text-base-content/70 border-base-300': m.tipo === 'bot' && !m.streaming,
+            'bg-base-300 border border-primary self-start text-base-content/70': m.tipo === 'bot' && m.streaming
+          }">
+            <span x-text="m.texto"></span><span x-show="m.streaming" class="inline-block w-1.5 h-3 bg-primary animate-pulse align-text-bottom ml-0.5"></span>
+            <div x-show="m.meta" class="text-[9px] text-base-content/50 mt-1" x-text="m.meta"></div>
           </div>
         </template>
-        <div x-show="!msgs.length" style="color:var(--fg3);font-size:11px;text-align:center;padding:20px">
+        <div x-show="!msgs.length" class="text-base-content/50 text-[11px] text-center p-5">
           MCR-DevIA Console. Digite algo para começar.
         </div>
       </div>
-      <div id="chat-input-wrap">
-        <textarea x-model="input" @keydown="if($event.key==='Enter'&&!$event.shiftKey){$event.preventDefault();send()}" :disabled="busy" placeholder="Crie um NPC ferreiro élfico..."></textarea>
-        <button @click="send()" :disabled="busy || !input.trim()">Enviar</button>
+      <div id="chat-input-wrap" class="flex gap-1 p-1.5 bg-base-200 border-t border-base-300 shrink-0">
+        <textarea x-model="input" @keydown="if($event.key==='Enter'&&!$event.shiftKey){$event.preventDefault();send()}" :disabled="busy" placeholder="Crie um NPC ferreiro élfico..." class="textarea textarea-bordered textarea-sm flex-1 bg-base-100 text-base-content focus:border-primary outline-none h-9 min-h-0 resize-none"></textarea>
+        <button @click="send()" :disabled="busy || !input.trim()" class="btn btn-secondary btn-sm shrink-0">Enviar</button>
       </div>
     </div>
-    <div id="right-col">
-      <div id="view-header">
+    <div id="right-col" class="flex-1 flex flex-col overflow-hidden">
+      <div id="view-header" class="bg-base-200 px-2.5 py-1.5 border-b border-base-300 text-[10px] text-base-content/60 flex justify-between shrink-0">
         <span x-text="viewTitle">Saída</span>
-        <span style="font-size:9px;color:var(--fg3)" x-text="viewSub"></span>
+        <span class="text-[9px] text-base-content/50" x-text="viewSub"></span>
       </div>
-      <div id="view-body" x-html="viewContent"></div>
+      <div id="view-body" class="flex-1 overflow-y-auto p-2.5 font-['Consolas'] text-[12px] whitespace-pre-wrap break-words text-base-content/70" x-html="viewContent"></div>
     </div>
   </div>
 </div>
-<div id="logbar" x-data="logData()" x-init="init()">
-  <span style="color:var(--blue)">📋</span>
-  <span class="lg" x-text="ultimoLog"></span>
+
+<div id="logbar" class="bg-base-200 border-t border-base-300 px-2 py-0.5 font-['Consolas'] text-[9px] text-base-content/50 h-[22px] flex items-center gap-1.5 shrink-0 overflow-hidden transition-all duration-150" x-data="logData()" x-init="init()">
+  <i data-lucide="terminal" data-lucide-size="12" class="text-primary shrink-0"></i>
+  <span class="truncate whitespace-nowrap overflow-hidden text-ellipsis" x-text="ultimoLog"></span>
 </div>
 
 <script>
@@ -157,22 +107,27 @@ window.SSE = sse;
 // ─── TOPBAR ──────────────────────────────────────────
 function topbarData() {
   return {
-    connected: true, npcs: '—', lores: '—',
-    entropyPct: 50, entropyColor: '#58a6ff',
+    connected: true, npcs: '—', lores: '—', currentView: 'chat',
+    entropyPct: 50, entropyColor: '#22c55e',
+    theme: localStorage.getItem('mcr-theme') || 'forest',
     init() {
+      document.documentElement.setAttribute('data-theme', this.theme);
       sse.onopen = () => this.connected = true;
       sse.onerror = () => this.connected = false;
       const refresh = () => fetch('/api/world/status').then(r=>r.json()).then(d => {
         this.npcs = d.total_npcs || '—'; this.lores = d.total_lores || '—';
         const e = d.entropia || 0.5; this.entropyPct = e * 100;
-        this.entropyColor = e > 0.7 ? '#f85149' : e > 0.4 ? '#d29922' : '#3fb950';
+        this.entropyColor = e > 0.7 ? '#ef4444' : e > 0.4 ? '#eab308' : '#22c55e';
       }).catch(()=>{});
       refresh(); setInterval(refresh, 10000);
     },
     switchView(v) {
-      document.querySelectorAll('.sb-btn').forEach(b => b.classList.remove('active'));
-      document.querySelector(`.sb-btn[data-view="${v}"]`).classList.add('active');
+      this.currentView = v;
       window.dispatchEvent(new CustomEvent('view-change', {detail: v}));
+    },
+    setTheme() {
+      document.documentElement.setAttribute('data-theme', this.theme);
+      localStorage.setItem('mcr-theme', this.theme);
     },
     toggleLog() {
       const bar = document.getElementById('logbar');
@@ -186,7 +141,7 @@ function topbarData() {
 function chatData() {
   return {
     input: '', msgs: [], busy: false, streaming: false, acumulado: '',
-    viewTitle: 'Saída', viewSub: '', viewContent: '<span style="color:var(--fg3)">Saídas aparecerão aqui.</span>',
+    viewTitle: 'Saída', viewSub: '', viewContent: '<span style="color:#6b7280">Saídas aparecerão aqui.</span>',
     init() {
       window.addEventListener('view-change', e => this.onViewChange(e.detail));
     },
@@ -194,7 +149,7 @@ function chatData() {
       // Views handled by Alpine elsewhere
     },
     async send() {
-      const _this = this; // captura this do Alpine
+      const _this = this;
       const msg = _this.input.trim(); if (!msg) return;
       _this.input = ''; _this.busy = true; _this.streaming = true; _this.acumulado = '';
       _this.msgs.push({tipo: 'user', texto: msg});
@@ -224,7 +179,6 @@ function chatData() {
             const line = lines[i];
             if (line.startsWith('event: ')) {
               const event = line.slice(7).trim();
-              // procura data logo apos este event
               const dataLine = (i + 1 < lines.length) ? lines[i + 1] : '';
               if (dataLine.startsWith('data: ')) {
                 try {
@@ -243,13 +197,11 @@ function chatData() {
         _this.viewContent = `Erro: ${e.message}`;
       }
 
-      // Garante que sempre libera
       _this.busy = false;
       _this.streaming = false;
       _this.viewSub = '';
       if (_this.msgs[botIdx]) _this.msgs[botIdx].streaming = false;
 
-      // Foca no input para poder digitar novamente
       setTimeout(() => {
         const el = document.querySelector('#chat-input-wrap textarea');
         if (el) el.focus();
@@ -294,5 +246,6 @@ function logData() {
   };
 }
 </script>
+<script>lucide.createIcons()</script>
 </body>
 </html>
