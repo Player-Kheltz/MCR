@@ -7,37 +7,36 @@
              d:DesignHeight="600" d:DesignWidth="900"
              Background="{StaticResource BgDarkestBrush}">
 
-    <Grid Margin="20">
+    <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
         <!-- Header -->
-        <StackPanel Grid.Row="0" Margin="0,0,0,16">
-            <TextBlock Text="Banco de Dados" FontSize="24"
+        <StackPanel Grid.Row="0" Margin="12,8,12,4">
+            <TextBlock Text="Banco de Dados" FontSize="20"
                        FontWeight="SemiBold"
                        Foreground="{StaticResource FgBrightBrush}" />
-            <TextBlock Text="Gerenciar tabelas, jogadores e dados do servidor"
-                       FontSize="13"
+            <TextBlock Text="Tabelas, jogadores e dados do servidor"
+                       FontSize="12"
                        Foreground="{StaticResource FgSecondaryBrush}"
-                       Margin="0,4,0,0" />
+                       Margin="0,2,0,0" />
         </StackPanel>
 
         <!-- Content -->
-        <Grid Grid.Row="1">
+        <Grid Grid.Row="1" Margin="12,0,12,8">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="220" />
+                <ColumnDefinition Width="240" MinWidth="160" />
+                <ColumnDefinition Width="6" />
                 <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="280" />
             </Grid.ColumnDefinitions>
 
             <!-- Left: Table List -->
             <Border Grid.Column="0"
                     Background="{StaticResource BgMediumBrush}"
                     BorderBrush="{StaticResource BorderBrush}"
-                    BorderThickness="1" CornerRadius="4"
-                    Margin="0,0,8,0">
+                    BorderThickness="1" CornerRadius="4">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
@@ -46,13 +45,13 @@
                     </Grid.RowDefinitions>
 
                     <Border Grid.Row="0" Background="{StaticResource BgLightBrush}"
-                            Padding="10,8" CornerRadius="4,4,0,0">
+                            Padding="10,6" CornerRadius="4,4,0,0">
                         <TextBlock Text="Tabelas" FontSize="12"
                                    Foreground="{StaticResource FgSecondaryBrush}" />
                     </Border>
 
                     <TextBox Grid.Row="1" x:Name="TableSearchBox"
-                             Margin="8,6,8,4" Padding="6,4"
+                             Margin="6,4,6,4" Padding="6,4"
                              FontSize="12"
                              TextChanged="TableSearchBox_TextChanged" />
 
@@ -60,16 +59,21 @@
                              Background="Transparent"
                              BorderThickness="0"
                              SelectionChanged="TableList_SelectionChanged"
-                             FontSize="13" Margin="0,0,0,4" />
+                             FontSize="13" Margin="4,0,4,4"
+                             ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                             ScrollViewer.VerticalScrollBarVisibility="Auto" />
                 </Grid>
             </Border>
 
-            <!-- Center: Table Data -->
-            <Border Grid.Column="1" Grid.ColumnSpan="2"
+            <GridSplitter Grid.Column="1" Width="6" HorizontalAlignment="Stretch"
+                          Background="{StaticResource BgDarkestBrush}"
+                          BorderBrush="{StaticResource BorderBrush}" BorderThickness="0" />
+
+            <!-- Right: Table Data -->
+            <Border Grid.Column="2"
                     Background="{StaticResource BgMediumBrush}"
                     BorderBrush="{StaticResource BorderBrush}"
-                    BorderThickness="1" CornerRadius="4"
-                    Margin="0,0,0,0">
+                    BorderThickness="1" CornerRadius="4">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
@@ -78,7 +82,7 @@
 
                     <!-- Table header -->
                     <Border Grid.Row="0" Background="{StaticResource BgLightBrush}"
-                            Padding="10,8" CornerRadius="4,4,0,0">
+                            Padding="10,6" CornerRadius="4,4,0,0">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
@@ -91,7 +95,7 @@
                                        VerticalAlignment="Center" />
 
                             <StackPanel Grid.Column="1" Orientation="Horizontal">
-                                <TextBox x:Name="SearchBox" Width="150"
+                                <TextBox x:Name="SearchBox" Width="160"
                                          FontSize="12" Margin="0,0,6,0"
                                          Padding="6,3" />
                                 <Button x:Name="SearchButton" Content="Buscar"
@@ -109,9 +113,10 @@
                                       Background="Transparent"
                                       AutoGenerateColumns="True"
                                       IsReadOnly="True"
-                                      RowHeight="28"
+                                      RowHeight="26"
                                       FontSize="12"
-                                      BorderThickness="0" />
+                                      BorderThickness="0"
+                                      Margin="4" />
                         </ScrollViewer>
                     </Border>
                 </Grid>

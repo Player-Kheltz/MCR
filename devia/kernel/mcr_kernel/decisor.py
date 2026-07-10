@@ -144,6 +144,47 @@ class MCRDecisor:
         self.aprender(estado, 'geral', True)
         return 'geral'
 
+    # ─── Decisao de pular parser (Fase C→G) ─────────────
+    # A decisao usa entropia do cluster + similaridade Jaccard
+    # via Ponte Otima, sem thresholds fixos.
+
+    def decidir_pular_parser(self, entropia_cluster: float,
+                              similaridade: float,
+                              min_similaridade_base: float = 0.3) -> str:
+        """Decide se pode pular o tree-sitter para uma entidade.
+        
+        Usa entropia do cluster como modulador do limiar de similaridade:
+        - Cluster homogeneo (entropia baixa): exige menos similaridade
+        - Cluster diverso (entropia alta): exige mais similaridade
+        
+        Formula (Ponte Otima):
+            limiar = min_similaridade_base + (1 - min_similaridade_base) * entropia_cluster
+            Se similaridade >= limiar → pula parser
+        
+        Args:
+            entropia_cluster: entropia normalizada [0, 1] do cluster
+            similaridade: similaridade Jaccard entre raw tokens e o cluster
+            min_similaridade_base: similaridade minima (quando entropia = 0)
+        
+        Returns:
+            'pular_parser' se pode pular, 'usar_parser' caso contrario
+        """
+        if entropia_cluster <= 0:
+            return 'pular_parser'  # cluster vazio ou trivial
+        
+        # Limiar adaptativo: entropia alta → mais exigente
+        limiar = min_similaridade_base + (1.0 - min_similaridade_base) * entropia_cluster
+        
+        # Aprende esta decisao no Markov
+        estado = f"H:{entropia_cluster:.2f}_S:{similaridade:.2f}"
+        
+        if similaridade >= limiar:
+            self.mk.aprender(estado, "PULAR_PARSER")
+            return 'pular_parser'
+        else:
+            self.mk.aprender(estado, "USAR_PARSER")
+            return 'usar_parser'
+
 
 class MCRDiagnostico:
     """Diagnostico MCR'zificado — Markov de estado para debug."""

@@ -108,7 +108,7 @@ public partial class ProtocolView : UserControl
                     ServerInfoBox.Text = string.Join(Environment.NewLine, info);
                     return;
                 }
-                catch { }
+                catch (Exception ex) { System.Diagnostics.Debug.WriteLine("[Grimorio] " + ex.Message); }
             }
         }
 

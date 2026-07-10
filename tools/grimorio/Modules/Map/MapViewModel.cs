@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using System.Windows.Input;
 using MCR.Grimorio.Core;
 using MCR.Grimorio.Data;
+using MCR.Grimorio.Models;
 
 namespace MCR.Grimorio.Modules.Map;
 
@@ -19,7 +20,12 @@ public class MapViewModel : ViewModelBase
     private string _mouseCoords = "";
     private string _statusText = "Nenhum mapa carregado";
     private bool _isLoading;
+    private bool _heatmapVisible;
     private readonly MinimapRenderer _renderer = new();
+    public List<EntropyPoint> EntropyGrid { get; set; } = new();
+    public double EntropyMax { get; set; } = 1.0;
+    public double EntropyMin { get; set; } = 0.0;
+    public int EntropyTotalEvents { get; set; }
 
     public OtbmMapData? MapData
     {
@@ -96,6 +102,19 @@ public class MapViewModel : ViewModelBase
     {
         get => _isLoading;
         set => SetProperty(ref _isLoading, value);
+    }
+
+    public bool HeatmapVisible
+    {
+        get => _heatmapVisible;
+        set
+        {
+            if (SetProperty(ref _heatmapVisible, value))
+            {
+                if (!value) EntropyGrid.Clear();
+                RequestRender?.Invoke();
+            }
+        }
     }
 
     public bool HasMap => _mapData != null;

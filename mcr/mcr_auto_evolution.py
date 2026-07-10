@@ -46,51 +46,86 @@ class MCRAutoEvolution:
         return sum(entropias) / len(entropias) if entropias else 1.0
 
     def mutar(self) -> Dict:
-        """Aplica uma mutacao aleatoria nos thresholds do sistema.
+        """Aplica uma mutacao real nos thresholds do sistema e MEDE o impacto.
+        
+        Fluxo:
+        1. Snapshot da entropia global atual
+        2. Muta um threshold real (MCRThreshold existente)
+        3. Executa 3 predicoes de teste no MCR
+        4. Mede a entropia REAL apos a mutacao
+        5. Aceita se entropia reduziu, rejeita se aumentou
+        6. Reverte a mutacao se rejeitada
         
         Returns:
-            dict com 'threshold', 'mutacao_aplicada', 'entropia_antes', 'entropia_depois', 'aceita'
+            dict com resultados da mutacao
         """
         if not self._mcr:
             return {'erro': 'MCRSystem nao disponivel'}
-
-        # Entropia antes
+        
+        from devia.kernel.mcr_kernel.decisor import MCRThreshold
+        
+        # 1. Entropia antes (medida real)
         h_antes = self.entropia_global()
         self._ultima_entropia = h_antes
-
-        # Escolhe um threshold para mutar
-        thresholds = ['temperatura', 'confianca', 'curiosidade', 'criatividade']
-        threshold_alvo = random.choice(thresholds)
-
-        # Aplica mutacao: +/- 10-30%
-        mutacao = random.uniform(-0.3, 0.3)
         
-        # Simula: no MCR real, mutaria o threshold no sistema
-        # Aqui registramos o que seria mutado
+        # 2. Escolhe threshold real para mutar
+        thresholds_disponiveis = [
+            ('threshold', MCRThreshold, 'obter', 'aprender'),
+        ]
+        threshold_alvo = random.choice(['threshold_confianca', 'threshold_tamanho',
+                                          'threshold_repeticao', 'threshold_palavra'])
+        
+        # Cria/Muta threshold real
+        thr = MCRThreshold(threshold_alvo)
+        valor_atual = thr.obter(threshold_alvo, 0.5)
+        mutacao = random.uniform(-0.3, 0.3)
+        novo_valor = max(0.05, min(0.95, valor_atual + mutacao * 0.5))
+        
+        # 3. Executa predicoes de teste com o threshold mutado
+        h_depois_list = []
+        for _ in range(3):
+            # Aplica mutacao no threshold
+            thr.aprender(threshold_alvo, novo_valor)
+            
+            # Executa predicoes no MCR para medir impacto real
+            if hasattr(self._mcr, 'mk_palavra') and self._mcr.mk_palavra.transicoes:
+                mk = self._mcr.mk_palavra
+                # Pega estados mais frequentes e faz predicoes
+                estados = sorted(mk.freq.keys(), key=lambda e: -mk.freq[e])[:10]
+                for estado in estados:
+                    mk.predizer(estado)  # predizer altera cache de entropia
+            h_depois_list.append(self.entropia_global())
+        
+        # 4. Mede entropia REAL depois
+        h_depois = sum(h_depois_list) / len(h_depois_list) if h_depois_list else h_antes
+        
         resultado = {
             'threshold': threshold_alvo,
-            'mutacao_aplicada': round(mutacao, 3),
+            'mutacao_aplicada': round(novo_valor - valor_atual, 3),
+            'valor_anterior': round(valor_atual, 3),
+            'valor_novo': round(novo_valor, 3),
             'entropia_antes': round(h_antes, 4),
+            'entropia_depois': round(h_depois, 4),
             'aceita': False,
         }
-
-        # Mede entropia depois (simulada para demonstracao)
-        # No sistema real, alimentaria dados com o novo threshold e mediria
-        h_depois = h_antes * (1.0 + mutacao * random.uniform(-0.5, 0.5))
-        resultado['entropia_depois'] = round(h_depois, 4)
-
-        # Aceita se entropia reduziu (menos caos = mais coerencia)
-        if h_depois < h_antes:
+        
+        # 5. Aceita se entropia reduziu (delta_h < -0.001 para evitar ruido)
+        delta_h = h_depois - h_antes
+        if delta_h < -0.001:
             resultado['aceita'] = True
             self._mutacoes_aceitas += 1
+            # Mantem threshold mutado
+            thr.aprender(threshold_alvo, novo_valor)
+            print('[AutoEvol] ACEITA: %s %.3f -> %.3f (entropia: %.4f -> %.4f, delta=%.4f)' % (
+                threshold_alvo, valor_atual, novo_valor, h_antes, h_depois, delta_h))
         else:
+            # 6. Reverte mutacao
+            thr.aprender(threshold_alvo, valor_atual)
             resultado['aceita'] = False
             self._mutacoes_rejeitadas += 1
-
-        print('[AutoEvol] Mutacao: %s %+.1f%% | entropia: %.4f -> %.4f | %s' % (
-            threshold_alvo, mutacao * 100, h_antes, h_depois,
-            'ACEITA' if resultado['aceita'] else 'REJEITADA'))
-
+            print('[AutoEvol] REJEITADA: %s %.3f -> %.3f (entropia: %.4f -> %.4f, delta=%.4f)' % (
+                threshold_alvo, valor_atual, novo_valor, h_antes, h_depois, delta_h))
+        
         return resultado
 
     def ciclo(self, n_mutacoes: int = 5) -> List[Dict]:

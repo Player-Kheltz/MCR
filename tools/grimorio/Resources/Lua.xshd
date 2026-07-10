@@ -1,0 +1,40 @@
+<?xml version="1.0"?>
+<SyntaxDefinition name="Lua" extensions=".lua"
+    xmlns="http://icsharpcode.net/sharpdevelop/syntaxdefinition/2008">
+    <Color name="Comment" foreground="#6A9955" />
+    <Color name="String" foreground="#CE9178" />
+    <Color name="Keyword" foreground="#569CD6" />
+    <Color name="Number" foreground="#B5CEA8" />
+
+    <RuleSet>
+        <Span color="Comment" begin="--" end="&#x0a;" />
+        <Span color="String" begin="&#34;" end="&#34;" />
+        <Span color="String" begin="&#39;" end="&#39;" />
+        <Keywords color="Keyword">
+            <Word>function</Word>
+            <Word>local</Word>
+            <Word>if</Word>
+            <Word>then</Word>
+            <Word>else</Word>
+            <Word>elseif</Word>
+            <Word>end</Word>
+            <Word>for</Word>
+            <Word>while</Word>
+            <Word>do</Word>
+            <Word>repeat</Word>
+            <Word>until</Word>
+            <Word>return</Word>
+            <Word>break</Word>
+            <Word>nil</Word>
+            <Word>true</Word>
+            <Word>false</Word>
+            <Word>and</Word>
+            <Word>or</Word>
+            <Word>not</Word>
+            <Word>in</Word>
+            <Word>require</Word>
+            <Word>self</Word>
+        </Keywords>
+        <Rule color="Number">\b\d+\.?\d*\b</Rule>
+    </RuleSet>
+</SyntaxDefinition>

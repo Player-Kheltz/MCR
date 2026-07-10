@@ -104,7 +104,7 @@ public partial class DashboardView : UserControl
 
             UpdateDbIndicator();
         }
-        catch { }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine("[Grimorio] " + ex.Message); }
     }
 
     private async Task ConnectDatabaseAsync()

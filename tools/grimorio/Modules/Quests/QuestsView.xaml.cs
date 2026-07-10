@@ -20,15 +20,17 @@ public partial class QuestsView : UserControl
 
     private void SetupTypeParams()
     {
-        TypeParamsGrid.Children.Clear();
-        TypeParamsGrid.RowDefinitions.Clear();
-        TypeParamsGrid.ColumnDefinitions.Clear();
+        try
+        {
+            TypeParamsGrid.Children.Clear();
+            TypeParamsGrid.RowDefinitions.Clear();
+            TypeParamsGrid.ColumnDefinitions.Clear();
 
-        for (int i = 0; i < 4; i++)
-            TypeParamsGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            for (int i = 0; i < 4; i++)
+                TypeParamsGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 
-        var typeIndex = QuestTypeBox.SelectedIndex;
-        if (typeIndex < 0) typeIndex = 0;
+            var typeIndex = QuestTypeBox.SelectedIndex;
+            if (typeIndex < 0) typeIndex = 0;
 
         // Row 1: type-specific params
         TypeParamsGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
@@ -96,6 +98,8 @@ public partial class QuestsView : UserControl
                 AddParam(0, 3, "Storage Timer", "TimedStorageBox", "50100");
                 break;
         }
+        }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine("[QuestsView] " + ex.Message); }
     }
 
     private void AddParam(int row, int col, string label, string name, string defaultValue)
@@ -398,7 +402,7 @@ public partial class QuestsView : UserControl
         // Domain requirement
         if (reqDomain != "Nenhum")
         {
-            var reqDomId = reqDomain.Split('(')[1].TrimEnd(')');
+            var reqDomId = SafeExtractId(reqDomain, "1");
             sb.AppendLine("local reqDominioId = " + reqDomId);
             sb.AppendLine("local reqDominioNivel = " + reqDomainLevel);
             sb.AppendLine();
@@ -413,7 +417,7 @@ public partial class QuestsView : UserControl
         // Domain reward parsing
         string? domId = null;
         if (domainReward != "Nenhum")
-            domId = domainReward.Split('(')[1].TrimEnd(')');
+            domId = SafeExtractId(domainReward, "1");
 
         sb.AppendLine("-- Recompensas");
         if (xpVal > 0) sb.AppendLine("local rewardXp = " + xpVal);
@@ -486,7 +490,7 @@ public partial class QuestsView : UserControl
         // Domain requirement check
         if (reqDomain != "Nenhum")
         {
-            var reqDomId = reqDomain.Split('(')[1].TrimEnd(')');
+            var reqDomId = SafeExtractId(reqDomain, "1");
             sb.AppendLine("    -- Verifica requisito de domínio");
             sb.AppendLine("    local afinidade = player:getDominioAfinidade(reqDominioId)");
             sb.AppendLine("    local nivel = getNivelPorAfinidade(afinidade)");
@@ -560,5 +564,12 @@ public partial class QuestsView : UserControl
     {
         if (!string.IsNullOrEmpty(QuestOutput.Text))
             Clipboard.SetText(QuestOutput.Text);
+    }
+
+    private static string SafeExtractId(string input, string fallback)
+    {
+        var parts = input.Split('(');
+        if (parts.Length < 2) return fallback;
+        return parts[1].TrimEnd(')');
     }
 }

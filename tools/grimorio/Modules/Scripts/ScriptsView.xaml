@@ -2,46 +2,130 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              Background="{StaticResource BgDarkestBrush}">
-    <Grid Margin="20">
+    <Grid>
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
-        <StackPanel Grid.Row="0" Margin="0,0,0,16">
-            <TextBlock Text="Scripts" FontSize="24" FontWeight="SemiBold" Foreground="{StaticResource FgBrightBrush}" />
-            <TextBlock x:Name="ScriptCountText" FontSize="13" Foreground="{StaticResource FgSecondaryBrush}" Margin="0,4,0,0" />
-        </StackPanel>
-        <Grid Grid.Row="1">
+
+        <!-- Header -->
+        <Border Grid.Row="0" Background="{StaticResource BgMediumBrush}" Padding="8,4" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <StackPanel>
+                    <TextBlock Text="📁 Navegador de Scripts" FontSize="14" FontWeight="SemiBold" Foreground="{StaticResource FgBrightBrush}" />
+                    <TextBlock x:Name="ScriptCountText" FontSize="10" Foreground="{StaticResource FgSecondaryBrush}" />
+                </StackPanel>
+                <CheckBox Grid.Column="1" x:Name="ToggleFerramentas" Content="🔧 Ferramentas" FontSize="10"
+                          IsChecked="True" Checked="ToggleFerramentas_Checked" Unchecked="ToggleFerramentas_Unchecked"
+                          Foreground="{StaticResource FgPrimaryBrush}" VerticalAlignment="Center" />
+            </Grid>
+        </Border>
+
+        <!-- Toolbar completa -->
+        <Border Grid.Row="1" x:Name="ToolbarPanel" Background="{StaticResource BgDarkBrush}" Padding="6,4"
+                BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <!-- Row 1: File -->
+                <WrapPanel Grid.Row="0" Margin="0,0,0,3">
+                    <TextBlock Text="Arquivo" FontSize="10" Foreground="{StaticResource FgMutedBrush}" Width="46" VerticalAlignment="Center" />
+                    <Button x:Name="SaveBtn" Content="Salvar" FontSize="10" Padding="8,1" Height="22"
+                            Click="SaveBtn_Click" Visibility="Collapsed" Cursor="Hand" Margin="2,0"
+                            Background="#4EC9B0" Foreground="#1E1E1E" BorderThickness="0" FontWeight="SemiBold" />
+                    <Button x:Name="RevertBtn" Content="Reverter" FontSize="10" Padding="8,1" Height="22"
+                            Click="RevertBtn_Click" Visibility="Collapsed" Cursor="Hand" Margin="2,0"
+                            Background="#CE9178" Foreground="#1E1E1E" BorderThickness="0" FontWeight="SemiBold" />
+                    <Button x:Name="OpenFolderBtn" Content="Abrir Local" FontSize="10" Padding="8,1" Height="22"
+                            Click="OpenFolderBtn_Click" Visibility="Collapsed" Cursor="Hand" Margin="2,0"
+                            Background="{StaticResource BgLightBrush}" Foreground="{StaticResource FgPrimaryBrush}" BorderThickness="0" />
+                </WrapPanel>
+
+                <!-- Row 2: Find + Replace -->
+                <WrapPanel Grid.Row="1" Margin="0,0,0,3">
+                    <TextBlock Text="Localizar" FontSize="10" Foreground="{StaticResource FgMutedBrush}" Width="46" VerticalAlignment="Center" />
+                    <TextBox x:Name="FindBox" Width="140" FontSize="10" Padding="4,1" Height="22"
+                             TextChanged="FindBox_TextChanged" Visibility="Collapsed"
+                             Background="{StaticResource BgDarkestBrush}" Foreground="{StaticResource FgPrimaryBrush}"
+                             BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" />
+                    <TextBlock x:Name="FindCountText" FontSize="10" Foreground="{StaticResource FgMutedBrush}" Margin="4,0" VerticalAlignment="Center" Visibility="Collapsed" />
+                    <Button x:Name="FindPrevBtn" Content="▲" FontSize="9" Width="20" Height="20" Padding="0"
+                            Click="FindPrevBtn_Click" Visibility="Collapsed" Cursor="Hand" Margin="1,0"
+                            Background="{StaticResource BgLightBrush}" Foreground="{StaticResource FgPrimaryBrush}" BorderThickness="0" />
+                    <Button x:Name="FindNextBtn" Content="▼" FontSize="9" Width="20" Height="20" Padding="0"
+                            Click="FindNextBtn_Click" Visibility="Collapsed" Cursor="Hand" Margin="1,0"
+                            Background="{StaticResource BgLightBrush}" Foreground="{StaticResource FgPrimaryBrush}" BorderThickness="0" />
+                    <TextBlock Text="Substituir" FontSize="10" Foreground="{StaticResource FgMutedBrush}" Margin="10,0,0,0" VerticalAlignment="Center" Visibility="Collapsed"
+                               x:Name="SubstituirLabel" />
+                    <TextBox x:Name="ReplaceBox" Width="120" FontSize="10" Padding="4,1" Height="22" Margin="4,0,0,0"
+                             Visibility="Collapsed"
+                             Background="{StaticResource BgDarkestBrush}" Foreground="{StaticResource FgPrimaryBrush}"
+                             BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" />
+                    <Button x:Name="ReplaceBtn" Content="Trocar" FontSize="10" Padding="6,1" Height="20"
+                            Click="ReplaceBtn_Click" Visibility="Collapsed" Cursor="Hand" Margin="4,0,0,0"
+                            Background="#4EC9B0" Foreground="#1E1E1E" BorderThickness="0" FontWeight="SemiBold" />
+                </WrapPanel>
+
+                <!-- Row 3: Goto + Wrap -->
+                <WrapPanel Grid.Row="2">
+                    <TextBlock Text="Navegar" FontSize="10" Foreground="{StaticResource FgMutedBrush}" Width="46" VerticalAlignment="Center" />
+                    <TextBox x:Name="GotoBox" Width="50" FontSize="10" Padding="4,1" Height="22"
+                             TextChanged="GotoBox_TextChanged" Visibility="Collapsed"
+                             Background="{StaticResource BgDarkestBrush}" Foreground="{StaticResource FgPrimaryBrush}"
+                             BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" />
+                    <Button x:Name="GotoBtn" Content="Ir" FontSize="10" Padding="6,1" Height="22"
+                            Click="GotoBtn_Click" Visibility="Collapsed" Cursor="Hand" Margin="2,0"
+                            Background="{StaticResource BgLightBrush}" Foreground="{StaticResource FgPrimaryBrush}" BorderThickness="0" />
+                    <Button x:Name="WordWrapBtn" Content="Wrap: OFF" FontSize="10" Padding="6,1" Height="22"
+                            Click="WordWrapBtn_Click" Visibility="Collapsed" Cursor="Hand" Margin="8,0,0,0"
+                            Background="{StaticResource BgLightBrush}" Foreground="{StaticResource FgPrimaryBrush}" BorderThickness="0" />
+                </WrapPanel>
+            </Grid>
+        </Border>
+
+        <!-- Editor + Tree -->
+        <Grid Grid.Row="2">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="250" />
+                <ColumnDefinition Width="280" MinWidth="160" />
+                <ColumnDefinition Width="4" />
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
-            <Border Grid.Column="0" Background="{StaticResource BgMediumBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="4" Margin="0,0,8,0">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="*" />
-                    </Grid.RowDefinitions>
-                    <Border Grid.Row="0" Background="{StaticResource BgLightBrush}" Padding="10,8" CornerRadius="4,4,0,0">
-                        <TextBlock Text="Diretórios" FontSize="12" Foreground="{StaticResource FgSecondaryBrush}" />
-                    </Border>
-                    <TextBox Grid.Row="1" x:Name="ScriptSearchBox" Margin="8,6,8,4" Padding="6,4" FontSize="12" TextChanged="ScriptSearchBox_TextChanged" />
-                    <TreeView Grid.Row="2" x:Name="ScriptTree" Background="Transparent" BorderThickness="0" SelectedItemChanged="ScriptTree_SelectedItemChanged" FontSize="12" />
-                </Grid>
-            </Border>
-            <Border Grid.Column="1" Background="{StaticResource BgMediumBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="4">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="*" />
-                    </Grid.RowDefinitions>
-                    <Border Grid.Row="0" Background="{StaticResource BgLightBrush}" Padding="10,8" CornerRadius="4,4,0,0">
-                        <TextBlock x:Name="ScriptTitle" Text="Selecione um script" FontSize="13" Foreground="{StaticResource FgSecondaryBrush}" />
-                    </Border>
-                    <TextBox Grid.Row="1" x:Name="ScriptContent" IsReadOnly="True" FontFamily="Consolas" FontSize="12" Background="{StaticResource BgDarkBrush}" Foreground="{StaticResource FgPrimaryBrush}" BorderThickness="0" VerticalScrollBarVisibility="Auto" TextWrapping="NoWrap" />
-                </Grid>
-            </Border>
+
+            <Grid Grid.Column="0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <TextBox Grid.Row="0" x:Name="ScriptSearchBox" Margin="4" Padding="4,2" FontSize="11" TextChanged="ScriptSearchBox_TextChanged" />
+                <TreeView Grid.Row="1" x:Name="ScriptTree" Background="Transparent" BorderThickness="0" SelectedItemChanged="ScriptTree_SelectedItemChanged" FontSize="11" />
+            </Grid>
+
+            <GridSplitter Grid.Column="1" Width="4" HorizontalAlignment="Stretch" Background="{StaticResource BgDarkestBrush}" />
+
+            <Grid Grid.Column="2">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <Border Grid.Row="0" x:Name="EditorContainer" BorderThickness="0" />
+
+                <Border Grid.Row="1" Background="{StaticResource BgDarkBrush}" Padding="6,2" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock x:Name="FileInfoText" FontSize="9" Foreground="{StaticResource FgMutedBrush}" Text="Nenhum arquivo selecionado" />
+                        <TextBlock x:Name="EditStatusText" FontSize="9" Margin="8,0,0,0" Visibility="Collapsed" />
+                    </StackPanel>
+                </Border>
+            </Grid>
         </Grid>
     </Grid>
 </UserControl>

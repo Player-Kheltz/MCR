@@ -50,7 +50,7 @@ public partial class MountSummonView : UserControl
                         Size = $"{new FileInfo(file).Length / 1024} KB"
                     });
                 }
-                catch { }
+                catch (Exception ex) { System.Diagnostics.Debug.WriteLine("[Grimorio] " + ex.Message); }
             }
         }
 

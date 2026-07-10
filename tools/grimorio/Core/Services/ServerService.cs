@@ -74,7 +74,7 @@ public class ServerService : IServerService
             if (processes.Length > 0)
             {
                 status.Pid = processes[0].Id;
-                try { status.StartedAt = processes[0].StartTime; } catch { }
+                try { status.StartedAt = processes[0].StartTime; } catch (Exception ex) { System.Diagnostics.Debug.WriteLine("[Grimorio] " + ex.Message); }
             }
         }
 

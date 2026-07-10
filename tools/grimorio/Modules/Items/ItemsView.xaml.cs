@@ -22,16 +22,14 @@ public partial class ItemsView : UserControl
         _settings = app?.SettingsService ?? new SettingsService();
         _sheets = app?.SpriteSheets;
 
-        // Auto-load se já houver caminho configurado
-        var itemsPath = app?.ItemsXmlPath;
-        if (!string.IsNullOrEmpty(itemsPath) && File.Exists(itemsPath))
+        // Tenta carregar automaticamente (usa timer para garantir UI pronta)
+        var timer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMilliseconds(100) };
+        timer.Tick += async (s, e) =>
         {
-            Loaded += async (s, e) => await LoadItemsAsync();
-        }
-        else
-        {
-            StatusText.Text = "items.xml não encontrado. Configure o caminho do servidor em Ajustes.";
-        }
+            timer.Stop();
+            await LoadItemsAsync();
+        };
+        timer.Start();
     }
 
     private async System.Threading.Tasks.Task LoadItemsAsync()
@@ -45,10 +43,15 @@ public partial class ItemsView : UserControl
 
         try
         {
-            var path = (Application.Current as App)?.ItemsXmlPath ?? _settings.GetItemsXmlPath();
+            // Tenta varios caminhos ate achar o arquivo
+            var path = (Application.Current as App)?.ItemsXmlPath;
             if (string.IsNullOrEmpty(path) || !File.Exists(path))
+                path = _settings.GetItemsXmlPath();
+            if (!File.Exists(path))
+                path = @"E:\MCR\server\data\items\items.xml";
+            if (!File.Exists(path))
             {
-                StatusText.Text = "items.xml não encontrado. Configure o caminho em Ajustes.";
+                StatusText.Text = "items.xml não encontrado. Clique em 📂 para selecionar.";
                 return;
             }
 
@@ -57,6 +60,15 @@ public partial class ItemsView : UserControl
                 .Select(ItemData.FromXml)
                 .Where(i => i.Id > 0)
                 .ToList();
+
+            System.Diagnostics.Debug.WriteLine($"[Items] Carregados {_allItems.Count} itens do XML");
+
+            // Se nao carregou nada, tenta com fallback
+            if (_allItems.Count == 0)
+            {
+                StatusText.Text = "Nenhum item encontrado no arquivo XML";
+                return;
+            }
 
             var types = _allItems
                 .Where(i => !string.IsNullOrEmpty(i.Type))
@@ -70,7 +82,7 @@ public partial class ItemsView : UserControl
             foreach (var t in types)
                 TypeFilter.Items.Add(new ComboBoxItem { Content = t });
 
-            ApplyFilter();
+            Dispatcher.Invoke(() => ApplyFilter());
             StatusText.Text = $"{_allItems.Count} itens carregados";
         }
         catch (Exception ex)
@@ -84,7 +96,10 @@ public partial class ItemsView : UserControl
         }
     }
 
-    private async void LoadButton_Click(object sender, RoutedEventArgs e) => await LoadItemsAsync();
+    private async void LoadButton_Click(object sender, RoutedEventArgs e)
+    {
+        await LoadItemsAsync();
+    }
 
     private void SearchBox_TextChanged(object sender, TextChangedEventArgs e) => ApplyFilter();
 
@@ -113,7 +128,28 @@ public partial class ItemsView : UserControl
             var list = filtered.Select(i =>
             {
                 ImageSource? sprite = null;
-                try { sprite = _sheets?.GetSprite(i.SpriteId); } catch { }
+                try
+                {
+                    sprite = _sheets?.GetSprite(i.SpriteId);
+                    if (sprite == null)
+                    {
+                        // Placeholder: retangulo com o ID do sprite
+                        var placeholder = new System.Windows.Media.DrawingGroup();
+                        placeholder.Children.Add(new System.Windows.Media.GeometryDrawing
+                        {
+                            Geometry = new System.Windows.Media.RectangleGeometry(new System.Windows.Rect(0, 0, 32, 32)),
+                            Brush = System.Windows.Media.Brushes.Transparent,
+                            Pen = new System.Windows.Media.Pen(System.Windows.Media.Brushes.Gray, 1)
+                        });
+                        var dib = new System.Windows.Media.Imaging.RenderTargetBitmap(32, 32, 96, 96, System.Windows.Media.PixelFormats.Default);
+                        var drawingVisual = new System.Windows.Media.DrawingVisual();
+                        using (var dc = drawingVisual.RenderOpen())
+                            dc.DrawDrawing(placeholder);
+                        dib.Render(drawingVisual);
+                        sprite = dib;
+                    }
+                }
+                catch { }
                 return new ItemListItem
                 {
                     Id = i.Id,

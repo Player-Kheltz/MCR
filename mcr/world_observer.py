@@ -38,6 +38,7 @@ class WorldObserver:
         self._total_eventos = 0
         self._eventos_por_tipo: Dict[str, int] = defaultdict(int)
         self._ultimos_eventos: List[Dict] = []
+        self._poll_interval = POLL_INTERVAL  # adaptativo
 
     # ─── API publica ───────────────────────────────────────
 
@@ -62,6 +63,73 @@ class WorldObserver:
     def get_ultimos_eventos(self, n: int = 10) -> List[Dict]:
         """Retorna os ultimos N eventos processados."""
         return self._ultimos_eventos[-n:]
+
+    def get_entropy_grid(self, minutes: int = 5) -> Dict:
+        """Calcula entropia de Shannon por coordenada do mapa.
+
+        Para cada coordenada com eventos na janela de tempo, calcula
+        H sobre a distribuição de tipos de evento (death, spawn, etc.).
+        Normaliza H dividindo por log2(n_tipos) → [0, 1].
+
+        Args:
+            minutes: janela de tempo em minutos para considerar eventos
+
+        Returns:
+            dict com grid, max_entropy, min_entropy, total_events
+        """
+        import math
+        from collections import defaultdict
+
+        # Filtra eventos dentro da janela de tempo
+        agora = time.time()
+        janela = minutes * 60
+        eventos_recentes = [
+            e for e in self._ultimos_eventos
+            if e.get('_processed_at', 0) > agora - janela
+        ]
+
+        if not eventos_recentes:
+            return {'grid': [], 'max_entropy': 0, 'min_entropy': 0, 'total_events': 0}
+
+        # Agrupa eventos por coordenada (x, y, z)
+        tiles: Dict[tuple, Counter] = defaultdict(Counter)
+        for e in eventos_recentes:
+            pos = e.get('pos', {})
+            if not pos or not all(k in pos for k in ('x', 'y', 'z')):
+                continue
+            chave = (pos['x'], pos['y'], pos['z'])
+            tiles[chave][e.get('type', 'unknown')] += 1
+
+        if not tiles:
+            return {'grid': [], 'max_entropy': 0, 'min_entropy': 0, 'total_events': len(eventos_recentes)}
+
+        # Calcula entropia por tile
+        grid = []
+        entropias = []
+        for (x, y, z), dist in tiles.items():
+            total = sum(dist.values())
+            h = 0.0
+            for count in dist.values():
+                p = count / total
+                if p > 0:
+                    h -= p * math.log2(p)
+            # Normaliza: H / H_max onde H_max = log2(n_tipos_distintos)
+            n_tipos = len(dist)
+            h_max = math.log2(max(n_tipos, 2))
+            entropia_norm = h / h_max if h_max > 0 else 0.0
+            grid.append({
+                'x': x, 'y': y, 'z': z,
+                'entropy': round(entropia_norm, 4),
+                'event_count': total,
+            })
+            entropias.append(entropia_norm)
+
+        return {
+            'grid': grid,
+            'max_entropy': max(entropias) if entropias else 0,
+            'min_entropy': min(entropias) if entropias else 0,
+            'total_events': len(eventos_recentes),
+        }
 
     def get_estatisticas(self) -> Dict:
         """Retorna estatisticas do observador."""
@@ -95,8 +163,13 @@ class WorldObserver:
             return 0
 
     def _ler_novas_linhas(self) -> List[str]:
-        """Le linhas novas desde a ultima leitura."""
+        """Le linhas novas desde a ultima leitura.
+        
+        Adaptativo: se arquivo nao existe ou esta vazio,
+        aumenta intervalo ate 30s para reduzir I/O.
+        """
         if not EVENTS_FILE.exists():
+            self._poll_interval = min(30.0, self._poll_interval * 2)
             return []
 
         try:
@@ -104,6 +177,10 @@ class WorldObserver:
                 f.seek(self._posicao_arquivo)
                 linhas = f.readlines()
                 self._posicao_arquivo = f.tell()
+            if linhas:
+                self._poll_interval = POLL_INTERVAL  # reset ao achar dados
+            else:
+                self._poll_interval = min(30.0, self._poll_interval * 1.5)
             return [l.strip() for l in linhas if l.strip()]
         except Exception:
             return []
@@ -206,7 +283,7 @@ class WorldObserver:
             print('[WorldObserver] Eventos com impacto irrelevante (%.2f), ignorando.' % delta_h)
 
     def _loop(self):
-        """Loop principal da thread."""
+        """Loop principal da thread com sleep adaptativo."""
         print('[WorldObserver] Loop iniciado. Arquivo: %s' % EVENTS_FILE)
         while self._ativo:
             try:
@@ -216,4 +293,4 @@ class WorldObserver:
                 self._processar_fila()
             except Exception as e:
                 print('[WorldObserver] Erro no loop: %s' % e)
-            time.sleep(POLL_INTERVAL)
+            time.sleep(self._poll_interval)

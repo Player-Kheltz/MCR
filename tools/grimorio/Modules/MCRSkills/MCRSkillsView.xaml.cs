@@ -24,17 +24,19 @@ public partial class MCRSkillsView : UserControl
 
     private void SetupEffectParams()
     {
-        EffectParamsGrid.Children.Clear();
-        EffectParamsGrid.RowDefinitions.Clear();
-        EffectParamsGrid.ColumnDefinitions.Clear();
+        try
+        {
+            EffectParamsGrid.Children.Clear();
+            EffectParamsGrid.RowDefinitions.Clear();
+            EffectParamsGrid.ColumnDefinitions.Clear();
 
-        for (int i = 0; i < 4; i++)
-            EffectParamsGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            for (int i = 0; i < 4; i++)
+                EffectParamsGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 
-        EffectParamsGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-        EffectParamsGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            EffectParamsGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            EffectParamsGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
-        var label = new TextBlock
+            var label = new TextBlock
         {
             Text = "Parâmetros do Efeito:",
             FontSize = 11,
@@ -75,6 +77,8 @@ public partial class MCRSkillsView : UserControl
             col++;
             if (col >= 4) { col = 0; row++; EffectParamsGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); }
         }
+        }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine("[MCRSkills] " + ex.Message); }
     }
 
     private static List<(string, string)> GetEffectFields(string type)
@@ -130,7 +134,7 @@ public partial class MCRSkillsView : UserControl
         if (string.IsNullOrWhiteSpace(name)) name = "Nova Habilidade";
 
         var domainStr = ((ComboBoxItem)DomainIdBox.SelectedItem)?.Content?.ToString() ?? "1";
-        var domainId = domainStr.Split('(')[1].TrimEnd(')');
+        var domainId = SafeExtractId(domainStr, "1");
 
         var skillType = ((ComboBoxItem)SkillTypeBox.SelectedItem)?.Content?.ToString() ?? "gatilho";
         var category = ((ComboBoxItem)CategoryBox.SelectedItem)?.Content?.ToString() ?? "single";
@@ -228,5 +232,12 @@ public partial class MCRSkillsView : UserControl
     {
         if (!string.IsNullOrEmpty(OutputBox.Text))
             Clipboard.SetText(OutputBox.Text);
+    }
+
+    private static string SafeExtractId(string input, string fallback)
+    {
+        var parts = input.Split('(');
+        if (parts.Length < 2) return fallback;
+        return parts[1].TrimEnd(')');
     }
 }

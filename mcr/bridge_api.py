@@ -56,7 +56,7 @@ class BridgeHandler(BaseHTTPRequestHandler):
                 'models': ['qwen2.5-coder:7b'],
                 'endpoints': ['/tool/npc', '/tool/monster', '/tool/npc/custom',
                               '/status', '/world/status', '/world/events',
-                              '/mcr/gerar_npc'],
+                              '/world/entropy_grid', '/mcr/gerar_npc'],
             })
         elif self.path == '/world/status':
             dados = {
@@ -82,6 +82,16 @@ class BridgeHandler(BaseHTTPRequestHandler):
                 self._send_json({'eventos': eventos, 'total': len(eventos)})
             else:
                 self._send_json({'eventos': [], 'total': 0})
+        elif self.path.startswith('/world/entropy_grid'):
+            import urllib.parse
+            parsed = urllib.parse.urlparse(self.path)
+            query = urllib.parse.parse_qs(parsed.query)
+            minutes = int(query.get('minutes', [5])[0])
+            if _world_observer:
+                grid = _world_observer.get_entropy_grid(minutes=minutes)
+                self._send_json({'status': 'ok', **grid})
+            else:
+                self._send_json({'status': 'ok', 'grid': [], 'max_entropy': 0, 'min_entropy': 0, 'total_events': 0})
         else:
             self._send_json({'erro': 'Endpoint nao encontrado'}, 404)
 

@@ -25,6 +25,10 @@
                 <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" Margin="4,0" />
                 <CheckBox Content="Grid" IsChecked="{Binding ShowGridLines}" Click="ToggleGrid_Click" VerticalAlignment="Center" Foreground="{StaticResource FgPrimaryBrush}" />
                 <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" Margin="4,0" />
+                <ToggleButton x:Name="HeatmapToggle" Content="🔥 Heatmap" IsChecked="{Binding HeatmapVisible}"
+                              Click="ToggleHeatmap_Click" VerticalAlignment="Center"
+                              Foreground="{StaticResource FgPrimaryBrush}" Margin="0,0,4,0" />
+                <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" Margin="4,0" />
                 <TextBlock x:Name="StatusText" VerticalAlignment="Center" FontSize="12" Foreground="{StaticResource FgMutedBrush}" />
             </StackPanel>
         </Border>

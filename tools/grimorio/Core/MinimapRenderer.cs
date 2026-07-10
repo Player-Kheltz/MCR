@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using MCR.Grimorio.Data;
+using MCR.Grimorio.Models;
 
 namespace MCR.Grimorio.Core;
 
@@ -125,6 +126,70 @@ public class MinimapRenderer
                     buf[o + 0] = 80;
                     buf[o + 1] = 200;
                     buf[o + 2] = 255;
+                    buf[o + 3] = 255;
+                }
+            }
+        }
+        bmp.AddDirtyRect(new Int32Rect(0, 0, bmp.PixelWidth, bmp.PixelHeight));
+        bmp.Unlock();
+    }
+
+    public void DrawEntropyGrid(WriteableBitmap bmp, OtbmMapData map, int floor, int zoom,
+                                 List<EntropyPoint> grid, double entMin, double entMax)
+    {
+        if (bmp == null || map == null || grid == null || grid.Count == 0) return;
+        var pixelSize = Math.Max(1, zoom);
+        var range = Math.Max(entMax - entMin, 0.01);
+        var tileSize = Math.Max(4, pixelSize);
+
+        bmp.Lock();
+        unsafe
+        {
+            var buf = (byte*)bmp.BackBuffer;
+            var stride = bmp.BackBufferStride;
+            var bmpW = bmp.PixelWidth;
+            var bmpH = bmp.PixelHeight;
+
+            foreach (var pt in grid)
+            {
+                if (pt.Z != floor) continue;
+
+                var cx = pt.X * pixelSize;
+                var cy = pt.Y * pixelSize;
+
+                // Normaliza entropia para [0, 1] usando min/max da resposta
+                var norm = (pt.Entropy - entMin) / range;
+                norm = Math.Clamp(norm, 0.0, 1.0);
+
+                // Interpola: 0.0 = Blue, 0.5 = Yellow, 1.0 = Red
+                byte r, g, b;
+                if (norm < 0.5)
+                {
+                    var t = norm / 0.5;
+                    r = (byte)(t * 255);
+                    g = (byte)(t * 255);
+                    b = (byte)((1.0 - t) * 255);
+                }
+                else
+                {
+                    var t = (norm - 0.5) / 0.5;
+                    r = 255;
+                    g = (byte)((1.0 - t) * 255);
+                    b = 0;
+                }
+
+                for (var dy = 0; dy < tileSize; dy++)
+                for (var dx = 0; dx < tileSize; dx++)
+                {
+                    var px = cx + dx;
+                    var py = cy + dy;
+                    if (px < 0 || px >= bmpW || py < 0 || py >= bmpH) continue;
+
+                    var o = py * stride + px * 4;
+                    // Semi-transparent overlay
+                    buf[o + 0] = (byte)(buf[o + 0] * 0.5 + b * 0.5);
+                    buf[o + 1] = (byte)(buf[o + 1] * 0.5 + g * 0.5);
+                    buf[o + 2] = (byte)(buf[o + 2] * 0.5 + r * 0.5);
                     buf[o + 3] = 255;
                 }
             }

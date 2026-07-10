@@ -156,7 +156,7 @@ class MCRConector:
         self.cruzado = MCRCruzado(self)
         self._peso_nota = MCRPesoNota("conector")
     
-    def alimentar(self, texto: str, nome: str = None):
+    def alimentar(self, texto: str, nome: str = None, contexto: dict = None):
         if nome is None: nome = f"topico_{len(self.topicos)+1}"
         dados = texto.encode('utf-8')
         for i in range(len(dados)-1):
@@ -168,6 +168,15 @@ class MCRConector:
             ta = palavras[i][0].upper() if palavras[i] else '?'
             tb = palavras[i+1][0].upper() if palavras[i+1] else '?'
             self.mcr_token.aprender(ta, tb)
+        
+        # Se contexto fornecido, tambem treina estados compostos
+        if contexto:
+            from .engine import compose_state
+            for i in range(len(palavras)-1):
+                estado_a = compose_state(palavras[i], contexto)
+                estado_b = compose_state(palavras[i+1], contexto)
+                self.mcr_palavra.aprender(estado_a, estado_b)
+        
         mcr_t = MCR.Nivel(nome)
         for i in range(len(dados)-1):
             mcr_t.aprender(f"B:{dados[i]:02x}", f"B:{dados[i+1]:02x}")
@@ -389,10 +398,26 @@ class MCRCadeia:
         self.detector = MCREntropia()
         self.ruido = MCRRuido()
         self.historico_ciclos = []
+        # Controle de estados compostos (evitae explosao)
+        self._freq_compostos = {}
+        self._total_compostos = 0
     
     def gerar(self, semente: str, n_tokens: int = 100,
               contexto_tamanho: int = 3, max_tentativas_loop: int = 5,
-              top_k: int = 3) -> dict:
+              top_k: int = 3,
+              contexto_sintatico: dict = None) -> dict:
+        """Gera N tokens com suporte opcional a estados compostos.
+        
+        Args:
+            semente: token inicial
+            n_tokens: numero maximo de tokens
+            contexto_tamanho: janela de contexto
+            max_tentativas_loop: max tentativas antes de abortar loop
+            top_k: top K predicoes para amostragem
+            contexto_sintatico: dict com contexto estrutural para compose_state()
+                                (ex: {"linguagem": "csharp", "em_bloco": "metodo"})
+        """
+        from .engine import compose_state, compor_contexto
         import random
         if not self.conector.topicos:
             return {'texto': semente, 'tokens': [semente],
@@ -406,12 +431,21 @@ class MCRCadeia:
         repeticoes_evitadas = 0
         tentativas_loop = 0
         nivel_atual = 'palavra'
+        ctx_sint = dict(contexto_sintatico or {})
+        
         for passo in range(n_tokens - 1):
             if len(tokens_gerados) >= contexto_tamanho:
                 contexto = tokens_gerados[-contexto_tamanho:]
             else:
                 contexto = tokens_gerados
             ultimo = str(contexto[-1])
+            
+            # Se temos contexto sintatico, usa estado composto
+            if ctx_sint:
+                estado_pred = compose_state(ultimo, ctx_sint)
+            else:
+                estado_pred = ultimo
+            
             tipo_ultimo = MCR.classificar_token(ultimo)
             esta_em_loop = self.detector.esta_em_loop()
             estado_decisao = f"tipo:{tipo_ultimo}_loop:{esta_em_loop}_nivel:{nivel_atual}"
@@ -425,7 +459,7 @@ class MCRCadeia:
             conf = 0.0
             if nivel_atual == 'byte':
                 mk = mk_byte
-                preds = mk.predizer_n(ultimo, n=top_k)
+                preds = mk.predizer_n(estado_pred, n=top_k)
                 if preds:
                     pesos = [c for _, c in preds]
                     total = sum(pesos)
@@ -438,14 +472,15 @@ class MCRCadeia:
                             conf = p_conf
                             break
                 if prox is None:
-                    prox, conf = mk.predizer(ultimo)
+                    prox, conf = mk.predizer(estado_pred)
                 if prox is not None:
                     if str(prox).startswith('B:'):
                         try: prox = chr(int(str(prox)[2:], 16))
                         except: pass
             elif nivel_atual == 'token':
                 mk = mk_token
-                preds = mk.predizer_n(ultimo[0].upper() if ultimo else '?', n=top_k)
+                tok_key = estado_pred[0].upper() if estado_pred else '?'
+                preds = mk.predizer_n(tok_key, n=top_k)
                 if preds:
                     pesos = [c for _, c in preds]
                     total = sum(pesos)
@@ -458,12 +493,12 @@ class MCRCadeia:
                             conf = p_conf
                             break
                 if prox is None:
-                    prox, conf = mk.predizer(ultimo[0].upper() if ultimo else '?')
+                    prox, conf = mk.predizer(tok_key)
                 if prox is not None:
                     prox = str(prox)
             else:
                 mk = mk_palavra
-                preds = mk.predizer_n(ultimo, n=top_k)
+                preds = mk.predizer_n(estado_pred, n=top_k)
                 if preds:
                     pesos = [c for _, c in preds]
                     total = sum(pesos)
@@ -476,7 +511,7 @@ class MCRCadeia:
                             conf = p_conf
                             break
                 if prox is None:
-                    prox, conf = mk.predizer(ultimo)
+                    prox, conf = mk.predizer(estado_pred)
                 if prox is None:
                     prox, conf = mk.predizer(semente)
                 if prox is None or conf < 0.01:
@@ -484,6 +519,17 @@ class MCRCadeia:
             if prox is None:
                 break
             token_str = str(prox)
+            
+            # Atualiza contexto sintatico com o token gerado
+            if ctx_sint is not None:
+                ctx_sint = compor_contexto([token_str], ctx_sint)
+                # Conta estados compostos
+                composto = compose_state(token_str, ctx_sint)
+                self._freq_compostos[composto] = self._freq_compostos.get(composto, 0) + 1
+                self._total_compostos += 1
+                if self._total_compostos % 1000 == 0 and len(self._freq_compostos) > 10000:
+                    print('[MCRCadeia] Atencao: %d estados compostos unicos (limiar 10000)' % len(self._freq_compostos))
+            
             self.detector.alimentar(token_str)
             em_loop = self.detector.esta_em_loop()
             if em_loop:

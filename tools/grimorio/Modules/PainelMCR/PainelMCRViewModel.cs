@@ -79,7 +79,7 @@ public class PainelMCRViewModel : ViewModelBase
                         Eventos.Add(e);
                 }
             }
-            catch { }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine("[Grimorio] " + ex.Message); }
         }
         finally
         {

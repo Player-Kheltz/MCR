@@ -56,6 +56,8 @@ class SignatureCluster:
         self.nome = nome
         self.entidades: List[Dict] = entidades or []
         self._assinatura_media: Set[str] = set()
+        self._raw_fingerprint: Set[str] = set()  # tokens brutos sem parser
+        self._entropia: float = 0.0  # entropia do cluster
         self._calcular_assinatura_media()
 
     def _calcular_assinatura_media(self):
@@ -66,6 +68,32 @@ class SignatureCluster:
     def adicionar(self, entidade: dict):
         self.entidades.append(entidade)
         self._assinatura_media |= _assinatura_entidade(entidade)
+
+    def computar_raw_fingerprint(self):
+        """Computa raw_fingerprint do cluster a partir dos arquivos fonte.
+        
+        Varre todas as entidades, le o arquivo original e extrai
+        raw_token_set usando apenas delimitadores universais (sem parser).
+        """
+        from devia.kernel.mcr_kernel.signature import raw_token_set_from_file
+        for ent in self.entidades:
+            arq = ent.get('arquivo', '')
+            if arq:
+                self._raw_fingerprint |= raw_token_set_from_file(arq)
+
+    def similaridade_raw(self, tokens: set) -> float:
+        """Jaccard entre tokens brutos e o raw_fingerprint do cluster."""
+        if not self._raw_fingerprint or not tokens:
+            return 0.0
+        return _jaccard(tokens, self._raw_fingerprint)
+
+    def calcular_entropia(self) -> float:
+        """Entropia de Shannon do cluster baseada na distribuicao de tipos."""
+        tipos = Counter()
+        for e in self.entidades:
+            tipos[e.get('tipo', 'unknown')] += 1
+        self._entropia = _entropia(tipos)
+        return self._entropia
 
     def similaridade(self, entidade: dict) -> float:
         """Jaccard entre a assinatura da entidade e a assinatura media do cluster."""

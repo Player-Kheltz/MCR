@@ -41,7 +41,7 @@ public class NpcService
                     var npc = ParseNpcFile(file);
                     if (npc != null) _cache.Add(npc);
                 }
-                catch { }
+                catch (Exception ex) { System.Diagnostics.Debug.WriteLine("[Grimorio] " + ex.Message); }
             }
         }
 
@@ -54,7 +54,7 @@ public class NpcService
                     var npc = ParseNpcFile(file);
                     if (npc != null) _cache.Add(npc);
                 }
-                catch { }
+                catch (Exception ex) { System.Diagnostics.Debug.WriteLine("[Grimorio] " + ex.Message); }
             }
         }
 

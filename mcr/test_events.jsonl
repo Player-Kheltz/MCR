@@ -1,0 +1,20 @@
+{"ts":"2026-07-09T10:00:00","type":"death","target":"Dragon Lord","killer":"Hero","pos":{"x":100,"y":200,"z":7}}
+{"ts":"2026-07-09T10:00:01","type":"death","target":"Dragon Lord","killer":"Hero","pos":{"x":100,"y":200,"z":7}}
+{"ts":"2026-07-09T10:00:02","type":"death","target":"Dragon Lord","killer":"Hero","pos":{"x":100,"y":200,"z":7}}
+{"ts":"2026-07-09T10:00:03","type":"death","target":"Dragon Lord","killer":"Hero","pos":{"x":100,"y":200,"z":7}}
+{"ts":"2026-07-09T10:00:04","type":"death","target":"Dragon Lord","killer":"Hero","pos":{"x":100,"y":200,"z":7}}
+{"ts":"2026-07-09T10:00:05","type":"spawn","target":"NPC_Ferreiro","killer":"environment","pos":{"x":50,"y":150,"z":7}}
+{"ts":"2026-07-09T10:00:06","type":"spawn","target":"NPC_Ferreiro","killer":"environment","pos":{"x":50,"y":150,"z":7}}
+{"ts":"2026-07-09T10:00:07","type":"spawn","target":"NPC_Mago","killer":"environment","pos":{"x":50,"y":150,"z":7}}
+{"ts":"2026-07-09T10:00:08","type":"login","target":"Player1","killer":"player","pos":{"x":320,"y":400,"z":7}}
+{"ts":"2026-07-09T10:00:09","type":"login","target":"Player2","killer":"player","pos":{"x":320,"y":400,"z":7}}
+{"ts":"2026-07-09T10:00:10","type":"kill","target":"Rat","killer":"Player1","pos":{"x":105,"y":205,"z":7}}
+{"ts":"2026-07-09T10:00:11","type":"kill","target":"Rat","killer":"Player1","pos":{"x":105,"y":205,"z":7}}
+{"ts":"2026-07-09T10:00:12","type":"kill","target":"Wolf","killer":"Player2","pos":{"x":105,"y":205,"z":7}}
+{"ts":"2026-07-09T10:00:13","type":"death","target":"NPC_Guard","killer":"Player1","pos":{"x":200,"y":300,"z":7}}
+{"ts":"2026-07-09T10:00:14","type":"spawn","target":"NPC_Guard","killer":"environment","pos":{"x":200,"y":300,"z":7}}
+{"ts":"2026-07-09T10:00:15","type":"spawn","target":"NPC_Trader","killer":"environment","pos":{"x":200,"y":300,"z":7}}
+{"ts":"2026-07-09T10:00:16","type":"login","target":"Player3","killer":"player","pos":{"x":150,"y":250,"z":7}}
+{"ts":"2026-07-09T10:00:17","type":"death","target":"Demon","killer":"Player1","pos":{"x":400,"y":500,"z":7}}
+{"ts":"2026-07-09T10:00:18","type":"kill","target":"Demon","killer":"Player1","pos":{"x":400,"y":500,"z":7}}
+{"ts":"2026-07-09T10:00:19","type":"spawn","target":"NPC_Bartender","killer":"environment","pos":{"x":300,"y":350,"z":7}}

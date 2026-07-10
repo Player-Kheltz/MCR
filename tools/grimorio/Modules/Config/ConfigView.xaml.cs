@@ -20,15 +20,23 @@ public partial class ConfigView : UserControl
 
     private void LoadConfig()
     {
-        if (!_configService.Exists)
+        try
         {
-            StatusText.Text = "config.lua não encontrado";
-            return;
-        }
+            if (!_configService.Exists)
+            {
+                StatusText.Text = "config.lua não encontrado";
+                return;
+            }
 
-        _allEntries = _configService.ReadAll();
-        ConfigList.ItemsSource = _allEntries;
-        StatusText.Text = $"{_allEntries.Count} configurações";
+            _allEntries = _configService.ReadAll();
+            ConfigList.ItemsSource = _allEntries;
+            StatusText.Text = $"{_allEntries.Count} configurações";
+        }
+        catch (Exception ex)
+        {
+            StatusText.Text = $"Erro ao carregar configurações: {ex.Message}";
+            System.Diagnostics.Debug.WriteLine($"[ConfigView] {ex}");
+        }
     }
 
     private void SearchBox_TextChanged(object sender, TextChangedEventArgs e)

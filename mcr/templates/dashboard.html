@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MCR-DevIA — World Console</title>
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+<style>
+:root{--bg:#0d1117;--bg2:#161b22;--bg3:#21262d;--bg4:#30363d;--fg:#c9d1d9;--fg2:#8b949e;--fg3:#484f58;--blue:#58a6ff;--green:#3fb950;--orange:#d29922;--red:#f85149;--purple:#d2a8ff;--teal:#4EC9B0;--border:#30363d}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font:13px -apple-system,'Segoe UI',sans-serif;background:var(--bg);color:var(--fg);height:100vh;display:flex;flex-direction:column;overflow:hidden}
+
+/* TOPBAR */
+#topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 12px;height:36px;display:flex;align-items:center;gap:12px;flex-shrink:0}
+#topbar h1{color:var(--blue);font-size:13px;font-weight:600;margin-right:auto}
+.status-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;background:var(--green)}
+.status-dot.off{background:var(--red);animation:none}
+.top-stat{font-size:10px;color:var(--fg2);display:flex;align-items:center;gap:4px}
+.top-stat .val{color:var(--fg);font-weight:600}
+.entropy-mini{width:60px;height:4px;background:var(--bg3);border-radius:2px;overflow:hidden}
+.entropy-mini .fill{height:100%;border-radius:2px;transition:width 1s,background 1s}
+
+/* LAYOUT */
+#main{flex:1;display:flex;overflow:hidden}
+
+/* SIDEBAR */
+#sidebar{width:44px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;align-items:center;padding:4px 0;gap:2px;flex-shrink:0}
+.sb-btn{width:32px;height:32px;border-radius:6px;border:none;background:transparent;color:var(--fg2);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:.15s;position:relative}
+.sb-btn:hover{background:var(--bg3);color:var(--fg)}
+.sb-btn.active{background:var(--blue);color:#fff}
+.sb-btn .tooltip{position:absolute;left:44px;background:var(--bg3);color:var(--fg);font-size:10px;padding:2px 6px;border-radius:3px;white-space:nowrap;opacity:0;pointer-events:none;transition:.15s}
+.sb-btn:hover .tooltip{opacity:1}
+.sb-spacer{flex:1}
+
+/* CONTENT */
+#content{flex:1;display:flex;overflow:hidden}
+#left-col{width:320px;min-width:260px;border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+#right-col{flex:1;display:flex;flex-direction:column;overflow:hidden}
+
+/* CHAT */
+#chat-header{background:var(--bg2);padding:6px 10px;border-bottom:1px solid var(--border);font-size:10px;color:var(--fg2);text-transform:uppercase;letter-spacing:.5px;flex-shrink:0}
+#chat-msgs{flex:1;overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:4px}
+.msg{padding:8px 10px;border-radius:6px;font-size:12px;line-height:1.5;max-width:97%}
+.msg.user{background:#1f6feb22;border:1px solid #58a6ff33;align-self:flex-end;color:var(--fg)}
+.msg.bot{background:var(--bg3);border:1px solid var(--border);align-self:flex-start;color:var(--fg2)}
+.msg.bot.streaming{border-color:var(--blue)}
+.msg .meta{font-size:9px;color:var(--fg3);margin-top:4px}
+#chat-input-wrap{display:flex;gap:4px;padding:6px;background:var(--bg2);border-top:1px solid var(--border);flex-shrink:0}
+#chat-input-wrap textarea{flex:1;font:12px inherit;padding:6px 8px;background:var(--bg);color:var(--fg);border:1px solid var(--border);border-radius:4px;resize:none;height:36px;outline:none;transition:border-color .2s}
+#chat-input-wrap textarea:focus{border-color:var(--blue)}
+#chat-input-wrap button{padding:6px 16px;background:var(--blue);color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:12px;font-weight:500;transition:opacity .2s}
+#chat-input-wrap button:hover{opacity:.85}
+#chat-input-wrap button:disabled{opacity:.4;cursor:default}
+
+/* RIGHT PANEL */
+#view-header{background:var(--bg2);padding:6px 10px;border-bottom:1px solid var(--border);font-size:10px;color:var(--fg2);display:flex;justify-content:space-between;flex-shrink:0}
+#view-body{flex:1;overflow-y:auto;padding:10px;font:12px Consolas;white-space:pre-wrap;word-break:break-word;color:var(--fg2)}
+#view-body .cursor{display:inline-block;width:6px;height:12px;background:var(--blue);animation:blink .8s infinite;vertical-align:text-bottom;margin-left:1px}
+@keyframes blink{50%{opacity:0}}
+
+/* LOGS BAR */
+#logbar{background:var(--bg2);border-top:1px solid var(--border);padding:2px 8px;font:9px Consolas;color:var(--fg3);height:22px;display:flex;align-items:center;gap:6px;flex-shrink:0;overflow:hidden}
+#logbar .lg{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* CARDS */
+.card{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:8px;margin-bottom:6px;transition:border-color .2s}
+.card:hover{border-color:var(--blue)}
+.card .title{font-size:11px;color:var(--blue);font-weight:500}
+.card .sub{font-size:10px;color:var(--fg2)}
+.card .tag{display:inline-block;font-size:9px;padding:1px 5px;border-radius:3px;margin:2px}
+.tag.green{background:#23863633;color:var(--green)}
+.tag.blue{background:#1f6feb33;color:var(--blue)}
+.tag.orange{background:#d2992233;color:var(--orange)}
+.tag.purple{background:#d2a8ff33;color:var(--purple)}
+
+/* TELEMETRIA */
+.entropy-bar{height:24px;background:var(--bg);border-radius:4px;overflow:hidden;margin:4px 0;position:relative}
+.entropy-bar .fill{height:100%;border-radius:4px;transition:width .5s,background .5s}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;margin:4px 0}
+.stat-card{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:8px;text-align:center}
+.stat-card .val{font-size:22px;font-weight:700;color:var(--fg)}
+.stat-card .lbl{font-size:9px;color:var(--fg2);text-transform:uppercase;letter-spacing:.5px;margin-top:2px}
+.stat-card .val.green{color:var(--green)}.stat-card .val.blue{color:var(--blue)}.stat-card .val.orange{color:var(--orange)}
+
+/* TABLES (fallback para dados) */
+.tbl{width:100%;border-collapse:collapse;font-size:11px}
+.tbl th{text-align:left;padding:4px 6px;background:var(--bg2);color:var(--blue);font-size:9px;text-transform:uppercase;position:sticky;top:0}
+.tbl td{padding:4px 6px;border-bottom:1px solid var(--border);color:var(--fg2)}
+.tbl tr:hover td{background:#1f6feb11;color:var(--fg)}
+.btn-sm{padding:2px 8px;font-size:10px;border:none;border-radius:3px;cursor:pointer;color:#fff}
+.btn-sm.blue{background:var(--blue)}.btn-sm.green{background:var(--green)}.btn-sm:hover{opacity:.85}
+
+/* SCROLL */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--fg3)}
+</style>
+</head>
+<body>
+<div id="topbar" x-data="topbarData()" x-init="init()">
+  <div class="status-dot" :class="{'off': !connected}"></div>
+  <h1>MCR-DevIA</h1>
+  <div class="entropy-mini"><div class="fill" :style="'width:'+entropyPct+'%;background:'+entropyColor"></div></div>
+  <span class="top-stat">🧙 <span class="val" x-text="npcs">—</span></span>
+  <span class="top-stat">📜 <span class="val" x-text="lores">—</span></span>
+  <span class="top-stat" :class="connected ? 'green' : ''"><span class="val" x-text="connected ? 'Conectado' : 'Offline'"></span></span>
+</div>
+<div id="main">
+  <div id="sidebar">
+    <button class="sb-btn active" data-view="chat" @click="switchView('chat')">💬<span class="tooltip">Chat</span></button>
+    <button class="sb-btn" data-view="telemetry" @click="switchView('telemetry')">📊<span class="tooltip">Telemetria</span></button>
+    <button class="sb-btn" data-view="npcs" @click="switchView('npcs')">🧙<span class="tooltip">NPCs</span></button>
+    <button class="sb-btn" data-view="quests" @click="switchView('quests')">📜<span class="tooltip">Quests</span></button>
+    <button class="sb-btn" data-view="map" @click="switchView('map')">🗺️<span class="tooltip">Mapa</span></button>
+    <div class="sb-spacer"></div>
+    <button class="sb-btn" @click="toggleLog()">📋<span class="tooltip">Logs</span></button>
+  </div>
+  <div id="content">
+    <div id="left-col" x-data="chatData()" x-init="init()">
+      <div id="chat-header">💬 Chat — digite um comando para o Guardião do Mundo</div>
+      <div id="chat-msgs">
+        <template x-for="(m,i) in msgs" :key="i">
+          <div class="msg" :class="m.tipo == 'user' ? 'user' : 'bot' + (m.streaming ? ' streaming' : '')">
+            <span x-text="m.texto"></span><span x-show="m.streaming" class="cursor"></span>
+            <div x-show="m.meta" class="meta" x-text="m.meta"></div>
+          </div>
+        </template>
+        <div x-show="!msgs.length" style="color:var(--fg3);font-size:11px;text-align:center;padding:20px">
+          MCR-DevIA Console. Digite algo para começar.
+        </div>
+      </div>
+      <div id="chat-input-wrap">
+        <textarea x-model="input" @keydown="if($event.key==='Enter'&&!$event.shiftKey){$event.preventDefault();send()}" :disabled="busy" placeholder="Crie um NPC ferreiro élfico..."></textarea>
+        <button @click="send()" :disabled="busy || !input.trim()">Enviar</button>
+      </div>
+    </div>
+    <div id="right-col">
+      <div id="view-header">
+        <span x-text="viewTitle">Saída</span>
+        <span style="font-size:9px;color:var(--fg3)" x-text="viewSub"></span>
+      </div>
+      <div id="view-body" x-html="viewContent"></div>
+    </div>
+  </div>
+</div>
+<div id="logbar" x-data="logData()" x-init="init()">
+  <span style="color:var(--blue)">📋</span>
+  <span class="lg" x-text="ultimoLog"></span>
+</div>
+
+<script>
+// ─── SSE GLOBAL ──────────────────────────────────────
+const sse = new EventSource('/stream');
+window.SSE = sse;
+
+// ─── TOPBAR ──────────────────────────────────────────
+function topbarData() {
+  return {
+    connected: true, npcs: '—', lores: '—',
+    entropyPct: 50, entropyColor: '#58a6ff',
+    init() {
+      sse.onopen = () => this.connected = true;
+      sse.onerror = () => this.connected = false;
+      const refresh = () => fetch('/api/world/status').then(r=>r.json()).then(d => {
+        this.npcs = d.total_npcs || '—'; this.lores = d.total_lores || '—';
+        const e = d.entropia || 0.5; this.entropyPct = e * 100;
+        this.entropyColor = e > 0.7 ? '#f85149' : e > 0.4 ? '#d29922' : '#3fb950';
+      }).catch(()=>{});
+      refresh(); setInterval(refresh, 10000);
+    },
+    switchView(v) {
+      document.querySelectorAll('.sb-btn').forEach(b => b.classList.remove('active'));
+      document.querySelector(`.sb-btn[data-view="${v}"]`).classList.add('active');
+      window.dispatchEvent(new CustomEvent('view-change', {detail: v}));
+    },
+    toggleLog() {
+      const bar = document.getElementById('logbar');
+      bar.style.height = bar.style.height === '120px' ? '22px' : '120px';
+      bar.style.overflowY = bar.style.height === '120px' ? 'auto' : 'hidden';
+    }
+  };
+}
+
+// ─── CHAT ────────────────────────────────────────────
+function chatData() {
+  return {
+    input: '', msgs: [], busy: false, streaming: false, acumulado: '',
+    viewTitle: 'Saída', viewSub: '', viewContent: '<span style="color:var(--fg3)">Saídas aparecerão aqui.</span>',
+    init() {
+      window.addEventListener('view-change', e => this.onViewChange(e.detail));
+    },
+    onViewChange(view) {
+      // Views handled by Alpine elsewhere
+    },
+    async send() {
+      const _this = this; // captura this do Alpine
+      const msg = _this.input.trim(); if (!msg) return;
+      _this.input = ''; _this.busy = true; _this.streaming = true; _this.acumulado = '';
+      _this.msgs.push({tipo: 'user', texto: msg});
+      _this.viewContent = 'Aguardando resposta do LLM...';
+      _this.viewSub = 'streaming';
+      const botIdx = _this.msgs.length;
+      _this.msgs.push({tipo: 'bot', texto: '', streaming: true});
+
+      try {
+        const resp = await fetch('/api/chat-stream', {
+          method: 'POST', headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({prompt: msg})
+        });
+        const reader = resp.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        let prevLines = [];
+
+        while (true) {
+          const {done, value} = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, {stream: true});
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+
+          for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            if (line.startsWith('event: ')) {
+              const event = line.slice(7).trim();
+              // procura data logo apos este event
+              const dataLine = (i + 1 < lines.length) ? lines[i + 1] : '';
+              if (dataLine.startsWith('data: ')) {
+                try {
+                  const data = JSON.parse(dataLine.slice(6));
+                  _this.handleEvent(event, data, botIdx);
+                } catch(e) { /* json parse ignorado */ }
+              }
+            }
+          }
+        }
+      } catch(e) {
+        if (_this.msgs[botIdx]) {
+          _this.msgs[botIdx].texto = `Erro: ${e.message}`;
+          _this.msgs[botIdx].streaming = false;
+        }
+        _this.viewContent = `Erro: ${e.message}`;
+      }
+
+      // Garante que sempre libera
+      _this.busy = false;
+      _this.streaming = false;
+      _this.viewSub = '';
+      if (_this.msgs[botIdx]) _this.msgs[botIdx].streaming = false;
+
+      // Foca no input para poder digitar novamente
+      setTimeout(() => {
+        const el = document.querySelector('#chat-input-wrap textarea');
+        if (el) el.focus();
+      }, 50);
+    },
+    handleEvent(event, data, idx) {
+      if (event === 'chat_token') {
+        this.acumulado = data.acumulado || '';
+        if (this.msgs[idx]) this.msgs[idx].texto = this.acumulado;
+        this.viewContent = this.acumulado;
+        const el = document.getElementById('chat-msgs');
+        if (el) el.scrollTop = el.scrollHeight;
+      } else if (event === 'chat_done') {
+        if (this.msgs[idx]) {
+          this.msgs[idx].streaming = false;
+          this.msgs[idx].meta = `${data.rota} (${data.tempo}s)`;
+        }
+        this.viewSub = `${data.rota} ${data.tempo}s`;
+        window.dispatchEvent(new CustomEvent('log-entry', {detail: `[chat] ${data.rota} (${data.tempo}s)`}));
+      } else if (event === 'chat_error') {
+        if (this.msgs[idx]) {
+          this.msgs[idx].texto = `Erro: ${data.erro}`;
+          this.msgs[idx].streaming = false;
+        }
+        this.viewContent = `Erro: ${data.erro}`;
+      }
+    }
+  };
+}
+
+// ─── LOG BAR ─────────────────────────────────────────
+function logData() {
+  return {
+    ultimoLog: '',
+    init() {
+      window.addEventListener('log-entry', e => this.ultimoLog = e.detail);
+      sse.addEventListener('chat_start', e => {
+        const d = JSON.parse(e.data);
+        window.dispatchEvent(new CustomEvent('log-entry', {detail: `[chat] ${(d.prompt||'').slice(0,40)}...`}));
+      });
+    }
+  };
+}
+</script>
+</body>
+</html>

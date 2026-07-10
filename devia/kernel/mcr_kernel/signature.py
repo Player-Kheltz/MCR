@@ -4,9 +4,9 @@
 Observação e clusterização de dados via assinaturas Markovianas.
 Cache global _SIG_CACHE para evitar recálculos.
 """
-import math
+import math, re
 from collections import Counter
-from typing import Dict, List
+from typing import Dict, List, Set
 
 from .engine import MCR
 
@@ -227,3 +227,32 @@ class MCRSignature:
             'match': melhor,
             'score': round(melhor_score, 3) if melhor else 0,
         }
+
+
+# ─── Raw Token Set (Fingerprint bruto, sem parser) ─────
+
+_DELIMITADORES_UNIVERSAIS = re.compile(r'[\s{}();.,:\[\]"\'\`/\\#<>!=+\-*%&|^~@?]+')
+
+def raw_token_set(texto: str) -> Set[str]:
+    """Tokeniza texto usando apenas delimitadores universais.
+    
+    Divide por:
+    - whitespace
+    - {}();.,:[]"'`/\\#<>!=+-*%&|^~@
+    
+    Normaliza para lowercase. Retorna conjunto de tokens unicos.
+    Nao usa gramatica, AST ou qualquer conhecimento previo da lingua.
+    """
+    if not texto:
+        return set()
+    tokens = _DELIMITADORES_UNIVERSAIS.split(texto)
+    return {t.strip().lower() for t in tokens if t.strip()}
+
+
+def raw_token_set_from_file(path: str) -> Set[str]:
+    """Le arquivo e extrai raw_token_set."""
+    try:
+        with open(path, 'r', encoding='utf-8', errors='replace') as f:
+            return raw_token_set(f.read())
+    except Exception:
+        return set()

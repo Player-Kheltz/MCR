@@ -318,6 +318,86 @@ MCR.registrar_nivel("qualidade", {
 MCR.Nivel = MarkovUniversal
 
 
+# ============================================================
+# ESTADOS COMPOSTOS — Contexto sintático sem aumentar ordem
+# ============================================================
+# Concatena informações contextuais ao rótulo do estado,
+# permitindo que a cadeia de Markov 1ª ordem carregue
+# memória de curto prazo sem violar a propriedade Markoviana.
+# Ex: compose_state("return", {"em_bloco": "metodo"})
+#   → "return|em_bloco:metodo"
+# ============================================================
+
+def compose_state(base: str, context: dict) -> str:
+    """Concatena contexto a um estado base de forma determinística.
+    
+    Args:
+        base: estado base (ex: "return", "var", "class")
+        context: dicionário de contexto (ex: {"em_bloco": "metodo"})
+    
+    Returns:
+        string composta: "base|chave1:valor1|chave2:valor2"
+        Se context vazio, retorna base inalterada.
+    """
+    if not context:
+        return base
+    
+    # Ordena alfabeticamente para consistência
+    pares = sorted(f"{k}:{v}" for k, v in context.items())
+    return base + "|" + "|".join(pares)
+
+
+def compor_contexto(tokens_gerados: list, contexto_atual: dict = None) -> dict:
+    """Atualiza contexto sintático baseado em tokens gerados.
+    
+    Regras genéricas baseadas em delimitadores e keywords
+    comuns a múltiplas linguagens (C#, Lua, Python, Java).
+    Nenhuma regra específica de linguagem.
+    
+    Args:
+        tokens_gerados: lista de tokens gerados até agora
+        contexto_atual: contexto atual (opcional)
+    
+    Returns:
+        contexto atualizado
+    """
+    ctx = dict(contexto_atual or {})
+    if not tokens_gerados:
+        return ctx
+    
+    ultimo = str(tokens_gerados[-1]) if tokens_gerados else ''
+    
+    # Contagem de blocos abertos/fechados
+    if ultimo == '{':
+        ctx['profundidade_bloco'] = str(int(ctx.get('profundidade_bloco', '0')) + 1)
+        ctx['em_bloco'] = 'sim'
+    elif ultimo == '}':
+        ctx['profundidade_bloco'] = str(max(0, int(ctx.get('profundidade_bloco', '1')) - 1))
+        if ctx.get('profundidade_bloco') == '0':
+            ctx.pop('em_bloco', None)
+    
+    # Detecta keywords estruturais
+    if ultimo in ('class', 'struct', 'interface', 'record'):
+        ctx['declarando_tipo'] = 'sim'
+    elif ultimo in ('def', 'function', 'void', 'int', 'string', 'bool',
+                    'var', 'let', 'const', 'public', 'private', 'protected',
+                    'static', 'override', 'virtual', 'abstract', 'sealed'):
+        ctx['em_declaracao'] = 'sim'
+    elif ultimo in ('return', 'yield', 'break', 'continue', 'throw'):
+        ctx['em_fluxo'] = 'sim'
+    elif ultimo == ';':
+        ctx['em_declaracao'] = 'nao'
+        ctx['em_fluxo'] = 'nao'
+    
+    # Delimitadores de string/comentário
+    if ultimo.startswith('"') or ultimo.startswith("'"):
+        ctx['em_string'] = 'sim' if ctx.get('em_string') != 'sim' else 'nao'
+    if ultimo.startswith('//') or ultimo.startswith('#'):
+        ctx['em_comentario'] = 'sim'
+    
+    return ctx
+
+
 class MCRBridge:
     def __init__(self):
         self._descobriu = True

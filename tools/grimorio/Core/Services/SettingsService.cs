@@ -111,7 +111,23 @@ public class SettingsService
         if (!string.IsNullOrEmpty(_settings.ServerPath))
             return _settings.ServerPath;
 
-        return Path.Combine(_resolvedBaseDir.Value, "Canary");
+        var candidates = new[]
+        {
+            Path.Combine(_resolvedBaseDir.Value, "server"),
+            Path.Combine(_resolvedBaseDir.Value, "Canary"),
+            Path.Combine(_resolvedBaseDir.Value, "canary-sln"),
+        };
+        foreach (var c in candidates)
+        {
+            if (Directory.Exists(c) && File.Exists(Path.Combine(c, "config.lua")))
+                return c;
+        }
+        // Fallback absoluto para E:\MCR\server
+        var absServer = @"E:\MCR\server";
+        if (Directory.Exists(absServer))
+            return absServer;
+
+        return candidates[0];
     }
 
     public string GetServerExeName()
@@ -165,11 +181,13 @@ public class SettingsService
 
     public string GetItemsXmlPath()
     {
+        var server = GetServerPath();
         var dirs = new[]
         {
-            Path.Combine(GetServerPath(), "data-otservbr-global", "items", "items.xml"),
-            Path.Combine(GetServerPath(), "data", "items", "items.xml"),
-            Path.Combine(GetServerPath(), "data-canary", "items", "items.xml"),
+            Path.Combine(server, "data-otservbr-global", "items", "items.xml"),
+            Path.Combine(server, "data", "items", "items.xml"),
+            Path.Combine(server, "data-canary", "items", "items.xml"),
+            @"E:\MCR\server\data\items\items.xml",
         };
         return dirs.FirstOrDefault(File.Exists) ?? dirs[0];
     }

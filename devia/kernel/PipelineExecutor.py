@@ -17,6 +17,21 @@ from typing import List, Dict, Any, Callable, Optional
 # Mapa de handlers para comandos que NÃO são cmd_* (são funções Python)
 HANDLERS_INTERNOS = {}
 
+# MarkovDecider como classificador padrao (fallback quando nao ha LLM)
+_MARKOV_DECIDER = None
+
+
+def _get_markov_decider():
+    """Retorna instancia global do MarkovDecider (lazy, criado sob demanda)."""
+    global _MARKOV_DECIDER
+    if _MARKOV_DECIDER is None:
+        try:
+            from mcr_devia_v2 import MarkovDecider
+            _MARKOV_DECIDER = MarkovDecider()
+        except Exception:
+            _MARKOV_DECIDER = None
+    return _MARKOV_DECIDER
+
 
 def registrar_handler(nome: str, func: Callable):
     """Registra handler para comando interno (ex: template_extractor)."""

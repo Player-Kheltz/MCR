@@ -482,6 +482,6 @@ public partial class NPCDialogueView : UserControl
             t.Elapsed += (_, _) => Dispatcher.Invoke(() => SaveFileButton.Content = "💾 Salvar (.lua)");
             t.Start();
         }
-        catch { }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine("[Grimorio] " + ex.Message); }
     }
 }
