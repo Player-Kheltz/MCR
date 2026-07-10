@@ -17,6 +17,7 @@ ROTEADOR_MODELOS: Dict[str, str] = {
     'conversa': 'mistral:7b-32k',
     'criar_codigo': 'qwen2.5-coder:7b-32k',
     'busca_informacao': 'qwen2.5-coder:7b-32k',
+    'criar_sql': 'qwen2.5-coder:7b-32k',
     'desconhecido': None,  # None = Ensemble
 }
 
@@ -107,6 +108,25 @@ def obter_modelo(classe: str) -> str:
     return modelo
 
 
+def prompt_sql(tema: str) -> str:
+    """Prompt otimizado para geracao de SQL."""
+    return f'''Gere uma query SQL para a seguinte solicitacao:
+{tema}
+
+REGRAS:
+- Use apenas SQL padrao (SQLite-compativel)
+- Nao use DROP, ALTER, TRUNCATE, EXEC, PRAGMA
+- Inclua CREATE TABLE se for definicao de schema
+- Inclua INSERT, SELECT, UPDATE ou DELETE conforme apropriado
+- Use nomes descritivos para tabelas e colunas
+
+FORMATO:
+-- {tema}
+<SQL AQUI>
+
+Comece agora.'''
+
+
 def obter_prompt(classe: str, tema: str, **kwargs) -> str:
     """Retorna o prompt apropriado para a classe e tema."""
     if classe == 'criar_npc' or classe == 'criar_monstro':
@@ -114,6 +134,8 @@ def obter_prompt(classe: str, tema: str, **kwargs) -> str:
     elif classe == 'criar_quest':
         return prompt_quest(tema, kwargs.get('tipo', 'coleta'),
                            kwargs.get('npc', 'NPC'), kwargs.get('resumo', ''))
+    elif classe == 'criar_sql':
+        return prompt_sql(tema)
     elif 'lore' in classe or 'explicar' in classe:
         return prompt_lore(tema)
     else:

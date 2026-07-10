@@ -79,7 +79,7 @@ class MarkovDecider:
         "criar_codigo", "explicar_conceito", "gerar_texto",
         "analisar_codigo", "busca_informacao", "conversa",
         "planejar_tarefa", "depurar_erro", "escrever_documento",
-        "comando_sistema", "desconhecido",
+        "comando_sistema", "criar_sql", "desconhecido",
     ]
     
     def __init__(self):

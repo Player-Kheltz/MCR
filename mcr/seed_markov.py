@@ -44,6 +44,16 @@ SEEDS = [
     ("onde fica o arquivo de configuracao", "busca_informacao"),
     ("qual a porta padrao do servidor", "busca_informacao"),
 
+    # criar_sql
+    ("crie uma tabela de usuarios", "criar_sql"),
+    ("gere uma query sql para selecionar dados", "criar_sql"),
+    ("criar tabela de produtos no banco", "criar_sql"),
+    ("preciso de um select com join", "criar_sql"),
+    ("criar banco de dados para ecommerce", "criar_sql"),
+    ("gere insert into para a tabela pedidos", "criar_sql"),
+    ("crie uma query sql para relatorio", "criar_sql"),
+    ("preciso criar uma tabela de log de eventos", "criar_sql"),
+
     # conversa
     ("ola tudo bem", "conversa"),
     ("bom dia", "conversa"),

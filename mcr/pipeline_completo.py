@@ -183,7 +183,8 @@ class PipelineCompleto:
 
         # 6. Gera
         classes_complexas = ['criar_codigo', 'criar_npc', 'criar_quest',
-                             'criar_sistema', 'criar_habilidade_spa', 'criar_monster']
+                             'criar_sistema', 'criar_habilidade_spa', 'criar_monster',
+                             'criar_sql']
         is_complexa = classe in classes_complexas or conf < 0.15
 
         if is_complexa:

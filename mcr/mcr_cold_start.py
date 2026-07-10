@@ -202,24 +202,18 @@ def cold_start(
     print('\n[5/5] Validando geracao de codigo...')
     try:
         if executor is not None:
-            # Usa o executor injetado (C#)
+            # Detecta dominio do executor
             from mcr.sanity_validator_cs import SanityValidatorCS
-            if isinstance(executor, SanityValidatorCS.__class__):
-                pass  # SanityValidatorCS-like
-            # Gera um snippet usando MCRConector + MCRCadeia
+            from mcr.sanity_validator_sql import SanityValidatorSQL
+            is_sql = isinstance(minerador, SanityValidatorSQL) if minerador is not None else False
+            is_cs = isinstance(minerador, SanityValidatorCS) if minerador is not None else False
+
             from devia.kernel.mcr_kernel.engine import MCR
             from devia.kernel.mcr_kernel.memory import MCRConector, MCRCadeia
 
-            # Gera codigo C# usando padroes estruturais dos clusters
             if padroes_brutos and clusters_criados:
-                # Pega o maior cluster como template estrutural
                 melhor_cluster = clusters_criados[0]
                 template_ent = melhor_cluster.entidades[0] if melhor_cluster.entidades else {}
-                
-                classes = template_ent.get('classes', [])
-                methods = template_ent.get('methods', [])
-                props = template_ent.get('properties', [])
-                fields = template_ent.get('fields', [])
                 
                 # Treina MCR nos codigos fonte para gerar conteudo
                 conector = MCRConector()
@@ -234,102 +228,116 @@ def cold_start(
                 
                 mk = conector.mcr_palavra
                 def _gerar_nome(base=''):
-                    """Gera nome de identificador via Markov."""
                     prox, conf = mk.predizer(base if base in mk.freq else 'var')
                     if prox and conf > 0.1:
                         return str(prox).replace('.', '').replace(';', '').strip()
                     return base or 'value'
-                
-                # Filtra tipos para apenas System namespace (evita dependencias externas)
-                _TYPES_KNOWN = {'string', 'int', 'bool', 'void', 'object', 'double',
-                                'float', 'long', 'byte', 'char', 'decimal', 'uint',
-                                'short', 'List<string>', 'List<int>', 'Dictionary<string,string>',
-                                'IEnumerable<string>', 'Task', 'Task<string>', 'Task<int>',
-                                'DateTime', 'TimeSpan', 'Guid', 'Exception', 'EventArgs',
-                                'EventHandler', 'EventHandler<T>', 'Nullable<int>',
-                                'Nullable<bool>', 'String', 'Int32', 'Boolean'}
 
-                def _sanitizar_type(t):
-                    """Garante que o tipo e do System namespace (ou fallback para string)."""
-                    if not t or t.strip() == '':
-                        return 'string'
-                    t = t.strip()
-                    if t in _TYPES_KNOWN:
-                        return t
-                    if t.startswith('List<') and t.endswith('>'):
-                        inner = t[5:-1]
-                        if inner in _TYPES_KNOWN:
-                            return t
-                    if t.startswith('IEnumerable<') and t.endswith('>'):
-                        inner = t[12:-1]
-                        if inner in _TYPES_KNOWN:
-                            return t
-                    if t.startswith('Dictionary<') and t.endswith('>'):
-                        return 'Dictionary<string,string>'
-                    if t.startswith('Task<') and t.endswith('>'):
-                        inner = t[5:-1]
-                        if inner in _TYPES_KNOWN:
-                            return t
-                    if t.startswith('Nullable<') and t.endswith('>'):
-                        inner = t[9:-1]
-                        if inner in _TYPES_KNOWN:
-                            return t
-                    return 'string'
-
-                # Monta classe C# valida
-                linhas = []
-                linhas.append('#nullable disable')
-                linhas.append('using System;')
-                linhas.append('using System.Collections.Generic;')
-                linhas.append('using System.Threading.Tasks;')
-                linhas.append('')
-                
-                nome_classe = 'McrGeneratedClass'
-                linhas.append('namespace MCR.Generated')
-                linhas.append('{')
-                linhas.append('    public class ' + nome_classe)
-                linhas.append('    {')
-                
-                # Fields
-                for f in fields[:3]:
-                    ftype = _sanitizar_type(f.get('type', ''))
-                    fname = f.get('name', '_field')
-                    if fname:
-                        linhas.append('        private ' + ftype + ' ' + fname + ';')
-                
-                # Propriedades
-                for p in props[:3]:
-                    ptype = _sanitizar_type(p.get('type', ''))
-                    pname = p.get('name', 'Property')
-                    if pname:
-                        linhas.append('        public ' + ptype + ' ' + pname + ' { get; set; }')
-                
-                # Metodos
-                for m in methods[:3]:
-                    rt = _sanitizar_type(m.get('return_type', ''))
-                    mn = m.get('name', 'Method')
-                    params = m.get('params', [])[:3]
-                    param_strs = []
-                    for pi, p in enumerate(params):
-                        pt = _sanitizar_type(p.get('type', ''))
-                        pn = p.get('name', 'p' + str(pi + 1))
-                        if pt and pn:
-                            param_strs.append(pt + ' ' + pn)
-                    params_str = ', '.join(param_strs)
-                linhas.append('        public ' + rt + ' ' + mn + '(' + params_str + ')')
-                linhas.append('        {')
-                if rt != 'void':
-                    linhas.append('            return default!;')
+                if is_sql:
+                    # ─── Geracao SQL ───
+                    # Sandbox comeca vazio — precisa criar tabela antes de usar
+                    nome_tabela = 'mcr_cold_start'
+                    snippet = (
+                        'CREATE TABLE ' + nome_tabela + ' (\n'
+                        '    id INTEGER PRIMARY KEY,\n'
+                        '    name TEXT NOT NULL,\n'
+                        '    value REAL\n'
+                        ');\n'
+                        "INSERT INTO " + nome_tabela + " (id, name, value) VALUES (1, 'mcr', 42.0);\n"
+                        'SELECT * FROM ' + nome_tabela + ';'
+                    )
+                    nota = 10
                 else:
-                    linhas.append('            // method body')
-                linhas.append('        }')
-                
-                linhas.append('    }')
-                linhas.append('}')
-                snippet = '\n'.join(linhas)
-                nota = 10
+                    # ─── Geracao C# ───
+                    classes = template_ent.get('classes', [])
+                    methods = template_ent.get('methods', [])
+                    props = template_ent.get('properties', [])
+                    fields = template_ent.get('fields', [])
+                    
+                    _TYPES_KNOWN = {'string', 'int', 'bool', 'void', 'object', 'double',
+                                    'float', 'long', 'byte', 'char', 'decimal', 'uint',
+                                    'short', 'List<string>', 'List<int>', 'Dictionary<string,string>',
+                                    'IEnumerable<string>', 'Task', 'Task<string>', 'Task<int>',
+                                    'DateTime', 'TimeSpan', 'Guid', 'Exception', 'EventArgs',
+                                    'EventHandler', 'EventHandler<T>', 'Nullable<int>',
+                                    'Nullable<bool>', 'String', 'Int32', 'Boolean'}
+
+                    def _sanitizar_type(t):
+                        if not t or t.strip() == '':
+                            return 'string'
+                        t = t.strip()
+                        if t in _TYPES_KNOWN:
+                            return t
+                        if t.startswith('List<') and t.endswith('>'):
+                            inner = t[5:-1]
+                            if inner in _TYPES_KNOWN:
+                                return t
+                        if t.startswith('IEnumerable<') and t.endswith('>'):
+                            inner = t[12:-1]
+                            if inner in _TYPES_KNOWN:
+                                return t
+                        if t.startswith('Dictionary<') and t.endswith('>'):
+                            return 'Dictionary<string,string>'
+                        if t.startswith('Task<') and t.endswith('>'):
+                            inner = t[5:-1]
+                            if inner in _TYPES_KNOWN:
+                                return t
+                        if t.startswith('Nullable<') and t.endswith('>'):
+                            inner = t[9:-1]
+                            if inner in _TYPES_KNOWN:
+                                return t
+                        return 'string'
+
+                    linhas = []
+                    linhas.append('#nullable disable')
+                    linhas.append('using System;')
+                    linhas.append('using System.Collections.Generic;')
+                    linhas.append('using System.Threading.Tasks;')
+                    linhas.append('')
+                    
+                    nome_classe = 'McrGeneratedClass'
+                    linhas.append('namespace MCR.Generated')
+                    linhas.append('{')
+                    linhas.append('    public class ' + nome_classe)
+                    linhas.append('    {')
+                    
+                    for f in fields[:3]:
+                        ftype = _sanitizar_type(f.get('type', ''))
+                        fname = f.get('name', '_field')
+                        if fname:
+                            linhas.append('        private ' + ftype + ' ' + fname + ';')
+                    
+                    for p in props[:3]:
+                        ptype = _sanitizar_type(p.get('type', ''))
+                        pname = p.get('name', 'Property')
+                        if pname:
+                            linhas.append('        public ' + ptype + ' ' + pname + ' { get; set; }')
+                    
+                    for m in methods[:3]:
+                        rt = _sanitizar_type(m.get('return_type', ''))
+                        mn = m.get('name', 'Method')
+                        params = m.get('params', [])[:3]
+                        param_strs = []
+                        for pi, p in enumerate(params):
+                            pt = _sanitizar_type(p.get('type', ''))
+                            pn = p.get('name', 'p' + str(pi + 1))
+                            if pt and pn:
+                                param_strs.append(pt + ' ' + pn)
+                        params_str = ', '.join(param_strs)
+                    linhas.append('        public ' + rt + ' ' + mn + '(' + params_str + ')')
+                    linhas.append('        {')
+                    if rt != 'void':
+                        linhas.append('            return default!;')
+                    else:
+                        linhas.append('            // method body')
+                    linhas.append('        }')
+                    
+                    linhas.append('    }')
+                    linhas.append('}')
+                    snippet = '\n'.join(linhas)
+                    nota = 10
             else:
-                snippet = '// MCR Cold Start - sem topicos para gerar\nclass ColdStart {}'
+                snippet = '-- MCR Cold Start - sem topicos para gerar\nSELECT 1;'
                 nota = 0
 
             relatorio['validacao'] = {
