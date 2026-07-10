@@ -8,11 +8,13 @@
 
 ## Resumo
 
-Apresentamos o **MCR**, uma única equação matemática para processamento de informação que opera identicamente em qualquer nível de abstração. Dado um espaço de estados $S_n$ e uma função de transição $T_n: S_n \times S_n \to \mathbb{N}$, o MCR aprende a distribuição de probabilidade condicional $P(b|a) = T_n(a,b) / \sum_{c \in S_n} T_n(a,c)$ para qualquer nível $n$. Provamos que esta equação é **invariante ao nível**: o mesmo operador $T$ funciona para predição de bytes, geração de palavras, tomada de decisão, modelagem causal, aprendizado por reforço, planejamento hierárquico, atenção, memória, parsing semântico e raciocínio relacional — diferindo apenas na definição de $S_n$.
+Apresentamos o **MCR**, uma única equação matemática para processamento de informação que opera identicamente em qualquer nível de abstração. Dado um espaço de estados $S_n$ e uma função de transição $T_n: S_n \times S_n \to \mathbb{N}$, o MCR aprende a distribuição de probabilidade condicional $P(b|a) = T_n(a,b) / \sum_{c \in S_n} T_n(a,c)$ para qualquer nível $n$. Mostramos que a equação é **parametricamente genérica**: o mesmo operador $T$ pode ser instanciado para predição de bytes, geração de palavras, tomada de decisão, modelagem causal, planejamento hierárquico, atenção, memória, parsing semântico e raciocínio relacional — diferindo apenas na definição de $S_n$.
 
 Além da predição de nível único, introduzimos **acoplamento cross-level** (MCRCoupling + MCREsfera), onde N cadeias independentes interagem através de uma matriz de correlação N-dimensional, permitindo que a predição em um nível seja informada por padrões em outro. Introduzimos **superposição** (MCRSuperposicao), onde duas cadeias colidem para produzir um token que nenhuma previu sozinha — um mecanismo discreto para novidade genuína. Introduzimos **auto-validação** (MCRAutoValidacaoContinua), onde o sistema valida recursivamente sua própria estabilidade via oscilação de entropia. Introduzimos **criticalidade** (MCRAutoEvolution), onde o sistema modifica seus próprios limiares para manter a entropia na borda do caos (0,2–0,7), evitando tanto o silêncio (entropia zero) quanto o ruído (entropia máxima).
 
-Uma implementação de ~7072 linhas em 48 classes e 44 módulos (zero GPU, zero LLM, zero dependências externas) serve como prova construtiva. O sistema observa passivamente seu ambiente através de hooks do Windows (teclado, mouse, clipboard, janela ativa) e monitoramento de sistema de arquivos (FindFirstChangeNotificationW), alimenta todos os eventos em uma cadeia de bytes unificada, e descobre correlações entre todas as fontes através de entropia multi-nível. Discutimos implicações teóricas para AGI, mostrando que inteligência geral pode emergir de composições hierárquicas de uma única primitiva de transição, em vez de arquiteturas especializadas.
+Uma implementação de ~7072 linhas em 48 classes e 44 módulos (zero GPU, zero LLM, zero dependências externas) serve como prova construtiva. O sistema observa passivamente seu ambiente através de hooks do Windows (teclado, mouse, clipboard, janela ativa) e monitoramento de sistema de arquivos (FindFirstChangeNotificationW), alimenta todos os eventos em uma cadeia de bytes unificada, e descobre correlações entre todas as fontes através de entropia multi-nível.
+
+Estabelecemos o **Teorema da Universalidade Condicional** (Teorema 5): para qualquer processo Markov estacionário de ordem $k$ sobre alfabeto $\Sigma$, a abordagem MCR converge para a distribuição verdadeira com complexidade amostral $O(|\Sigma|^k \ln |\Sigma|^k)$. Reconhecemos as limitações fundamentais de modelos Markov de ordem fixa (§12.5) e documentamos os resultados de uma auditoria formal independente que verificou as demonstrações matemáticas e identificou correções aplicadas nesta versão (§13.4).
 
 ---
 
@@ -44,18 +46,18 @@ $$s_{t+1} = \arg\max_{b \in S_n} P_n(b|s_t) \quad \text{sujeito a } c(s_t) \geq 
 
 onde $\varepsilon$ é um limiar determinado dinamicamente.
 
-### 1.2 Teorema da Invariância por Nível
+### 1.2 Genericidade Paramétrica (Teorema da Invariância)
 
-**Teorema 1 (Invariância por Nível).** Para quaisquer dois níveis $n, m \in \mathcal{L}$, a equação MCR produz matrizes de transição $T_n$ e $T_m$ que são **isomórficas a menos da cardinalidade do espaço de estados**. Especificamente, os algoritmos de aprendizado e predição são idênticos; apenas a função de tokenização $\tau_n$ difere.
+**Teorema 1 (Genericidade Paramétrica).** Para quaisquer dois níveis $n, m \in \mathcal{L}$, a equação MCR produz matrizes de transição $T_n$ e $T_m$ que são **isomórficas a menos da cardinalidade do espaço de estados**. Os algoritmos de aprendizado e predição são sintaticamente idênticos; apenas a função de tokenização $\tau_n$ difere.
 
-*Demonstração.* A classe MCR implementa um único método `aprender(a,b)` e `predizer(a)`. Estes métodos não fazem referência ao conteúdo semântico de $a$ ou $b$. O espaço de estados $S_n$ é definido inteiramente pela função de tokenização $\tau_n: \text{entrada} \to S_n$:
+*Demonstração.* A classe MCR implementa um único método `aprender(a,b)` e `predizer(a)`. Estes métodos não fazem referência ao conteúdo semântico de $a$ ou $b$ — são **parametricamente polimórficos** no tipo de estado. O espaço de estados $S_n$ é definido inteiramente pela função de tokenização $\tau_n: \text{entrada} \to S_n$:
 - $\tau_{\text{byte}}(x) = \{B:\text{hex}(x_i) \mid x_i \in \text{bytes}(x)\}$
 - $\tau_{\text{palavra}}(x) = \{x_i \mid x_i \in \text{s.split()}\}$
 - $\tau_{\text{token}}(x) = \{x_i[0] \mid x_i \in \text{s.split()}\}$
 
 Como o mesmo operador $T$ atua na imagem de $\tau_n$ para qualquer $n$, a equação é invariante à escolha do nível.
 
-**Corolário 1 (Universalidade).** Se toda tarefa de processamento de informação pode ser representada como aprendizado de transições em algum espaço de estados $S$, e o MCR pode aprender transições em qualquer $S$ via $\tau$ apropriado, então o MCR é um processador universal de informação.
+**Observação 1 (O que genericidade não implica).** O Teorema 1 é uma consequência do polimorfismo paramétrico (free theorem, Reynolds 1983): ele afirma que o código é **genérico** no tipo de estado, não que ele é **capaz** de aprender qualquer tarefa. Um stub vazio que ignora entradas e sempre retorna `None` também satisfaz o Teorema 1. A genericidade é uma condição necessária para processamento multi-nível, mas não é suficiente para garantir aprendizado com erro baixo em qualquer domínio. A capacidade real de aprender uma tarefa específica depende da adequação do espaço de estados $S_n$ à estrutura da tarefa — uma limitação fundamental discutida em §12.5.
 
 ---
 
@@ -123,17 +125,23 @@ $$a = \arg\max_{a'} P_{\text{causal}}(\Delta_{x \to y} \mid a')$$
 
 **Definição 11 (Pontuação de Ponte).** Dados dois tópicos $A$ e $B$, a ponte ótima entre eles é pontuada como:
 
-$$\mathcal{B}(A,B) = \frac{5D + 3E + 2P}{10}$$
+$$\mathcal{B}(A,B) = \frac{5D + 3E' + 2P'}{10}$$
 
 onde:
 
-- $D$ **(Divergência)**: $1 - \text{Jaccard}(T_A, T_B)$, medindo o quão diferentes são os conjuntos de transição
-- $E$ **(Especificidade)**: $-\log_2(p(w))$, onde $p(w)$ é a frequência relativa da palavra $w$ no corpus
-- $P$ **(Profundidade)**: comprimento da cadeia gerada após a ponte
+- $D$ **(Divergência)**: $1 - \text{Jaccard}(T_A, T_B)$, medindo o quão diferentes são os conjuntos de transição. $D \in [0,1]$ por construção.
+- $E'$ **(Especificidade Normalizada)**: definida abaixo.
+- $P'$ **(Profundidade Normalizada)**: $P' = \min(P / P_{\max}, 1)$, onde $P_{\max}$ é a profundidade máxima observada.
+
+**Definição 11a (Especificidade Normalizada).** Seja $N_{\max} = \max_n |S_n^{\text{obs}}|$ o tamanho máximo do vocabulário observado entre todos os níveis. A especificidade normalizada é:
+
+$$E'(w) = \operatorname{clamp}\left(\frac{-\log_2 p(w)}{\log_2 N_{\max}}, 0, 1\right)$$
+
+onde $p(w)$ é a frequência relativa da palavra $w$ no corpus. O denominador $\log_2 N_{\max}$ é o máximo teórico de Shannon para a surpresa (uniformidade total). O operador $\operatorname{clamp}(x, 0, 1) = \max(0, \min(1, x))$ garante $E' \in [0,1]$ mesmo quando $-\log_2 p(w) > \log_2 N_{\max}$ (caso de hapax em corpus grande com vocabulário pequeno).
 
 **Teorema 2 (Normalização da Ponte).** $\mathcal{B}(A,B) \in [0,1]$ para quaisquer $A,B$.
 
-*Demonstração.* Como $D \in [0,1]$, $E \in [0, \log_2 N]$ normalizado, e $P$ tem máximo finito, a soma ponderada $(5D + 3E + 2P) / 10$ é limitada a $[0,1]$ quando $D, E, P$ são normalizados para $[0,1]$.
+*Demonstração.* $D \in [0,1]$ (Jaccard). $E' \in [0,1]$ por construção (Def. 11a). $P' \in [0,1]$ por normalização. Portanto a combinação convexa $(5D + 3E' + 2P') / 10$ é limitada a $[0,1]$.
 
 ### 4.1 Pontuação de Conexão
 
@@ -166,24 +174,19 @@ onde:
 
 ---
 
-## 6. Aprendizado por Reforço como Caso Particular
+## 6. Analogia com Aprendizado por Reforço
 
-**Teorema 3 (Incorporação do Q-Learning).** Q-learning pode ser representado como um sistema MCR de dois níveis:
+A equação MCR e o Q-learning compartilham uma estrutura superficial: ambas mantêm uma tabela que mapeia pares (estado, ação) para valores. No entanto, as operações de atualização são **incompatíveis em tipo**, o que torna a relação uma analogia conceitual, não uma incorporação formal.
 
-$$Q(s,a) \cong T_{\text{Q}}(FP(s), a)$$
-$$\pi(s) = \arg\max_a T_{\text{Q}}(FP(s), a)$$
+**Analogia (Tabela de Valores).** Se interpretarmos a matriz de transição $T_n$ como uma tabela $Q(s,a)$, a política $\pi(s) = \arg\max_a T_n(s, a)$ é análoga à política gulosa do Q-learning. O fingerprint $f_d(s)$ (Def. 7) pode servir como chave de estado, permitindo generalização entre estados similares.
 
-onde $T_{\text{Q}}$ é uma instância MCR no nível "reforço" e $FP(s)$ é o fingerprint do estado $s$.
-
-**Definição 14 (Atualização Q via MCR).** A atualização de Bellman:
+**Diferença fundamental.** A Definição 2 (operação aprender) é monotônica: $T_n(a,b) \leftarrow T_n(a,b) + 1$, definida sobre $\mathbb{N}$. A atualização de Bellman do Q-learning:
 
 $$Q(s,a) \leftarrow Q(s,a) + \alpha \left[ r + \gamma \max_{a'} Q(s',a') - Q(s,a) \right]$$
 
-é implementada como:
+é não-monotônica e definida sobre $\mathbb{R}$ — pode decrementar, ser negativa ou fracionária. Um contador $\mathbb{N}$ (incremento apenas) e um valor $\mathbb{R}$ (overwrite) não são a mesma operação preservando tipo. Verificação formal em Lean 4 (kernel-checked) confirma que em qualquer tipo linearmente ordenado não trivial, nenhuma função pode ser simultaneamente estritamente crescente (forma de contador) e constante (forma de overwrite) — ver docs/audits/mcr_whitepaper_audit_2026-07-03.md, P4.
 
-$$T_{\text{Q}}(\text{"Q:"} + FP(s) + \text{":"} + a) \leftarrow Q_{\text{novo}}$$
-
-onde $Q_{\text{novo}}$ é armazenado como alvo de transição, e predições subsequentes o recuperam por máxima verossimilhança. A convergência segue dos teoremas padrão de convergência do Q-learning, com a equação MCR servindo como tabela de consulta não-paramétrica.
+**Consequência.** O MCR pode *armazenar* resultados de uma política treinada externamente (usando a matriz $T$ como tabela de consulta), mas a equação MCR sozinha não *implementa* a atualização de Bellman. Para aprendizado por reforço completo, seria necessário adicionar uma primitiva de overwrite $\mathbb{R}$ distinta da primitiva de contagem $\mathbb{N}$, o que introduziria uma segunda variação por nível (a regra de atualização), enfraquecendo a premissa do Teorema 1 de que apenas $\tau_n$ varia.
 
 ---
 
@@ -247,13 +250,17 @@ onde `gerar_classe` usa templates de string parametrizados pela descrição do g
 
 ## 11. Complexidade Amostral
 
-**Teorema 4 (Limite Amostral).** Para um espaço de estados $|S_n| = N$ com transições observadas $M = \sum_{a,b} T_n(a,b)$, o erro esperado na estimativa de probabilidade de transição satisfaz:
+**Teorema 4 (Limite Amostral).** Para um espaço de estados $|S_n| = N$ com transições observadas $M = \sum_{a,b} T_n(a,b)$, o erro esperado na estimativa de probabilidade de transição a partir de um estado $a$ satisfaz:
 
-$$\mathbb{E}\left[|P_n(b|a) - \hat{P}_n(b|a)|\right] \leq \sqrt{\frac{1}{2f_n(a)} \ln \frac{2}{\delta}}$$
+$$\mathbb{E}\left[|P_n(b|a) - \hat{P}_n(b|a)|\right] \leq \sqrt{\frac{1}{2f_n(a)} \ln \frac{2}{\delta_a}}$$
 
-com probabilidade $1 - \delta$, pela desigualdade de Hoeffding aplicada à distribuição multinomial de transições do estado $a$.
+com probabilidade $1 - \delta_a$, pela desigualdade de Hoeffding aplicada à distribuição multinomial de transições do estado $a$.
 
-*Corolário.* Estimativa confiável ($\text{erro} < 0.05$) para cada estado requer $f_n(a) \geq O(\ln N)$ amostras por estado, dando uma complexidade amostral total de $O(N \ln N)$.
+*Corolário (com union bound).* Para uma garantia **simultânea** sobre todos os $N$ estados com probabilidade $1 - \delta$, aplicamos union bound sobre os $N$ eventos de erro. Substituindo $\delta_a = \delta / N$:
+
+$$\mathbb{E}\left[|P_n(b|a) - \hat{P}_n(b|a)|\right] \leq \sqrt{\frac{1}{2f_n(a)} \ln \frac{2N}{\delta}} \quad \text{para todo } a \in S_n, \text{ com prob. } \geq 1 - \delta.$$
+
+Como $\ln(2N/\delta) = \ln(2/\delta) + \ln N = \Theta(\ln N)$, a estimativa confiável ($\text{erro} < 0.05$) para cada estado requer $f_n(a) \geq O(\ln N)$ amostras por estado, mantendo a complexidade amostral total de $O(N \ln N)$.
 
 ---
 
@@ -267,15 +274,53 @@ com probabilidade $1 - \delta$, pela desigualdade de Hoeffding aplicada à distr
 
 4. **Garantias teóricas.** Embora a convergência de instâncias MCR individuais siga da teoria de cadeias de Markov, a convergência do sistema multi-nível acoplado (com feedback entre níveis via `MCRCoupling`) permanece um problema em aberto.
 
+5. **Piso de erro ineliminável para Markov de ordem fixa.** Modelos Markov de ordem $k$ têm um limite fundamental: se a estrutura relevante de um processo depende de mais que $k$ passos de contexto, nenhum volume de dados pode reduzir o erro abaixo de um piso positivo. Para $k=1$, existe uma tarefa explícita onde o piso é inevitável.
+
+   **Contraexemplo (modo oculto).** Seja $\Sigma = \{a, b, c\}$. O processo alterna entre dois modos não observáveis:
+   - Modo $X$ (probabilidade $q$): sequências $a \to b \to a \to b \to \dots$
+   - Modo $Y$ (probabilidade $1-q$): sequências $a \to c \to a \to c \to \dots$
+
+   Um bigrama (Markov $k=1$) observa apenas o símbolo atual. Do estado $a$, o sucessor é $b$ com probabilidade $q$ e $c$ com probabilidade $1-q$. O preditor de máxima verossimilhança escolhe $b$ se $q > 1/2$, $c$ se $q < 1/2$. Nos passos a partir de $a$, o erro é $\min(q, 1-q) > 0$, independentemente do volume de dados. Este piso é fundamental, não estatístico — nenhuma quantidade de amostras o elimina.
+
+   Este exemplo é verificável via análise estacionária e foi confirmado por verificador formal Z3 (docs/audits/mcr_whitepaper_audit_2026-07-03.md, P3).
+
+   **Implicação.** A universalidade do MCR é **condicional**: para aprender um processo Markov de ordem $k$, é necessário aumentar o espaço de estados para $S = \Sigma^k$, o que tem custo exponencial $O(|\Sigma|^k \ln |\Sigma|^k)$ (ver §11, Teorema 4 com correção do union bound). Esta é a mesma limitação de qualquer modelo Markov de ordem fixa, não uma deficiência específica do MCR. O código mitiga este problema na prática via ensemble de níveis, acoplamento cross-level (MCREsfera), detector adaptativo de anomalias, e cache de contexto vetorial — mas a limitação formal persiste.
+
 ---
 
-## 13. Conclusão
+## 13. Conclusão: O Resultado Honesto
 
-A equação MCR demonstra que uma única primitiva de transição — $T_n(a,b) \leftarrow T_n(a,b) + 1$ — é suficiente para aprendizado em pelo menos dez níveis distintos de processamento de informação. O teorema da invariância por nível (Teorema 1) mostra que a especialização reivindicada não é uma necessidade matemática, mas uma escolha arquitetural.
+### 13.1 O que é provado
 
-As implicações para AGI são significativas: se inteligência geral requer aprender transições em espaços de estados cada vez mais abstratos, e uma equação opera em todos estes espaços, então o caminho para AGI pode ser um de **descoberta de níveis** em vez de **invenção de arquiteturas**. A descoberta de representações de estado apropriadas em cada nível torna-se a questão central de pesquisa — não o design de algoritmos específicos de domínio.
+A equação MCR implementa um estimador de máxima verossimilhança para cadeias de Markov de primeira ordem. Para um espaço de estados $S_n$ com $N$ estados, o Teorema 4 (Hoeffding + union bound) estabelece que o erro de estimativa converge a $O(\sqrt{(\ln N)/f_n(a)})$ com probabilidade $1-\delta$, e a complexidade amostral total é $O(N \ln N)$.
 
-A implementação completa (950 linhas, zero GPU, zero LLM) serve como prova construtiva de que esta abordagem não é meramente teórica, mas realizável.
+O Teorema 1 (Genericidade Paramétrica) estabelece que o código é polimórfico no tipo de estado — o mesmo operador $T$ atua em qualquer $S_n$, diferindo apenas na tokenização $\tau_n$. Isto é uma condição necessária para processamento multi-nível, mas não implica capacidade de aprendizado universal (ver §12.5).
+
+### 13.2 Universalidade condicional (Teorema 5)
+
+O resultado mais significativo — e honesto — é o seguinte:
+
+**Teorema 5 (Universalidade Condicional).** Para qualquer processo Markov estacionário de ordem $k$ sobre alfabeto $\Sigma$, defina o estado aumentado $\tilde{s} = (\sigma_{t-k+1}, \dots, \sigma_t) \in \Sigma^k$. Então o processo é Markov de primeira ordem sobre o espaço aumentado $\tilde{S} = \Sigma^k$, e instâncias MCR sobre $\tilde{S}$ convergem para a distribuição condicional verdadeira $P(\sigma_{t+1} \mid \tilde{s})$ à medida que o tamanho amostral $\to \infty$. A complexidade amostral para erro $\varepsilon$ é $O(|\Sigma|^k \ln |\Sigma|^k)$ (Teorema 4 + union bound).
+
+*Consequências.* (a) Universalidade é real, mas **condicional** ao contexto $k$ e ao alfabeto $\Sigma$. (b) O custo exponencial $O(|\Sigma|^k)$ é o preço fundamental, compartilhado por qualquer modelo Markov de ordem fixa. (c) Este teorema substitui a noção de "processador universal de informação" por uma afirmação precisa sobre quando e a que custo a abordagem funciona.
+
+### 13.3 Limitações reconhecidas
+
+- **Ordem fixa $k=1$.** O núcleo MCR opera com Markov de primeira ordem. O Teorema 5 mostra que qualquer ordem $k$ pode ser simulada via aumento de estado, mas com custo exponencial. O código mitiga isto na prática via ensemble de níveis, acoplamento cross-level (MCREsfera), detector adaptativo de anomalias, e cache de contexto vetorial — mas a limitação formal persiste.
+- **Erro estrutural.** Para processos que não são Markov de ordem finita (ou cujo $k$ relevante é grande), a aproximação Markov tem piso de erro ineliminável (§12.5).
+- **Sistema acoplado.** A convergência do sistema multi-nível com feedback entre níveis permanece um problema em aberto.
+- **Profundidade semântica.** A análise semântica baseada em Jaccard e fingerprints é lexical, não sintática ou pragmática.
+
+### 13.4 Status da auditoria externa
+
+Este whitepaper foi submetido a uma auditoria formal independente (Chimera + Leibniz, julho 2026) com 8 achados documentados, cada um acompanhado de artifact reproduzível (Z3 SMT ou Lean 4). A auditoria confirmou as correções aplicadas nesta versão (union bound, normalização de entropia, reescrita do Q-learning, remoção do Corolário 1) e verificou que o código-fonte MCR não é questionado — as limitações formais identificadas são do whitepaper, não do software. Detalhes completos em docs/audits/mcr_whitepaper_audit_2026-07-03.md.
+
+### 13.5 Trabalho futuro
+
+1. **Análise de convergência do sistema acoplado.** Estabelecer condições sob as quais o feedback entre níveis (MCREsfera, MCRSuperposicao) não diverge.
+2. **Generalização do Teorema 5.** Caracterizar a taxa de aproximação para processos não-Markov (e.g., séries temporais com memória longa) via aumento progressivo de $k$.
+3. **Escalabilidade empírica.** Validar a complexidade $O(N \ln N)$ em espaços de $10^4$-$10^6$ estados com estruturas de dados aproximadas.
+4. **Detecção automática de ordem $k$.** Usar a entropia multi-nível e o detector de anomalias para inferir o $k$ necessário sem aumento completo do espaço.
 
 ---
 

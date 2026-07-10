@@ -14,11 +14,13 @@
 
 ## Abstract
 
-We present **MCR**, a single mathematical equation for information processing that operates identically across arbitrary levels of abstraction. Given a state space $S_n$ and a transition function $T_n: S_n \times S_n \to \mathbb{N}$, MCR learns the conditional probability distribution $P(b|a) = T_n(a,b) / \sum_{c \in S_n} T_n(a,c)$ for any level $n$. We prove that this equation is **level-invariant**: the same operator $T$ works for byte prediction, word generation, decision-making, causal modeling, reinforcement learning, hierarchical planning, attention, memory, semantic parsing, and relational reasoning — differing only in the definition of $S_n$.
+We present **MCR**, a single mathematical equation for information processing that operates identically across arbitrary levels of abstraction. Given a state space $S_n$ and a transition function $T_n: S_n \times S_n \to \mathbb{N}$, MCR learns the conditional probability distribution $P(b|a) = T_n(a,b) / \sum_{c \in S_n} T_n(a,c)$ for any level $n$. We show that the equation is **parametrically generic**: the same operator $T$ can be instantiated for byte prediction, word generation, decision-making, causal modeling, hierarchical planning, attention, memory, semantic parsing, and relational reasoning — differing only in the definition of $S_n$.
 
 Beyond single-level prediction, we introduce **cross-level coupling** ($\text{MCRCoupling} + \text{MCREsfera}$), where N independent chains interact through an N-dimensional correlation matrix, enabling prediction at one level to be informed by patterns at another. We introduce **superposition** ($\text{MCRSuperposicao}$), where two chains collide to produce a token that neither predicted alone — a discrete mechanism for genuine novelty. We introduce **auto-validation** ($\text{MCRAutoValidacaoContinua}$), where the system recursively validates its own stability via entropy oscillation. We introduce **criticality** ($\text{MCRAutoEvolution}$), where the system modifies its own thresholds to maintain entropy at the edge of chaos (0.2–0.7), avoiding both silence (zero entropy) and noise (maximum entropy).
 
-An implementation of ~7072 lines across 48 classes and 44 modules (zero GPU, zero LLM, zero external dependencies) serves as constructive proof. The system passively observes its environment through Windows hooks (keyboard, mouse, clipboard, foreground window) and filesystem monitoring ($\text{FindFirstChangeNotificationW}$), feeds all events into a unified byte chain, and discovers correlations between all sources through multi-level entropy. We discuss theoretical implications for AGI, showing that general intelligence may emerge from hierarchical compositions of a single transition primitive rather than from specialized architectures.
+An implementation of ~7072 lines across 48 classes and 44 modules (zero GPU, zero LLM, zero external dependencies) serves as constructive proof. The system passively observes its environment through Windows hooks (keyboard, mouse, clipboard, foreground window) and filesystem monitoring ($\text{FindFirstChangeNotificationW}$), feeds all events into a unified byte chain, and discovers correlations between all sources through multi-level entropy.
+
+We establish the **Conditional Universality Theorem** (Theorem 5): for any stationary Markov process of order $k$ over alphabet $\Sigma$, the MCR approach converges to the true distribution with sample complexity $O(|\Sigma|^k \ln |\Sigma|^k)$. We acknowledge the fundamental limitations of fixed-order Markov models (§15.5) and document the results of an independent formal audit that verified the mathematical claims and identified corrections applied in this version (§13.4).
 
 ---
 
@@ -50,18 +52,18 @@ $$s_{t+1} = \arg\max_{b \in S_n} P_n(b|s_t) \quad \text{subject to } c(s_t) \geq
 
 where $\varepsilon$ is a dynamically determined threshold.
 
-### 1.2 Level Invariance Theorem
+### 1.2 Parametric Genericity (Invariance Theorem)
 
-**Theorem 1 (Level Invariance).** For any two levels $n, m \in \mathcal{L}$, the MCR equation produces transition matrices $T_n$ and $T_m$ that are **isomorphic up to state space cardinality**. Specifically, the learning and prediction algorithms are identical; only the tokenization function $\tau_n$ differs.
+**Theorem 1 (Parametric Genericity).** For any two levels $n, m \in \mathcal{L}$, the MCR equation produces transition matrices $T_n$ and $T_m$ that are **isomorphic up to state space cardinality**. The learning and prediction algorithms are syntactically identical; only the tokenization function $\tau_n$ differs.
 
-*Proof.* The MCR class implements a single `learn(a,b)` and `predict(a)` method. These methods make no reference to the semantic content of $a$ or $b$. The state space $S_n$ is defined entirely by the tokenization function $\tau_n: \text{input} \to S_n$:
+*Proof.* The MCR class implements a single `learn(a,b)` and `predict(a)` method. These methods make no reference to the semantic content of $a$ or $b$ — they are **parametrically polymorphic** in the state type. The state space $S_n$ is defined entirely by the tokenization function $\tau_n: \text{input} \to S_n$:
 - $\tau_{\text{byte}}(x) = \{B:\text{hex}(x_i) \mid x_i \in \text{bytes}(x)\}$
 - $\tau_{\text{word}}(x) = \{x_i \mid x_i \in \text{s.split()}\}$
 - $\tau_{\text{token}}(x) = \{x_i[0] \mid x_i \in \text{s.split()}\}$
 
 Since the same operator $T$ acts on the image of $\tau_n$ for any $n$, the equation is invariant to level choice.
 
-**Corollary 1 (Universality).** If every information processing task can be represented as learning transitions in some state space $S$, and MCR can learn transitions in any $S$ via appropriate $\tau$, then MCR is a universal information processor.
+**Remark 1 (What genericity does not imply).** Theorem 1 is a consequence of parametric polymorphism (free theorem, Reynolds 1983): it states that the code is **generic** in the state type, not that it is **capable** of learning any task. An empty stub that ignores inputs and always returns `None` also satisfies Theorem 1. Genericity is a necessary condition for multi-level processing, but it is not sufficient to guarantee low-error learning in any domain. Actual learning capability depends on whether the state space $S_n$ is adequate for the task structure — a fundamental limitation discussed in §15.5.
 
 ---
 
@@ -129,17 +131,23 @@ $$a = \arg\max_{a'} P_{\text{causal}}(\Delta_{x \to y} \mid a')$$
 
 **Definition 11 (Bridge Score).** Given two topics $A$ and $B$, the optimal bridge between them is scored as:
 
-$$\mathcal{B}(A,B) = \frac{5D + 3E + 2P}{10}$$
+$$\mathcal{B}(A,B) = \frac{5D + 3E' + 2P'}{10}$$
 
 where:
 
-- $D$ **(Divergence)**: $1 - \text{Jaccard}(T_A, T_B)$, measuring how different the transition sets are
-- $E$ **(Specificity)**: $-\log_2(p(w))$, where $p(w)$ is the relative frequency of word $w$ in the corpus
-- $P$ **(Depth)**: length of the generated chain after bridging
+- $D$ **(Divergence)**: $1 - \text{Jaccard}(T_A, T_B)$, measuring how different the transition sets are. $D \in [0,1]$ by construction.
+- $E'$ **(Normalized Specificity)**: defined below.
+- $P'$ **(Normalized Depth)**: $P' = \min(P / P_{\max}, 1)$, where $P_{\max}$ is the maximum observed depth.
+
+**Definition 11a (Normalized Specificity).** Let $N_{\max} = \max_n |S_n^{\text{obs}}|$ be the maximum observed vocabulary size across all levels. The normalized specificity is:
+
+$$E'(w) = \operatorname{clamp}\left(\frac{-\log_2 p(w)}{\log_2 N_{\max}}, 0, 1\right)$$
+
+where $p(w)$ is the relative frequency of word $w$ in the corpus. The denominator $\log_2 N_{\max}$ is the Shannon upper bound for surprisal (total uniformity). The operator $\operatorname{clamp}(x, 0, 1) = \max(0, \min(1, x))$ ensures $E' \in [0,1]$ even when $-\log_2 p(w) > \log_2 N_{\max}$ (hapax in a large corpus with a small vocabulary).
 
 **Theorem 2 (Bridge Normalization).** $\mathcal{B}(A,B) \in [0,1]$ for any $A,B$.
 
-*Proof.* Since $D \in [0,1]$, $E \in [0, \log_2 N]$ normalized, and $P$ has a finite maximum, the weighted sum $(5D + 3E + 2P) / 10$ is bounded by $[0,1]$ when $D, E, P$ are normalized to $[0,1]$.
+*Proof.* $D \in [0,1]$ (Jaccard). $E' \in [0,1]$ by construction (Def. 11a). $P' \in [0,1]$ by normalization. Hence the convex combination $(5D + 3E' + 2P') / 10$ is bounded to $[0,1]$.
 
 ### 4.1 Connection Score
 
@@ -172,24 +180,19 @@ where:
 
 ---
 
-## 6. Reinforcement Learning as a Special Case
+## 6. Analogy with Reinforcement Learning
 
-**Theorem 3 (Q-Learning Embedding).** Q-learning can be represented as a two-level MCR system:
+The MCR equation and Q-learning share a surface-level structural similarity: both maintain a table mapping (state, action) pairs to values. However, their update operations are **type-incompatible**, making the relationship a conceptual analogy, not a formal embedding.
 
-$$Q(s,a) \cong T_{\text{Q}}(FP(s), a)$$
-$$\pi(s) = \arg\max_a T_{\text{Q}}(FP(s), a)$$
+**Analogy (Value Table).** If we interpret the transition matrix $T_n$ as a Q-table $Q(s,a)$, then the policy $\pi(s) = \arg\max_a T_n(s, a)$ is analogous to the greedy policy of Q-learning. The fingerprint $f_d(s)$ (Def. 7) can serve as a state key, enabling generalization between similar states.
 
-where $T_{\text{Q}}$ is an MCR instance at the "reinforcement" level and $FP(s)$ is the fingerprint of state $s$.
-
-**Definition 14 (Q-Update via MCR).** The Bellman update:
+**Fundamental difference.** Definition 2 (learn operation) is monotonic: $T_n(a,b) \leftarrow T_n(a,b) + 1$, defined over $\mathbb{N}$. The Bellman update in Q-learning:
 
 $$Q(s,a) \leftarrow Q(s,a) + \alpha \left[ r + \gamma \max_{a'} Q(s',a') - Q(s,a) \right]$$
 
-is implemented as:
+is non-monotonic and defined over $\mathbb{R}$ — it can decrease, be negative, or fractional. A $\mathbb{N}$ counter (increment-only) and an $\mathbb{R}$ value (overwrite) are not the same type-preserving operation. Formal verification in Lean 4 (kernel-checked) confirms that on any non-trivial linearly ordered type, no function can be simultaneously strictly increasing (counter shape) and constant (overwrite shape) — see docs/audits/mcr_whitepaper_audit_2026-07-03.md, P4.
 
-$$T_{\text{Q}}(\text{"Q:"} + FP(s) + \text{":"} + a) \leftarrow Q_{\text{new}}$$
-
-where $Q_{\text{new}}$ is stored as a transition target, and subsequent predictions retrieve it by maximum likelihood. Convergence follows from standard Q-learning convergence theorems, with the MCR equation serving as a non-parametric lookup table.
+**Consequence.** MCR can *store* the results of an externally trained policy (using the $T$ matrix as a lookup table), but the MCR equation alone does not *implement* the Bellman update. Full reinforcement learning would require adding a distinct $\mathbb{R}$ overwrite primitive separate from the $\mathbb{N}$ counting primitive, which would introduce a second variation per level (the update rule), weakening Theorem 1's premise that only $\tau_n$ varies.
 
 ---
 
@@ -253,13 +256,17 @@ where `generate_class` uses string templates parameterized by the gap descriptio
 
 ## 11. Sample Complexity
 
-**Theorem 4 (Sample Bound).** For a state space $|S_n| = N$ with observed transitions $M = \sum_{a,b} T_n(a,b)$, the expected error in transition probability estimation satisfies:
+**Theorem 4 (Sample Bound).** For a state space $|S_n| = N$ with observed transitions $M = \sum_{a,b} T_n(a,b)$, the expected error in transition probability estimation from a state $a$ satisfies:
 
-$$\mathbb{E}\left[|P_n(b|a) - \hat{P}_n(b|a)|\right] \leq \sqrt{\frac{1}{2f_n(a)} \ln \frac{2}{\delta}}$$
+$$\mathbb{E}\left[|P_n(b|a) - \hat{P}_n(b|a)|\right] \leq \sqrt{\frac{1}{2f_n(a)} \ln \frac{2}{\delta_a}}$$
 
-with probability $1 - \delta$, by Hoeffding's inequality applied to the multinomial distribution of transitions from state $a$.
+with probability $1 - \delta_a$, by Hoeffding's inequality applied to the multinomial distribution of transitions from state $a$.
 
-*Corollary.* Reliable estimation ($\text{error} < 0.05$) for each state requires $f_n(a) \geq O(\ln N)$ samples per state, giving a total sample complexity of $O(N \ln N)$.
+*Corollary (with union bound).* For a **simultaneous** guarantee over all $N$ states with probability $1 - \delta$, we apply the union bound over $N$ error events. Substituting $\delta_a = \delta / N$:
+
+$$\mathbb{E}\left[|P_n(b|a) - \hat{P}_n(b|a)|\right] \leq \sqrt{\frac{1}{2f_n(a)} \ln \frac{2N}{\delta}} \quad \text{for all } a \in S_n, \text{ with prob. } \geq 1 - \delta.$$
+
+Since $\ln(2N/\delta) = \ln(2/\delta) + \ln N = \Theta(\ln N)$, reliable estimation ($\text{error} < 0.05$) for each state requires $f_n(a) \geq O(\ln N)$ samples per state, maintaining a total sample complexity of $O(N \ln N)$.
 
 ---
 
@@ -352,15 +359,51 @@ All events are encoded as `SYS:{source}:{action}:{data}` tokens in the `sys_byte
 
 5. **Theoretical guarantees.** While convergence of individual MCR instances follows from Markov chain theory, the convergence of the coupled multi-level system (with cross-level feedback via esfera and superposition) remains an open problem.
 
+6. **Ineliminable error floor for fixed-order Markov models.** Markov models of order $k$ have a fundamental limitation: if a process's relevant structure depends on more than $k$ steps of context, no amount of data can reduce the error below a positive floor. For $k=1$, an explicit task exists where this floor is unavoidable.
+
+   **Counterexample (hidden mode).** Let $\Sigma = \{a, b, c\}$. The process alternates between two unobservable modes:
+   - Mode $X$ (probability $q$): sequences $a \to b \to a \to b \to \dots$
+   - Mode $Y$ (probability $1-q$): sequences $a \to c \to a \to c \to \dots$
+
+   A bigram (Markov $k=1$) observes only the current symbol. From state $a$, the successor is $b$ with probability $q$ and $c$ with probability $1-q$. The maximum-likelihood predictor picks $b$ if $q > 1/2$, $c$ if $q < 1/2$. On steps from $a$, the error is $\min(q, 1-q) > 0$, regardless of data volume. This floor is fundamental, not statistical — no amount of sampling eliminates it. This example is verifiable via stationary analysis and was confirmed by Z3 formal verification (docs/audits/mcr_whitepaper_audit_2026-07-03.md, P3).
+
+   **Implication.** MCR's universality is **conditional**: to learn a Markov process of order $k$, the state space must be augmented to $S = \Sigma^k$, incurring exponential cost $O(|\Sigma|^k \ln |\Sigma|^k)$ (see §11, Theorem 4 with union bound correction). This is the same limitation shared by any fixed-order Markov model, not a deficiency specific to MCR. The code mitigates this in practice via level ensemble, cross-level coupling (MCREsfera), adaptive anomaly detection, and vector context cache — but the formal limitation persists.
+
 ---
 
-## 13. Conclusion
+## 13. Conclusion: The Honest Result
 
-The MCR equation demonstrates that a single transition primitive — $T_n(a,b) \leftarrow T_n(a,b) + 1$ — suffices for learning across multiple levels of information processing, from bytes to semantic relations. When N such levels are coupled via an entropy-driven esfera, superposition between them generates genuinely novel output — emergence without external intervention. The level invariance theorem (Theorem 1) shows that claimed specialization is not a mathematical necessity but an architectural choice.
+### 13.1 What is proved
 
-The implications for AGI are significant: if general intelligence requires learning transitions in increasingly abstract state spaces, and one equation operates across all such spaces with emergent coupling between them, then the path to AGI may be one of **level discovery and coupling** rather than **architecture invention**. The discovery of appropriate state representations at each level, and the automatic identification of which levels should couple, becomes the central research question — not the design of domain-specific algorithms.
+The MCR equation implements a maximum-likelihood estimator for first-order Markov chains. For a state space $S_n$ with $N$ states, Theorem 4 (Hoeffding + union bound) establishes that the estimation error converges as $O(\sqrt{(\ln N)/f_n(a)})$ with probability $1-\delta$, and the total sample complexity is $O(N \ln N)$.
 
-The complete implementation (~7072 lines across 48 classes and 44 modules, zero GPU, zero LLM) serves as constructive proof that this approach is not merely theoretical but realizable in Python stdlib.
+Theorem 1 (Parametric Genericity) establishes that the code is polymorphic in the state type — the same operator $T$ acts on any $S_n$, differing only in the tokenization $\tau_n$. This is a necessary condition for multi-level processing, but it does not imply universal learning capability (see §15.6).
+
+### 13.2 Conditional universality (Theorem 5)
+
+The most significant — and honest — result is the following:
+
+**Theorem 5 (Conditional Universality).** For any stationary Markov process of order $k$ over alphabet $\Sigma$, define the augmented state $\tilde{s} = (\sigma_{t-k+1}, \dots, \sigma_t) \in \Sigma^k$. Then the process is first-order Markov over the augmented space $\tilde{S} = \Sigma^k$, and MCR instances over $\tilde{S}$ converge to the true conditional distribution $P(\sigma_{t+1} \mid \tilde{s})$ as sample size $\to \infty$. The sample complexity for error $\varepsilon$ is $O(|\Sigma|^k \ln |\Sigma|^k)$ (Theorem 4 + union bound).
+
+*Consequences.* (a) Universality is real, but **conditional** on context $k$ and alphabet $\Sigma$. (b) The exponential cost $O(|\Sigma|^k)$ is fundamental, shared by any fixed-order Markov model. (c) This theorem replaces the notion of "universal information processor" with a precise statement about when and at what cost the approach works.
+
+### 13.3 Acknowledged limitations
+
+- **Fixed order $k=1$.** The MCR core operates with first-order Markov. Theorem 5 shows that any order $k$ can be simulated via state augmentation, but at exponential cost. The code mitigates this in practice via level ensemble, cross-level coupling (MCREsfera), adaptive anomaly detection, and vector context cache — but the formal limitation persists.
+- **Structural error.** For processes that are not finite-order Markov (or whose relevant $k$ is large), the Markov approximation has an ineliminable error floor (§15.6).
+- **Coupled system.** The convergence of the multi-level system with cross-level feedback remains an open problem.
+- **Semantic depth.** The semantic analysis based on Jaccard and fingerprints is lexical, not syntactic or pragmatic.
+
+### 13.4 External audit status
+
+This whitepaper was submitted to an independent formal audit (Chimera + Leibniz, July 2026) with 8 documented findings, each accompanied by a reproducible artifact (Z3 SMT or Lean 4). The audit confirmed the corrections applied in this version (union bound, entropy normalization, Q-learning rewrite, removal of Corollary 1) and verified that the MCR source code is not questioned — the formal limitations identified are in the whitepaper, not the software. Full details in docs/audits/mcr_whitepaper_audit_2026-07-03.md.
+
+### 13.5 Future work
+
+1. **Coupled system convergence analysis.** Establish conditions under which cross-level feedback (MCREsfera, MCRSuperposicao) does not diverge.
+2. **Generalization of Theorem 5.** Characterize the approximation rate for non-Markov processes (e.g., long-memory time series) via progressive $k$ augmentation.
+3. **Empirical scalability.** Validate $O(N \ln N)$ complexity on $10^4$-$10^6$ state spaces with approximate data structures.
+4. **Automatic order $k$ detection.** Use multi-level entropy and the anomaly detector to infer the required $k$ without full state augmentation.
 
 ---
 
