@@ -736,3 +736,108 @@ Modulos prototipo encontrados em E:\Coisas\, testados e funcionais em 11/07/2026
 | Modulos Orfaos.md | E:\Coisas\ | Lista de modulos nao integrados com prioridades | Alto - guia |
 | ANALISE_ARQUITETURAL_MCR_v5.md | E:\Coisas\ | Analise independente (40+ anos IA) | Alto - validacao |
 | ROADMAP_EVOLUTIVO.md | E:\Coisas\ | 5 fases de evolucao | Alto - planejamento |
+
+
+---
+
+## 16. PRIORIDADES DE INTEGRACAO (Top 5)
+
+Baseado em Modulos Orfaos.md (E:\Coisas\). Modulos funcionais mas nao integrados ao pipeline mcr/.
+
+| # | Modulo | Path | Lacuna que preenche | Linhas |
+|---|--------|------|---------------------|--------|
+| 1 | hybrid/pipeline.py | prototypes/mcr-universal/mcr/hybrid/pipeline.py | Roteamento MCR->LLM com guardrail + custo | ~200 |
+| 2 | lua_validator.py | devia/modules/lua_validator.py | Validacao especifica Canary (alem do shadow generico) | ~250 |
+| 3 | npc_generator.py | devia/modules/npc_generator.py | Templates de NPC extraidos de NPCs reais | ~600 |
+| 4 | item_database.py | devia/knowledge/item_database.py | Dados reais de items.xml para NPCs de loja | ~400 |
+| 5 | learn/fuel.py | prototypes/mcr-universal/mcr/learn/fuel.py | Ingestao de .lua no motor Markov | ~120 |
+
+---
+
+## 17. ROADMAP ESTRATEGICO (7 Fases)
+
+Baseado em ROADMAP_EVOLUTIVO.md (E:\Coisas\).
+
+Dependencias entre fases:
+  FASE 0 -> FASE 1 -> FASE 2 -> FASE 6 -> FASE 3 -> FASE 4 -> FASE 5 -> FASE 7
+
+| Fase | Nome | O que faz | Status |
+|------|------|-----------|--------|
+| 0 | Consolidacao | Documentar, proteger, limpar base | EM ANDAMENTO |
+| 1 | Universalizacao | PatternMiner via AST (tree-sitter) para C++/Lua | Pendente |
+| 2 | Metacognicao | Gateway de incerteza: bloquear se KG nao sabe | Pendente |
+| 3 | Auto-Curiosidade | Background self-study: MCRMetaGap + MCRCuriosidade | Pendente |
+| 4 | Validacao Empirica | LogWatcher -> Anti-Patterns no KG | Pendente |
+| 5 | Shadow Canary | Mock environment para testar codigo sem servidor real | Pendente |
+| 6 | Motor de Criatividade | Emergir operacional: gerar ideias, testar, promover | Pendente |
+| 7 | Caminho Druida | Ponte Lua->MCR para NPCs vivos (dialogo Markov 0.006s) | Pendente |
+
+### Relacao com o PipelineUniversal:
+  - FASE 0 = Nosso catalogo + arquivamento de duplicatas
+  - FASE 1 = PatternMiner ja existe em mcr/pattern_miner.py
+  - FASE 2 = Gateway semelhante ao nosso MCRDecisor + MCRThreshold
+  - FASE 6 = EmergirCrossModal ja existe em mcr/emergir_crossmodal.py
+  - FASE 3 = MCRAutoMelhoria.ciclo() ja faz auto-estudo
+  - FASE 4 = world_anomaly_detector ja detecta anomalias
+  - FASE 5 = shadow_canary.py ja faz mock de Lua
+  - FASE 7 = npc_server.py ja faz NPC via MCR
+
+Conclusao: todas as 7 fases tem modulos equivalentes em E:\MCR\. Falta INTEGRACAO, nao criacao.
+
+---
+
+## 18. METRICAS DE MATURIDADE
+
+Baseado em ANALISE_ARQUITETURAL_MCR_v5.md (E:\Coisas\, analise independente).
+
+### Split Real vs Prototipo
+  - ~60% do codigo e funcional e integrado
+  - ~40% e prototipo funcional mas isolado (nao conectado ao pipeline)
+  - Fonte: analise de 40+ anos de pesquisa em IA
+
+### Componentes Genuinamente Originais
+  1. MCRWorld.simular — JEPA simbolico em Python puro (50 linhas, Counter)
+     Prediz fingerprint(depois) de fingerprint(antes) + acao
+     Nao existe equivalente em nenhum sistema neuro-simbolico conhecido
+  2. Equacao MCR — NOTA = (BYTE + PALAVRA + TOKEN) x (1 - PENALIDADE)
+     Gradiente simbolico para hill-climbing generativo
+  3. MCRGuardrail — Validacao pos-hoc via cadeias Markov
+     Nao constrange distribuicao (Logits Bias), mas e unico na abordagem
+
+### Componentes Subutilizados
+  1. HDC (hdc_core.py) — Raciocinio analogico construido, ninguem chama
+  2. SDM+MDL (sdm_core.py) — Memoria distribuida, nao integrada ao pipeline
+  3. MarkovDecider (mcr_devia_v2.py) — 10^6x mais rapido que LLM, nao esta no PipelineExecutor
+  4. Dim_ideal (MCRSignatureExpansiva) — Descoberta de dimensionalidade, nenhum lugar ativo chama
+
+---
+
+## 19. COMANDOS DE ORGANIZACAO (Cleanup)
+
+Baseado em PLANO_ORGANIZACAO_MCR.md (E:\Coisas\).
+
+### Arquivos para arquivar em legacy/ (ja identificados no catalogo secoes 12 e 15)
+
+| Arquivo | Tamanho | Destino | Motivo |
+|---------|---------|---------|--------|
+| devia/kernel/MCR_legacy.py | 311KB | legacy/kernel/ | Desmembrado em mcr_kernel/ (11 modulos) |
+| devia/kernel/mcr_devia.py | 25KB | legacy/kernel/ | Versao antiga, substituida por mcr_devia_v2.py |
+| mcr/discriminador_anatomia.py | 6.6KB | legacy/mcr/ | Mesma funcao de meus_olhos.py |
+| mcr/template_regiao.py | 25KB | legacy/mcr/ | Separado em template_entropico + tokenizador_hierarquico |
+| mcr/mcr_conector_sprite.py | 13KB | legacy/mcr/ | Substituido por mcr_sprite_motor.py |
+| mcr/anti_pattern_injector.py | 3KB | legacy/mcr/ | Mesma funcao de anti_pattern.py |
+
+### Arquivos para manter (unicos)
+
+| Arquivo | Path | Motivo |
+|---------|------|--------|
+| fingerprint_puro.py | E:\Coisas\ | 3 modos (raw/bytes/markov) nao existem em E:\MCR\ |
+| jaccard_byte.py | E:\Coisas\ | jaccard_bytes_ponderado() e unico |
+| markov_cruzado.py | E:\Coisas\ | Implementacao mais limpa que MCRConexao |
+| mcr_emergir.py | E:\Coisas\ | Motor de emergencia completo, referencia arquitetural |
+| exp1_mudanca_stream.py | E:\Coisas\trash\ | Unico benchmark contra Page-Hinkley/CUSUM/ADWIN |
+| exp2_gridworld_critical.py | E:\Coisas\trash\ | Unico experimento de criticalidade auto-regulada |
+| Modulos Orfaos.md | E:\Coisas\ | Guia de prioridades |
+| ANALISE_ARQUITETURAL_MCR_v5.md | E:\Coisas\ | Unica avaliacao externa |
+| ROADMAP_EVOLUTIVO.md | E:\Coisas\ | Unico roadmap estrategico |
+| PLANO_ORGANIZACAO_MCR.md | E:\Coisas\ | Unico plano de limpeza |
