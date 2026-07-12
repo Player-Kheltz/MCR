@@ -83,9 +83,9 @@ def loader(categoria: str) -> list:
 def filler_multinivel(template: dict, temperatura: float = 0.8) -> list:
     """Gera usando o motor multi-nivel (substitui gerar_do_template)."""
     motor = _get_motor()
-    resultados = motor.gerar(n=1)
+    resultados = motor.gerar(n=1, temperatura=temperatura)
     if resultados:
-        return resultados[0]
+        return resultados[0].get('regioes', resultados[0])
     return []
 
 

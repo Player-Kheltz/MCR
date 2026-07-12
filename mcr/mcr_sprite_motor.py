@@ -20,6 +20,7 @@ sys.path.insert(0, r'E:\MCR')
 sys.path.insert(0, r'E:\MCR\prototypes\mcr-universal')
 
 from mcr.mcr_sqlite import MCRSQLite
+from devia.kernel.mcr_kernel.engine import MCR, compose_state, compor_contexto
 from devia.kernel.mcr_kernel.decisor import MCRDecisor, MCREntropia, MCRPesoNota
 from devia.kernel.mcr_kernel.meta import MCRMetaNivel
 from mcr.sprite_corpus import carregar_categoria, extrair_grid_papel
@@ -41,13 +42,15 @@ class MCRSpriteMotor:
     _DB_DIR.mkdir(parents=True, exist_ok=True)
 
     def __init__(self, nome: str = 'sprite'):
-        # 3 niveis em paralelo (SQLite backend)
+        # 4 niveis em paralelo (byte + palavra + token + cor)
         self.mk_byte = MCRSQLite(
             str(self._DB_DIR / f'{nome}_byte.db'), identidade='byte', n_max=8)
         self.mk_palavra = MCRSQLite(
             str(self._DB_DIR / f'{nome}_palavra.db'), identidade='palavra', n_max=8)
         self.mk_token = MCRSQLite(
             str(self._DB_DIR / f'{nome}_token.db'), identidade='token', n_max=3)
+        self.mk_cor = MCRSQLite(
+            str(self._DB_DIR / f'{nome}_cor.db'), identidade='cor', n_max=8)
 
         # Decisor (escolhe nivel durante geracao)
         self.decisor = MCRDecisor('sprite_decisor')
@@ -74,6 +77,7 @@ class MCRSpriteMotor:
         bytes_list = []
         palavras_list = []
         tokens_list = []
+        cores_list = []
 
         for arr in sprites:
             bytes_data = arr.tobytes()
@@ -85,6 +89,8 @@ class MCRSpriteMotor:
             bytes_list.append(bytes_tokens)
 
             tokens_regiao = []
+            cores_regiao = []
+            
             for r in regioes:
                 cx = int(r['centroide'][0])
                 cy = int(r['centroide'][1])
@@ -96,18 +102,38 @@ class MCRSpriteMotor:
                     r['papel'], cx, cy, area, bw, bh, orient)
                 tokens_regiao.append(token)
 
+                # Cor media da regiao
+                cores = [gc[py][px] for px, py in r['pixels']]
+                r_med = sum(c[0] for c in cores) // len(cores)
+                g_med = sum(c[1] for c in cores) // len(cores)
+                b_med = sum(c[2] for c in cores) // len(cores)
+                
+                # Quantizar cor para 4 bits (16 niveis)
+                def q(v): return min(v // 16, 15)
+                cor_tok = 'C%x%x%x' % (q(r_med), q(g_med), q(b_med))
+                
+                # Token com contexto via compose_state (igual codigo: return|em_bloco:metodo)
+                ctx_token = compose_state(cor_tok, {
+                    'papel': r['papel'],
+                    'px': str(cx // 4),
+                    'py': str(cy // 4),
+                })
+                cores_regiao.append(ctx_token)
+
                 self._regioes_banco.append({
                     'token': token, 'pixels': r['pixels'],
                     'papel': r['papel'], 'cx': cx, 'cy': cy,
                     'area': area, 'bw': bw, 'bh': bh,
+                    'cor': cor_tok,
                 })
 
             if len(tokens_regiao) > 1:
                 palavras_list.append(tokens_regiao)
                 tokens_list.append([r['papel'] for r in regioes])
+                cores_list.append(cores_regiao)
 
-        # Batch learning PARALELO — 3 threads, 3 DBs diferentes
-        with ThreadPoolExecutor(max_workers=3) as ex:
+        # Batch learning PARALELO — 4 threads, 4 DBs diferentes
+        with ThreadPoolExecutor(max_workers=4) as ex:
             futures = {}
             if bytes_list:
                 futures['byte'] = ex.submit(self.mk_byte.aprender_batch, bytes_list)
@@ -115,6 +141,8 @@ class MCRSpriteMotor:
                 futures['palavra'] = ex.submit(self.mk_palavra.aprender_batch, palavras_list)
             if tokens_list:
                 futures['token'] = ex.submit(self.mk_token.aprender_batch, tokens_list)
+            if cores_list:
+                futures['cor'] = ex.submit(self.mk_cor.aprender_batch, cores_list)
 
             for nome, fut in futures.items():
                 try:
@@ -135,18 +163,19 @@ class MCRSpriteMotor:
 
     # ─── Geracao: MCRDecisor escolhe nivel ────────────────
 
-    def gerar(self, n: int = 3, temperatura: float = 0.6) -> List[List[str]]:
-        """Gera N sprites com temperatura.
+    def gerar(self, n: int = 3, temperatura: float = 0.6) -> List[Dict]:
+        """Gera N sprites com temperatura e cor.
 
-        N-adaptativo: tenta palavra (backoff ate 8), depois token, depois byte.
-        Temperatura > 0 introduz variacao.
+        Retorna lista de dicts: {'regioes': [...], 'cores': [...]}
+        'regioes': tokens de estrutura (B_12-14...)
+        'cores': tokens de cor com contexto (Cxxx|papel:B|px:3|py:7)
         """
         resultado = []
 
         for _ in range(n):
-            tokens_gerados = []
+            tokens_regiao = []
+            tokens_cor = []
 
-            # Semente: token aleatorio do nivel palavra
             semente = 'F'
             cur = self.mk_palavra.conn.execute(
                 "SELECT key FROM freq ORDER BY total DESC LIMIT 10")
@@ -159,7 +188,6 @@ class MCRSpriteMotor:
             atual = semente
 
             for passo in range(30):
-                # Tenta palavra com backoff + temperatura
                 prox = self._predizer_com_temperatura(self.mk_palavra, atual, temperatura)
                 if prox is None:
                     prox = self._predizer_com_temperatura(self.mk_token, atual, temperatura)
@@ -168,17 +196,19 @@ class MCRSpriteMotor:
                 if prox is None:
                     break
 
-                # Ocasionalmente trocar de semente para diversidade
-                if random.random() < 0.1 and rows:
-                    partes = random.choice(rows)[0].split('|')
-                    if len(partes) > 1:
-                        prox = random.choice(partes[1:])
-
                 atual = prox
-                tokens_gerados.append(atual)
+                tokens_regiao.append(atual)
 
-            if tokens_gerados:
-                resultado.append(tokens_gerados)
+                # Cor: buscar no banco a regiao mais proxima
+                try:
+                    melhor = self._encontrar_regiao(atual)
+                    cor_tok = melhor.get('cor', 'C888') if melhor else 'C888'
+                except Exception:
+                    cor_tok = 'C888'
+                tokens_cor.append(cor_tok)
+
+            if tokens_regiao:
+                resultado.append({'regioes': tokens_regiao, 'cores': tokens_cor})
 
         return resultado
 
@@ -212,21 +242,32 @@ class MCRSpriteMotor:
 
     # ─── Renderizacao: tokens → pixels via banco de regioes
 
-    def renderizar(self, tokens: List[str], altura=32, largura=32) -> np.ndarray:
-        """Renderiza tokens de regiao para pixels RGBA.
+    def renderizar(self, dados, altura=32, largura=32) -> np.ndarray:
+        """Renderiza tokens de regiao para pixels RGBA com cores.
 
-        Usa o banco de regioes reais para reconstruir formas exatas.
+        Args:
+            dados: dict com 'regioes' (tokens) e 'cores' (tokens de cor),
+                   ou lista de tokens (fallback para compatibilidade)
+
+        Returns:
+            array numpy (altura, largura, 4) uint8
         """
         from PIL import Image
 
-        grid = [['F' for _ in range(largura)] for _ in range(altura)]
-        paleta = {'B': (80, 80, 80), 'L': (180, 180, 180)}
+        if isinstance(dados, dict):
+            tokens = dados['regioes']
+            cores = dados.get('cores', [])
+        else:
+            tokens = dados
+            cores = []
 
-        for token in tokens:
+        grid = [['F' for _ in range(largura)] for _ in range(altura)]
+        grid_cor = [[(0, 0, 0) for _ in range(largura)] for _ in range(altura)]
+
+        for i, token in enumerate(tokens):
             if token == 'F' or '_' not in token:
                 continue
 
-            # Encontrar regiao mais proxima no banco
             melhor = self._encontrar_regiao(token)
             if melhor is None:
                 continue
@@ -240,24 +281,35 @@ class MCRSpriteMotor:
             except (IndexError, ValueError):
                 continue
 
-            # Transladar pixels da regiao original para posicao alvo
             dx = cx_alvo - melhor['cx']
             dy = cy_alvo - melhor['cy']
+
+            # Usar cor gerada ou fallback para cor do banco
+            if i < len(cores) and cores[i] and cores[i].startswith('C'):
+                cor_tok = cores[i]
+            else:
+                cor_tok = melhor.get('cor', 'C888')
+            
+            try:
+                r = int(cor_tok[1], 16) * 16 + 8
+                g = int(cor_tok[2], 16) * 16 + 8
+                b = int(cor_tok[3], 16) * 16 + 8
+            except (IndexError, ValueError):
+                r, g, b = 128, 128, 128
 
             for px, py in melhor['pixels']:
                 nx, ny = px + dx, py + dy
                 if 0 <= nx < largura and 0 <= ny < altura:
                     if grid[ny][nx] == 'F':
                         grid[ny][nx] = melhor['papel']
+                        grid_cor[ny][nx] = (r, g, b)
 
-        # Montar RGBA
         arr = np.zeros((altura, largura, 4), dtype=np.uint8)
         for y in range(altura):
             for x in range(largura):
-                p = grid[y][x]
-                if p != 'F':
-                    cor = paleta.get(p, (128, 128, 128))
-                    arr[y, x] = [cor[0], cor[1], cor[2], 255]
+                if grid[y][x] != 'F':
+                    r, g, b = grid_cor[y][x]
+                    arr[y, x] = [r, g, b, 255]
         return arr
 
     def _encontrar_regiao(self, token_alvo: str) -> Optional[dict]:
@@ -299,8 +351,17 @@ class MCRSpriteMotor:
 
     # ─── Validacao: NOTA MCR ─────────────────────────────
 
-    def avaliar(self, tokens: List[str]) -> Dict:
-        """Avalia sprite gerado com NOTA = (byte + palavra + token) x penalidade."""
+    def avaliar(self, dados) -> Dict:
+        """Avalia sprite gerado com NOTA = (byte + palavra + token) x penalidade.
+
+        Args:
+            dados: dict com 'regioes' ou lista de tokens
+        """
+        if isinstance(dados, dict):
+            tokens = dados['regioes']
+        else:
+            tokens = dados
+
         n_tokens = len(tokens)
         n_opacos = sum(1 for t in tokens if t != 'F' and '_' in t)
         papeis = Counter(t.split('_')[0] for t in tokens if '_' in t)
@@ -349,6 +410,7 @@ class MCRSpriteMotor:
             'byte': self.mk_byte.stats(),
             'palavra': self.mk_palavra.stats(),
             'token': self.mk_token.stats(),
+            'cor': self.mk_cor.stats(),
             'topicos': {k: v['n_sprites'] for k, v in self._topicos.items()},
             'banco_regioes': len(self._regioes_banco),
         }
