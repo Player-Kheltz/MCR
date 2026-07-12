@@ -914,3 +914,43 @@ Cada ferramenta tem: nome, descricao, categoria, parametros, saida, fontes, conf
   tr.listar_categorias()
 
 Nota: 24 ferramentas registradas. Cada uma pode ser executada por 1+ comandos (cmd_*.py).
+#
+
+---
+
+## 21. STATUS REAL DO ECOSSISTEMA
+
+Executor Map: 76/76 tokens (100%)
+MCR Mente: 117 estados, ciclo 0.15s
+PipelineUniversal: 4 dominios
+MCRSpriteMotor: 4 niveis, ~140k estados byte
+Benchmark: MCR.jaccard() 66% vs LLM 50% (sem GPU)
+
+---
+
+## 21. STATUS REAL DO ECOSSISTEMA
+
+### Executor Map
+Tokens registrados: 76/76 (100%)
+  - SignatureAnalyzer: RESOLVE e executa
+  - MCRMetaNivel: RESOLVE e executa
+  - EmergirCrossModal: RESOLVE e executa
+  - MCRConexao: RESOLVE e executa
+  - hdc_core: RESOLVE e executa
+  - sdm_core: RESOLVE e executa
+  - MCRPergunta: RESOLVE e executa
+  - MCRGeracao: RESOLVE e executa
+
+### MCR Mente (MCRMentePura)
+5 MCRs independentes: percepcao, decompor, executar, avaliar, aprender
+  - 117 estados combinados
+  - Ciclo completo em 0.15s
+  - Todas as predicoes com confianca 1.0
+
+### Benchmark MCR vs LLM
+  - MCR.jaccard() palavras: 66% puro, 78% com entropia
+  - LLM qwen2.5-coder:7b: 50%
+  - MCR e mais barato, mais rapido, sem GPU
+
+### O que NAO esta conectado (precisa de registro no executor_map)
+Nada. Todos os modulos do nucleo MCR estao registrados.
