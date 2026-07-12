@@ -841,3 +841,76 @@ Baseado em PLANO_ORGANIZACAO_MCR.md (E:\Coisas\).
 | ANALISE_ARQUITETURAL_MCR_v5.md | E:\Coisas\ | Unica avaliacao externa |
 | ROADMAP_EVOLUTIVO.md | E:\Coisas\ | Unico roadmap estrategico |
 | PLANO_ORGANIZACAO_MCR.md | E:\Coisas\ | Unico plano de limpeza |
+
+
+---
+
+## 20. TOOLREGISTRY — CATALOGO DE FERRAMENTAS (24)
+
+Fonte: devia/knowledge/tool_registry.py (642 linhas, classe ToolRegistry)
+Cada ferramenta tem: nome, descricao, categoria, parametros, saida, fontes, confianca, palavras_chave, exemplo_uso.
+
+### BUSCA (5 ferramentas)
+| Ferramenta | Descricao | Parametros | Confianca |
+|-----------|-----------|------------|-----------|
+| buscar_codigo | Busca trechos de codigo fonte no projeto | padrao, caminho, incluir | 100% |
+| buscar_docs | Busca documentacao do projeto | consulta | 85% |
+| buscar_item | Busca itens no items.xml por nome ou categoria | nome, categoria, id | 98% |
+| buscar_kg | Busca conhecimento no Knowledge Graph do projeto | texto, max_r | 90% |
+| buscar_npc | Busca NPCs similares no servidor Canary por descricao ou tip | descricao, tipo | 95% |
+
+### ANALISE (4 ferramentas)
+| Ferramenta | Descricao | Parametros | Confianca |
+|-----------|-----------|------------|-----------|
+| analisar_bug | Analisa e diagnostica bugs em tempo de execucao | descricao, arquivos | 75% |
+| analisar_codigo | Analisa codigo fonte e aponta problemas, sugestoes e melhori | caminho, profundidade | 80% |
+| analisar_projeto | Analisa estrutura geral do projeto, metricas e saude | escopo | 95% |
+| perguntar | Responde perguntas gerais ou especificas do MCR usando pipel | pergunta | 85% |
+
+### GERACAO (4 ferramentas)
+| Ferramenta | Descricao | Parametros | Confianca |
+|-----------|-----------|------------|-----------|
+| criar_universal | Ponto de entrada universal para QUALQUER criacao (NPC, site, | descricao | 85% |
+| gerar_codigo | Gera codigo a partir de template + placeholders preenchidos | template, placeholders | 70% |
+| gerar_conceito | Aprende e registra um conceito do codigo fonte no KG | conceito | 80% |
+| gerar_npc | Gera script Lua de NPC para Canary usando templates + estrat | descricao, tipo | 95% |
+
+### VALIDACAO (2 ferramentas)
+| Ferramenta | Descricao | Parametros | Confianca |
+|-----------|-----------|------------|-----------|
+| validar_lua | Valida script Lua do Canary (sintaxe, SQL injection, boas pr | codigo | 95% |
+| validar_projeto | Valida estrutura e consistencia do projeto | escopo | 85% |
+
+### WEB (2 ferramentas)
+| Ferramenta | Descricao | Parametros | Confianca |
+|-----------|-----------|------------|-----------|
+| buscar_url | Faz fetch de uma URL especifica e retorna conteudo | url, formato | 80% |
+| pesquisar_web | Pesquisa informacao atualizada na web e salva no KG | query | 70% |
+
+### APRENDIZADO (2 ferramentas)
+| Ferramenta | Descricao | Parametros | Confianca |
+|-----------|-----------|------------|-----------|
+| aprender_conceito | Escaneia codigo fonte e sintetiza conhecimento conceitual no | conceito | 80% |
+| ensinar_kg | Regista uma licao no Knowledge Graph | oque, contexto, solucao, categoria | 100% |
+
+### SISTEMA (3 ferramentas)
+| Ferramenta | Descricao | Parametros | Confianca |
+|-----------|-----------|------------|-----------|
+| autoteste | Executa auto-teste do MCR-DevIA com geracao de perguntas, pi | ciclo, fast, paralelo | 90% |
+| compilar | Compila projetos do servidor (Canary, OTClient) | projeto, config | 85% |
+| status_sistema | Mostra estado atual do MCR-DevIA, processos, recursos |  | 100% |
+
+### META (2 ferramentas)
+| Ferramenta | Descricao | Parametros | Confianca |
+|-----------|-----------|------------|-----------|
+| meta_listar_ferramentas | Lista todas as ferramentas disponiveis no sistema | categoria, busca | 100% |
+| meta_planejar | Planeja como executar uma tarefa, mostrando etapas e lacunas | descricao | 90% |
+
+### Como usar o ToolRegistry
+  from devia.knowledge.tool_registry import ToolRegistry
+  tr = ToolRegistry()
+  tr.listar()       # todas as ferramentas
+  tr.buscar(termo)  # busca por palavra-chave
+  tr.listar_categorias()
+
+Nota: 24 ferramentas registradas. Cada uma pode ser executada por 1+ comandos (cmd_*.py).
