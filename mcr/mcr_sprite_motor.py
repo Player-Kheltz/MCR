@@ -14,6 +14,7 @@ import sys, math, random, numpy as np, os
 from collections import Counter, defaultdict
 from typing import List, Dict, Optional, Tuple
 from pathlib import Path
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 sys.path.insert(0, r'E:\MCR')
 sys.path.insert(0, r'E:\MCR\prototypes\mcr-universal')
@@ -65,9 +66,10 @@ class MCRSpriteMotor:
     # ─── Treino: 3 niveis em paralelo ─────────────────────
 
     def treinar(self, sprites: List[np.ndarray], categoria: str = ''):
-        """Treina os 3 niveis em paralelo com batch learning.
+        """Treina os 3 niveis em PARALELO com batch learning.
 
-        Coleta TODOS os tokens primeiro, depois 3 chamadas de aprender_batch.
+        Coleta TODOS os tokens primeiro, depois 3 threads paralelas
+        para aprender_batch em cada nivel (byte/palavra/token).
         """
         bytes_list = []
         palavras_list = []
@@ -79,11 +81,9 @@ class MCRSpriteMotor:
             regioes = extrair_regioes(gp, modo='papel')
             regioes = ordenar_regioes(regioes)
 
-            # Nivel byte: bytes RGBA como tokens hex
             bytes_tokens = [f"B:{b:02x}" for b in bytes_data]
             bytes_list.append(bytes_tokens)
 
-            # Nivel palavra: regioes como tokens
             tokens_regiao = []
             for r in regioes:
                 cx = int(r['centroide'][0])
@@ -96,12 +96,9 @@ class MCRSpriteMotor:
                     r['papel'], cx, cy, area, bw, bh, orient)
                 tokens_regiao.append(token)
 
-                # Armazenar pixels para renderizacao
                 self._regioes_banco.append({
-                    'token': token,
-                    'pixels': r['pixels'],
-                    'papel': r['papel'],
-                    'cx': cx, 'cy': cy,
+                    'token': token, 'pixels': r['pixels'],
+                    'papel': r['papel'], 'cx': cx, 'cy': cy,
                     'area': area, 'bw': bw, 'bh': bh,
                 })
 
@@ -109,15 +106,22 @@ class MCRSpriteMotor:
                 palavras_list.append(tokens_regiao)
                 tokens_list.append([r['papel'] for r in regioes])
 
-        # Batch learning — 3 chamadas em vez de 4095*N
-        if bytes_list:
-            self.mk_byte.aprender_batch(bytes_list)
-        if palavras_list:
-            self.mk_palavra.aprender_batch(palavras_list)
-        if tokens_list:
-            self.mk_token.aprender_batch(tokens_list)
+        # Batch learning PARALELO — 3 threads, 3 DBs diferentes
+        with ThreadPoolExecutor(max_workers=3) as ex:
+            futures = {}
+            if bytes_list:
+                futures['byte'] = ex.submit(self.mk_byte.aprender_batch, bytes_list)
+            if palavras_list:
+                futures['palavra'] = ex.submit(self.mk_palavra.aprender_batch, palavras_list)
+            if tokens_list:
+                futures['token'] = ex.submit(self.mk_token.aprender_batch, tokens_list)
 
-        # Alimentar MetaNivel para descobrir niveis
+            for nome, fut in futures.items():
+                try:
+                    fut.result(timeout=60)
+                except Exception as e:
+                    print(f'[sprite_motor] Erro treino {nome}: {e}')
+
         try:
             for arr in sprites[:3]:
                 self.meta_nivel.alimentar(arr.tobytes())
@@ -131,39 +135,44 @@ class MCRSpriteMotor:
 
     # ─── Geracao: MCRDecisor escolhe nivel ────────────────
 
-    def gerar(self, n: int = 3) -> List[List[str]]:
-        """Gera N sprites. Usa MCRSQLite com N-adaptativo.
+    def gerar(self, n: int = 3, temperatura: float = 0.6) -> List[List[str]]:
+        """Gera N sprites com temperatura.
 
-        Tenta palavra com backoff ate 8, se loop → byte,
-        se byte caotico → token.
+        N-adaptativo: tenta palavra (backoff ate 8), depois token, depois byte.
+        Temperatura > 0 introduz variacao.
         """
         resultado = []
 
         for _ in range(n):
             tokens_gerados = []
 
-            # Semente: token mais comum do nivel palavra
+            # Semente: token aleatorio do nivel palavra
             semente = 'F'
             cur = self.mk_palavra.conn.execute(
-                "SELECT key FROM freq ORDER BY total DESC LIMIT 1")
-            row = cur.fetchone()
-            if row:
-                # Extrair ultimo token da chave (formato: "palavra|tok1|...|tokN")
-                partes = row[0].split('|')
+                "SELECT key FROM freq ORDER BY total DESC LIMIT 10")
+            rows = cur.fetchall()
+            if rows:
+                partes = random.choice(rows)[0].split('|')
                 if len(partes) > 1:
-                    semente = partes[-1]
+                    semente = random.choice(partes[1:])
 
             atual = semente
 
             for passo in range(30):
-                # Tenta palavra com backoff, depois token, depois byte
-                prox, conf = self.mk_palavra.predizer(atual)
-                if prox is None or conf < 0.01:
-                    prox, conf = self.mk_token.predizer(atual)
-                if prox is None or conf < 0.01:
-                    prox, conf = self.mk_byte.predizer(atual)
-                if prox is None or conf < 0.01:
+                # Tenta palavra com backoff + temperatura
+                prox = self._predizer_com_temperatura(self.mk_palavra, atual, temperatura)
+                if prox is None:
+                    prox = self._predizer_com_temperatura(self.mk_token, atual, temperatura)
+                if prox is None:
+                    prox = self._predizer_com_temperatura(self.mk_byte, atual, temperatura)
+                if prox is None:
                     break
+
+                # Ocasionalmente trocar de semente para diversidade
+                if random.random() < 0.1 and rows:
+                    partes = random.choice(rows)[0].split('|')
+                    if len(partes) > 1:
+                        prox = random.choice(partes[1:])
 
                 atual = prox
                 tokens_gerados.append(atual)
@@ -172,6 +181,34 @@ class MCRSpriteMotor:
                 resultado.append(tokens_gerados)
 
         return resultado
+
+    @staticmethod
+    def _predizer_com_temperatura(mcr, ctx: str, temp: float = 0.6) -> Optional[str]:
+        """Prediz com temperatura: amostra da distribuicao, nao o maximo."""
+        import random as _rnd
+        ctx_str = str(ctx)
+        for depth in range(min(mcr.n_max, len(ctx_str.split('|')) if '|' in ctx_str else 1), 0, -1):
+            partes = ctx_str.split('|') if '|' in ctx_str else [ctx_str]
+            chave = f"{mcr.identidade}|{'|'.join(partes[-depth:])}"
+            cur = mcr.conn.execute(
+                "SELECT t.next, t.count, COALESCE(f.total, 0) "
+                "FROM trans t LEFT JOIN freq f ON t.key = f.key "
+                "WHERE t.key = ? ORDER BY t.count DESC LIMIT 20",
+                (chave,))
+            rows = cur.fetchall()
+            if rows:
+                total = max(rows[0][2], 1)
+                if temp > 0:
+                    probs = [(r[0], (r[1] / total) ** (1.0 / temp)) for r in rows]
+                    total_prob = sum(p for _, p in probs)
+                    r = _rnd.random() * total_prob
+                    ac = 0.0
+                    for tok, prob in probs:
+                        ac += prob
+                        if r <= ac:
+                            return tok
+                return rows[0][0]
+        return None
 
     # ─── Renderizacao: tokens → pixels via banco de regioes
 
