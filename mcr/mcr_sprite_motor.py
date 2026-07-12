@@ -1,48 +1,52 @@
 #!/usr/bin/env python3
 """
-mcr.mcr_sprite_motor — Motor multi-nivel para sprites.
+mcr.mcr_sprite_motor — Motor multi-nivel para sprites com SQLite + N-adaptativo.
 
 Segue EXATAMENTE o padrao do MCRMotor (prototypes/mcr-universal/emergence/motor.py):
   3 niveis em PARALELO: byte, palavra, token.
-  Treino simultaneo nos 3 niveis.
-  Geracao com MCRDecisor escolhendo nivel.
-  Validacao via NOTA = (byte + palavra + token) x penalidade.
-
-Nao define o que e "palavra" ou "token" — MCRMetaNivel descobre.
+  SQLite backend (sem RAM blowup).
+  N-adaptativo ate 30 (igual mcr_adapt.py).
+  Batch learning nativo.
+  
+Nao define o que e 'palavra' ou 'token' — MCRMetaNivel descobre.
 """
-import sys, math, random, numpy as np
+import sys, math, random, numpy as np, os
 from collections import Counter, defaultdict
 from typing import List, Dict, Optional, Tuple
+from pathlib import Path
 
 sys.path.insert(0, r'E:\MCR')
 sys.path.insert(0, r'E:\MCR\prototypes\mcr-universal')
 
-from devia.kernel.mcr_kernel.engine import MCR, compose_state, compor_contexto
+from mcr.mcr_sqlite import MCRSQLite
 from devia.kernel.mcr_kernel.decisor import MCRDecisor, MCREntropia, MCRPesoNota
-from devia.kernel.mcr_kernel.signature import MCRSignature, MCRFingerprint
 from devia.kernel.mcr_kernel.meta import MCRMetaNivel
-from mcr_universal.core.signature import MCRSignatureExpansiva
 from mcr.sprite_corpus import carregar_categoria, extrair_grid_papel
 from mcr.tokenizador_hierarquico import extrair_regioes, ordenar_regioes
 
 
 class MCRSpriteMotor:
-    """Motor multi-nivel para sprites (byte + palavra + token).
+    """Motor multi-nivel para sprites (byte + palavra + token) com SQLite.
 
-    Igual ao MCRMotor para codigo:
+    Igual ao MCRMotor para codigo, mas com:
       mk_byte:     B:ff → B:00 (bytes RGBA)
       mk_palavra:  B_12-14 → L_15-20 (regioes)
       mk_token:    B → L (papeis)
     
-    Geracao: MCRDecisor decide qual nivel andar.
-    Validacao: NOTA = (byte + palavra + token) x penalidade.
+    SQLite backend: sem RAM blowup, N-adaptativo ate 30.
     """
 
-    def __init__(self):
-        # 3 niveis em paralelo (igual MCRMotor)
-        self.mk_byte = MCR('sprite_byte')
-        self.mk_palavra = MCR('sprite_palavra')
-        self.mk_token = MCR('sprite_token')
+    _DB_DIR = Path(r'E:\MCR\poc_output\mcr_db')
+    _DB_DIR.mkdir(parents=True, exist_ok=True)
+
+    def __init__(self, nome: str = 'sprite'):
+        # 3 niveis em paralelo (SQLite backend)
+        self.mk_byte = MCRSQLite(
+            str(self._DB_DIR / f'{nome}_byte.db'), identidade='byte', n_max=8)
+        self.mk_palavra = MCRSQLite(
+            str(self._DB_DIR / f'{nome}_palavra.db'), identidade='palavra', n_max=8)
+        self.mk_token = MCRSQLite(
+            str(self._DB_DIR / f'{nome}_token.db'), identidade='token', n_max=3)
 
         # Decisor (escolhe nivel durante geracao)
         self.decisor = MCRDecisor('sprite_decisor')
@@ -61,25 +65,23 @@ class MCRSpriteMotor:
     # ─── Treino: 3 niveis em paralelo ─────────────────────
 
     def treinar(self, sprites: List[np.ndarray], categoria: str = ''):
-        """Treina os 3 niveis em paralelo no sprite.
+        """Treina os 3 niveis em paralelo com batch learning.
 
-        Igual MCRMotor.alimentar():
-          byte:    bytes RGBA (B:ff → B:00)
-          palavra: regioes conectadas (B_12-14 → L_15-20)
-          token:   papeis (B → L)
+        Coleta TODOS os tokens primeiro, depois 3 chamadas de aprender_batch.
         """
+        bytes_list = []
+        palavras_list = []
+        tokens_list = []
+
         for arr in sprites:
             bytes_data = arr.tobytes()
             gp, gc = extrair_grid_papel(arr)
             regioes = extrair_regioes(gp, modo='papel')
             regioes = ordenar_regioes(regioes)
 
-            # Nivel byte: bytes RGBA brutos (igual MCRMotor)
-            for i in range(len(bytes_data) - 1):
-                self.mk_byte.aprender(
-                    f"B:{bytes_data[i]:02x}",
-                    f"B:{bytes_data[i+1]:02x}"
-                )
+            # Nivel byte: bytes RGBA como tokens hex
+            bytes_tokens = [f"B:{b:02x}" for b in bytes_data]
+            bytes_list.append(bytes_tokens)
 
             # Nivel palavra: regioes como tokens
             tokens_regiao = []
@@ -94,7 +96,7 @@ class MCRSpriteMotor:
                     r['papel'], cx, cy, area, bw, bh, orient)
                 tokens_regiao.append(token)
 
-                # Armazenar pixels da regiao para renderizacao
+                # Armazenar pixels para renderizacao
                 self._regioes_banco.append({
                     'token': token,
                     'pixels': r['pixels'],
@@ -103,13 +105,17 @@ class MCRSpriteMotor:
                     'area': area, 'bw': bw, 'bh': bh,
                 })
 
-            for i in range(len(tokens_regiao) - 1):
-                self.mk_palavra.aprender(tokens_regiao[i], tokens_regiao[i + 1])
+            if len(tokens_regiao) > 1:
+                palavras_list.append(tokens_regiao)
+                tokens_list.append([r['papel'] for r in regioes])
 
-            # Nivel token: papel B/L/F (igual MCRMotor: primeira letra)
-            papeis = [r['papel'] for r in regioes]
-            for i in range(len(papeis) - 1):
-                self.mk_token.aprender(papeis[i], papeis[i + 1])
+        # Batch learning — 3 chamadas em vez de 4095*N
+        if bytes_list:
+            self.mk_byte.aprender_batch(bytes_list)
+        if palavras_list:
+            self.mk_palavra.aprender_batch(palavras_list)
+        if tokens_list:
+            self.mk_token.aprender_batch(tokens_list)
 
         # Alimentar MetaNivel para descobrir niveis
         try:
@@ -126,63 +132,41 @@ class MCRSpriteMotor:
     # ─── Geracao: MCRDecisor escolhe nivel ────────────────
 
     def gerar(self, n: int = 3) -> List[List[str]]:
-        """Gera N sprites. Decisor escolhe qual nivel andar.
+        """Gera N sprites. Usa MCRSQLite com N-adaptativo.
 
-        Igual MCRMotor + MCRCadeia: tenta palavra, se loop → byte,
+        Tenta palavra com backoff ate 8, se loop → byte,
         se byte caotico → token.
         """
         resultado = []
 
         for _ in range(n):
             tokens_gerados = []
-            nivel_atual = 'palavra'  # comeca no nivel mais alto
 
             # Semente: token mais comum do nivel palavra
             semente = 'F'
-            if self.mk_palavra.freq:
-                semente = max(self.mk_palavra.freq, key=self.mk_palavra.freq.get)
+            cur = self.mk_palavra.conn.execute(
+                "SELECT key FROM freq ORDER BY total DESC LIMIT 1")
+            row = cur.fetchone()
+            if row:
+                # Extrair ultimo token da chave (formato: "palavra|tok1|...|tokN")
+                partes = row[0].split('|')
+                if len(partes) > 1:
+                    semente = partes[-1]
 
             atual = semente
-            ctx = {}
 
-            for passo in range(30):  # max 30 regioes por sprite
-                # Decisor escolhe nivel
-                if self.entropia.esta_em_loop():
-                    nivel_atual = self.decisor.decidir(f'nivel_loop', 'byte')
-                else:
-                    nivel_atual = self.decisor.decidir(f'nivel', nivel_atual)
-
-                # Andar no nivel escolhido
-                if nivel_atual == 'byte':
-                    prox, conf = self.mk_byte.predizer(atual)
-                    if prox is None or conf < 0.01:
-                        prox = 'B:00'
-                    atual = prox
-                    tokens_gerados.append(atual)
-
-                elif nivel_atual == 'token':
+            for passo in range(30):
+                # Tenta palavra com backoff, depois token, depois byte
+                prox, conf = self.mk_palavra.predizer(atual)
+                if prox is None or conf < 0.01:
                     prox, conf = self.mk_token.predizer(atual)
-                    if prox is None or conf < 0.01:
-                        break
-                    atual = prox
-                    tokens_gerados.append(atual)
+                if prox is None or conf < 0.01:
+                    prox, conf = self.mk_byte.predizer(atual)
+                if prox is None or conf < 0.01:
+                    break
 
-                else:  # palavra
-                    prox, conf = self.mk_palavra.predizer(atual)
-                    if prox is None or conf < 0.01:
-                        # Fallback: tentar token
-                        prox, conf = self.mk_token.predizer(atual)
-                        if prox is None or conf < 0.01:
-                            break
-                    atual = prox
-
-                    # Compor estado com contexto (igual compose_state)
-                    estado = compose_state(atual, ctx)
-                    ctx = compor_contexto([atual], ctx)
-                    tokens_gerados.append(atual)
-
-                # Alimentar entropia
-                self.entropia.alimentar(atual)
+                atual = prox
+                tokens_gerados.append(atual)
 
             if tokens_gerados:
                 resultado.append(tokens_gerados)

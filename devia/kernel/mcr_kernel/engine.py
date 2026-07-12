@@ -58,6 +58,29 @@ class MCR:
     def aprender_sequencia(self, seq: List[Any]):
         for i in range(len(seq)-1): self.aprender(seq[i], seq[i+1])
     
+    def aprender_batch(self, sequencias: List[List[Any]]):
+        """Aprende multiplas sequencias em batch.
+        
+        Usa dict temporario para contar, depois mescla.
+        Muito mais rapido que N chamadas de aprender_sequencia.
+        """
+        temp: Dict[str, Counter] = {}
+        for seq in sequencias:
+            for i in range(len(seq) - 1):
+                a, b = str(seq[i]), str(seq[i+1])
+                if a not in temp:
+                    temp[a] = Counter()
+                temp[a][b] += 1
+        for a, counter in temp.items():
+            if a not in self.transicoes:
+                self.transicoes[a] = {}
+                self.freq[a] = 0
+            for b, count in counter.items():
+                self.transicoes[a][b] = self.transicoes[a].get(b, 0) + count
+                self.freq[a] += count
+                self.total += count
+            self._entropia_cache.pop(a, None)
+    
     def predizer(self, a: Any) -> Tuple[Optional[Any], float]:
         sa = str(a)
         if sa not in self.transicoes or not self.transicoes[sa]: return None, 0.0

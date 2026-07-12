@@ -167,14 +167,12 @@ class PipelineUniversal:
         tokenizer = cfg['tokenizer']
         todas_sequencias = []
         if isinstance(raw_data, list):
-            for item in raw_data:
-                seq = tokenizer(item)
-                todas_sequencias.append(seq)
-                self.mcr.aprender_sequencia(seq)
+            todas_sequencias = [tokenizer(item) for item in raw_data]
+            self.mcr.aprender_batch(todas_sequencias)
         else:
             seq = tokenizer(raw_data)
             todas_sequencias = [seq]
-            self.mcr.aprender_sequencia(seq)
+            self.mcr.aprender_batch([seq])
 
         if not todas_sequencias:
             todas_sequencias = [['F']]
