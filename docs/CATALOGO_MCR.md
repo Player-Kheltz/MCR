@@ -675,3 +675,64 @@ PROBLEMA: "auto-melhorar geracao"
 | **N-adaptativo** | MCRSQLite, SQLiteMarkov (mcr_adapt) |
 | **compose_state** | engine.py (compose_state, compor_contexto) |
 | **dicionário** | MCRSignature (fingerprint 8D = dicionário universal) |
+
+
+---
+
+## 15. MÓDULOS DE E:\COISAS (validados e funcionais)
+
+Modulos prototipo encontrados em E:\Coisas\, testados e funcionais em 11/07/2026.
+
+### fingerprint_puro — Fingerprint 3 modos (raw/bytes/markov)
+| Campo | Valor |
+|-------|-------|
+| Path | E:\Coisas\MCR Prototipos\prototipos\core\fingerprint_puro.py |
+| Classe | FingerprintMCRPuro |
+| Modos | raw (11-dim: hashes, lengths, case), bytes (13-dim: bytes, entropia, proporcoes), markov (6-dim: transicoes) |
+| Testado | raw=11, bytes=13, markov=6 dimensoes |
+| Notas | Dimensionalidade diferente do fingerprint 8D em MCRFingerprint. Util para analise multi-perspectiva. |
+
+### jaccard_byte — Jaccard com peso posicional
+| Campo | Valor |
+|-------|-------|
+| Path | E:\Coisas\MCR Prototipos\prototipos\core\jaccard_byte.py |
+| Funcoes | jaccard_bytes(a, b), jaccard_bytes_ponderado(a, b) (primeiros 10 bytes pesam 2x), fingerprint_bytes(texto, dims) |
+| Testado | simples=0.312, ponderado=0.488 para textos similares |
+| Notas | jaccard_bytes_ponderado() nao existe em E:\MCR\. Util para matching onde inicio e mais importante. |
+
+### markov_cruzado — Ponte entre topicos (divergencia*5 + especificidade*3 + profundidade*2)
+| Campo | Valor |
+|-------|-------|
+| Path | E:\Coisas\MCR Prototipos\prototipos\core\markov_cruzado.py |
+| Classe | MarkovCruzado |
+| Metodos | analisar(a, b), melhor_ponte(a, b) |
+| Notas | Mesmo algoritmo de MCRConexao em devia/kernel/mcr_kernel/memory.py. Prototipo mais limpo. |
+
+### mcr_emergir — Motor de emergencia completo
+| Campo | Valor |
+|-------|-------|
+| Path | E:\Coisas\MCR Prototipos\prototipos\mcr_emergir.py |
+| Classe | MCREmergir |
+| Metodos | alimentar(texto, topico), conectar(a, b), explorar_todos(), _autoavaliar_multinivel() |
+| Notas | Implementacao completa e limpa do motor de emergencia com geracao crossover palavra-a-palavra. |
+
+### MCR.py (monolito prototipo) — Classes uteis
+| Campo | Valor |
+|-------|-------|
+| Path | E:\Coisas\MCR Prototipos\MCR.py |
+| Classes | MCR, MCRByteUtils, MCRThreshold, MCREntropia, MCRBuffer, MCRSession, MCRConexao, MCRMotor, MCRAutoLoop |
+| Testado | MCRThreshold.calcular()=0.600, MCREntropia.esta_em_loop()=True |
+| Notas | Mesmas classes que existem em devia/kernel/mcr_kernel/. Mantido como referencia historica. |
+
+### Experimentos cientificos validados
+| Experimento | Path | O que prova | Valor |
+|-------------|------|-------------|-------|
+| exp1_mudanca_stream.py | E:\Coisas\trash\ | MCR multi-level entropia detecta mudancas de regime | Alto - detector anomalias |
+| exp2_gridworld_critical.py | E:\Coisas\trash\ | MCR entropia 0.2-0.7 regula exploracao vs explotacao | Alto - curiosidade |
+
+### Documentos estrategicos
+| Documento | Path | Conteudo | Valor |
+|-----------|------|----------|-------|
+| Modulos Orfaos.md | E:\Coisas\ | Lista de modulos nao integrados com prioridades | Alto - guia |
+| ANALISE_ARQUITETURAL_MCR_v5.md | E:\Coisas\ | Analise independente (40+ anos IA) | Alto - validacao |
+| ROADMAP_EVOLUTIVO.md | E:\Coisas\ | 5 fases de evolucao | Alto - planejamento |
