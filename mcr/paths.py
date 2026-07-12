@@ -69,6 +69,9 @@ SCRIPTS_DIR = ROOT_DIR / "scripts"
 # ─── Cache do MarkovRouter ─────────────────────────────────────
 ROUTER_CACHE = CACHE_DIR / "router_markov.json"
 
+# ─── POC Output ────────────────────────────────────────────────
+POC_OUTPUT_DIR = ROOT_DIR / "poc_output"
+
 
 def ensure_dirs():
     """Garante que os diretorios essenciais existam."""
