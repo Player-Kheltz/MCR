@@ -15,6 +15,8 @@ from pathlib import Path
 from collections import Counter
 from typing import Dict, List, Optional, Set
 
+_BASE = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
+
 
 _SQL_KEYWORDS: Set[str] = {
     'select', 'from', 'where', 'join', 'left', 'right', 'inner', 'outer',
@@ -290,10 +292,10 @@ class SanityValidatorSQL:
 
 
 if __name__ == '__main__':
-    import sys
-    sys.path.insert(0, r'E:\MCR')
+    import sys, os
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
     val = SanityValidatorSQL()
-    entidades = val.minerar_assinaturas(Path(r'E:\MCR\data\generated\sql_corpus'))
+    entidades = val.minerar_assinaturas(Path(_BASE) / 'data' / 'generated' / 'sql_corpus')
     print(f'\nTotal entidades: {len(entidades)}')
     tipos = {}
     for e in entidades:

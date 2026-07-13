@@ -1,0 +1,16 @@
+{
+  "memoria_estados": 19,
+  "memoria_transicoes": 31,
+  "intencoes": [
+    "saudacao",
+    "pedido_sprite",
+    "agradecimento"
+  ],
+  "turnos": 4,
+  "respostas": [
+    "ola como posso ajudar",
+    "vou gerar um sprite para voce",
+    "ola como posso ajudar",
+    "ola como posso ajudar"
+  ]
+}

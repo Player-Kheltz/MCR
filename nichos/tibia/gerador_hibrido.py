@@ -5,6 +5,8 @@ Estratégia: valores exatos do JSON DB + criatividade Markov para loot/voices/di
 import json, os, random, re, sys
 from collections import defaultdict
 
+_BASE = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..'))
+
 # UTF-8 console output
 sys.stdout.reconfigure(encoding='utf-8', errors='replace')  # type: ignore
 
@@ -198,7 +200,7 @@ def sample_voices(db_monster, mc_voice, max_voices=5):
         try:
             txt = mc_voice.generate(min_words=4, max_words=12)
             voices.append(txt)
-        except: pass
+        except Exception: pass
 
     random.shuffle(voices)
     return voices[:max_voices]
@@ -257,7 +259,7 @@ def generate_monster(db_monster, mc_models):
             if candidate and candidate not in db_monster:
                 new_name = candidate
                 break
-        except:
+        except Exception:
             pass
     if not new_name:
         new_name = sanitize(f"{template_name}_{random.randint(100,999)}")
@@ -393,7 +395,7 @@ def generate_npc(db_npc, mc_models):
             if candidate and candidate not in db_npc:
                 new_name = candidate.title()
                 break
-        except:
+        except Exception:
             pass
     if not new_name:
         new_name = sanitize(f"{template_name}_{random.randint(100,999)}")
@@ -446,7 +448,7 @@ def generate_npc(db_npc, mc_models):
             # Try Markov for response
             try:
                 resp = mc_models["response"].generate(min_words=3, max_words=12)
-            except:
+            except Exception:
                 resp = kw.get("response", f"Hello, I am {new_name}.")
             keywords.append({"words": words[:2], "response": resp})
             used_kw.add(word_label)
@@ -456,18 +458,18 @@ def generate_npc(db_npc, mc_models):
     # Messages
     mc_msg = mc_models["message"]
     try: greet = mc_msg.generate(min_words=4, max_words=10)
-    except: greet = f"Greetings, |PLAYERNAME|. Welcome to my shop."
+    except Exception: greet = f"Greetings, |PLAYERNAME|. Welcome to my shop."
     try: farewell = mc_msg.generate(min_words=3, max_words=8)
-    except: farewell = "Good bye. Come back anytime."
+    except Exception: farewell = "Good bye. Come back anytime."
     try: walkaway = mc_msg.generate(min_words=2, max_words=5)
-    except: walkaway = "Farewell."
+    except Exception: walkaway = "Farewell."
 
     voices = []
     try:
         for _ in range(random.randint(1, 4)):
             v = mc_models["voice"].generate(min_words=4, max_words=12)
             voices.append(v)
-    except: pass
+    except Exception: pass
 
     # Build file
     has_shop = len(shop_items) > 0
@@ -570,16 +572,16 @@ npcType:register(npcConfig)''')
 # ── Main --------------------------------------------------------------------------
 def main():
     print("Carregando bases de dados...")
-    db_monster = json.load(open(r"E:\MCR\nichos\tibia\monster_db.json", "r", encoding="utf-8"))
-    db_npc = json.load(open(r"E:\MCR\nichos\tibia\npc_db.json", "r", encoding="utf-8"))
+    db_monster = json.load(open(os.path.join(_BASE, "nichos", "tibia", "monster_db.json"), "r", encoding="utf-8"))
+    db_npc = json.load(open(os.path.join(_BASE, "nichos", "tibia", "npc_db.json"), "r", encoding="utf-8"))
     print(f"  Monstros: {len(db_monster)}")
     print(f"  NPCs: {len(db_npc)}")
 
     print("Treinando modelos Markov...")
     mc_models = build_models(db_monster, db_npc)
 
-    out_monster_dir = r"E:\MCR\nichos\tibia\gerado\monster"
-    out_npc_dir = r"E:\MCR\nichos\tibia\gerado\npc"
+    out_monster_dir = os.path.join(_BASE, "nichos", "tibia", "gerado", "monster")
+    out_npc_dir = os.path.join(_BASE, "nichos", "tibia", "gerado", "npc")
     os.makedirs(out_monster_dir, exist_ok=True)
     os.makedirs(out_npc_dir, exist_ok=True)
 

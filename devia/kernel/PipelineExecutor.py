@@ -50,7 +50,7 @@ def _dedup_resposta(resposta: str) -> str:
     
     try:
         from MCR import MCRByteUtils
-    except:
+    except Exception:
         return resposta
     
     paragrafos = [p.strip() for p in resposta.split('\n') if p.strip() and len(p.strip()) > 10]
@@ -216,7 +216,7 @@ class PipelineExecutor:
                 if caminhos:
                     resultado = parser.parse(caminhos[0])
                     ctx["parsed_code"] = resultado
-            except:
+            except Exception:
                 pass
         
         elif comando == "pos_processamento":
@@ -286,7 +286,7 @@ class PipelineExecutor:
                                     _f.write(_cabecalho + _conteudo)
                                 os.remove(_arq)
                                 print('[Quarentena] %s movido para quarantine/' % _nome_fail)
-                            except: pass
+                            except Exception: pass
                         try:
                             if hasattr(self, '_cerebro') and self._cerebro and hasattr(self._cerebro, 'kg'):
                                 _kg = self._cerebro.kg
@@ -299,7 +299,7 @@ class PipelineExecutor:
                                         _kg.aprender(erro=_err, causa="LLM gerou %s" % classe, solucao=_sol, ctx=classe)
                                     else:
                                         _kg.aprender(_err, _sol, classe)
-                        except: pass
+                        except Exception: pass
                     elif ctx.get("sintaxe_valida", True) and arquivos_salvos:
                         try:
                             if hasattr(self, '_cerebro') and self._cerebro and hasattr(self._cerebro, 'kg'):
@@ -312,7 +312,7 @@ class PipelineExecutor:
                                                      solucao="Arquivos salvos em generated/", ctx=classe)
                                     else:
                                         _kg.aprender("OK: %s" % classe, "Arquivos salvos em generated/", classe)
-                        except: pass
+                        except Exception: pass
                 
                 except Exception as e:
                     # Loop de auto-correcao: tenta fazer o LLM corrigir o formato
@@ -413,7 +413,7 @@ class PipelineExecutor:
                                         ctx["kg_resposta"] = True
                                         print(f'[KGResposta] termo={_t} chars={len(_txt)}')
                                         return
-                        except: pass
+                        except Exception: pass
                     # Fallback: Markov word chain
                     if hasattr(_cerebro_local, 'mk_palavra'):
                         try:
@@ -440,7 +440,7 @@ class PipelineExecutor:
                                     ctx["llm_output"] = "[Markov] " + ' '.join(_cadeia)
                                     print(f'[MarkovResposta] conf={_conf_min:.3f} termos={len(_cadeia)}')
                                     return
-                        except: pass
+                        except Exception: pass
             
             # ─── LLM gerar (fallback) ───────────────────────────────────
             
@@ -453,7 +453,7 @@ class PipelineExecutor:
                     if os.path.exists(_golden_path):
                         with open(_golden_path, 'r', encoding='utf-8') as _gf:
                             _golden_spa = _gf.read()
-                except: pass
+                except Exception: pass
                 regras_dominio = (
                     "DIRETRIZES OBRIGATORIAS PARA HABILIDADES SPA v2.0:\n"
                     "1. E PROIBIDO usar o campo `efeito = function(...)`. NUNCA escreva funcoes Lua.\n"
@@ -476,7 +476,7 @@ class PipelineExecutor:
                     if os.path.exists(_golden_path):
                         with open(_golden_path, 'r', encoding='utf-8') as _gf:
                             _golden_quest = _gf.read()
-                except: pass
+                except Exception: pass
                 
                 regras_dominio = (
                     "FORMATO OBRIGATORIO DE RESPOSTA (NAO IGNORE):\n"
@@ -513,7 +513,7 @@ class PipelineExecutor:
                     if os.path.exists(_golden_path):
                         with open(_golden_path, 'r', encoding='utf-8') as _gf:
                             _golden_monster = _gf.read()
-                except: pass
+                except Exception: pass
                 regras_dominio = (
                     "FORMATO OBRIGATORIO DE RESPOSTA:\n"
                     "Cada arquivo DEVE ter o marcador --- ARQUIVO: nome.lua --- antes de ```lua.\n"
@@ -564,10 +564,9 @@ class PipelineExecutor:
                 if classe and any(c in classe for c in ["analisar", "revisar", "bug", "codigo"]):
                     ctx_mcr = (
                         f"PROJETO MCR (servidor Tibia customizado):\n"
-                        f"- MCR_PROJECT_BASE = E:\\Projeto MCR\n"
+                        f"- MCR_PROJECT_BASE = {os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..')}\n"
                         f"- Encoding: .lua=Latin-1, .cpp=.cs=.go=utf-8\n"
-                        f"- Comandos em: historia/scripts/mcr_devia/comandos/\n"
-                        f"- BASE dos comandos aponta para historia/, deveria ser projeto/\n"
+                        f"- Comandos em: devia/kernel/ e mcr/\n"
                     )
                 elif classe and any(c in classe for c in ["explicar", "conceito", "spa", "mcr"]):
                     ctx_mcr = (
@@ -697,7 +696,7 @@ class PipelineExecutor:
                                     )
                                     codigo_final = llm.gerar(prompt_est, modelo=modelo)
                                     tentativas += 1
-                    except: pass
+                    except Exception: pass
                     
                     # Valida IDs de itens contra items.xml real
                     if classe and any(c in classe for c in ["npc", "quest"]):
@@ -722,7 +721,7 @@ class PipelineExecutor:
                                     )
                                     codigo_final = llm.gerar(prompt_itens, modelo=modelo)
                                     tentativas += 1
-                        except: pass
+                        except Exception: pass
                     
                     ctx["llm_output"] = codigo_final
                     ctx["sintaxe_valida"] = sintaxe_ok
@@ -747,7 +746,7 @@ class PipelineExecutor:
                                     _kg.aprender(str(erros_valid[0])[:100],
                                                  "Auto-corrigido pelo LuaValidator + LLM",
                                                  classe)
-                        except: pass
+                        except Exception: pass
                 else:
                     ctx["llm_output"] = resp
                 # So aplica dedup em texto, nao em codigo

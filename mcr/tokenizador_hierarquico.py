@@ -116,6 +116,8 @@ def extrair_regioes(
                 'bbox': bbox,
                 'orientacao': orientacao,
                 'pixels': pixels,
+                'excentricidade': max(1.0, (bbox[3]-bbox[1]+1) / max(1, bbox[2]-bbox[0]+1)),
+                'cor_media_lab': (50, 0, 0),
             })
     
     return regioes

@@ -8,9 +8,10 @@ L2 (Markov): Pergunta similar (MarkovDecider) → resposta do cache (0.001s)
 L3 (Fingerprint): Pergunta parafraseada (Jaccard) → resposta do cache (0.01s)
 Fallback: LLM, entao cache.aprender()
 """
-import os, json, time, hashlib
+import os, sys, json, time, hashlib
 from typing import Dict, Optional
 
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'devia', 'kernel'))
 
 CACHE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'devia', 'kernel', 'cache')
 os.makedirs(CACHE_DIR, exist_ok=True)

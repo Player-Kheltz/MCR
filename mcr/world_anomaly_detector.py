@@ -134,13 +134,21 @@ class WorldAnomalyDetector:
             try:
                 with open(world_state_path, 'r', encoding='utf-8') as f:
                     data = json.load(f)
-                textos = []
-                for chave in ('npcs', 'monstros', 'lores'):
-                    for nome, dados in data.get(chave, {}).items():
-                        textos.append(nome)
-                        for v in dados.values():
-                            if isinstance(v, str):
-                                textos.append(v)
+
+                def _extrair_textos(obj):
+                    """Extrai strings recursivamente de dicts e listas."""
+                    textos = []
+                    if isinstance(obj, dict):
+                        for v in obj.values():
+                            textos.extend(_extrair_textos(v))
+                    elif isinstance(obj, list):
+                        for item in obj:
+                            textos.extend(_extrair_textos(item))
+                    elif isinstance(obj, str) and len(obj) > 3:
+                        textos.append(obj)
+                    return textos
+
+                textos = _extrair_textos(data)
                 for t in textos:
                     self._add_tokens(t)
             except Exception:
@@ -254,9 +262,16 @@ class WorldAnomalyDetector:
 
     @staticmethod
     def _jaccard(a: set, b: set) -> float:
-        inter = a & b
-        uniao = a | b
-        return len(inter) / len(uniao) if uniao else 0.0
+        """Similaridade Jaccard: 1.0 se token no corpus, 0.0 se ausente.
+        
+        Sem fallback de bigramas — eles causam falsos negativos
+        (palavras modernas como 'laser' passam por compartilhar bigramas
+        com palavras PT comuns).
+        
+        O corpus e expandido organicamente via detector.atualizar()
+        a cada geracao aprovada.
+        """
+        return 1.0 if a & b else 0.0
 
     @staticmethod
     def _extrair_contexto(texto: str, token: str, pad: int = 40) -> str:

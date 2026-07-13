@@ -15,15 +15,14 @@ Modulos conectados:
   - MCRAutoMelhoria → ciclo de melhoria
   - MCRPesoNota → pesos otimos
 """
-import sys, math, random, json
+import os, sys, math, random, json
 from pathlib import Path
 from typing import List, Dict, Optional, Tuple
 from collections import Counter
 
 import numpy as np
 
-sys.path.insert(0, r'E:\MCR')
-sys.path.insert(0, r'E:\MCR\prototypes\mcr-universal')
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
 
 # ─── MCR Core ──────────────────────────────────────────────
 from devia.kernel.mcr_kernel.engine import MCR

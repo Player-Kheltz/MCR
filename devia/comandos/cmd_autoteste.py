@@ -47,7 +47,7 @@ def _fast(prompt):
     try:
         from modulos.util import fast as _util_fast
         return _util_fast(prompt, 0.15, "fast") or ""
-    except:
+    except Exception:
         return ""
 
 # Dominios de conhecimento por categoria (para forcar diversidade de topicos)
@@ -210,7 +210,7 @@ def _gerar_perguntas(regras, historico):
         
         try:
             resultado = json.loads(json_match.group())
-        except:
+        except Exception:
             ultimo_erro = "FAST retornou JSON mal formatado"
             continue
         
@@ -310,7 +310,7 @@ def _gerar_auto_critica(pergunta, resposta_mcr):
         json_match = re.search(r'\{.*\}', resp, re.DOTALL)
         if json_match:
             return json.loads(json_match.group())
-    except:
+    except Exception:
         pass
     return {"nota": 5, "acertos": [], "faltou": ["auto-critica nao disponivel"], 
             "erros": [], "melhoraria": [], "confianca": "media"}
@@ -381,7 +381,7 @@ def _gerar_auto_critica_batch(perguntas_respostas):
                     "erros": [], "melhoraria": [], "confianca": "media"
                 }))
             return resultado_final
-    except:
+    except Exception:
         pass
     
     # Fallback: individual
@@ -772,7 +772,7 @@ def execute(kg, ia, args, ctx_crew=None):
             try:
                 ciclo_num = int(a)
                 break
-            except:
+            except Exception:
                 continue
         if ciclo_num is None:
             ciclo_num = historico.get('ultimo_ciclo', 0) + 1
@@ -841,7 +841,7 @@ def execute(kg, ia, args, ctx_crew=None):
             try:
                 ciclo_alvo = int(a)
                 break
-            except:
+            except Exception:
                 continue
         if ciclo_alvo is None:
             ciclo_alvo = historico.get('ultimo_ciclo', 0)

@@ -24,7 +24,7 @@ def _fast(prompt, temp=0.2):
     try:
         from modulos.util import fast as _util_fast
         return _util_fast(prompt, temp, "leve") or ""
-    except:
+    except Exception:
         return ""
 
 def _gerar(prompt, temp=0.3, tarefa="leve"):
@@ -32,7 +32,7 @@ def _gerar(prompt, temp=0.3, tarefa="leve"):
     try:
         from modulos.util import gerar as _util_gerar
         return _util_gerar(prompt, temp, tarefa) or ""
-    except:
+    except Exception:
         return ""
 
 def _carregar_identidade():
@@ -40,7 +40,7 @@ def _carregar_identidade():
     try:
         with open(os.path.join(BASE, 'docs', 'MCR_IDENTITY.md'), 'r', encoding='utf-8') as f:
             return f.read()
-    except:
+    except Exception:
         return ""
 
 
@@ -237,9 +237,9 @@ class ContextEnricher:
                                         rel = os.path.relpath(fpath, BASE)
                                         partes.append(f"  {rel}:L{i+1}: {line.strip()}")
                                         break
-                            except:
+                            except Exception:
                                 pass
-                except:
+                except Exception:
                     pass
         
         for termo in termos:
@@ -270,7 +270,7 @@ class ContextEnricher:
                     ctx_tag = l.get('ctx', '')
                     if sol and len(sol) > 50:
                         partes.append(f"  [KG:{ctx_tag}] {sol}")
-            except:
+            except Exception:
                 pass
         
         if partes:
@@ -295,7 +295,7 @@ class ContextEnricher:
                             partes.insert(0, f"[KG:{ctx_tag}] {sol}")
                         else:
                             partes.append(f"[KG:{ctx_tag}] {sol}")
-            except:
+            except Exception:
                 pass
         
         if partes:
@@ -316,7 +316,7 @@ class ContextEnricher:
                         if len(line) > 60 and not any(g in line.lower()
                             for g in ['generico', 'exemplo', 'informacao']):
                             partes.append(f"[WebLearn] {line}")
-            except:
+            except Exception:
                 pass
         
         if not partes and self.kg:
@@ -326,7 +326,7 @@ class ContextEnricher:
                     sol = l.get('solucao', '').strip()
                     if sol and len(sol) > 80:
                         partes.append(f"[KG] {sol}")
-            except:
+            except Exception:
                 pass
         
         if partes:

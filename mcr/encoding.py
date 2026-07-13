@@ -123,6 +123,9 @@ def write_file(path, content, language=None):
     try:
         with open(path, 'w', encoding=encoding) as f:
             f.write(content)
+    except UnicodeEncodeError:
+        with open(path, 'w', encoding='utf-8', errors='replace') as f:
+            f.write(content)
     except Exception as e:
         raise IOError(f"Nao foi possivel escrever {path}: {e}")
 

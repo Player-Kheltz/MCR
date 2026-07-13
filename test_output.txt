@@ -1,0 +1,47 @@
+﻿============================================================
+  TESTE FASE 1 ù EmergirUnificado
+============================================================
+[SanityValidator] Mineradas 29 APIs do C++
+[SanityValidator] Mineradas 334 APIs dos scripts .lua
+[SanityValidator] Mineradas 441 definicoes globais
+[SanityValidator] Mineradas 13 APIs dos scripts .lua
+[SanityValidator] Mineradas 0 definicoes globais
+[SanityValidator] Mineradas 12 APIs dos scripts .lua
+[SanityValidator] Mineradas 1 definicoes globais
+[SanityValidator] Mineradas 309 APIs dos scripts .lua
+[SanityValidator] Mineradas 20 definicoes globais
+[SanityValidator] Mineradas 0 APIs dos scripts .lua
+[SanityValidator] Mineradas 0 definicoes globais
+[SanityValidator] Mineradas 2175 APIs dos scripts .lua
+[SanityValidator] Mineradas 1538 definicoes globais
+[SanityValidator] Mineradas 24 APIs dos scripts .lua
+[SanityValidator] Mineradas 25 definicoes globais
+[SanityValidator] 4617 APIs conhecidas carregadas (zero hardcode)
+[Emergir] 0 conceitos em 0 categorias
+
+[1] Carregamento dos 6 modulos
+  [PASS] Emergir carregado
+  [PASS] EmergirCrossModal carregado
+  [PASS] EmergirEngine carregado
+  [PASS] RadarMCR carregado
+  [PASS] RadarLoop carregado
+  [PASS] MCRRadar carregado
+
+[2] Geracao de ideias variadas
+  [PASS] >5 ideias unicas em 20 tentativas
+python : Traceback (most recent call last):
+No linha:1 caractere:12
++ cd E:\MCR; python tests\test_emergir_unificado.py 2>&1 | Out-File -Fi ...
++            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Traceback (most recent call last)::String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+  File "E:\MCR\tests\test_emergir_unificado.py", line 143, in <module>
+    sucesso = main()
+  File "E:\MCR\tests\test_emergir_unificado.py", line 66, in main
+    all(isinstance(i, dict) for _ in range(1)), 'OK')
+    ^^^
+  File "E:\MCR\tests\test_emergir_unificado.py", line 66, in <genexpr>
+    all(isinstance(i, dict) for _ in range(1)), 'OK')
+                   ^
+NameError: name 'i' is not defined. Did you mean: 'id'?

@@ -2,7 +2,7 @@
 """Indexa NPCs reais do Canary — corrige diretorios do CanaryIndexer."""
 import sys, os, json, time
 
-BASE_MCR = r"E:\MCR"
+BASE_MCR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..')
 sys.path.insert(0, BASE_MCR)
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "devia", "knowledge"))
 

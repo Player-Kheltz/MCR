@@ -1,12 +1,14 @@
 """Asset Discovery — mapeia ferramentas do MCR-DevIA com descricao funcional."""
 import os, re, json
 
+_BASE = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
+
 def analisar_arquivo(caminho):
     """Extrai classes, funcoes e descricao funcional de um .py."""
     try:
         with open(caminho, 'r', encoding='utf-8', errors='replace') as f:
             conteudo = f.read()
-    except:
+    except Exception:
         return None
     
     linhas = conteudo.split('\n')
@@ -86,9 +88,9 @@ print("  MANIFESTO DE CAPACIDADES — MCR-DevIA Revived")
 print("=" * 110)
 
 diretorios = [
-    (r"E:\MCR", "NUCLEO"),
-    (r"E:\Projeto MCR\historia\scripts\mcr_devia", "KERNEL"),
-    (r"E:\Projeto MCR\historia\scripts\mcr_devia\modulos", "MODULOS"),
+    (_BASE, "NUCLEO"),
+    (os.path.join(_BASE, "devia", "kernel"), "KERNEL"),
+    (os.path.join(_BASE, "mcr"), "MCR"),
 ]
 
 for diretorio, rotulo in diretorios:

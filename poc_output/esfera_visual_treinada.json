@@ -1,0 +1,28 @@
+{
+  "n_orcs": 14,
+  "total_regioes": 41,
+  "total_cooc": 291,
+  "total_esfera": 510,
+  "predicoes": {
+    "cor_em_cent_mid": "(None, 0.0)",
+    "cor_em_cent_sup": "(None, 0.0)",
+    "cor_em_cent_inf": "(None, 0.0)",
+    "geom_medio_verde": "(None, 0.0)",
+    "geom_escuro_neutro": "(None, 0.0)",
+    "geom_claro_amarelo": "(None, 0.0)",
+    "geom_medio_neutro": "(None, 0.0)",
+    "pos_grande_retangular_proporcional": "(None, 0.0)",
+    "pos_pequeno_quadrado_proporcional": "(None, 0.0)"
+  },
+  "grid": {
+    "esq_sup": "(None, 0.0)",
+    "cent_sup": "(None, 0.0)",
+    "dir_sup": "(None, 0.0)",
+    "esq_mid": "(None, 0.0)",
+    "cent_mid": "(None, 0.0)",
+    "dir_mid": "(None, 0.0)",
+    "esq_inf": "(None, 0.0)",
+    "cent_inf": "(None, 0.0)",
+    "dir_inf": "(None, 0.0)"
+  }
+}

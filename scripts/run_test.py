@@ -1,10 +1,13 @@
 import sys, os, re, random, sqlite3, math
 
-os.chdir("E:\\MCR")
-__file__ = os.path.join(os.getcwd(), "MCR.py")
-with open(__file__, encoding="utf-8") as f:
-    _code = f.read().split("def main():")[0]
-exec(compile(_code, "MCR.py", "exec"))
+_BASE = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
+_MCR_ROOT = _BASE
+os.chdir(_MCR_ROOT)
+sys.path.insert(0, '.')
+try:
+    from MCR import CerebroAGI
+except ImportError:
+    CerebroAGI = None
 
 class SQLiteMarkov:
     def __init__(self, db_path):
@@ -37,7 +40,7 @@ class SQLiteMarkov:
                 return top5[0][0], 1.0 - ent, n
         return None, 0.0, 0
 
-mk = SQLiteMarkov(r"E:\MCR\cache\mcr_adapt.db")
+mk = SQLiteMarkov(os.path.join(_BASE, "cache", "mcr_adapt.db"))
 c = CerebroAGI()
 c.carregar(os.path.join(CACHE_DIR, "cerebro.json"))
 mk_palavra = c.mk_palavra
@@ -90,7 +93,7 @@ def clean(seq):
 for nome in ["Sapo Azul", "Adrenius", "Ahmet"]:
     seq = gerar(nome, "local", 80)
     saida = clean(seq)
-    fp = os.path.join(r"E:\MCR\nichos\tibia\gerados", "test_" + nome.replace(" ", "_") + ".txt")
+    fp = os.path.join(_BASE, "nichos", "tibia", "gerados", "test_" + nome.replace(" ", "_") + ".txt")
     with open(fp, "w") as f:
         f.write(saida)
     print(f"=== {nome} ({len(seq)} tokens) ===")

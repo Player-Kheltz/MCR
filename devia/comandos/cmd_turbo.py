@@ -92,7 +92,7 @@ def execute(kg, ia, args, ctx_crew=None):
                 with open(_rp, 'w', encoding='utf-8') as _f:
                     _f.write(resposta)
                 print(f'[Turbo] Resposta salva em: {_rp}')
-            except:
+            except Exception:
                 pass
             print(f'\n{resposta}')
             return True

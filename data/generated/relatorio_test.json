@@ -1,0 +1,107 @@
+{
+  "duracao_h": 0.01,
+  "ollama": false,
+  "pipeline_stats": {
+    "total": 270,
+    "cache_hit": 175,
+    "md_classify": 270,
+    "md_learn": 270,
+    "anomalias": 90
+  },
+  "cache_snapshots": [
+    {
+      "l1_hit": 0,
+      "l2_hit": 0,
+      "l3_hit": 0,
+      "miss": 0,
+      "total": 0,
+      "taxa_acerto": 0.0,
+      "tamanho": 0
+    },
+    {
+      "l1_hit": 51,
+      "l2_hit": 120,
+      "l3_hit": 4,
+      "miss": 5,
+      "total": 180,
+      "taxa_acerto": 97.2,
+      "tamanho": 5
+    },
+    {
+      "l1_hit": 51,
+      "l2_hit": 210,
+      "l3_hit": 4,
+      "miss": 5,
+      "total": 270,
+      "taxa_acerto": 98.1,
+      "tamanho": 5
+    },
+    {
+      "l1_hit": 51,
+      "l2_hit": 210,
+      "l3_hit": 4,
+      "miss": 5,
+      "total": 270,
+      "taxa_acerto": 98.1,
+      "tamanho": 5
+    },
+    {
+      "l1_hit": 51,
+      "l2_hit": 210,
+      "l3_hit": 4,
+      "miss": 5,
+      "total": 270,
+      "taxa_acerto": 98.1,
+      "tamanho": 5
+    }
+  ],
+  "detector_snapshots": [
+    {
+      "entropia": 0.8263,
+      "limiar": 0.1737
+    },
+    {
+      "entropia": 0.8263,
+      "limiar": 0.1737
+    },
+    {
+      "entropia": 0.8263,
+      "limiar": 0.1737
+    },
+    {
+      "entropia": 0.8267,
+      "limiar": 0.1733
+    },
+    {
+      "entropia": 0.8267,
+      "limiar": 0.1733
+    }
+  ],
+  "world_snapshots": [
+    {
+      "npcs": 42,
+      "monstros": 3,
+      "lores": 2
+    },
+    {
+      "npcs": 42,
+      "monstros": 3,
+      "lores": 2
+    },
+    {
+      "npcs": 42,
+      "monstros": 3,
+      "lores": 2
+    },
+    {
+      "npcs": 42,
+      "monstros": 3,
+      "lores": 2
+    },
+    {
+      "npcs": 42,
+      "monstros": 3,
+      "lores": 2
+    }
+  ]
+}

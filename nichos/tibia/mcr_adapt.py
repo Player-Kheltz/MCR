@@ -6,14 +6,16 @@ Alimenta NPCs + Monstros, gera com entropia como criterio de parada.
 
 import sys, os, re, time, math, sqlite3, random
 
-os.chdir(r"E:\MCR")
+_BASE = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..'))
+
+os.chdir(_BASE)
 sys.path.insert(0, ".")
 __file__ = os.path.join(os.getcwd(), "MCR.py")
 with open(__file__, encoding="utf-8") as f:
     _code = f.read().split("def main():")[0]
 exec(compile(_code, "MCR.py", "exec"))
 
-OUT_DIR = r"E:\MCR\nichos\tibia\gerados"
+OUT_DIR = os.path.join(_BASE, "nichos", "tibia", "gerados")
 os.makedirs(OUT_DIR, exist_ok=True)
 
 # ─── SQLITE BACKEND ─────────────────────────────────────
@@ -285,7 +287,7 @@ def extrair_identidade(texto):
     return nome
 
 # ─── ALIMENTACAO ─────────────────────────────────────────
-DB_PATH = r"E:\MCR\cache\mcr_adapt.db"
+DB_PATH = os.path.join(_BASE, "cache", "mcr_adapt.db")
 
 # Remove db anterior se existir
 if os.path.exists(DB_PATH):
@@ -317,7 +319,7 @@ for raiz, dirs, files in os.walk(RAIZ_NPC):
                 if total_arqs % 200 == 0:
                     mk.commit()
                     print(f"  [{total_arqs}] NPCs...")
-        except: pass
+        except Exception: pass
 mk.commit()
 
 # Monstros
@@ -339,7 +341,7 @@ for raiz, dirs, files in os.walk(RAIZ_MON):
                 if total_arqs % 200 == 0:
                     mk.commit()
                     print(f"  [{total_arqs}] Total...")
-        except: pass
+        except Exception: pass
 mk.commit()
 
 t1 = time.perf_counter()
@@ -514,7 +516,7 @@ print(f"  COMPARACAO: JSON vs SQLITE")
 print(f"{'─'*60}")
 
 # JSON anterior
-json_path = r"E:\MCR\cache\mk_id.json"
+json_path = os.path.join(_BASE, "cache", "mk_id.json")
 tamanho_json = os.path.getsize(json_path) / 1024 / 1024 if os.path.exists(json_path) else 0
 tamanho_db = os.path.getsize(DB_PATH) / 1024 / 1024
 

@@ -2,7 +2,9 @@
 import sys, os, re, json
 from collections import defaultdict
 
-sys.path.insert(0, r'E:\MCR')
+_BASE = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
+
+sys.path.insert(0, _BASE)
 from code_analyzer import analisar_arquivo, PADROES_BUG, SEVERIDADE_PESO
 
 PROJETO = r"E:\Projeto MCR"
@@ -15,7 +17,7 @@ diretorios = [
     ("Grimorio", os.path.join(PROJETO, "MCR.Grimorio")),
     ("LoginServer", os.path.join(PROJETO, "LoginServer", "src")),
     ("DevIA", os.path.join(PROJETO, "historia", "scripts", "mcr_devia")),
-    ("MCR engine", r"E:\MCR"),
+    ("MCR engine", _BASE),
 ]
 
 # ─── CLASSIFICA CADA PADRAO ────────────────────────────────

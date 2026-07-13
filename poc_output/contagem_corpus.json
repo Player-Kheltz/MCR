@@ -1,0 +1,20 @@
+﻿{
+    "rings":  40,
+    "creature_products":  60,
+    "boots":  50,
+    "distance_weapons":  40,
+    "food":  61,
+    "legs":  50,
+    "axe_weapons":  83,
+    "sword_weapons":  80,
+    "shields":  80,
+    "wands":  20,
+    "armors":  80,
+    "amulets_and_necklaces":  40,
+    "tools":  40,
+    "ammunition":  30,
+    "spellbooks":  20,
+    "club_weapons":  81,
+    "rods":  20,
+    "helmets":  80
+}

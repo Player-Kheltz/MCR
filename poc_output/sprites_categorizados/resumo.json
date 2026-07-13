@@ -1,0 +1,20 @@
+{
+  "sword weapons": 80,
+  "axe weapons": 80,
+  "club weapons": 80,
+  "shields": 80,
+  "armors": 80,
+  "helmets": 80,
+  "legs": 50,
+  "boots": 50,
+  "rings": 40,
+  "amulets and necklaces": 40,
+  "food": 60,
+  "tools": 40,
+  "spellbooks": 20,
+  "wands": 20,
+  "rods": 20,
+  "distance weapons": 40,
+  "ammunition": 30,
+  "creature products": 60
+}

@@ -1,0 +1,83 @@
+{
+  "dominio": "codigo",
+  "status": "aceito",
+  "score": 0.5714,
+  "nota": 1.0957,
+  "em_loop": true,
+  "arquivos": [
+    "E:\\MCR\\poc_output\\pipeline_universal\\codigo_1783817951_0.lua",
+    "E:\\MCR\\poc_output\\pipeline_universal\\codigo_1783817951_1.lua",
+    "E:\\MCR\\poc_output\\pipeline_universal\\codigo_1783817951_2.lua"
+  ],
+  "descobertas": {
+    "meta_niveis": {
+      "n_niveis": 3,
+      "ordem": [
+        "byte",
+        "palavra",
+        "intencao"
+      ],
+      "stats": {
+        "byte": {
+          "nome": "byte",
+          "entropia": 0.776,
+          "raio": 3.69,
+          "alimentado": 31,
+          "estados": 13,
+          "conexoes": 2
+        },
+        "palavra": {
+          "nome": "palavra",
+          "entropia": 0.776,
+          "raio": 3.69,
+          "alimentado": 62,
+          "estados": 13,
+          "conexoes": 1
+        },
+        "intencao": {
+          "nome": "intencao",
+          "entropia": 0.776,
+          "raio": 3.69,
+          "alimentado": 31,
+          "estados": 13,
+          "conexoes": 0
+        }
+      },
+      "maior_raio": {
+        "nome": "byte",
+        "valor": 3.69
+      },
+      "energia_total": 8.59,
+      "precisa_mais": true
+    },
+    "estagio2": {
+      "n_sequencias": 1,
+      "n_tokens": 7,
+      "unicos": 6
+    },
+    "estagio3": {
+      "tipo": "unica_sequencia"
+    },
+    "estagio4": {
+      "n_geradas": 3,
+      "temperatura": 0.8,
+      "usou_template": false
+    },
+    "estagio5": {
+      "score_medio": 0.5714,
+      "scores": [
+        0.5714,
+        0.5714,
+        0.5714
+      ],
+      "nota_mcr": 1.0957,
+      "em_loop": true
+    }
+  },
+  "tempo": 0.0,
+  "thresholds": {
+    "limiar_template": 0.5,
+    "temp_geracao": 0.8,
+    "aceitacao": 0.3
+  }
+}

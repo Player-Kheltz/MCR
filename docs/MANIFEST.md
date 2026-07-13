@@ -2,7 +2,25 @@
 
 > **LEIA SEMPRE** antes de planejar ou executar qualquer tarefa.
 > **ATUALIZE** ao descobrir algo novo (módulo, ferramenta, conceito).
-> Versão: 1.0 | Data: 2026-06-30
+> Versão: 2.0 | Data: 2026-07-13 (pós-unificação)
+
+---
+
+## ⚡ NOVO v2.0: MCR Unificado
+
+O ecossistema foi consolidado. A classe principal agora é:
+
+```python
+from mcr import MCR
+mcr = MCR()
+mcr.processar("Crie um NPC ferreiro")
+```
+
+**1 classe, 5 estágios:** perceber → decidir → executar → avaliar → aprender
+**1 Equação** avalia tudo: `(div×2 + esp×3 + prof×2) / 10`
+**N plugins** por domínio: Tibia, Visual, (áudio, outros jogos...)
+
+Nova estrutura: `motor/`, `equacao/`, `ferramentas/`, `autonomia/`, `qualidade/`, `servicos/`
 
 ---
 

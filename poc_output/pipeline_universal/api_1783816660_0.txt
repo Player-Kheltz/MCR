@@ -1,0 +1,7 @@
+addmodule
+createnpctype
+game
+golem
+hi
+keywordhandler
+npchandler

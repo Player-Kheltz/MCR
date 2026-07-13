@@ -1,0 +1,15 @@
+{
+  "modelo": "qwen2.5-coder:1.5b",
+  "tensor": "token_embd.weight",
+  "shape": [
+    4096,
+    32768
+  ],
+  "n_tokens_extraidos": 3000,
+  "n_dims": 256,
+  "mcr_estados": 10,
+  "mcr_entropia": 0.0047,
+  "tempo_total": 193.2,
+  "tempo_sdm": 192.29,
+  "status": "OK"
+}

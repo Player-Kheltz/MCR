@@ -3,14 +3,14 @@
 
 import sys, os, time
 
-os.chdir(r"E:\MCR")
+os.chdir(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, ".")
-__file__ = os.path.join(os.getcwd(), "MCR.py")
-with open(__file__, encoding="utf-8") as f:
-    _code = f.read().split("def main():")[0]
-exec(compile(_code, "MCR.py", "exec"))
+try:
+    from MCR import CerebroAGI
+except ImportError:
+    CerebroAGI = None
 
-RAIZ = r"E:\Projeto MCR\Canary\data"
+RAIZ = os.path.join(os.path.dirname(__file__), '..', 'server', 'data')
 IGNORAR_DIRS = {'.git', '__pycache__', 'vcpkg', 'build', 'bin', 'obj'}
 BATCH_SIZE = 15  # arquivos por batch
 
@@ -70,7 +70,7 @@ for nome_rel, fp, tam in arquivos:
             
             batch_textos = []
             batch_tamanho = 0
-    except: pass
+    except Exception: pass
 
 # Ultimo batch
 if batch_textos:

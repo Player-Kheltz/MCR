@@ -14,3 +14,43 @@ from mcr.paths import (
     ensure_dirs,
 )
 from mcr.encoding import read_file, write_file, read_lines, write_lines
+
+# ─── Backends Markov ───────────────────────────────────────
+from mcr.mcr_sqlite import MCRSQLite
+from mcr.sqlite_markov import SQLiteMarkov
+
+# ─── Pipeline Conectado ────────────────────────────────────
+from mcr.adaptadores import PipelineConectado, acoes_para_tarefas, intencao_para_classe
+
+# ─── Criatividade ──────────────────────────────────────────
+from mcr.emergir_unificado import EmergirUnificado
+
+# ─── Geração ───────────────────────────────────────────────
+from mcr.gerador_codigo import GeradorCodigo
+from mcr.npc_criativo import NPCCriativo
+from mcr.raciocinador import Raciocinador
+from mcr.generator_multinivel import GeradorMultinivel
+
+# ─── Mente / Consciência ───────────────────────────────────
+from mcr.mcr_mente_pura import MCRMentePura
+from mcr.mcr_mente import MCRMente
+from mcr.internal_monologue import InternalMonologue
+from mcr.mcr_self import MCRSelf
+from mcr.mcr_autobiography import Autobiography
+
+# ─── Auto-Análise / Evolução ───────────────────────────────
+from mcr.metacognicao import Metacognicao
+from mcr.mcr_auto_evolution import MCRAutoEvolution
+from mcr.auto_curiosidade import AutoCuriosidade
+from mcr.cache_hierarquico import CacheHierarquico
+
+# ─── Mundo / Diálogo ───────────────────────────────────────
+from mcr.mcr_world_system import MCRWorldSystem
+from mcr.dialogue_trainer import DialogueTrainer
+from mcr.planejador import Planejador
+
+# ─── COGNIÇÃO UNIFICADA (PRINCIPAL) ─────────────────────────
+from mcr.mcr import MCR, get_mcr
+
+# ─── Pipeline Unificado (legado) ────────────────────────────
+# Usar diretamente: from mcr.registry import get_registry

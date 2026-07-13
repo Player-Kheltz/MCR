@@ -2,8 +2,10 @@
 """extract_npc.py v2 — Extracts structured data from NPC files."""
 import os, re, json
 
+_BASE = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..'))
+
 RAIZ_NPC = r"E:\Projeto MCR\Canary\data-otservbr-global\npc"
-OUT_JSON = r"E:\MCR\nichos\tibia\npc_db.json"
+OUT_JSON = os.path.join(_BASE, "nichos", "tibia", "npc_db.json")
 
 def extract(fp):
     with open(fp, "r", encoding="utf-8", errors="replace") as f:

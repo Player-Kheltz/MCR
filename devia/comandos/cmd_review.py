@@ -54,7 +54,7 @@ def execute(kg, ia, args, ctx_crew=None):
                     item_err = funcoes_erro[i % 2](dict(dados[i]))
                     if item_err != dados[i]:
                         erros_gerados.append(json_rv.dumps(item_err, ensure_ascii=False))
-                except:
+                except Exception:
                     pass
             if erros_gerados:
                 exemplos_few_shot = f"Exemplo CORRETO:\n{saudavel}\n\n"

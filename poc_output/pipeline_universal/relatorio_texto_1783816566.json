@@ -1,0 +1,43 @@
+{
+  "dominio": "texto",
+  "status": "aceito",
+  "score": 1.0,
+  "nota": 1.01,
+  "em_loop": true,
+  "arquivos": [
+    "E:\\MCR\\poc_output\\pipeline_universal\\texto_1783816566_0.txt",
+    "E:\\MCR\\poc_output\\pipeline_universal\\texto_1783816566_1.txt",
+    "E:\\MCR\\poc_output\\pipeline_universal\\texto_1783816566_2.txt"
+  ],
+  "descobertas": {
+    "estagio2": {
+      "n_sequencias": 1,
+      "n_tokens": 9,
+      "unicos": 9
+    },
+    "estagio3": {
+      "tipo": "unica_sequencia"
+    },
+    "estagio4": {
+      "n_geradas": 3,
+      "temperatura": 0.8,
+      "usou_template": false
+    },
+    "estagio5": {
+      "score_medio": 1.0,
+      "scores": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "nota_mcr": 1.01,
+      "em_loop": true
+    }
+  },
+  "tempo": 0.0,
+  "thresholds": {
+    "limiar_template": 0.5,
+    "temp_geracao": 0.8,
+    "aceitacao": 0.3
+  }
+}

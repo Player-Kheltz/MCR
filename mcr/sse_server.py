@@ -87,7 +87,7 @@ class _Handler(BaseHTTPRequestHandler):
         try:
             self.wfile.write(msg.encode('utf-8'))
             self.wfile.flush()
-        except:
+        except Exception:
             pass
 
     def do_POST(self):
@@ -179,7 +179,7 @@ class _Handler(BaseHTTPRequestHandler):
                                 if token:
                                     acumulado += token
                                     self._sse_send('chat_token', {'token': token, 'acumulado': acumulado})
-                            except:
+                            except Exception:
                                 continue
 
                 tempo = round(time.time() - t0, 2)
@@ -188,7 +188,7 @@ class _Handler(BaseHTTPRequestHandler):
                 try:
                     from mcr.pipeline_completo import _canonizar
                     _canonizar(prompt, acumulado, classe, modelo)
-                except:
+                except Exception:
                     pass
 
                 self._sse_send('chat_done', {'rota': 'llm_stream', 'classe': classe, 'tempo': tempo})
@@ -390,7 +390,7 @@ class _Handler(BaseHTTPRequestHandler):
                                         if linha:
                                             tipo = 'erro' if 'error' in linha.lower() or 'erro' in linha.lower() else 'aviso' if 'warn' in linha.lower() or 'aviso' in linha.lower() else 'info'
                                             arquivos_log.append({'hora': f[:19], 'tipo': tipo, 'msg': linha[:200]})
-                            except: pass
+                            except Exception: pass
                 todas = (arquivos_log + logs)[:100]
                 self._responder_json({'total': len(todas), 'items': todas})
             except Exception as e:

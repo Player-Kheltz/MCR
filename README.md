@@ -1,174 +1,194 @@
-# MCR
+# MCR — Motor Cognitivo Universal
 
-> 1 equação. N níveis. 0 hardcode. 0 nuvem.
+> **1 Equação. 1 Entropia. 1 Markov. N domínios.**
 
-MCR é um motor de **reconhecimento de padrões e geração por assinatura** que opera em múltiplos níveis de abstração simultaneamente. Python stdlib, zero dependências externas para o núcleo — nada de GPU, nada de nuvem.
+MCR é um framework cognitivo que usa cadeias de Markov de 1ª ordem como substrato para perceber, decidir, executar, avaliar e aprender. A mesma Equação MCR avalia qualquer saída — NPC de Tibia, sprite PNG, texto, ou qualquer outro domínio.
+
+**Sem GPU. Sem nuvem. Sem LLM obrigatório.**
 
 ```python
-MCR(nivel).aprender(a, b)  # aprende que "a" leva a "b"
-MCR(nivel).predizer(a)      # "b" mais provável dado "a"
+from mcr import MCR
+mcr = MCR()
+mcr.auto_treinar()
+npc = mcr.processar("Crie um ferreiro anão")      # gera Lua válido
+sprite = mcr.processar("Gere um sprite de escudo") # gera PNG
 ```
 
 ---
 
-## O Núcleo Universal
+## Arquitetura
+
+```
+                EQUAÇÃO MCR + ENTROPIA + MARKOV
+                          │
+                          ▼
+              ┌───────────────────────┐
+              │         MCR           │
+              │   Cognição Universal  │
+              │                       │
+              │  perceber → decidir   │
+              │  → executar →         │
+              │  avaliar → aprender   │
+              └───────────────────────┘
+                          │
+          ┌───────────────┼───────────────┐
+          ▼               ▼               ▼
+      ┌───────┐     ┌──────────┐     ┌─────────┐
+      │ TIBIA │     │  VISUAL  │     │ (áudio, │
+      │  (prova)   │  (prova) │     │  outro  │
+      │        │     │          │     │  jogo…) │
+      └───────┘     └──────────┘     └─────────┘
+```
+
+3 domínios atualmente funcionais. O motor é o mesmo — só as ferramentas mudam.
+
+---
+
+## O Núcleo
 
 ### Equação MCR
 
 ```
-PONTE_OTIMA = (divergencia × 5 + especificidade × 3 + profundidade × 2) / 10
-PENALIDADE  = dispersao_entropica / niveis_validos
+PONTE_OTIMA = (divergência × 2 + especificidade × 3 + profundidade × 2) / 10
 NOTA_FINAL  = PONTE_OTIMA × (1 − PENALIDADE)
 ```
 
-Todos os thresholds, pesos e decisões emergem dos dados. Nenhum valor fixo. A equação se aplica a qualquer domínio: texto, código, binário, áudio, sequências numéricas.
+A mesma equação avalia tudo:
+- **NPC Tibia:** é único? é bem definido? é detalhado?
+- **Sprite:** é original? é nítido? é complexo?
+- **Texto:** é novo? é preciso? é profundo?
 
-### Kernel Markov Multi-Nível
+### Motor Markov Multi-Nível (Kernel)
 
-| Capacidade | Descrição |
+| Componente | Arquivo | Função |
+|-----------|---------|--------|
+| `MCR` | `motor/engine.py` | Markov 1ª ordem: aprender, predizer, entropia, Jaccard |
+| `MCRFingerprint` | `motor/signature.py` | Assinatura 8D de qualquer dado |
+| `EquacaoMCR` | `equacao/equacao_mcr.py` | Avaliação universal (div×2 + esp×3 + prof×2) |
+
+### Pipeline Unificado
+
+| Estágio | Descrição |
+|---------|-----------|
+| **Perceber** | Extrai fingerprint 8D + palavras-chave → estado composto |
+| **Decidir** | Markov prediz ação + fallback por similaridade de componentes |
+| **Executar** | Registry seleciona ferramenta por matching de nome |
+| **Avaliar** | Equação MCR mede divergência, especificidade, profundidade |
+| **Aprender** | Markov reforça transições bem-sucedidas (3× se nota > 0.7) |
+
+---
+
+## Estrutura do Projeto
+
+```
+mcr/
+├── mcr.py                     ← Cognição unificada (657 linhas)
+├── motor/                     ← Núcleo Markov (intacto)
+│   ├── engine.py              ← MCR: aprender, predizer, entropia
+│   └── signature.py           ← MCRFingerprint, MCRSignature
+├── equacao/                   ← Equação MCR (intacta)
+│   └── equacao_mcr.py         ← calcular_ponte, get_penalidade
+├── ferramentas/               ← Plugins de domínio
+│   ├── tibia/                 ← NPC, monstro, quest, diálogo
+│   └── visual/                ← Sprite, regiões, template
+├── autonomia/                 ← Auto-estudo, auto-evolução
+├── qualidade/                 ← Metacognição, verificação, cache
+├── servicos/                  ← SSE Server, Bridge API, Observer
+├── infra/                     ← Paths, registry, bootstrap, SQLite
+│
+devia/kernel/mcr_kernel/       ← Kernel legado (preservado)
+│   ├── engine.py
+│   ├── decisor.py
+│   ├── memory.py
+│   └── ...
+│
+tools/grimorio/                ← Painel admin C# WPF
+docs/                          ← Documentação
+tests/                         ← Testes
+```
+
+---
+
+## Domínios Comprovados
+
+### Prova 1: Tibia (Geração de Conteúdo)
+
+| Ferramenta | Descrição | Tier |
+|-----------|-----------|------|
+| `gerar_npc_lua` | NPC Canary via template (zero LLM, 0ms) | 1 |
+| `gerar_monstro_lua` | Monstro Canary via template | 1 |
+| `mcr_world_builder` | Geração LLM com validação Sanity+Shadow | 2-3 |
+| `dialogue_trainer` | Treino Markov com 448 NPCs, 4529 diálogos | — |
+| `lua_validator` | Validação sintática + SQL injection + boas práticas | — |
+| `sanity_validator` | 6445 APIs Canary conhecidas (zero hardcode) | — |
+
+### Prova 2: Visual (Geração de Sprites)
+
+| Ferramenta | Descrição |
 |-----------|-----------|
-| **8 níveis** | Byte → palavra → token → intenção → decisão → assinatura → filosofia → qualidade |
-| **Acoplamento N-Dimensional** | Correlação cross-level via matriz de acoplamento |
-| **Superposição** | Duas cadeias colidem → token que nenhuma preveria sozinha |
-| **Auto-Validação** | Validação recursiva por entropia, sem ground truth |
-| **Criticalidade** | Auto-modificação na borda do caos (entropia 0.2–0.7) |
-| **Fingerprinting** | Projeção 8–128D com auto-descoberta de dimensão |
-| **HDC** | Bundle, bind, permute, analogia vetorial |
-| **Auto-Evolução** | Mutação de thresholds com medição de impacto na entropia |
-
-### Kernel Refatorado
-
-O núcleo monolito (`MCR.py`, ~7K linhas, 48 classes) está sendo modularizado em `devia/kernel/mcr_kernel/` (10 módulos):
-
-| Módulo | Função |
-|--------|--------|
-| `engine.py` | Motor principal — `compose_state()`, `compor_contexto()`, `gerar()` |
-| `decisor.py` | Decisões adaptativas — Ponte Ótima para pular parser |
-| `signature.py` | Assinatura multidimensional — `raw_token_set()`, fingerprint |
-| `memory.py` | Memória hierárquica — persistência entre sessões |
-| `meta.py` | Metacognição — auto-avaliação sobre o próprio kernel |
-| `evolution.py` | Auto-evolução — mutação e seleção de parâmetros |
-| `state.py` | Gerenciamento de estado do kernel |
-| `system.py` | Coordenação entre módulos |
-| `feedback.py` | Loop de feedback para aprendizado |
-| `persistence.py` | Serialização e salvamento |
-
----
-
-## Aplicação Atual: GMA Station (Tibia OTServ)
-
-Tibia é o **berço** do MCR — o primeiro domínio de aplicação onde o sistema está sendo validado em produção. A Game Master Artificial Station conecta o kernel Markov a LLMs locais (Ollama) para gerar, curar e gerenciar conteúdo de servidores OTServ.
-
-```
-HTTP SSE :8765 ─── Web Console (Alpine.js)
-     │
-  Pipeline de Mundo
-     │
-  ┌──┴───────────────────────┐
-  │  mcr_kernel              │
-  │  MCR.py (Markov)         │
-  │  Ensemble 7B             │
-  │  Chain-of-Verification   │
-  └──┬───────────────────────┘
-     │
-  ┌──┴──────────┐    ┌──────────────┐
-  │ WPF Grimório│    │ Bridge API   │
-  │ (C# .NET 8) │    │ (:7778 REST) │
-  └─────────────┘    └──────┬───────┘
-                            │
-                     ┌──────┴──────┐
-                     │ Ollama      │
-                     │ (:11434)    │
-                     └─────────────┘
-```
-
-### Pipeline de Mundo (58 módulos em `mcr/`)
-
-| Módulo | Função |
-|--------|--------|
-| `pipeline_completo.py` | Orquestrador: VERIFICAR → INJETAR → LLM → ANOMALY → CANONIZAR |
-| `sse_server.py` | Servidor HTTP SSE + REST (:8765) + chat streaming |
-| `prompts_criativos.py` | Roteador de modelos + templates de prompt |
-| `world_anomaly_detector.py` | Detecção adaptativa de anacronismos por entropia |
-| `world_observer.py` | Observação de eventos → perturbações de entropia |
-| `seed_world.py` | Canonização de conteúdo no banco de mundo |
-| `ensemble_7b.py` | Ensemble paralelo 3 modelos (Mistral/Qwen/DeepSeek) |
-| `chain_of_verification.py` | Pós-geração: verificação contra grafo de conhecimento |
-| `cache_hierarquico.py` | Cache L1→L2→L3 (dict→Markov→fingerprint→LLM) |
-| `bridge_api.py` | HTTP REST (:7778) — interface Python ↔ C# |
-| `raw_miner.py` | Tokenização raw sem tree-sitter (85% coverage) |
-| +47 outros | — |
-
-### Painel WPF (`tools/grimorio/`)
-
-Interface administrativa C# .NET 8 com abas de Dashboard, NPCs, Quests, Scripts, Items, Database, Map, Config. Integração com Bridge API e SSE Server. Heatmap de entropia com overlay no mapa.
-
-### Web Console (`mcr/sse_server.py` + `mcr/templates/dashboard.html`)
-
-Interface web com Alpine.js, 6 abas, streaming de chat em tempo real (tokens caractere por caractere), telemetria de entropia, tema escuro, zero pop-ups.
-
----
-
-## Modelos (Ollama)
-
-| Modelo | Contexto | Função |
-|--------|----------|--------|
-| `qwen2.5-coder:7b-32k` | 32K | Geração de código, estrutura |
-| `mistral:7b-32k` | 32K | Narrativa, NPCs, quests, lore |
-| `deepseek-r1:7b-32k` | 32K | Ensemble fallback, raciocínio |
-
-Benchmark: Mistral 7B → melhor criatividade; Qwen 7B → melhor código.
-
----
-
-## Estrutura
-
-```
-E:/MCR/
-├── mcr/                       # 58 módulos — pipeline de mundo
-│   ├── sse_server.py          # Servidor web + streaming
-│   ├── pipeline_completo.py   # Orquestrador de geração
-│   ├── templates/             # Web Console (dashboard.html)
-│   └── ...
-├── devia/
-│   ├── kernel/
-│   │   ├── MCR.py             # Núcleo Markov (48 classes, ~7K linhas)
-│   │   └── mcr_kernel/        # Kernel refatorado (10 módulos)
-│   ├── world_state.json       # Estado do mundo
-│   └── world_chronicle.md     # Crônica narrativa
-├── tools/
-│   └── grimorio/              # Painel admin C# WPF
-├── docs/                      # Documentação atual
-│   ├── HISTORIA_MCR.md        # História completa (438 commits, 13 fases)
-│   ├── MCR_WHITEPAPER_*.md    # Whitepapers acadêmicos
-│   └── ...
-├── legacy/                    # Arquivo morto (histórico preservado)
-├── server/                    # Canary OTServ (sub-repo)
-├── client/                    # OTClient (sub-repo)
-└── golden_examples/           # Exemplos canônicos
-```
+| `sprite_corpus` | Corpus de sprites categorizados + extração B/L/F |
+| `MCRDiscriminador` | Avalia qualidade via P(token | contexto) |
+| `mcr_sprite_motor` | Motor 4-níveis Markov (byte, palavra, token, cor) |
+| `template_entropico` | Template Shannon: baixa H = fixo, alta H = criativo |
+| `regioes_anatomicas` | Segmentação projeção 1D + clusterização CIELAB |
 
 ---
 
 ## Setup
 
 ```powershell
-# Núcleo (stdlib Python, sem instalação):
-python -c "from devia.kernel.MCR import MCRMotor; print('MCR pronto')"
+# Núcleo (zero dependências):
+python -c "from mcr import MCR; print('MCR pronto')"
 
-# Aplicação Tibia:
-# 1. Instalar Ollama
-# 2. ollama pull qwen2.5-coder:7b-32k
-# 3. ollama pull mistral:7b-32k
-# 4. python mcr/sse_server.py
-# 5. http://localhost:8765
+# Com auto-treinamento:
+python -c "from mcr import MCR; m = MCR(); m.auto_treinar()"
+
+# Aplicação Tibia (requer Ollama para Tier 2-3):
+# 1. ollama pull qwen2.5-coder:7b
+# 2. ollama pull mistral:7b
+# 3. python mcr/servicos/sse_server.py
+# 4. http://localhost:8765
+
+# Servidor NPC (zero LLM):
+# python mcr/ferramentas/tibia/servidor.py
 ```
+
+---
+
+## Estado Atual
+
+| Métrica | Valor |
+|---------|-------|
+| Classificação de ações | 14/14 (100%) |
+| Ferramentas registradas | 285 |
+| NPCs treinados (diálogo) | 448 |
+| Diálogos aprendidos | 4529 |
+| Vocabulário único | 4959 |
+| APIs Canary conhecidas | 6445 |
+| Imports verificados | 20/20 |
+| Código Lua gerado | ✅ Estruturalmente válido |
+
+---
+
+## Limitações Honestas
+
+1. **Markov de 1ª ordem.** O motor só vê o estado atual. Não modela dependências de longo alcance. `compose_state()` mitiga isso compondo contexto no nome do estado, mas o limite é fundamental.
+
+2. **Classificação depende de seeds.** O MCR classifica entradas comparando com estados pré-treinados. Sem seeds suficientes, a confiança é baixa e o sistema usa fallbacks. Quanto mais exemplos, melhor funciona.
+
+3. **Templates são determinísticos.** `golden_templates.py` (Tier 1) gera código estruturalmente válido mas não entende semântica. "Crie um ferreiro que vende armaduras" gera um NPC chamado "Ferreiro Vende Armaduras" — sem shop_items preenchidos automaticamente.
+
+4. **Semântica complexa requer LLM.** Para descrições ricas (quests, diálogos, lore), o pipeline Tier 2-3 (`mcr_world_builder`) usa Ollama. O MCR decide SOZINHO quando usar LLM (via `hybrid_router`), mas o LLM é necessário para qualidade máxima em alguns domínios.
+
+5. **Equação com parâmetros calibrados.** Os pesos (div×2, esp×3, prof×2) foram calibrados em um commit específico. O `mcr_auto_evolution` pode reajustá-los, mas o processo é lento e requer muitas iterações.
+
+6. **Nome extraído por heurística.** `_extrair_nome()` remove stopwords e concatena palavras restantes. Funciona para entradas simples, falha para descrições complexas.
 
 ---
 
 ## Licença
 
-**AGPL v3** ou licença comercial. Veja [LICENSE](LICENSE) e [LICENCA_COMERCIAL.md](LICENCA_COMERCIAL.md).
+**AGPL v3** ou licença comercial. Veja [LICENCA_COMERCIAL.md](LICENCA_COMERCIAL.md).
 
 ---
 

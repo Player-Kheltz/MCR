@@ -1,0 +1,122 @@
+{
+  "timestamp": "2026-07-10T15:37:17.191794",
+  "workers": 8,
+  "total_iteracoes": 10000000,
+  "tempo_total_s": 7.49,
+  "throughput_iters_s": 1334882.0,
+  "cache_hit_rate_pct": 100.0,
+  "resultados_workers": [
+    {
+      "pid": 3,
+      "iteracoes": 1250000,
+      "tempo": 6.9681,
+      "iter_por_seg": 179388.0,
+      "cache": {
+        "l1_hit": 624993,
+        "l3_hit": 625001,
+        "miss": 6,
+        "total": 1250000
+      },
+      "md_transicoes": 11,
+      "md_freq_total": 1250000
+    },
+    {
+      "pid": 1,
+      "iteracoes": 1250000,
+      "tempo": 7.0003,
+      "iter_por_seg": 178564.0,
+      "cache": {
+        "l1_hit": 624993,
+        "l3_hit": 625001,
+        "miss": 6,
+        "total": 1250000
+      },
+      "md_transicoes": 11,
+      "md_freq_total": 1250000
+    },
+    {
+      "pid": 5,
+      "iteracoes": 1250000,
+      "tempo": 7.0301,
+      "iter_por_seg": 177807.0,
+      "cache": {
+        "l1_hit": 624993,
+        "l3_hit": 625001,
+        "miss": 6,
+        "total": 1250000
+      },
+      "md_transicoes": 11,
+      "md_freq_total": 1250000
+    },
+    {
+      "pid": 7,
+      "iteracoes": 1250000,
+      "tempo": 7.0922,
+      "iter_por_seg": 176251.0,
+      "cache": {
+        "l1_hit": 624993,
+        "l3_hit": 625001,
+        "miss": 6,
+        "total": 1250000
+      },
+      "md_transicoes": 11,
+      "md_freq_total": 1250000
+    },
+    {
+      "pid": 0,
+      "iteracoes": 1250000,
+      "tempo": 7.2703,
+      "iter_por_seg": 171933.0,
+      "cache": {
+        "l1_hit": 624993,
+        "l3_hit": 625001,
+        "miss": 6,
+        "total": 1250000
+      },
+      "md_transicoes": 11,
+      "md_freq_total": 1250000
+    },
+    {
+      "pid": 4,
+      "iteracoes": 1250000,
+      "tempo": 7.273,
+      "iter_por_seg": 171869.0,
+      "cache": {
+        "l1_hit": 624993,
+        "l3_hit": 625001,
+        "miss": 6,
+        "total": 1250000
+      },
+      "md_transicoes": 11,
+      "md_freq_total": 1250000
+    },
+    {
+      "pid": 6,
+      "iteracoes": 1250000,
+      "tempo": 7.2898,
+      "iter_por_seg": 171473.0,
+      "cache": {
+        "l1_hit": 624993,
+        "l3_hit": 625001,
+        "miss": 6,
+        "total": 1250000
+      },
+      "md_transicoes": 11,
+      "md_freq_total": 1250000
+    },
+    {
+      "pid": 2,
+      "iteracoes": 1250000,
+      "tempo": 7.3365,
+      "iter_por_seg": 170381.0,
+      "cache": {
+        "l1_hit": 624993,
+        "l3_hit": 625001,
+        "miss": 6,
+        "total": 1250000
+      },
+      "md_transicoes": 11,
+      "md_freq_total": 1250000
+    }
+  ]
+}

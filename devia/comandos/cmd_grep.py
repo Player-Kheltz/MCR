@@ -79,7 +79,7 @@ def execute(kg, ia, args, ctx_crew=None):
                         resultados.append((rel, i+1))
                         if len(resultados) >= flgs['--max']:
                             break
-        except: pass
+        except Exception: pass
         if len(resultados) >= flgs['--max']:
             break
     

@@ -1,0 +1,5 @@
+createnpctype
+game
+golem
+hi
+keywordhandler

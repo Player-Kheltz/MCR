@@ -20,8 +20,8 @@ from pathlib import Path
 from typing import Dict, List, Optional, Callable, Any
 from collections import Counter
 
-sys.path.insert(0, r'E:\MCR')
-sys.path.insert(0, r'E:\MCR\prototypes\mcr-universal')
+_BASE = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
+sys.path.insert(0, _BASE)
 
 # ─── MCR Core ──────────────────────────────────────────────
 from devia.kernel.mcr_kernel.engine import MCR
@@ -38,7 +38,7 @@ from mcr.template_entropico import extrair_template_entropico, gerar_do_template
 
 # ─── Diretorio de output ───────────────────────────────────
 
-_OUTPUT_DIR = Path(r'E:\MCR\poc_output\pipeline_universal')
+_OUTPUT_DIR = Path(_BASE) / 'poc_output' / 'pipeline_universal'
 _OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 

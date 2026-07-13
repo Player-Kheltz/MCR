@@ -46,8 +46,8 @@ class Memoria:
                         line = line.strip()
                         if line:
                             try: self._cache['entradas'].append(json.loads(line))
-                            except: pass
-            except: pass
+                            except Exception: pass
+            except Exception: pass
         return len(self._cache['entradas'])
     
     def registrar(self, cmd, args=None, resultado=None, erro=None):
@@ -67,7 +67,7 @@ class Memoria:
         try:
             with open(fpath, 'a', encoding='utf-8') as f:
                 f.write(json.dumps(entrada, ensure_ascii=False) + '\n')
-        except: pass
+        except Exception: pass
         
         # Cache
         if self._cache.get('arquivo') == fpath:
@@ -115,7 +115,7 @@ class Memoria:
             try:
                 with open(fpath, 'r', encoding='utf-8') as f:
                     return [json.loads(line) for line in f if line.strip()]
-            except: pass
+            except Exception: pass
         
         # Tenta .jsonl.gz
         fpath_gz = fpath + '.gz'
@@ -123,7 +123,7 @@ class Memoria:
             try:
                 with gzip.open(fpath_gz, 'rt', encoding='utf-8') as f:
                     return [json.loads(line) for line in f if line.strip()]
-            except: pass
+            except Exception: pass
         
         return []
     
@@ -147,7 +147,7 @@ class Memoria:
                         with gzip.open(fpath + ".gz", "wt", encoding="utf-8") as f_out:
                             f_out.write(f_in.read())
                     os.remove(fpath)
-                except: pass
+                except Exception: pass
     def estatisticas(self, dias=30):
         """Estatisticas dos ultimos N dias."""
         entradas = self.consultar(limite=999999, dias=dias)

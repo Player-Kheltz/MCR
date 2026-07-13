@@ -3,14 +3,15 @@
 
 import sys, os, time
 
-os.chdir(r"E:\MCR")
+os.chdir(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, ".")
-__file__ = os.path.join(os.getcwd(), "MCR.py")
-with open(__file__, encoding="utf-8") as f:
-    exec(compile(f.read().split("def main():")[0], "MCR.py", "exec"))
+try:
+    from MCR import CerebroAGI
+except ImportError:
+    CerebroAGI = None
 
-RAIZ = r"E:\Projeto MCR"
-SUB_DIRS = ["Canary", "MapEditor", "OTClient", "Doc"]
+RAIZ = os.path.join(os.path.dirname(__file__), '..')
+SUB_DIRS = ["server", "devia", "mcr", "scripts"]
 IGNORAR_DIRS = {'.git', '__pycache__', 'vcpkg', 'build', 'bin', 'obj', 'share', 'man'}
 TEXT_EXT = {'.lua', '.py', '.md', '.txt', '.html', '.xml', '.yml', '.yaml',
     '.json', '.sql', '.cfg', '.sh', '.bat', '.cmake',
@@ -67,7 +68,7 @@ for sub_dir in SUB_DIRS:
                 
                 n_arqs += 1
                 n_bytes += len(dados)
-            except: pass
+            except Exception: pass
 
 # Treina mk_palavra em lote unico
 print(f"\n  Treinando mk_palavra ({len(lote_texto)} palavras)...")

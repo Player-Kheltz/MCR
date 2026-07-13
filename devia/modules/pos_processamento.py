@@ -239,15 +239,6 @@ class PosProcessamento:
         else:
             # Nome genérico com hash
             import hashlib
-# MCRzificado: usa MCR quando disponivel, fallback para LLM
-import sys as _sys, os as _os
-_sys.path.insert(0, _os.path.join(_os.path.dirname(__file__), '..', '..', '..'))
-try:
-    from MCR import MCRMotor, MCRGenerator, MCRValidator, MCRBuilder, MCRPreencher, MCRReconstructor
-    _mcr = MCRMotor()
-    _TEM_MCR = True
-except ImportError:
-    _TEM_MCR = False
             h = hashlib.md5(conteudo.encode()).hexdigest()
             return f"artefato_{h}.{linguagem}"
 

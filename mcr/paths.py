@@ -39,8 +39,8 @@ KG_DIR = DEVIA_KNOWLEDGE_DIR
 DATA_DIR = ROOT_DIR / "data"
 GENERATED_DIR = DATA_DIR / "generated"
 CACHE_DIR = ROOT_DIR / "cache"
-SCRIPTS_GENERATED_DIR = ROOT_DIR / ".." / "Projeto MCR" / "scripts" / "generated"
-SCRIPTS_QUARANTINE_DIR = ROOT_DIR / ".." / "Projeto MCR" / "scripts" / "quarantine"
+SCRIPTS_GENERATED_DIR = ROOT_DIR / "scripts" / "generated"
+SCRIPTS_QUARANTINE_DIR = ROOT_DIR / "scripts" / "quarantine"
 
 # ─── Golden Examples (templates anti-alucinacao) ────────────────
 GOLDEN_EXAMPLES_DIR = ROOT_DIR / "golden_examples"

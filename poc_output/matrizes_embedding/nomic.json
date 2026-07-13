@@ -1,0 +1,15 @@
+{
+  "modelo": "nomic",
+  "tensor": "token_embd.weight",
+  "shape": [
+    768,
+    30522
+  ],
+  "n_tokens": 500,
+  "n_dims": 128,
+  "estados_mcr": 100,
+  "transicoes_mcr": 100,
+  "entropia_mcr": 0.0,
+  "tempo_sdm": 6.95,
+  "tempo_total": 7.8
+}

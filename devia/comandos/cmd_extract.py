@@ -191,7 +191,7 @@ def execute(kg, ia, args, ctx_crew=None):
                         f'extract aplicar {os.path.basename(path_aplicar)}',
                         'extract'
                     )
-                except:
+                except Exception:
                     pass
         return
     

@@ -1,0 +1,227 @@
+{
+  "sword_weapons": {
+    "categoria": "sword_weapons",
+    "n_sprites_treino": 80,
+    "n_gerados": 20,
+    "limiar_entropia": 0.75,
+    "n_regioes_alvo": 22,
+    "n1_fixed": 16,
+    "n1_gap": 116,
+    "n2_fixed": 3,
+    "n2_gap": 120,
+    "paleta_mediana": {
+      "B": [
+        44,
+        19,
+        36
+      ],
+      "L": [
+        159,
+        118,
+        92
+      ]
+    },
+    "metricas": {
+      "coerencia": {
+        "media_regioes_geradas": 22.1,
+        "dp_regioes_geradas": 2.32,
+        "media_regioes_real": 22.66,
+        "dp_regioes_real": 9.26,
+        "dentro_dp": 1.0,
+        "n_gerados": 20
+      },
+      "diversidade": {
+        "n_fingerprints_unicos": 13,
+        "n_total": 20,
+        "ratio_diversidade": 0.65
+      },
+      "disc_score_medio": 0.4931
+    },
+    "baseline": {
+      "media_opacos_real": 282.0,
+      "dp_opacos_real": 93.4,
+      "media_regioes_real": 22.7,
+      "dp_regioes_real": 9.3
+    }
+  },
+  "shields": {
+    "categoria": "shields",
+    "n_sprites_treino": 80,
+    "n_gerados": 20,
+    "limiar_entropia": 0.8,
+    "n_regioes_alvo": 21,
+    "n1_fixed": 79,
+    "n1_gap": 47,
+    "n2_fixed": 43,
+    "n2_gap": 74,
+    "paleta_mediana": {
+      "B": [
+        51,
+        28,
+        15
+      ],
+      "L": [
+        96,
+        72,
+        51
+      ]
+    },
+    "metricas": {
+      "coerencia": {
+        "media_regioes_geradas": 19.5,
+        "dp_regioes_geradas": 1.77,
+        "media_regioes_real": 21.54,
+        "dp_regioes_real": 8.22,
+        "dentro_dp": 1.0,
+        "n_gerados": 20
+      },
+      "diversidade": {
+        "n_fingerprints_unicos": 9,
+        "n_total": 20,
+        "ratio_diversidade": 0.45
+      },
+      "disc_score_medio": 0.7816
+    },
+    "baseline": {
+      "media_opacos_real": 546.4,
+      "dp_opacos_real": 109.9,
+      "media_regioes_real": 21.5,
+      "dp_regioes_real": 8.2
+    }
+  },
+  "armors": {
+    "categoria": "armors",
+    "n_sprites_treino": 80,
+    "n_gerados": 20,
+    "limiar_entropia": 0.8,
+    "n_regioes_alvo": 23,
+    "n1_fixed": 46,
+    "n1_gap": 92,
+    "n2_fixed": 20,
+    "n2_gap": 109,
+    "paleta_mediana": {
+      "B": [
+        50,
+        31,
+        20
+      ],
+      "L": [
+        87,
+        56,
+        38
+      ]
+    },
+    "metricas": {
+      "coerencia": {
+        "media_regioes_geradas": 19.2,
+        "dp_regioes_geradas": 2.06,
+        "media_regioes_real": 25.01,
+        "dp_regioes_real": 7.05,
+        "dentro_dp": 0.75,
+        "n_gerados": 20
+      },
+      "diversidade": {
+        "n_fingerprints_unicos": 14,
+        "n_total": 20,
+        "ratio_diversidade": 0.7
+      },
+      "disc_score_medio": 0.7819
+    },
+    "baseline": {
+      "media_opacos_real": 611.4,
+      "dp_opacos_real": 116.2,
+      "media_regioes_real": 25.0,
+      "dp_regioes_real": 7.1
+    }
+  },
+  "creature_products": {
+    "categoria": "creature_products",
+    "n_sprites_treino": 60,
+    "n_gerados": 20,
+    "limiar_entropia": 0.8,
+    "n_regioes_alvo": 22,
+    "n1_fixed": 76,
+    "n1_gap": 56,
+    "n2_fixed": 32,
+    "n2_gap": 91,
+    "paleta_mediana": {
+      "B": [
+        6,
+        2,
+        0
+      ],
+      "L": [
+        129,
+        82,
+        63
+      ]
+    },
+    "metricas": {
+      "coerencia": {
+        "media_regioes_geradas": 10.45,
+        "dp_regioes_geradas": 2.13,
+        "media_regioes_real": 23.98,
+        "dp_regioes_real": 12.03,
+        "dentro_dp": 0.25,
+        "n_gerados": 20
+      },
+      "diversidade": {
+        "n_fingerprints_unicos": 15,
+        "n_total": 20,
+        "ratio_diversidade": 0.75
+      },
+      "disc_score_medio": 0.6446
+    },
+    "baseline": {
+      "media_opacos_real": 213.3,
+      "dp_opacos_real": 130.6,
+      "media_regioes_real": 24.0,
+      "dp_regioes_real": 12.0
+    }
+  },
+  "helmets": {
+    "categoria": "helmets",
+    "n_sprites_treino": 80,
+    "n_gerados": 20,
+    "limiar_entropia": 0.8,
+    "n_regioes_alvo": 22,
+    "n1_fixed": 27,
+    "n1_gap": 105,
+    "n2_fixed": 3,
+    "n2_gap": 120,
+    "paleta_mediana": {
+      "B": [
+        8,
+        6,
+        2
+      ],
+      "L": [
+        103,
+        79,
+        51
+      ]
+    },
+    "metricas": {
+      "coerencia": {
+        "media_regioes_geradas": 9.2,
+        "dp_regioes_geradas": 3.14,
+        "media_regioes_real": 23.02,
+        "dp_regioes_real": 7.16,
+        "dentro_dp": 0.05,
+        "n_gerados": 20
+      },
+      "diversidade": {
+        "n_fingerprints_unicos": 10,
+        "n_total": 20,
+        "ratio_diversidade": 0.5
+      },
+      "disc_score_medio": 0.778
+    },
+    "baseline": {
+      "media_opacos_real": 370.8,
+      "dp_opacos_real": 104.4,
+      "media_regioes_real": 23.0,
+      "dp_regioes_real": 7.2
+    }
+  }
+}

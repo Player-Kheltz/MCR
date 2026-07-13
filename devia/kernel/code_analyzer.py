@@ -87,7 +87,7 @@ def analisar_arquivo(caminho: str) -> List[Dict]:
     try:
         with open(caminho, 'r', encoding='utf-8', errors='replace') as f:
             conteudo = f.read()
-    except:
+    except Exception:
         return bugs
     
     linhas = conteudo.split('\n')

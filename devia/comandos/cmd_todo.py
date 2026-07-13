@@ -35,7 +35,7 @@ def execute(kg, ia, args, ctx_crew=None):
                 print(f'[Todo] Concluido: {_tarefas[idx]["texto"]}')
             else:
                 print(f'[Todo] Tarefa #{args[1]} nao encontrada')
-        except: pass
+        except Exception: pass
         return True
     
     print('[Todo] Uso: todo [add <texto>|done <n>|list]')

@@ -8,10 +8,12 @@ import sys, json, time, math, os
 from pathlib import Path
 from collections import Counter
 
-sys.path.insert(0, r'E:\MCR')
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..'))
 
 from devia.kernel.mcr_kernel.signature import raw_token_set
 from mcr.mcr_signature_cluster import SignatureCluster
+
+_BASE = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..')
 
 
 _EXT_ACEITAS = {'.py', '.lua', '.cpp', '.hpp', '.h', '.cs', '.md', '.sql', '.json', '.yaml', '.yml', '.xml', '.txt', '.cfg', '.conf'}
@@ -32,10 +34,10 @@ DIRS = [
 def _extrair_entidade(caminho: Path) -> dict:
     try:
         codigo = caminho.read_text(encoding='utf-8', errors='replace')
-    except:
+    except Exception:
         try:
             codigo = caminho.read_text(encoding='latin-1', errors='replace')
-        except:
+        except Exception:
             return None
     if not codigo or len(codigo) < 30:
         return None
@@ -80,7 +82,7 @@ def main():
     resultados = {}
 
     for rel_dir, rotulo in DIRS:
-        path = Path(r'E:\MCR') / rel_dir.replace('/', '\\')
+        path = Path(_BASE) / rel_dir.replace('/', '\\')
         if not path.exists():
             print(f'\n  [SKIP] {rotulo} -> nao encontrado')
             continue

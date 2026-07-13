@@ -7,7 +7,7 @@ from tree_sitter_c_sharp import language as cs_lang
 try:
     from tree_sitter import Parser, Language
     _HAS_TS = True
-except:
+except Exception:
     _HAS_TS = False
     Parser = Language = None
 
@@ -51,7 +51,7 @@ class CodeParser:
         try:
             with open(caminho, 'r', encoding='utf-8', errors='replace') as f:
                 codigo = f.read()
-        except:
+        except Exception:
             return self._fallback(caminho)
         
         parser = self.parsers[ext.lower()]
@@ -116,7 +116,7 @@ class CodeParser:
         try:
             with open(caminho, 'r', encoding='utf-8', errors='replace') as f:
                 linhas = f.readlines()
-        except:
+        except Exception:
             return {'arquivo': caminho, 'erro': 'nao foi possivel ler'}
         
         return {

@@ -58,7 +58,7 @@ class SuperFragmentador:
                 from modulos.util import _get_modelo
                 cfg = _get_modelo("leve")
                 modelo_padrao = cfg["modelo"]
-            except:
+            except Exception:
                 modelo_padrao = "qwen2.5-coder:7b"  # fallback seguro
         self.modelo_padrao = modelo_padrao
         self.ctx_alvo = ctx_alvo

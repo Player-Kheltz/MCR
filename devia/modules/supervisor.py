@@ -250,7 +250,7 @@ class Supervisor:
                             print(f'  [Ferramentas] grep encontrou marcacoes em {_path}')
                             # Injeta como contexto_extra
                             contexto_extra += f'\n[GREP: {_path}]\n{_r.stdout[:1000]}\n'
-                    except: pass
+                    except Exception: pass
                     break
         
         # 0b: Validar sintaxe de codigo? Usa compile() (mais preciso que IA)
@@ -313,7 +313,7 @@ class Supervisor:
                 _ctx_pre = self.ctx_crew.executar(texto[:300])
                 if _ctx_pre:
                     contexto_extra += chr(10) + "[INFO] " + _ctx_pre[:500] + chr(10)
-            except: pass
+            except Exception: pass
         # FASE 1: MENTE PENSA (SEMPRE - toda pergunta merece reflexao)
         # ====================================================
         mente_contexto = ""
@@ -344,7 +344,7 @@ class Supervisor:
                         _sp.run([_sys.executable, _kernel, 'weblearn', _consulta, '--shallow'],
                                 capture_output=True, text=True, timeout=120)
                         _precisa_pesquisar = True
-                except:
+                except Exception:
                     pass
             
             # Reescreve pergunta: se menciona funcao+arquivo, le o codigo real e inclui
@@ -364,7 +364,7 @@ class Supervisor:
                             if _pos >= 0:
                                 texto = f"Analise o codigo ABAIXO. Explique a funcao {_fn}, suas regras e ordem.\n\n{_c[_pos:_pos+3000]}\n\n"
                                 print(f'  [Reescrita] Codigo de {_an}:{_fn} incluido na pergunta')
-                        except: pass
+                        except Exception: pass
                         break
             
             template_map = {
@@ -444,7 +444,7 @@ class Supervisor:
                 _veredito = _util_fast(_prompt_verif, 0.1, "leve")
                 if _veredito and 'NAO' in _veredito.upper() and 'SIM' not in _veredito.upper():
                     _precisa_aprender = True
-            except:
+            except Exception:
                 pass
         
         if _precisa_aprender:
@@ -476,7 +476,7 @@ class Supervisor:
             try:
                 from modulos import mente as _mente
                 _mente.learn(texto, tipo, subtipo, resposta, kg=self.kg)
-            except:
+            except Exception:
                 pass
             
             # AUTO-REVIEW: MCR analisa seu proprio codigo (1 a cada 5 execucoes)
@@ -505,7 +505,7 @@ class Supervisor:
                                 print(f'  [Auto-Review] {_p}')
                             if self.kg:
                                 self.kg.aprender(f"auto-review: {alvo}", '; '.join(_problemas), '', 'auto_review')
-            except:
+            except Exception:
                 pass
         
         return resposta

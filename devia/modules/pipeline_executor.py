@@ -44,7 +44,7 @@ class RequestPlanner:
                 'options': {'temperature': temp, 'num_ctx': 2048, 'num_predict': 512}}).encode()
             r = _ur.Request(OLLAMA, data=d, headers={'Content-Type': 'application/json'})
             return (json.loads(_ur.urlopen(r, timeout=30).read()).get('response') or "").strip()
-        except:
+        except Exception:
             return ""
     
     def criar_plano(self, texto: str) -> List[Dict[str, str]]:
@@ -117,7 +117,7 @@ class FragmentManager:
                     'role': f'fragmento_{indice}',
                     'msg': f"[Fragmento {indice+1}/{indice+1} ({tool})]\n{resposta[:500]}"
                 }, ensure_ascii=False) + '\n')
-        except:
+        except Exception:
             pass
     
     def obter_todos(self) -> List[Dict]:
@@ -251,7 +251,7 @@ class PipelineExecutor:
                 diff = int((alvo_dt - agora).total_seconds())
                 if diff > 0:
                     resultados.append(f"Faltam {diff} segundos ({diff//60} min, {diff//3600} h)")
-            except: pass
+            except Exception: pass
         
         # Matematica
         for m in re.finditer(r'(\d+)\s*[\*x]\s*(\d+)', solicitacao):
@@ -279,7 +279,7 @@ class PipelineExecutor:
             if r.stdout:
                 linhas = [l for l in r.stdout.split('\n') if l.strip() and not l.startswith('=')]
                 return f"Processos ativos: {len(linhas)}"
-        except:
+        except Exception:
             pass
         return "Não foi possível verificar os processos."
     
@@ -316,7 +316,7 @@ class PipelineExecutor:
                     ctx_infinity = '\n'.join([
                         l.get('msg', '') for l in linhas[-15:]
                     ])
-        except:
+        except Exception:
             pass
         
         # 2. Chama Orquestrador COM contexto reforcado

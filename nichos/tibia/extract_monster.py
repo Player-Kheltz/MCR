@@ -2,8 +2,10 @@
 """extract_monster.py — Extrai campos de monstros para JSON estruturado."""
 import os, re, json
 
+_BASE = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..'))
+
 RAIZ_MON = r"E:\Projeto MCR\Canary\data-otservbr-global\monster"
-OUT_JSON = r"E:\MCR\nichos\tibia\monster_db.json"
+OUT_JSON = os.path.join(_BASE, "nichos", "tibia", "monster_db.json")
 
 def extract(fp):
     with open(fp, "r", encoding="utf-8", errors="replace") as f:

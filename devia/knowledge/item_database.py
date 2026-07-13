@@ -22,8 +22,8 @@ import re, os, json
 from collections import defaultdict
 
 # Path do items.xml: knowledge/ -> mcr_devia/ -> Scripts/ -> Projeto MCR/
-_BASE = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
-ITEMS_XML = os.path.join(_BASE, 'Canary', 'data', 'items', 'items.xml')
+_BASE = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+ITEMS_XML = os.path.join(_BASE, 'server', 'data', 'items', 'items.xml')
 
 
 # ============================================================

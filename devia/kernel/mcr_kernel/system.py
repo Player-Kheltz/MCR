@@ -129,7 +129,7 @@ class GeradorNarrativa:
                     try:
                         with open(os.path.join(docs_dir, fname), 'r', encoding='utf-8') as f:
                             textos.append(f.read())
-                    except: pass
+                    except Exception: pass
         self._textos_lore_cache = textos
         return textos
     
@@ -320,7 +320,7 @@ class MCRSystem:
                 mk_palavra.aprender_sequencia(palavras)
                 resultado['palavras_unicas'] = len(set(palavras))
                 resultado['etapas'].append(f"palavras:{len(palavras)}")
-        except:
+        except Exception:
             pass
         if self.kg:
             nome_base = os.path.basename(origem) if os.path.isfile(origem) else "texto_direto"
@@ -348,7 +348,7 @@ class MCRSystem:
                             resultado['conexao'] = cx.get('nota', 0)
                             resultado['etapas'].append(f"conexao:{cx.get('nota',0)}")
                             break
-            except:
+            except Exception:
                 pass
         resultado['tempo'] = round(time.time() - t0, 2)
         return resultado
@@ -635,7 +635,7 @@ class MCRMestre:
             prox, conf = self.mk.predizer(estado_workers)
             if prox:
                 try: n_workers = int(prox.replace('W:', ''))
-                except: pass
+                except Exception: pass
         tarefas = []
         termo_kg = pergunta.split()[-1] if pergunta.split() else 'MCR'
         tarefas.append(MCRTarefa("buscar_kg", _buscar_kg_task, {
@@ -708,7 +708,7 @@ class MCRMestreV2:
             mc_str = dc.decidir(f"CICLOS:{fluxo}")
             if mc_str:
                 max_ciclos = max(1, min(10, int(str(mc_str).replace('C:', ''))))
-        except:
+        except Exception:
             pass
         termo = pergunta.split()[-1] if pergunta.split() else 'MCR'
         semente = pergunta.split()[0] if pergunta.split() else 'O'
@@ -757,7 +757,7 @@ class MCRMestreV2:
                             self.conector.alimentar(cx.get('sequencia',''), f"emrg_{termo}")
             if 'explorar' in self.bridge.comandos:
                 try: self.bridge.usar_comando('explorar', {'termo': termo})
-                except: pass
+                except Exception: pass
             self._ultima_expansao = agora
         res_cadeia = self.cadeia.gerar(semente, n_tokens=40)
         resposta = res_cadeia.get('texto', '')
@@ -887,7 +887,7 @@ class MCRGeracao:
                     cadeia = MCRCadeia(c)
                     res = cadeia.gerar(semente, n_tokens=60)
                     return res.get('texto', semente)
-            except: pass
+            except Exception: pass
             return self._executar_estrategia(pergunta, 'cadeia_direto')
         elif estrategia == 'semente_alternativa':
             if len(palavras) > 1:

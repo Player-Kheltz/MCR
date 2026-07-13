@@ -1,0 +1,74 @@
+{
+  "sword_weapons": {
+    "categoria": "sword_weapons",
+    "n_reais": 20,
+    "jaccard_reais": 0.3924,
+    "jaccard_gerados": 0.7561,
+    "jaccard_vs_reais": 0.3966,
+    "opacos_reais_media": 260.2,
+    "opacos_reais_dp": 104.3,
+    "opacos_gerados_media": 254.4,
+    "opacos_gerados_dp": 5.7,
+    "treino": "limiar=0.500, sprites=20, validos=20, regAlvo=17, N1: 0fixed + 102gap, N2: 0fixed + 93gap, posicoes: 0fixed/0mod/17cri"
+  },
+  "shields": {
+    "categoria": "shields",
+    "n_reais": 20,
+    "jaccard_reais": 0.6859,
+    "jaccard_gerados": 0.8611,
+    "jaccard_vs_reais": 0.7325,
+    "opacos_reais_media": 514.0,
+    "opacos_reais_dp": 114.0,
+    "opacos_gerados_media": 508.9,
+    "opacos_gerados_dp": 33.9,
+    "treino": "limiar=0.500, sprites=20, validos=11, regAlvo=27, N1: 19fixed + 143gap, N2: 9fixed + 144gap, posicoes: 0fixed/15mod/12cri"
+  },
+  "armors": {
+    "categoria": "armors",
+    "n_reais": 20,
+    "jaccard_reais": 0.6981,
+    "jaccard_gerados": 0.9117,
+    "jaccard_vs_reais": 0.7167,
+    "opacos_reais_media": 640.7,
+    "opacos_reais_dp": 117.8,
+    "opacos_gerados_media": 557.0,
+    "opacos_gerados_dp": 7.0,
+    "treino": "limiar=0.500, sprites=20, validos=20, regAlvo=27, N1: 0fixed + 162gap, N2: 0fixed + 153gap, posicoes: 0fixed/0mod/27cri"
+  },
+  "helmets": {
+    "categoria": "helmets",
+    "n_reais": 20,
+    "jaccard_reais": 0.5875,
+    "jaccard_gerados": 0.388,
+    "jaccard_vs_reais": 0.3956,
+    "opacos_reais_media": 377.4,
+    "opacos_reais_dp": 76.1,
+    "opacos_gerados_media": 311.2,
+    "opacos_gerados_dp": 18.2,
+    "treino": "limiar=0.500, sprites=20, validos=20, regAlvo=21, N1: 0fixed + 126gap, N2: 0fixed + 117gap, posicoes: 0fixed/0mod/21cri"
+  },
+  "food": {
+    "categoria": "food",
+    "n_reais": 20,
+    "jaccard_reais": 0.383,
+    "jaccard_gerados": 0.2493,
+    "jaccard_vs_reais": 0.2694,
+    "opacos_reais_media": 337.2,
+    "opacos_reais_dp": 159.2,
+    "opacos_gerados_media": 237.4,
+    "opacos_gerados_dp": 10.5,
+    "treino": "limiar=0.500, sprites=20, validos=20, regAlvo=27, N1: 0fixed + 162gap, N2: 0fixed + 153gap, posicoes: 0fixed/0mod/27cri"
+  },
+  "boots": {
+    "categoria": "boots",
+    "n_reais": 20,
+    "jaccard_reais": 0.5582,
+    "jaccard_gerados": 0.4542,
+    "jaccard_vs_reais": 0.3695,
+    "opacos_reais_media": 474.8,
+    "opacos_reais_dp": 120.9,
+    "opacos_gerados_media": 428.3,
+    "opacos_gerados_dp": 40.1,
+    "treino": "limiar=0.500, sprites=20, validos=20, regAlvo=30, N1: 0fixed + 180gap, N2: 0fixed + 171gap, posicoes: 0fixed/0mod/30cri"
+  }
+}

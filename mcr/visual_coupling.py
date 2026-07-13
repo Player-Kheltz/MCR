@@ -88,14 +88,15 @@ class VisualCoupling:
     
     NIVEIS_VISUAIS = ['regiao_cromatica', 'cor_media', 'geometria', 'bbox_pos']
     
-    def __init__(self, coupling):
+    def __init__(self, coupling=None):
         """
         Args:
             coupling: instância de MCRCoupling (de devia.kernel.MCR_legacy)
         """
         self.coupling = coupling
-        for nivel in self.NIVEIS_VISUAIS:
-            coupling.registrar_nivel(nivel)
+        if coupling is not None:
+            for nivel in self.NIVEIS_VISUAIS:
+                coupling.registrar_nivel(nivel)
     
     def alimentar_sprite(self, regioes: List[Dict]):
         """Alimenta o coupling com todas as regiões de um sprite.

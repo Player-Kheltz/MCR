@@ -1,0 +1,7 @@
+numpy
+Pillow
+tree-sitter
+watchdog
+chromadb
+stop-words
+requests

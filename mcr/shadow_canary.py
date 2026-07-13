@@ -55,14 +55,44 @@ function Game.setStorageValue(id, val) end
 function NpcType() return {} end
 npcType = {register = function(self, config) return true end}
 
+-- StdModule (keyword handlers padrao)
+StdModule = {}
+StdModule.say = function(npc, player, text, config) return true end
+StdModule.trade = function(npc, player, text, config) return true end
+StdModule.yes = function(npc, player, text, config) return true end
+StdModule.no = function(npc, player, text, config) return true end
+
 -- NpcHandler
 NpcHandler = {}
-function NpcHandler:new() return {addModule = function() end, setTopic = function() end} end
+function NpcHandler:new()
+    return {
+        addModule = function(self, ...) return true end,
+        setTopic = function(self, t) end,
+        setMessage = function(self, m, t) end,
+        onThink = function(self, npc, interval) end,
+        onAppear = function(self, npc, creature) end,
+        onDisappear = function(self, npc, creature) end,
+        onMove = function(self, npc, creature, from, to) end,
+        onSay = function(self, npc, creature, type, message) end,
+        onCloseChannel = function(self, npc, creature) end,
+        onBuyItem = function(self, ...) return true end,
+        onSellItem = function(self, ...) return true end,
+        onCheckItem = function(self, ...) return true end,
+    }
+end
+
+-- FocusModule
+FocusModule = {}
+function FocusModule:new()
+    return { onGreet = function() end, onDismiss = function() end }
+end
 
 -- KeywordHandler
 KeywordHandler = {}
 function KeywordHandler:new()
-    return {addKeyword = function() end, setMessage = function() end}
+    return {addKeyword = function(self, kw, mod, cfg) return true end, 
+            addAliasKeyword = function(self, kw) return true end,
+            setMessage = function(self, m) end}
 end
 
 -- FocusModule

@@ -7,14 +7,16 @@ das distribuicoes reais de 1656 monstros e 1034 NPCs.
 
 import sys, os, re, time, math, random
 
-os.chdir(r"E:\MCR")
+_BASE = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..'))
+
+os.chdir(_BASE)
 sys.path.insert(0, ".")
 __file__ = os.path.join(os.getcwd(), "MCR.py")
 with open(__file__, encoding="utf-8") as f:
     _code = f.read().split("def main():")[0]
 exec(compile(_code, "MCR.py", "exec"))
 
-OUT_DIR = r"E:\MCR\nichos\tibia\gerados"
+OUT_DIR = os.path.join(_BASE, "nichos", "tibia", "gerados")
 os.makedirs(OUT_DIR, exist_ok=True)
 
 c = CerebroAGI()
@@ -43,7 +45,7 @@ def valor_num_mk2(chave, min_v=1, max_v=999999, fallback=100):
             n = int(float(v))
             if min_v <= n < max_v:
                 return n
-        except: pass
+        except Exception: pass
     return random.randint(min_v, max(max_v//4, 1))
 
 def variedade(chave, n=5):
@@ -103,7 +105,7 @@ def itens_loot(n_min=1, n_max=5):
         for tok, cnt in mk.transicoes['id|='].items():
             try:
                 ids.append((int(tok.strip().strip(',')), cnt))
-            except: pass
+            except Exception: pass
     ids.sort(key=lambda x: -x[1])
     if not ids:
         return []

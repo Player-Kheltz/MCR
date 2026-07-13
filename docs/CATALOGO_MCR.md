@@ -2,7 +2,33 @@
 
 > **LEIA ANTES de criar qualquer código novo.**
 > **CONSULTE para saber se algo já existe antes de implementar.**
-> Versão: 1.0 | Data: 2026-07-12
+> Versão: 2.0 | Data: 2026-07-13
+
+---
+
+## 0. COGNIÇÃO UNIFICADA (NOVO v2.0)
+
+O coração do sistema. Substitui 5 pipelines competidoras por 1 classe.
+
+### `MCR` — Motor Cognitivo Universal
+| Campo | Valor |
+|-------|-------|
+| **Path** | `mcr/mcr.py` |
+| **Classe** | `MCR` |
+| **Métodos** | `processar(entrada)`, `auto_treinar()`, `registrar_ferramentas({})`, `recordar()`, `estatisticas()` |
+| **Estágios** | perceber → decidir → executar → avaliar → aprender |
+| **Import** | `from mcr import MCR` ou `from mcr.mcr import MCR, get_mcr` |
+
+### Nova estrutura de diretórios
+| Diretório | Conteúdo |
+|-----------|----------|
+| `mcr/motor/` | engine.py, signature.py (Markov + fingerprint) |
+| `mcr/equacao/` | equacao_mcr.py (Equação MCR) |
+| `mcr/ferramentas/tibia/` | NPC, monstro, quest, diálogo |
+| `mcr/ferramentas/visual/` | Sprite, regiões, template |
+| `mcr/autonomia/` | Auto-estudo, auto-evolução |
+| `mcr/qualidade/` | Metacognição, verificação, cache |
+| `mcr/servicos/` | SSE Server, Bridge API, Observer |
 
 ---
 
@@ -53,6 +79,28 @@ O coração do MCR. Tudo é transição entre dois estados consecutivos.
 | **Depende de** | `sqlite3`, `re` |
 | **O que faz** | N-adaptativo até 30 com identidade. Usado para NPCs. |
 | **Notas** | `synchronous=OFF`. 8MB cache. ~4M transições típico. |
+
+### `SQLiteMarkov (mcr/)` — Versão importável (2026-07-12)
+| Campo | Valor |
+|-------|-------|
+| **Path** | `mcr/sqlite_markov.py` |
+| **Classe** | `SQLiteMarkov` (linha 13) |
+| **Métodos** | `alimentar(identity, tokens)`, `alimentar_sequencia(identity, tokens)`, `predizer_adaptativo(identity, contexto)`, `gerar_com_identidade(identity, seed, passos)`, `obter_distribuicao(identity, contexto)`, `stats()` |
+| **Import** | `from mcr import SQLiteMarkov` |
+| **Depende de** | `sqlite3`, `re`, `math`, `random` |
+| **O que faz** | Mesmo algoritmo do `nichos/tibia/mcr_adapt.py`, extraído como biblioteca importável. N-adaptativo até 30, identity-aware. Sem dependências externas. |
+| **Notas** | Use no lugar do `nichos/tibia/mcr_adapt.py` para código novo. 85 tokens no executor_map. |
+
+### `PipelineConectado` — Orquestrador oficial (2026-07-12)
+| Campo | Valor |
+|-------|-------|
+| **Path** | `mcr/adaptadores.py` |
+| **Classe** | `PipelineConectado` (linha 216) |
+| **Métodos** | `processar(entrada)`, `conectar(texto_a, texto_b)`, `buscar_semantico(conceito)`, `status()` |
+| **Import** | `from mcr import PipelineConectado` |
+| **Depende de** | 18 módulos MCR |
+| **O que faz** | Orquestra MarkovDecider → MarkovRouter → MCRSpawner → SQLiteMarkov em um pipeline unificado. Conecta HDC, SDM, MCRMotor, MCRCadeia, MCRRuido, MCRFuel, MCRAutoMelhoria, MCRExpansao, MCRAutoEvolution, IntentionEngine, RadarMCR, EmergirCrossModal. |
+| **Notas** | 18/18 módulos conectados. 122/122 suite unificada. Use `pipe.processar("Crie um NPC ferreiro")` para pipeline completo. |
 
 ### `MCR (legado, 311KB)` — Monolito original
 | Campo | Valor |
@@ -920,7 +968,7 @@ Nota: 24 ferramentas registradas. Cada uma pode ser executada por 1+ comandos (c
 
 ## 21. STATUS REAL DO ECOSSISTEMA
 
-Executor Map: 76/76 tokens (100%)
+Executor Map: 179/179 tokens (100%)
 MCR Mente: 117 estados, ciclo 0.15s
 PipelineUniversal: 4 dominios
 MCRSpriteMotor: 4 niveis, ~140k estados byte
@@ -931,7 +979,7 @@ Benchmark: MCR.jaccard() 66% vs LLM 50% (sem GPU)
 ## 21. STATUS REAL DO ECOSSISTEMA
 
 ### Executor Map
-Tokens registrados: 76/76 (100%)
+Tokens registrados: 85/85 (100%) — SQLiteMarkov, PipelineConectado, adaptadores
   - SignatureAnalyzer: RESOLVE e executa
   - MCRMetaNivel: RESOLVE e executa
   - EmergirCrossModal: RESOLVE e executa
@@ -940,6 +988,17 @@ Tokens registrados: 76/76 (100%)
   - sdm_core: RESOLVE e executa
   - MCRPergunta: RESOLVE e executa
   - MCRGeracao: RESOLVE e executa
+  - SQLiteMarkov: RESOLVE e executa (N-adaptativo, identity-aware)
+  - PipelineConectado: RESOLVE e executa (orquestrador de 18 módulos)
+
+### Pipeline Conectado (2026-07-12)
+18 módulos orquestrados em pipeline unificado:
+  - MarkovDecider → MarkovRouter → MCRSpawner → SQLiteMarkov
+  - HDC + SDM (memória associativa populada com cerebro.json)
+  - MCRConector + MCRMotor + MCRCadeia (pontes multi-nível)
+  - MCRFuel + MCRAutoMelhoria + MCRExpansao + MCRAutoEvolution
+  - 122/122 suite unificada. Stress 10/10 concorrente.
+  - Import: `from mcr import PipelineConectado, SQLiteMarkov`
 
 ### MCR Mente (MCRMentePura)
 5 MCRs independentes: percepcao, decompor, executar, avaliar, aprender

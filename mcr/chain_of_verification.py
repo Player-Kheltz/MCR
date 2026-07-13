@@ -140,8 +140,11 @@ class ChainOfVerification:
         entropias = []
         for frase in frases:
             if len(frase) > 10:
-                from mcr.ensemble_7b import _entropia
-                entropias.append(_entropia(frase))
+                try:
+                    from mcr.ensemble_7b import _entropia
+                    entropias.append(_entropia(frase))
+                except Exception:
+                    entropias.append(0.0)
 
         if entropias:
             h_media = sum(entropias) / len(entropias)
@@ -175,12 +178,11 @@ class ChainOfVerification:
         try:
             from mcr.metacognicao import Metacognicao
             meta = Metacognicao()
-            resultado = meta.calcular_confianca(termo)
-            conf = resultado.get('score', 0)
+            score, justificativa = meta.calcular_confianca(termo)
             return {
-                'valido': conf >= 0.3,
-                'confianca': conf,
-                'msg': f"confianca KG: {conf:.2f}",
+                'valido': score >= 0.3,
+                'confianca': score,
+                'msg': f"confianca KG: {score:.2f} ({justificativa})",
             }
         except Exception:
             pass

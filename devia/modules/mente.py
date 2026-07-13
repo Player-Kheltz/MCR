@@ -68,7 +68,7 @@ def _llm_leve(prompt, temp=0.2):
             headers={"Content-Type": "application/json"})
         resp = json.loads(urllib.request.urlopen(r, timeout=30).read())
         return (resp.get("response") or "").strip()
-    except:
+    except Exception:
         return ""
 
 def think(pergunta, tipo="desconhecido", subtipo="geral", kg=None, ia=None, ctx_crew=None):
@@ -201,7 +201,7 @@ def learn(pergunta, tipo, subtipo, resposta, kg=None):
         for b in blocos:
             try:
                 compile(b.strip(), '<test>', 'exec')
-            except:
+            except Exception:
                 erros += 1
         if erros == 0 and blocos:
             score += 10
@@ -227,5 +227,5 @@ def learn(pergunta, tipo, subtipo, resposta, kg=None):
                        f"tipo={tipo}, subtipo={subtipo}",
                        f"membros={membros}, score={score}, size={len(resposta or '')}",
                        f"mente_{tipo}")
-        except:
+        except Exception:
             pass

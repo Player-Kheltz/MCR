@@ -38,7 +38,7 @@ class Diagnostico:
             solucoes = [l.get('solucao','') for l in licoes if l.get('solucao')]
             info['duplicatas'] = len(solucoes) - len(set(solucoes))
             info['saude'] = max(0, 100 - info['inativas'] - info['duplicatas'] * 5)
-        except: pass
+        except Exception: pass
         return info
     
     def _diag_codigo(self):

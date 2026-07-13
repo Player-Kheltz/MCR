@@ -21,6 +21,155 @@
       "solucao_sugerida": "Revise o uso de metodoInexistente. Verifique se a funcao existe no objeto correto.",
       "timestamp": "2026-07-09 00:09:50",
       "ocorrencias": 1
+    },
+    {
+      "categoria": "desconhecido",
+      "api_problematica": "",
+      "arquivo": "C:\\Users\\Kheltz\\AppData\\Local\\Temp\\tmpqy1wdfx8.lua",
+      "mensagem_original": "error loading code: [string \"<python>\"]:163: function arguments expected near 'Cedric'",
+      "solucao_sugerida": "",
+      "timestamp": "2026-07-10 18:54:03",
+      "ocorrencias": 4,
+      "ultimo_timestamp": "2026-07-10 22:30:01",
+      "ultimo_arquivo": "C:\\Users\\Kheltz\\AppData\\Local\\Temp\\tmpbpslh_8j.lua"
+    },
+    {
+      "categoria": "runtime_shadow",
+      "api_problematica": "Cedric",
+      "arquivo": "",
+      "mensagem_original": "error loading code: [string \"<python>\"]:163: function arguments expected near 'Cedric'",
+      "solucao_sugerida": "",
+      "timestamp": "2026-07-10 18:54:03",
+      "ocorrencias": 1
+    },
+    {
+      "categoria": "runtime_shadow",
+      "api_problematica": "Blackwood",
+      "arquivo": "",
+      "mensagem_original": "error loading code: [string \"<python>\"]:163: function arguments expected near 'Blackwood'",
+      "solucao_sugerida": "",
+      "timestamp": "2026-07-10 19:02:27",
+      "ocorrencias": 1
+    },
+    {
+      "categoria": "sintaxe_valida_runtime_erro",
+      "api_problematica": ") expected near KeywordModule",
+      "arquivo": "C:\\Users\\Kheltz\\AppData\\Local\\Temp\\tmp8zd9vvkv.lua",
+      "mensagem_original": "error loading code: [string \"<python>\"]:203: ')' expected near 'KeywordModule'",
+      "solucao_sugerida": "Revise o uso de ) expected near KeywordModule. Verifique se a funcao existe no objeto correto.",
+      "timestamp": "2026-07-10 19:07:16",
+      "ocorrencias": 1
+    },
+    {
+      "categoria": "runtime_shadow",
+      "api_problematica": "KeywordModule",
+      "arquivo": "",
+      "mensagem_original": "error loading code: [string \"<python>\"]:203: ')' expected near 'KeywordModule'",
+      "solucao_sugerida": "Revise o uso de ) expected near KeywordModule. Verifique se a funcao existe no objeto correto.",
+      "timestamp": "2026-07-10 19:07:16",
+      "ocorrencias": 1
+    },
+    {
+      "categoria": "api_inexistente",
+      "api_problematica": "addCommand",
+      "arquivo": "C:\\Users\\Kheltz\\AppData\\Local\\Temp\\tmpokb4_1y4.lua",
+      "mensagem_original": "[string \"<python>\"]:176: attempt to call a nil value (method 'addCommand')\nstack traceback:\n\t[string \"<python>\"]:176: in main chunk",
+      "solucao_sugerida": "Revise o uso de addCommand. Verifique se a funcao existe no objeto correto.",
+      "timestamp": "2026-07-10 19:07:22",
+      "ocorrencias": 2,
+      "ultimo_timestamp": "2026-07-10 22:30:06",
+      "ultimo_arquivo": "C:\\Users\\Kheltz\\AppData\\Local\\Temp\\tmpxzapjoti.lua"
+    },
+    {
+      "categoria": "runtime_shadow",
+      "api_problematica": "addCommand",
+      "arquivo": "",
+      "mensagem_original": "[string \"<python>\"]:176: attempt to call a nil value (method 'addCommand')\nstack traceback:\n\t[string \"<python>\"]:176: in main chunk",
+      "solucao_sugerida": "Revise o uso de addCommand. Verifique se a funcao existe no objeto correto.",
+      "timestamp": "2026-07-10 19:07:22",
+      "ocorrencias": 2,
+      "ultimo_timestamp": "2026-07-10 22:30:06",
+      "ultimo_arquivo": ""
+    },
+    {
+      "categoria": "api_inexistente",
+      "api_problematica": "onPlayerLogin",
+      "arquivo": "C:\\Users\\Kheltz\\AppData\\Local\\Temp\\tmpvdv8mas0.lua",
+      "mensagem_original": "[string \"<python>\"]:185: attempt to call a nil value (field 'onPlayerLogin')\nstack traceback:\n\t[string \"<python>\"]:185: in main chunk",
+      "solucao_sugerida": "Revise o uso de onPlayerLogin. Verifique se a funcao existe no objeto correto.",
+      "timestamp": "2026-07-10 19:07:27",
+      "ocorrencias": 1
+    },
+    {
+      "categoria": "runtime_shadow",
+      "api_problematica": "onPlayerLogin",
+      "arquivo": "",
+      "mensagem_original": "[string \"<python>\"]:185: attempt to call a nil value (field 'onPlayerLogin')\nstack traceback:\n\t[string \"<python>\"]:185: in main chunk",
+      "solucao_sugerida": "Revise o uso de onPlayerLogin. Verifique se a funcao existe no objeto correto.",
+      "timestamp": "2026-07-10 19:07:27",
+      "ocorrencias": 1
+    },
+    {
+      "categoria": "tipo_errado",
+      "api_problematica": "keywordHandler",
+      "arquivo": "C:\\Users\\Kheltz\\AppData\\Local\\Temp\\tmp3b7rjg6q.lua",
+      "mensagem_original": "[string \"<python>\"]:197: attempt to index a nil value (global 'keywordHandler')\nstack traceback:\n\t[string \"<python>\"]:197: in main chunk",
+      "solucao_sugerida": "Revise o uso de keywordHandler. Verifique se a funcao existe no objeto correto.",
+      "timestamp": "2026-07-10 19:16:37",
+      "ocorrencias": 2,
+      "ultimo_timestamp": "2026-07-10 22:30:01",
+      "ultimo_arquivo": "C:\\Users\\Kheltz\\AppData\\Local\\Temp\\tmpfwoqm8en.lua"
+    },
+    {
+      "categoria": "runtime_shadow",
+      "api_problematica": "keywordHandler",
+      "arquivo": "",
+      "mensagem_original": "[string \"<python>\"]:197: attempt to index a nil value (global 'keywordHandler')\nstack traceback:\n\t[string \"<python>\"]:197: in main chunk",
+      "solucao_sugerida": "Revise o uso de keywordHandler. Verifique se a funcao existe no objeto correto.",
+      "timestamp": "2026-07-10 19:16:37",
+      "ocorrencias": 2,
+      "ultimo_timestamp": "2026-07-10 22:30:01",
+      "ultimo_arquivo": ""
+    },
+    {
+      "categoria": "runtime_shadow",
+      "api_problematica": "addModule",
+      "arquivo": "",
+      "mensagem_original": "[string \"<python>\"]:185: attempt to call a nil value (global 'addModule')\nstack traceback:\n\t[string \"<python>\"]:185: in main chunk",
+      "solucao_sugerida": "",
+      "timestamp": "2026-07-10 19:16:44",
+      "ocorrencias": 1
+    },
+    {
+      "categoria": "tipo_errado",
+      "api_problematica": "StdModule",
+      "arquivo": "C:\\Users\\Kheltz\\AppData\\Local\\Temp\\tmpzulvi80f.lua",
+      "mensagem_original": "[string \"<python>\"]:222: attempt to index a nil value (global 'StdModule')\nstack traceback:\n\t[string \"<python>\"]:222: in main chunk",
+      "solucao_sugerida": "Revise o uso de StdModule. Verifique se a funcao existe no objeto correto.",
+      "timestamp": "2026-07-10 21:28:19",
+      "ocorrencias": 2,
+      "ultimo_timestamp": "2026-07-10 21:28:19",
+      "ultimo_arquivo": "C:\\Users\\Kheltz\\AppData\\Local\\Temp\\tmp_d71je5h.lua"
+    },
+    {
+      "categoria": "runtime_shadow",
+      "api_problematica": "StdModule",
+      "arquivo": "",
+      "mensagem_original": "[string \"<python>\"]:222: attempt to index a nil value (global 'StdModule')\nstack traceback:\n\t[string \"<python>\"]:222: in main chunk",
+      "solucao_sugerida": "Revise o uso de StdModule. Verifique se a funcao existe no objeto correto.",
+      "timestamp": "2026-07-10 21:28:19",
+      "ocorrencias": 2,
+      "ultimo_timestamp": "2026-07-10 21:28:19",
+      "ultimo_arquivo": ""
+    },
+    {
+      "categoria": "runtime_shadow",
+      "api_problematica": "if",
+      "arquivo": "",
+      "mensagem_original": "error loading code: [string \"<python>\"]:193: <name> expected near 'if'",
+      "solucao_sugerida": "",
+      "timestamp": "2026-07-10 22:30:01",
+      "ocorrencias": 1
     }
   ]
 }

@@ -218,10 +218,10 @@ class MCRMetaNivel:
                             try:
                                 from modulos.MCR import _classificar_token as _mcr_tip
                                 tokens_tipos.append(_mcr_tip(pal) or 'outro')
-                            except:
+                            except Exception:
                                 tokens_tipos.append('outro')
                     dados_novo = ' '.join(tokens_tipos).encode('utf-8')
-                except:
+                except Exception:
                     dados_novo = dados_reconstruidos.encode('utf-8')
             elif novo_nivel == 'intencao':
                 dados_novo = dados_reconstruidos.encode('utf-8')
@@ -315,7 +315,7 @@ class MCRMetaGap:
                             f"[Prototipo: {fname}]\n{conteudo}",
                             ctx=f"gap_{gap['prefixo']}"
                         )
-                except: pass
+                except Exception: pass
         if self.bridge and self.bridge._descobriu:
             for nome, mod in self.bridge.modulos.items():
                 if termo.lower() in nome.lower():
@@ -343,7 +343,7 @@ class MCRMetaGap:
         if total_criadas > 0:
             for _ in range(10):
                 try: self.kg.aprender_conceito("_gap_flush", "_", ctx="_flush")
-                except: pass
+                except Exception: pass
         self.mk.aprender("CICLO_GAP", f"CRIOU:{total_criadas}")
         return {
             'gaps': len(gaps),
@@ -411,7 +411,7 @@ class MCRSelfIndex:
                     'estados': len(mk_mod.transicoes),
                 }
                 self.mk.aprender(f"MOD:{fname[:-3]}", f"BYTES:{len(dados)}")
-            except: pass
+            except Exception: pass
     
     def _indexar_comandos(self):
         cmd_path = os.path.join(self._base, '..', 'comandos')
@@ -430,7 +430,7 @@ class MCRSelfIndex:
                     'estados': len(mk_cmd.transicoes),
                 }
                 self.mk.aprender(f"CMD:{nome}", f"BYTES:{len(dados)}")
-            except: pass
+            except Exception: pass
     
     def buscar_classe(self, nome):
         return self._indice['classes'].get(nome, None)

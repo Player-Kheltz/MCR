@@ -16,10 +16,13 @@ Uso (JSON IPC):
 """
 import os, sys, json
 
-BASE = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
-sys.path.insert(0, os.path.join(BASE, 'Scripts', 'mcr_devia', 'modulos'))
+BASE = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+sys.path.insert(0, os.path.join(BASE, 'devia', 'modulos'))
 
-from agent_loop import AgentLoop
+try:
+    from agent_loop import AgentLoop
+except ImportError:
+    AgentLoop = None
 
 SANDBOX = os.path.join(BASE, 'sandbox')
 

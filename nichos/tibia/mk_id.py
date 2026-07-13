@@ -8,15 +8,17 @@ Compara comprimento de cadeia com/sem identidade.
 
 import sys, os, re, time, json, math, random
 
-os.chdir(r"E:\MCR")
+_BASE = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..'))
+
+os.chdir(_BASE)
 sys.path.insert(0, ".")
 __file__ = os.path.join(os.getcwd(), "MCR.py")
 with open(__file__, encoding="utf-8") as f:
     _code = f.read().split("def main():")[0]
 exec(compile(_code, "MCR.py", "exec"))
 
-OUT_DIR = r"E:\MCR\nichos\tibia\gerados"
-CACHE_DIR_NAME = r"E:\MCR\cache"
+OUT_DIR = os.path.join(_BASE, "nichos", "tibia", "gerados")
+CACHE_DIR_NAME = os.path.join(_BASE, "cache")
 os.makedirs(OUT_DIR, exist_ok=True)
 os.makedirs(CACHE_DIR_NAME, exist_ok=True)
 
@@ -87,7 +89,7 @@ for raiz, dirs, files in os.walk(RAIZ_NPC):
             if tok_count:
                 n_arqs += 1
                 n_tokens += tok_count
-        except: pass
+        except Exception: pass
 
 t1 = time.perf_counter()
 print(f"NPCs alimentados: {n_arqs} arquivos, {n_tokens} tokens em {t1-t0:.1f}s")
@@ -111,7 +113,7 @@ for raiz, dirs, files in os.walk(RAIZ_MON):
             if tok_count:
                 n_arqs_m += 1
                 n_tokens_m += tok_count
-        except: pass
+        except Exception: pass
 
 t1 = time.perf_counter()
 total_arqs = n_arqs + n_arqs_m

@@ -1,6 +1,9 @@
 """Teste rapido do Model Router V2 - so config"""
-import sys, json
-sys.path.insert(0, "E:\\Projeto MCR\\Scripts\\mcr_devia")
+import sys, json, os
+try:
+    sys.path.insert(0, "E:\\Projeto MCR\\Scripts\\mcr_devia")
+except Exception:
+    pass
 from mcr_devia import _melhor_modelo
 
 print("=== Model Router V2 ===")

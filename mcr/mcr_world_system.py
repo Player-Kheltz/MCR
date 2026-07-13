@@ -13,6 +13,8 @@ import time
 from collections import Counter
 from typing import Dict, List, Optional, Tuple
 
+_BASE = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
+
 # ─── 5 Estados do Mundo ───────────────────────────────────
 ESTADOS = ['EXPANDIR', 'CONECTAR', 'EQUILIBRAR', 'EVOLUIR', 'COMPENSAR']
 
@@ -291,7 +293,8 @@ class MCRWorldSystem:
                 import re as _re
                 nome_arquivo = _re.sub(r'[^a-z0-9_]', '',
                                        params['name'].lower().replace(' ', '_')) + '.lua'
-                caminho = r'E:\MCR\server\data-otservbr-global\npc\%s' % nome_arquivo
+                from mcr.paths import CANARY_NPC_DIR
+                caminho = str(CANARY_NPC_DIR / nome_arquivo)
                 from mcr.mcr_world_state import registrar_entidade
                 registrar_entidade('npc', params['name'], {
                     'file': caminho, 'role': '',
@@ -544,16 +547,15 @@ class MCRWorldSystem:
             # 2 & 3. Decidir acao
             acao = self._decidir_acao(estado_percebido)
 
-            # 4. Executar
+            # 4. Executar (dispatch via dict, sem if/elif)
             resultado = {'sucesso': False}
-            if acao == 'EXPANDIR':
-                resultado = self._executar_expandir(
-                    tema, estado_percebido, estado_acumulado, pending_names)
-            elif acao == 'CONECTAR':
-                resultado = self._executar_conectar(
-                    tema, estado_percebido, estado_acumulado, pending_names)
-            elif acao == 'EQUILIBRAR':
-                resultado = self._executar_equilibrar(
+            handler = {
+                'EXPANDIR': self._executar_expandir,
+                'CONECTAR': self._executar_conectar,
+                'EQUILIBRAR': self._executar_equilibrar,
+            }.get(acao)
+            if handler:
+                resultado = handler(
                     tema, estado_percebido, estado_acumulado, pending_names)
 
             resultado['acao'] = acao
@@ -765,7 +767,7 @@ class MCRWorldSystem:
             resultado_msg = salvar_npc_parametrizado(params)
             nome_arquivo = _re.sub(r'[^a-z0-9_]', '',
                                    params['name'].lower().replace(' ', '_')) + '.lua'
-            caminho = r'E:\MCR\server\data-otservbr-global\npc\%s' % nome_arquivo
+            caminho = os.path.join(_BASE, 'server', 'data-otservbr-global', 'npc', nome_arquivo)
             registrar_entidade('npc', params['name'], {
                 'file': caminho, 'role': '',
                 'tier': 'reposicao',

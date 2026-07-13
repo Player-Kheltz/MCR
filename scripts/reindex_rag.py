@@ -1,19 +1,26 @@
 """Recria o indice RAG do zero com conteudo correto."""
 import sys, os, time
-sys.path.insert(0, r'E:\MCR')
+
+_MCR_ROOT = os.path.join(os.path.dirname(__file__), '..')
+_MCR_KERNEL = os.path.join(_MCR_ROOT, 'devia', 'kernel')
+if _MCR_ROOT not in sys.path:
+    sys.path.insert(0, _MCR_ROOT)
+if _MCR_KERNEL not in sys.path:
+    sys.path.insert(0, _MCR_KERNEL)
+
 from rag_mcr import MCRRAG
 
 rag = MCRRAG(reset=True)
 t0 = time.time()
 
 # 1. PERSONALIDADE.md (identidade do sistema)
-path1 = r'E:\Projeto MCR\PERSONALIDADE.md'
+path1 = os.path.join(_MCR_ROOT, 'PERSONALIDADE.md')
 with open(path1, 'r', encoding='utf-8') as f:
     n1 = rag.adicionar_texto(f.read(), 'PERSONALIDADE.md')
 print(f'PERSONALIDADE.md: {n1} chunks')
 
 # 2. Lore do projeto (definicoes corretas)
-path_lore = r'E:\Projeto MCR\lore_base'
+path_lore = os.path.join(_MCR_ROOT, 'lore_base')
 if os.path.isdir(path_lore):
     for f in os.listdir(path_lore):
         if not f.endswith('.md'): continue
@@ -25,7 +32,7 @@ if os.path.isdir(path_lore):
             print(f'Lore {f}: {n} chunks')
 
 # 3. Scripts Lua do Canary (NPCs, actions, lib) - so alguns pra teste
-canary_base = r'E:\Projeto MCR\Canary'
+canary_base = os.path.join(_MCR_ROOT, 'server')
 dirs_lua = [
     os.path.join(canary_base, 'data', 'npclib'),
     os.path.join(canary_base, 'data-canary', 'scripts', 'actions'),
@@ -42,7 +49,7 @@ for diretorio in dirs_lua:
             try:
                 with open(caminho, 'r', encoding='utf-8', errors='replace') as fh:
                     texto = fh.read()
-            except: continue
+            except Exception: continue
             if len(texto) < 100 or len(texto) > 10000: continue
             rag.adicionar_texto(texto, caminho)
             total_lua += 1

@@ -551,12 +551,66 @@ O que existe é:
 
 ---
 
+## Fase 14: Unificação (Julho 2026)
+
+### Contexto
+
+Após a auditoria do whitepaper (fase 13), o sistema tinha:
+- 5 pipelines competidoras (`mcr_mente_pura.py`, `mcr_mente.py`, `mcr_unificado.py`, `pipeline_completo.py`, `pipeline_universal.py`)
+- 90 arquivos em `mcr/`, muitos wrappers e duplicatas
+- Camadas conceituais (consciência, criatividade, decisão) que eram indireção, não funcionalidade
+- MCRs que nasciam vazios, sem pré-treinamento, caindo sempre nos fallbacks
+
+A pergunta era: o que o MCR realmente É? A resposta emergiu da análise completa do ecossistema:
+
+> MCR é um framework cognitivo. 1 Markov. 1 Entropia. 1 Equação. N domínios.
+> Tibia e Visual são as PROVAS, não o produto.
+
+### O que mudou
+
+**Criado:**
+- `mcr/mcr.py` — classe `MCR` com 657 linhas, pipeline unificada de 5 estágios
+- 6 novos diretórios organizados por função
+
+**Eliminado:**
+- `MCRFilosofia` (autocomplete Markoviano, não reflexão)
+- `logwatcher_bridge.py`, `shadow_dotnet.py` (zero imports)
+- `fix_mcr_devia_v2.py`, `npc_vivo.py` (dead code)
+
+**Corrigido:**
+- `vocabulario_unico: 0 → 4959` (dialogue_trainer)
+- `dispatch if/elif → dict` (mcr_world_system)
+- Estados compostos para classificação Markov (não mais hash/fingerprint puro)
+
+**Resultados:**
+- 14/14 classificação de ações
+- 20/20 imports verificados
+- Código Lua válido gerado e validado pelo SanityValidator
+- 285 ferramentas registradas
+
+### Limitações honestas documentadas
+
+Pela primeira vez, o README e whitepaper documentam explicitamente o que o sistema NÃO faz:
+- Markov de 1ª ordem não modela dependências de longo alcance
+- Classificação depende de seeds pré-treinadas
+- Templates determinísticos não entendem semântica
+- LLM é necessário para qualidade máxima em alguns domínios
+- Não é uma AGI, não é um produto, é um experimento de pesquisa
+
+---
+
 ## Sobre o Projeto MCR
 
-O Projeto MCR era um servidor de Tibia (OTServ Canary).
+O Projeto MCR começou como um servidor de Tibia (OTServ Canary).
 
-O Projeto MCR descobriu uma equação multi-nível.
+Dentro dele, nasceu um motor Markov.
 
-O servidor de Tibia pode não ter mudado o mundo.
+O motor Markov se tornou um framework cognitivo.
 
-**A equação pode.**
+O servidor de Tibia virou o campo de provas.
+
+**A pergunta não é "o MCR gera NPCs?".**
+**A pergunta é: "Markov 1ª ordem + Entropia + 1 Equação = Cognição?"**
+
+A resposta ainda está sendo construída.
+

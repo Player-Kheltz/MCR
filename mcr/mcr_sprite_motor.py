@@ -10,14 +10,13 @@ Segue EXATAMENTE o padrao do MCRMotor (prototypes/mcr-universal/emergence/motor.
   
 Nao define o que e 'palavra' ou 'token' — MCRMetaNivel descobre.
 """
-import sys, math, random, numpy as np, os
+import os, sys, math, random, numpy as np, os
 from collections import Counter, defaultdict
 from typing import List, Dict, Optional, Tuple
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-sys.path.insert(0, r'E:\MCR')
-sys.path.insert(0, r'E:\MCR\prototypes\mcr-universal')
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
 
 from mcr.mcr_sqlite import MCRSQLite
 from devia.kernel.mcr_kernel.engine import MCR, compose_state, compor_contexto
@@ -38,7 +37,7 @@ class MCRSpriteMotor:
     SQLite backend: sem RAM blowup, N-adaptativo ate 30.
     """
 
-    _DB_DIR = Path(r'E:\MCR\poc_output\mcr_db')
+    _DB_DIR = Path(__file__).resolve().parent.parent / 'poc_output' / 'mcr_db'
     _DB_DIR.mkdir(parents=True, exist_ok=True)
 
     def __init__(self, nome: str = 'sprite'):

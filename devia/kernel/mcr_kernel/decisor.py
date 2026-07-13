@@ -27,7 +27,7 @@ class MCRPeso:
         if prox is None or conf < 0.1: return fallback
         try:
             return int(prox.replace('VAL_', '')) / 10.0
-        except:
+        except Exception:
             return fallback
     
     def pesos_mais_comuns(self, top_n: int = 5) -> list:
@@ -37,7 +37,7 @@ class MCRPeso:
             melhor = max(trans, key=trans.get) if trans else ''
             try:
                 valor = int(melhor.replace('VAL_', '')) / 10.0
-            except:
+            except Exception:
                 valor = 0
             freq = sum(trans.values())
             result.append((freq, estado.replace('CAT_', ''), valor))
@@ -243,7 +243,7 @@ class MCRPesoNota:
             if prox and conf > 0.1:
                 try:
                     return int(prox.replace('NOTA:', '')) / 10.0
-                except:
+                except Exception:
                     pass
         notas_similares = []
         for c, n in self.historico:
@@ -280,7 +280,7 @@ class MCRThreshold:
         pred = self.mk.predizer(f"THR:{chave}")
         if pred[0] is not None and pred[1] > 0.3:
             try: return int(pred[0]) / 100.0
-            except: pass
+            except Exception: pass
         if len(self.observacoes) >= 3:
             from statistics import median
             return median(self.observacoes)

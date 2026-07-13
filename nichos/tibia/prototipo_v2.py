@@ -3,7 +3,9 @@
 
 import sys, os, time
 
-os.chdir(r"E:\MCR")
+_BASE = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..'))
+
+os.chdir(_BASE)
 sys.path.insert(0, ".")
 __file__ = os.path.join(os.getcwd(), "MCR.py")
 with open(__file__, encoding="utf-8") as f:

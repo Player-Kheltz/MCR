@@ -15,16 +15,25 @@ Uso:
     # -> Projeto completo com codigo e instrucoes
 """
 import os, sys, json, time, re, random, hashlib
-from modulos.conselho import tree_of_thought  # EMERGIR V2: 3 perspectivas + sintese
-from context_crew import ContextCrew  # EMERGIR V3: enriquecimento de topicos
-import re as _re  # EMERGIR V3: verificador de alucinacoes
+try:
+    from devia.modules.conselho import tree_of_thought
+except ImportError:
+    from modulos.conselho import tree_of_thought
+try:
+    from context_crew import ContextCrew
+except ImportError:
+    ContextCrew = None
+try:
+    from context_infinity import SessionCache
+except ImportError:
+    SessionCache = None
+import re as _re
 from typing import Dict, List, Optional
 
-# SSE — Dashboard de pensamento em tempo real (opcional, nao quebra se nao existir)
 try:
     from modulos.sse_server import emit
 except ImportError:
-    emit = lambda *a, **kw: None  # noop se o SSE nao estiver rodando
+    emit = lambda *a, **kw: None
 
 # Caminhos
 BASE = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
@@ -36,7 +45,10 @@ from modulos.tool_orchestrator import ToolOrchestrator
 from modulos.sandbox_executor import SandboxExecutor
 from modulos.ia import IA
 from modulos.kg import KnowledgeGraph
-from context_infinity import SessionCache
+try:
+    from context_infinity import SessionCache
+except ImportError:
+    SessionCache = None
 from modulos.enricher import Enricher  # atalho para Conselho (fundido)
 from modulos.emergir import EmergirEngine  # EMERGIR V4
 from modulos.self_study import SelfStudyEngine  # Self-Study
@@ -809,7 +821,7 @@ class MasterAgent:
         try:
             with open(caminho, 'r', encoding='utf-8') as f:
                 conteudo_original = f.read()
-        except:
+        except Exception:
             return False
         
         # Backup ANTES de qualquer modificacao
@@ -930,7 +942,7 @@ class MasterAgent:
                     solucao=f'Sucesso: {sucesso} | Tipo: {decisao.get("tipo","")}',
                     ctx='auto_melhoria'
                 )
-            except:
+            except Exception:
                 pass
             
             salvar_checkpoint('fim', 1.0)

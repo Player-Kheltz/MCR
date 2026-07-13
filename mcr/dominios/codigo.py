@@ -4,9 +4,8 @@ Tokenizer: raw_token_set (do mcr-universal, sem parser).
 Validator: entropia + estado.
 Builder: salva como .txt.
 """
-import sys
-sys.path.insert(0, r'E:\MCR')
-sys.path.insert(0, r'E:\MCR\prototypes\mcr-universal')
+import sys, os
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..'))
 
 
 def tokenizer(codigo: str) -> list:

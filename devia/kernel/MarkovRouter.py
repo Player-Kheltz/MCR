@@ -16,7 +16,7 @@ def _carregar_mk():
                     data = json.load(f)
                 if 'freq' in data: mk.freq = data['freq']
                 if 'total' in data: mk.total = data['total']
-            except: pass
+            except Exception: pass
         return mk
     except Exception:
         return None
@@ -29,7 +29,7 @@ def _salvar_mk(mk):
                 'total': mk.total if hasattr(mk, 'total') else 0}
         with open(_MK_PATH, 'w', encoding='utf-8') as f:
             json.dump(data, f, ensure_ascii=False)
-    except: pass
+    except Exception: pass
 
 
 class MarkovRouter:
@@ -85,7 +85,7 @@ class MarkovRouter:
             if acao_pred and conf > 0.3:
                 acoes = acao_pred.split('_')
                 return acoes
-        except: pass
+        except Exception: pass
         return None
     
     def _get_tool_registry(self):
@@ -97,7 +97,7 @@ class MarkovRouter:
                     sys.path.insert(0, tool_path)
                     from tool_registry import get_registry
                     self._reg = get_registry()
-            except: pass
+            except Exception: pass
         return self._reg
     
     def decidir(self, classe: str, confianca: float, cache_hit: bool = False) -> List[str]:

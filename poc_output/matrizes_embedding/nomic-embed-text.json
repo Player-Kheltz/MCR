@@ -1,0 +1,15 @@
+{
+  "modelo": "nomic-embed-text",
+  "tensor": "token_embd.weight",
+  "shape": [
+    768,
+    30522
+  ],
+  "n_tokens_extraidos": 768,
+  "n_dims": 256,
+  "mcr_estados": 200,
+  "mcr_entropia": 0.0,
+  "tempo_total": 17.0,
+  "tempo_sdm": 16.11,
+  "status": "OK"
+}

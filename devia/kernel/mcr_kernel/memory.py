@@ -25,11 +25,11 @@ def _get_kg():
         kg = KnowledgeGraph()
         if kg:
             return kg
-    except:
+    except Exception:
         pass
     try:
         return MCRBufferKG()
-    except:
+    except Exception:
         return None
 
 
@@ -247,12 +247,12 @@ class MCRConector:
             for s in seq_a:
                 if s.startswith('B:'):
                     try: chars.append(chr(int(s[2:], 16)))
-                    except: chars.append('?')
+                    except Exception: chars.append('?')
             chars.append(' ')
             for s in seq_b:
                 if s.startswith('B:'):
                     try: chars.append(chr(int(s[2:], 16)))
-                    except: chars.append('?')
+                    except Exception: chars.append('?')
             sequencia = ''.join(chars)
         nota, detalhes = self._autoavaliar_multinivel(sequencia, texto_a, texto_b, tipo_ponte)
         self.conexoes_feitas.add(h)
@@ -476,7 +476,7 @@ class MCRCadeia:
                 if prox is not None:
                     if str(prox).startswith('B:'):
                         try: prox = chr(int(str(prox)[2:], 16))
-                        except: pass
+                        except Exception: pass
             elif nivel_atual == 'token':
                 mk = mk_token
                 tok_key = estado_pred[0].upper() if estado_pred else '?'
@@ -595,11 +595,11 @@ class MCRBufferKG:
             try:
                 from modulos.kg import KnowledgeGraph
                 self._kg = KnowledgeGraph()
-            except:
+            except Exception:
                 self._kg = None
         return self._kg
     
-    def aprender(self, erro, solucao, ctx='buffer'):
+    def aprender(self, erro, solucao, ctx='buffer', **kwargs):
         if not self.kg: return
         self._buffer.append({'erro': erro, 'solucao': solucao, 'ctx': ctx})
         if len(self._buffer) >= self._buffer_limite:
@@ -612,6 +612,11 @@ class MCRBufferKG:
             self.kg.aprender_conceito(item['erro'], item['solucao'], ctx=item['ctx'])
         self._buffer = []
         self.mk.aprender("FLUSH", f"{n} lessons salvas")
+    
+    def aprender_conceito(self, erro, solucao, ctx='buffer'):
+        """Compatibilidade com KnowledgeGraph.aprender_conceito()."""
+        if self.kg and hasattr(self.kg, 'aprender_conceito'):
+            self.kg.aprender_conceito(erro, solucao, ctx=ctx)
     
     def buscar(self, termo, max_r=5, pergunta=''):
         resultados = []

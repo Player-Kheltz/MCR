@@ -6,9 +6,9 @@ import sys, os, json, time
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, BASE)
+sys.path.insert(0, os.path.join(BASE, '..', 'devia', 'kernel'))
 
 # Importa o processar do mcr_devia
-# (precisa importar o modulo para que os globais sejam inicializados)
 from mcr_devia import processar
 
 

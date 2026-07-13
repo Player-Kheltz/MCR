@@ -43,7 +43,7 @@ def execute(kg, ia, args, ctx_crew=None):
             if a.startswith('--fase'):
                 try:
                     fase_especifica = int(a.split('=')[-1]) if '=' in a else int(args[args.index(a)+1])
-                except:
+                except Exception:
                     pass
     
     print('=' * 70)
@@ -141,7 +141,7 @@ def _fase1_fundacao(kg):
                     with open(fpath, 'r', encoding='utf-8', errors='replace') as fh:
                         codigo = fh.read()
                     tokens_totais.extend(pe.tokenizar(codigo, 'codigo'))
-                except:
+                except Exception:
                     pass
         if tokens_totais:
             fp = pe.fingerprint(tokens_totais)

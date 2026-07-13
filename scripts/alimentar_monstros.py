@@ -3,14 +3,14 @@
 
 import sys, os, time
 
-os.chdir(r"E:\MCR")
+os.chdir(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, ".")
-__file__ = os.path.join(os.getcwd(), "MCR.py")
-with open(__file__, encoding="utf-8") as f:
-    _code = f.read().split("def main():")[0]
-exec(compile(_code, "MCR.py", "exec"))
+try:
+    from MCR import CerebroAGI
+except ImportError:
+    CerebroAGI = None
 
-RAIZ = r"E:\Projeto MCR\Canary\data-otservbr-global\monster"
+RAIZ = os.path.join(os.path.dirname(__file__), '..', 'server', 'data-otservbr-global', 'monster')
 BATCH_SIZE = 10
 
 print("=" * 60)
@@ -55,7 +55,7 @@ for nome_rel, fp, tam in arquivos:
                       f"{n_arqs/max(t-t0,0.1):.1f} arqs/s {t-t0:.0f}s")
             
             batch_textos = []
-    except: pass
+    except Exception: pass
 
 if batch_textos:
     texto_batch = "\n\n--[[ SEP ]]\n\n".join(batch_textos)

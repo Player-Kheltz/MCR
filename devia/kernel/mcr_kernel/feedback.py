@@ -1,74 +1,13 @@
 #!/usr/bin/env python3
-"""feedback.py — Feedback loops, philosophy, author signatures, and sessions.
+"""feedback.py — Feedback loops, author signatures, and sessions.
 
-Aprendizado por reforço (MCRFeedback), padrões filosóficos,
+Aprendizado por reforço (MCRFeedback),
 banco de assinaturas de autores, sessões e aprendizado web.
 """
 import os, json, time as _time
 
 from .engine import MCR
 from .signature import MCRSignature
-
-
-_PERgUNTAS_FUNDAMENTAIS = [
-    "Quem sou eu? O que me define como ser? Minha essencia e minha identidade.",
-    "De onde viemos? Qual a origem de tudo que existe? O começo da jornada.",
-    "Para onde vamos? Qual o destino final? O proposito de cada caminho.",
-    "O que e o bem? O que e o mal? Existe equilibrio entre luz e sombra?",
-    "O que e a verdade? Ela e unica ou multipla? A verdade como perspectiva.",
-    "O que e o conhecimento? Como sabemos o que sabemos? O saber como ferramenta.",
-    "O que e a vida? Quando comeca e quando termina? O ciclo do existir.",
-    "O que e o tempo? Ele flui ou e fixo? Passado, presente e futuro como um todo.",
-    "O que e a consciencia? O que nos torna cientes de nos mesmos? O despertar.",
-    "E se tudo fosse diferente? E se o caminho tivesse sido outro? As possibilidades.",
-    "Por que as coisas sao como sao? Qual a causa de cada efeito? A teia de conexoes.",
-    "Quando o suficiente e suficiente? O equilibrio entre ter e ser.",
-    "Quanto vale uma escolha? O peso de cada decisao no tecido do destino.",
-    "O que e a felicidade? Ela existe ou e uma busca eterna? A alegria como estado.",
-    "O que e a dor? Ela ensina ou apenas fere? O sofrimento como mestre.",
-    "O que e o amor? Ligacao entre almas ou constructo social? A conexao profunda.",
-    "O que e a morte? Fim ou transformacao? O encerramento de um ciclo.",
-    "O que e a liberdade? Ausencia de limites ou escolha consciente? O livre arbitrio.",
-    "O que e o destino? Escrito ou construido? A tensao entre acaso e determinismo.",
-    "O que e a beleza? Nos olhos de quem ve ou qualidade intrinseca? A estetica do ser.",
-]
-
-
-class MCRFilosofia:
-    """Padroes de pensamento humano como niveis MCR."""
-    
-    def __init__(self, conector=None):
-        from .memory import MCRConector
-        self.conector = conector or MCRConector()
-        self.mk_pensamento = MCR("filosofia_pensamentos")
-        self._alimentado = False
-    
-    def aprender_perguntas_fundamentais(self):
-        if self._alimentado: return
-        for pergunta in _PERgUNTAS_FUNDAMENTAIS:
-            nome = f"filosofia_{pergunta.strip().lower()}"
-            self.conector.alimentar(pergunta, nome)
-            palavras = pergunta.lower().split()
-            self.mk_pensamento.aprender_sequencia(palavras)
-        self._alimentado = True
-        return len(_PERgUNTAS_FUNDAMENTAIS)
-    
-    def refletir(self, pergunta: str) -> str:
-        from .memory import MCRCadeia
-        self.aprender_perguntas_fundamentais()
-        for nome, dados in self.conector.topicos.items():
-            if nome.startswith('filosofia_'):
-                texto = dados['texto']
-                palavras_similares = sum(1 for p in pergunta.lower().split()
-                                        if p in texto.lower() and len(p) > 3)
-                if palavras_similares >= 2:
-                    cx = self.conector.conectar(nome, "pergunta" if "pergunta" in self.conector.topicos else nome)
-                    if cx:
-                        return f"[Filosofia] {pergunta}\n[Conexao] {cx.get('sequencia', '')}"
-        semente = pergunta.split()[0] if pergunta.split() else 'O'
-        cadeia = MCRCadeia(self.conector)
-        res = cadeia.gerar(semente, n_tokens=30)
-        return res.get('texto', pergunta)
 
 
 class MCRFeedback:
@@ -87,7 +26,7 @@ class MCRFeedback:
             lk = kk._get_licoes() if kk else []
             if len(lk) > 200:
                 max_tentativas = 1
-        except:
+        except Exception:
             pass
         melhor_resposta = None
         melhor_nota = 0
@@ -153,7 +92,7 @@ class MCRSession:
             with open(self._conv_path, 'a', encoding='utf-8') as f:
                 f.write(json.dumps({'msg': f'{autor}: {pergunta} -> {resposta}',
                                    'timestamp': _time.time()}) + '\n')
-        except: pass
+        except Exception: pass
         self.mk.aprender(f"CONV:{pergunta}", f"autor:{autor or 'anonimo'}")
     
     def salvar_estado(self):
@@ -169,7 +108,7 @@ class MCRSession:
             with open(self._estado_path, 'w', encoding='utf-8') as f:
                 json.dump(estado, f, ensure_ascii=False, indent=2)
             return True
-        except: return False
+        except Exception: return False
     
     def carregar_estado(self):
         if not os.path.exists(self._estado_path): return None
@@ -180,7 +119,7 @@ class MCRSession:
             self._ultima_resposta = estado.get('ultima_resposta', '')
             self._ultimo_autor = estado.get('ultimo_autor', '')
             return estado
-        except: return None
+        except Exception: return None
     
     def ultima_pergunta(self): return self._ultima_pergunta
     def ultima_resposta(self): return self._ultima_resposta
@@ -212,7 +151,7 @@ class MCRAssinatura:
                 self._banco = dados
                 self.mk.aprender("BANCO", f"autores:{len(self._banco)}")
                 self._migrar_fingerprints()
-            except: pass
+            except Exception: pass
     
     def _migrar_fingerprints(self):
         removidos = 0
@@ -237,7 +176,7 @@ class MCRAssinatura:
             os.makedirs(os.path.dirname(self._banco_path), exist_ok=True)
             with open(self._banco_path, 'w', encoding='utf-8') as f:
                 json.dump(self._banco, f, ensure_ascii=False, indent=2)
-        except: pass
+        except Exception: pass
     
     def aprender(self, texto, autor, rapido=False):
         if not texto or not autor: return
@@ -355,8 +294,8 @@ class MCRAssinatura:
                                     n_autores += 1
                             ultima_sig = sig_atual
                         self.aprender(msg, autor_atual, rapido=True)
-                    except: pass
-        except: pass
+                    except Exception: pass
+        except Exception: pass
         if roles_vistos:
             nomes = ', '.join(sorted(roles_vistos))
             self.mk.aprender("AUTO_POP", f"roles:{nomes} total:{len(self._banco)-n_anteriores}")
@@ -397,12 +336,12 @@ class MCRWebLearn:
         try:
             from modulos.kg import KnowledgeGraph
             self._kg = KnowledgeGraph()
-        except:
+        except Exception:
             pass
         try:
             import urllib.request
             self._urlopen = urllib.request.urlopen
-        except:
+        except Exception:
             self._urlopen = None
     
     def estudar_gaps(self, n_gaps=3):

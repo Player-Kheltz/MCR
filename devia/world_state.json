@@ -338,6 +338,261 @@
       "file": "npc_pedro_pedrasca.lua",
       "role": "gerado_por_pipeline",
       "tier": "rascunho"
+    },
+    "Thalara Starshadow": {
+      "file": "npc_thalara_starshadow.lua",
+      "role": "gerado_por_pipeline",
+      "tier": "rascunho"
+    },
+    "Theron Blackwood": {
+      "file": "npc_theron_blackwood.lua",
+      "role": "gerado_por_pipeline",
+      "tier": "rascunho"
+    },
+    "Thaddeus Blackwood": {
+      "file": "npc_thaddeus_blackwood.lua",
+      "role": "gerado_por_pipeline",
+      "tier": "rascunho"
+    },
+    "Elara Moonshadow": {
+      "file": "npc_elara_moonshadow.lua",
+      "role": "gerado_por_pipeline",
+      "tier": "rascunho"
+    },
+    "Thaddeus Zephyrwind": {
+      "file": "npc_thaddeus_zephyrwind.lua",
+      "role": "gerado_por_pipeline",
+      "tier": "rascunho"
+    },
+    "Gorgoth Ironbrow": {
+      "file": "npc_gorgoth_ironbrow.lua",
+      "role": "gerado_por_pipeline",
+      "tier": "rascunho"
+    },
+    "Eryndir Swiftfoot": {
+      "file": "npc_eryndir_swiftfoot.lua",
+      "role": "gerado_por_pipeline",
+      "tier": "rascunho"
+    },
+    "Thalara Moonwhisper": {
+      "file": "npc_thalara_moonwhisper.lua",
+      "role": "gerado_por_pipeline",
+      "tier": "rascunho"
+    },
+    "Gromm Ironfist": {
+      "file": "npc_gromm_ironfist.lua",
+      "role": "gerado_por_pipeline",
+      "tier": "rascunho"
+    },
+    "Graknok Ironfist": {
+      "file": "npc_graknok_ironfist.lua",
+      "role": "gerado_por_pipeline",
+      "tier": "rascunho"
+    },
+    "Grom Grunnhilt": {
+      "file": "npc_grom_grunnhilt.lua",
+      "role": "gerado_por_pipeline",
+      "tier": "rascunho"
+    },
+    "Alistair \"O Assombroso\" Carlink": {
+      "file": "npc_alistair_\"o_assombroso\"_carlink.lua",
+      "role": "gerado_por_pipeline",
+      "tier": "rascunho"
+    },
+    "Brunin": {
+      "file": "E:\\MCR\\server\\data-otservbr-global\\npc\\brunin.lua",
+      "role": "ferreiro",
+      "tier": "template"
+    },
+    "Grimgruum": {
+      "file": "npc_grimgruum.lua",
+      "role": "gerado_por_pipeline",
+      "tier": "rascunho"
+    },
+    "Grimgor Oruk": {
+      "file": "npc_grimgor_oruk.lua",
+      "role": "gerado_por_pipeline",
+      "tier": "rascunho"
+    },
+    "Grarg the Oregorger": {
+      "file": "npc_grarg_the_oregorger.lua",
+      "role": "gerado_por_pipeline",
+      "tier": "rascunho"
+    },
+    "Zephyrion Blackwood": {
+      "file": "npc_zephyrion_blackwood.lua",
+      "role": "gerado_por_pipeline",
+      "tier": "rascunho"
+    },
+    "Brunin Anão Ferreiro": {
+      "file": "npc_brunin_anão_ferreiro.lua",
+      "role": "gerado_por_pipeline",
+      "tier": "rascunho"
+    },
+    "Gorg'grim Ironfist": {
+      "file": "npc_gorg'grim_ironfist.lua",
+      "role": "gerado_por_pipeline",
+      "tier": "rascunho"
+    },
+    "Brunin Anão": {
+      "file": "npc_brunin_anão.lua",
+      "role": "gerado_por_pipeline",
+      "tier": "rascunho"
+    },
+    "Alaric Mysticus": {
+      "file": "npc_alaric_mysticus.lua",
+      "role": "gerado_por_pipeline",
+      "tier": "rascunho"
+    },
+    "Alaric Zephyrion": {
+      "file": "npc_alaric_zephyrion.lua",
+      "role": "gerado_por_pipeline",
+      "tier": "rascunho"
+    },
+    "Minstrel Morvold": {
+      "file": "npc_minstrel_morvold.lua",
+      "role": "gerado_por_pipeline",
+      "tier": "rascunho"
+    },
+    "Thalara Starshimmer": {
+      "file": "npc_thalara_starshimmer.lua",
+      "role": "gerado_por_pipeline",
+      "tier": "rascunho"
+    },
+    "Zephyrion Swiftstone": {
+      "file": "npc_zephyrion_swiftstone.lua",
+      "role": "gerado_por_pipeline",
+      "tier": "rascunho"
+    },
+    "Bardil Talespinner": {
+      "file": "npc_bardil_talespinner.lua",
+      "role": "gerado_por_pipeline",
+      "tier": "rascunho"
+    },
+    "Grimgor Ironfist": {
+      "file": "npc_grimgor_ironfist.lua",
+      "role": "gerado_por_pipeline",
+      "tier": "rascunho"
+    },
+    "Grimgold Hammerheart": {
+      "file": "npc_grimgold_hammerheart.lua",
+      "role": "gerado_por_pipeline",
+      "tier": "rascunho"
+    },
+    "Grimgold Ironbane": {
+      "file": "npc_grimgold_ironbane.lua",
+      "role": "gerado_por_pipeline",
+      "tier": "rascunho"
+    },
+    "Grimgold Ironfist": {
+      "file": "npc_grimgold_ironfist.lua",
+      "role": "gerado_por_pipeline",
+      "tier": "rascunho"
+    },
+    "Grimgor Ironheart": {
+      "file": "npc_grimgor_ironheart.lua",
+      "role": "gerado_por_pipeline",
+      "tier": "rascunho"
+    },
+    "Ferraduro": {
+      "file": "npc_ferraduro.lua",
+      "role": "gerado_por_pipeline",
+      "tier": "rascunho"
+    },
+    "Alita": {
+      "file": "E:\\MCR\\server\\data-otservbr-global\\npc\\alita.lua",
+      "role": "vendedora",
+      "tier": "template"
+    },
+    "Gorn": {
+      "file": "E:\\MCR\\server\\data-otservbr-global\\npc\\gorn.lua",
+      "role": "guarda",
+      "tier": "template"
+    },
+    "Maris": {
+      "file": "E:\\MCR\\server\\data-otservbr-global\\npc\\maris.lua",
+      "role": "padeiro",
+      "tier": "template"
+    },
+    "Rashid": {
+      "file": "E:\\MCR\\server\\data-otservbr-global\\npc\\rashid.lua",
+      "role": "mercador",
+      "tier": "template"
+    },
+    "Xodet": {
+      "file": "E:\\MCR\\server\\data-otservbr-global\\npc\\xodet.lua",
+      "role": "taverneiro",
+      "tier": "template"
+    },
+    "Teodoro": {
+      "file": "E:\\MCR\\server\\data-otservbr-global\\npc\\teodoro.lua",
+      "role": "cavaleiro",
+      "tier": "template"
+    },
+    "Bucanero": {
+      "file": "E:\\MCR\\server\\data-otservbr-global\\npc\\bucanero.lua",
+      "role": "comerciante",
+      "tier": "template"
+    },
+    "Eremo": {
+      "file": "E:\\MCR\\server\\data-otservbr-global\\npc\\eremo.lua",
+      "role": "mendigo",
+      "tier": "template"
+    },
+    "Lily": {
+      "file": "E:\\MCR\\server\\data-otservbr-global\\npc\\lily.lua",
+      "role": "vendedora",
+      "tier": "template"
+    },
+    "Grizzly": {
+      "file": "E:\\MCR\\server\\data-otservbr-global\\npc\\grizzly.lua",
+      "role": "soldado",
+      "tier": "template"
+    },
+    "Chondur": {
+      "file": "E:\\MCR\\server\\data-otservbr-global\\npc\\chondur.lua",
+      "role": "tecelao",
+      "tier": "template"
+    },
+    "Nelly": {
+      "file": "E:\\MCR\\server\\data-otservbr-global\\npc\\nelly.lua",
+      "role": "mensageiro",
+      "tier": "template"
+    },
+    "Percy": {
+      "file": "E:\\MCR\\server\\data-otservbr-global\\npc\\percy.lua",
+      "role": "carpinteiro",
+      "tier": "template"
+    },
+    "Zenobio": {
+      "file": "E:\\MCR\\server\\data-otservbr-global\\npc\\zenobio.lua",
+      "role": "artesao",
+      "tier": "template"
+    },
+    "Oswald": {
+      "file": "E:\\MCR\\server\\data-otservbr-global\\npc\\oswald.lua",
+      "role": "guarda",
+      "tier": "template"
+    },
+    "Yaman": {
+      "file": "E:\\MCR\\server\\data-otservbr-global\\npc\\yaman.lua",
+      "role": "guarda costas",
+      "tier": "template"
+    },
+    "Humphrey": {
+      "file": "E:\\MCR\\server\\data-otservbr-global\\npc\\humphrey.lua",
+      "role": "cocheiro",
+      "tier": "template"
+    },
+    "Leopold": {
+      "file": "E:\\MCR\\server\\data-otservbr-global\\npc\\leopold.lua",
+      "role": "mercador",
+      "tier": "template"
+    },
+    "TibiaPal": {
+      "file": "E:\\MCR\\server\\data-otservbr-global\\npc\\tibiapal.lua",
+      "role": "cavaleiro",
+      "tier": "template"
     }
   },
   "monstros": {

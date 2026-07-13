@@ -3,8 +3,8 @@
 Depois testa MCRPergunta."""
 import sys, os, time, re
 
-sys.path.insert(0, r'E:\MCR')
-os.chdir(r'E:\MCR')
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..'))
+os.chdir(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..'))
 
 import MCR as _MCR
 if not hasattr(_MCR, 'MCRBridge'):

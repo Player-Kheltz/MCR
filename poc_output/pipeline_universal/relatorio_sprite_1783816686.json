@@ -1,0 +1,48 @@
+{
+  "dominio": "sprite",
+  "status": "aceito",
+  "score": 0.6243,
+  "nota": 1.0851,
+  "em_loop": true,
+  "arquivos": [
+    "E:\\MCR\\poc_output\\pipeline_universal\\sprite_1783816686_0.png",
+    "E:\\MCR\\poc_output\\pipeline_universal\\sprite_1783816686_1.png",
+    "E:\\MCR\\poc_output\\pipeline_universal\\sprite_1783816686_2.png"
+  ],
+  "descobertas": {
+    "meta_niveis": {
+      "erro": "'predizer'"
+    },
+    "estagio2": {
+      "n_sequencias": 5,
+      "n_tokens": 5120,
+      "unicos": 3
+    },
+    "estagio3": {
+      "tipo": "entropico",
+      "limiar": 0.5,
+      "resumo": "1024 posicoes: 437 fixas + 587 gaps, H_media=0.504"
+    },
+    "estagio4": {
+      "n_geradas": 3,
+      "temperatura": 0.8,
+      "usou_template": true
+    },
+    "estagio5": {
+      "score_medio": 0.6243,
+      "scores": [
+        0.6242,
+        0.6302,
+        0.6186
+      ],
+      "nota_mcr": 1.0851,
+      "em_loop": true
+    }
+  },
+  "tempo": 0.02,
+  "thresholds": {
+    "limiar_template": 0.5,
+    "temp_geracao": 0.8,
+    "aceitacao": 0.3
+  }
+}

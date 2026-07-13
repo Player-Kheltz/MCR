@@ -26,7 +26,7 @@ def execute(kg, ia, args, ctx_crew=None):
             try:
                 with open(os.path.join(kg_dir, fname), 'r', encoding='utf-8') as f:
                     licoes.extend(json.load(f).get('licoes', []))
-            except: pass
+            except Exception: pass
         kg_data = {'licoes': licoes}
     elif os.path.exists(kg_path):
         with open(kg_path, encoding='utf-8') as f:

@@ -1,0 +1,83 @@
+{
+  "dominio": "texto",
+  "status": "aceito",
+  "score": 1.0,
+  "nota": 1.01,
+  "em_loop": true,
+  "arquivos": [
+    "E:\\MCR\\poc_output\\pipeline_universal\\texto_1783817951_0.txt",
+    "E:\\MCR\\poc_output\\pipeline_universal\\texto_1783817951_1.txt",
+    "E:\\MCR\\poc_output\\pipeline_universal\\texto_1783817951_2.txt"
+  ],
+  "descobertas": {
+    "meta_niveis": {
+      "n_niveis": 3,
+      "ordem": [
+        "byte",
+        "palavra",
+        "intencao"
+      ],
+      "stats": {
+        "byte": {
+          "nome": "byte",
+          "entropia": 0.815,
+          "raio": 3.737,
+          "alimentado": 34,
+          "estados": 11,
+          "conexoes": 2
+        },
+        "palavra": {
+          "nome": "palavra",
+          "entropia": 0.815,
+          "raio": 3.737,
+          "alimentado": 68,
+          "estados": 11,
+          "conexoes": 1
+        },
+        "intencao": {
+          "nome": "intencao",
+          "entropia": 0.815,
+          "raio": 3.737,
+          "alimentado": 34,
+          "estados": 11,
+          "conexoes": 0
+        }
+      },
+      "maior_raio": {
+        "nome": "byte",
+        "valor": 3.737
+      },
+      "energia_total": 9.14,
+      "precisa_mais": true
+    },
+    "estagio2": {
+      "n_sequencias": 1,
+      "n_tokens": 9,
+      "unicos": 9
+    },
+    "estagio3": {
+      "tipo": "unica_sequencia"
+    },
+    "estagio4": {
+      "n_geradas": 3,
+      "temperatura": 0.8,
+      "usou_template": false
+    },
+    "estagio5": {
+      "score_medio": 1.0,
+      "scores": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "nota_mcr": 1.01,
+      "em_loop": true
+    }
+  },
+  "tempo": 0.0,
+  "thresholds": {
+    "limiar_template": 0.5,
+    "temp_geracao": 0.8,
+    "aceitacao": 0.3
+  }
+}

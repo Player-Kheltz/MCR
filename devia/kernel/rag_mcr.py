@@ -52,13 +52,13 @@ class MCRRAG:
         if reset:
             try:
                 self.client.delete_collection(nome)
-            except:
+            except Exception:
                 pass
         
         try:
             self.collection = self.client.get_collection(nome)
             self._total_docs = self.collection.count()
-        except:
+        except Exception:
             self.collection = self.client.create_collection(
                 name=nome,
                 metadata={"hnsw:space": "cosine"}
@@ -133,7 +133,7 @@ class MCRRAG:
                 try:
                     with open(caminho, 'r', encoding='utf-8', errors='replace') as fh:
                         texto = fh.read()
-                except:
+                except Exception:
                     continue
                 if len(texto) < 50:
                     continue
@@ -201,7 +201,7 @@ class MCRRAG:
                 query_texts=[pergunta],
                 n_results=min(k * 3, self._total_docs),
             )
-        except:
+        except Exception:
             return self.buscar(pergunta, k)
         
         docs = resultados.get("documents", [[]])[0]

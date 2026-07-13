@@ -1,0 +1,30 @@
+
+RELATORIO FINAL - Tokenizador Hierarquico
+==================================================
+
+Dados: 9 shields (9 amostras, mesma forma, cores diferentes)
+Tokenizacao: modo papel (B=6, L=1) invariante: True
+Template entropico das propriedades: 100% FIXO
+
+Geracao hierarquica:
+- 50 sprites gerados
+- Score MCR medio: 0.698
+- Opacos medios: 67 (template: 90)
+- Melhor score: 0.741
+- Pior score: 0.612
+
+MCR Discriminador:
+- Transicoes treinadas: 810
+- Score normalizado > 0.5 = sprite aceitavel
+- Sprites aceitaveis: 50/50
+
+Arquitetura:
+  Nivel 0 (Pixel): tokens F B D L - preenchimento via template entropico
+  Nivel 1 (Regiao): flood fill modo papel - 7 regioes (6 B + 1 L)
+  Nivel 2 (Relacao): adjacencia entre regioes - 10 relacoes invariantes
+  Geracao: hull convexo -> affine transform -> rasterizacao -> CIELAB
+
+Conclusao:
+O Tokenizador Hierarquico captura estrutura invariante em 3 niveis.
+Geracao produz variacoes estruturalmente coerentes (score MCR 0.698).
+Gargalo: dados de treino (9 shields insuficientes para gerar NOVAS formas).

@@ -99,7 +99,7 @@ class MCRAutoStart:
                 doc_idx = MCRDocIndex()
                 n = doc_idx.indexar()
                 if n > 0: acoes.append(f"docs:{n}")
-            except: pass
+            except Exception: pass
             # 4. MetaNivel
             meta_nivel = MCRMetaNivel()
             meta_nivel.alimentar(str(_MCR_STATE).encode())
@@ -162,5 +162,5 @@ _MCR_SELF_CHECK = None
 try:
     from .meta import MCRSelfHeal
     _MCR_SELF_CHECK = MCRSelfHeal.verificar()
-except:
+except Exception:
     pass

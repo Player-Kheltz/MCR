@@ -184,11 +184,29 @@ class MCRSQLite:
         return []
 
     def gerar(self, semente: str, passos: int = 10) -> List[str]:
-        """Gera sequencia (compativel com MCR.engine)."""
+        """Gera sequencia usando N-adaptativo.
+        
+        Acumula contexto a cada passo: em vez de predizer(token_atual),
+        predizer(token_atual) com fallback para contextos maiores.
+        """
         seq = [semente]
         atual = semente
+        
         for _ in range(passos):
-            prox, conf = self.predizer(atual)
+            # Tenta predizer com contexto acumulado (N>1)
+            prox, conf = None, 0.0
+            for depth in range(min(self.n_max, len(seq)), 0, -1):
+                ctx = '|'.join(seq[-depth:])
+                p, c = self.predizer(ctx)
+                if p is not None and c > conf:
+                    prox, conf = p, c
+                if conf > 0.05:
+                    break
+            
+            if prox is None or conf < 0.01:
+                # Fallback: predizer so o ultimo token
+                prox, conf = self.predizer(atual)
+            
             if prox is None or conf < 0.01:
                 break
             seq.append(prox)

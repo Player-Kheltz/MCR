@@ -1,0 +1,92 @@
+{
+  "dominio": "api",
+  "status": "aceito",
+  "score": 1.0,
+  "nota": 1.01,
+  "em_loop": true,
+  "arquivos": [
+    "E:\\MCR\\poc_output\\pipeline_universal\\api_1783819422_0.txt",
+    "E:\\MCR\\poc_output\\pipeline_universal\\api_1783819422_1.txt",
+    "E:\\MCR\\poc_output\\pipeline_universal\\api_1783819422_2.txt"
+  ],
+  "descobertas": {
+    "meta_niveis": {
+      "n_niveis": 4,
+      "ordem": [
+        "byte",
+        "palavra",
+        "intencao",
+        "padrao"
+      ],
+      "stats": {
+        "byte": {
+          "nome": "byte",
+          "entropia": 0.696,
+          "raio": 3.48,
+          "alimentado": 33,
+          "estados": 17,
+          "conexoes": 3
+        },
+        "palavra": {
+          "nome": "palavra",
+          "entropia": 0.696,
+          "raio": 3.48,
+          "alimentado": 66,
+          "estados": 17,
+          "conexoes": 2
+        },
+        "intencao": {
+          "nome": "intencao",
+          "entropia": 0.696,
+          "raio": 3.48,
+          "alimentado": 33,
+          "estados": 17,
+          "conexoes": 1
+        },
+        "padrao": {
+          "nome": "padrao",
+          "entropia": 0.696,
+          "raio": 3.48,
+          "alimentado": 33,
+          "estados": 17,
+          "conexoes": 0
+        }
+      },
+      "maior_raio": {
+        "nome": "byte",
+        "valor": 3.48
+      },
+      "energia_total": 9.69,
+      "precisa_mais": true
+    },
+    "estagio2": {
+      "n_sequencias": 1,
+      "n_tokens": 3,
+      "unicos": 3
+    },
+    "estagio3": {
+      "tipo": "unica_sequencia"
+    },
+    "estagio4": {
+      "n_geradas": 3,
+      "temperatura": 0.8,
+      "usou_template": false
+    },
+    "estagio5": {
+      "score_medio": 1.0,
+      "scores": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "nota_mcr": 1.01,
+      "em_loop": true
+    }
+  },
+  "tempo": 0.0,
+  "thresholds": {
+    "limiar_template": 0.5,
+    "temp_geracao": 0.8,
+    "aceitacao": 0.3
+  }
+}

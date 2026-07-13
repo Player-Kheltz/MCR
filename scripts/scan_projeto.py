@@ -1,6 +1,9 @@
 """Varredura real do Projeto MCR com code_analyzer."""
 import sys, os, time
-sys.path.insert(0, r'E:\MCR')
+
+_BASE = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
+
+sys.path.insert(0, _BASE)
 from code_analyzer import analisar_arquivo, PADROES_BUG
 
 PROJETO = r"E:\Projeto MCR"
@@ -23,7 +26,7 @@ diretorios = [
     ("Grimorio (C#)", os.path.join(PROJETO, "MCR.Grimorio")),
     ("LoginServer (Go)", os.path.join(PROJETO, "LoginServer", "src")),
     ("DevIA (Python)", os.path.join(PROJETO, "historia", "scripts", "mcr_devia")),
-    ("MCR engine (Python)", r"E:\MCR"),
+    ("MCR engine (Python)", _BASE),
 ]
 
 for nome, base_dir in diretorios:

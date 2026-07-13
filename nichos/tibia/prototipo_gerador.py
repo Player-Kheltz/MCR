@@ -3,7 +3,9 @@
 
 import sys, os, time, json, re
 
-os.chdir(r"E:\MCR")
+_BASE = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..'))
+
+os.chdir(_BASE)
 sys.path.insert(0, ".")
 __file__ = os.path.join(os.getcwd(), "MCR.py")
 with open(__file__, encoding="utf-8") as f:
@@ -47,7 +49,7 @@ for seed in seeds:
             texto = texto_bytes.decode('utf-8', errors='replace')
             if len(texto) > 10:
                 resultados.append(texto)
-        except: pass
+        except Exception: pass
 
 print(f"\n[4] Resultados ({len(resultados)} fragmentos):")
 for i, r in enumerate(resultados[:3]):

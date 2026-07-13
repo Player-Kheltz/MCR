@@ -3,7 +3,9 @@
 
 import sys, os, re, time
 
-os.chdir(r"E:\MCR")
+_BASE = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..'))
+
+os.chdir(_BASE)
 sys.path.insert(0, ".")
 __file__ = os.path.join(os.getcwd(), "MCR.py")
 with open(__file__, encoding="utf-8") as f:
@@ -297,7 +299,7 @@ def valor_numerico(val):
         return None
     try:
         return int(float(val))
-    except:
+    except Exception:
         return None
 
 def formatar_monstro(texto):
@@ -384,7 +386,7 @@ for i, (texto, semente, t) in enumerate(monsters):
         print(f"  {linha}")
 
 # ─── SALVAR RESULTADOS ───────────────────────────────────
-OUT_DIR = r"E:\MCR\nichos\tibia\gerados"
+OUT_DIR = os.path.join(_BASE, "nichos", "tibia", "gerados")
 os.makedirs(OUT_DIR, exist_ok=True)
 
 for i, (texto, semente, t) in enumerate(npcs):

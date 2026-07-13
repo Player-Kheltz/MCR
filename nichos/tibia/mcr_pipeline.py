@@ -109,7 +109,7 @@ class MCRPipeline:
         triplas = []
         try:
             triplas = self.cerebro.parser.extrair(entrada)
-        except:
+        except Exception:
             pass
         return triplas
 
@@ -170,7 +170,7 @@ class MCRPipeline:
                         melhor = r.get('melhor')
                         if melhor and melhor.get('palavra'):
                             pontes.append(melhor['palavra'])
-                except:
+                except Exception:
                     pass
         
         return pontes[:5]

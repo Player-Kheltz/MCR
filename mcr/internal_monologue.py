@@ -20,7 +20,10 @@ class InternalMonologue:
         # Importa MCRConector real
         import sys as _sys
         _sys.path.insert(0, str(Path(__file__).parent.parent / 'devia' / 'kernel'))
-        import MCR as _M
+        try:
+            import MCR as _M
+        except ImportError:
+            _M = None
         if not hasattr(_M, 'MCRBridge'):
             class MCRBridge:
                 def __init__(self): self._descobriu = True

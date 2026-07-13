@@ -4,8 +4,8 @@ Tokenizer: split() em palavras (MCR nivel 'palavra').
 Validator: MCR entropia da sequencia.
 Builder: salva como .txt.
 """
-import sys
-sys.path.insert(0, r'E:\MCR')
+import sys, os
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..'))
 
 
 def tokenizer(texto: str):

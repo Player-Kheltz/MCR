@@ -23,14 +23,14 @@ def _salvar_posicoes(posicoes):
         os.makedirs(os.path.dirname(_POS_PATH), exist_ok=True)
         with open(_POS_PATH, 'w', encoding='utf-8') as f:
             json.dump(posicoes, f)
-    except: pass
+    except Exception: pass
 
 def _carregar_posicoes():
     try:
         if os.path.exists(_POS_PATH):
             with open(_POS_PATH, 'r', encoding='utf-8') as f:
                 return json.load(f)
-    except: pass
+    except Exception: pass
     return {}
 
 # Padroes de erro do Canary
@@ -147,7 +147,7 @@ class LogWatcher:
                 try:
                     stat = os.stat(caminho)
                     tamanho = stat.st_size
-                except:
+                except Exception:
                     continue
                 
                 ultimo_tam = self._ultimos_tamanhos.get(caminho, 0)
@@ -162,7 +162,7 @@ class LogWatcher:
                     with open(caminho, 'r', encoding='utf-8', errors='replace') as fh:
                         fh.seek(ultimo_tam)
                         novas_linhas = fh.readlines()
-                except:
+                except Exception:
                     continue
                 
                 for linha in novas_linhas:

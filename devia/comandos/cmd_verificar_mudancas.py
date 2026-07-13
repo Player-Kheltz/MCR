@@ -18,7 +18,7 @@ def _hash_file(path):
     try:
         with open(path, 'rb') as f:
             return hashlib.sha256(f.read()).hexdigest()
-    except:
+    except Exception:
         return None
 
 def execute(kg, ia, args, ctx_crew=None):
@@ -28,7 +28,7 @@ def execute(kg, ia, args, ctx_crew=None):
         try:
             with open(MANIFEST_PATH, 'r', encoding='utf-8') as f:
                 manifest = json.load(f)
-        except: pass
+        except Exception: pass
     
     # Escaneia arquivos atuais
     alteracoes = []
@@ -105,6 +105,6 @@ def execute(kg, ia, args, ctx_crew=None):
                         solucao=f"Arquivo foi modificado. Hash antigo: {manifest.get(a, '?')}...",
                         ctx="mudanca"
                     )
-                except: pass
+                except Exception: pass
     
     return True

@@ -83,7 +83,8 @@ def _criar_npc_template(spec: dict) -> dict:
         
         # Computa nome do arquivo sanitizado
         nome_arquivo_sanitizado = _re.sub(r'[^a-z0-9_]', '', nome.lower().replace(' ', '_')) + '.lua'
-        caminho_completo = r'E:\MCR\server\data-otservbr-global\npc\%s' % nome_arquivo_sanitizado
+        from mcr.paths import CANARY_NPC_DIR
+        caminho_completo = str(CANARY_NPC_DIR / nome_arquivo_sanitizado)
         
         tamanho_arquivo = os.path.getsize(caminho_completo) if os.path.exists(caminho_completo) else 0
         

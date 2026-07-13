@@ -43,10 +43,9 @@ from .evolution import (
     _executar_lote,
 )
 
-# feedback — Filosofia, assinatura, sessão, web learn
+# feedback — Assinatura, sessão, web learn, feedback loop
 from .feedback import (
-    MCRFeedback, MCRFilosofia, MCRAssinatura, MCRSession, MCRWebLearn,
-    _PERgUNTAS_FUNDAMENTAIS,
+    MCRFeedback, MCRAssinatura, MCRSession, MCRWebLearn,
 )
 
 # system — Orquestração, perguntas, geração

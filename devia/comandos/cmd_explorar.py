@@ -47,7 +47,7 @@ def execute(kg, ia, args, ctx_crew=None):
         try:
             with open(MANIFEST_PATH, 'r', encoding='utf-8') as f:
                 manifest = json.load(f)
-        except: pass
+        except Exception: pass
     
     if alvo in ('codigo', 'tudo'):
         print('[Explorar] Escaneando scripts/...')
@@ -63,7 +63,7 @@ def execute(kg, ia, args, ctx_crew=None):
                 try:
                     with open(fpath, 'rb') as fh:
                         h = hashlib.sha256(fh.read()).hexdigest()
-                except: continue
+                except Exception: continue
                 if rel in manifest and manifest.get(rel) == h: continue
                 try:
                     with open(fpath, 'r', encoding='utf-8', errors='replace') as fh:
@@ -72,7 +72,7 @@ def execute(kg, ia, args, ctx_crew=None):
                     for nome in nomes:
                         if nome not in novos_nomes: novos_nomes[nome] = []
                         novos_nomes[nome].append(rel)
-                except: pass
+                except Exception: pass
         
         print(f'  {len(novos_nomes)} nomes novos em {sum(1 for v in novos_nomes.values() for _ in v)} arquivos')
         
@@ -109,7 +109,7 @@ def execute(kg, ia, args, ctx_crew=None):
                 try:
                     with open(fpath, 'rb') as fh:
                         novo_manifest[os.path.relpath(fpath, BASE)] = hashlib.sha256(fh.read()).hexdigest()
-                except: pass
+                except Exception: pass
         os.makedirs(os.path.dirname(MANIFEST_PATH), exist_ok=True)
         with open(MANIFEST_PATH, 'w', encoding='utf-8') as f:
             json.dump(novo_manifest, f, ensure_ascii=False, indent=2)

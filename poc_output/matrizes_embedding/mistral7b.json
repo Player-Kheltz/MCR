@@ -1,0 +1,15 @@
+{
+  "modelo": "mistral7b",
+  "tensor": "token_embd.weight",
+  "shape": [
+    5120,
+    152064
+  ],
+  "n_tokens": 500,
+  "n_dims": 128,
+  "estados_mcr": 100,
+  "transicoes_mcr": 100,
+  "entropia_mcr": 0.0,
+  "tempo_sdm": 7.15,
+  "tempo_total": 12.5
+}

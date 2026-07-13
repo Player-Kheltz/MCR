@@ -1,0 +1,19 @@
+{
+  "timestamp": "2026-07-10T15:00:00",
+  "teste": "Pipeline Completo com Ollama (parcial)",
+  "n": 34,
+  "ollama": true,
+  "interrompido_por": "timeout_1h",
+  "observacoes": {
+    "roteamento": "100% ensemble — toda requisicao considerada complexa",
+    "tempo_medio": "~110s por request (inclui 3 calls LLM: original + 2 regeneracoes)",
+    "cache_hits": 0,
+    "detector_super_sensivel": "100% das respostas geraram regeneracao — limiar ~0.17 muito baixo",
+    "falsos_positivos": "palavras como 'deuses', 'sorte', 'personalidade' consideradas anomalas",
+    "entropia_detector": "0.830 → evoluindo lentamente com novos tokens",
+    "mundo_crescimento": "42 → 52 NPCs (10 novos em 34 requests)",
+    "nomes_duplicados": "Thalara Starshadow e Thaddeus Blackwood registrados multiplas vezes",
+    "erros_encoding": "2 erros 'charmap' com caracteres chineses (0x706b)",
+    "llm_call_count": "~102 calls (34 originais + ~68 regeneracoes)"
+  }
+}

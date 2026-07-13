@@ -183,20 +183,9 @@ def tree_of_thought(ia, prompt_base):
 
 
 # ============================================================
-# G5 — PROMPT CACHE LRU
+# G5 — PROMPT CACHE LRU (re-export de orquestrador.py)
 # ============================================================
-class PromptCache:
-    """Cache LRU de prompts enriquecidos."""
-    def __init__(self, max_size=64):
-        self._cache = OrderedDict()
-        self._max_size = max_size
-    def get(self, pergunta):
-        return self._cache.get(hash(pergunta) % 1000000)
-    def set(self, pergunta, prompt):
-        key = hash(pergunta) % 1000000
-        self._cache[key] = prompt
-        if len(self._cache) > self._max_size:
-            self._cache.popitem(last=False)
+from devia.modules.orquestrador import PromptCache
 
 
 # ============================================================

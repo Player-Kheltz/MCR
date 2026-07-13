@@ -62,6 +62,8 @@ except Exception as e:
     print('[Metacognicao] MCRThreshold nao disponivel: %s' % e)
 
 
+_METACOGNICAO_AVISOU_KG_VAZIO = False
+
 class Metacognicao:
     """Gateway de Incerteza. Carrega o KG e avalia se o DevIA conhece a API."""
 
@@ -91,7 +93,10 @@ class Metacognicao:
                 print(f'[Metacognicao] Erro ao carregar {fpath.name}: {e}')
 
         if not padroes:
-            print(f'[Metacognicao] Nenhum padrao carregado de {self.kg_dir}')
+            global _METACOGNICAO_AVISOU_KG_VAZIO
+            if not _METACOGNICAO_AVISOU_KG_VAZIO:
+                print(f'[Metacognicao] Nenhum padrao carregado de {self.kg_dir}')
+                _METACOGNICAO_AVISOU_KG_VAZIO = True
             return
 
         self.padroes = padroes

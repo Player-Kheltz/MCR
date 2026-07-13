@@ -33,7 +33,7 @@ def _patched_kg(self):
         try:
             from modulos.kg import KnowledgeGraph
             self._kg = KnowledgeGraph()
-        except:
+        except Exception:
             # Fallback: dicionario interno com busca simples
             if not hasattr(self, '_lessons_cache'):
                 self._lessons_cache = []
@@ -82,16 +82,46 @@ class MCRByteUtils:
         return dot/(na*nb) if na*nb else 0
 
 # ─── Nossos módulos (do E:\MCR\) ────────────────────────────────
-from MarkovRouter import MarkovRouter
-from Radar import Radar
-from PipelineExecutor import PipelineExecutor
-from AutorevisaoTracker import AutorevisaoTracker
-from TemplateExtractor import extrair_template
-from DeterministicFiller import preencher_template, gaps_restantes
-from EncodingDetector import detectar_encoding
-from FeedbackFilter import FeedbackFilter
-from SeedLoader import carregar_tudo
-from conexao_bridge import CerebroKG
+try:
+    from MarkovRouter import MarkovRouter
+except ImportError:
+    MarkovRouter = None
+try:
+    from Radar import Radar
+except ImportError:
+    Radar = None
+try:
+    from PipelineExecutor import PipelineExecutor
+except ImportError:
+    PipelineExecutor = None
+try:
+    from AutorevisaoTracker import AutorevisaoTracker
+except ImportError:
+    AutorevisaoTracker = None
+try:
+    from TemplateExtractor import extrair_template
+except ImportError:
+    extrair_template = None
+try:
+    from DeterministicFiller import preencher_template, gaps_restantes
+except ImportError:
+    preencher_template = gaps_restantes = None
+try:
+    from EncodingDetector import detectar_encoding
+except ImportError:
+    detectar_encoding = None
+try:
+    from FeedbackFilter import FeedbackFilter
+except ImportError:
+    FeedbackFilter = None
+try:
+    from SeedLoader import carregar_tudo
+except ImportError:
+    carregar_tudo = None
+try:
+    from conexao_bridge import CerebroKG
+except ImportError:
+    CerebroKG = None
 
 # ─── DevIA v2 core (do E:\MCR\) ─────────────────────────────────
 from mcr_devia_v2 import MarkovDecider, EntropyValidator, LLM, MCRDevIAV2
@@ -102,28 +132,32 @@ try:
     import watchdog
     import watchdog.observers
     import watchdog.events
-except:
+except Exception:
     pass
 PROJETO = os.path.dirname(os.path.abspath(__file__))
 DEVIA = os.path.join(PROJETO, "devia")
 sys.path.insert(0, DEVIA)
-from kernel import MCRKernel
-_kernel = MCRKernel()
-_kernel.loader.scan()
+try:
+    from kernel import MCRKernel
+except ImportError:
+    MCRKernel = None
+_kernel = MCRKernel() if MCRKernel else None
+if _kernel:
+    _kernel.loader.scan()
 
 # ─── Inicialização ──────────────────────────────────────────────
 _decider = MarkovDecider()
 _validator = EntropyValidator()
-_router = MarkovRouter()
-_radar = Radar()
+_router = MarkovRouter() if MarkovRouter else None
+_radar = Radar() if Radar else None
 _llm = LLM()
-_filter = FeedbackFilter()
-_autorevisao = AutorevisaoTracker()
+_filter = FeedbackFilter() if FeedbackFilter else None
+_autorevisao = AutorevisaoTracker() if AutorevisaoTracker else None
 _dev = MCRDevIAV2()
 _calibra_contador = 0
 _ultimos_erros = []
 
-_stats = carregar_tudo(_decider)
+_stats = carregar_tudo(_decider) if carregar_tudo else {}
 _seeds_gerais = [
     ("crie uma ", "criar_codigo"), ("cria um ", "criar_codigo"), ("implemente ", "criar_codigo"),
     ("crie um npc", "criar_npc"), ("crie uma habilidade", "criar_habilidade_spa"),
@@ -457,7 +491,7 @@ def processar(entrada):
     if '_memoria' in dir() and _memoria and _filter.filtrar(entrada, resposta, conf):
         try:
             _memoria.registrar(entrada, resposta[:500], classe)
-        except:
+        except Exception:
             pass
     
     return {
@@ -516,7 +550,7 @@ def main():
                         if isinstance(l, dict) and l.get('erro'):
                             l['ctx'] = l.get('ctx', data.get('ctx', 'geral'))
                             licoes.append(l)
-                except: pass
+                except Exception: pass
             for l in licoes:
                 ctx = l.get('ctx', 'geral')
                 texto = l.get('erro','') + ' ' + l.get('solucao','')
@@ -530,7 +564,7 @@ def main():
                 try:
                     pergunta = _llm.gerar(prompt, modelo="qwen2.5-coder:7b", temp=0.7)
                     print(f"    E se... {pergunta.strip()[:200]}")
-                except: pass
+                except Exception: pass
         print(f"\n  {len(descobertas)} descobertas em 0ms (MCRConexao) + LLM")
         return
     

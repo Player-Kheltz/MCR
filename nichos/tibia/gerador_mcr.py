@@ -8,14 +8,16 @@ Geracao multi-candidato com selecao por entropia negativa.
 
 import sys, os, re, time, math, random
 
-os.chdir(r"E:\MCR")
+_BASE = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..'))
+
+os.chdir(_BASE)
 sys.path.insert(0, ".")
 __file__ = os.path.join(os.getcwd(), "MCR.py")
 with open(__file__, encoding="utf-8") as f:
     _code = f.read().split("def main():")[0]
 exec(compile(_code, "MCR.py", "exec"))
 
-OUT_DIR = r"E:\MCR\nichos\tibia\gerados"
+OUT_DIR = os.path.join(_BASE, "nichos", "tibia", "gerados")
 os.makedirs(OUT_DIR, exist_ok=True)
 
 # ─── DISTRIBUICAO MARKOV-2 ───────────────────────────────
@@ -36,7 +38,7 @@ class DistribuicaoAtributo:
                 v = float(tok.strip().strip(','))
                 if abs(v) < 1e6:
                     pares.append((v, cnt))
-            except: pass
+            except Exception: pass
         if not pares:
             self._cache[attr] = (None, None, None, 0, [])
             return (None, None, None, 0, [])
@@ -54,7 +56,7 @@ class DistribuicaoAtributo:
             return True
         try:
             v = float(val_str.strip().strip(','))
-        except:
+        except Exception:
             return False
         if any(abs(v - t) < 1 for t in top5):
             return True
@@ -401,7 +403,7 @@ def formatar_monstro(texto, mk, dist):
                     look = int(float(val))
                     if 1 <= look <= 2000:
                         linhas.append(f"monster.outfit = {{lookType = {look}}}")
-                except: pass
+                except Exception: pass
         elif attr in NUMERICOS:
             if not dist.valor_viavel(attr, val):
                 continue
@@ -410,7 +412,7 @@ def formatar_monstro(texto, mk, dist):
                 if abs(num) > 999999:
                     continue
                 linhas.append(f"monster.{attr} = {num}")
-            except: pass
+            except Exception: pass
         else:
             linhas.append(f"monster.{attr} = {val}")
 

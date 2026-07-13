@@ -3,9 +3,12 @@
 MESMA interface do SanityValidatorSQL, SanityValidatorCS, SanityValidator.
 Usa raw_token_set() universal (sem tree-sitter) — reforca o Teorema 1.
 """
+import os
 import re
 from pathlib import Path
 from typing import Dict, List, Optional, Set
+
+_BASE = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 
 
 _CPP_KEYWORDS: Set[str] = {
@@ -270,10 +273,10 @@ class SanityValidatorCpp:
 
 
 if __name__ == '__main__':
-    import sys
-    sys.path.insert(0, r'E:\MCR')
+    import sys, os
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
     val = SanityValidatorCpp()
-    entidades = val.minerar_assinaturas(Path(r'E:\MCR\server\src'))
+    entidades = val.minerar_assinaturas(Path(_BASE) / 'server' / 'src')
     print(f'\nTotal entidades: {len(entidades)}')
     tipos = {}
     for e in entidades:

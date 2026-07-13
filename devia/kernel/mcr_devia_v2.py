@@ -34,7 +34,7 @@ try:
             nb = sum(y*y for y in b)**0.5
             return dot/(na*nb) if na*nb else 0
     MCRByteUtils = _MCRByteUtils
-except:
+except Exception:
     from MCR import MCRByteUtils  # fallback legado
 
 BASE = os.path.dirname(os.path.abspath(__file__))
@@ -57,7 +57,7 @@ try:
     import urllib.request as _ur
     _ur.urlopen("http://localhost:11434", timeout=2)
     _HAS_LLM = True
-except:
+except Exception:
     pass
 
 # ─── Markov Decider (decide TUDO sem LLM) ───────────────────────
@@ -80,6 +80,8 @@ class MarkovDecider:
         "analisar_codigo", "busca_informacao", "conversa",
         "planejar_tarefa", "depurar_erro", "escrever_documento",
         "comando_sistema", "criar_sql", "desconhecido",
+        "criar_npc", "criar_quest", "criar_lore",
+        "criar_habilidade_spa", "criar_sistema",
     ]
     
     def __init__(self):
@@ -148,11 +150,41 @@ class MarkovDecider:
                     "freq": {str(k): int(v) for k, v in self.mk.freq.items()},
                     "total": self.total,
                 }, f)
-        except:
+        except Exception:
             pass
     
+    PIPELINE_SEEDS = [
+        # (pergunta_exemplo, classe_pipeline)
+        ("crie um ferreiro anao", "criar_npc"),
+        ("crie uma maga elfa", "criar_npc"),
+        ("crie um guarda orc", "criar_npc"),
+        ("crie um mercador humano", "criar_npc"),
+        ("crie um bardo que conta", "criar_npc"),
+        ("crie um alquimista misterioso", "criar_npc"),
+        ("crie um artesao habilidoso", "criar_npc"),
+        ("crie um cacador experiente", "criar_npc"),
+        ("crie um curandeiro sabio", "criar_npc"),
+        ("crie um soldado valente", "criar_npc"),
+        ("crie uma quest de coleta", "criar_quest"),
+        ("crie uma quest de eliminacao", "criar_quest"),
+        ("crie uma missao de resgate", "criar_quest"),
+        ("explique a origem da lenda", "explicar_conceito"),
+        ("conte a historia da criacao", "explicar_conceito"),
+        ("explique o que e um", "explicar_conceito"),
+        ("crie uma lore sobre", "criar_lore"),
+        ("crie uma historia para", "criar_lore"),
+        ("gere codigo lua para", "criar_codigo"),
+        ("crie um script lua", "criar_codigo"),
+        ("implemente um sistema de", "criar_codigo"),
+        ("crie uma habilidade spa", "criar_habilidade_spa"),
+        ("crie um sistema de", "criar_sistema"),
+        ("gere sql para criar", "criar_sql"),
+        ("crie uma tabela de", "criar_sql"),
+    ]
+
     def _carregar(self):
         path = os.path.join(CACHE_DIR, "decider_markov.json")
+        carregou = False
         if os.path.exists(path):
             try:
                 with open(path) as f:
@@ -162,8 +194,21 @@ class MarkovDecider:
                 for k, v in d.get("freq", {}).items():
                     self.mk.freq[str(k)] = int(v)
                 self.total = d.get("total", 0)
-            except:
+                carregou = True
+            except Exception:
                 pass
+
+        # Se o cache existia mas nao tem classes de pipeline, ou cache vazio, semeia
+        if not carregou or not any(
+            self.mk.predizer(self._normalizar(p))[0] in
+            ("criar_npc", "criar_quest", "criar_lore", "criar_habilidade_spa", "criar_sistema")
+            for p, _ in self.PIPELINE_SEEDS[:3]
+        ):
+            for pergunta, classe in self.PIPELINE_SEEDS:
+                estado = self._normalizar(pergunta)
+                self.mk.aprender(estado, classe)
+                self.total += 1
+            self._salvar()
     
     def stats(self):
         return {
@@ -457,7 +502,7 @@ class MCRDevIAV2:
             serial = {k: {"p": p, "r": r, "c": c} for k, (p, r, c) in itens}
             with open(path, "w") as f:
                 json.dump(serial, f)
-        except:
+        except Exception:
             pass
     
     def _carregar_cache(self):
@@ -468,7 +513,7 @@ class MCRDevIAV2:
                     d = json.load(f)
                 for k, v in d.items():
                     self.cache_respostas[k] = (v["p"], v["r"], v["c"])
-            except:
+            except Exception:
                 pass
     
     def stats(self):
@@ -543,7 +588,7 @@ class NoLLMQA:
                     "freq": {str(k): int(v) for k,v in self.mk.freq.items()},
                     "respostas": self.respostas,
                 }, f)
-        except: pass
+        except Exception: pass
     
     def _carregar(self):
         path = os.path.join(CACHE_DIR, "no_llm_qa.json")
@@ -556,7 +601,7 @@ class NoLLMQA:
                 for k,v in d.get("freq",{}).items():
                     self.mk.freq[k] = int(v)
                 self.respostas = d.get("respostas", {})
-            except: pass
+            except Exception: pass
     
     def stats(self):
         return {

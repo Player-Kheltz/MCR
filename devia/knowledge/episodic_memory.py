@@ -11,7 +11,16 @@ Uso:
 """
 import os, json, time, re, hashlib, math
 import urllib.request
-from stop_words import STOP_MEMORIA as STOP_WORDS
+try:
+    from stop_words import STOP_MEMORIA as STOP_WORDS
+except ImportError:
+    STOP_WORDS = {'de', 'do', 'da', 'dos', 'das', 'em', 'no', 'na', 'nos', 'nas',
+                   'um', 'uma', 'o', 'a', 'os', 'as', 'e', 'ou', 'que', 'para',
+                   'por', 'com', 'sem', 'sob', 'entre', 'desde', 'ate', 'como',
+                   'quando', 'onde', 'porque', 'se', 'isto', 'isso', 'este',
+                   'esta', 'esse', 'essa', 'muito', 'mais', 'menos', 'ja',
+                   'ainda', 'tambem', 'so', 'so', 'mesmo', 'porem', 'entao',
+                   'porém', 'porque', 'embora', 'enquanto', 'apesar', 'contudo'}
 
 # Path da memória (mesmo diretório do KG)
 BASE = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))

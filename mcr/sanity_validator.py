@@ -119,6 +119,53 @@ class SanityValidator:
         print(f'[SanityValidator] Mineradas {len(apis)} APIs dos scripts .lua')
         return apis
 
+    @staticmethod
+    def minerar_definicoes_globais(diretorio: Path) -> Set[str]:
+        """Extrai definicoes de classes/funcoes globais Lua.
+        Captura padroes como:
+        - NpcHandler = {}  (variavel global = tabela)
+        - function NpcHandler:new(...)  (metodo de classe)
+        - function Game.createMonster(...)  (funcao em namespace)
+        - keywordHandler = {  (handler global)
+        """
+        apis: Set[str] = set()
+        if not diretorio.exists():
+            return apis
+
+        padroes_def = [
+            r'^(\w+)\s*=\s*\{\s*$',               # NpcHandler = {
+            r'^(\w+)\s*=\s*function\s*\(',         # NpcHandler = function(
+            r'^function\s+(\w+)[\.:](\w+)',         # function NpcHandler:method(
+            r'^(\w+)\s*=\s*\w+\.\w+\s*$',          # NpcHandler = some.module
+        ]
+
+        for fpath in sorted(diretorio.rglob('*.lua'))[:500]:
+            try:
+                codigo = read_file(fpath)
+            except Exception:
+                continue
+            if not codigo:
+                continue
+            for lin in codigo.split('\n'):
+                lin_strip = lin.strip()
+                if not lin_strip or lin_strip.startswith('--'):
+                    continue
+                for padrao in padroes_def:
+                    m = re.match(padrao, lin_strip)
+                    if m:
+                        nome = m.group(1).lower()
+                        if nome and len(nome) > 2 and nome not in ('end', 'then', 'do', 'local', 'return', 'if', 'for', 'function'):
+                            apis.add(nome)
+                        if len(m.groups()) >= 2:
+                            nome2 = f'{m.group(1).lower()}.{m.group(2).lower()}'
+                            if nome2 and len(nome2) > 2:
+                                apis.add(nome2)
+                            nome3 = f'{m.group(1).lower()}:{m.group(2).lower()}'
+                            if nome3 and len(nome3) > 2:
+                                apis.add(nome3)
+        print(f'[SanityValidator] Mineradas {len(apis)} definicoes globais')
+        return apis
+
     def _carregar_apis(self):
         """Carrega APIs de TODAS as fontes: C++ + KG + scripts."""
         global _APIS_CACHE, _APIS_CACHE_INICIALIZADO
@@ -149,11 +196,38 @@ class SanityValidator:
                     if nome_limpo:
                         _APIS_CACHE.add(nome_limpo)
 
-        # 3. Mineracao de scripts Lua existentes
-        npc_dir = SERVER_DIR / 'data-otservbr-global' / 'npc'
-        if npc_dir.exists():
-            apis_scripts = self.minerar_apis_dos_scripts(npc_dir)
-            _APIS_CACHE.update(apis_scripts)
+        # 3. Mineracao de scripts Lua existentes (TODOS os diretorios)
+        data_dir = SERVER_DIR / 'data-otservbr-global'
+        if data_dir.exists():
+            for subdir in sorted(data_dir.iterdir()):
+                if subdir.is_dir():
+                    apis_scripts = self.minerar_apis_dos_scripts(subdir)
+                    _APIS_CACHE.update(apis_scripts)
+                    apis_defs = self.minerar_definicoes_globais(subdir)
+                    _APIS_CACHE.update(apis_defs)
+
+        # 4. Mineracao do ShadowCanary mock (definicoes de APIs Lua reais)
+        try:
+            from mcr.shadow_canary import _gerar_mock_lua
+            mock_lua = _gerar_mock_lua()
+            if mock_lua:
+                tree = _LUA_PARSER.parse(bytes(mock_lua, 'utf-8'))
+                def _visitar_mock(node):
+                    if node.type == 'function_call':
+                        for child in node.children:
+                            if child.type in ('identifier', 'dot_index_expression',
+                                              'method_index_expression'):
+                                try:
+                                    nome = child.text.decode('utf-8', errors='replace').strip()
+                                    if nome and len(nome) > 2 and ' ' not in nome:
+                                        _APIS_CACHE.add(nome.lower())
+                                except Exception:
+                                    pass
+                    for child in node.children:
+                        _visitar_mock(child)
+                _visitar_mock(tree.root_node)
+        except Exception:
+            pass
 
         self.api_conhecidas = set(_APIS_CACHE)
         _APIS_CACHE_INICIALIZADO = True

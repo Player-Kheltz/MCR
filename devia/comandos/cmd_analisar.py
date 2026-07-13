@@ -75,7 +75,7 @@ def execute(kg, ia, args, ctx_crew=None):
                                 fname = f"{node.name}.{sub.name}"
                                 chamadas.append((sub.lineno, node.name, sub.name))
                                 funcoes.append((fname, sub.lineno, [a.arg for a in sub.args.args]))
-            except:
+            except Exception:
                 pass
         if not funcoes:
             for i, line in enumerate(linhas, 1):
@@ -131,7 +131,7 @@ def execute(kg, ia, args, ctx_crew=None):
                         "Analise", line.strip(),
                         "analisar_codigo" if eh_codigo else "analisar_texto"
                     )
-                except:
+                except Exception:
                     pass
     else:
         print(f'[Analisar] Falhou: {resultado.get("erro", "desconhecido")}')

@@ -47,7 +47,7 @@ class DiagnosticEngine:
             caminho = os.path.join(MODULOS_DIR, fname)
             try:
                 linhas = open(caminho, 'r', encoding='utf-8').readlines()
-            except:
+            except Exception:
                 continue
             for regex, nome_tool in [(r"open\(.*['\"]r['\"]", 'ler_arquivo'),
                                       (r"open\(.*['\"]w['\"]", 'escrever_arquivo')]:
@@ -67,7 +67,7 @@ class DiagnosticEngine:
                 continue
             try:
                 linhas = open(os.path.join(MODULOS_DIR, fname), 'r', encoding='utf-8').readlines()
-            except:
+            except Exception:
                 continue
             for n, linha in enumerate(linhas, 1):
                 s = linha.strip()
@@ -121,7 +121,7 @@ class DiagnosticEngine:
                             'msg': f"Eixo: {eixo:.2f} (tendencia ao Caos)",
                             'severidade': 'BAIXA', 'auto_reparavel': False,
                         })
-                except: pass
+                except Exception: pass
         except ImportError:
             pass
         problemas.sort(key=lambda p: self.SEVERIDADE.get(p['severidade'], 99))
@@ -181,7 +181,7 @@ class DiagnosticEngine:
                         resultados[p['arquivo']] = True
                     except (SyntaxError, ValueError, Exception):
                         resultados[p['arquivo']] = False
-                except:
+                except Exception:
                     resultados[p['arquivo']] = False
             elif p['tipo'] == 'except_sem_corpo':
                 caminho = os.path.join(MODULOS_DIR, p['arquivo'])
@@ -210,13 +210,13 @@ class DiagnosticEngine:
                             resultados[p['arquivo']] = True
                         else:
                             resultados[p['arquivo']] = False
-                except:
+                except Exception:
                     resultados[p['arquivo']] = False
             elif p['tipo'] == 'backup_orfao':
                 try:
                     os.remove(p['arquivo'])
                     resultados[p['arquivo']] = True
-                except:
+                except Exception:
                     resultados[p['arquivo']] = False
         return resultados
 
@@ -229,7 +229,7 @@ class DiagnosticEngine:
                 causa=", ".join(p['tipo'] for p in problemas) if problemas else 'Nenhum',
                 solucao=json.dumps({'total': total, 'resolvidos': ok}, ensure_ascii=False),
                 ctx='diagnostico')
-        except:
+        except Exception:
             pass
 
     def executar(self):

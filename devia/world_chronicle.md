@@ -283,3 +283,394 @@ IDADE: 52 anos
 HISTORIA: Por mais de trinta anos, Pedro trabalhou no famoso pão de Antica, mas sua vida mudou de forma inesperada quando ele foi acu
 
 _(Metadados: {"type": "npc_arrival", "entity": "Pedro Pedrasca", "classe": "criar_npc"})_
+
+## [2026-07-10 14:03:18] Evento
+Thalara Starshadow chegou ao mundo.  NOME: Thalara Starshadow
+RACA: Elfa
+SEXO: Feminino
+IDADE: 500 anos (aparece como uma elfa jovem)
+
+HISTORIA: Thalara nasceu na floresta de Eldorath, mas foi expulsa após um conflito com outros elfos. 
+
+_(Metadados: {"type": "npc_arrival", "entity": "Thalara Starshadow", "classe": "criar_npc"})_
+
+## [2026-07-10 14:10:52] Evento
+Thalara Starshadow chegou ao mundo.  NOME: Thalara Starshadow
+RACA: Elfa
+SEXO: Feminino
+IDADE: 400 anos (aparentemente 30)
+
+HISTORIA: Thalara nasceu na floresta de Ab'Dendriel, sendo uma descendente direta da linhagem dos elfos estrelar
+
+_(Metadados: {"type": "npc_arrival", "entity": "Thalara Starshadow", "classe": "criar_npc"})_
+
+## [2026-07-10 14:18:04] Evento
+Theron Blackwood chegou ao mundo. NOME: Theron Blackwood  
+RACA: humano  
+SEXO: masculino  
+IDADE: 45 anos  
+
+**HISTÓRIA:** Theron nasceu em uma pequena cidade costeira chamada Marisport, onde seus pais eram marinheiros de renome. Ele
+
+_(Metadados: {"type": "npc_arrival", "entity": "Theron Blackwood", "classe": "criar_npc"})_
+
+## [2026-07-10 14:20:01] Evento
+Thalara Starshadow chegou ao mundo.  NOME: Thalara Starshadow
+RACA: Elfa
+SEXO: Feminino
+IDADE: 500 anos (aparece como uma jovem elfa)
+
+HISTORIA: Thalara nasceu na floresta de Eldor, mas foi expulsa após um conflito com a alta sociedade 
+
+_(Metadados: {"type": "npc_arrival", "entity": "Thalara Starshadow", "classe": "criar_npc"})_
+
+## [2026-07-10 14:22:52] Evento
+Thaddeus Blackwood chegou ao mundo. NOME: Thaddeus Blackwood  
+RACA: Humano  
+SEXO: Masculino  
+IDADE: 52 anos  
+
+**HISTÓRIA:** Thaddeus é um alquimista renomado que se retirou de Edron após uma série de experimentos com poções tóxicas.
+
+_(Metadados: {"type": "npc_arrival", "entity": "Thaddeus Blackwood", "classe": "criar_npc"})_
+
+## [2026-07-10 14:30:56] Evento
+Elara Moonshadow chegou ao mundo. NOME: Elara Moonshadow  
+RACA: elfo  
+SEXO: feminino  
+IDADE: 32 anos  
+
+HISTORIA: Elara é uma maga elfa que nasceu em uma das florestas mais antigas de Ab'Dendriel, conhecida por sua beleza e vida se
+
+_(Metadados: {"type": "npc_arrival", "entity": "Elara Moonshadow", "classe": "criar_npc"})_
+
+## [2026-07-10 14:37:47] Evento
+Thaddeus Zephyrwind chegou ao mundo. NOME: Thaddeus Zephyrwind
+RACA: Humano
+SEXO: Masculino
+IDADE: 52 anos
+
+HISTORIA: Thaddeus nasceu em Edron, mas sua família foi expulsa durante a Guerra dos Sete Dias. Ele se escondeu na torre de Edron
+
+_(Metadados: {"type": "npc_arrival", "entity": "Thaddeus Zephyrwind", "classe": "criar_npc"})_
+
+## [2026-07-10 14:40:48] Evento
+Gorgoth Ironbrow chegou ao mundo.  NOME: Gorgoth Ironbrow
+RACA: Orc
+SEXO: Masculino
+IDADE: 500 anos (aparentemente mais velho por sua aparência rugosa)
+
+HISTORIA: Gorgoth foi capturado durante a Batalha de Venore e forçado a trabalhar
+
+_(Metadados: {"type": "npc_arrival", "entity": "Gorgoth Ironbrow", "classe": "criar_npc"})_
+
+## [2026-07-10 14:48:16] Evento
+Eryndir Swiftfoot chegou ao mundo.  NOME: Eryndir Swiftfoot
+RACA: Humano
+SEXO: Masculino
+IDADE: 45 anos
+
+HISTORIA: Eryndir nasceu em Thais, mas foi forçado a deixar sua casa após uma tragédia familiar. Ele viaja constantemente entre Th
+
+_(Metadados: {"type": "npc_arrival", "entity": "Eryndir Swiftfoot", "classe": "criar_npc"})_
+
+## [2026-07-10 14:50:25] Evento
+Thalara Moonwhisper chegou ao mundo.  NOME: Thalara Moonwhisper
+RACA: Elfa
+SEXO: Feminino
+IDADE: 600 anos (aparece como uma jovem elfa)
+
+HISTORIA: Thalara nasceu na floresta de Ab'Dendriel, sendo a única filha do antigo guardião da flore
+
+_(Metadados: {"type": "npc_arrival", "entity": "Thalara Moonwhisper", "classe": "criar_npc"})_
+
+## [2026-07-10 14:52:23] Evento
+Gromm Ironfist chegou ao mundo.  NOME: Gromm Ironfist
+RACA: Orc
+SEXO: Masculino
+IDADE: 450 anos (equivalente a um longo período de vida para os orcs)
+
+HISTORIA: Gromm foi capturado durante uma batalha e forçado a trabalhar como guar
+
+_(Metadados: {"type": "npc_arrival", "entity": "Gromm Ironfist", "classe": "criar_npc"})_
+
+## [2026-07-10 14:54:11] Evento
+Thaddeus Blackwood chegou ao mundo. NOME: Thaddeus Blackwood  
+RACA: Humano  
+SEXO: Masculino  
+IDADE: 57 anos  
+
+**HISTÓRIA:** Thaddeus é um alquimista renomado que viveu toda a sua vida na torre de Edron. Ele foi convidado para morar 
+
+_(Metadados: {"type": "npc_arrival", "entity": "Thaddeus Blackwood", "classe": "criar_npc"})_
+
+## [2026-07-10 14:56:12] Evento
+Graknok Ironfist chegou ao mundo. NOME: Graknok Ironfist  
+RACA: orc  
+SEXO: masculino  
+IDADE: 45 anos  
+
+HISTORIA: Graknok Ironfist nasceu em uma aldeia orca de Eridanus, conhecida por sua brutalidade e resistência. Ele foi enviado 
+
+_(Metadados: {"type": "npc_arrival", "entity": "Graknok Ironfist", "classe": "criar_npc"})_
+
+## [2026-07-10 15:08:54] Evento
+Grom Grunnhilt chegou ao mundo.  NOME: Grom Grunnhilt
+RACA: Orc
+SEXO: Masculino
+IDADE: 450 anos (aparentemente se sente mais velho)
+
+HISTORIA: Em sua juventude, Grom foi um guerreiro renomado entre os orcs. Durante uma batalha épica
+
+_(Metadados: {"type": "npc_arrival", "entity": "Grom Grunnhilt", "classe": "criar_npc"})_
+
+## [2026-07-10 15:09:36] Evento
+Alistair "O Assombroso" Carlink chegou ao mundo.  NOME: Alistair "O Assombroso" Carlink
+RACA: Humano
+SEXO: Masculino
+IDADE: 45 anos (aparentemente, pois magia de longevidade)
+
+HISTORIA: Antigo habitante de Thais, Alistair foi expulso por seus colega
+
+_(Metadados: {"type": "npc_arrival", "entity": "Alistair \"O Assombroso\" Carlink", "classe": "criar_npc"})_
+
+## [2026-07-10 15:15:25] Evento
+Brunin chegou ao mundo.  NOME: Brunin
+RACA: Anão
+SEXO: Masculino
+IDADE: Approximadamente 300 anos
+
+HISTORIA: Brunin foi expulso de sua tribo de anões após a criação da Fundação de Eridanus. Ele se estabeleceu nas Minas de Ka
+
+_(Metadados: {"type": "npc_arrival", "entity": "Brunin", "classe": "criar_npc"})_
+
+## [2026-07-10 15:16:09] Evento
+Brunin chegou ao mundo.  NOME: Brunin
+RACA: Anão
+SEXO: Masculino
+IDADE: 400 anos (em termos humanos, aproximadamente)
+
+HISTORIA: Brunin foi forjado na mina de Kazordoon pelo seu pai, Aldrin Forjador. Ele teve um conflito com
+
+_(Metadados: {"type": "npc_arrival", "entity": "Brunin", "classe": "criar_npc"})_
+
+## [2026-07-10 15:18:15] Evento
+Grimgruum chegou ao mundo.  NOME: Grimgruum
+RACA: Orc
+SEXO: Masculino
+IDADE: 450 anos
+
+HISTORIA: Grimgruum nasceu no fundo das montanhas do norte, em terras selvagens e desconhecidas. Capturado pelo exército de Eridanus durante
+
+_(Metadados: {"type": "npc_arrival", "entity": "Grimgruum", "classe": "criar_npc"})_
+
+## [2026-07-10 15:20:57] Evento
+Grimgor Oruk chegou ao mundo.  NOME: Grimgor Oruk
+RACA: Orc
+SEXO: Masculino
+IDADE: Approximadamente 350 anos
+HISTORIA: Grimgor é um antigo guerreiro orc que luta por Yalahar durante a Guerra dos Três Reinos. Após a derrota de sua 
+
+_(Metadados: {"type": "npc_arrival", "entity": "Grimgor Oruk", "classe": "criar_npc"})_
+
+## [2026-07-10 15:21:42] Evento
+Grarg the Oregorger chegou ao mundo.  NOME: Grarg the Oregorger
+RACA: Orc
+SEXO: Masculino
+IDADE: 500 (em anos humanos, mas em orcs é equivalente a um terço da vida)
+HISTORIA: Foi exilado de sua tribo e forçado a cobrar pedagio na Ponte d
+
+_(Metadados: {"type": "npc_arrival", "entity": "Grarg the Oregorger", "classe": "criar_npc"})_
+
+## [2026-07-10 15:22:31] Evento
+Zephyrion Blackwood chegou ao mundo.  NOME: Zephyrion Blackwood
+RACA: Humano
+SEXO: Masculino
+IDADE: 50 anos
+HISTORIA: Descendente de uma linhagem de mercadores, Zephyrion tem viajado por toda a Terra de Tibia durante várias décadas. Após
+
+_(Metadados: {"type": "npc_arrival", "entity": "Zephyrion Blackwood", "classe": "criar_npc"})_
+
+## [2026-07-10 18:42:52] Evento
+Brunin Anão Ferreiro chegou ao mundo.  NOME: Brunin Anão Ferreiro
+RACA: Anão
+SEXO: Masculino
+IDADE: 500 anos (aparencia de meia-idade)
+
+HISTORIA: Após a fundação de Eridanus, Brunin Anão Ferreiro chegou às Minas de Kazordoon em busca de u
+
+_(Metadados: {"type": "npc_arrival", "entity": "Brunin Anão Ferreiro", "classe": "criar_npc"})_
+
+## [2026-07-10 18:43:17] Evento
+Gorg'grim Ironfist chegou ao mundo.  NOME: Gorg'grim Ironfist
+RACA: Orc
+SEXO: Masculino
+IDADE: 450 anos (equivalente a uma vida longa na Terra de Tibia)
+
+HISTORIA: Desceu da Montanha do Mal até Venore, onde se instalou há mais de 100 an
+
+_(Metadados: {"type": "npc_arrival", "entity": "Gorg'grim Ironfist", "classe": "criar_npc"})_
+
+## [2026-07-10 18:44:10] Evento
+Brunin Anão chegou ao mundo.  NOME: Brunin Anão
+RACA: Anão
+SEXO: Masculino
+IDADE: 400 anos
+
+HISTORIA: Brunin é um anão experiente ferreiro que vive nas minas de Kazordoon, tendo sido trazido lá pelo seu amigo Aldrin Forjador. Ele
+
+_(Metadados: {"type": "npc_arrival", "entity": "Brunin Anão", "classe": "criar_npc"})_
+
+## [2026-07-10 18:44:34] Evento
+Thalara Moonwhisper chegou ao mundo.  NOME: Thalara Moonwhisper
+RACA: Elfa
+SEXO: Feminino
+IDADE: Aproximadamente 700 anos
+
+HISTORIA: Thalara nasceu entre as altas árvores da Floresta de Ab'Dendriel, sendo entregue aos cuidados dos Velhos
+
+_(Metadados: {"type": "npc_arrival", "entity": "Thalara Moonwhisper", "classe": "criar_npc"})_
+
+## [2026-07-10 18:44:54] Evento
+Alaric Mysticus chegou ao mundo.  NOME: Alaric Mysticus
+RACA: Humano
+SEXO: Masculino
+IDADE: 53 anos
+
+HISTORIA: Vive na torre de Edron por mais de três décadas, buscando os segredos da alquimia. Foi protegido pelos anciãos dos Aldor d
+
+_(Metadados: {"type": "npc_arrival", "entity": "Alaric Mysticus", "classe": "criar_npc"})_
+
+## [2026-07-10 18:45:20] Evento
+Alaric Zephyrion chegou ao mundo.  NOME: Alaric Zephyrion
+RACA: Humano
+SEXO: Masculino
+IDADE: 50 anos
+
+HISTORIA: Ao longo dos anos, Alaric tornou-se um alquimista misterioso e respeitado da Torre de Edron. Sua habilidade em transforma
+
+_(Metadados: {"type": "npc_arrival", "entity": "Alaric Zephyrion", "classe": "criar_npc"})_
+
+## [2026-07-10 18:45:44] Evento
+Minstrel Morvold chegou ao mundo.  NOME: Minstrel Morvold
+RACA: Humano
+SEXO: Masculino
+IDADE: 48 anos
+
+HISTORIA: Morvold foi um guerreiro renomado em suas primeiras vidas, participando de muitas batalhas pela Liberdade. Porém, após um
+
+_(Metadados: {"type": "npc_arrival", "entity": "Minstrel Morvold", "classe": "criar_npc"})_
+
+## [2026-07-10 22:28:44] Evento
+Thalara Starshimmer chegou ao mundo.  NOME: Thalara Starshimmer
+RACA: Elfa
+SEXO: Feminino
+IDADE: 300 anos (apareceça como jovem)
+
+HISTORIA: Descendente de uma linhagem de magas elvas renomadas, Thalara foi banida da sua terra natal após 
+
+_(Metadados: {"type": "npc_arrival", "entity": "Thalara Starshimmer", "classe": "criar_npc"})_
+
+## [2026-07-10 22:29:06] Evento
+Zephyrion Swiftstone chegou ao mundo.  NOME: Zephyrion Swiftstone
+RACA: Humano
+SEXO: Masculino
+IDADE: 54 anos
+
+HISTORIA: Um antigo mercador de Vinoka que fugiu para Carlin após ser acusado de falsificação. Agora tenta se reinventar em Tha
+
+_(Metadados: {"type": "npc_arrival", "entity": "Zephyrion Swiftstone", "classe": "criar_npc"})_
+
+## [2026-07-10 22:29:26] Evento
+Bardil Talespinner chegou ao mundo.  NOME: Bardil Talespinner
+RACA: Humano
+SEXO: Masculino
+IDADE: 45 anos
+
+HISTORIA: Um ex-mensageiro real que deixou a corte para vagar pelo continente, cantando histórias.
+
+PERSONALIDADE: Inocente, mist
+
+_(Metadados: {"type": "npc_arrival", "entity": "Bardil Talespinner", "classe": "criar_npc"})_
+
+## [2026-07-10 22:57:16] Evento
+Grimgor Ironfist chegou ao mundo.  NOME: Grimgor Ironfist
+RACA: Anao
+SEXO: Masculino
+IDADE: 50 anos
+
+HISTORIA: Grimgor é um anao experiente ferreiro, que veio de Vindornas para estabelecer seu forjado em Thais após um desastre no seu 
+
+_(Metadados: {"type": "npc_arrival", "entity": "Grimgor Ironfist", "classe": "criar_npc"})_
+
+## [2026-07-10 22:58:56] Evento
+Grimgold Hammerheart chegou ao mundo.  NOME: Grimgold Hammerheart
+RACA: Anão
+SEXO: Masculino
+IDADE: Approximadamente 300 anos
+
+HISTORIA: Filho de um famoso anão ferreiro, Grimgold foi escolhido para continuar a tradição familiar no forjad
+
+_(Metadados: {"type": "npc_arrival", "entity": "Grimgold Hammerheart", "classe": "criar_npc"})_
+
+## [2026-07-10 23:03:11] Evento
+Grimgold Ironbane chegou ao mundo.  NOME: Grimgold Ironbane
+RACA: Anao
+SEXO: Masculino
+IDADE: 65 anos (aparentemente mais jovem por sua força física)
+
+HISTORIA: Um ferreiro nascido no sul de Thais, Grimgold foi o primeiro anao a se est
+
+_(Metadados: {"type": "npc_arrival", "entity": "Grimgold Ironbane", "classe": "criar_npc"})_
+
+## [2026-07-10 23:03:56] Evento
+Thalara Starshadow chegou ao mundo.  NOME: Thalara Starshadow
+RACA: Elfa
+SEXO: Feminino
+IDADE: 500 anos (em idade elfa)
+
+HISTORIA: Thalara era uma maga de grande respeito em sua aldeia nativa, Eldaryon. Porém, após um terrível ataque de
+
+_(Metadados: {"type": "npc_arrival", "entity": "Thalara Starshadow", "classe": "criar_npc"})_
+
+## [2026-07-10 23:05:58] Evento
+Grimgold Ironbane chegou ao mundo.  NOME: Grimgold Ironbane
+RACA: Humano
+SEXO: Masculino
+IDADE: 53 anos
+
+HISTORIA: Grimgold é um ferreiro nascido em Thais, mas se mudou para Carlin após a destruição de sua forja na Belegarn.
+
+PERSONALI
+
+_(Metadados: {"type": "npc_arrival", "entity": "Grimgold Ironbane", "classe": "criar_npc"})_
+
+## [2026-07-10 23:13:07] Evento
+Grimgold Ironfist chegou ao mundo.  NOME: Grimgold Ironfist
+RACA: Aano
+SEXO: Masculino
+IDADE: 450 anos
+
+HISTORIA: Grimgold nasceu no vale de Fyrsk, numa comunidade aano que se dedicava ao forjamento de armas e armaduras. Sua técnica ex
+
+_(Metadados: {"type": "npc_arrival", "entity": "Grimgold Ironfist", "classe": "criar_npc"})_
+
+## [2026-07-10 23:16:18] Evento
+Grimgor Ironheart chegou ao mundo.  NOME: Grimgor Ironheart
+RACA: Anão
+SEXO: Masculino
+IDADE: 400 anos (aparecendo mais jovem por magia)
+
+HISTORIA: Origina do Valtorion, Grimgor foi feito ferreiro para manter a tradição familiar. Após 
+
+_(Metadados: {"type": "npc_arrival", "entity": "Grimgor Ironheart", "classe": "criar_npc"})_
+
+## [2026-07-10 23:24:21] Evento
+Ferraduro chegou ao mundo.  NOME: Ferraduro
+RACA: Humano
+SEXO: Masculino
+IDADE: 65 anos
+
+HISTORIA: É filho de um antigo ferreiro que trabalhava no Reino de Carlin, mas após uma disputa com o Rei Lúcio sobre os impostos para seu
+
+_(Metadados: {"type": "npc_arrival", "entity": "Ferraduro", "classe": "criar_npc"})_

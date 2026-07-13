@@ -1,0 +1,453 @@
+{
+  "ammunition": {
+    "n_sprites": 30,
+    "n_correlacoes": 792,
+    "anatomia": [
+      {
+        "pos": "esq_sup",
+        "regiao": "r1_muito_c",
+        "cor": "muito_clar",
+        "geom": "minusculo_",
+        "escala": 0.12
+      },
+      {
+        "pos": "cent_mid",
+        "regiao": "r0_escuro_",
+        "cor": "escuro_neu",
+        "geom": "enorme_qua",
+        "escala": 0.5
+      }
+    ]
+  },
+  "amulets_and_necklaces": {
+    "n_sprites": 30,
+    "n_correlacoes": 882,
+    "anatomia": [
+      {
+        "pos": "esq_sup",
+        "regiao": "r2_medio_m",
+        "cor": "medio_mage",
+        "geom": "minusculo_",
+        "escala": 0.12
+      },
+      {
+        "pos": "cent_sup",
+        "regiao": "r1_escuro_",
+        "cor": "escuro_neu",
+        "geom": "medio_quad",
+        "escala": 0.3
+      },
+      {
+        "pos": "cent_mid",
+        "regiao": "r0_escuro_",
+        "cor": "escuro_neu",
+        "geom": "enorme_qua",
+        "escala": 0.5
+      }
+    ]
+  },
+  "armors": {
+    "n_sprites": 30,
+    "n_correlacoes": 2516,
+    "anatomia": [
+      {
+        "pos": "esq_sup",
+        "regiao": "r1_medio_m",
+        "cor": "medio_mage",
+        "geom": "minusculo_",
+        "escala": 0.12
+      },
+      {
+        "pos": "cent_sup",
+        "regiao": "r0_escuro_",
+        "cor": "escuro_neu",
+        "geom": "enorme_qua",
+        "escala": 0.5
+      },
+      {
+        "pos": "dir_inf",
+        "regiao": "r1_escuro_",
+        "cor": "escuro_neu",
+        "geom": "pequeno_re",
+        "escala": 0.2
+      }
+    ]
+  },
+  "axe_weapons": {
+    "n_sprites": 30,
+    "n_correlacoes": 756,
+    "anatomia": [
+      {
+        "pos": "esq_sup",
+        "regiao": "r1_muito_c",
+        "cor": "muito_clar",
+        "geom": "minusculo_",
+        "escala": 0.12
+      },
+      {
+        "pos": "cent_sup",
+        "regiao": "r1_claro_a",
+        "cor": "claro_azul",
+        "geom": "minusculo_",
+        "escala": 0.12
+      },
+      {
+        "pos": "cent_mid",
+        "regiao": "r0_escuro_",
+        "cor": "escuro_neu",
+        "geom": "enorme_qua",
+        "escala": 0.5
+      }
+    ]
+  },
+  "boots": {
+    "n_sprites": 30,
+    "n_correlacoes": 1020,
+    "anatomia": [
+      {
+        "pos": "esq_sup",
+        "regiao": "r1_muito_c",
+        "cor": "muito_clar",
+        "geom": "minusculo_",
+        "escala": 0.12
+      },
+      {
+        "pos": "esq_mid",
+        "regiao": "r4_medio_m",
+        "cor": "medio_mage",
+        "geom": "pequeno_qu",
+        "escala": 0.2
+      },
+      {
+        "pos": "cent_mid",
+        "regiao": "r0_escuro_",
+        "cor": "escuro_neu",
+        "geom": "enorme_qua",
+        "escala": 0.5
+      },
+      {
+        "pos": "cent_inf",
+        "regiao": "r3_claro_a",
+        "cor": "claro_amar",
+        "geom": "medio_quad",
+        "escala": 0.3
+      },
+      {
+        "pos": "dir_inf",
+        "regiao": "r1_medio_a",
+        "cor": "medio_amar",
+        "geom": "minusculo_",
+        "escala": 0.12
+      }
+    ]
+  },
+  "club_weapons": {
+    "n_sprites": 30,
+    "n_correlacoes": 1098,
+    "anatomia": [
+      {
+        "pos": "esq_sup",
+        "regiao": "r0_escuro_",
+        "cor": "escuro_neu",
+        "geom": "minusculo_",
+        "escala": 0.12
+      },
+      {
+        "pos": "cent_sup",
+        "regiao": "r2_claro_a",
+        "cor": "claro_amar",
+        "geom": "minusculo_",
+        "escala": 0.12
+      },
+      {
+        "pos": "cent_mid",
+        "regiao": "r1_escuro_",
+        "cor": "escuro_neu",
+        "geom": "enorme_qua",
+        "escala": 0.5
+      },
+      {
+        "pos": "dir_inf",
+        "regiao": "r2_claro_m",
+        "cor": "claro_mage",
+        "geom": "minusculo_",
+        "escala": 0.12
+      }
+    ]
+  },
+  "creature_products": {
+    "n_sprites": 30,
+    "n_correlacoes": 738,
+    "anatomia": [
+      {
+        "pos": "cent_sup",
+        "regiao": "r1_muito_c",
+        "cor": "muito_clar",
+        "geom": "medio_quad",
+        "escala": 0.3
+      },
+      {
+        "pos": "cent_mid",
+        "regiao": "r0_escuro_",
+        "cor": "escuro_neu",
+        "geom": "enorme_qua",
+        "escala": 0.5
+      },
+      {
+        "pos": "dir_inf",
+        "regiao": "r3_muito_c",
+        "cor": "muito_clar",
+        "geom": "minusculo_",
+        "escala": 0.12
+      }
+    ]
+  },
+  "distance_weapons": {
+    "n_sprites": 30,
+    "n_correlacoes": 550,
+    "anatomia": [
+      {
+        "pos": "cent_mid",
+        "regiao": "r0_escuro_",
+        "cor": "escuro_neu",
+        "geom": "enorme_qua",
+        "escala": 0.5
+      }
+    ]
+  },
+  "food": {
+    "n_sprites": 30,
+    "n_correlacoes": 428,
+    "anatomia": [
+      {
+        "pos": "cent_mid",
+        "regiao": "r0_escuro_",
+        "cor": "escuro_neu",
+        "geom": "enorme_qua",
+        "escala": 0.5
+      }
+    ]
+  },
+  "helmets": {
+    "n_sprites": 30,
+    "n_correlacoes": 1150,
+    "anatomia": [
+      {
+        "pos": "cent_sup",
+        "regiao": "r2_muito_c",
+        "cor": "muito_clar",
+        "geom": "minusculo_",
+        "escala": 0.12
+      },
+      {
+        "pos": "cent_mid",
+        "regiao": "r0_escuro_",
+        "cor": "escuro_neu",
+        "geom": "enorme_qua",
+        "escala": 0.5
+      }
+    ]
+  },
+  "legs": {
+    "n_sprites": 30,
+    "n_correlacoes": 1150,
+    "anatomia": [
+      {
+        "pos": "esq_sup",
+        "regiao": "r1_medio_m",
+        "cor": "medio_mage",
+        "geom": "minusculo_",
+        "escala": 0.12
+      },
+      {
+        "pos": "esq_mid",
+        "regiao": "r0_escuro_",
+        "cor": "escuro_neu",
+        "geom": "enorme_qua",
+        "escala": 0.5
+      },
+      {
+        "pos": "dir_mid",
+        "regiao": "r2_escuro_",
+        "cor": "escuro_neu",
+        "geom": "medio_muit",
+        "escala": 0.3
+      },
+      {
+        "pos": "cent_inf",
+        "regiao": "r1_escuro_",
+        "cor": "escuro_neu",
+        "geom": "medio_alon",
+        "escala": 0.3
+      },
+      {
+        "pos": "dir_inf",
+        "regiao": "r1_muito_c",
+        "cor": "muito_clar",
+        "geom": "minusculo_",
+        "escala": 0.12
+      }
+    ]
+  },
+  "rings": {
+    "n_sprites": 30,
+    "n_correlacoes": 1046,
+    "anatomia": [
+      {
+        "pos": "cent_mid",
+        "regiao": "r0_escuro_",
+        "cor": "escuro_neu",
+        "geom": "enorme_qua",
+        "escala": 0.5
+      }
+    ]
+  },
+  "rods": {
+    "n_sprites": 20,
+    "n_correlacoes": 190,
+    "anatomia": [
+      {
+        "pos": "esq_mid",
+        "regiao": "r0_escuro_",
+        "cor": "escuro_neu",
+        "geom": "grande_alo",
+        "escala": 0.4
+      },
+      {
+        "pos": "cent_mid",
+        "regiao": "r2_medio_a",
+        "cor": "medio_azul",
+        "geom": "minusculo_",
+        "escala": 0.12
+      },
+      {
+        "pos": "dir_mid",
+        "regiao": "r1_escuro_",
+        "cor": "escuro_neu",
+        "geom": "grande_alo",
+        "escala": 0.4
+      }
+    ]
+  },
+  "shields": {
+    "n_sprites": 30,
+    "n_correlacoes": 1970,
+    "anatomia": [
+      {
+        "pos": "esq_sup",
+        "regiao": "r3_muito_c",
+        "cor": "muito_clar",
+        "geom": "pequeno_qu",
+        "escala": 0.2
+      },
+      {
+        "pos": "esq_mid",
+        "regiao": "r0_escuro_",
+        "cor": "escuro_neu",
+        "geom": "grande_alo",
+        "escala": 0.4
+      },
+      {
+        "pos": "dir_mid",
+        "regiao": "r1_escuro_",
+        "cor": "escuro_neu",
+        "geom": "grande_qua",
+        "escala": 0.4
+      },
+      {
+        "pos": "dir_inf",
+        "regiao": "r3_medio_m",
+        "cor": "medio_mage",
+        "geom": "minusculo_",
+        "escala": 0.12
+      }
+    ]
+  },
+  "spellbooks": {
+    "n_sprites": 20,
+    "n_correlacoes": 1664,
+    "anatomia": [
+      {
+        "pos": "esq_sup",
+        "regiao": "r0_escuro_",
+        "cor": "escuro_neu",
+        "geom": "medio_reta",
+        "escala": 0.3
+      },
+      {
+        "pos": "esq_mid",
+        "regiao": "r4_medio_m",
+        "cor": "medio_mage",
+        "geom": "minusculo_",
+        "escala": 0.12
+      },
+      {
+        "pos": "dir_mid",
+        "regiao": "r1_claro_m",
+        "cor": "claro_mage",
+        "geom": "pequeno_re",
+        "escala": 0.2
+      },
+      {
+        "pos": "dir_inf",
+        "regiao": "r1_escuro_",
+        "cor": "escuro_neu",
+        "geom": "medio_alon",
+        "escala": 0.3
+      }
+    ]
+  },
+  "sword_weapons": {
+    "n_sprites": 30,
+    "n_correlacoes": 1132,
+    "anatomia": [
+      {
+        "pos": "esq_sup",
+        "regiao": "r1_muito_c",
+        "cor": "muito_clar",
+        "geom": "minusculo_",
+        "escala": 0.12
+      },
+      {
+        "pos": "cent_mid",
+        "regiao": "r0_escuro_",
+        "cor": "escuro_neu",
+        "geom": "enorme_qua",
+        "escala": 0.5
+      }
+    ]
+  },
+  "tools": {
+    "n_sprites": 30,
+    "n_correlacoes": 950,
+    "anatomia": [
+      {
+        "pos": "esq_sup",
+        "regiao": "r0_escuro_",
+        "cor": "escuro_neu",
+        "geom": "enorme_qua",
+        "escala": 0.5
+      },
+      {
+        "pos": "dir_mid",
+        "regiao": "r1_escuro_",
+        "cor": "escuro_neu",
+        "geom": "enorme_alo",
+        "escala": 0.5
+      }
+    ]
+  },
+  "wands": {
+    "n_sprites": 20,
+    "n_correlacoes": 198,
+    "anatomia": [
+      {
+        "pos": "cent_mid",
+        "regiao": "r0_escuro_",
+        "cor": "escuro_neu",
+        "geom": "enorme_qua",
+        "escala": 0.5
+      }
+    ]
+  }
+}

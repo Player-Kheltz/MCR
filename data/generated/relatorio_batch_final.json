@@ -1,0 +1,337 @@
+{
+  "timestamp": "2026-07-10T18:28:47.831630",
+  "ollama": true,
+  "fase1": {
+    "requests": 20,
+    "parallel": 1,
+    "wall_time_s": 34.57,
+    "tempo_medio_s": 26.24,
+    "erros": 0,
+    "rotas": {
+      "llm_simples": 20
+    },
+    "resultados": [
+      {
+        "pid": 0,
+        "prompt": "Explique a origem da lenda do Lago das C",
+        "rota": "llm_simples",
+        "classe": "origem",
+        "conf": 0.9761302197170136,
+        "tempo": 30.37,
+        "cache": false,
+        "existente": false,
+        "validacao_codigo": "{\"valido\": True, \"validacoes\": []}",
+        "erro": null
+      },
+      {
+        "pid": 1,
+        "prompt": "Crie uma quest de eliminacao de goblins ",
+        "rota": "llm_simples",
+        "classe": "quest",
+        "conf": 0.9669211920907175,
+        "tempo": 25.21,
+        "cache": false,
+        "existente": false,
+        "validacao_codigo": "{\"valido\": True, \"validacoes\": []}",
+        "erro": null
+      },
+      {
+        "pid": 2,
+        "prompt": "Crie uma quest de eliminacao de goblins ",
+        "rota": "llm_simples",
+        "classe": "quest",
+        "conf": 0.9669221345337474,
+        "tempo": 23.31,
+        "cache": false,
+        "existente": false,
+        "validacao_codigo": "{\"valido\": True, \"validacoes\": []}",
+        "erro": null
+      },
+      {
+        "pid": 3,
+        "prompt": "Crie uma quest de coleta de ervas raras ",
+        "rota": "llm_simples",
+        "classe": "quest",
+        "conf": 0.9669230769230769,
+        "tempo": 22.69,
+        "cache": false,
+        "existente": false,
+        "validacao_codigo": "{\"valido\": True, \"validacoes\": []}",
+        "erro": null
+      },
+      {
+        "pid": 4,
+        "prompt": "Crie uma quest de coleta de ervas raras ",
+        "rota": "llm_simples",
+        "classe": "quest",
+        "conf": 0.9669240192587106,
+        "tempo": 29.36,
+        "cache": false,
+        "existente": false,
+        "validacao_codigo": "{\"valido\": True, \"validacoes\": []}",
+        "erro": null
+      },
+      {
+        "pid": 5,
+        "prompt": "Crie uma maga elfa que protege a florest",
+        "rota": "llm_simples",
+        "classe": "maga",
+        "conf": 0.9783836753516255,
+        "tempo": 24.63,
+        "cache": false,
+        "existente": false,
+        "validacao_codigo": "{\"valido\": True, \"validacoes\": []}",
+        "erro": null
+      },
+      {
+        "pid": 6,
+        "prompt": "Crie uma quest de eliminacao de goblins ",
+        "rota": "llm_simples",
+        "classe": "quest",
+        "conf": 0.966924961540653,
+        "tempo": 24.54,
+        "cache": false,
+        "existente": false,
+        "validacao_codigo": "{\"valido\": True, \"validacoes\": []}",
+        "erro": null
+      },
+      {
+        "pid": 7,
+        "prompt": "Gere codigo Lua para um NPC guarda que p",
+        "rota": "llm_simples",
+        "classe": "Lua",
+        "conf": 0.9578323454699408,
+        "tempo": 23.45,
+        "cache": false,
+        "existente": true,
+        "validacao_codigo": "{\"valido\": True, \"validacoes\": []}",
+        "erro": null
+      },
+      {
+        "pid": 8,
+        "prompt": "Crie uma quest de coleta de ervas raras ",
+        "rota": "llm_simples",
+        "classe": "quest",
+        "conf": 0.9669259037689086,
+        "tempo": 25.21,
+        "cache": false,
+        "existente": false,
+        "validacao_codigo": "{\"valido\": True, \"validacoes\": []}",
+        "erro": null
+      },
+      {
+        "pid": 9,
+        "prompt": "Explique a origem da lenda do Lago das C",
+        "rota": "llm_simples",
+        "classe": "origem",
+        "conf": 0.9761315925691608,
+        "tempo": 23.4,
+        "cache": false,
+        "existente": false,
+        "validacao_codigo": "{\"valido\": True, \"validacoes\": []}",
+        "erro": null
+      },
+      {
+        "pid": 10,
+        "prompt": "Crie uma quest de coleta de ervas raras ",
+        "rota": "llm_simples",
+        "classe": "quest",
+        "conf": 0.9669268459434822,
+        "tempo": 26.0,
+        "cache": false,
+        "existente": false,
+        "validacao_codigo": "{\"valido\": True, \"validacoes\": []}",
+        "erro": null
+      },
+      {
+        "pid": 11,
+        "prompt": "Conte a historia da criacao da ilha de R",
+        "rota": "llm_simples",
+        "classe": "historia",
+        "conf": 0.9762411551515848,
+        "tempo": 27.99,
+        "cache": false,
+        "existente": false,
+        "validacao_codigo": "{\"valido\": True, \"validacoes\": []}",
+        "erro": null
+      },
+      {
+        "pid": 12,
+        "prompt": "Crie um alquimista misterioso que vive n",
+        "rota": "llm_simples",
+        "classe": "alquimista",
+        "conf": 0.9775345622119815,
+        "tempo": 21.46,
+        "cache": false,
+        "existente": false,
+        "validacao_codigo": "{\"valido\": True, \"validacoes\": []}",
+        "erro": null
+      },
+      {
+        "pid": 13,
+        "prompt": "Crie um alquimista misterioso que vive n",
+        "rota": "llm_simples",
+        "classe": "alquimista",
+        "conf": 0.9775358562294799,
+        "tempo": 21.3,
+        "cache": false,
+        "existente": false,
+        "validacao_codigo": "{\"valido\": True, \"validacoes\": []}",
+        "erro": null
+      },
+      {
+        "pid": 14,
+        "prompt": "Crie um bardo que conta historias na tav",
+        "rota": "llm_simples",
+        "classe": "bardo",
+        "conf": 0.9756798712125567,
+        "tempo": 31.56,
+        "cache": false,
+        "existente": false,
+        "validacao_codigo": "{\"valido\": True, \"validacoes\": []}",
+        "erro": null
+      },
+      {
+        "pid": 15,
+        "prompt": "Crie um mercador humano que viaja entre ",
+        "rota": "llm_simples",
+        "classe": "mercador",
+        "conf": 0.9765247410817031,
+        "tempo": 31.57,
+        "cache": false,
+        "existente": true,
+        "validacao_codigo": "{\"valido\": True, \"validacoes\": []}",
+        "erro": null
+      },
+      {
+        "pid": 16,
+        "prompt": "Gere SQL para criar tabela de itens magi",
+        "rota": "llm_simples",
+        "classe": "para",
+        "conf": 0.9757892920812008,
+        "tempo": 25.8,
+        "cache": false,
+        "existente": false,
+        "validacao_codigo": "{\"valido\": True, \"validacoes\": []}",
+        "erro": null
+      },
+      {
+        "pid": 17,
+        "prompt": "Crie uma quest de eliminacao de goblins ",
+        "rota": "llm_simples",
+        "classe": "quest",
+        "conf": 0.9669277880643783,
+        "tempo": 21.79,
+        "cache": false,
+        "existente": false,
+        "validacao_codigo": "{\"valido\": True, \"validacoes\": []}",
+        "erro": null
+      },
+      {
+        "pid": 18,
+        "prompt": "Gere codigo Lua para um NPC guarda que p",
+        "rota": "llm_simples",
+        "classe": "Lua",
+        "conf": 0.9578347256717092,
+        "tempo": 30.53,
+        "cache": false,
+        "existente": true,
+        "validacao_codigo": "{\"valido\": True, \"validacoes\": []}",
+        "erro": null
+      },
+      {
+        "pid": 19,
+        "prompt": "Crie um alquimista misterioso que vive n",
+        "rota": "llm_simples",
+        "classe": "alquimista",
+        "conf": 0.977537150097915,
+        "tempo": 34.57,
+        "cache": false,
+        "existente": false,
+        "validacao_codigo": "{\"valido\": True, \"validacoes\": []}",
+        "erro": null
+      }
+    ]
+  },
+  "fase2": {
+    "corpus_tokens": 22659,
+    "entropia": 0.7918,
+    "limiar": 0.2082,
+    "precisao": "62%",
+    "detalhes": [
+      {
+        "texto": "O rei governa o castelo com sabedoria e justica desde o",
+        "esperado": "normal",
+        "detectado": "anomalo",
+        "anomalias": [
+          "governa",
+          "justica"
+        ]
+      },
+      {
+        "texto": "O mago invocou um dragao de fogo com seu cajado arcano ",
+        "esperado": "normal",
+        "detectado": "anomalo",
+        "anomalias": [
+          "invocou",
+          "dragao",
+          "arcano"
+        ]
+      },
+      {
+        "texto": "O guerreiro forjou uma espada de aco lendario nas minas",
+        "esperado": "normal",
+        "detectado": "anomalo",
+        "anomalias": [
+          "forjou",
+          "lendario"
+        ]
+      },
+      {
+        "texto": "A floresta encantada guarda segredos de magia e poder a",
+        "esperado": "normal",
+        "detectado": "normal",
+        "anomalias": []
+      },
+      {
+        "texto": "A nave espacial pousou no reino com lasers e robos futu",
+        "esperado": "anomalo",
+        "detectado": "anomalo",
+        "anomalias": [
+          "futuristas",
+          "pousou",
+          "lasers"
+        ]
+      },
+      {
+        "texto": "O hacker invadiu o sistema do castelo com um computador",
+        "esperado": "anomalo",
+        "detectado": "anomalo",
+        "anomalias": [
+          "invadiu",
+          "hacker",
+          "computador"
+        ]
+      },
+      {
+        "texto": "O dragao ciborgue atacou o castelo com misseis teleguia",
+        "esperado": "anomalo",
+        "detectado": "anomalo",
+        "anomalias": [
+          "atacou",
+          "ciborgue",
+          "dragao"
+        ]
+      },
+      {
+        "texto": "Use a API REST para conectar o mago ao banco de dados S",
+        "esperado": "anomalo",
+        "detectado": "anomalo",
+        "anomalias": [
+          "conectar"
+        ]
+      }
+    ]
+  },
+  "tempo_total_s": 525.71
+}

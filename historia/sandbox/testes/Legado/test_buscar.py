@@ -1,6 +1,9 @@
 """Testar busca no KG"""
-import sys, json
-sys.path.insert(0, "E:\\Projeto MCR\\scripts\\mcr_devia")
+import sys, json, os
+try:
+    sys.path.insert(0, "E:\\Projeto MCR\\scripts\\mcr_devia")
+except Exception:
+    pass
 from mcr_devia import KnowledgeGraph
 
 kg = KnowledgeGraph()

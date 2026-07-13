@@ -4,9 +4,9 @@ Motor: MCRSpriteMotor (3 niveis paralelos: byte/palavra/token).
 Igual ao MCRMotor para codigo.
 PipelineUniversal usa este motor nos 6 estagios.
 """
-import sys, numpy as np
+import sys, os, numpy as np
 from collections import Counter
-sys.path.insert(0, r'E:\MCR')
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..'))
 
 from mcr.mcr_sprite_motor import MCRSpriteMotor
 from mcr.sprite_corpus import carregar_categoria, extrair_grid_papel

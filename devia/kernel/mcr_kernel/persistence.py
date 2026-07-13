@@ -28,7 +28,7 @@ class MCRDocIndex:
                 self._carregado = True
                 self.mk.aprender("INDEX", f"CARREGADO:{len(self._indice)}")
                 return
-            except: pass
+            except Exception: pass
         self._carregado = False
     
     def _salvar(self):
@@ -36,7 +36,7 @@ class MCRDocIndex:
             os.makedirs(os.path.dirname(self._cache_path), exist_ok=True)
             with open(self._cache_path, 'w', encoding='utf-8') as f:
                 json.dump(self._indice, f, ensure_ascii=False, indent=2)
-        except: pass
+        except Exception: pass
     
     def indexar(self, forcar=False) -> int:
         if self._carregado and not forcar:
@@ -66,7 +66,7 @@ class MCRDocIndex:
                         'n_termos': len(termos),
                     }
                     n += 1
-                except: pass
+                except Exception: pass
         self._salvar()
         self._carregado = True
         self.mk.aprender("INDEX", f"CRIADO:{n}")
@@ -95,7 +95,7 @@ class MCRDocIndex:
         try:
             with open(fpath, 'r', encoding='utf-8', errors='replace') as f:
                 return f.read(max_bytes)
-        except: return ''
+        except Exception: return ''
 
 
 _MCR_DOC_INDEX = None
@@ -299,10 +299,10 @@ class MCRPersistencia:
                     linhas_data.append(json.dumps(a_copy, ensure_ascii=False))
             for k, v in self.dados.get('cache', {}).items():
                 try: linhas_data.append(json.dumps({'cache_key': k, 'valor': v}, ensure_ascii=False))
-                except: pass
+                except Exception: pass
             for k, v in self.dados.get('estado', {}).items():
                 try: linhas_data.append(json.dumps({'estado_key': k, 'valor': v}, ensure_ascii=False))
-                except: pass
+                except Exception: pass
             if not linhas_data:
                 return True
             data_str = '\n'.join(linhas_data)

@@ -9,7 +9,7 @@ try:
     if os.path.exists(_ID_PATH):
         with open(_ID_PATH, 'r', encoding='utf-8') as f:
             _IDENTIDADE = f.read().strip()
-except:
+except Exception:
     pass
 
 def register():
@@ -50,7 +50,7 @@ def execute(kg, ia, args, ctx_crew=None):
                                    '..', '..', 'sandbox', '.mcr_resposta.txt')
                 with open(_rp, 'w', encoding='utf-8') as _f:
                     _f.write(resposta)
-            except:
+            except Exception:
                 pass
             print(f'\n{resposta}')
             if kg:

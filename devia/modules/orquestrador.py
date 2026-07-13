@@ -396,7 +396,7 @@ def _obter_classes_reais():
         classes.update({'ValueError','TypeError','KeyError','Exception','OSError',
                        'FileNotFoundError','PermissionError','StopIteration'})
         return classes
-    except:
+    except Exception:
         return {"DataLake", "StreamSimulator"}
 
 def _validar_conteudo(texto, keywords_extras=None):
@@ -436,7 +436,7 @@ def _validar_conteudo(texto, keywords_extras=None):
         if 'NAO' in val.upper() and 'SIM' not in val.upper():
             return False
         return True
-    except:
+    except Exception:
         return True
 
 # ============================================================
@@ -481,7 +481,7 @@ def _atualizar_metricas(resultado, intencao):
                 try:
                     with open(_METRICAS_PATH, 'r', encoding='utf-8') as f:
                         metricas = json.load(f)
-                except:
+                except Exception:
                     pass
             
             metricas["total_calls"] = metricas.get("total_calls", 0) + 1
@@ -511,7 +511,7 @@ def _atualizar_metricas(resultado, intencao):
             
             with open(_METRICAS_PATH, 'w', encoding='utf-8') as f:
                 json.dump(metricas, f, ensure_ascii=False, indent=2)
-    except:
+    except Exception:
         pass
 
 # ============================================================
@@ -545,7 +545,7 @@ class Orquestrador:
             filtrado = _fast(prompt_filtro, 0.2, "leve")
             if filtrado and len(filtrado) > 50:
                 return filtrado.strip()[:6000]
-        except:
+        except Exception:
             pass
         return contexto_raw[:6000]
     
@@ -560,7 +560,7 @@ class Orquestrador:
                 ctx = self.ctx_crew.executar(consulta) or ""
                 if ctx:
                     partes.append(f"[CONTEXT CREW]\n{ctx[:3000]}")
-            except:
+            except Exception:
                 pass
         
         # 2. KG direto (mais lessons)
@@ -576,7 +576,7 @@ class Orquestrador:
                             kg_blocos.append(f"- [{ctx_tag}] {sol[:400]}")
                     if kg_blocos:
                         partes.append(f"[KNOWLEDGE GRAPH]\n" + "\n".join(kg_blocos[:10]))
-            except:
+            except Exception:
                 pass
         
         # 3. Context Infinity (conversa recente)
@@ -588,7 +588,7 @@ class Orquestrador:
                     linhas = [json.loads(l).get('msg', '') for l in f.readlines()[-8:] if l.strip()]
                     if linhas:
                         partes.append(f"[CONTEXT INFINITY]\n" + "\n".join(linhas[-8:]))
-        except:
+        except Exception:
             pass
         
         # 4. Leitura DIRETA de arquivos mencionados na consulta
@@ -629,7 +629,7 @@ class Orquestrador:
                                 partes.append(f"[ARQUIVO: {nome_arq}]\n{_conteudo[:3000]}")
                             print(f'  [Contexto] Arquivo lido: {nome_arq}')
                             break
-                        except: pass
+                        except Exception: pass
         
         # Junta tudo e FILTRA DINAMICAMENTE por relevancia
         contexto_raw = "\n\n".join(partes)
@@ -839,7 +839,7 @@ class Orquestrador:
             for tentativa in range(3):
                 try:
                     resp = _gerar(prompt_frag, temp, router) or _fast(prompt_frag, temp, router) or ""
-                except:
+                except Exception:
                     resp = ""
                     break
                 
@@ -871,7 +871,7 @@ class Orquestrador:
         try:
             compile(codigo.strip(), '<test>', 'exec')
             return True
-        except:
+        except Exception:
             return False
 
     def executar(self, intencao, params=None, consulta="", temp=0.4, fragmentar=True):

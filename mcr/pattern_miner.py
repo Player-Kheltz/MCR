@@ -13,7 +13,7 @@ from tree_sitter import Language, Parser
 import tree_sitter_lua
 import tree_sitter_cpp
 
-from mcr.paths import CANARY_SCRIPTS_DIR, CANARY_SRC_DIR, KG_DIR
+from mcr.paths import CANARY_SCRIPTS_DIR, CANARY_NPC_DIR, CANARY_SRC_DIR, KG_DIR
 from mcr.encoding import read_file
 
 # ─── Init parsers (uma vez) ────────────────────────────────────
@@ -347,8 +347,15 @@ if __name__ == '__main__':
 
     t_global = time.time()
 
-    # Lua
+    # Lua — server/data/scripts/
     padroes_lua = miner_lua_files(CANARY_SCRIPTS_DIR)
+
+    # Lua — server/data-otservbr-global/npc/ (1,076 scripts NPC)
+    if CANARY_NPC_DIR.exists():
+        padroes_npc = miner_lua_files(CANARY_NPC_DIR)
+    else:
+        print(f'[PatternMiner] NPC dir nao encontrado: {CANARY_NPC_DIR}')
+        padroes_npc = []
 
     # C++ (opcional, pode pular se nao precisar)
     if '--cpp' in sys.argv or '--all' in sys.argv:
@@ -358,7 +365,7 @@ if __name__ == '__main__':
         padroes_cpp = []
 
     # Unifica
-    todos_padroes = padroes_lua + padroes_cpp
+    todos_padroes = padroes_lua + padroes_npc + padroes_cpp
 
     # Salva
     if todos_padroes:

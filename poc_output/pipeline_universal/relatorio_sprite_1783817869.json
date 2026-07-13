@@ -1,0 +1,94 @@
+{
+  "dominio": "sprite",
+  "status": "aceito",
+  "score": 0.2826,
+  "nota": 0.9361,
+  "em_loop": true,
+  "arquivos": [
+    "E:\\MCR\\poc_output\\pipeline_universal\\sprite_1783817869_0.png",
+    "E:\\MCR\\poc_output\\pipeline_universal\\sprite_1783817869_1.png",
+    "E:\\MCR\\poc_output\\pipeline_universal\\sprite_1783817869_2.png"
+  ],
+  "descobertas": {
+    "meta_niveis": {
+      "n_niveis": 4,
+      "ordem": [
+        "byte",
+        "palavra",
+        "intencao",
+        "padrao"
+      ],
+      "stats": {
+        "byte": {
+          "nome": "byte",
+          "entropia": 1.478,
+          "raio": 9.059,
+          "alimentado": 549,
+          "estados": 15,
+          "conexoes": 3
+        },
+        "palavra": {
+          "nome": "palavra",
+          "entropia": 1.47,
+          "raio": 9.01,
+          "alimentado": 756,
+          "estados": 15,
+          "conexoes": 2
+        },
+        "intencao": {
+          "nome": "intencao",
+          "entropia": 1.478,
+          "raio": 9.059,
+          "alimentado": 549,
+          "estados": 15,
+          "conexoes": 1
+        },
+        "padrao": {
+          "nome": "padrao",
+          "entropia": 1.478,
+          "raio": 9.059,
+          "alimentado": 549,
+          "estados": 15,
+          "conexoes": 0
+        }
+      },
+      "maior_raio": {
+        "nome": "byte",
+        "valor": 9.059
+      },
+      "energia_total": 46.68,
+      "precisa_mais": true
+    },
+    "estagio2": {
+      "n_sequencias": 5,
+      "n_tokens": 105,
+      "unicos": 79
+    },
+    "estagio3": {
+      "tipo": "entropico",
+      "limiar": 0.5,
+      "resumo": "25 posicoes: 0 fixas + 25 gaps, H_media=0.932"
+    },
+    "estagio4": {
+      "n_geradas": 3,
+      "temperatura": 0.8,
+      "usou_template": true
+    },
+    "estagio5": {
+      "score_medio": 0.2826,
+      "scores": [
+        0.3227,
+        0.2,
+        0.325
+      ],
+      "nota_mcr": 0.9361,
+      "em_loop": true
+    }
+  },
+  "tempo": 0.02,
+  "thresholds": {
+    "limiar_template": 0.5,
+    "temp_geracao": 0.8,
+    "aceitacao": 0.3
+  }
+}

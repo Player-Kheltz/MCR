@@ -69,7 +69,8 @@ class MCRSpawner:
         self.mk = MCR("spawner")
         self.mk_nworkers = MCR('n_workers')
         self.workers = []
-        for _n in [(10, 2), (50, 4), (100, 8), (500, 12)]:
+        for _n in [(1, 1), (2, 2), (3, 2), (4, 2), (5, 3),
+                    (10, 2), (50, 4), (100, 8), (500, 12)]:
             self.mk_nworkers.aprender(f"n:{_n[0]}", str(_n[1]))
     
     def decidir_n_workers(self, n_tarefas: int, tempo_medio: float = 0.0) -> int:
@@ -80,7 +81,7 @@ class MCRSpawner:
         if pred[0] is not None and pred[1] > 0.3:
             try:
                 return max(1, min(32, int(str(pred[0]))))
-            except:
+            except Exception:
                 pass
         n = max(1, min(16, n_tarefas // 10))
         self.mk_nworkers.aprender(f"n:{bucket}", str(n))
@@ -143,7 +144,7 @@ class MCRExpansao:
             idx = _get_doc_index()
             idx.indexar()
             tem_docs = len(idx._indice) > 0
-        except:
+        except Exception:
             tem_docs = False
         ordem = ['docs', 'modulos', 'comandos', 'kg'] if tem_docs else ['modulos', 'comandos', 'kg']
         try:
@@ -151,7 +152,7 @@ class MCRExpansao:
             ordem_str = dec.decidir(f"EXPANDIR:{tema}")
             if ordem_str and '_' in str(ordem_str):
                 ordem = str(ordem_str).split('_')
-        except:
+        except Exception:
             pass
         for etapa in ordem:
             if etapa == 'docs':
@@ -164,7 +165,7 @@ class MCRExpansao:
                             resultados.append(f"[DOCS:{os.path.basename(doc['caminho'])}] OK")
                             recursos_usados.append(f"docs:{doc['caminho']}")
                             self.mk.aprender(f"EXPANDIR:{tema}", f"DOCS:{doc['caminho']}")
-                except:
+                except Exception:
                     pass
             elif etapa == 'modulos':
                 for nome, mod in list(self.bridge.modulos.items())[:max_recursos//3]:
@@ -177,14 +178,14 @@ class MCRExpansao:
                                     recursos_usados.append(f"modulo:{nome}")
                                     self.mk.aprender(f"EXPANDIR:{tema}", f"MOD:{nome}")
                                 break
-                            except:
+                            except Exception:
                                 pass
             elif etapa == 'comandos':
                 for nome in self.COMANDOS_MCR:
                     if nome not in self.bridge.comandos: continue
                     try:
                         cmd_result = self.bridge.usar_comando(nome)
-                    except:
+                    except Exception:
                         cmd_result = None
                     if cmd_result and isinstance(cmd_result, str) and len(cmd_result) > 20:
                         resultados.append(f"[CMD:{nome}] OK")
@@ -229,7 +230,7 @@ class MCRFuel:
             if not os.path.exists(caminho): return ''
             with open(caminho, 'r', encoding='utf-8', errors='replace') as f:
                 return f.read(max_bytes)
-        except: return ''
+        except Exception: return ''
     
     def _listar_arquivos(self, diretorio, ext, max_n=100):
         if not os.path.isdir(diretorio): return []
@@ -312,7 +313,7 @@ class MCRFuel:
                             suc = ep.get('sucesso', False)
                             if req:
                                 self._alimentar(f"episodio_{req}", f"Request: {req} | Sucesso: {suc}", "fuel_cache")
-                    except: pass
+                    except Exception: pass
                 conv_path = os.path.join(self._base, 'sandbox', '.mcr_conversa.jsonl')
                 if os.path.exists(conv_path):
                     try:
@@ -324,8 +325,8 @@ class MCRFuel:
                                     msg = entry.get('msg', '')
                                     if msg:
                                         self._alimentar(f"conversa_{i}", msg, "fuel_cache")
-                                except: pass
-                    except: pass
+                                except Exception: pass
+                    except Exception: pass
             elif fonte == 'ferramentas':
                 ferramentas_list = [
                     'buscar_kg', 'buscar_estrategico', 'pattern_analyze',
@@ -345,11 +346,11 @@ class MCRFuel:
                         f"{len(licoes)-len(uteis)} lixo. "
                         f"Distribuicao: {dict(__import__('collections').Counter(l.get('ctx','?') for l in licoes).most_common(10))}",
                         "fuel_kg")
-                except: pass
+                except Exception: pass
         if self.total_lessons > 0:
             for _ in range(10):
                 try: self.kg.aprender_conceito("_fuel_flush", "_", ctx="_flush")
-                except: pass
+                except Exception: pass
         self.mk.aprender("FUEL", f"LESSONS:{self.total_lessons}")
         return self.total_lessons
     
@@ -364,7 +365,7 @@ class MCRFuel:
                 n = self.abastecer()
                 return n > 0
             return False
-        except:
+        except Exception:
             return False
 
 
@@ -410,7 +411,7 @@ class MCRAutoMelhoria:
                     if c and self.kg:
                         self.kg.aprender_conceito(f"auto_{os.path.basename(doc['caminho']).replace('.','_')}", c, ctx="auto_descoberta")
             return ["docs_autodescobertos"] if any(idx.buscar(t) for t in ['eridanus','spa','lore']) else []
-        except: return []
+        except Exception: return []
     
     def _p3_repetiu(self):
         if self.fuel.mk.total > 10 and self.fuel.mk.entropia_media() < 0.5:
@@ -437,17 +438,17 @@ class MCRAutoMelhoria:
     def ciclo(self):
         try:
             kk_licoes = len(self.kg._get_licoes()) if self.kg else 0
-        except:
+        except Exception:
             kk_licoes = 0
         todas = []
         if kk_licoes > 200:
             for fn in [self._p3_repetiu, self._p4_errou, self._p5_aprendeu, self._p6_precisa]:
                 try: todas.extend(fn())
-                except: pass
+                except Exception: pass
         else:
             for fn in [self._p1_gaps, self._p2_lento, self._p7_esqueceu,
                        self._p3_repetiu, self._p4_errou, self._p5_aprendeu, self._p6_precisa]:
                 try: todas.extend(fn())
-                except: pass
+                except Exception: pass
         self.mk.aprender("CICLO", str(len(todas)))
         return {'acoes': todas, 'n': len(todas)}

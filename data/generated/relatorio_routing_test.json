@@ -1,0 +1,218 @@
+{
+  "timestamp": "2026-07-10T18:41:45.225582",
+  "ollama": true,
+  "fase1": {
+    "requests": 10,
+    "parallel": 1,
+    "wall_time_s": 40.63,
+    "tempo_medio_s": 27.93,
+    "erros": 0,
+    "rotas": {
+      "ensemble": 1,
+      "llm_simples": 9
+    },
+    "resultados": [
+      {
+        "pid": 0,
+        "prompt": "Gere SQL para criar tabela de itens magi",
+        "rota": "ensemble",
+        "classe": "criar_sql",
+        "conf": 1.0,
+        "tempo": 40.6,
+        "cache": false,
+        "existente": false,
+        "validacao_codigo": "{\"valido\": True, \"validacoes\": []}",
+        "erro": null
+      },
+      {
+        "pid": 1,
+        "prompt": "Crie um ferreiro anao chamado Brunin que",
+        "rota": "llm_simples",
+        "classe": "criar_npc",
+        "conf": 1.0,
+        "tempo": 25.9,
+        "cache": false,
+        "existente": true,
+        "validacao_codigo": "{\"valido\": True, \"validacoes\": []}",
+        "erro": null
+      },
+      {
+        "pid": 2,
+        "prompt": "Crie um guarda orc que cobra pedagio na ",
+        "rota": "llm_simples",
+        "classe": "criar_npc",
+        "conf": 1.0,
+        "tempo": 25.48,
+        "cache": false,
+        "existente": false,
+        "validacao_codigo": "{\"valido\": True, \"validacoes\": []}",
+        "erro": null
+      },
+      {
+        "pid": 3,
+        "prompt": "Crie uma quest de eliminacao de goblins ",
+        "rota": "llm_simples",
+        "classe": "criar_quest",
+        "conf": 1.0,
+        "tempo": 32.63,
+        "cache": false,
+        "existente": false,
+        "validacao_codigo": "{\"valido\": True, \"validacoes\": []}",
+        "erro": null
+      },
+      {
+        "pid": 4,
+        "prompt": "Crie um ferreiro anao chamado Brunin que",
+        "rota": "llm_simples",
+        "classe": "criar_npc",
+        "conf": 1.0,
+        "tempo": 20.02,
+        "cache": false,
+        "existente": true,
+        "validacao_codigo": "{\"valido\": True, \"validacoes\": []}",
+        "erro": null
+      },
+      {
+        "pid": 5,
+        "prompt": "Crie uma maga elfa que protege a florest",
+        "rota": "llm_simples",
+        "classe": "criar_npc",
+        "conf": 1.0,
+        "tempo": 24.63,
+        "cache": false,
+        "existente": false,
+        "validacao_codigo": "{\"valido\": True, \"validacoes\": []}",
+        "erro": null
+      },
+      {
+        "pid": 6,
+        "prompt": "Crie um alquimista misterioso que vive n",
+        "rota": "llm_simples",
+        "classe": "criar_npc",
+        "conf": 1.0,
+        "tempo": 19.51,
+        "cache": false,
+        "existente": false,
+        "validacao_codigo": "{\"valido\": True, \"validacoes\": []}",
+        "erro": null
+      },
+      {
+        "pid": 7,
+        "prompt": "Crie um alquimista misterioso que vive n",
+        "rota": "llm_simples",
+        "classe": "criar_npc",
+        "conf": 1.0,
+        "tempo": 26.18,
+        "cache": false,
+        "existente": false,
+        "validacao_codigo": "{\"valido\": True, \"validacoes\": []}",
+        "erro": null
+      },
+      {
+        "pid": 8,
+        "prompt": "Crie um bardo que conta historias na tav",
+        "rota": "llm_simples",
+        "classe": "criar_npc",
+        "conf": 1.0,
+        "tempo": 23.76,
+        "cache": false,
+        "existente": false,
+        "validacao_codigo": "{\"valido\": True, \"validacoes\": []}",
+        "erro": null
+      },
+      {
+        "pid": 9,
+        "prompt": "Crie uma quest de coleta de ervas raras ",
+        "rota": "llm_simples",
+        "classe": "criar_quest",
+        "conf": 1.0,
+        "tempo": 40.63,
+        "cache": false,
+        "existente": false,
+        "validacao_codigo": "{\"valido\": True, \"validacoes\": []}",
+        "erro": null
+      }
+    ]
+  },
+  "fase2": {
+    "corpus_tokens": 22666,
+    "entropia": 0.7918,
+    "limiar": 0.2082,
+    "precisao": "62%",
+    "detalhes": [
+      {
+        "texto": "O rei governa o castelo com sabedoria e justica desde o",
+        "esperado": "normal",
+        "detectado": "anomalo",
+        "anomalias": [
+          "justica",
+          "governa"
+        ]
+      },
+      {
+        "texto": "O mago invocou um dragao de fogo com seu cajado arcano ",
+        "esperado": "normal",
+        "detectado": "anomalo",
+        "anomalias": [
+          "dragao",
+          "invocou",
+          "arcano"
+        ]
+      },
+      {
+        "texto": "O guerreiro forjou uma espada de aco lendario nas minas",
+        "esperado": "normal",
+        "detectado": "anomalo",
+        "anomalias": [
+          "lendario",
+          "forjou"
+        ]
+      },
+      {
+        "texto": "A floresta encantada guarda segredos de magia e poder a",
+        "esperado": "normal",
+        "detectado": "normal",
+        "anomalias": []
+      },
+      {
+        "texto": "A nave espacial pousou no reino com lasers e robos futu",
+        "esperado": "anomalo",
+        "detectado": "anomalo",
+        "anomalias": [
+          "nave",
+          "robos",
+          "lasers"
+        ]
+      },
+      {
+        "texto": "O hacker invadiu o sistema do castelo com um computador",
+        "esperado": "anomalo",
+        "detectado": "anomalo",
+        "anomalias": [
+          "quantico",
+          "invadiu",
+          "computador"
+        ]
+      },
+      {
+        "texto": "O dragao ciborgue atacou o castelo com misseis teleguia",
+        "esperado": "anomalo",
+        "detectado": "anomalo",
+        "anomalias": [
+          "misseis",
+          "teleguiados",
+          "dragao"
+        ]
+      },
+      {
+        "texto": "Use a API REST para conectar o mago ao banco de dados S",
+        "esperado": "anomalo",
+        "detectado": "anomalo",
+        "anomalias": [
+          "conectar"
+        ]
+      }
+    ]
+  },
+  "tempo_total_s": 280.33
+}

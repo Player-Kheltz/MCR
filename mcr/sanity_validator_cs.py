@@ -6,10 +6,12 @@ MESMA interface do SanityValidator (Lua) para que o SignatureAnalyzer
 opere sem adaptações — zero hardcode de domínio.
 """
 import json
-import re
 import os
+import re
 from pathlib import Path
 from typing import List, Dict, Optional, Set
+
+_BASE = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 
 from tree_sitter import Language, Parser
 import tree_sitter_c_sharp
@@ -108,7 +110,7 @@ class SanityValidatorCS:
                     if c.type in ('qualified_name', 'identifier'):
                         try:
                             usings.append(c.text.decode('utf-8').strip())
-                        except:
+                        except Exception:
                             pass
 
             # Namespace declaration
@@ -117,7 +119,7 @@ class SanityValidatorCS:
                     if c.type in ('qualified_name', 'identifier'):
                         try:
                             namespaces_decl.append(c.text.decode('utf-8').strip())
-                        except:
+                        except Exception:
                             pass
 
             # Class declaration
@@ -127,19 +129,19 @@ class SanityValidatorCS:
                     if c.type == 'identifier':
                         try:
                             info['name'] = c.text.decode('utf-8').strip()
-                        except:
+                        except Exception:
                             pass
                     elif c.type == 'modifier':
                         try:
                             info['modifiers'].append(c.text.decode('utf-8').strip())
-                        except:
+                        except Exception:
                             pass
                     elif c.type == 'base_list':
                         for bc in c.children:
                             if bc.type in ('identifier', 'generic_name', 'qualified_name'):
                                 try:
                                     info['bases'].append(bc.text.decode('utf-8').strip())
-                                except:
+                                except Exception:
                                     pass
                 if info['name']:
                     classes.append(info)
@@ -151,19 +153,19 @@ class SanityValidatorCS:
                     if c.type == 'identifier':
                         try:
                             info['name'] = c.text.decode('utf-8').strip()
-                        except:
+                        except Exception:
                             pass
                     elif c.type == 'modifier':
                         try:
                             info['modifiers'].append(c.text.decode('utf-8').strip())
-                        except:
+                        except Exception:
                             pass
                     elif c.type == 'base_list':
                         for bc in c.children:
                             if bc.type in ('identifier', 'generic_name'):
                                 try:
                                     info['bases'].append(bc.text.decode('utf-8').strip())
-                                except:
+                                except Exception:
                                     pass
                 if info['name']:
                     interfaces.append(info)
@@ -175,12 +177,12 @@ class SanityValidatorCS:
                     if c.type == 'identifier':
                         try:
                             info['name'] = c.text.decode('utf-8').strip()
-                        except:
+                        except Exception:
                             pass
                     elif c.type == 'modifier':
                         try:
                             info['modifiers'].append(c.text.decode('utf-8').strip())
-                        except:
+                        except Exception:
                             pass
                 if info['name']:
                     structs.append(info)
@@ -193,17 +195,17 @@ class SanityValidatorCS:
                     if c.type == 'identifier':
                         try:
                             info['name'] = c.text.decode('utf-8').strip()
-                        except:
+                        except Exception:
                             pass
                     elif c.type == 'predefined_type':
                         try:
                             info['return_type'] = c.text.decode('utf-8').strip()
-                        except:
+                        except Exception:
                             pass
                     elif c.type == 'modifier':
                         try:
                             info['modifiers'].append(c.text.decode('utf-8').strip())
-                        except:
+                        except Exception:
                             pass
                     elif c.type == 'parameter_list':
                         for pc in c.children:
@@ -216,12 +218,12 @@ class SanityValidatorCS:
                             if tc.type == 'type_parameter':
                                 try:
                                     info['generic_params'].append(tc.text.decode('utf-8').strip())
-                                except:
+                                except Exception:
                                     pass
                     elif c.type == 'generic_name':
                         try:
                             info['return_type'] = c.text.decode('utf-8').strip()
-                        except:
+                        except Exception:
                             pass
                 if info['name']:
                     methods.append(info)
@@ -233,12 +235,12 @@ class SanityValidatorCS:
                     if c.type == 'identifier':
                         try:
                             info['name'] = c.text.decode('utf-8').strip()
-                        except:
+                        except Exception:
                             pass
                     elif c.type == 'modifier':
                         try:
                             info['modifiers'].append(c.text.decode('utf-8').strip())
-                        except:
+                        except Exception:
                             pass
                     elif c.type == 'parameter_list':
                         for pc in c.children:
@@ -256,18 +258,18 @@ class SanityValidatorCS:
                     if c.type == 'identifier':
                         try:
                             info['name'] = c.text.decode('utf-8').strip()
-                        except:
+                        except Exception:
                             pass
                     elif c.type in ('predefined_type', 'generic_name', 'nullable_type',
                                     'identifier'):
                         try:
                             info['type'] = c.text.decode('utf-8').strip()
-                        except:
+                        except Exception:
                             pass
                     elif c.type == 'modifier':
                         try:
                             info['modifiers'].append(c.text.decode('utf-8').strip())
-                        except:
+                        except Exception:
                             pass
                 if info['name']:
                     properties.append(info)
@@ -280,12 +282,12 @@ class SanityValidatorCS:
                                   'nullable_type'):
                         try:
                             info['type'] = c.text.decode('utf-8').strip()
-                        except:
+                        except Exception:
                             pass
                     elif c.type == 'modifier':
                         try:
                             info['modifiers'].append(c.text.decode('utf-8').strip())
-                        except:
+                        except Exception:
                             pass
                     elif c.type == 'variable_declaration':
                         for vc in c.children:
@@ -294,7 +296,7 @@ class SanityValidatorCS:
                                     if vdc.type == 'identifier':
                                         try:
                                             info['name'] = vdc.text.decode('utf-8').strip()
-                                        except:
+                                        except Exception:
                                             pass
                 if info['name']:
                     fields.append(info)
@@ -306,7 +308,7 @@ class SanityValidatorCS:
                     if c.type == 'modifier':
                         try:
                             info['modifiers'].append(c.text.decode('utf-8').strip())
-                        except:
+                        except Exception:
                             pass
                     elif c.type == 'variable_declaration':
                         for vc in c.children:
@@ -315,12 +317,12 @@ class SanityValidatorCS:
                                     if vdc.type == 'identifier':
                                         try:
                                             info['name'] = vdc.text.decode('utf-8').strip()
-                                        except:
+                                        except Exception:
                                             pass
                                     elif vdc.type == 'generic_name':
                                         try:
                                             info['type'] = vdc.text.decode('utf-8').strip()
-                                        except:
+                                        except Exception:
                                             pass
                 if info['name']:
                     events.append(info)
@@ -337,7 +339,7 @@ class SanityValidatorCS:
                     attr_text = node.text.decode('utf-8').strip()
                     if attr_text:
                         attributes.append(attr_text)
-                except:
+                except Exception:
                     pass
 
             # Object creation
@@ -346,7 +348,7 @@ class SanityValidatorCS:
                     if c.type in ('identifier', 'generic_name', 'qualified_name'):
                         try:
                             invocations.append('new ' + c.text.decode('utf-8').strip())
-                        except:
+                        except Exception:
                             pass
 
             for child in node.children:
@@ -431,12 +433,12 @@ class SanityValidatorCS:
                           'generic_name', 'qualified_name', 'array_type'):
                 try:
                     info['type'] = c.text.decode('utf-8').strip()
-                except:
+                except Exception:
                     pass
             elif c.type == 'identifier':
                 try:
                     info['name'] = c.text.decode('utf-8').strip()
-                except:
+                except Exception:
                     pass
         return info if info else None
 
@@ -451,7 +453,7 @@ class SanityValidatorCS:
                               'conditional_access_expression'):
                 try:
                     return child.text.decode('utf-8', errors='replace').strip()
-                except:
+                except Exception:
                     pass
         return None
 
@@ -520,11 +522,11 @@ class SanityValidatorCS:
 
 
 if __name__ == '__main__':
-    import sys
-    sys.path.insert(0, r'E:\MCR')
+    import sys, os
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
     from pathlib import Path
     val = SanityValidatorCS()
-    entidades = val.minerar_assinaturas(Path(r'E:\MCR\tools\grimorio'))
+    entidades = val.minerar_assinaturas(Path(_BASE) / 'tools' / 'grimorio')
     print(f'\nTotal entidades: {len(entidades)}')
     # Mostra resumo
     tipos = {}

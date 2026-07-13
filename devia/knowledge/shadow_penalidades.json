@@ -3,5 +3,50 @@
     "ocorrencias": 1,
     "ultimo_erro": "[string \"<python>\"]:164: attempt to call a nil value (method 'metodoInexistente')\nstack traceback:\n\t[string \"<python>\"]:164: in main chunk",
     "timestamp": "2026-07-09 00:09:50"
+  },
+  "Cedric": {
+    "ocorrencias": 1,
+    "ultimo_erro": "error loading code: [string \"<python>\"]:163: function arguments expected near 'Cedric'",
+    "timestamp": "2026-07-10 18:54:03"
+  },
+  "Blackwood": {
+    "ocorrencias": 1,
+    "ultimo_erro": "error loading code: [string \"<python>\"]:163: function arguments expected near 'Blackwood'",
+    "timestamp": "2026-07-10 19:02:27"
+  },
+  "KeywordModule": {
+    "ocorrencias": 1,
+    "ultimo_erro": "error loading code: [string \"<python>\"]:203: ')' expected near 'KeywordModule'",
+    "timestamp": "2026-07-10 19:07:16"
+  },
+  "addCommand": {
+    "ocorrencias": 2,
+    "ultimo_erro": "[string \"<python>\"]:205: attempt to call a nil value (method 'addCommand')\nstack traceback:\n\t[string \"<python>\"]:205: in main chunk",
+    "timestamp": "2026-07-10 22:30:06"
+  },
+  "onPlayerLogin": {
+    "ocorrencias": 1,
+    "ultimo_erro": "[string \"<python>\"]:185: attempt to call a nil value (field 'onPlayerLogin')\nstack traceback:\n\t[string \"<python>\"]:185: in main chunk",
+    "timestamp": "2026-07-10 19:07:27"
+  },
+  "keywordHandler": {
+    "ocorrencias": 2,
+    "ultimo_erro": "[string \"<python>\"]:201: attempt to index a nil value (global 'keywordHandler')\nstack traceback:\n\t[string \"<python>\"]:201: in main chunk",
+    "timestamp": "2026-07-10 22:30:01"
+  },
+  "addModule": {
+    "ocorrencias": 1,
+    "ultimo_erro": "[string \"<python>\"]:185: attempt to call a nil value (global 'addModule')\nstack traceback:\n\t[string \"<python>\"]:185: in main chunk",
+    "timestamp": "2026-07-10 19:16:44"
+  },
+  "StdModule": {
+    "ocorrencias": 2,
+    "ultimo_erro": "[string \"<python>\"]:222: attempt to index a nil value (global 'StdModule')\nstack traceback:\n\t[string \"<python>\"]:222: in main chunk",
+    "timestamp": "2026-07-10 21:28:19"
+  },
+  "if": {
+    "ocorrencias": 1,
+    "ultimo_erro": "error loading code: [string \"<python>\"]:193: <name> expected near 'if'",
+    "timestamp": "2026-07-10 22:30:01"
   }
 }

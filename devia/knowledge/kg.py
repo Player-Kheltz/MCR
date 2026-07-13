@@ -5,7 +5,55 @@ Knowledge Graph multi-arquivo: cada contexto em arquivo separado + master index.
 - Master index: knowledge.json mantido para compatibilidade (contem metadados)
 """
 import os, json, re, hashlib, math, urllib.request, time as _time
-from stop_words import STOP_BUSCA
+try:
+    from stop_words import STOP_BUSCA
+except ImportError:
+    STOP_BUSCA = {'de', 'do', 'da', 'dos', 'das', 'em', 'no', 'na', 'nos', 'nas',
+                   'um', 'uma', 'uns', 'umas', 'o', 'a', 'os', 'as', 'e', 'ou',
+                   'que', 'para', 'por', 'com', 'sem', 'sob', 'entre', 'desde',
+                   'ate', 'ate', 'isso', 'este', 'esta', 'esse', 'essa', 'aquele',
+                   'aquela', 'isto', 'isso', 'aquilo', 'me', 'te', 'se', 'lhe',
+                   'lhes', 'nos', 'vos', 'meu', 'minha', 'meus', 'minhas',
+                   'teu', 'tua', 'teus', 'tuas', 'seu', 'sua', 'seus', 'suas',
+                   'nosso', 'nossa', 'nossos', 'nossas', 'dele', 'dela', 'deles',
+                   'delas', 'nele', 'nela', 'neles', 'nelas', 'isto', 'isso',
+                   'como', 'quando', 'onde', 'porque', 'por que', 'se', 'embora',
+                   'enquanto', 'caso', 'contudo', 'porem', 'todavia', 'entretanto',
+                   'alem', 'alem', 'apesar', 'apesar', 'conquanto', 'conforme',
+                   'segundo', 'consoante', 'ante', 'perante', 'pos', 'apos',
+                   'contra', 'desde', 'durante', 'mediante', 'salvo', 'exceto',
+                   'senao', 'menos', 'fora', 'dentro', 'acima', 'abaixo',
+                   'diante', 'defronte', 'atras', 'ao lado', 'perto', 'longe',
+                   'certo', 'toda', 'todo', 'todos', 'todas', 'muito', 'muita',
+                   'muitos', 'muitas', 'pouco', 'pouca', 'poucos', 'poucas',
+                   'tudo', 'nada', 'algo', 'alguem', 'ninguem', 'cada',
+                   'qual', 'quais', 'quanto', 'quanta', 'quantos', 'quantas',
+                   'qualquer', 'quaisquer', 'tanto', 'tanta', 'tantos', 'tantas',
+                   'mesmo', 'mesma', 'mesmos', 'mesmas', 'tal', 'tais',
+                   'ser', 'estar', 'ter', 'haver', 'fazer', 'ir', 'vir',
+                   'dar', 'ver', 'saber', 'poder', 'querer', 'dizer',
+                   'ficar', 'passar', 'achar', 'deixar', 'chegar', 'colocar',
+                   'tornar', 'comecar', 'parecer', 'trazer', 'ler', 'perder',
+                   'morrer', 'nascer', 'abrir', 'fechar', 'andar', 'cair',
+                   'correr', 'dormir', 'escrever', 'ler', 'morrer', 'nadar',
+                   'pagar', 'pedir', 'pentear', 'plantar', 'quentar', 'sair',
+                   'sentar', 'ser', 'servir', 'sonhar', 'sorrir', 'subir',
+                   'tecer', 'temer', 'tentar', 'tocar', 'tomar', 'tossir',
+                   'trabalhar', 'trocar', 'valer', 'ver', 'vestir', 'viajar',
+                   'viver', 'via', 'vias', 'vez', 'vezes', 'tipo', 'tipos',
+                   'parte', 'partes', 'dia', 'dias', 'ano', 'anos', 'tempo',
+                   'forma', 'modo', 'lado', 'lados', 'caso', 'casos', 'ponto',
+                   'pontos', 'numero', 'numeros', 'nome', 'nomes', 'tamanho',
+                   'tamanhos', 'valor', 'valores', 'cor', 'cores', 'tipo',
+                   'modo', 'forma', 'razao', 'razoes', 'motivo', 'motivos',
+                   'maneira', 'jeito', 'aspecto', 'carater', 'caracter',
+                   'natureza', 'qualidade', 'propriedade', 'sentido', 'efeito',
+                   'resultado', 'consequencia', 'conclusao', 'solucao', 'resposta',
+                   'pergunta', 'questao', 'problema', 'dificuldade', 'obstaculo',
+                   'vantagem', 'desvantagem', 'beneficio', 'prejuizo', 'lucro',
+                   'perda', 'ganho', 'preco', 'custo', 'despesa', 'receita',
+                   'dinheiro', 'moeda', 'capital', 'investimento', 'renda',
+                   'salario', 'pagamento', 'conta', 'divida', 'credito'}
 
 BASE = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
 SANDBOX = os.path.join(BASE, 'sandbox')

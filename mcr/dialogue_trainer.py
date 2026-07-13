@@ -90,10 +90,12 @@ class DialogueTrainer:
                 persona['falas'].append(response)
                 self.total_dialogos += 1
 
+                # Alimenta vocabulário (sempre, mesmo sem MCR)
+                palavras = re.findall(r'\b[a-zA-ZÀ-ÿ]{3,}\b', response.lower())
+                palavras_unicas.update(palavras)
+
                 # Alimenta o MCR com bigramas das palavras da fala
                 if self.mcr and hasattr(self.mcr, 'mk_palavra'):
-                    palavras = re.findall(r'\b[a-zA-ZÀ-ÿ]{3,}\b', response.lower())
-                    palavras_unicas.update(palavras)
                     for i in range(len(palavras) - 1):
                         try:
                             # Alimenta 3x para reforco

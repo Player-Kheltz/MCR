@@ -1,0 +1,98 @@
+{
+  "sword_weapons": {
+    "categoria": "sword_weapons",
+    "n_reais": 20,
+    "n_clusters": 3,
+    "clusters_tamanhos": [
+      6,
+      3,
+      3
+    ],
+    "n_fora": 8,
+    "jaccard_reais": 0.3924,
+    "jaccard_gerados": 0.2425,
+    "jaccard_vs_reais": 0.2606,
+    "opacos_reais_media": 260.2,
+    "opacos_reais_dp": 104.3,
+    "opacos_gerados_media": 248.8,
+    "opacos_gerados_dp": 30.0
+  },
+  "shields": {
+    "categoria": "shields",
+    "n_reais": 20,
+    "n_clusters": 1,
+    "clusters_tamanhos": [
+      17
+    ],
+    "n_fora": 3,
+    "jaccard_reais": 0.6859,
+    "jaccard_gerados": 0.9703,
+    "jaccard_vs_reais": 0.7714,
+    "opacos_reais_media": 514.0,
+    "opacos_reais_dp": 114.0,
+    "opacos_gerados_media": 525.3,
+    "opacos_gerados_dp": 2.6
+  },
+  "armors": {
+    "categoria": "armors",
+    "n_reais": 20,
+    "n_clusters": 1,
+    "clusters_tamanhos": [
+      20
+    ],
+    "n_fora": 0,
+    "jaccard_reais": 0.6981,
+    "jaccard_gerados": 0.9128,
+    "jaccard_vs_reais": 0.7173,
+    "opacos_reais_media": 640.7,
+    "opacos_reais_dp": 117.8,
+    "opacos_gerados_media": 556.8,
+    "opacos_gerados_dp": 8.2
+  },
+  "helmets": {
+    "categoria": "helmets",
+    "n_reais": 20,
+    "n_clusters": 1,
+    "clusters_tamanhos": [
+      9
+    ],
+    "n_fora": 11,
+    "jaccard_reais": 0.5875,
+    "jaccard_gerados": 0.8772,
+    "jaccard_vs_reais": 0.6574,
+    "opacos_reais_media": 377.4,
+    "opacos_reais_dp": 76.1,
+    "opacos_gerados_media": 360.6,
+    "opacos_gerados_dp": 6.6
+  },
+  "food": {
+    "categoria": "food",
+    "n_reais": 20,
+    "n_clusters": 0,
+    "clusters_tamanhos": [],
+    "n_fora": 20,
+    "jaccard_reais": 0.383,
+    "jaccard_gerados": 0.2394,
+    "jaccard_vs_reais": 0.2665,
+    "opacos_reais_media": 337.2,
+    "opacos_reais_dp": 159.2,
+    "opacos_gerados_media": 231.3,
+    "opacos_gerados_dp": 14.5
+  },
+  "boots": {
+    "categoria": "boots",
+    "n_reais": 20,
+    "n_clusters": 1,
+    "clusters_tamanhos": [
+      7
+    ],
+    "n_fora": 13,
+    "jaccard_reais": 0.5582,
+    "jaccard_gerados": 0.8141,
+    "jaccard_vs_reais": 0.6257,
+    "opacos_reais_media": 474.8,
+    "opacos_reais_dp": 120.9,
+    "opacos_gerados_media": 496.3,
+    "opacos_gerados_dp": 6.4
+  }
+}

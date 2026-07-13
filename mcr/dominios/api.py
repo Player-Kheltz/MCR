@@ -4,9 +4,8 @@ Tokenizer: raw_token_set (extrai chamadas de funcao sem parser).
 Validator: entropia + cobertura.
 Builder: salva como JSON.
 """
-import sys, json
-sys.path.insert(0, r'E:\MCR')
-sys.path.insert(0, r'E:\MCR\prototypes\mcr-universal')
+import sys, os, json
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..'))
 
 
 def tokenizer(arquivo: str) -> list:

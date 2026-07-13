@@ -52,7 +52,7 @@ def execute(kg, ia, args, ctx_crew=None):
                     cnt = conteudo.lower().count(termo)
                     if cnt > 0:
                         arquivos_rel.append((cnt, fpath, len(conteudo)))
-                except: pass
+                except Exception: pass
     
     if not arquivos_rel:
         print(f'  [Conceito] Nenhum arquivo encontrado para "{conceito}"')
@@ -91,7 +91,7 @@ def execute(kg, ia, args, ctx_crew=None):
         try:
             with open(fpath, 'r', encoding='utf-8', errors='ignore') as fp:
                 conteudo = fp.read(50000)
-        except:
+        except Exception:
             continue
         if tam <= 3000:
             snippet = conteudo

@@ -10,10 +10,10 @@ import os
 from pathlib import Path
 from typing import Optional
 
-# Path setup para imports do DevIA
-sys.path.insert(0, r'E:\MCR')
-sys.path.insert(0, r'E:\MCR\devia\kernel')
-sys.path.insert(0, r'E:\Projeto MCR\historia\scripts\mcr_devia\knowledge')
+# Path setup para imports do DevIA e prototype
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'devia', 'kernel'))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'devia', 'knowledge'))
 
 from mcr.npc_sanity_filter import filtrar_resposta, enriquecer_com_historia
 from mcr.dialogue_trainer import DialogueTrainer

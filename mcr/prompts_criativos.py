@@ -127,6 +127,60 @@ FORMATO:
 Comece agora.'''
 
 
+def prompt_codigo_lua(tema: str) -> str:
+    """Prompt otimizado para geracao de codigo Lua do Canary."""
+    return f'''Gere APENAS codigo Lua para o servidor Canary (MMORPG Tibia).
+TAREFA: {tema}
+
+REGRAS:
+- Gere APENAS codigo Lua, sem introducao, sem comentarios sobre o codigo, sem marcacao.
+- Nao use formatacao markdown (````, **, etc).
+- Nao inclua historias, personalidades, nome, raca, idade.
+- Nao inclua FALA_APRESENTACAO, FALA_DESPEDIDA, TRACO_SECRETO, HISTORIA.
+- Use as APIs do servidor Canary: Game, NpcHandler, MonsterHandler, etc.
+- Use funcoes como: Game.createNpc, Game.createMonster, Game.createItem.
+- Nao invente APIs que nao existem: nao use Game.getMonsterNames, Game.getRandomNpcName.
+- Para NPCs: defina keywordHandler, topic, onSay, addModule.
+
+FORMATO (exemplo):
+function onSay(cid, words, param)
+    local npc = NpcHandler()
+    npc:addModule(...)
+    return true
+end
+
+Comece o codigo agora, APENAS codigo Lua.'''
+
+
+def prompt_sistema(tema: str) -> str:
+    """Prompt otimizado para geracao de sistema/ mecanica."""
+    return f'''Gere APENAS codigo Lua para implementar um sistema no servidor Canary.
+TAREFA: {tema}
+
+REGRAS:
+- Gere APENAS codigo Lua, sem introducao, sem comentarios sobre o codigo, sem marcacao.
+- Nao use formatacao markdown.
+- Use eventos do Canary: CreatureEvent, GlobalEvent, Action, etc.
+- Use registros como: CreatureEvent(), GlobalEvent(), Action().
+- Nao invente APIs que nao existem.
+
+Comece o codigo agora, APENAS codigo Lua.'''
+
+
+def prompt_habilidade_spa(tema: str) -> str:
+    """Prompt otimizado para geracao de habilidade SPA."""
+    return f'''Gere APENAS codigo Lua para uma habilidade SPA (Special Ability) no servidor Canary.
+TAREFA: {tema}
+
+REGRAS:
+- Gere APENAS codigo Lua, sem introducao, sem marcacao.
+- Nao use formatacao markdown.
+- Use a estrutura padrao de SPA: EfeitoConfig, condicoes, duracao, alvo.
+- Nao invente APIs que nao existem.
+
+Comece o codigo agora, APENAS codigo Lua.'''
+
+
 def obter_prompt(classe: str, tema: str, **kwargs) -> str:
     """Retorna o prompt apropriado para a classe e tema."""
     if classe == 'criar_npc' or classe == 'criar_monstro':
@@ -138,5 +192,11 @@ def obter_prompt(classe: str, tema: str, **kwargs) -> str:
         return prompt_sql(tema)
     elif 'lore' in classe or 'explicar' in classe:
         return prompt_lore(tema)
+    elif classe == 'criar_codigo':
+        return prompt_codigo_lua(tema)
+    elif classe == 'criar_habilidade_spa':
+        return prompt_habilidade_spa(tema)
+    elif classe == 'criar_sistema':
+        return prompt_sistema(tema)
     else:
         return prompt_npc(tema)

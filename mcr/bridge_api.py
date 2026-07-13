@@ -9,10 +9,14 @@ import threading
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from typing import Optional
 
-# Path para importar os modulos do toolset
+# Path para importar os modulos do toolset e prototype
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from mcr_server_toolset import criar_npc, criar_monstro
+try:
+    from mcr_server_toolset import criar_npc, criar_monstro
+except ImportError:
+    criar_npc = None
+    criar_monstro = None
 from mcr.golden_templates import salvar_npc_parametrizado, salvar_monstro_parametrizado
 
 HOST = '127.0.0.1'
@@ -194,7 +198,7 @@ class BridgeHandler(BaseHTTPRequestHandler):
                                 sol = l.get('solucao', '')
                                 if sol and len(sol) > 30:
                                     conector.alimentar(sol[:1000], f"lesson_{l.get('ctx','?')}")
-                    except:
+                    except Exception:
                         pass
 
                 # 2. Alimenta o tema do usuario
@@ -220,7 +224,7 @@ class BridgeHandler(BaseHTTPRequestHandler):
                                 'nota': res_sys.get('nota', 5),
                             })
                             return
-                    except:
+                    except Exception:
                         pass
 
                 # 4. Fallback: geracao via MCRCadeia pura

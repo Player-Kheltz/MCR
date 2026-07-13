@@ -1,0 +1,251 @@
+{
+  "duracao_h": 0.01,
+  "ollama": false,
+  "pipeline_stats": {
+    "total": 1350,
+    "cache_hit": 894,
+    "md_classify": 1350,
+    "md_learn": 1350,
+    "anomalias": 450
+  },
+  "cache_snapshots": [
+    {
+      "l1_hit": 0,
+      "l2_hit": 0,
+      "l3_hit": 0,
+      "miss": 0,
+      "total": 0,
+      "taxa_acerto": 0.0,
+      "tamanho": 0
+    },
+    {
+      "l1_hit": 74,
+      "l2_hit": 108,
+      "l3_hit": 12,
+      "miss": 6,
+      "total": 200,
+      "taxa_acerto": 97.0,
+      "tamanho": 6
+    },
+    {
+      "l1_hit": 148,
+      "l2_hit": 224,
+      "l3_hit": 22,
+      "miss": 6,
+      "total": 400,
+      "taxa_acerto": 98.5,
+      "tamanho": 6
+    },
+    {
+      "l1_hit": 213,
+      "l2_hit": 348,
+      "l3_hit": 33,
+      "miss": 6,
+      "total": 600,
+      "taxa_acerto": 99.0,
+      "tamanho": 6
+    },
+    {
+      "l1_hit": 284,
+      "l2_hit": 462,
+      "l3_hit": 48,
+      "miss": 6,
+      "total": 800,
+      "taxa_acerto": 99.2,
+      "tamanho": 6
+    },
+    {
+      "l1_hit": 330,
+      "l2_hit": 515,
+      "l3_hit": 49,
+      "miss": 6,
+      "total": 900,
+      "taxa_acerto": 99.3,
+      "tamanho": 6
+    },
+    {
+      "l1_hit": 330,
+      "l2_hit": 715,
+      "l3_hit": 49,
+      "miss": 6,
+      "total": 1100,
+      "taxa_acerto": 99.5,
+      "tamanho": 6
+    },
+    {
+      "l1_hit": 330,
+      "l2_hit": 915,
+      "l3_hit": 49,
+      "miss": 6,
+      "total": 1300,
+      "taxa_acerto": 99.5,
+      "tamanho": 6
+    },
+    {
+      "l1_hit": 330,
+      "l2_hit": 965,
+      "l3_hit": 49,
+      "miss": 6,
+      "total": 1350,
+      "taxa_acerto": 99.6,
+      "tamanho": 6
+    },
+    {
+      "l1_hit": 330,
+      "l2_hit": 965,
+      "l3_hit": 49,
+      "miss": 6,
+      "total": 1350,
+      "taxa_acerto": 99.6,
+      "tamanho": 6
+    },
+    {
+      "l1_hit": 330,
+      "l2_hit": 965,
+      "l3_hit": 49,
+      "miss": 6,
+      "total": 1350,
+      "taxa_acerto": 99.6,
+      "tamanho": 6
+    },
+    {
+      "l1_hit": 330,
+      "l2_hit": 965,
+      "l3_hit": 49,
+      "miss": 6,
+      "total": 1350,
+      "taxa_acerto": 99.6,
+      "tamanho": 6
+    },
+    {
+      "l1_hit": 330,
+      "l2_hit": 965,
+      "l3_hit": 49,
+      "miss": 6,
+      "total": 1350,
+      "taxa_acerto": 99.6,
+      "tamanho": 6
+    }
+  ],
+  "detector_snapshots": [
+    {
+      "entropia": 0.8263,
+      "limiar": 0.1737
+    },
+    {
+      "entropia": 0.8263,
+      "limiar": 0.1737
+    },
+    {
+      "entropia": 0.8263,
+      "limiar": 0.1737
+    },
+    {
+      "entropia": 0.8263,
+      "limiar": 0.1737
+    },
+    {
+      "entropia": 0.8263,
+      "limiar": 0.1737
+    },
+    {
+      "entropia": 0.8263,
+      "limiar": 0.1737
+    },
+    {
+      "entropia": 0.8263,
+      "limiar": 0.1737
+    },
+    {
+      "entropia": 0.8263,
+      "limiar": 0.1737
+    },
+    {
+      "entropia": 0.8263,
+      "limiar": 0.1737
+    },
+    {
+      "entropia": 0.8271,
+      "limiar": 0.1729
+    },
+    {
+      "entropia": 0.8271,
+      "limiar": 0.1729
+    },
+    {
+      "entropia": 0.8271,
+      "limiar": 0.1729
+    },
+    {
+      "entropia": 0.8271,
+      "limiar": 0.1729
+    }
+  ],
+  "world_snapshots": [
+    {
+      "npcs": 42,
+      "monstros": 3,
+      "lores": 2
+    },
+    {
+      "npcs": 42,
+      "monstros": 3,
+      "lores": 2
+    },
+    {
+      "npcs": 42,
+      "monstros": 3,
+      "lores": 2
+    },
+    {
+      "npcs": 42,
+      "monstros": 3,
+      "lores": 2
+    },
+    {
+      "npcs": 42,
+      "monstros": 3,
+      "lores": 2
+    },
+    {
+      "npcs": 42,
+      "monstros": 3,
+      "lores": 2
+    },
+    {
+      "npcs": 42,
+      "monstros": 3,
+      "lores": 2
+    },
+    {
+      "npcs": 42,
+      "monstros": 3,
+      "lores": 2
+    },
+    {
+      "npcs": 42,
+      "monstros": 3,
+      "lores": 2
+    },
+    {
+      "npcs": 42,
+      "monstros": 3,
+      "lores": 2
+    },
+    {
+      "npcs": 42,
+      "monstros": 3,
+      "lores": 2
+    },
+    {
+      "npcs": 42,
+      "monstros": 3,
+      "lores": 2
+    },
+    {
+      "npcs": 42,
+      "monstros": 3,
+      "lores": 2
+    }
+  ]
+}
