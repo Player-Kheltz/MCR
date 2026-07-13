@@ -30,6 +30,7 @@ from pathlib import Path
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
 
 from mcr.paths import KG_DIR
+from mcr.config_llm import MODELO
 
 # ─── Importa os 3 Emergir ────────────────────────────────
 try:
@@ -133,7 +134,7 @@ class EmergirUnificado:
             def fast(self, prompt, temperature, task):
                 if self._real_llm:
                     try:
-                        return self._real_llm(prompt, modelo='qwen2.5-coder:7b')
+                        return self._real_llm(prompt, modelo=MODELO)
                     except Exception:
                         return ''
                 return ''

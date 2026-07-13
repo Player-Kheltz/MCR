@@ -8,6 +8,8 @@ from pathlib import Path
 from typing import Dict, Optional, List
 from collections import defaultdict
 
+from mcr.config_llm import MODELO
+
 from mcr.paths import (
     KG_DIR, SANDBOX_CRIATIVO_DIR, IDEAS_DIR, GOLDEN_EXAMPLES_DIR,
     DEVIA_KERNEL_DIR,
@@ -127,7 +129,7 @@ class Emergir:
 
         t0 = time.time()
         try:
-            codigo = self.llm_func(prompt, modelo='qwen2.5-coder:7b')
+            codigo = self.llm_func(prompt, modelo=MODELO)
         except Exception as e:
             return {'sucesso': False, 'erro': str(e), 'estagio': 'llm'}
         t1 = time.time()

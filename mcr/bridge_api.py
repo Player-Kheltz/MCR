@@ -9,6 +9,8 @@ import threading
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from typing import Optional
 
+from mcr.config_llm import MODELO
+
 # Path para importar os modulos do toolset e prototype
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -57,7 +59,7 @@ class BridgeHandler(BaseHTTPRequestHandler):
             self._send_json({
                 'status': 'online',
                 'porta': PORT,
-                'models': ['qwen2.5-coder:7b'],
+                'models': [MODELO],
                 'endpoints': ['/tool/npc', '/tool/monster', '/tool/npc/custom',
                               '/status', '/world/status', '/world/events',
                               '/world/entropy_grid', '/mcr/gerar_npc'],

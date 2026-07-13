@@ -11,8 +11,9 @@ from typing import Dict, List, Optional, Tuple
 
 # ─── Modelos LLM ───────────────────────────────────────────────
 OLLAMA_CHAT = "http://localhost:11434/api/generate"
-MODELO_SEED = "qwen2.5-coder:7b"
-MODELO_CRONICA = "mistral:7b"
+from mcr.config_llm import MODELO
+MODELO_SEED = MODELO
+MODELO_CRONICA = MODELO
 
 # ─── Schema do WorldSeed ────────────────────────────────────────
 WORLD_SEED_SCHEMA = {

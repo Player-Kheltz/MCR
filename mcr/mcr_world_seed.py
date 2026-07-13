@@ -8,7 +8,8 @@ from typing import Dict, List, Optional
 from mcr.mcr_world_state import salvar_foundation
 
 OLLAMA_CHAT = "http://localhost:11434/api/generate"
-MODELO = "mistral:7b"
+from mcr.config_llm import MODELO_LORE
+MODELO = MODELO_LORE
 
 
 def generate_world_seed_lite(tema: str) -> dict:

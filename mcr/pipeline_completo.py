@@ -13,6 +13,8 @@ Fluxo:
 import time, json, os, sys, urllib.request, logging
 from typing import Dict, Optional
 
+from mcr.config_llm import MODELO
+
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'devia', 'kernel'))
 
 _logger = logging.getLogger('mcr.pipeline')
@@ -686,7 +688,7 @@ class PipelineCompleto:
         return {'valido': valido, 'validacoes': validacoes}
 
     def _llm_gerar(self, prompt: str, modelo: str = None) -> str:
-        modelo_atual = modelo or "mistral:7b-32k"
+        modelo_atual = modelo or MODELO
         try:
             payload = json.dumps({
                 "model": modelo_atual, "prompt": prompt, "stream": False,

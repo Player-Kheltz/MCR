@@ -13,6 +13,8 @@ import time
 from collections import Counter
 from typing import Dict, List, Optional, Tuple
 
+from mcr.config_llm import MODELO
+
 _BASE = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 
 # ─── 5 Estados do Mundo ───────────────────────────────────
@@ -359,7 +361,7 @@ class MCRWorldSystem:
         try:
             import urllib.request
             payload = json.dumps({
-                "model": "mistral:7b", "prompt": prompt, "stream": False,
+                "model": MODELO, "prompt": prompt, "stream": False,
                 "options": {"temperature": 0.7, "max_tokens": 500}
             }).encode()
             req = urllib.request.Request(

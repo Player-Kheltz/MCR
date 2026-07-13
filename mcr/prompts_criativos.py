@@ -6,19 +6,19 @@ para forcar personalidade, contraste e ancoragem no universo.
 """
 from typing import Dict
 
-# Mapeamento: classe MarkovDecider → modelo preferido
-# Baseado no benchmark: Mistral vence em prosa, Qwen em codigo
+from mcr.config_llm import MODELO
+
+# Mapeamento: classe MarkovDecider → modelo (tudo unificado)
 ROTEADOR_MODELOS: Dict[str, str] = {
-    'criar_npc': 'mistral:7b-32k',
-    'criar_monstro': 'mistral:7b-32k',
-    'criar_quest': 'mistral:7b-32k',
-    'criar_lore': 'mistral:7b-32k',
-    'explicar_conceito': 'mistral:7b-32k',
-    'conversa': 'mistral:7b-32k',
-    'criar_codigo': 'qwen2.5-coder:7b-32k',
-    'busca_informacao': 'qwen2.5-coder:7b-32k',
-    'criar_sql': 'qwen2.5-coder:7b-32k',
-    'desconhecido': None,  # None = Ensemble
+    'criar_npc': MODELO,
+    'criar_monstro': MODELO,
+    'criar_quest': MODELO,
+    'criar_lore': MODELO,
+    'explicar_conceito': MODELO,
+    'conversa': MODELO,
+    'criar_codigo': MODELO,
+    'busca_informacao': MODELO,
+    'criar_sql': MODELO,
 }
 
 
@@ -102,10 +102,7 @@ FALA_DERROTA: (o que ele diz ao ser vencido)'''
 
 def obter_modelo(classe: str) -> str:
     """Retorna o modelo recomendado para uma classe de tarefa."""
-    modelo = ROTEADOR_MODELOS.get(classe, None)
-    if modelo is None:
-        return 'mistral:7b-32k'  # fallback padrao
-    return modelo
+    return ROTEADOR_MODELOS.get(classe, MODELO)
 
 
 def prompt_sql(tema: str) -> str:

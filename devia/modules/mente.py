@@ -15,7 +15,11 @@ from functools import lru_cache
 from modulos import memoria_conselho as _memoria
 
 OLLAMA_URL = os.environ.get('OLLAMA_URL', 'http://localhost:11434/api/generate')
-_MODELO_MENTE = "qwen2.5-coder:1.5b"  # Modelo leve e RAPIDO para perspectivas
+try:
+    from mcr.config_llm import MODELO_LEVE as _M
+    _MODELO_MENTE = _M
+except ImportError:
+    _MODELO_MENTE = "qwen3.5:9b"
 
 # Cache: (tipo, subtipo) -> (timestamp, mente_contexto)
 _CACHE_MENTE = {}

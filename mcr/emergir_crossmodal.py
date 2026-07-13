@@ -14,6 +14,8 @@ Uso:
 from typing import Dict, List, Optional, Callable
 from collections import defaultdict
 
+from mcr.config_llm import MODELO
+
 
 class DominioHandler:
     """Handler base para um domínio de saída."""
@@ -49,7 +51,7 @@ class LuaHandler(DominioHandler):
         
         prompt = self._montar_prompt(ideia, contexto)
         try:
-            codigo = self.llm_func(prompt, modelo='qwen2.5-coder:7b')
+            codigo = self.llm_func(prompt, modelo=MODELO)
             return {'sucesso': True, 'codigo': codigo, 'dominio': self.nome, 'prompt': prompt}
         except Exception as e:
             return {'sucesso': False, 'erro': str(e), 'dominio': self.nome}

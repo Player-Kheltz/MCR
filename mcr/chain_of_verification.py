@@ -11,7 +11,8 @@ Uso:
     if not resultado['valida']:
         print("Alucinacao detectada:", resultado['falhas'])
 """
-import re, json
+import re, json, urllib.request
+from mcr.config_llm import MODELO_CODIGO as MODELO
 from typing import Dict, List
 
 
@@ -238,7 +239,7 @@ class ChainOfVerification:
         try:
             import urllib.request, json
             payload = json.dumps({
-                "model": "qwen2.5-coder:7b-32k",
+                "model": MODELO,
                 "prompt": prompt_correcao,
                 "stream": False,
                 "options": {"num_predict": 1024, "temperature": 0.2}

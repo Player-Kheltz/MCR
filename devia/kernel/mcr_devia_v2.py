@@ -50,8 +50,13 @@ exec(compile(_mcr_code, "MCR.py", "exec"))
 # ─── Tenta carregar LLM (Ollama, opcional) ──────────────────────
 _ollama_url = os.environ.get("OLLAMA_URL", "http://localhost:11434/api/generate")
 _HAS_LLM = False
-_MODELO_PESADO = "qwen2.5-coder:14b"
-_MODELO_LEVE = "qwen2.5-coder:7b"
+try:
+    from mcr.config_llm import MODELO as _M
+    _MODELO_PESADO = _M
+    _MODELO_LEVE = _M
+except ImportError:
+    _MODELO_PESADO = "qwen3.5:9b"
+    _MODELO_LEVE = "qwen3.5:9b"
 
 try:
     import urllib.request as _ur

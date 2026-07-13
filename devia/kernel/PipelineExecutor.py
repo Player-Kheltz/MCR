@@ -14,6 +14,11 @@ Pipeline típica:
 import sys, os, io, re, json
 from typing import List, Dict, Any, Callable, Optional
 
+try:
+    from mcr.config_llm import MODELO
+except ImportError:
+    MODELO = "qwen3.5:9b"
+
 # Mapa de handlers para comandos que NÃO são cmd_* (são funções Python)
 HANDLERS_INTERNOS = {}
 
@@ -334,7 +339,7 @@ class PipelineExecutor:
                             f"=== CODIGO ATUAL COM ERRO ===\n{resposta[:2000]}\n=== FIM ===\n\n"
                             f"Reescreva usando o formato correto com nomes descritivos.\n"
                         )
-                        correcao = llm.gerar(prompt_formato, modelo='qwen2.5-coder:7b')
+                        correcao = llm.gerar(prompt_formato, modelo=MODELO)
                         # Tenta extrair com o mesmo parser unico
                         _PARSER_CORRECAO = r'---\s*ARQUIVO:\s*(\S+\.lua)\s*---\s*\n?```lua\n(.*?)```'
                         matches = re.findall(_PARSER_CORRECAO, correcao, re.DOTALL)
@@ -377,7 +382,7 @@ class PipelineExecutor:
         
         elif comando == "llm_gerar":
             llm = getattr(self, '_llm', None)
-            modelo = getattr(self, '_modelo', 'qwen2.5-coder:7b')
+            modelo = getattr(self, '_modelo', MODELO)
             entrada = ctx.get("entrada", "")
             gaps = ctx.get("gaps_restantes", [])
             classe = getattr(self, '_classe', '')

@@ -15,11 +15,7 @@ from collections import Counter
 
 OLLAMA_URL = "http://localhost:11434/api/generate"
 
-MODELOS = [
-    ("qwen2.5-coder:7b-32k", "Qwen"),
-    ("mistral:7b-32k", "Mistral"),
-    ("deepseek-r1:7b-32k", "DeepSeek"),
-]
+from mcr.config_llm import MODELOS, MODELO
 
 
 def _chamar_llm(modelo: str, prompt: str, timeout: int = 120) -> str:

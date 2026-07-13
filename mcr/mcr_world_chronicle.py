@@ -13,7 +13,8 @@ def generate_chronicle(seed: dict) -> str:
     """Gera narracao epica a partir do WorldSeed usando mistral:7b."""
     import urllib.request
     OLLAMA_CHAT = "http://localhost:11434/api/generate"
-    MODELO_LORE = "mistral:7b"
+    from mcr.config_llm import MODELO_LORE
+MODELO = MODELO_LORE
 
     seed_json = json.dumps(seed, indent=2, ensure_ascii=False)
     prompt = (

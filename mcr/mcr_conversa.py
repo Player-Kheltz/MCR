@@ -11,9 +11,10 @@ from typing import Optional, Dict
 from mcr.mcr_self import MCRSelf
 from mcr.mcr_autobiography import Autobiography
 
-OLLAMA_CHAT = "http://localhost:11434/api/generate"
-MODELO_CHAT = "mistral:7b"
-MODELO_CODIGO = "qwen2.5-coder:7b"
+from mcr.config_llm import MODELO_CHAT, MODELO_CODIGO, OLLAMA_URL
+
+_OLLAMA = OLLAMA_URL + "/generate"
+MODELO = MODELO_CHAT
 
 # Palavras que indicam acao
 _VERBOS_ACAO = {'cria', 'crie', 'criar', 'faz', 'faca', 'fazer', 'gere', 'gerar',

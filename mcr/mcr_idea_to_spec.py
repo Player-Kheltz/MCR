@@ -8,7 +8,8 @@ import urllib.request
 from typing import Dict, List, Optional, Tuple
 
 OLLAMA_CHAT = "http://localhost:11434/api/generate"
-MODELO = "qwen2.5-coder:7b"
+from mcr.config_llm import MODELO_CODIGO, OLLAMA_URL
+MODELO = MODELO_CODIGO
 
 _SPEC_SCHEMA_NPC = {
     "type": "npc",

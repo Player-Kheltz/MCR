@@ -15,6 +15,8 @@ import json, threading, queue, os, sys, time
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 import urllib.parse as _urlparse
 
+from mcr.config_llm import MODELO
+
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'devia', 'kernel'))
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
 
@@ -144,7 +146,7 @@ class _Handler(BaseHTTPRequestHandler):
                 from mcr_devia_v2 import MarkovDecider
                 md = MarkovDecider()
                 classe, conf = md.classificar(prompt)
-                modelo = obter_modelo(classe) or 'mistral:7b-32k'
+                modelo = obter_modelo(classe) or MODELO
                 prompt_llm = obter_prompt(classe, prompt, tipo=classe, npc='NPC', resumo=prompt)
 
                 import urllib.request

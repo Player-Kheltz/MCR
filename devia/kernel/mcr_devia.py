@@ -298,22 +298,19 @@ except Exception as e:
     print(f"[MCR-DevIA] Curiosidade nao iniciado: {e}")
     _curiosidade = None
 
-# Seletor de modelo por classe de tarefa (Otimizado para RTX 3080 10/12GB)
+# Seletor de modelo por classe de tarefa — unificado qwen3.5:9b
+try:
+    from mcr.config_llm import MODELO
+except ImportError:
+    MODELO = "qwen3.5:9b"
+
 MODELO_POR_CLASSE = {
-    "analisar_bug": "qwen2.5-coder:7b",
-    "revisar_codigo": "qwen2.5-coder:7b",
-    "analisar_performance": "qwen2.5-coder:7b",
-    "analisar_arquitetura": "qwen2.5-coder:7b",
-    "analisar_seguranca": "qwen2.5-coder:7b",
-    "analisar_gameplay": "qwen2.5-coder:7b",
-    "criar_habilidade_spa": "qwen2.5-coder:7b",
-    "criar_codigo": "qwen2.5-coder:7b",
-    "criar_npc": "qwen2.5-coder:7b",
-    "criar_quest": "qwen2.5-coder:7b",
-    "traduzir_texto": "qwen2.5-coder:1.5b",
-    "explicar_conceito": "qwen2.5-coder:7b",
-    "gerar_relatorio": "qwen2.5-coder:7b",
-    "gerar_texto": "qwen2.5-coder:7b",
+    "analisar_bug": MODELO, "revisar_codigo": MODELO, "analisar_performance": MODELO,
+    "analisar_arquitetura": MODELO, "analisar_seguranca": MODELO, "analisar_gameplay": MODELO,
+    "criar_habilidade_spa": MODELO, "criar_codigo": MODELO, "criar_npc": MODELO,
+    "criar_quest": MODELO, "traduzir_texto": MODELO, "explicar_conceito": MODELO,
+    "gerar_relatorio": MODELO, "gerar_texto": MODELO,
+}
 }
 
 
@@ -440,7 +437,7 @@ def processar(entrada):
     pipe._cerebro = _cerebro  # Global module level, accessed directly
     pipe._ctx_episodico = _ctx_episodico if '_ctx_episodico' in dir() and _ctx_episodico else ""
     # Define modelo otimo para esta classe
-    modelo = MODELO_POR_CLASSE.get(classe, "qwen2.5-coder:7b")
+    modelo = MODELO_POR_CLASSE.get(classe, MODELO)
     pipe._modelo = modelo
     ctx = pipe.executar(acoes, entrada)
     
@@ -562,7 +559,7 @@ def main():
                 prompt = (f"Crie UMA pergunta 'E se...?' combinando {d['topico_a']} e {d['topico_b']}. "
                           f"Palavra-ponte: '{d['ponte']}'. Responda APENAS a pergunta em PT-BR.")
                 try:
-                    pergunta = _llm.gerar(prompt, modelo="qwen2.5-coder:7b", temp=0.7)
+                    pergunta = _llm.gerar(prompt, modelo=MODELO, temp=0.7)
                     print(f"    E se... {pergunta.strip()[:200]}")
                 except Exception: pass
         print(f"\n  {len(descobertas)} descobertas em 0ms (MCRConexao) + LLM")

@@ -15,8 +15,8 @@ from mcr.mcr_autobiography import Autobiography
 from mcr.mcr_self import MCRSelf
 from mcr.silent_log import log
 
-OLLAMA_CHAT = "http://localhost:11434/api/generate"
-MODELO = "qwen2.5-coder:7b"
+from mcr.config_llm import MODELO_CHAT, OLLAMA_URL
+MODELO = MODELO_CHAT
 
 
 class InnerVoice:

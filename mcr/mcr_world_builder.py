@@ -13,8 +13,10 @@ import urllib.request
 from typing import Dict, List, Optional
 
 OLLAMA_CHAT = "http://localhost:11434/api/generate"
-MODELO_LORE = "mistral:7b"
-MODELO_CODIGO = "qwen2.5-coder:7b"
+from mcr.config_llm import MODELO_LORE, MODELO_CODIGO
+
+MODELO = MODELO_CODIGO
+MODELO_CHAT = MODELO_LORE
 
 # Conceitos essenciais que a lore deve conter
 _CONCEITOS_OBRIGATORIOS = {
@@ -1446,7 +1448,7 @@ def expandir_mundo(tema: str, quantidade: int = 10) -> dict:
             try:
                 import urllib.request
                 payload = json.dumps({
-                    "model": "mistral:7b", "prompt": prompt_conexao, "stream": False,
+                    "model": MODELO_LORE, "prompt": prompt_conexao, "stream": False,
                     "options": {"temperature": 0.7, "max_tokens": 800}
                 }).encode()
                 req = urllib.request.Request(
