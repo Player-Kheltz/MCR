@@ -242,7 +242,7 @@ class ChainOfVerification:
                 "model": MODELO,
                 "prompt": prompt_correcao,
                 "stream": False,
-                "options": {"num_predict": 1024, "temperature": 0.2}
+                "options": {"temperature": 0.2}
             }).encode()
             req = urllib.request.Request(
                 "http://localhost:11434/api/generate",

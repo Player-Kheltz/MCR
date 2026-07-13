@@ -66,7 +66,7 @@ def _llm_leve(prompt, temp=0.2):
     try:
         d = json.dumps({
             "model": _MODELO_MENTE, "prompt": prompt, "stream": False,
-            "options": {"temperature": temp, "num_ctx": 2048, "num_predict": 1024}
+            "options": {"temperature": temp, "num_ctx": 32768}
         }).encode()
         r = urllib.request.Request(OLLAMA_URL, data=d,
             headers={"Content-Type": "application/json"})

@@ -25,7 +25,7 @@ def _chamar_llm(modelo: str, prompt: str, timeout: int = 120) -> str:
             "model": modelo,
             "prompt": prompt,
             "stream": False,
-            "options": {"num_predict": 1024, "temperature": 0.3, "num_ctx": 32768}
+            "options": {"temperature": 0.3, "num_ctx": 32768}
         }).encode()
         req = urllib.request.Request(OLLAMA_URL, data=payload,
                                      headers={"Content-Type": "application/json"})

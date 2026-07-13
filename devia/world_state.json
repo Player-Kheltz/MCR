@@ -593,6 +593,11 @@
       "file": "E:\\MCR\\server\\data-otservbr-global\\npc\\tibiapal.lua",
       "role": "cavaleiro",
       "tier": "template"
+    },
+    "Brunin Forjador": {
+      "file": "npc_brunin_forjador.lua",
+      "role": "gerado_por_pipeline",
+      "tier": "rascunho"
     }
   },
   "monstros": {

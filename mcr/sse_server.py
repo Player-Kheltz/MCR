@@ -152,7 +152,7 @@ class _Handler(BaseHTTPRequestHandler):
                 import urllib.request
                 payload = json.dumps({
                     "model": modelo, "prompt": prompt_llm, "stream": True,
-                    "options": {"num_predict": 1024, "temperature": 0.7, "num_ctx": 32768}
+                    "options": {"temperature": 0.7, "num_ctx": 32768}
                 }).encode()
                 req = urllib.request.Request(
                     "http://localhost:11434/api/generate", data=payload,

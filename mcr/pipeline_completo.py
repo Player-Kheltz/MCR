@@ -692,7 +692,7 @@ class PipelineCompleto:
         try:
             payload = json.dumps({
                 "model": modelo_atual, "prompt": prompt, "stream": False,
-                "options": {"num_predict": 1024, "temperature": 0.7, "num_ctx": 32768}
+                "options": {"temperature": 0.7, "num_ctx": 32768}
             }).encode()
             req = urllib.request.Request(OLLAMA_URL, data=payload,
                                          headers={"Content-Type": "application/json"})
