@@ -744,6 +744,20 @@ class MCR:
         except Exception:
             pass
 
+        # Fallback final: tool com maior taxa de sucesso
+        melhor_tool = None
+        melhor_taxa = 0.0
+        for nome in self._registry.listar()[:50]:
+            entry = self._registry.selecionar(nome)
+            if entry and entry.usos > 0:
+                taxa = entry.taxa_sucesso()
+                if taxa > melhor_taxa:
+                    melhor_taxa = taxa
+                    melhor_tool = nome
+        if melhor_tool:
+            # Mapeia nome da tool → ação (ex: gerar_npc_lua → gerar_npc)
+            acao_fallback = melhor_tool.replace('_lua', '').replace('_', ' ')
+            return acao_fallback, max(0.05, melhor_taxa)
         return "gerar_npc", 0.1
 
     # ═══════════════════════════════════════════════════════
@@ -908,15 +922,25 @@ class MCR:
             self._erros = self._erros[-100:]
 
     def _extrair_nome(self, texto: str) -> str:
-        """Extrai nome de entidade (máx 2 palavras, bilíngue)."""
+        """Extrai nome de entidade. Filtra itens via ItemDatabase."""
         import re
-        stopwords = r'\b(crie|criar|gere|gerar|faca|fazer|um|uma|novo|nova|npc|monstro|monster|quest|sprite|de|do|da|que|venda|com|para|the|a|an|of|in|to|for|and|that|this|with|from|sell|sells|create|generate|make)\b'
-        limpo = re.sub(stopwords, ' ', texto, flags=re.IGNORECASE)
+        # Stopwords mínimas (comandos + artigos — universais)
+        stops = r'\b(crie|criar|gere|gerar|faca|fazer|um|uma|novo|nova|'
+        stops += r'npc|monstro|monster|quest|sprite|de|do|da|que|venda|'
+        stops += r'com|para|the|an|of|in|to|for|and|that|this|with|from|'
+        stops += r'sell|sells|create|generate|make|build|forge|a|is|it)\b'
+        limpo = re.sub(stops, ' ', texto, flags=re.IGNORECASE)
         limpo = re.sub(r'\s+', ' ', limpo).strip()
-        # Filtra palavras que parecem itens (contaminam o nome)
-        palavras_itens = {'armadura', 'armaduras', 'espada', 'espadas', 'escudo',
-                          'escudos', 'poção', 'poções', 'anel', 'anéis', 'machado',
-                          'arco', 'flecha', 'pocao', 'pocoes', 'aneis'}
+        # Filtra itens via ItemDatabase (dinâmico, não hardcoded)
+        palavras_itens = set()
+        try:
+            from devia.knowledge.item_database import ItemDatabase
+            db = ItemDatabase()
+            for p in limpo.lower().split():
+                if db.buscar_por_nome(p):
+                    palavras_itens.add(p.lower())
+        except Exception:
+            pass
         palavras = [p for p in limpo.split()
                     if len(p) > 2 and p.lower() not in palavras_itens]
         if palavras:
@@ -925,49 +949,49 @@ class MCR:
         return 'Entidade'
 
     def _extrair_profissao(self, texto: str) -> str:
-        profissoes = ['ferreiro', 'mago', 'guarda', 'vendedor', 'mercador',
-                      'padeiro', 'taverneiro', 'carpinteiro', 'artesao',
-                      'alquimista', 'bibliotecario', 'cavaleiro', 'druida',
-                      'cacador', 'minerador', 'cozinheiro', 'tecelao',
-                      'cocheiro', 'mensageiro', 'ladrao', 'arqueiro',
-                      'curandeiro', 'pescador', 'lenhador', 'ourives']
+        """Descobre profissão do texto via ItemDatabase.profissoes."""
         t = texto.lower()
-        for p in profissoes:
-            if p in t:
-                return p
+        try:
+            from devia.knowledge.item_database import ItemDatabase
+            db = ItemDatabase()
+            cats = getattr(db, 'categorias', {})
+            for nome in cats:
+                if nome.lower() in t:
+                    return nome.lower()
+        except Exception:
+            pass
         return 'artesao'
 
     def _extrair_itens(self, texto: str) -> list:
+        """Descobre itens via ItemDatabase (17,019 itens reais)."""
+        import re
         t = texto.lower()
+        # Detecta se é contexto de comércio via co-ocorrência de palavras
         triggers = {'vende', 'venda', 'loja', 'comercio', 'shop', 'sell', 'sells',
-                    'vender', 'vendedor', 'mercador', 'itens', 'items'}
+                    'vender', 'vendedor', 'mercador', 'itens', 'items', 'comprar'}
         if not any(tr in t for tr in triggers):
             return []
-        itens = []
-        mapa = {'armadura': 'Armadura', 'armaduras': 'Armadura',
-                'espada': 'Espada', 'espadas': 'Espada',
-                'escudo': 'Escudo', 'escudos': 'Escudo',
-                'poção': 'Poção', 'poções': 'Poção', 'pocao': 'Poção', 'pocoes': 'Poção',
-                'anel': 'Anel', 'anéis': 'Anel', 'aneis': 'Anel',
-                'machado': 'Machado', 'machados': 'Machado',
-                'arco': 'Arco', 'arcos': 'Arco',
-                'flecha': 'Flecha', 'flechas': 'Flecha',
-                'livro': 'Livro', 'livros': 'Livro',
-                'varinha': 'Varinha', 'varinhas': 'Varinha',
-                'martelo': 'Martelo', 'martelos': 'Martelo',
-                'adaga': 'Adaga', 'adagas': 'Adaga',
-                'cajado': 'Cajado', 'cajados': 'Cajado'}
-        for k, v in mapa.items():
-            if k in t:
-                itens.append(v)
-        # Deduplica mantendo ordem
-        seen = set()
-        result = []
-        for i in itens:
-            if i not in seen:
-                seen.add(i)
-                result.append(i)
-        return result[:5]  # máximo 5 itens
+        try:
+            from devia.knowledge.item_database import ItemDatabase
+            db = ItemDatabase()
+            tokens = re.findall(r'[a-zà-ÿ]{3,}', t)
+            itens = []
+            for token in tokens:
+                matches = db.buscar_por_nome(token)
+                if matches:
+                    for m in matches[:3]:
+                        nome = m.get('name', token).title()
+                        if nome not in itens:
+                            itens.append(nome)
+            # Fallback: sugerir por profissão
+            if not itens:
+                prof = self._extrair_profissao(texto)
+                sugestoes = db.sugerir_itens_para_shop(prof)
+                itens = [s.get('name', 'Item').title() for s in (sugestoes or [])[:5]]
+            return itens[:5]
+        except Exception:
+            pass
+        return []
 
     # ═══════════════════════════════════════════════════════
     # LOG DE EXECUÇÃO (para experimentos e calibração)
