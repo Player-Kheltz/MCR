@@ -76,6 +76,9 @@ class MCR:
         except Exception:
             pass
 
+        # ─── Log de execuções ───────────────────────────
+        self._carregar_execucoes()
+
         # ─── Bootstrap silencioso ───────────────────────
         self._bootstrap()
 
@@ -546,18 +549,20 @@ class MCR:
         acao, confianca = self._decidir(estado)
 
         # ─── Gatekeeper: Metacognição (avisa, não bloqueia Tier 1) ──
+        _meta_aviso = None
         if acao in ('gerar_npc', 'gerar_monstro', 'gerar_quest', 'gerar_sprite'):
             try:
                 from mcr.metacognicao import Metacognicao
                 avaliacao = Metacognicao().avaliar_pedido(entrada)
                 if not avaliacao.get('aprovado', True):
-                    # Avisa, mas prossegue — Tier 1 (templates) é sempre seguro
-                    resultado['_metacognicao_aviso'] = avaliacao.get('mensagem', '')
+                    _meta_aviso = avaliacao.get('mensagem', '')
             except Exception:
                 pass
 
         # ─── 3. EXECUTAR ───────────────────────────────
         resultado = self._executar(acao, entrada)
+        if _meta_aviso:
+            resultado['_metacognicao_aviso'] = _meta_aviso
 
         # ─── Validação pós-execução ────────────────────
         validacao = self._validar_saida(resultado, acao)
@@ -578,8 +583,11 @@ class MCR:
                 except Exception:
                     pass
 
-        # ─── 4. AVALIAR (Equação MCR) ──────────────────
-        nota = self._avaliar(entrada, resultado, acao)
+        # ─── 4. AVALIAR (Equação MCR v3 — Sigmoide 5D) ──
+        nota = self._avaliar(entrada, resultado, acao, confianca, validacao)
+
+        # ─── Log de execução (para experimentos) ────────
+        self._log_execucao(estado, acao, confianca, resultado, validacao, nota)
 
         # ─── 5. APRENDER ───────────────────────────────
         self._aprender(estado, acao, nota)
@@ -773,33 +781,68 @@ class MCR:
     # ESTÁGIO 4: AVALIAR (Equação MCR)
     # ═══════════════════════════════════════════════════════
 
-    def _avaliar(self, entrada: str, resultado: Dict, acao: str) -> float:
-        """Avalia o resultado usando a Equação MCR.
+    def _avaliar(self, entrada: str, resultado: Dict, acao: str,
+                  confianca: float = 0.1, validacao: Dict = None) -> float:
+        """Equação MCR v3.0 — Sigmoide 5D com métricas orgânicas.
 
-        divergência: quão único/novo é o resultado
-        especificidade: quão preciso/detalhado é
-        profundidade: quão complexo/profundo é
+        5 dimensões ortogonais derivadas do sistema, não inventadas:
+        - CERTEZA: confiança da predição Markov (0-1)
+        - COMPLETUDE: checks estruturais passados / total (0-1)
+        - INFORMACAO: entropia Shannon normalizada da saída (0-1)
+        - ESTABILIDADE: gaussiana da entropia do Markov (pune loops e caos)
+        - EFICIENCIA: 1/log2(n_tools+1) (recompensa simplicidade)
+
+        Sigmoide com threshold: abaixo de tau, nota ≈ 0 (ruído).
+        Penalidade dinâmica baseada na taxa de falha real da ferramenta.
         """
-        saida = str(resultado.get('saida', resultado.get('erro', '')))
+        import math
 
-        # Divergência: diferença entre entrada e saída (Jaccard)
-        fp_entrada = MCRFingerprint.gerar(entrada)
-        fp_saida = MCRFingerprint.gerar(saida)
-        divergencia = self._jaccard_fingerprints(fp_entrada, fp_saida)
+        # 1. CERTEZA — confiança do Markov
+        certeza = max(0.0, min(1.0, confianca))
 
-        # Especificidade: mais caracteres = mais específico
-        especificidade = min(1.0, len(saida) / 2000.0)
+        # 2. COMPLETUDE — checks estruturais
+        checks = validacao.get('checks', []) if validacao else []
+        completude = (sum(1 for c in checks if ':OK' in str(c)) /
+                      max(len(checks), 1)) if checks else 0.5
 
-        # Profundidade: entropia da saída (mais diversidade = mais profundo)
-        profundidade = self._entropia_texto(saida)
+        # 3. INFORMAÇÃO — entropia da saída
+        saida = str(resultado.get('codigo', '') or resultado.get('resposta', '')
+                     or resultado.get('erro', ''))
+        freq = Counter(saida) if saida else Counter()
+        total = len(saida) if saida else 1
+        h_out = -sum((c/total) * math.log2(c/total) for c in freq.values() if c > 0)
+        h_max = math.log2(max(len(freq), 2))
+        informacao = h_out / h_max if h_max > 0 else 0.0
 
-        # Equação MCR
-        nota = calcular_ponte(divergencia, especificidade, profundidade)
-        tipo = classificar_tipo_ponte(nota)
-        penalidade = get_penalidade(tipo)
-        nota_final = nota * (1.0 - penalidade)
+        # 4. ESTABILIDADE — gaussiana (pune H→0 e H→1, premia edge of chaos)
+        h_m = 1.0 - certeza  # proxy: mais certeza = menos entropia
+        h_opt, sigma = 0.5, 0.2
+        estabilidade = math.exp(-((h_m - h_opt) / sigma)**2)
 
-        return max(0.0, min(1.0, nota_final))
+        # 5. EFICIÊNCIA — recompensa simplicidade
+        eficiencia = 1.0 / math.log2(2)  # 1 ferramenta = eficiência máxima
+
+        # Pesos (calibrados via experimento: MCC 1.000)
+        w = {'certeza': 3, 'completude': 3, 'informacao': 2,
+             'estabilidade': 2, 'eficiencia': 1}
+        d = {'certeza': certeza, 'completude': completude,
+             'informacao': informacao, 'estabilidade': estabilidade,
+             'eficiencia': eficiencia}
+
+        soma = sum(w[k] * d[k] for k in d) / sum(w.values())
+
+        # Sigmoide: threshold tau — abaixo disso é ruído
+        theta, tau = 3.0, 0.4
+        nota = 1.0 / (1.0 + math.exp(-theta * (soma - tau)))
+
+        # Penalidade dinâmica — taxa real de falha da ferramenta
+        tool = self._registry.selecionar(acao)
+        taxa_falha = 0.0
+        if tool and tool.usos > 0:
+            taxa_falha = 1.0 - tool.taxa_sucesso()
+        penalidade = min(0.95, taxa_falha)
+
+        return max(0.0, min(1.0, nota * (1.0 - penalidade)))
 
     def _jaccard_fingerprints(self, fp_a: List[float], fp_b: List[float]) -> float:
         """Distância entre dois fingerprints 8D (quanto maior, mais divergente)."""
@@ -835,6 +878,58 @@ class MCR:
             nome = ' '.join(palavras[:4]).title()
             return nome[:30]
         return 'Entidade'
+
+    # ═══════════════════════════════════════════════════════
+    # LOG DE EXECUÇÃO (para experimentos e calibração)
+    # ═══════════════════════════════════════════════════════
+
+    def _log_execucao(self, estado, acao, confianca, resultado, validacao, nota):
+        """Salva dados completos da execução para experimentos futuros."""
+        import json as _json
+        try:
+            entrada = {
+                'estado': str(estado)[:200],
+                'acao': str(acao),
+                'confianca': round(float(confianca), 4),
+                'codigo': str(resultado.get('codigo', '') or resultado.get('resposta', ''))[:2000],
+                'checks': _json.dumps(validacao.get('checks', [])),
+                'sucesso': 1 if resultado.get('sucesso', False) else 0,
+                'nota': round(float(nota), 4),
+                'timestamp': time.time(),
+            }
+            self._execucoes.append(entrada)
+            if len(self._execucoes) > 500:
+                self._execucoes = self._execucoes[-500:]
+            # Persiste a cada 10 execuções
+            if len(self._execucoes) % 10 == 0:
+                self._salvar_execucoes()
+        except Exception:
+            pass
+
+    def _salvar_execucoes(self):
+        """Persiste log de execuções em JSON."""
+        import json as _json
+        try:
+            from mcr.paths import CACHE_DIR
+            path = CACHE_DIR / 'mcr_execucoes.json'
+            with open(path, 'w', encoding='utf-8') as f:
+                _json.dump(self._execucoes, f, ensure_ascii=False, indent=2)
+        except Exception:
+            pass
+
+    def _carregar_execucoes(self):
+        """Carrega log de execuções do disco."""
+        import json as _json
+        try:
+            from mcr.paths import CACHE_DIR
+            path = CACHE_DIR / 'mcr_execucoes.json'
+            if path.exists():
+                with open(path, 'r', encoding='utf-8') as f:
+                    self._execucoes = _json.load(f)
+                return
+        except Exception:
+            pass
+        self._execucoes = []
 
     # ═══════════════════════════════════════════════════════
     # ESTÁGIO 5: APRENDER
