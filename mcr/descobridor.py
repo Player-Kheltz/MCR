@@ -165,7 +165,78 @@ class DescobridorUniversal:
             'arquivos_total': sum(self._n_arquivos_por_dir.values()),
             'ancoras_total': len(self._todas_ancoras),
             'ancoras_por_dir': {
-                d.name: len(self.ancoras_do_diretorio(d))
+                str(d): len(self.ancoras_do_diretorio(d))
                 for d in self._freq_por_dir
             },
         }
+
+    # ═══════════════════════════════════════════════════════
+    # API GENERALIZADA: Descobre em qualquer Dict[str, List]
+    # ═══════════════════════════════════════════════════════
+
+    @staticmethod
+    def descobrir_em_dados(grupos: Dict[str, List[List]],
+                           min_freq: float = 0.25,
+                           min_razao: float = 3.0) -> Dict[str, Dict]:
+        """Descobre âncoras em dados arbitrários, não apenas arquivos.
+
+        Args:
+            grupos: {nome_do_grupo: [ [unidades_do_membro1], [unidades_do_membro2], ... ]}
+
+        Returns:
+            {nome_do_grupo: {
+                'ancoras': [(token, freq_no_grupo), ...],
+                'total': n_membros
+            }}
+        """
+        resultado = {}
+        nomes = list(grupos.keys())
+
+        # Conta frequência de cada token em cada grupo
+        freq_por_grupo = {}
+        n_por_grupo = {}
+        for nome, membros in grupos.items():
+            freq = Counter()
+            for unidades in membros:
+                for u in set(unidades):  # presença binária
+                    freq[str(u)] += 1
+            freq_por_grupo[nome] = freq
+            n_por_grupo[nome] = len(membros)
+
+        # Para cada grupo, descobre âncoras
+        for nome in nomes:
+            freq_grupo = freq_por_grupo[nome]
+            n_grupo = n_por_grupo[nome]
+            if n_grupo == 0:
+                resultado[nome] = {'ancoras': [], 'total': 0}
+                continue
+
+            # Frequência nos outros grupos
+            freq_outros = Counter()
+            n_outros = 0
+            for outro in nomes:
+                if outro != nome:
+                    n_outros += n_por_grupo[outro]
+            for outro in nomes:
+                if outro != nome:
+                    for token, count in freq_por_grupo[outro].items():
+                        freq_outros[token] += count
+
+            # Seleciona âncoras
+            ancoras = []
+            for token, count in freq_grupo.most_common(100):
+                freq_aqui = count / n_grupo
+                if freq_aqui < min_freq:
+                    continue
+                freq_fora = freq_outros.get(token, 0) / max(n_outros, 1)
+                razao = freq_aqui / max(freq_fora, 0.001)
+                if razao > min_razao:
+                    ancoras.append((token, round(freq_aqui, 3)))
+
+            resultado[nome] = {
+                'ancoras': ancoras[:20],
+                'total': n_grupo,
+                'nome_automatico': '_'.join([a[0] for a in ancoras[:3]]) if ancoras else f'GRUPO_{nome}'
+            }
+
+        return resultado

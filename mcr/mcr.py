@@ -659,33 +659,16 @@ class MCR:
         return self._fingerprint_chave(entrada)
 
     def _fingerprint_chave(self, texto: str) -> str:
-        """Gera chave Markov via ExtratorFeatures (features descobertas, zero hardcode)."""
+        """Gera chave Markov via ExtratorFeatures (100% descoberto dos dados)."""
         try:
             from mcr.extrator_features import get_extrator
-            ext = get_extrator()
-            if not ext._treinado:
-                # Treina com KG se disponível
-                import json as _json
-                from mcr.paths import KG_DIR
-                patterns = []
-                for f in sorted(KG_DIR.glob('patterns_*.json'))[:2]:
-                    with open(f, 'r', encoding='utf-8') as fh:
-                        patterns.extend(_json.load(fh).get('padroes', []))
-                if patterns:
-                    ext.treinar(patterns)
-            return ext.extrair(texto)
+            return get_extrator().extrair(texto)
         except Exception:
-            # Fallback ultra-simples
-            import re
-            t = texto.lower().strip()
-            tokens = re.findall(r'[a-zà-ÿ0-9]{2,}', t)
-            cmd = tokens[0] if tokens else '?'
-            for tok in tokens:
-                if tok in ('npc','monstro','monster','quest','missao','sprite','imagem'):
-                    return f"ENT:{tok.upper()[:4]}|INT:CMD"
-            if cmd in ('explique','explain','o','qual','how','como','what','que','why'):
-                return "ENT:GEN|INT:ASK"
-            return f"ENT:GEN|INT:CMD|A@0"
+            pass
+        import re
+        t = texto.lower().strip()
+        tokens = re.findall(r'[a-zà-ÿ0-9]{2,}', t)
+        return "|".join(tokens[:6]) if tokens else "VAZIO"
 
     # ═══════════════════════════════════════════════════════
     # ESTÁGIO 2: DECIDIR

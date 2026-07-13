@@ -603,6 +603,11 @@
       "file": "npc_ignarion.lua",
       "role": "gerado_por_pipeline",
       "tier": "rascunho"
+    },
+    "Krago da Pedreira Esquecida": {
+      "file": "npc_krago_da_pedreira_esquecida.lua",
+      "role": "gerado_por_pipeline",
+      "tier": "rascunho"
     }
   },
   "monstros": {
