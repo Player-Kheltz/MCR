@@ -46,7 +46,8 @@ class ToolEntry:
         try:
             resultado = self.fn(**kwargs)
             self.usos += 1
-            self.sucessos += 1
+            if isinstance(resultado, dict) and resultado.get('sucesso', True):
+                self.sucessos += 1
             self.ultimo_uso = time.time()
             return resultado
         except Exception as e:

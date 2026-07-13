@@ -56,6 +56,7 @@ class MCR:
         self._memoria: List[Dict] = []
         self._total_processamentos = 0
         self._sessao_inicio = time.time()
+        self._erros: List[Dict] = []  # log de erros para debug
 
         # ─── Identidade (absorvida de mcr_self) ─────────
         self.nome = "MCR"
@@ -92,10 +93,9 @@ class MCR:
             from mcr.bootstrap import inicializar
             if len(self._registry.listar()) < 10:
                 inicializar(self._registry)
-        except Exception:
+        except Exception as e:
+            self._log_erro('bootstrap', e)
             pass
-
-        self._registrar_wrappers()
         self._pre_treinar_markov()
 
     def _registrar_wrappers(self):
@@ -133,8 +133,8 @@ class MCR:
                 return {'sucesso': True, 'codigo': codigo, 'entidade': nome,
                         'tipo': 'npc', 'arquivo': caminho, 'params': params}
             wrappers['gerar_npc_lua'] = _gerar_npc
-        except Exception:
-            pass
+        except Exception as e:
+            self._log_erro('wrapper_npc', e)
 
         # ─── Tibia: Monstro (extrai nome, perigo) ─────
         try:
@@ -142,30 +142,46 @@ class MCR:
             def _gerar_monstro(entrada="", texto="", **kw):
                 msg = entrada or texto
                 nome = self._extrair_nome(msg)
+                # Determina perigo por keywords (mais granular)
                 perigo = 'medium'
-                if any(w in msg.lower() for w in ['ancião', 'anciao', 'ancioso',
-                        'lord', 'rei', 'elite', 'anciã']):
+                if any(w in msg.lower() for w in ['ancião', 'anciao', 'ancestral',
+                        'anciã', 'lord', 'rei', 'rainha', 'elite', 'gigante',
+                        'colossal', 'supremo', 'lendario', 'milenar']):
                     perigo = 'high'
-                elif any(w in msg.lower() for w in ['filhote', 'jovem', 'pequeno']):
+                elif any(w in msg.lower() for w in ['jovem', 'filhote', 'pequeno',
+                        'bebe', 'menor', 'fraco', 'doente']):
                     perigo = 'low'
-                stats = {'low': (300, 500, 150), 'medium': (800, 1500, 200),
-                         'high': (2000, 5000, 280)}
+                # Stats mais realistas, contextualizados por perigo
+                stats = {'low': (250, 400, 120), 'medium': (750, 1200, 180),
+                         'high': (1800, 4500, 260)}
                 hp, exp, spd = stats[perigo]
+                # Raça contextualizada
+                race = 'blood'
+                if any(w in msg.lower() for w in ['fogo', 'lava', 'vulcão', 'flamejante']):
+                    race = 'fire'
+                elif any(w in msg.lower() for w in ['gelo', 'neve', 'glacial']):
+                    race = 'ice'
+                elif any(w in msg.lower() for w in ['veneno', 'toxina', 'venenoso']):
+                    race = 'venom'
+                elif any(w in msg.lower() for w in ['eletrico', 'raio', 'trovão']):
+                    race = 'energy'
                 params = {'name': nome, 'health': hp, 'experience': exp,
                           'speed': spd, 'looktype': 100,
                           'description': f'{nome} — um monstro perigoso.',
-                          'race': 'blood',
-                          'drop_items': [{'id': 2160, 'chance': 50000, 'maxCount': 3}]}
+                          'race': race, 'drop_items': [
+                              {'id': 2160, 'chance': 50000, 'maxCount': 3},
+                              {'id': 2148, 'chance': 25000, 'maxCount': 10}]}
                 codigo = gerar_monstro_parametrizado(params)
                 try:
                     caminho = salvar_monstro_parametrizado(params)
                 except Exception:
                     caminho = ''
                 return {'sucesso': True, 'codigo': codigo, 'entidade': nome,
-                        'tipo': 'monstro', 'arquivo': caminho}
+                        'tipo': 'monstro', 'arquivo': caminho, 'perigo': perigo,
+                        'race': race}
             wrappers['gerar_monstro_lua'] = _gerar_monstro
-        except Exception:
-            pass
+        except Exception as e:
+            self._log_erro('wrapper_monstro', e)
 
         # ─── Visual: Sprite real ──────────────────────
         try:
@@ -179,12 +195,15 @@ class MCR:
                                 'tipo': 'sprite'}
                     motor = MCRSpriteMotor()
                     cat = cats[0]
-                    sprites = carregar_categoria(cat, max_sprites=3)
-                    if sprites:
+                    sprites = carregar_categoria(cat, max_sprites=5)
+                    if sprites and len(sprites) >= 3:
                         motor.treinar(sprites, cat)
                         gerados = motor.gerar(n=1)
-                        return {'sucesso': True, 'tipo': 'sprite', 'categoria': cat,
-                                'n_gerados': len(gerados) if gerados else 0}
+                        return {'sucesso': gerados is not None and len(gerados) > 0,
+                                'tipo': 'sprite', 'categoria': cat,
+                                'n_gerados': len(gerados) if gerados else 0,
+                                'nota': 'Treino com poucos sprites — qualidade limitada. '
+                                        'Popule poc_output/sprites_categorizados/ para melhorar.'}
                     return {'sucesso': False, 'erro': 'Sem sprites para treinar',
                             'tipo': 'sprite'}
                 except Exception as e:
@@ -195,26 +214,45 @@ class MCR:
             def _avaliar_sprite(entrada="", texto="", **kw):
                 disc = MCRDiscriminador()
                 try:
-                    from mcr.sprite_corpus import carregar_categoria, extrair_grid_papel
-                    sprites = carregar_categoria('armors', max_sprites=3)
-                    grids = [extrair_grid_papel(s)[0] for s in sprites]
-                    disc.treinar(grids)
-                    scores = [disc.avaliar(g)['score'] for g in grids]
+                    from mcr.sprite_corpus import carregar_categoria, extrair_grid_papel, listar_categorias
+                    cats = listar_categorias()
+                    if len(cats) < 2:
+                        return {'sucesso': False, 'erro': 'Precisa de 2+ categorias para avaliar'}
+                    # Treina em metade, testa na outra (evita contaminação circular)
+                    meio = len(cats) // 2
+                    grids_treino = []
+                    for cat in cats[:meio]:
+                        sprites = carregar_categoria(cat, max_sprites=3)
+                        grids_treino.extend(extrair_grid_papel(s)[0] for s in sprites)
+                    if not grids_treino:
+                        return {'sucesso': False, 'erro': 'Sem sprites para treino'}
+                    disc.treinar(grids_treino)
+                    # Testa em categorias diferentes
+                    scores = []
+                    for cat in cats[meio:meio+2]:
+                        sprites = carregar_categoria(cat, max_sprites=2)
+                        for s in sprites:
+                            grid = extrair_grid_papel(s)[0]
+                            scores.append(disc.avaliar(grid)['score'])
+                    if not scores:
+                        return {'sucesso': False, 'erro': 'Sem sprites para teste'}
                     return {'sucesso': True, 'score_medio':
-                            round(sum(scores)/max(len(scores),1), 3),
-                            'n_avaliados': len(scores)}
+                            round(sum(scores)/len(scores), 3),
+                            'n_treino': len(grids_treino), 'n_teste': len(scores),
+                            'aviso': 'Score cross-categoria (valido, nao circular)'}
                 except Exception as e:
                     return {'sucesso': False, 'erro': str(e)[:100]}
             wrappers['avaliar_sprite'] = _avaliar_sprite
         except Exception:
             pass
 
-        # ─── Responder (KG + raciocínio) ──────────────
+        # ─── Responder (KG + raciocínio + fallback honesto) ──
         try:
             def _responder(entrada="", texto="", **kw):
                 msg = entrada or texto
                 if not msg:
                     return {'sucesso': False, 'erro': 'Sem entrada'}
+                # 1. Tenta KG (Metacognição)
                 try:
                     from mcr.metacognicao import Metacognicao
                     meta = Metacognicao()
@@ -222,24 +260,30 @@ class MCR:
                     if score > 0.3:
                         return {'sucesso': True,
                                 'resposta': f'[KG:{score:.0%}] {just}',
-                                'confianca': round(score, 3)}
+                                'confianca': round(score, 3),
+                                'fonte': 'kg'}
                 except Exception:
                     pass
+                # 2. Tenta raciocínio (com pergunta, não só compreender)
                 try:
                     from mcr.raciocinador import Raciocinador
                     rac = Raciocinador()
-                    r = rac.compreender(msg)
-                    if r.get('resposta'):
-                        return {'sucesso': True, 'resposta': r['resposta'],
-                                'entropia': r.get('entropia', 0)}
+                    r = rac.raciocinar(msg)  # usa raciocinar, não compreender
+                    if r and r.get('resultado'):
+                        return {'sucesso': True,
+                                'resposta': str(r['resultado']),
+                                'fonte': 'raciocinio',
+                                'tipo': r.get('tipo', 'generico')}
                 except Exception:
                     pass
+                # 3. Fallback HONESTO (não eco)
                 return {'sucesso': True,
-                        'resposta': f'Processado: {msg[:200]}',
-                        'palavras': len(msg.split())}
+                        'resposta': 'Nao tenho informacao suficiente sobre isso.',
+                        'fonte': 'fallback',
+                        'confianca': 0.0}
             wrappers['responder'] = _responder
-        except Exception:
-            pass
+        except Exception as e:
+            self._log_erro('wrapper_responder', e)
 
         # ─── Mundo Vivo ───────────────────────────────
         try:
@@ -282,51 +326,6 @@ class MCR:
 
         self.registrar_ferramentas(wrappers)
 
-    def _extrair_nome(self, texto: str) -> str:
-        """Extrai nome de entidade de texto natural."""
-        import re
-        padroes = [
-            r'(?:crie|gerar|criar|gere|novo)\s+(?:um\s+|uma\s+)?(?:npc|monstro|quest|sprite)\s+(?:de\s+|do\s+|da\s+)?["\']?(\w[\w\s]{2,30}?\w)["\']?',
-            r'(?:crie|gerar|criar|gere)\s+["\']?(\w[\w\s]{2,30}?\w)["\']?',
-        ]
-        for padrao in padroes:
-            m = re.search(padrao, texto, re.IGNORECASE)
-            if m:
-                nome = m.group(1).strip().title()
-                return nome[:30]
-        palavras = texto.split()
-        for i, p in enumerate(palavras):
-            if p.lower() in ('crie', 'gerar', 'criar', 'gere', 'novo', 'nova'):
-                restantes = palavras[i+1:i+5]
-                nomes = [w for w in restantes if w[0].isupper() or len(w) > 3]
-                if nomes:
-                    return ' '.join(nomes).title()[:30]
-        return 'Entidade'
-
-    def _extrair_profissao(self, texto: str) -> str:
-        profissoes = ['ferreiro', 'mago', 'guarda', 'vendedor', 'mercador',
-                      'padeiro', 'taverneiro', 'carpinteiro', 'artesao',
-                      'alquimista', 'bibliotecario', 'cavaleiro']
-        t = texto.lower()
-        for p in profissoes:
-            if p in t:
-                return p
-        return 'artesao'
-
-    def _extrair_itens(self, texto: str) -> list:
-        t = texto.lower()
-        if not ('vende' in t or 'venda' in t or 'loja' in t or 'comercio' in t):
-            return []
-        itens = []
-        mapa = {'armadura': 'Armadura', 'espada': 'Espada', 'escudo': 'Escudo',
-                'poção': 'Poção', 'pocao': 'Poção', 'poções': 'Poção', 'pocoes': 'Poção',
-                'anel': 'Anel', 'anéis': 'Anel', 'aneis': 'Anel',
-                'machado': 'Machado', 'arco': 'Arco', 'flecha': 'Flecha'}
-        for k, v in mapa.items():
-            if k in t:
-                itens.append(v)
-        return itens
-
     # ═══════════════════════════════════════════════════════
     # VALIDAÇÃO PÓS-EXECUÇÃO
     # ═══════════════════════════════════════════════════════
@@ -334,6 +333,9 @@ class MCR:
     def _validar_saida(self, resultado: Dict, acao: str) -> Dict:
         codigo = resultado.get('codigo', '')
         if not codigo:
+            if acao in ('gerar_npc', 'gerar_monstro', 'gerar_quest', 'gerar_sprite'):
+                return {'valido': False, 'checks': ['sem_codigo'],
+                        'erro': f'Ferramenta nao produziu codigo para acao {acao}'}
             return {'valido': True, 'checks': ['sem_codigo']}
         tipo = str(resultado.get('tipo', '')).lower()
         if 'lua' not in tipo and 'npc' not in tipo and 'monstro' not in tipo:
@@ -373,26 +375,26 @@ class MCR:
         except Exception as e:
             checks.append(f'lua:ERRO={str(e)[:40]}')
 
-        # Shadow Canary (execução sandbox, opcional)
+        # Shadow Canary (execução sandbox — BLOQUEIA se crash)
         try:
             from mcr.shadow_canary import executar_shadow_codigo
             shadow = executar_shadow_codigo(codigo)
             if shadow.get('status') == 'crash':
-                checks.append(f'shadow:CRASH={shadow.get("erro","?")[:60]}')
-            else:
-                checks.append(f'shadow:{shadow.get("status","?")}')
+                return {'valido': False, 'checks': checks,
+                        'erro': f'Shadow crash: {shadow.get("erro","?")[:100]}'}
+            checks.append(f'shadow:{shadow.get("status","?")}')
         except Exception:
             checks.append('shadow:N/A')
 
-        # Chain of Verification (anti-alucinação)
+        # Chain of Verification (anti-alucinação — BLOQUEIA se inválido)
         try:
             from mcr.chain_of_verification import ChainOfVerification
             cov = ChainOfVerification()
             vr = cov.verificar_coerencia_estrutural(codigo)
             if not vr.get('valido', True):
-                checks.append(f'cove:{vr.get("erros",[])}')
-            else:
-                checks.append('cove:OK')
+                return {'valido': False, 'checks': checks,
+                        'erro': f'CoVe: {vr.get("erros",[])}'}
+            checks.append('cove:OK')
         except Exception:
             checks.append('cove:N/A')
 
@@ -529,6 +531,18 @@ class MCR:
         O MCR decide o que fazer baseado no fingerprint da entrada.
         """
         t0 = time.time()
+
+        # ─── Guarda de entrada ──────────────────────────
+        if not entrada or not isinstance(entrada, str):
+            return {'sucesso': False, 'acao': 'erro', 'nota': 0.0,
+                    'resultado': {'erro': 'Entrada invalida ou vazia'},
+                    'confianca': 0.0, 'tempo': 0.0, 'entrada': str(entrada)[:200]}
+        entrada = entrada.strip()
+        if len(entrada) < 3:
+            return {'sucesso': False, 'acao': 'erro', 'nota': 0.0,
+                    'resultado': {'erro': 'Entrada muito curta'},
+                    'confianca': 0.0, 'tempo': 0.0, 'entrada': entrada[:200]}
+
         self._total_processamentos += 1
 
         # ─── Cache (evita reprocessar) ─────────────────
@@ -836,7 +850,14 @@ class MCR:
         nota = 1.0 / (1.0 + math.exp(-theta * (soma - tau)))
 
         # Penalidade dinâmica — taxa real de falha da ferramenta
-        tool = self._registry.selecionar(acao)
+        # Busca por nome parcial (mesmo algoritmo de _executar)
+        tool = None
+        termos = acao.replace('_', ' ').lower().split()
+        for nome in self._registry.listar():
+            entry = self._registry.selecionar(nome)
+            if entry and any(t in nome.lower() for t in termos):
+                tool = entry
+                break
         taxa_falha = 0.0
         if tool and tool.usos > 0:
             taxa_falha = 1.0 - tool.taxa_sucesso()
@@ -866,18 +887,74 @@ class MCR:
         h_max = math.log2(max(len(freq), 2))
         return h / h_max if h_max > 0 else 0.0
 
+    def _log_erro(self, modulo: str, erro: str):
+        """Registra erro para debug (máx 100)."""
+        self._erros.append({'modulo': modulo, 'erro': str(erro)[:200],
+                            'timestamp': time.strftime('%Y-%m-%d %H:%M:%S')})
+        if len(self._erros) > 100:
+            self._erros = self._erros[-100:]
+
     def _extrair_nome(self, texto: str) -> str:
-        """Extrai nome de entidade de texto natural."""
+        """Extrai nome de entidade (máx 2 palavras, bilíngue)."""
         import re
-        # Remove palavras de comando primeiro
-        cmd = r'\b(crie|criar|gere|gerar|um|uma|novo|nova|npc|monstro|monster|quest|sprite|de|do|da|que|venda|com|para)\b'
-        limpo = re.sub(cmd, ' ', texto, flags=re.IGNORECASE)
+        stopwords = r'\b(crie|criar|gere|gerar|faca|fazer|um|uma|novo|nova|npc|monstro|monster|quest|sprite|de|do|da|que|venda|com|para|the|a|an|of|in|to|for|and|that|this|with|from|sell|sells|create|generate|make)\b'
+        limpo = re.sub(stopwords, ' ', texto, flags=re.IGNORECASE)
         limpo = re.sub(r'\s+', ' ', limpo).strip()
-        palavras = [p for p in limpo.split() if len(p) > 2]
+        # Filtra palavras que parecem itens (contaminam o nome)
+        palavras_itens = {'armadura', 'armaduras', 'espada', 'espadas', 'escudo',
+                          'escudos', 'poção', 'poções', 'anel', 'anéis', 'machado',
+                          'arco', 'flecha', 'pocao', 'pocoes', 'aneis'}
+        palavras = [p for p in limpo.split()
+                    if len(p) > 2 and p.lower() not in palavras_itens]
         if palavras:
-            nome = ' '.join(palavras[:4]).title()
+            nome = ' '.join(palavras[:2]).title()
             return nome[:30]
         return 'Entidade'
+
+    def _extrair_profissao(self, texto: str) -> str:
+        profissoes = ['ferreiro', 'mago', 'guarda', 'vendedor', 'mercador',
+                      'padeiro', 'taverneiro', 'carpinteiro', 'artesao',
+                      'alquimista', 'bibliotecario', 'cavaleiro', 'druida',
+                      'cacador', 'minerador', 'cozinheiro', 'tecelao',
+                      'cocheiro', 'mensageiro', 'ladrao', 'arqueiro',
+                      'curandeiro', 'pescador', 'lenhador', 'ourives']
+        t = texto.lower()
+        for p in profissoes:
+            if p in t:
+                return p
+        return 'artesao'
+
+    def _extrair_itens(self, texto: str) -> list:
+        t = texto.lower()
+        triggers = {'vende', 'venda', 'loja', 'comercio', 'shop', 'sell', 'sells',
+                    'vender', 'vendedor', 'mercador', 'itens', 'items'}
+        if not any(tr in t for tr in triggers):
+            return []
+        itens = []
+        mapa = {'armadura': 'Armadura', 'armaduras': 'Armadura',
+                'espada': 'Espada', 'espadas': 'Espada',
+                'escudo': 'Escudo', 'escudos': 'Escudo',
+                'poção': 'Poção', 'poções': 'Poção', 'pocao': 'Poção', 'pocoes': 'Poção',
+                'anel': 'Anel', 'anéis': 'Anel', 'aneis': 'Anel',
+                'machado': 'Machado', 'machados': 'Machado',
+                'arco': 'Arco', 'arcos': 'Arco',
+                'flecha': 'Flecha', 'flechas': 'Flecha',
+                'livro': 'Livro', 'livros': 'Livro',
+                'varinha': 'Varinha', 'varinhas': 'Varinha',
+                'martelo': 'Martelo', 'martelos': 'Martelo',
+                'adaga': 'Adaga', 'adagas': 'Adaga',
+                'cajado': 'Cajado', 'cajados': 'Cajado'}
+        for k, v in mapa.items():
+            if k in t:
+                itens.append(v)
+        # Deduplica mantendo ordem
+        seen = set()
+        result = []
+        for i in itens:
+            if i not in seen:
+                seen.add(i)
+                result.append(i)
+        return result[:5]  # máximo 5 itens
 
     # ═══════════════════════════════════════════════════════
     # LOG DE EXECUÇÃO (para experimentos e calibração)
@@ -946,8 +1023,8 @@ class MCR:
         # Persistência SQLite
         try:
             self._get_sqlite().aprender(estado, acao)
-        except Exception:
-            pass
+        except Exception as e:
+            self._log_erro('sqlite_aprender', e)
 
         # Histórico
         self._historico.append({
@@ -1026,6 +1103,8 @@ class MCR:
             'sessao_segundos': round(time.time() - self._sessao_inicio),
             'processamentos': self._total_processamentos,
             'memorias': len(self._memoria),
+            'erros_registrados': len(self._erros),
+            'execucoes_log': len(self._execucoes),
             'ferramentas': len(self._registry.listar()),
             'markov': {
                 'estados': mk_stats.get('estados', 0),
