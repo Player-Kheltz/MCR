@@ -253,6 +253,30 @@ class MCR:
         except Exception:
             pass
 
+        # ─── Servidor NPC (background) ──────────────────
+        try:
+            def _iniciar_npc_server(entrada="", texto="", **kw):
+                from mcr.npc_server import NPCServer
+                server = NPCServer()
+                server.iniciar()
+                return {'sucesso': True, 'servico': 'npc_server',
+                        'porta': 7777, 'status': 'iniciado'}
+            wrappers['iniciar_npc_server'] = _iniciar_npc_server
+        except Exception:
+            pass
+
+        # ─── World Observer ─────────────────────────────
+        try:
+            def _iniciar_observer(entrada="", texto="", **kw):
+                from mcr.world_observer import WorldObserver
+                obs = WorldObserver()
+                obs.iniciar()
+                return {'sucesso': True, 'servico': 'world_observer',
+                        'status': 'observando'}
+            wrappers['iniciar_observer'] = _iniciar_observer
+        except Exception:
+            pass
+
         self.registrar_ferramentas(wrappers)
 
     def _extrair_nome(self, texto: str) -> str:
@@ -345,6 +369,29 @@ class MCR:
                 checks.append('lua:OK')
         except Exception as e:
             checks.append(f'lua:ERRO={str(e)[:40]}')
+
+        # Shadow Canary (execução sandbox, opcional)
+        try:
+            from mcr.shadow_canary import executar_shadow_codigo
+            shadow = executar_shadow_codigo(codigo)
+            if shadow.get('status') == 'crash':
+                checks.append(f'shadow:CRASH={shadow.get("erro","?")[:60]}')
+            else:
+                checks.append(f'shadow:{shadow.get("status","?")}')
+        except Exception:
+            checks.append('shadow:N/A')
+
+        # Chain of Verification (anti-alucinação)
+        try:
+            from mcr.chain_of_verification import ChainOfVerification
+            cov = ChainOfVerification()
+            vr = cov.verificar_coerencia_estrutural(codigo)
+            if not vr.get('valido', True):
+                checks.append(f'cove:{vr.get("erros",[])}')
+            else:
+                checks.append('cove:OK')
+        except Exception:
+            checks.append('cove:N/A')
 
         return {'valido': True, 'checks': checks}
 
