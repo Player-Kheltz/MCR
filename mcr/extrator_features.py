@@ -24,18 +24,17 @@ class ExtratorFeatures:
         self._acoes = {'crie', 'criar', 'gere', 'gerar', 'faca', 'fazer',
                        'create', 'generate', 'make', 'forge', 'build',
                        'explique', 'explain', 'o', 'qual', 'how', 'como'}
+        self._tipo_map: Dict[str, str] = {}
         self._treinado = False
 
     def treinar(self, kg_patterns: List[dict] = None):
-        """Descobre papéis semânticos a partir do KG."""
-        # Analisa co-ocorrência de tokens com APIs
+        """Descobre papéis semânticos a partir do KG + DescobridorUniversal."""
+        # Fase 1: KG patterns (já existente)
         for p in (kg_patterns or []):
             tipo = p.get('tipo', '')
             apis = ' '.join(p.get('api_calls', [])).lower()
             vars_ = ' '.join(p.get('variaveis', [])).lower()
             nome = p.get('arquivo', '').lower().replace('.lua', '').replace('_', ' ')
-
-            # Extrai tokens do nome do arquivo
             tokens_nome = re.findall(r'[a-zà-ÿ]{3,}', nome)
             for t in tokens_nome:
                 if t not in self._entidades and t not in self._acoes:
@@ -45,37 +44,41 @@ class ExtratorFeatures:
                         self._contextos[t] = 'PERSONAGEM'
                     elif 'monster' in tipo or 'MonsterType' in apis:
                         self._contextos[t] = 'CRIATURA'
-
-            # Descobre tipo de entidade por contexto (cross-idioma!)
             for t in tokens_nome:
                 if t not in self._entidades:
                     if 'monster' in tipo or 'MonsterType' in apis:
-                        self._entidades.add(t)  # dinâmico!
-
-            # Extrai APIs como âncoras de contexto
+                        self._entidades.add(t)
             for api in re.findall(r'[a-zA-Z]{3,}', apis):
                 api_lower = api.lower()
                 if api_lower not in self._contextos:
                     self._contextos[api_lower] = 'API'
 
-        # Mapeia tipos de entidade descobertos → abreviações
-        self._tipo_map = {
-            'npc': 'NPC', 'monstro': 'MONS', 'monster': 'MONS',
-            'quest': 'QUES', 'missao': 'QUES',
-            'sprite': 'SPRI', 'imagem': 'SPRI',
-            'texto': 'TEXT', 'codigo': 'CODE',
-        }
-        # Mapeia tokens descobertos dinamicamente → tipo
-        for token in self._entidades:
-            if token not in self._tipo_map:
-                # Verifica se é monstro por contexto
-                ctx = self._contextos.get(token, '')
-                if ctx == 'CRIATURA':
-                    self._tipo_map[token] = 'MONS'
-                elif ctx == 'PERSONAGEM':
-                    self._tipo_map[token] = 'NPC'
-                elif ctx == 'OFICIO':
-                    self._tipo_map[token] = 'NPC'
+        # Fase 2: DescobridorUniversal (âncoras por diretório, zero hardcode)
+        try:
+            from mcr.descobridor import get_descobridor
+            from mcr.paths import CANARY_NPC_DIR, CANARY_MONSTER_DIR
+            desc = get_descobridor()
+            if not desc._treinado:
+                desc.descobrir([CANARY_NPC_DIR, CANARY_MONSTER_DIR])
+            # Usa âncoras descobertas como entidades
+            for token in desc._todas_ancoras:
+                dominio = desc.classificar(token)
+                if dominio:
+                    if dominio not in self._entidades:
+                        self._entidades.add(dominio)  # nome do diretório como tipo
+                    # Mapeia token -> tipo (domínio)
+                    if token not in self._tipo_map:
+                        self._tipo_map[token] = dominio.upper()[:4]
+        except Exception:
+            pass
+
+        # Mapeia tipos base (fallback se nada descoberto)
+        if not self._tipo_map:
+            self._tipo_map = {
+                'npc': 'NPC', 'monstro': 'MONS', 'monster': 'MONS',
+                'quest': 'QUES', 'missao': 'QUES',
+                'sprite': 'SPRI', 'imagem': 'SPRI',
+            }
 
         self._treinado = True
 
