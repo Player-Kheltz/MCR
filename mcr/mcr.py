@@ -386,17 +386,18 @@ class MCR:
         except Exception:
             checks.append('shadow:N/A')
 
-        # Chain of Verification (anti-alucinação — BLOQUEIA se inválido)
-        try:
-            from mcr.chain_of_verification import ChainOfVerification
-            cov = ChainOfVerification()
-            vr = cov.verificar_coerencia_estrutural(codigo)
-            if not vr.get('valido', True):
-                return {'valido': False, 'checks': checks,
-                        'erro': f'CoVe: {vr.get("erros",[])}'}
-            checks.append('cove:OK')
-        except Exception:
-            checks.append('cove:N/A')
+        # Chain of Verification (anti-alucinação — apenas para texto, não código)
+        if acao not in ('gerar_npc', 'gerar_monstro', 'gerar_quest', 'gerar_sprite'):
+            try:
+                from mcr.chain_of_verification import ChainOfVerification
+                cov = ChainOfVerification()
+                vr = cov.verificar_coerencia_estrutural(codigo)
+                if not vr.get('valido', True):
+                    return {'valido': False, 'checks': checks,
+                            'erro': f'CoVe: {vr.get("erros",[])}'}
+                checks.append('cove:OK')
+            except Exception:
+                checks.append('cove:N/A')
 
         return {'valido': True, 'checks': checks}
 
@@ -642,50 +643,54 @@ class MCR:
         return self._fingerprint_chave(entrada)
 
     def _fingerprint_chave(self, texto: str) -> str:
-        """Gera chave Markov composta: fingerprint + palavras extraídas.
-        
-        Usa compose_state para criar estado rico com múltiplos sinais.
+        """Gera chave Markov multi-nível: palavras + estrutura + entropia.
+
+        Nível 1 (sintaxe): cmd|tipo|tema
+        Nível 2 (estrutura): entropia + estilo + meta-níveis (MCRSignature)
+        Nível 3 (relações): MCRConector alimenta tópicos (integrado no _decidir)
+
         O MCR aprende sozinho quais combinações → qual ação.
         """
         import re
         t = texto.lower().strip()
-        
-        # Sinal 1: fingerprint 8D (estrutura do texto)
-        fp = MCRFingerprint.gerar(t)
-        fp_compact = ".".join(str(round(x, 1)) for x in fp[:4])
-        
-        # Sinal 2: palavras extraídas (comando + tipo de entidade)
+
+        # ─── Nível 1: palavras extraídas ───────────────
         palavras = re.findall(r'[a-zà-ÿ0-9]{2,}', t)
-        
-        # Sinal 3: tipo de entidade explícito (npc, monstro, quest, sprite)
+        cmd = palavras[0] if palavras else ''
         tipo_explicito = ""
-        for i, p in enumerate(palavras):
+        for p in palavras:
             if p in ('npc', 'monstro', 'monster', 'quest', 'missao', 'sprite', 'imagem'):
                 tipo_explicito = p
                 break
-        
-        # Sinal 4: primeira palavra substantiva longa (provavelmente o tema)
         tema = ""
-        stopwords = {'crie', 'criar', 'gere', 'gerar', 'faca', 'fazer', 'um', 'uma',
-                     'novo', 'nova', 'para', 'com', 'que', 'venda', 'de', 'do', 'da'}
+        stopwords = {'crie','criar','gere','gerar','faca','fazer','um','uma',
+                     'novo','nova','para','com','que','venda','de','do','da',
+                     'the','a','an','of','in','to','for','and','is','it'}
         for p in palavras:
             if p not in stopwords and len(p) > 3:
                 tema = p
                 break
-        
-        # Compõe estado: todos os sinais juntos
-        # O Markov aprende quais combinações importam
-        ctx = {
-            'cmd': palavras[0] if palavras else '',
-            'tipo': tipo_explicito,
-            'tema': tema,
-            'fp': fp_compact,
-        }
-        
-        # Estado composto: Markov vê todas as combinações
-        # Ex: "crie|npc|ferreiro|5.2.1.8.0.3.2.1" → gerar_npc
-        # Ex: "gere||dragao|3.4.2.1.0.8.4.2" → gerar_monstro
-        estado = f"{ctx['cmd']}|{ctx['tipo']}|{ctx['tema']}|{ctx['fp']}"
+
+        # ─── Nível 2: estrutura (MCRSignature) ─────────
+        dados = texto.encode('utf-8')
+        h_texto = '0.0'
+        estilo_key = '0.0'
+        meta_niveis = '1'
+        try:
+            from devia.kernel.mcr_kernel.signature import MCRSignature
+            sig = MCRSignature.extrair(dados, rapido=True)
+            if sig:
+                h_texto = f"{sig.get('entropia', 0.0):.1f}"
+                fp = sig.get('fingerprint', [0]*8)
+                estilo_key = f"{fp[0]:.1f}" if fp else '0.0'
+            # Meta-níveis (auto-descoberta de níveis de abstração)
+            meta = MCRSignature.metaniveis(dados, max_niveis=3)
+            if meta and meta.get('niveis'):
+                meta_niveis = str(meta['niveis'])
+        except Exception:
+            pass
+
+        estado = f"{cmd}|{tipo_explicito}|{tema}|h:{h_texto}|e:{estilo_key}|n:{meta_niveis}"
         return estado
 
     # ═══════════════════════════════════════════════════════
@@ -711,7 +716,16 @@ class MCR:
                     cmd_match = 1.0 if partes_consulta[0] == partes_est[0] else 0.0
                     tipo_match = 1.0 if partes_consulta[1] == partes_est[1] else 0.0
                     tema_match = 1.0 if partes_consulta[2] == partes_est[2] else 0.0
-                    sim = 0.2 * cmd_match + 0.5 * tipo_match + 0.3 * tema_match
+                    # Se ambos têm 6 componentes, compara entropia também
+                    h_match = 0.0
+                    if len(partes_consulta) >= 6 and len(partes_est) >= 6:
+                        try:
+                            h1 = float(partes_consulta[3].split(':')[1])
+                            h2 = float(partes_est[3].split(':')[1])
+                            h_match = 1.0 - min(abs(h1 - h2) / 5.0, 1.0)
+                        except Exception:
+                            pass
+                    sim = 0.15 * cmd_match + 0.40 * tipo_match + 0.25 * tema_match + 0.20 * h_match
                     if sim > melhor_sim:
                         melhor_sim = sim
                         melhor_estado = est
