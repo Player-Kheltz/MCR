@@ -659,55 +659,33 @@ class MCR:
         return self._fingerprint_chave(entrada)
 
     def _fingerprint_chave(self, texto: str) -> str:
-        """Gera chave Markov multi-nível: palavras + estrutura + entropia.
-
-        Nível 1 (sintaxe): cmd|tipo|tema
-        Nível 2 (estrutura): entropia + estilo + meta-níveis (MCRSignature)
-        Nível 3 (relações): MCRConector alimenta tópicos (integrado no _decidir)
-
-        O MCR aprende sozinho quais combinações → qual ação.
-        """
-        import re
-        t = texto.lower().strip()
-
-        # ─── Nível 1: palavras extraídas ───────────────
-        palavras = re.findall(r'[a-zà-ÿ0-9]{2,}', t)
-        cmd = palavras[0] if palavras else ''
-        tipo_explicito = ""
-        for p in palavras:
-            if p in ('npc', 'monstro', 'monster', 'quest', 'missao', 'sprite', 'imagem'):
-                tipo_explicito = p
-                break
-        tema = ""
-        stopwords = {'crie','criar','gere','gerar','faca','fazer','um','uma',
-                     'novo','nova','para','com','que','venda','de','do','da',
-                     'the','a','an','of','in','to','for','and','is','it'}
-        for p in palavras:
-            if p not in stopwords and len(p) > 3:
-                tema = p
-                break
-
-        # ─── Nível 2: estrutura (MCRSignature) ─────────
-        dados = texto.encode('utf-8')
-        h_texto = '0.0'
-        estilo_key = '0.0'
-        meta_niveis = '1'
+        """Gera chave Markov via ExtratorFeatures (features descobertas, zero hardcode)."""
         try:
-            from devia.kernel.mcr_kernel.signature import MCRSignature
-            sig = MCRSignature.extrair(dados, rapido=True)
-            if sig:
-                h_texto = f"{sig.get('entropia', 0.0):.1f}"
-                fp = sig.get('fingerprint', [0]*8)
-                estilo_key = f"{fp[0]:.1f}" if fp else '0.0'
-            # Meta-níveis (auto-descoberta de níveis de abstração)
-            meta = MCRSignature.metaniveis(dados, max_niveis=3)
-            if meta and meta.get('niveis'):
-                meta_niveis = str(meta['niveis'])
+            from mcr.extrator_features import get_extrator
+            ext = get_extrator()
+            if not ext._treinado:
+                # Treina com KG se disponível
+                import json as _json
+                from mcr.paths import KG_DIR
+                patterns = []
+                for f in sorted(KG_DIR.glob('patterns_*.json'))[:2]:
+                    with open(f, 'r', encoding='utf-8') as fh:
+                        patterns.extend(_json.load(fh).get('padroes', []))
+                if patterns:
+                    ext.treinar(patterns)
+            return ext.extrair(texto)
         except Exception:
-            pass
-
-        estado = f"{cmd}|{tipo_explicito}|{tema}|h:{h_texto}|e:{estilo_key}|n:{meta_niveis}"
-        return estado
+            # Fallback ultra-simples
+            import re
+            t = texto.lower().strip()
+            tokens = re.findall(r'[a-zà-ÿ0-9]{2,}', t)
+            cmd = tokens[0] if tokens else '?'
+            for tok in tokens:
+                if tok in ('npc','monstro','monster','quest','missao','sprite','imagem'):
+                    return f"ENT:{tok.upper()[:4]}|INT:CMD"
+            if cmd in ('explique','explain','o','qual','how','como','what','que','why'):
+                return "ENT:GEN|INT:ASK"
+            return f"ENT:GEN|INT:CMD|A@0"
 
     # ═══════════════════════════════════════════════════════
     # ESTÁGIO 2: DECIDIR
@@ -721,35 +699,36 @@ class MCR:
             return str(acao), conf
 
         # Fallback 1: busca estado mais similar por componentes
+        # Novo formato: ENT:TIPO|INT:INTENCAO|ROL:PAPEIS|E@pos|A@pos
         if self.mk.transicoes:
             partes_consulta = estado.split('|')
             melhor_estado = None
             melhor_sim = 0
-            
+
             for est in self.mk.transicoes:
                 partes_est = est.split('|')
-                if len(partes_consulta) >= 3 and len(partes_est) >= 3:
-                    cmd_match = 1.0 if partes_consulta[0] == partes_est[0] else 0.0
-                    tipo_match = 1.0 if partes_consulta[1] == partes_est[1] else 0.0
-                    tema_match = 1.0 if partes_consulta[2] == partes_est[2] else 0.0
-                    # Se ambos têm 6 componentes, compara entropia também
-                    h_match = 0.0
-                    if len(partes_consulta) >= 6 and len(partes_est) >= 6:
-                        try:
-                            h1 = float(partes_consulta[3].split(':')[1])
-                            h2 = float(partes_est[3].split(':')[1])
-                            h_match = 1.0 - min(abs(h1 - h2) / 5.0, 1.0)
-                        except Exception:
-                            pass
-                    sim = 0.15 * cmd_match + 0.40 * tipo_match + 0.25 * tema_match + 0.20 * h_match
-                    if sim > melhor_sim:
-                        melhor_sim = sim
-                        melhor_estado = est
-            
-            if melhor_estado and melhor_sim > 0.4:
+                sim = 0.0
+                matches = 0
+                for pc in partes_consulta:
+                    if pc in partes_est:
+                        # Componentes compartilhados = similaridade
+                        if pc.startswith('ENT:'):
+                            sim += 0.5  # tipo de entidade é o sinal mais forte
+                        elif pc.startswith('INT:'):
+                            sim += 0.3  # intenção (comando vs pergunta)
+                        elif pc.startswith('E@') or pc.startswith('A@'):
+                            sim += 0.1  # posição das âncoras
+                        else:
+                            sim += 0.05
+                        matches += 1
+                if sim > melhor_sim:
+                    melhor_sim = sim
+                    melhor_estado = est
+
+            if melhor_estado and melhor_sim > 0.3:
                 acao2, conf2 = self.mk.predizer(melhor_estado)
                 if acao2:
-                    return str(acao2), conf2 * melhor_sim
+                    return str(acao2), conf2 * min(1.0, melhor_sim)
 
         # Fallback 2: SQLite (persistência entre sessões)
         sql = self._get_sqlite()

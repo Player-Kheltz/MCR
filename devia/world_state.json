@@ -598,6 +598,11 @@
       "file": "npc_brunin_forjador.lua",
       "role": "gerado_por_pipeline",
       "tier": "rascunho"
+    },
+    "Ignarion": {
+      "file": "npc_ignarion.lua",
+      "role": "gerado_por_pipeline",
+      "tier": "rascunho"
     }
   },
   "monstros": {
