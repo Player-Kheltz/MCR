@@ -15,7 +15,7 @@ import sys, os, io, re, json
 from typing import List, Dict, Any, Callable, Optional
 
 try:
-    from mcr.config_llm import MODELO
+    from mcr.config_llm import MODELO_CODIGO as MODELO
 except ImportError:
     MODELO = "qwen3.5:9b"
 

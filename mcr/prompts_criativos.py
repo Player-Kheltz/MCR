@@ -6,19 +6,22 @@ para forcar personalidade, contraste e ancoragem no universo.
 """
 from typing import Dict
 
-from mcr.config_llm import MODELO
+from mcr.config_llm import MODELO_CODIGO, MODELO_LORE
 
-# Mapeamento: classe MarkovDecider → modelo (tudo unificado)
+# Mapeamento: classe → modelo especializado
 ROTEADOR_MODELOS: Dict[str, str] = {
-    'criar_npc': MODELO,
-    'criar_monstro': MODELO,
-    'criar_quest': MODELO,
-    'criar_lore': MODELO,
-    'explicar_conceito': MODELO,
-    'conversa': MODELO,
-    'criar_codigo': MODELO,
-    'busca_informacao': MODELO,
-    'criar_sql': MODELO,
+    # Criatividade/Narrativa → Gemma4
+    'criar_npc': MODELO_LORE,
+    'criar_monstro': MODELO_LORE,
+    'criar_quest': MODELO_LORE,
+    'criar_lore': MODELO_LORE,
+    'explicar_conceito': MODELO_LORE,
+    'conversa': MODELO_LORE,
+    'gerar_texto': MODELO_LORE,
+    # Código/Raciocínio → Qwen3.5
+    'criar_codigo': MODELO_CODIGO,
+    'criar_sql': MODELO_CODIGO,
+    'busca_informacao': MODELO_CODIGO,
 }
 
 
@@ -102,7 +105,7 @@ FALA_DERROTA: (o que ele diz ao ser vencido)'''
 
 def obter_modelo(classe: str) -> str:
     """Retorna o modelo recomendado para uma classe de tarefa."""
-    return ROTEADOR_MODELOS.get(classe, MODELO)
+    return ROTEADOR_MODELOS.get(classe, MODELO_LORE)
 
 
 def prompt_sql(tema: str) -> str:
