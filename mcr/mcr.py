@@ -386,6 +386,22 @@ class MCR:
         except Exception:
             checks.append('shadow:N/A')
 
+        # Shadow Universal — anti-pattern (sem lupa, classifica erros conhecidos)
+        try:
+            from mcr.anti_pattern import classificar_erro
+            erros_conhecidos = []
+            # Verifica padrões de erro conhecidos por linha
+            for i, linha in enumerate(codigo.split('\n')[:50]):
+                resultado = classificar_erro(linha, '')
+                if resultado and resultado.get('categoria') != 'desconhecido':
+                    erros_conhecidos.append(resultado)
+            if erros_conhecidos:
+                checks.append(f'anti_pattern:{len(erros_conhecidos)} erros conhecidos')
+            else:
+                checks.append('anti_pattern:OK')
+        except Exception:
+            checks.append('anti_pattern:N/A')
+
         # Chain of Verification (anti-alucinação — apenas para texto, não código)
         if acao not in ('gerar_npc', 'gerar_monstro', 'gerar_quest', 'gerar_sprite'):
             try:
@@ -744,6 +760,27 @@ class MCR:
                     return str(acao_sql), conf_sql
             except Exception:
                 pass
+
+        # Fallback 3: HDC+SDM (memória associativa para conceitos novos)
+        try:
+            from hdc_core import HDVector
+            from sdm_core import SDM
+            if not hasattr(self, '_sdm'):
+                self._sdm = SDM(n_enderecos=200, raio=0.1)
+                self._sdm_hdv = {}
+            # Busca tema no SDM
+            partes = estado.split('|')
+            tema_query = partes[2] if len(partes) > 2 else ''
+            if tema_query and len(tema_query) > 2:
+                hdv = HDVector.da_string(tema_query)
+                for conhecido, (vec, acao_assoc) in list(self._sdm_hdv.items()):
+                    if conhecido in tema_query or tema_query in conhecido:
+                        return acao_assoc, 0.2
+                # Armazena para futuras consultas
+                if tema_query not in self._sdm_hdv:
+                    self._sdm_hdv[tema_query] = (hdv, 'gerar_npc')
+        except Exception:
+            pass
 
         return "gerar_npc", 0.1
 

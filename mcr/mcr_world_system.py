@@ -358,20 +358,44 @@ class MCRWorldSystem:
             "A quest deve ser tematicamente coerente com o giver."
         )
 
+        # Tenta MCRConector primeiro (zero LLM, zero rede)
+        texto = None
         try:
-            import urllib.request
-            payload = json.dumps({
-                "model": MODELO, "prompt": prompt, "stream": False,
-                "options": {"temperature": 0.7, "max_tokens": 500}
-            }).encode()
-            req = urllib.request.Request(
-                "http://localhost:11434/api/generate", data=payload,
-                headers={"Content-Type": "application/json"})
-            with urllib.request.urlopen(req, timeout=60) as r:
-                resp = json.loads(r.read())
-            texto = resp.get('response', '')
-        except Exception as e:
-            return {'sucesso': False, 'erro': 'LLM: %s' % e}
+            from devia.kernel.mcr_kernel.memory import MCRConector
+            conector = MCRConector()
+            for n in personagens[:3]:
+                conector.alimentar(f"NPC: {n}", n)
+            if len(personagens) >= 2:
+                ponte = conector.conectar(personagens[0], personagens[1])
+                if ponte and ponte.get('nota', 0) > 3:
+                    texto = (
+                        f"Titulo: Conexao {personagens[0][:10]} e {personagens[1][:10]}\n"
+                        f"Giver: {personagens[0]}\n"
+                        f"Objetivo: {ponte.get('sequencia', 'Conectar os personagens')[:80]}\n"
+                        f"Recompensa: {ponte.get('nota', 5) * 10} gold\n"
+                    )
+        except Exception:
+            pass
+
+        # Fallback: LLM (Ollama)
+        if not texto:
+            try:
+                import urllib.request
+                payload = json.dumps({
+                    "model": MODELO, "prompt": prompt, "stream": False,
+                    "options": {"temperature": 0.7, "max_tokens": 500}
+                }).encode()
+                req = urllib.request.Request(
+                    "http://localhost:11434/api/generate", data=payload,
+                    headers={"Content-Type": "application/json"})
+                with urllib.request.urlopen(req, timeout=60) as r:
+                    resp = json.loads(r.read())
+                texto = resp.get('response', '')
+            except Exception as e:
+                return {'sucesso': False, 'erro': 'LLM: %s' % e}
+
+        if not texto:
+            return {'sucesso': False, 'erro': 'Nenhuma conexao gerada'}
 
         # Parseia
         titulo_m = re.search(r'T[ií]tulo:\s*(.+?)(?:\n|$)', texto)
