@@ -618,6 +618,26 @@
       "file": "npc_kaelo_da_fundação_de_eridanus.lua",
       "role": "gerado_por_pipeline",
       "tier": "rascunho"
+    },
+    "Elowen Vane": {
+      "file": "npc_elowen_vane.lua",
+      "role": "gerado_por_pipeline",
+      "tier": "rascunho"
+    },
+    "Kaelen dos Brevários": {
+      "file": "npc_kaelen_dos_brevários.lua",
+      "role": "gerado_por_pipeline",
+      "tier": "rascunho"
+    },
+    "Ignacio de Cinzas": {
+      "file": "npc_ignacio_de_cinzas.lua",
+      "role": "gerado_por_pipeline",
+      "tier": "rascunho"
+    },
+    "Vargus da Neblina": {
+      "file": "npc_vargus_da_neblina.lua",
+      "role": "gerado_por_pipeline",
+      "tier": "rascunho"
     }
   },
   "monstros": {

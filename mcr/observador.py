@@ -222,3 +222,48 @@ class ObservadorUniversal:
             'markov_estados': mk_stats.get('estados', 0),
             'markov_transicoes': mk_stats.get('transicoes', 0),
         }
+
+    # ═══════════════════════════════════════════════════════
+    # F3: AUTO-EXPANSÃO — gera variações para melhorar cobertura
+    # ═══════════════════════════════════════════════════════
+
+    def clusters_fracos(self) -> List[int]:
+        """Retorna clusters X com alta entropia (poucos exemplos)."""
+        if not self._treinado:
+            return []
+        fracos = []
+        for cid in set(self._clusters_x.values()):
+            estado = f"CX{cid}"
+            if estado in self._mk.transicoes:
+                H = self._mk.entropia(estado)
+                if H > 0.5:  # alta entropia = incerto
+                    fracos.append(cid)
+        return fracos
+
+    def precisa_expandir(self) -> bool:
+        """Entropia decide: precisa de mais dados?"""
+        return self.entropia_delta() > 0.01 or len(self.clusters_fracos()) > 0
+
+    # ═══════════════════════════════════════════════════════
+    # F4: EQUAÇÃO avalia qualidade do observador
+    # ═══════════════════════════════════════════════════════
+
+    def avaliar_qualidade(self) -> Dict:
+        """Equação MCR avalia o próprio observador."""
+        if not self._treinado:
+            return {'nota': 0.0, 'pronto': False}
+        import math
+        certeza = self.cobertura()
+        completude = min(1.0, len(self._pares) / 100.0)
+        informacao = max(0.0, -self.entropia_delta())
+        estabilidade = 0.5  # neutro até ter histórico
+        eficiencia = 1.0 / math.log2(max(len(set(self._clusters_x.values())), 1) + 1)
+        soma = (certeza*3 + completude*3 + informacao*2 + estabilidade*2 + eficiencia*1) / 11.0
+        nota = 1.0 / (1.0 + math.exp(-3.0 * (soma - 0.4)))
+        return {
+            'nota': round(nota, 3),
+            'pronto': nota > 0.5,
+            'certeza': round(certeza, 3),
+            'completude': round(completude, 3),
+            'delta_H': round(self.entropia_delta(), 4),
+        }

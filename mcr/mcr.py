@@ -80,6 +80,10 @@ class MCR:
         # ─── Log de execuções ───────────────────────────
         self._carregar_execucoes()
 
+        # ─── Observador Universal (auto-observação) ─────
+        self._observador = None
+        self._obs_ativado = False
+
         # ─── Bootstrap silencioso ───────────────────────
         self._bootstrap()
 
@@ -582,7 +586,7 @@ class MCR:
         nota = self._avaliar(entrada, resultado, acao, confianca, validacao)
 
         # ─── Log de execução (para experimentos) ────────
-        self._log_execucao(estado, acao, confianca, resultado, validacao, nota)
+        self._log_execucao(estado, acao, confianca, resultado, validacao, nota, entrada)
 
         # ─── 5. APRENDER ───────────────────────────────
         self._aprender(estado, acao, nota)
@@ -605,6 +609,9 @@ class MCR:
                     resultado.get('codigo', '') or str(resultado)[:200], acao)
             except Exception:
                 pass
+
+        # ─── Observador Universal (auto-observação contínua) ──
+        self._alimentar_observador(entrada, acao, resultado)
 
         tempo_total = round(time.time() - t0, 3)
         return {
@@ -986,12 +993,13 @@ class MCR:
     # LOG DE EXECUÇÃO (para experimentos e calibração)
     # ═══════════════════════════════════════════════════════
 
-    def _log_execucao(self, estado, acao, confianca, resultado, validacao, nota):
+    def _log_execucao(self, estado, acao, confianca, resultado, validacao, nota, entrada_raw=""):
         """Salva dados completos da execução para experimentos futuros."""
         import json as _json
         try:
             entrada = {
                 'estado': str(estado)[:200],
+                'entrada_raw': str(entrada_raw)[:200],
                 'acao': str(acao),
                 'confianca': round(float(confianca), 4),
                 'codigo': str(resultado.get('codigo', '') or resultado.get('resposta', ''))[:2000],
@@ -1065,6 +1073,47 @@ class MCR:
             return round(t1, 2), round(t2, 2)
         except Exception:
             return 0.5, 0.7
+
+    # ═══════════════════════════════════════════════════════
+    # OBSERVADOR UNIVERSAL (auto-observação contínua)
+    # ═══════════════════════════════════════════════════════
+
+    def _alimentar_observador(self, entrada_raw, acao, resultado):
+        """Alimenta o observador com cada execução (contínuo)."""
+        if not self._obs_ativado:
+            return
+        try:
+            succ = 'OK' if resultado.get('sucesso') else 'FAIL'
+            self._observador.observar(entrada_raw, f"{acao}:{succ}")
+        except Exception:
+            pass
+
+    def ativar_observador(self):
+        """Ativa modo de auto-observação."""
+        if self._observador is None:
+            from mcr.observador import ObservadorUniversal
+            self._observador = ObservadorUniversal("mcr_self_obs")
+        self._obs_ativado = True
+
+    def treinar_observador(self) -> dict:
+        """Treina observador e retorna métricas."""
+        if self._observador is None:
+            return {'erro': 'Observador nao ativado'}
+        self._observador.treinar()
+        dH = self._observador.entropia_delta()
+        return {
+            'delta_H': round(dH, 4),
+            'aprendeu': dH < -0.01,
+            'cobertura': round(self._observador.cobertura(), 3),
+            'pares': len(self._observador._pares),
+        }
+
+    def predizer_observador(self, entrada: str):
+        """Prediz via observador (atalho = cluster)."""
+        if self._observador is None:
+            return None
+        pred, conf, H = self._observador.predizer_com_confianca(entrada)
+        return {'cluster': pred, 'confianca': round(conf, 3), 'entropia': round(H, 3)}
 
         # Histórico
         self._historico.append({
