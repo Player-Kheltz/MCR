@@ -1171,48 +1171,26 @@ class MCR:
 
     @classmethod
     def _dados_monstro(cls):
-        """Mina dados de monstros reais (cacheado)."""
+        """Dados de monstros via MonsterDatabase (data-driven, zero hardcode)."""
         if cls._DADOS_MONSTRO is not None:
             return cls._DADOS_MONSTRO
-        import re as _re, statistics as _st
-        from collections import Counter as _C, defaultdict as _dd
-        from mcr.paths import CANARY_MONSTER_DIR
-        stats_all, race_map, loot_items, name_health = [], _dd(_C), _C(), _dd(list)
-        for f in CANARY_MONSTER_DIR.glob('**/*.lua'):
-            try: c = f.read_text(encoding='latin-1', errors='replace')
-            except Exception: continue
-            h = _re.search(r'health\s*=\s*(\d+)', c)
-            e = _re.search(r'experience\s*=\s*(\d+)', c)
-            s = _re.search(r'speed\s*=\s*(\d+)', c)
-            rm = _re.search(r'race\s*=\s*"(\w+)"', c)
-            if h and e and s: stats_all.append((int(h.group(1)), int(e.group(1)), int(s.group(1))))
-            if rm:
-                race = rm.group(1)
-                for t in _re.findall(r'[a-z]{3,}', f.stem.lower()):
-                    race_map[t][race] += 1
-                    if h: name_health[t].append(int(h.group(1)))
-            for lm in _re.finditer(r'\{\s*id\s*=\s*(\d+)\s*,\s*chance\s*=\s*(\d+)\s*,\s*maxCount\s*=\s*(\d+)\s*\}', c):
-                loot_items[(int(lm.group(1)), int(lm.group(2)), int(lm.group(3)))] += 1
-        # Tiers por percentil
-        hs = sorted(s[0] for s in stats_all) if stats_all else [100, 1000, 5000]
-        n = len(hs); p33 = hs[int(n*0.33)] if n > 2 else 1000; p66 = hs[int(n*0.66)] if n > 2 else 7320
-        def _med(tier): return (int(_st.median([x[0] for x in tier])), int(_st.median([x[1] for x in tier])), int(_st.median([x[2] for x in tier]))) if tier else (240,100,95)
-        low = [x for x in stats_all if x[0] <= p33]; mid = [x for x in stats_all if p33 < x[0] <= p66]; high = [x for x in stats_all if x[0] > p66]
-        # Race keywords (filtra tokens com >= 3 monstros e race dominante > 60%)
-        race_kw = {}
-        for kw, races in race_map.items():
-            total = sum(races.values())
-            if total >= 3:
-                top_race, top_count = races.most_common(1)[0]
-                if top_count / total > 0.5 and top_race != 'blood':
-                    race_kw[kw] = top_race
-        # Loot
-        top_loot = loot_items.most_common(3)
-        loot = [{'id': lid, 'chance': lc, 'maxCount': lm} for (lid, lc, lm), _ in top_loot] if top_loot else [{'id': 3031, 'chance': 100000, 'maxCount': 100}]
-        cls._DADOS_MONSTRO = {
-            'stats': {'low': _med(low), 'medium': _med(mid), 'high': _med(high)},
-            'thresholds': (p33, p66), 'race_keywords': race_kw, 'loot': loot,
-            'default_race': 'blood', 'name_health': dict(name_health)}
+        try:
+            from mcr.monster_database import MonsterDatabase
+            db = MonsterDatabase()
+            cls._DADOS_MONSTRO = {
+                'stats': db.get_tiers(),
+                'thresholds': db._thresholds,
+                'race_keywords': db._race_map,
+                'loot': db.get_loot(3),
+                'default_race': 'blood',
+                'name_health': db._name_health,
+            }
+        except Exception:
+            cls._DADOS_MONSTRO = {
+                'stats': {'low':(240,100,95),'medium':(3000,1800,130),'high':(25000,8000,160)},
+                'thresholds': (1000, 7320), 'race_keywords': {}, 'loot': [],
+                'default_race': 'blood', 'name_health': {}
+            }
         return cls._DADOS_MONSTRO
 
     def estatisticas(self) -> Dict:

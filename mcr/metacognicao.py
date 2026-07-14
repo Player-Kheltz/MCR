@@ -1,45 +1,95 @@
 """mcr.metacognicao — Gateway de Incerteza.
-Decide se o LLM pode gerar codigo com base no que o KG conhece.
-Confianca < 70% bloqueia a geracao e ativa auto-estudo."""
-import json
-import re
-import os
+Decide se o MCR pode gerar codigo com base no que o KG conhece.
+Confianca < 70% bloqueia a geracao e ativa auto-estudo.
+
+Dados descobertos do KG (zero hardcode)."""
+import json, re, os, statistics
 from pathlib import Path
 from typing import List, Dict, Tuple, Optional
-from collections import defaultdict
-
+from collections import defaultdict, Counter
 from mcr.paths import KG_DIR
 
-# Palavras que mapeiam cada tipo de arquivo no Canary
-_TIPO_PALAVRAS_CHAVE = {
-    'npc': ['npc', 'personagem', 'vendedor', 'shop', 'loja', 'guarda', 'ferreiro',
-            'keywordhandler', 'npchandler', 'createnpctype'],
-    'monster': ['monster', 'monstro', 'boss', 'criatura', 'drop', 'loot', 'creature',
-                'createmonstertype', 'monsterconfig'],
-    'action': ['action', 'bau', 'alavanca', 'porta', 'trigger', 'uid', 'onuse',
-               'actionid'],
-    'spell': ['spell', 'magia', 'skill', 'habilidade', 'feitico', 'cura', 'dano',
-              'instantspell'],
-    'quest': ['quest', 'missao', 'storage', 'reward', 'recompensa'],
-    'spa_skill': ['spa', 'habilidade spa', 'efeitoconfig', 'dominio', 'foco'],
-    'creatureevent': ['creatureevent', 'onkill', 'ondeath', 'onlogin', 'evento'],
-    'globalevent': ['globalevent', 'onstart', 'onhour', 'evento global'],
-}
-
-# Sinonimos para expandir a busca
-_SINONIMOS = {
-    'vendedor': 'shop',
-    'personagem': 'npc',
-    'criatura': 'monster',
-    'feitico': 'spell',
-    'missao': 'quest',
-    'bau': 'action',
-    'buff': 'spell',
-    'debuff': 'spell',
-}
-
-# Thresholds — usa MCRThreshold adaptativo se disponivel, senao fixo
+# Cache lazy-load do KG
+_KG_CACHE = None
+_TIPO_PALAVRAS_CACHE = None
 _CONFIANCA_MINIMA = 0.70
+
+
+def _carregar_kg():
+    global _KG_CACHE
+    if _KG_CACHE is not None:
+        return _KG_CACHE
+    _KG_CACHE = []
+    for f in sorted(KG_DIR.glob('patterns_*.json')):
+        try:
+            with open(f, 'r', encoding='utf-8') as fh:
+                data = json.load(fh)
+            _KG_CACHE.extend(data.get('padroes', []))
+        except Exception:
+            pass
+    return _KG_CACHE
+
+
+def _descobrir_tipos_palavras():
+    """Descobre keywords por tipo automaticamente do KG."""
+    global _TIPO_PALAVRAS_CACHE
+    if _TIPO_PALAVRAS_CACHE is not None:
+        return _TIPO_PALAVRAS_CACHE
+    padroes = _carregar_kg()
+    if not padroes:
+        _TIPO_PALAVRAS_CACHE = {'npc': ['npc'], 'monster': ['monster']}
+        return _TIPO_PALAVRAS_CACHE
+    # Por tipo, coleta os tokens mais frequentes
+    freq_por_tipo = defaultdict(Counter)
+    for p in padroes:
+        tipo = p.get('tipo', 'generic')
+        for api in p.get('api_calls', []):
+            for token in re.findall(r'[a-zA-Z]{3,}', api):
+                freq_por_tipo[tipo][token.lower()] += 1
+        for var in p.get('variaveis', []):
+            for token in re.findall(r'[a-zA-Z]{3,}', var):
+                freq_por_tipo[tipo][token.lower()] += 1
+    _TIPO_PALAVRAS_CACHE = {}
+    for tipo, freq in freq_por_tipo.items():
+        _TIPO_PALAVRAS_CACHE[tipo] = [t for t, _ in freq.most_common(10)]
+    return _TIPO_PALAVRAS_CACHE
+
+
+def _descobrir_sinonimos():
+    """Descobre sinônimos por co-ocorrência no KG (zero hardcode)."""
+    padroes = _carregar_kg()
+    if not padroes:
+        return {}
+    # Tokens que aparecem juntos nos mesmos padrões de tipo
+    cooc = defaultdict(Counter)
+    for p in padroes:
+        tipo = p.get('tipo', '')
+        tokens = set()
+        for api in p.get('api_calls', []):
+            for t in re.findall(r'[a-z]{3,}', api.lower()):
+                tokens.add(t)
+        for t1 in tokens:
+            for t2 in tokens:
+                if t1 != t2:
+                    cooc[t1][t2] += 1
+    # Se t1 e t2 co-ocorrem muito, são sinônimos funcionais
+    sinonimos = {}
+    for t1, counts in cooc.items():
+        if counts:
+            top = counts.most_common(1)[0]
+            if top[1] >= 5:
+                sinonimos[t1] = top[0]
+    return sinonimos
+    """Auto-calibra _CONFIANCA_MINIMA dos scores históricos."""
+    padroes = _carregar_kg()
+    scores = []
+    for p in padroes:
+        s = p.get('score') or p.get('ponte_otima') or p.get('nota')
+        if s is not None and isinstance(s, (int, float)):
+            scores.append(float(s))
+    if len(scores) >= 5:
+        return round(statistics.median(scores), 2)
+    return 0.70
 _MCR_THRESHOLD = None
 try:
     import sys as _sys
@@ -128,14 +178,14 @@ class Metacognicao:
                 termos.add(bigrama)
         # Expande por sinonimos
         for termo in list(termos):
-            if termo in _SINONIMOS:
-                termos.add(_SINONIMOS[termo])
+            if termo in _get_sinonimos():
+                termos.add(_get_sinonimos()[termo])
         return termos
 
     def _tipos_relevantes(self, termos: set) -> Dict[str, float]:
         """Mapeia termos para tipos conhecidos com peso."""
         tipos_peso = defaultdict(float)
-        for tipo, palavras_chave in _TIPO_PALAVRAS_CHAVE.items():
+        for tipo, palavras_chave in _descobrir_tipos_palavras().items():
             # Quantas palavras-chave do tipo aparecem nos termos
             matches = sum(1 for kw in palavras_chave if kw in termos)
             if matches > 0:
@@ -215,10 +265,10 @@ class Metacognicao:
         # Threshold adaptativo via MCRThreshold
         global _MCR_THRESHOLD
         if _MCR_THRESHOLD:
-            threshold = _MCR_THRESHOLD.obter('limiar_similaridade', _CONFIANCA_MINIMA)
+            threshold = _MCR_THRESHOLD.obter('limiar_similaridade', _calibrar_confianca())
             _MCR_THRESHOLD.observar(score)  # alimenta com o score atual
         else:
-            threshold = _CONFIANCA_MINIMA
+            threshold = _calibrar_confianca()
 
         tema = self._extrair_tema(prompt)
 

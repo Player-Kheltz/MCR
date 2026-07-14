@@ -125,14 +125,13 @@ class LuaValidator:
                     break
 
     def _encontrar_luac(self) -> Optional[str]:
-        candidatos = [
-            os.path.join(BASE, 'Lua', 'luac.exe'),
-            os.path.join(BASE, 'luac.exe'),
-            os.path.join(BASE, 'server', 'luac.exe'),
-        ]
-        for c in candidatos:
-            if os.path.exists(c):
-                return c
+        # Busca recursiva (filesystem discovery, zero hardcode)
+        try:
+            for path in Path(BASE).glob('**/luac*'):
+                if path.is_file() and os.access(path, os.X_OK):
+                    return str(path)
+        except Exception:
+            pass
         try:
             r = subprocess.run(['where', 'luac'], capture_output=True, text=True, timeout=10)
             if r.returncode == 0 and r.stdout.strip():

@@ -56,7 +56,7 @@ class DescobridorUniversal:
         if not diretorio.exists():
             return arquivos
         for f in diretorio.glob('*'):
-            if f.is_file() and f.suffix in ('.lua','.sql','.py','.cpp','.h','.txt','.xml','.json','.cfg','.css','.js','.ts','.html','.md'):
+            if f.is_file():
                 try:
                     c = f.read_text(encoding='utf-8', errors='replace')[:8000]
                 except Exception:
