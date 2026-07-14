@@ -83,6 +83,10 @@ class MCR:
         # ─── Observador Universal (auto-observação) ─────
         self._observador = None
         self._obs_ativado = False
+        try:
+            self.ativar_observador()
+        except Exception:
+            pass
 
         # ─── Bootstrap silencioso ───────────────────────
         self._bootstrap()
@@ -100,6 +104,10 @@ class MCR:
         except Exception as e:
             self._log_erro('bootstrap', e)
             pass
+        try:
+            self._registrar_wrappers()
+        except Exception as e:
+            self._log_erro('registrar_wrappers', e)
         self._pre_treinar_markov()
 
     def _registrar_wrappers(self):
@@ -449,11 +457,19 @@ class MCR:
 
         # 3. Mineração de padrões: extrai estruturas de código
         try:
-            from mcr.pattern_miner import miner_lua_files
+            from mcr.pattern_miner import miner_lua_files, save_patterns_to_kg
             from mcr.paths import CANARY_NPC_DIR
             padroes = miner_lua_files(CANARY_NPC_DIR)
             if padroes:
+                save_patterns_to_kg(padroes)
                 resultados['padroes_extraidos'] = len(padroes)
+                # Invalida cache do Metacognicao para recarregar KG
+                try:
+                    from mcr.metacognicao import _carregar_kg
+                    import mcr.metacognicao as _meta_mod
+                    _meta_mod._KG_CACHE = None
+                except Exception:
+                    pass
         except Exception as e:
             resultados['padroes_erro'] = str(e)[:80]
 
@@ -535,6 +551,9 @@ class MCR:
             from mcr.cache_hierarquico import CacheHierarquico
             cached = CacheHierarquico().buscar(entrada)
             if cached:
+                # Cache hit ainda reforça Markov (aprendizado contínuo)
+                estado_cache = self._perceber(entrada)
+                self._aprender(estado_cache, 'cache', 1.0)
                 return {'sucesso': True, 'acao': 'cache', 'nota': 1.0,
                         'resultado': {'resposta': cached, '_tool': 'cache'},
                         'confianca': 1.0, 'tempo': 0.0, 'entrada': entrada[:200]}
@@ -648,6 +667,32 @@ class MCR:
     def _decidir(self, estado: str) -> Tuple[str, float]:
         """Markov decide a ação. Fallbacks: similaridade → SQLite → hardcoded."""
         acao, conf = self.mk.predizer(estado)
+
+        # Penalidades do ShadowCanary (APIs que crasham são desencorajadas)
+        try:
+            from mcr.shadow_canary import consultar_penalidades
+            pen = consultar_penalidades(acao)
+            if pen:
+                falhas = pen.get('falhas', 0)
+                total = pen.get('total', 1)
+                if total > 0 and falhas / total > 0.5:
+                    conf *= 0.3
+                elif falhas > 0:
+                    conf *= 0.7
+        except Exception:
+            pass
+
+        # Observador: se confiança do observer > Markov, usar cluster como boost
+        if self._obs_ativado and self._observador:
+            try:
+                pred_obs, conf_obs, _ = self._observador.predizer_com_confianca(estado)
+                if pred_obs is not None and conf_obs > conf:
+                    # Mapeia cluster_Y de volta para ação
+                    cluster_action = self._observador._mapear_cluster_para_acao(pred_obs)
+                    if cluster_action:
+                        return cluster_action, conf_obs
+            except Exception:
+                pass
 
         if acao and conf > 0.15:
             return str(acao), conf
@@ -849,7 +894,7 @@ class MCR:
         nota = 1.0 / (1.0 + math.exp(-theta * (soma - tau)))
 
         # Penalidade dinâmica — taxa real de falha da ferramenta
-        # Busca por nome parcial (mesmo algoritmo de _executar)
+        # Usa equacao_mcr.get_penalidade() para classificar tipo de falha
         tool = None
         termos = acao.replace('_', ' ').lower().split()
         for nome in self._registry.listar():
@@ -860,7 +905,10 @@ class MCR:
         taxa_falha = 0.0
         if tool and tool.usos > 0:
             taxa_falha = 1.0 - tool.taxa_sucesso()
-        penalidade = min(0.95, taxa_falha)
+        # Classifica tipo de ponte e aplica penalidade da equação
+        tipo_ponte = classificar_tipo_ponte(soma, taxa_falha)
+        penalidade_eq = get_penalidade(tipo_ponte)
+        penalidade = max(min(0.95, taxa_falha), penalidade_eq * taxa_falha)
 
         return max(0.0, min(1.0, nota * (1.0 - penalidade)))
 
@@ -1061,6 +1109,39 @@ class MCR:
         except Exception as e:
             self._log_erro('sqlite_aprender', e)
 
+        # KG cresce: se nota razoável, mine padrões do código gerado
+        if nota > 0.5 and len(self._execucoes) > 0:
+            try:
+                ultimo = self._execucoes[-1]
+                codigo = ultimo.get('codigo', '')
+                if codigo and len(codigo) > 50:
+                    from mcr.pattern_miner import minerar_codigo, save_patterns_to_kg
+                    novos = minerar_codigo(codigo, acao)
+                    if novos:
+                        save_patterns_to_kg(novos)
+                        # Invalida cache KG
+                        import mcr.metacognicao as _meta_mod
+                        _meta_mod._KG_CACHE = None
+            except Exception:
+                pass
+
+        # Histórico (feedback loop real)
+        self._historico.append({
+            'estado': estado[:100], 'acao': acao,
+            'nota': round(nota, 3),
+            'timestamp': time.strftime('%Y-%m-%d %H:%M:%S'),
+        })
+        if len(self._historico) > 500:
+            self._historico = self._historico[-500:]
+
+        # Memória narrativa
+        self._memoria.append({
+            'acao': acao, 'nota': round(nota, 3),
+            'tempo': time.strftime('%Y-%m-%d %H:%M:%S'),
+        })
+        if len(self._memoria) > 200:
+            self._memoria = self._memoria[-200:]
+
     def _thresholds_reforco(self):
         """Auto-calibra thresholds de reforço do log de execuções."""
         if len(self._execucoes) < 10:
@@ -1114,23 +1195,6 @@ class MCR:
             return None
         pred, conf, H = self._observador.predizer_com_confianca(entrada)
         return {'cluster': pred, 'confianca': round(conf, 3), 'entropia': round(H, 3)}
-
-        # Histórico
-        self._historico.append({
-            'estado': estado[:100], 'acao': acao,
-            'nota': round(nota, 3),
-            'timestamp': time.strftime('%Y-%m-%d %H:%M:%S'),
-        })
-        if len(self._historico) > 500:
-            self._historico = self._historico[-500:]
-
-        # Memória narrativa
-        self._memoria.append({
-            'acao': acao, 'nota': round(nota, 3),
-            'tempo': time.strftime('%Y-%m-%d %H:%M:%S'),
-        })
-        if len(self._memoria) > 200:
-            self._memoria = self._memoria[-200:]
 
     # ═══════════════════════════════════════════════════════
     # FERRAMENTAS

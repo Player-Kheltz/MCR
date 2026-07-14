@@ -122,6 +122,19 @@ class ObservadorUniversal:
         self._clusters_x = self._clusterizar(self._fp_x)
         self._clusters_y = self._clusterizar(self._fp_y)
 
+        # 2b. Mapeamento reverso cluster_Y → ação mais comum
+        from collections import Counter
+        cluster_acoes = {}
+        for i, (_, y) in enumerate(self._pares):
+            fp_key = self._fp_key(self._fp_y[i])
+            cid = self._clusters_y.get(fp_key, 0)
+            acao_base = y.split(':')[0] if ':' in y else y
+            cluster_acoes.setdefault(cid, Counter())[acao_base] += 1
+        self._cluster_para_acao = {
+            cid: counter.most_common(1)[0][0]
+            for cid, counter in cluster_acoes.items()
+        }
+
         # 3. Mede entropia ANTES de aprender
         H_antes = self._mk.entropia_media()
 
@@ -193,6 +206,12 @@ class ObservadorUniversal:
         if pred and str(pred).startswith("CY"):
             return int(str(pred).replace("CY", "")), conf, H
         return None, conf, H
+
+    def _mapear_cluster_para_acao(self, cluster_id: int) -> Optional[str]:
+        """Mapeia cluster_Y de volta para ação original (ex: 'gerar_npc')."""
+        if not hasattr(self, '_cluster_para_acao'):
+            return None
+        return self._cluster_para_acao.get(cluster_id)
 
     # ═══════════════════════════════════════════════════════
     # MÉTRICAS

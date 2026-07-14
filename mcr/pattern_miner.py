@@ -156,6 +156,36 @@ def _detectar_tipo_lua(api_calls: set, variables: set) -> str:
 
 # ─── API Publica ───────────────────────────────────────────────
 
+def minerar_codigo(codigo: str, acao: str = '') -> List[Dict]:
+    """Minera padroes de uma string de codigo (sem arquivo)."""
+    if not codigo or len(codigo) < 20:
+        return []
+    try:
+        tree = _LUA_PARSER.parse(bytes(codigo, 'utf-8'))
+    except Exception:
+        return []
+    root = tree.root_node
+    api_calls = set()
+    variables = set()
+    funcoes = []
+    tabelas = []
+    _extrair_chamadas(root, api_calls)
+    _extrair_variaveis(root, variables)
+    _extrair_funcoes_definidas(root, funcoes, '<inline>')
+    _extrair_tabelas(root, tabelas, '<inline>')
+    tipo = _detectar_tipo_lua(api_calls, variables)
+    return [{
+        'arquivo': f'<execucao:{acao}>',
+        'linguagem': 'lua',
+        'tipo': tipo,
+        'api_calls': sorted(api_calls),
+        'variaveis': sorted(variables),
+        'funcoes': funcoes,
+        'tabelas': tabelas,
+        'tamanho_linhas': codigo.count('\n') + 1,
+    }]
+
+
 def miner_arquivo_lua(caminho: Path) -> Optional[Dict]:
     """Minera um unico arquivo .lua e retorna seu padrao estrutural."""
     try:
