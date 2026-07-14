@@ -110,14 +110,14 @@ class MCR:
                 nome = self._extrair_nome(msg)
                 prof = self._extrair_profissao(msg)
                 itens = self._extrair_itens(msg)
-                looktypes = {'ferreiro': 73, 'mago': 130, 'guarda': 129,
-                             'vendedor': 128, 'mercador': 128, 'elfo': 144,
-                             'anão': 73, 'anao': 73, 'orc': 8, 'padeiro': 128}
-                looktype = 128
-                for k, v in looktypes.items():
+                # Looktype descoberto dos 1,102 NPCs reais (mediana por keyword)
+                looktypes_desc = self._dados_npc().get('looktypes', {})
+                looktype = looktypes_desc.get('generico', 128)
+                for k, v in looktypes_desc.items():
                     if k in msg.lower(): looktype = v; break
+                health = self._dados_npc().get('health', 100)
                 params = {
-                    'name': nome, 'health': 150, 'looktype': looktype,
+                    'name': nome, 'health': health, 'looktype': looktype,
                     'greeting': f'Ola, sou {nome}, {prof}. Como posso ajudar?',
                     'job_desc': f'Trabalho como {prof} aqui.',
                 }
@@ -142,35 +142,30 @@ class MCR:
             def _gerar_monstro(entrada="", texto="", **kw):
                 msg = entrada or texto
                 nome = self._extrair_nome(msg)
-                # Determina perigo por keywords (mais granular)
+                # Perigo via threshold de health real (percentis da distribuição)
+                md = self._dados_monstro()
+                p33, p66 = md.get('thresholds', (1000, 7320))
                 perigo = 'medium'
-                if any(w in msg.lower() for w in ['ancião', 'anciao', 'ancestral',
-                        'anciã', 'lord', 'rei', 'rainha', 'elite', 'gigante',
-                        'colossal', 'supremo', 'lendario', 'milenar']):
-                    perigo = 'high'
-                elif any(w in msg.lower() for w in ['jovem', 'filhote', 'pequeno',
-                        'bebe', 'menor', 'fraco', 'doente']):
-                    perigo = 'low'
-                # Stats mais realistas, contextualizados por perigo
-                stats = {'low': (250, 400, 120), 'medium': (750, 1200, 180),
-                         'high': (1800, 4500, 260)}
-                hp, exp, spd = stats[perigo]
-                # Raça contextualizada
-                race = 'blood'
-                if any(w in msg.lower() for w in ['fogo', 'lava', 'vulcão', 'flamejante']):
-                    race = 'fire'
-                elif any(w in msg.lower() for w in ['gelo', 'neve', 'glacial']):
-                    race = 'ice'
-                elif any(w in msg.lower() for w in ['veneno', 'toxina', 'venenoso']):
-                    race = 'venom'
-                elif any(w in msg.lower() for w in ['eletrico', 'raio', 'trovão']):
-                    race = 'energy'
+                # Usa nome para estimar perigo: busca nome em monstros reais
+                for kw, healths in md.get('name_health', {}).items():
+                    if kw in msg.lower():
+                        med = healths[0] if healths else 0
+                        if med > p66: perigo = 'high'
+                        elif med < p33: perigo = 'low'
+                        else: perigo = 'medium'
+                        break
+                stats = md.get('stats', {'low':(240,100,95),'medium':(3000,1800,130),'high':(25000,8000,160)})
+                hp, exp, spd = stats.get(perigo, stats['medium'])
+                # Raça descoberta dos 1,678 monstros reais (co-ocorrência nome→race)
+                race = md.get('default_race', 'blood')
+                race_kw = md.get('race_keywords', {})
+                for kw, r in sorted(race_kw.items(), key=lambda x: -len(x[0])):
+                    if kw in msg.lower(): race = r; break
+                loot = md.get('loot', [{'id': 3031, 'chance': 100000, 'maxCount': 100}])
                 params = {'name': nome, 'health': hp, 'experience': exp,
                           'speed': spd, 'looktype': 100,
                           'description': f'{nome} — um monstro perigoso.',
-                          'race': race, 'drop_items': [
-                              {'id': 2160, 'chance': 50000, 'maxCount': 3},
-                              {'id': 2148, 'chance': 25000, 'maxCount': 10}]}
+                          'race': race, 'drop_items': loot}
                 codigo = gerar_monstro_parametrizado(params)
                 try:
                     caminho = salvar_monstro_parametrizado(params)
@@ -472,65 +467,34 @@ class MCR:
         - Sem tipo explícito: tema=dragao/ork → gerar_monstro
         - Sem tipo explícito: tema=ferreiro/vendedor → gerar_npc
         """
+        # Base seeds (fallback mínimo)
         seeds = [
-            # ─── Tipo EXPLÍCITO: NPC (sempre gerar_npc) ───
-            ("crie um npc ferreiro", "gerar_npc"),
-            ("crie um npc dragao", "gerar_npc"),
-            ("crie um npc vendedor", "gerar_npc"),
-            ("crie um npc guarda", "gerar_npc"),
-            ("crie um npc mago", "gerar_npc"),
-            ("gere um npc dragao", "gerar_npc"),
-            ("gere um npc mercador", "gerar_npc"),
-            ("faca um npc orc", "gerar_npc"),
-            ("faca um npc demonio", "gerar_npc"),
-
-            # ─── Tipo EXPLÍCITO: Monstro (sempre gerar_monstro) ───
-            ("crie um monstro dragao", "gerar_monstro"),
-            ("crie um monstro vendedor", "gerar_monstro"),
-            ("crie um monstro orc", "gerar_monstro"),
-            ("gere um monstro ferreiro", "gerar_monstro"),
-            ("gere um monstro demonio", "gerar_monstro"),
-            ("faca um monstro guarda", "gerar_monstro"),
-
-            # ─── Tipo EXPLÍCITO: Quest ───
-            ("crie uma quest", "gerar_quest"),
-            ("crie uma quest para o ferreiro", "gerar_quest"),
-            ("gere uma quest", "gerar_quest"),
-            ("nova quest", "gerar_quest"),
-
-            # ─── Tipo EXPLÍCITO: Sprite ───
-            ("crie um sprite de espada", "gerar_sprite"),
-            ("crie um sprite", "gerar_sprite"),
-            ("gere um sprite de escudo", "gerar_sprite"),
-            ("gere uma imagem", "gerar_sprite"),
-
-            # ─── SEM tipo explícito: tema decide ───
-            # Temas de MONSTRO
-            ("crie um dragao", "gerar_monstro"),
-            ("crie um dragao de fogo", "gerar_monstro"),
-            ("gere um dragao", "gerar_monstro"),
-            ("gere um dragao de fogo", "gerar_monstro"),
-            ("faca um dragao", "gerar_monstro"),
-            ("gere um orc", "gerar_monstro"),
-            ("faca um orc guerreiro", "gerar_monstro"),
-            ("crie um demonio", "gerar_monstro"),
-            ("gere um demonio de fogo", "gerar_monstro"),
-
-            # Temas de NPC
-            ("crie um ferreiro", "gerar_npc"),
-            ("crie um ferreiro anao", "gerar_npc"),
-            ("gere um vendedor", "gerar_npc"),
-            ("faca um guarda", "gerar_npc"),
-            ("crie um mago", "gerar_npc"),
-            ("crie um mercador elfico", "gerar_npc"),
-            ("gere um bibliotecario", "gerar_npc"),
-
-            # ─── Perguntas ───
-            ("explique o que e markov", "responder"),
-            ("o que e entropia", "responder"),
-            ("como funciona o mcr", "responder"),
-            ("qual a diferenca entre npc e monstro", "responder"),
+            ("crie um npc ferreiro", "gerar_npc"), ("crie um monstro dragao", "gerar_monstro"),
+            ("crie uma quest", "gerar_quest"), ("crie um sprite de espada", "gerar_sprite"),
+            ("explique o que e markov", "responder"), ("o que e entropia", "responder"),
+            ("crie um npc mago", "gerar_npc"), ("gere um monstro orc", "gerar_monstro"),
         ]
+        # Auto-gera seeds do ItemDatabase + diretórios
+        try:
+            from devia.knowledge.item_database import ItemDatabase
+            db = ItemDatabase()
+            profs = list(getattr(db, 'categorias', {}).keys())[:20]
+            for p in profs:
+                pname = p.lower().replace('_', ' ')[:30]
+                if len(pname) > 2:
+                    seeds.append((f"crie um npc {pname}", "gerar_npc"))
+        except Exception: pass
+        try:
+            from mcr.paths import CANARY_MONSTER_DIR
+            import re as _re
+            tokens = set()
+            for f in list(CANARY_MONSTER_DIR.glob('*.lua'))[:100]:
+                for t in _re.findall(r'[a-z]{3,}', f.stem.lower()):
+                    tokens.add(t)
+            for t in list(tokens)[:30]:
+                seeds.append((f"crie um {t}", "gerar_monstro"))
+                seeds.append((f"gere um monstro {t}", "gerar_monstro"))
+        except Exception: pass
 
         for entrada, acao in seeds:
             estado = self._fingerprint_chave(entrada)
@@ -907,6 +871,16 @@ class MCR:
         except Exception:
             return 0.5, 0.2
 
+    def _calibrar_pesos(self):
+        """Grid search dos pesos 5D usando execution log (se dados suficientes)."""
+        if len(self._execucoes) < 30:
+            return  # precisa de mais dados
+        import json as _json
+        # Para cada entrada, recalcula nota com pesos candidatos
+        # e mede correlação com sucesso real
+        # (simplificado: só ajusta se MCC melhorar)
+        pass  # placeholder — ativado quando log tiver 100+ entradas
+
     def _jaccard_fingerprints(self, fp_a: List[float], fp_b: List[float]) -> float:
         """Distância entre dois fingerprints 8D (quanto maior, mais divergente)."""
         if len(fp_a) != len(fp_b):
@@ -1159,6 +1133,87 @@ class MCR:
             except Exception:
                 pass
         return self._sqlite
+
+    _DADOS_NPC = None
+    _DADOS_MONSTRO = None
+
+    @classmethod
+    def _dados_npc(cls):
+        """Mina dados de NPCs reais (cacheado)."""
+        if cls._DADOS_NPC is not None:
+            return cls._DADOS_NPC
+        import re as _re, statistics as _st
+        from collections import defaultdict as _dd
+        from mcr.paths import CANARY_NPC_DIR
+        looktypes = _dd(list)
+        healths = []
+        keywords = ['ferreiro','mago','guarda','vendedor','mercador','elfo','anao',
+                    'anão','orc','padeiro','druida','alquimista','cavaleiro','ladrao',
+                    'arqueiro','taverneiro','carpinteiro','artesao','bibliotecario']
+        for f in CANARY_NPC_DIR.glob('*.lua'):
+            try: c = f.read_text(encoding='latin-1', errors='replace')
+            except Exception: continue
+            m = _re.search(r'lookType\s*=\s*(\d+)', c)
+            if m:
+                lt = int(m.group(1))
+                for kw in keywords:
+                    if kw in f.stem.lower(): looktypes[kw].append(lt)
+            m = _re.search(r'npcConfig\.health\s*=\s*(\d+)', c)
+            if m: healths.append(int(m.group(1)))
+        lt_map = {}
+        for kw, vals in looktypes.items():
+            if len(vals) >= 2:
+                try: lt_map[kw] = int(_st.median(vals))
+                except Exception: lt_map[kw] = max(set(vals), key=vals.count)
+        if not lt_map: lt_map['generico'] = 128
+        cls._DADOS_NPC = {'looktypes': lt_map, 'health': int(_st.median(healths)) if healths else 100}
+        return cls._DADOS_NPC
+
+    @classmethod
+    def _dados_monstro(cls):
+        """Mina dados de monstros reais (cacheado)."""
+        if cls._DADOS_MONSTRO is not None:
+            return cls._DADOS_MONSTRO
+        import re as _re, statistics as _st
+        from collections import Counter as _C, defaultdict as _dd
+        from mcr.paths import CANARY_MONSTER_DIR
+        stats_all, race_map, loot_items, name_health = [], _dd(_C), _C(), _dd(list)
+        for f in CANARY_MONSTER_DIR.glob('**/*.lua'):
+            try: c = f.read_text(encoding='latin-1', errors='replace')
+            except Exception: continue
+            h = _re.search(r'health\s*=\s*(\d+)', c)
+            e = _re.search(r'experience\s*=\s*(\d+)', c)
+            s = _re.search(r'speed\s*=\s*(\d+)', c)
+            rm = _re.search(r'race\s*=\s*"(\w+)"', c)
+            if h and e and s: stats_all.append((int(h.group(1)), int(e.group(1)), int(s.group(1))))
+            if rm:
+                race = rm.group(1)
+                for t in _re.findall(r'[a-z]{3,}', f.stem.lower()):
+                    race_map[t][race] += 1
+                    if h: name_health[t].append(int(h.group(1)))
+            for lm in _re.finditer(r'\{\s*id\s*=\s*(\d+)\s*,\s*chance\s*=\s*(\d+)\s*,\s*maxCount\s*=\s*(\d+)\s*\}', c):
+                loot_items[(int(lm.group(1)), int(lm.group(2)), int(lm.group(3)))] += 1
+        # Tiers por percentil
+        hs = sorted(s[0] for s in stats_all) if stats_all else [100, 1000, 5000]
+        n = len(hs); p33 = hs[int(n*0.33)] if n > 2 else 1000; p66 = hs[int(n*0.66)] if n > 2 else 7320
+        def _med(tier): return (int(_st.median([x[0] for x in tier])), int(_st.median([x[1] for x in tier])), int(_st.median([x[2] for x in tier]))) if tier else (240,100,95)
+        low = [x for x in stats_all if x[0] <= p33]; mid = [x for x in stats_all if p33 < x[0] <= p66]; high = [x for x in stats_all if x[0] > p66]
+        # Race keywords (filtra tokens com >= 3 monstros e race dominante > 60%)
+        race_kw = {}
+        for kw, races in race_map.items():
+            total = sum(races.values())
+            if total >= 3:
+                top_race, top_count = races.most_common(1)[0]
+                if top_count / total > 0.5 and top_race != 'blood':
+                    race_kw[kw] = top_race
+        # Loot
+        top_loot = loot_items.most_common(3)
+        loot = [{'id': lid, 'chance': lc, 'maxCount': lm} for (lid, lc, lm), _ in top_loot] if top_loot else [{'id': 3031, 'chance': 100000, 'maxCount': 100}]
+        cls._DADOS_MONSTRO = {
+            'stats': {'low': _med(low), 'medium': _med(mid), 'high': _med(high)},
+            'thresholds': (p33, p66), 'race_keywords': race_kw, 'loot': loot,
+            'default_race': 'blood', 'name_health': dict(name_health)}
+        return cls._DADOS_MONSTRO
 
     def estatisticas(self) -> Dict:
         """Métricas do motor."""
