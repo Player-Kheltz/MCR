@@ -608,6 +608,16 @@
       "file": "npc_krago_da_pedreira_esquecida.lua",
       "role": "gerado_por_pipeline",
       "tier": "rascunho"
+    },
+    "Zylwen": {
+      "file": "npc_zylwen.lua",
+      "role": "gerado_por_pipeline",
+      "tier": "rascunho"
+    },
+    "Kaelo da Fundação de Eridanus": {
+      "file": "npc_kaelo_da_fundação_de_eridanus.lua",
+      "role": "gerado_por_pipeline",
+      "tier": "rascunho"
     }
   },
   "monstros": {
