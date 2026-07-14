@@ -26,21 +26,20 @@ class DescobridorUniversal:
         self._treinado = False
 
     _STOP_TOKENS = {
+        # Tokens ultra-comuns em qualquer linguagem de programação
+        # (auto-descobertos como top-N globais. Mantidos como fallback.)
         'local','function','end','if','then','else','elseif','return','for',
         'do','while','nil','true','false','and','or','not','in','self',
-        'break','goto','repeat','until','new','set','get','add','remove',
-        'string','table','math','os','io','type','print','pairs','ipairs',
-        'tostring','tonumber','require','module','package',
-        'the','are','but','not','you','all','can','had','her',
-        'was','one','our','out','has','have','from','they','will','with',
-        'your','that','this','what','when','where','which','who','how',
-        'its','his','she','him','them','their','been','would','could',
-        'should','about','into','over','after','before','between','under',
-        # Stopwords de codigo (muito comuns em qq linguagem)
-        'name','description','count','subtype','maxcount','chance',
-        'id','item','items','data','text','value','key','type','size',
-        'number','message','messages','error','errors','result','results',
     }
+
+    def _descobrir_stop_tokens(self, todos_arquivos: List) -> set:
+        """Descobre stop tokens automaticamente (top-N mais frequentes globalmente)."""
+        freq_global = Counter()
+        for _, token_freq in todos_arquivos:
+            for token in token_freq:
+                freq_global[token] += 1
+        # Top 30 tokens globais → provavelmente ruído estrutural
+        return {t for t, _ in freq_global.most_common(30)}
 
     def _tokenizar(self, conteudo: str) -> Counter:
         """Extrai tokens e conta frequência, removendo stopwords."""

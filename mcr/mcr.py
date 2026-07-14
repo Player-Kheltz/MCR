@@ -857,11 +857,12 @@ class MCR:
 
         # 4. ESTABILIDADE — gaussiana (pune H→0 e H→1, premia edge of chaos)
         h_m = 1.0 - certeza  # proxy: mais certeza = menos entropia
-        h_opt, sigma = 0.5, 0.2
+        h_opt, sigma = self._calibrar_estabilidade()
         estabilidade = math.exp(-((h_m - h_opt) / sigma)**2)
 
-        # 5. EFICIÊNCIA — recompensa simplicidade
-        eficiencia = 1.0 / math.log2(2)  # 1 ferramenta = eficiência máxima
+        # 5. EFICIÊNCIA — recompensa simplicidade (dinâmica)
+        n_tools = len(self._registry.listar())
+        eficiencia = 1.0 / math.log2(max(n_tools, 2)) if n_tools > 0 else 1.0
 
         # Pesos (calibrados via experimento: MCC 1.000)
         w = {'certeza': 3, 'completude': 3, 'informacao': 2,
@@ -891,6 +892,20 @@ class MCR:
         penalidade = min(0.95, taxa_falha)
 
         return max(0.0, min(1.0, nota * (1.0 - penalidade)))
+
+    def _calibrar_estabilidade(self):
+        """Auto-calibra h_opt e sigma do log de execuções."""
+        if len(self._execucoes) < 10:
+            return 0.5, 0.2
+        import statistics
+        notas = [e.get('nota', 0.5) for e in self._execucoes[-50:]]
+        confiancas = [e.get('confianca', 0.5) for e in self._execucoes[-50:]]
+        try:
+            h_opt = statistics.median(confiancas)
+            sigma = max(0.05, statistics.stdev(confiancas) if len(confiancas) > 1 else 0.2)
+            return h_opt, min(sigma, 0.5)
+        except Exception:
+            return 0.5, 0.2
 
     def _jaccard_fingerprints(self, fp_a: List[float], fp_b: List[float]) -> float:
         """Distância entre dois fingerprints 8D (quanto maior, mais divergente)."""
@@ -1052,9 +1067,10 @@ class MCR:
     def _aprender(self, estado: str, acao: str, nota: float):
         """Aprende a transição. Reforça se nota alta. Persiste em SQLite."""
         self.mk.aprender(estado, acao)
-        if nota > 0.5:
+        t1, t2 = self._thresholds_reforco()
+        if nota > t1:
             self.mk.aprender(estado, acao)
-        if nota > 0.7:
+        if nota > t2:
             self.mk.aprender(estado, acao)
 
         # Persistência SQLite
@@ -1062,6 +1078,19 @@ class MCR:
             self._get_sqlite().aprender(estado, acao)
         except Exception as e:
             self._log_erro('sqlite_aprender', e)
+
+    def _thresholds_reforco(self):
+        """Auto-calibra thresholds de reforço do log de execuções."""
+        if len(self._execucoes) < 10:
+            return 0.5, 0.7
+        try:
+            import statistics
+            notas = [e.get('nota', 0.5) for e in self._execucoes[-50:]]
+            t1 = statistics.median(notas)
+            t2 = min(1.0, t1 + 0.2)
+            return round(t1, 2), round(t2, 2)
+        except Exception:
+            return 0.5, 0.7
 
         # Histórico
         self._historico.append({
