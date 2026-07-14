@@ -29,30 +29,9 @@ except Exception:
 # MCR (Sistema 1) — tenta carregar
 _MCR_SYSTEM = None
 try:
-    import MCR as _MCR_MOD
-    # Monkey-patch MCRBridge se faltar
-    if not hasattr(_MCR_MOD, 'MCRBridge'):
-        class MCRBridge:
-            def __init__(self): self._descobriu = True
-            def descobrir(self): return {'modulos': 48, 'comandos': 52}
-        _MCR_MOD.MCRBridge = MCRBridge
-
-    from MCR import MCR, MCRSystem, MCRBufferKG
-    _MCR_SYSTEM = MCRSystem()
-    if _MCR_SYSTEM.kg is None:
-        _MCR_SYSTEM.kg = MCRBufferKG()
-    if not hasattr(_MCR_SYSTEM.kg, '_lessons_cache'):
-        _MCR_SYSTEM.kg._lessons_cache = []
-    if not hasattr(_MCR_SYSTEM.kg, 'buscar'):
-        def _buscar(self, termo, max_r=5, pergunta=''):
-            if not hasattr(self, '_lessons_cache'): return []
-            res = []
-            for item in self._lessons_cache:
-                if termo.lower() in item.get('erro', '').lower():
-                    res.append({'texto': item.get('solucao', ''), 'score': 5})
-            return res[:max_r]
-        _MCR_SYSTEM.kg.buscar = _buscar
-    print('[NPC-Server] MCRSystem carregado')
+    from mcr.mcr import MCR as _MCR_CLASS
+    _MCR_SYSTEM = _MCR_CLASS()
+    print('[NPC-Server] MCRSystem carregado (via mcr.mcr)')
 except Exception as e:
     print('[NPC-Server] MCRSystem nao disponivel: %s' % e)
     _MCR_SYSTEM = None
@@ -80,14 +59,17 @@ def _gerar_resposta_markov(npc_id: str, player_id: str, mensagem: str) -> str:
         return ""
 
     # Gera cadeia de ate 25 palavras
+    mk = getattr(_MCR_SYSTEM, 'mk', None) or getattr(_MCR_SYSTEM, 'mk_palavra', None)
+    if not mk:
+        return ""
     cadeia = []
     conf_min = 1.0
     for p in palavras[:3]:
-        pred, conf = _MCR_SYSTEM.mk_palavra.predizer(p)
+        pred, conf = mk.predizer(p)
         if pred and conf > 0.05:
             atual = p
             for _ in range(25):
-                prox, c = _MCR_SYSTEM.mk_palavra.predizer(atual)
+                prox, c = mk.predizer(atual)
                 if not prox or c < 0.02:
                     break
                 cadeia.append(prox)

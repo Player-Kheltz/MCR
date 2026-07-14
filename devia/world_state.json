@@ -638,6 +638,21 @@
       "file": "npc_vargus_da_neblina.lua",
       "role": "gerado_por_pipeline",
       "tier": "rascunho"
+    },
+    "Finnegan do Balcão Seco": {
+      "file": "npc_finnegan_do_balcão_seco.lua",
+      "role": "gerado_por_pipeline",
+      "tier": "rascunho"
+    },
+    "Grumak, o Guardião da Cinza": {
+      "file": "npc_grumak,_o_guardião_da_cinza.lua",
+      "role": "gerado_por_pipeline",
+      "tier": "rascunho"
+    },
+    "Torvin do Vale das Sombras": {
+      "file": "npc_torvin_do_vale_das_sombras.lua",
+      "role": "gerado_por_pipeline",
+      "tier": "rascunho"
     }
   },
   "monstros": {

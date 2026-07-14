@@ -1,0 +1,27 @@
+{
+  "metadata": {
+    "timestamp": "2026-07-13 23:05:13",
+    "total_padroes": 1,
+    "tipos": {
+      "generic": 1,
+      "total": 1
+    }
+  },
+  "padroes": [
+    {
+      "arquivo": "<execucao:gerar_monstro>",
+      "linguagem": "lua",
+      "tipo": "generic",
+      "api_calls": [
+        "NOME: Grumak, o Guardião da Cinza\nRACA: Orc\nSEXO: Masculino\nIDADE: 50 Anos",
+        "errantes.\nPERSONALIDADE: **Bruto**, **Corajoso** e **Melancólico",
+        "errantes.\nPERSONALIDADE: **Bruto**, **Corajoso** e **Melancólico** (O Melancólico é inesperado para um monstro de guerra que geralmente não reflete sobre sentimentos).\nTRACO_SECRETO: Ele tem um hobby bizarro de cozinhar sopas com ingredientes humanos coletados do mercado em Eridanus, dizendo que a carne humana é",
+        "veneno.\nFALA_APRESENTACAO: Ei... tu chegas devagar? Bom sinal. Eu não sou uma besta feroz hoje, só um cara cansado tentando evitar as batalhas dos outros dois lados da cidade de Aldric. Relaxa e vem sentar à sombra se quiser conversar sobre o clima ruim que está caindo.\nFALA_SOBRE_SUA_VIDA: Valsotorion era meu chefe antes, mas a vida em Eridanus mudou tudo para mim. Eu vi muita gente morrer por causa do"
+      ],
+      "variaveis": [],
+      "funcoes": [],
+      "tabelas": [],
+      "tamanho_linhas": 10
+    }
+  ]
+}

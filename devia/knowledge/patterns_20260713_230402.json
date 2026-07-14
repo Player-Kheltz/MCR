@@ -1,0 +1,28 @@
+{
+  "metadata": {
+    "timestamp": "2026-07-13 23:04:02",
+    "total_padroes": 1,
+    "tipos": {
+      "generic": 1,
+      "total": 1
+    }
+  },
+  "padroes": [
+    {
+      "arquivo": "<execucao:gerar_monstro>",
+      "linguagem": "lua",
+      "tipo": "generic",
+      "api_calls": [
+        "FALA_DESPEDIDA",
+        "FALA_SOBRE_SUA_VIDA",
+        "HISTORIA: Após uma explosão de magia negra no antigo mercado de Venore, Finnegan fugiu com o pouco que sobrou e acabou sendo contratado pela Fundação de Eridanus para manter a venda segura. Ele vive perto dos NPCs como Valtorion e Aldric porque é mais seguro do que ficar sozinho na zona selvagem, embora nunca confesse isso em voz alta para ninguém.\nPERSONALIDADE: Hospedeiro",
+        "NOME: Finnegan do Balcão Seco\nRACA: Humano\nSEXO: Masculino\nIDADE: 52 anos",
+        "TRACO_SECRETO: Ele tem um medo secreto de espelhos quebrados; acredita que eles mostram pessoas ruins se o vidro não for liso e ele tenta consertar qualquer reflexo com cola de rato. Além disso, adora colecionar ossos pequenos dos monstros mais fracos para usar como decoração na loja sem avisar ninguém.\nFALA_APRESENTACAO"
+      ],
+      "variaveis": [],
+      "funcoes": [],
+      "tabelas": [],
+      "tamanho_linhas": 10
+    }
+  ]
+}

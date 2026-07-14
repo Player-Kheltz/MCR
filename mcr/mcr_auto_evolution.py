@@ -68,7 +68,36 @@ class MCRAutoEvolution:
         h_antes = self.entropia_global()
         self._ultima_entropia = h_antes
         
-        # 2. Escolhe threshold real para mutar
+        # 2. Escolhe threshold real para mutar (inclui equação MCR)
+        from mcr.equacao_mcr import _EQUACAO_ATUAL
+        tipo_mutacao = random.choice(['threshold', 'equacao'])
+        
+        if tipo_mutacao == 'equacao':
+            # M4: Muta parâmetro da equação MCR
+            param_alvo = random.choice(['ponte_divergencia', 'ponte_especificidade',
+                                         'ponte_profundidade', 'penalidade_parcial'])
+            valor_atual = _EQUACAO_ATUAL[param_alvo]
+            mutacao = random.uniform(-0.5, 0.5)
+            novo_valor = max(0.0, min(10.0, valor_atual + mutacao))
+            _EQUACAO_ATUAL[param_alvo] = round(novo_valor, 2)
+            resultado_base = {
+                'threshold': f'equacao:{param_alvo}',
+                'mutacao_aplicada': round(novo_valor - valor_atual, 3),
+                'valor_anterior': round(valor_atual, 3),
+                'valor_novo': round(novo_valor, 3),
+            }
+            # Mede impacto
+            h_depois = self.entropia_global()
+            delta_h = h_depois - h_antes
+            resultado_base.update({
+                'entropia_antes': round(h_antes, 4),
+                'entropia_depois': round(h_depois, 4),
+                'aceita': delta_h < -0.001,
+            })
+            if delta_h >= -0.001:
+                _EQUACAO_ATUAL[param_alvo] = valor_atual  # reverte
+            return resultado_base
+        
         thresholds_disponiveis = [
             ('threshold', MCRThreshold, 'obter', 'aprender'),
         ]

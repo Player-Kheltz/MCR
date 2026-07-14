@@ -473,6 +473,40 @@ class MCR:
         except Exception as e:
             resultados['padroes_erro'] = str(e)[:80]
 
+        # 3b. Indexa ItemDB e MonsterDB no KG
+        try:
+            from mcr.item_database import ItemDatabase
+            from mcr.monster_database import MonsterDatabase
+            from mcr.pattern_miner import save_patterns_to_kg
+            item_db = ItemDatabase()
+            mon_db = MonsterDatabase()
+            db_padroes = []
+            # Indexa itens por categoria
+            for cat, itens in item_db._por_categoria.items() if hasattr(item_db, '_por_categoria') else []:
+                if itens:
+                    db_padroes.append({
+                        'arquivo': f'<itemdb:{cat}>',
+                        'linguagem': 'data', 'tipo': 'item_categoria',
+                        'api_calls': [cat], 'variaveis': [i.get('name', '') for i in itens[:20]],
+                        'funcoes': [], 'tabelas': [], 'tamanho_linhas': len(itens),
+                    })
+            # Indexa monstros
+            for nome, dados in mon_db._monstros.items() if hasattr(mon_db, '_monstros') else []:
+                db_padroes.append({
+                    'arquivo': f'<monsterdb:{nome}>',
+                    'linguagem': 'data', 'tipo': 'monster',
+                    'api_calls': [dados.get('race', '')],
+                    'variaveis': [nome], 'funcoes': [], 'tabelas': [],
+                    'tamanho_linhas': 1,
+                })
+            if db_padroes:
+                save_patterns_to_kg(db_padroes)
+                resultados['db_indexadas'] = len(db_padroes)
+                import mcr.metacognicao as _meta_mod
+                _meta_mod._KG_CACHE = None
+        except Exception as e:
+            resultados['db_indexadas_erro'] = str(e)[:80]
+
         # 4. Pré-treina o Markov com dados minerados
         self._pre_treinar_markov()
 
@@ -617,6 +651,19 @@ class MCR:
                 from mcr.mcr_auto_evolution import MCRAutoEvolution
                 evo = MCRAutoEvolution(mcr_system=self)
                 evo.ciclo(n_mutacoes=3)
+            except Exception:
+                pass
+            # M1: Re-treina ExtratorFeatures com dados acumulados
+            try:
+                from mcr.extrator_features import get_extrator
+                ext = get_extrator()
+                if hasattr(ext, 'treinar'):
+                    ext.treinar()
+            except Exception:
+                pass
+            # M2: Auto-calibra pesos da equação
+            try:
+                self._calibrar_pesos()
             except Exception:
                 pass
 

@@ -1,0 +1,30 @@
+{
+  "metadata": {
+    "timestamp": "2026-07-13 23:07:44",
+    "total_padroes": 1,
+    "tipos": {
+      "generic": 1,
+      "total": 1
+    }
+  },
+  "padroes": [
+    {
+      "arquivo": "<execucao:gerar_monstro>",
+      "linguagem": "lua",
+      "tipo": "generic",
+      "api_calls": [
+        "FALA_SOBRE_SUA_VIDA",
+        "FALA_SOBRE_SUA_VIDA: \"A verdade é que eu trabalho para manter a luz da lua brilhando sobre o SPA... Valtorion diz que sou útil porque não roubo poções, mas ninguém entende por que choro quando uma espada se rompe.\" (Ele encosta a cabeça na parede).\nFALA_DESPEDIDA",
+        "NOME: Torvin do Vale das Sombras\nRACA: Humano\nSEXO: Masculino\nIDADE: 41 anos\nHISTORIA: Antigamente foi aprendiz de Aldric Forjador, mas saiu da guilda após recusar forjar uma armadura que ele sentia",
+        "nutrientes.\nFALA_APRESENTACAO",
+        "nutrientes.\nFALA_APRESENTACAO: \"Oi, viajante! Entra aqui sem medo... mas não feche as portas se o vento soprar forte demais hoje.\" (Ele olha ao redor nervoso).",
+        "perto.\nPERSONALIDADE: Atencioso, Cético, **Melancólico",
+        "perto.\nPERSONALIDADE: Atencioso, Cético, **Melancólico** (seria um vendedor típico, mas ele carrega uma tristeza profunda que contrasta com sua rotina comercial).\nTRACO_SECRETO: Ele acredita que todo item mágico precisa ser"
+      ],
+      "variaveis": [],
+      "funcoes": [],
+      "tabelas": [],
+      "tamanho_linhas": 10
+    }
+  ]
+}
