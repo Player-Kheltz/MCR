@@ -42,14 +42,26 @@ class MCRSuperposicao:
         else:
             acao_mk, conf_mk = mk.predizer(estado)
 
-        # 2. Rota Coupling (palavras → ação) — sem ordem
+        # 2. Rota Coupling (palavras → ação) — peso entrópico por palavra
+        # Palavras com H baixa (certas) pesam mais que H alta (incertas)
+        # "sprite" (H=0.54, 92% gerar_sprite) pesa mais que "create" (H=0.77, 78%/22%)
         palavras = set(re.findall(r'[a-zà-ÿ]{3,}', texto.lower()))
         scores_cp = defaultdict(float)
         for p in palavras:
             dist = coupling._palavra_acao.get(p, {})
             total = sum(dist.values()) or 1
+            if total < 1:
+                continue
+            # Entropia da palavra: H alta = incerta = peso baixo
+            h_p = 0.0
+            for c in dist.values():
+                prob = c / total
+                if prob > 0: h_p -= prob * math.log2(prob)
+            max_h_p = math.log2(max(len(dist), 2))
+            h_norm_p = h_p / max_h_p if max_h_p > 0 else 0
+            peso_p = 1.0 - h_norm_p  # H=0 → peso=1, H=1 → peso=0
             for a, c in dist.items():
-                scores_cp[a] += c / total
+                scores_cp[a] += (c / total) * peso_p
 
         # 2b. Rota Coupling POSIÇÃO (P0 → ação) — com ordem
         # P0 (primeira palavra) tem H=0 para verbos específicos (analise, busque, edite)

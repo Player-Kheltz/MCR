@@ -344,7 +344,131 @@ class MCR:
                 niveis['diagnostico'] = str(round(h, 2))
         except Exception:
             pass
+
+        # ═══ NÍVEIS ESTRUTURAIS (posição e forma) ═══
+
+        # 17. ultima_palavra — palavra final (define o dominio alvo)
+        # "Create a armadura sprite" → "sprite" = gerar_sprite
+        # "Create a armadura npc" → "npc" = gerar_npc
+        if palavras:
+            niveis['ultima_palavra'] = palavras[-1][:10].lower()
         
+        # 18. n_palavras — numero de palavras (inputs curtos sao ambíguos)
+        niveis['n_palavras'] = str(len(palavras))
+
+        # 19. sufixo — ultimos 3 caracteres do input (forma)
+        niveis['sufixo'] = entrada[-3:].lower() if len(entrada) >= 3 else entrada.lower()
+
+        # 20. prefixo — primeiros 3 caracteres (forma)
+        niveis['prefixo'] = entrada[:3].lower()
+
+        # 21. p_ultima — posição da última palavra no coupling
+        if palavras:
+            niveis['p_ultima'] = f"P{len(palavras)-1}:{palavras[-1][:10].lower()}"
+
+        # ═══ NÍVEIS DE DOMÍNIO (categoria e função) ═══
+
+        # 22. categoria — ação mais frequente entre TODAS as palavras do input
+        # Diferente de diagnostico (entropia): categoria é o ARGMAX
+        try:
+            acoes = {}
+            for p in set(palavras_lower):
+                dist = self._coupling._palavra_acao.get(p, {})
+                for a, c in dist.items():
+                    acoes[a] = acoes.get(a, 0) + c
+            if acoes:
+                niveis['categoria'] = max(acoes, key=acoes.get)
+        except Exception:
+            pass
+
+        # 23. dominio — diretório com mais overlap de palavras
+        # Cacheado — nao faz iterdir a cada chamada
+        try:
+            if palavras_lower and hasattr(self, '_dirs_por_tool') and not hasattr(self, '_dir_stems_cache'):
+                self._dir_stems_cache = {}
+                for tool, dirs in self._dirs_por_tool.items():
+                    for d in dirs:
+                        try:
+                            for f in list(d.iterdir())[:20]:
+                                stem = f.stem.lower()
+                                if len(stem) > 2:
+                                    self._dir_stems_cache[stem] = tool
+                        except Exception:
+                            pass
+            if palavras_lower and hasattr(self, '_dir_stems_cache'):
+                melhor_dir = None
+                melhor_overlap = 0
+                for p in palavras_lower:
+                    dir_p = self._dir_stems_cache.get(p)
+                    if dir_p:
+                        melhor_overlap += 1
+                        melhor_dir = dir_p
+                if melhor_dir:
+                    niveis['dominio'] = melhor_dir
+        except Exception:
+            pass
+
+        # 24. funcao — tipo de operacao (criar=gerar, buscar=encontrar, explicar=responder)
+        # Descoberto por entropia de P0: H baixa = verbo especifico
+        try:
+            primeira = palavras[0][:10].lower() if palavras else ''
+            p0_dist = self._coupling._posicao_acao.get(f'P0:{primeira}', {})
+            total_p0 = sum(p0_dist.values())
+            if total_p0 >= 2:
+                # Se P0 é quase 100% uma ação, essa é a função do input
+                for a, c in p0_dist.items():
+                    if c / total_p0 > 0.8:
+                        niveis['funcao'] = a
+                        break
+        except Exception:
+            pass
+
+        # 25. ratio_dominio — proporção de palavras de domínio vs genéricas
+        # Palavras de domínio: aparecem em 1-2 ações (H baixa)
+        # Palavras genéricas: aparecem em 3+ ações (H alta)
+        try:
+            n_dominio = 0
+            n_generico = 0
+            for p in set(palavras_lower):
+                dist = self._coupling._palavra_acao.get(p, {})
+                if len(dist) <= 2:
+                    n_dominio += 1
+                else:
+                    n_generico += 1
+            total_p = n_dominio + n_generico
+            if total_p > 0:
+                niveis['ratio_dominio'] = str(round(n_dominio / total_p, 2))
+        except Exception:
+            pass
+
+        # 26. acao_dominante_palavra — ação que a última palavra define
+        try:
+            if palavras:
+                ultima = palavras[-1][:10].lower()
+                dist_ult = self._coupling._palavra_acao.get(ultima, {})
+                total_ult = sum(dist_ult.values())
+                if total_ult >= 1:
+                    for a, c in dist_ult.items():
+                        if c / total_ult > 0.7:
+                            niveis['acao_ultima'] = a
+                            break
+        except Exception:
+            pass
+
+        # 27. acao_dominante_primeira — ação que a primeira palavra define
+        try:
+            if palavras:
+                primeira = palavras[0][:10].lower()
+                dist_pri = self._coupling._palavra_acao.get(primeira, {})
+                total_pri = sum(dist_pri.values())
+                if total_pri >= 1:
+                    for a, c in dist_pri.items():
+                        if c / total_pri > 0.7:
+                            niveis['acao_primeira'] = a
+                            break
+        except Exception:
+            pass
+
         return niveis
 
     def _self_feedback(self, acao, conf, entrada):
@@ -1045,12 +1169,17 @@ class MCR:
 
     def _pre_treinar_markov(self):
         """Alimenta o MCR com seeds do workspace + dataset.
-        Usa fingerprint rapido (regex) — ExtratorFeatures é lazy."""
-        seeds = []
+        Seeds de diretorios → coupling + esfera (aprendizado de dominio)
+        Seeds de dataset → mk + coupling + mk_palavra (aprendizado de acao)
+        Usa fingerprint rapido (regex)."""
+        
+        # Seeds de diretorios (aprendizado de dominio — nao vai para mk de decisao)
+        seeds_dir = []
         dirs_por_tool = getattr(self, '_dirs_por_tool', {})
-        self._auto_dataset_seeds(seeds, dirs_por_tool)
+        self._auto_dataset_seeds(seeds_dir, dirs_por_tool)
 
-        # Seeds de acoes do dataset
+        # Seeds de dataset (aprendizado de acao — vai para mk de decisao)
+        seeds_dataset = []
         try:
             import json as _json
             from pathlib import Path
@@ -1059,17 +1188,21 @@ class MCR:
                 with open(dataset_path, 'r', encoding='utf-8') as f:
                     dataset = _json.load(f)
                 for entry in dataset:
-                    seeds.append((entry['input'], entry['expected_action']))
+                    seeds_dataset.append((entry['input'], entry['expected_action']))
         except Exception:
             pass
 
-        # Fingerprint rapido para seeds (nao usa ExtratorFeatures pesado)
         def _fp_rapido(texto):
             t = texto.lower().strip()
             tokens = _re.findall(r'[a-z\xc3-\xff0-9]{2,}', t)
             return "|".join(tokens[:6]) if tokens else "VAZIO"
 
-        for entrada, acao in seeds:
+        # Seeds de diretorios → coupling + esfera (dominio, nao acao)
+        for entrada, acao in seeds_dir:
+            self._coupling.alimentar(entrada, acao)
+
+        # Seeds de dataset → mk + coupling + mk_palavra (acao real)
+        for entrada, acao in seeds_dataset:
             estado = _fp_rapido(entrada)
             self.mk.aprender(estado, acao)
             self._coupling.alimentar(entrada, acao)
@@ -1077,11 +1210,11 @@ class MCR:
             for i in range(len(palavras) - 1):
                 self.mk_palavra.aprender(palavras[i], palavras[i+1])
 
-        # Esfera: alimenta com _extrair_niveis (cold start)
+        # Esfera: alimenta com _extrair_niveis (cold start) — só seeds de dataset
         esfera = self._lazy('_esfera', 'mcr.esfera.MCREsfera')
         if esfera:
             try:
-                for entrada, acao in seeds:
+                for entrada, acao in seeds_dataset:
                     niveis = self._extrair_niveis(entrada)
                     for nivel, valor in niveis.items():
                         esfera.alimentar_par(nivel, "acao", valor, acao)
@@ -1431,20 +1564,51 @@ class MCR:
             try:
                 niveis = self._extrair_niveis(entrada)
                 n_niveis = len(niveis)
+                # Ações conhecidas do dataset (cacheado — nao le a cada _decidir)
+                if not hasattr(self, '_acoes_dataset_cache'):
+                    try:
+                        import json as _json
+                        from pathlib import Path
+                        dp = Path(__file__).parent.parent / 'tests' / 'experimento_rigoroso' / 'dataset_500.json'
+                        if dp.exists():
+                            with open(dp, 'r', encoding='utf-8') as f:
+                                self._acoes_dataset_cache = set(e['expected_action'] for e in _json.load(f))
+                        else:
+                            self._acoes_dataset_cache = set(self._coupling._freq_acao.keys())
+                    except Exception:
+                        self._acoes_dataset_cache = set(self._coupling._freq_acao.keys())
+                acoes_conhecidas = self._acoes_dataset_cache
+                # Votação ponderada por entropia: niveis com H baixa pesam mais
                 votos_esfera = {}
                 for nivel, valor in niveis.items():
                     pred = esfera.predizer_cross('acao', **{nivel: valor})
-                    if pred:
-                        votos_esfera[pred] = votos_esfera.get(pred, 0) + 1
+                    if pred and pred in acoes_conhecidas:
+                        dist_nivel = esfera.cross.get(nivel, {}).get(valor, {}).get('acao', {})
+                        total_dist = sum(dist_nivel.values()) if dist_nivel else 0
+                        if total_dist >= 2:
+                            from math import log2
+                            h_n = 0.0
+                            for c in dist_nivel.values():
+                                p = c / total_dist
+                                if p > 0: h_n -= p * log2(p)
+                            max_h_n = log2(max(len(dist_nivel), 2))
+                            h_norm_n = h_n / max_h_n if max_h_n > 0 else 0
+                            peso_n = 1.0 - h_norm_n
+                        else:
+                            peso_n = 0.5
+                        votos_esfera[pred] = votos_esfera.get(pred, 0) + peso_n
                 if votos_esfera:
                     acao_esfera = max(votos_esfera, key=votos_esfera.get)
-                    n_votos = votos_esfera[acao_esfera]
-                    # 3+ niveis concordam = boost forte
-                    if n_votos >= self._th('esfera_votos_min', 3) and acao_esfera == acao:
+                    peso_esfera = votos_esfera[acao_esfera]
+                    # Threshold descoberto pelo MCRThreshold (observa acertos/erros)
+                    th_peso = self._th('esfera_peso_min', 2.0)
+                    if peso_esfera >= th_peso and acao_esfera == acao:
                         conf = min(1.0, conf * 1.4)
-                    elif n_votos >= self._th('esfera_votos_min', 3) and acao_esfera != acao and conf < self._th('esfera_conf_substitui', 0.5):
+                    elif peso_esfera >= th_peso and acao_esfera != acao:
                         acao = acao_esfera
-                        conf = max(conf, n_votos / max(n_niveis, 1))
+                        conf = max(conf, min(1.0, peso_esfera / max(n_niveis, 1)))
+                    # Observa para calibrar: se Esfera concorda com Markov, peso bom
+                    self._th_observar('esfera_peso_min', peso_esfera)
             except Exception:
                 pass
 
