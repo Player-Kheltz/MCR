@@ -12,13 +12,12 @@ tools = mcr._registry.listar()
 print(f'Ferramentas registradas: {len(tools)}')
 print('=' * 70)
 
-# Inputs reais para cada categoria de ferramenta
+# Inputs reais para cada ferramenta
+# gerar_npc/monstro/sprite/quest sao todos 'gerar' (verbo normalizado)
+# O MCR descobre o dominio por assinatura, nao por hardcode
 testes = {
     'gerar': 'crie um npc ferreiro que vende espadas',
-    'gerar_npc': 'crie um npc mago',
-    'gerar_monstro': 'gere um monstro dragao',
-    'gerar_sprite': 'crie um sprite de escudo',
-    'gerar_quest': 'crie uma quest de combate',
+    'gerar_codigo': 'gere um codigo python',
     'responder': 'o que e markov',
     'analisar': 'analise o codigo do mcr.py',
     'buscar': 'busque por ferreiro no codigo',

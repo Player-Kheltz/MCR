@@ -1419,8 +1419,7 @@ class MCR:
         self.registrar_ferramentas(wrappers)
 
     def _decidir_tool(self, msg):
-        """Descobre a tool pelo coupling + descobridor (zero if/else).
-        Fallback: tool mais frequente no coupling (descoberto, nao hardcoded)."""
+        """Descobre a tool pelo coupling + descobridor (zero if/else)."""
         acao, conf = self._coupling.decidir(msg, self.mk.predizer(self._fingerprint_chave(msg)))
         if acao and conf > 0.1:
             return self._normalizar_acao(acao)
@@ -1436,18 +1435,60 @@ class MCR:
                             return tool
             except Exception:
                 pass
-        # Fallback: tool com mais seeds (descoberto do coupling)
         if self._coupling._freq_acao:
             return max(self._coupling._freq_acao, key=self._coupling._freq_acao.get)
-        # Fallback final: primeira tool descoberta do scan
         if self._dirs_por_tool:
             return list(self._dirs_por_tool.keys())[0]
         return 'responder'
 
+    def _decidir_dominio(self, msg):
+        """Descobre o dominio (npc, monstro, etc) pela assinatura + palavras.
+        Retorna o nome do diretorio em _dirs_por_tool, ou None."""
+        # 1. Assinatura: compara fingerprint do input com perfis de diretorios
+        dom_sig = self._descobrir_dominio_por_assinatura(msg)
+        if dom_sig and dom_sig in self._dirs_por_tool:
+            return dom_sig
+        # 2. Descobridor: ancora de dominio no texto
+        if hasattr(self, '_descobridor') and self._descobridor:
+            try:
+                palavras = _re.findall(r'[a-z\xc3-\xff]{3,}', msg.lower())
+                for p in palavras:
+                    dir_ancora = self._descobridor.classificar(p)
+                    if dir_ancora:
+                        tool = dir_ancora.lower().replace(' ', '_').replace('-', '_')
+                        if tool in self._dirs_por_tool:
+                            return tool
+            except Exception:
+                pass
+        # 3. Overlap de palavras com stems de arquivos
+        try:
+            palavras = set(_re.findall(r'[a-z\xc3-\xff]{3,}', msg.lower()))
+            melhor_dir = None
+            melhor_overlap = 0
+            for tool, dirs in self._dirs_por_tool.items():
+                for d in dirs:
+                    try:
+                        stems = set(f.stem.lower() for f in list(d.iterdir())[:20] if f.is_file())
+                        overlap = len(palavras & stems)
+                        if overlap > melhor_overlap:
+                            melhor_overlap = overlap
+                            melhor_dir = tool
+                    except Exception:
+                        pass
+            if melhor_dir and melhor_overlap > 0:
+                return melhor_dir
+        except Exception:
+            pass
+        return None
+
     def _gerar_universal(self, msg, tool):
         """Gera usando template entropico + esfera + variador.
-        Um codigo para todo dominio. Agnostico a extensao.
-        Gaps preenchidos por: esfera cross-domain > variador > distribuicao."""
+        Um codigo para todo dominio. Agnostico a extensao."""
+        # Se tool é verbo generico (gerar), descobre o dominio
+        if tool == 'gerar' or tool not in getattr(self, '_dirs_por_tool', {}):
+            dominio = self._decidir_dominio(msg)
+            if dominio:
+                tool = dominio
         dirs = getattr(self, '_dirs_por_tool', {})
         d_list = dirs.get(tool, [])
         d = d_list[0] if d_list else None
@@ -1456,7 +1497,11 @@ class MCR:
         except Exception:
             exemplos = []
         if not exemplos:
-            return {'sucesso': False, 'erro': 'sem exemplos', 'tipo': tool}
+            # Fallback: gera pelo template entropico do proprio input
+            nome = self._extrair_nome(msg)
+            codigo = f"-- Gerado por MCR\n-- Input: {msg[:60]}\n-- Dominio: {tool}\nlocal {nome.lower().replace(' ', '_')} = {{}}"
+            return {'sucesso': True, 'codigo': codigo, 'entidade': nome,
+                    'tipo': tool, 'arquivo': '', 'nota': 'Geracao sem exemplos — template basico'}
 
         try:
             # Tokeniza todos os exemplos (mesmo formato para qualquer extensao)
