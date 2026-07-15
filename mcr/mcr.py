@@ -1092,8 +1092,8 @@ class MCR:
             except Exception:
                 pass
 
-        # Esfera: correlacao cross-fingerprint
-        # Gera N fingerprints do input e prediz acao por correlacao
+        # Esfera: correlacao N-dimensional (7 niveis)
+        # Gera 7 fingerprints do input e prediz acao por votacao
         esfera = self._lazy('_esfera', 'mcr.esfera.MCREsfera')
         if esfera and esfera.total > 10 and entrada:
             try:
@@ -1103,24 +1103,32 @@ class MCR:
                 sig_mod = __import__('mcr.signature', fromlist=['MCRSignature'])
                 sig = sig_mod.MCRSignature.extrair(dados, rapido=True)
                 h_val = str(round(sig.get('entropia', 0), 2))
+                tam = str(len(dados))
+                palavras_in = entrada.replace('_', ' ').split()
+                intencao = palavras_in[0][:10].lower() if palavras_in else ''
+                padrao = ''.join('L' if c.isalpha() else 'N' if c.isdigit() else 'S'
+                                 for c in entrada[:20] if not c.isspace())
+                p0 = f"P0:{intencao}"
 
-                # Esfera prediz acao a partir de cada fingerprint
-                acao_esfera = None
+                # Esfera prediz acao a partir de cada nivel (votacao)
                 votos_esfera = {}
-                for nivel, valor in [('fp_tokens', fp_tokens), ('fp_byte', fp_byte), ('entropia', h_val)]:
+                for nivel, valor in [('fp_tokens', fp_tokens), ('fp_byte', fp_byte),
+                                     ('entropia', h_val), ('tamanho', tam),
+                                     ('intencao', intencao), ('padrao', padrao),
+                                     ('p0', p0)]:
                     pred = esfera.predizer_cross('acao', **{nivel: valor})
                     if pred:
                         votos_esfera[pred] = votos_esfera.get(pred, 0) + 1
                 if votos_esfera:
                     acao_esfera = max(votos_esfera, key=votos_esfera.get)
                     n_votos = votos_esfera[acao_esfera]
-                    # Se 2+ fingerprints concordam, boost
-                    if n_votos >= 2 and acao_esfera == acao:
-                        conf = min(1.0, conf * 1.3)
-                    elif n_votos >= 2 and acao_esfera != acao:
-                        # Esfera discorda do Markov — deixa superposicao decidir
-                        # mas alimenta coupling com a sugestao da esfera
-                        pass
+                    # Se 3+ niveis concordam, boost forte
+                    if n_votos >= 3 and acao_esfera == acao:
+                        conf = min(1.0, conf * 1.4)
+                    elif n_votos >= 3 and acao_esfera != acao and conf < 0.5:
+                        # Esfera discorda com mais votos — substitui se conf baixa
+                        acao = acao_esfera
+                        conf = max(conf, n_votos / 7.0)
             except Exception:
                 pass
 
@@ -1457,7 +1465,7 @@ class MCR:
 
     def _aprender(self, estado: str, acao: str, nota: float, entrada: str = ''):
         """Aprende a transição. Reforça se nota alta. Persiste em SQLite + JSON.
-        Alimenta coupling + mk_palavra + mundo + esfera (cross-fingerprint) + esquecimento."""
+        Alimenta coupling + mk_palavra + mundo + esfera (N niveis) + esquecimento."""
         self.mk.aprender(estado, acao)
         t1, t2 = self._thresholds_reforco()
         if nota > t1:
@@ -1479,51 +1487,34 @@ class MCR:
             except Exception:
                 pass
 
-        # Esfera: cruza fingerprints dos seeds (cold start)
-        esfera = self._lazy('_esfera', 'mcr.esfera.MCREsfera')
-        if esfera:
-            try:
-                sig_mod = __import__('mcr.signature', fromlist=['MCRSignature'])
-                for entrada, acao in seeds:
+            # Esfera: cruza N niveis do mesmo input
+            # Niveis: tokens, byte 8D, entropia, tamanho, intencao, padrao, P0
+            esfera = self._lazy('_esfera', 'mcr.esfera.MCREsfera')
+            if esfera:
+                try:
+                    sig_mod = __import__('mcr.signature', fromlist=['MCRSignature'])
                     fp_tokens = "|".join(_re.findall(r'[a-z\xc3-\xff0-9]{2,}', entrada.lower())[:6])
                     fp_byte = str(self.fp.gerar(entrada))
                     dados = entrada.encode('utf-8') if isinstance(entrada, str) else entrada
                     sig = sig_mod.MCRSignature.extrair(dados, rapido=True)
                     h_val = str(round(sig.get('entropia', 0), 2))
-                    esfera.alimentar_par("fp_tokens", "acao", fp_tokens, acao)
-                    esfera.alimentar_par("fp_byte", "acao", fp_byte, acao)
-                    esfera.alimentar_par("entropia", "acao", h_val, acao)
-                    esfera.alimentar_par("fp_tokens", "fp_byte", fp_tokens, fp_byte)
-            except Exception:
-                pass
-            except Exception:
-                pass
-
-            # Esfera: cruza N fingerprints do mesmo input
-            # Cada fingerprint captura uma dimensão diferente
-            # Correlacionar eles = coordenada N-dimensional do input
-            esfera = self._lazy('_esfera', 'mcr.esfera.MCREsfera')
-            if esfera:
-                try:
-                    # Fingerprint 1: tokens (regex rapido)
-                    fp_tokens = "|".join(_re.findall(r'[a-z\xc3-\xff0-9]{2,}', entrada.lower())[:6])
-                    # Fingerprint 2: byte-level 8D (MCRFingerprint)
-                    fp_byte = str(self.fp.gerar(entrada))
-                    # Fingerprint 3: entropia + tamanho
-                    dados = entrada.encode('utf-8') if isinstance(entrada, str) else entrada
-                    sig = __import__('mcr.signature', fromlist=['MCRSignature']).MCRSignature.extrair(dados, rapido=True)
-                    h_val = str(round(sig.get('entropia', 0), 2))
                     tam = str(len(dados))
-
-                    # Alimenta pares na Esfera — correlacao bidirecional
-                    esfera.alimentar_par("fp_tokens", "acao", fp_tokens, acao)
-                    esfera.alimentar_par("fp_byte", "acao", fp_byte, acao)
-                    esfera.alimentar_par("entropia", "acao", h_val, acao)
-                    esfera.alimentar_par("tamanho", "acao", tam, acao)
-                    # Cruzar fingerprints entre si
-                    esfera.alimentar_par("fp_tokens", "fp_byte", fp_tokens, fp_byte)
-                    esfera.alimentar_par("fp_tokens", "entropia", fp_tokens, h_val)
-                    esfera.alimentar_par("fp_byte", "entropia", fp_byte, h_val)
+                    palavras_in = entrada.replace('_', ' ').split()
+                    intencao = palavras_in[0][:10].lower() if palavras_in else ''
+                    padrao = ''.join('L' if c.isalpha() else 'N' if c.isdigit() else 'S'
+                                     for c in entrada[:20] if not c.isspace())
+                    p0 = f"P0:{intencao}"
+                    for nivel, valor in [('fp_tokens', fp_tokens), ('fp_byte', fp_byte),
+                                         ('entropia', h_val), ('tamanho', tam),
+                                         ('intencao', intencao), ('padrao', padrao),
+                                         ('p0', p0)]:
+                        esfera.alimentar_par(nivel, "acao", valor, acao)
+                    niveis_vals = [('fp_tokens', fp_tokens), ('fp_byte', fp_byte),
+                                   ('entropia', h_val), ('intencao', intencao),
+                                   ('padrao', padrao), ('p0', p0)]
+                    for i, (n1, v1) in enumerate(niveis_vals):
+                        for n2, v2 in niveis_vals[i+1:]:
+                            esfera.alimentar_par(n1, n2, v1, v2)
                 except Exception:
                     pass
 
