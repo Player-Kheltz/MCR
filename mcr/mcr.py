@@ -966,7 +966,7 @@ class MCR:
         Fallback: tool mais frequente no coupling (descoberto, nao hardcoded)."""
         acao, conf = self._coupling.decidir(msg, self.mk.predizer(self._fingerprint_chave(msg)))
         if acao and conf > 0.1:
-            return acao
+            return self._normalizar_acao(acao)
         # Descobridor: ancora do dominio no texto
         if hasattr(self, '_descobridor') and self._descobridor:
             try:
@@ -1662,6 +1662,23 @@ class MCR:
         Zero if/elif de dominio. Zero hardcoded fallback.
         """
         acao, conf = self.mk.predizer(estado)
+        
+        # Garante que acao é normalizada (verbo generico)
+        if acao:
+            acao = self._normalizar_acao(acao)
+        
+        # Ações conhecidas: descobertas do mk (apenas verbos validos)
+        # Cacheado — nao recalcula a cada _decidir
+        if not hasattr(self, '_acoes_validas_cache'):
+            acoes_validas = set()
+            for est in self.mk.transicoes:
+                for prox in self.mk.transicoes[est]:
+                    acoes_validas.add(self._normalizar_acao(prox))
+            acoes_validas.add('responder')  # fallback universal
+            self._acoes_validas_cache = acoes_validas
+        acoes_validas = self._acoes_validas_cache
+        if acao and acao not in acoes_validas:
+            acao = None  # descarta poluicao
 
         # ShadowCanary penaliza ferramentas que crasham
         try:
@@ -1808,7 +1825,7 @@ class MCR:
                 pass
 
         if acao and conf > 0.1:
-            return str(acao), conf
+            return self._normalizar_acao(acao), conf
 
         # Fallback 1: similaridade Jaccard por componentes do estado
         if self.mk.transicoes:
@@ -1824,7 +1841,7 @@ class MCR:
             if melhor_estado and melhor_sim > 0.3:
                 acao2, conf2 = self.mk.predizer(melhor_estado)
                 if acao2:
-                    return str(acao2), conf2 * min(1.0, melhor_sim)
+                    return self._normalizar_acao(acao2), conf2 * min(1.0, melhor_sim)
 
         # Fallback 2: SQLite
         sql = self._get_sqlite()
@@ -1832,7 +1849,9 @@ class MCR:
             try:
                 acao_sql, conf_sql = sql.predizer(estado)
                 if acao_sql and conf_sql > 0.1:
-                    return str(acao_sql), conf_sql
+                    acao_sql_norm = self._normalizar_acao(acao_sql)
+                    if acao_sql_norm in acoes_validas:
+                        return acao_sql_norm, conf_sql
             except Exception:
                 pass
 
@@ -1847,7 +1866,9 @@ class MCR:
                     melhor_taxa = taxa
                     melhor_tool = nome
         if melhor_tool:
-            acao_fallback = melhor_tool
+            acao_fallback = self._normalizar_acao(melhor_tool)
+            if acao_fallback not in acoes_validas:
+                acao_fallback = 'responder'
             return acao_fallback, max(0.05, melhor_taxa)
         return "responder", 0.1
 

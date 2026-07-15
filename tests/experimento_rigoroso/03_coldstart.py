@@ -28,20 +28,33 @@ with open('E:/MCR/tests/experimento_rigoroso/dataset_500.json', 'r', encoding='u
     dataset = json.load(f)
 print(f'Dataset: {len(dataset)} entradas')
 
-# ACTIONS descoberto do dataset (zero hardcoded)
-ACTIONS = list(set(e['expected_action'] for e in dataset))
-
+# ACTIONS descoberto do dataset e normalizado (zero hardcoded)
 def normalize_action(action):
-    # Descobre sufixos que aparecem em acoes mas nao em expected_actions
-    # Agrupando pela raiz comum (zero hardcoded)
-    return str(action)
+    # MCR normaliza: gerar_npc -> gerar (verbo generico)
+    # Verbo = prefixo que aparece em 2+ acoes
+    from collections import Counter
+    prefixos = Counter()
+    for e in dataset:
+        a = e['expected_action']
+        if '_' in a:
+            prefixos[a.split('_')[0]] += 1
+    acao = str(action)
+    if '_' in acao:
+        verbo = acao.split('_')[0]
+        if prefixos.get(verbo, 0) >= 2:
+            return verbo
+    return acao
+
+ACTIONS = list(set(normalize_action(e['expected_action']) for e in dataset))
 
 def limpar_memoria():
-    # Paths descobertos do proprio engine (os.path.dirname(engine.__file__))
     import mcr.engine as _eng
     _engine_dir = os.path.dirname(os.path.abspath(_eng.__file__))
+    import mcr.coupling as _coup
+    _coup_dir = os.path.dirname(os.path.abspath(_coup.__file__))
     patterns = [
         os.path.join(_engine_dir, 'markov_*.json'),
+        os.path.join(_coup_dir, 'coupling_*.json'),
     ]
     removed = 0
     for pat in patterns:
@@ -63,7 +76,7 @@ def classificar_tudo(mcr):
         except Exception:
             acao, conf = 'erro', 0.0
         predicted = normalize_action(str(acao))
-        expected = entry['expected_action']
+        expected = normalize_action(entry['expected_action'])
         if expected not in by_action:
             by_action[expected] = {'correct': 0, 'total': 0, 'conf_sum': 0.0}
         by_action[expected]['total'] += 1
@@ -84,7 +97,7 @@ def treinar_markov(mcr, entradas):
     def _treinar_um(entry):
         try:
             estado = mcr._perceber(entry['input'])
-            acao = entry['expected_action']
+            acao = normalize_action(entry['expected_action'])
             mcr.mk.aprender(estado, acao)
             mcr._coupling.alimentar(entry['input'], acao)
             palavras = _re.findall(r'[a-z\xc3-\xff]{3,}', entry['input'].lower())
