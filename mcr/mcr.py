@@ -160,6 +160,98 @@ class MCR:
                 pass
         return getattr(self, attr, None)
 
+    def _descobrir_dominio_por_assinatura(self, entrada):
+        """Descobre o dominio do input pela ASSINATURA, nao pelo nome.
+        
+        O MCR ja tem perfis de cada diretorio (assinatura dos arquivos).
+        Compara a assinatura do input com os perfis e encontra o dominio.
+        
+        Assinatura = entropia + fingerprint 8D + padrao de tokens + API calls.
+        Zero hardcode de nomes de dominio.
+        """
+        if not hasattr(self, '_perfis_dominio'):
+            # Constrói perfis na primeira chamada (lazy)
+            self._perfis_dominio = {}
+            try:
+                from mcr.signature import MCRSignature
+                from pathlib import Path
+                
+                for tool, dirs in getattr(self, '_dirs_por_tool', {}).items():
+                    for d in dirs:
+                        try:
+                            arquivos = [f for f in d.iterdir() if f.is_file()][:10]
+                            if not arquivos:
+                                continue
+                            # Extrai assinatura media dos arquivos
+                            fps = []
+                            entropias = []
+                            tokens_freq = Counter()
+                            for f in arquivos:
+                                try:
+                                    conteudo = f.read_text(encoding='latin-1', errors='replace')[:2000]
+                                    dados = conteudo.encode('utf-8')
+                                    sig = MCRSignature.extrair(dados, rapido=True)
+                                    fps.append(sig.get('fingerprint', [0]*8))
+                                    entropias.append(sig.get('entropia', 0))
+                                    # Tokens estruturais (API calls, keywords)
+                                    for m in _re.finditer(r'[a-zA-Z_][a-zA-Z0-9_]{2,}', conteudo):
+                                        tokens_freq[m.group(0).lower()] += 1
+                                except Exception:
+                                    continue
+                            if fps:
+                                # Perfil = fingerprint medio + entropia media + top tokens
+                                fp_medio = [sum(col) / len(col) for col in zip(*fps)]
+                                h_media = sum(entropias) / len(entropias)
+                                top_tokens = set(t for t, _ in tokens_freq.most_common(20))
+                                self._perfis_dominio[tool] = {
+                                    'fingerprint': fp_medio,
+                                    'entropia': h_media,
+                                    'tokens': top_tokens,
+                                    'n_arquivos': len(arquivos),
+                                }
+                        except Exception:
+                            pass
+            except Exception:
+                pass
+        
+        if not self._perfis_dominio:
+            return None
+        
+        # Extrai assinatura do input
+        try:
+            from mcr.signature import MCRSignature
+            dados = entrada.encode('utf-8')
+            sig_input = MCRSignature.extrair(dados, rapido=True)
+            fp_input = sig_input.get('fingerprint', [0]*8)
+            h_input = sig_input.get('entropia', 0)
+            tokens_input = set(_re.findall(r'[a-zA-Z_][a-zA-Z0-9_]{2,}', entrada.lower()))
+        except Exception:
+            return None
+        
+        # Compara com cada perfil (Jaccard de tokens + distancia de fingerprint)
+        melhor_dominio = None
+        melhor_score = 0
+        for tool, perfil in self._perfis_dominio.items():
+            # Jaccard de tokens estruturais
+            tokens_comuns = len(tokens_input & perfil['tokens'])
+            tokens_uniao = len(tokens_input | perfil['tokens'])
+            jaccard_tokens = tokens_comuns / max(tokens_uniao, 1)
+            # Distancia do fingerprint (cosseno)
+            import math
+            dot = sum(a * b for a, b in zip(fp_input, perfil['fingerprint']))
+            na = math.sqrt(sum(a * a for a in fp_input))
+            nb = math.sqrt(sum(b * b for b in perfil['fingerprint']))
+            cosseno_fp = dot / max(na * nb, 0.001)
+            # Score combinado (Equacao MCR: divergencia + especificidade + profundidade)
+            score = jaccard_tokens * 0.5 + cosseno_fp * 0.5
+            if score > melhor_score:
+                melhor_score = score
+                melhor_dominio = tool
+        
+        if melhor_score > 0.1:
+            return melhor_dominio
+        return None
+
     def _th(self, chave, fallback):
         """Obtem threshold descoberto pelo MCRThreshold. Zero hardcode.
         O MCR observa valores reais e calcula a mediana."""
@@ -466,6 +558,39 @@ class MCR:
                         if c / total_pri > 0.7:
                             niveis['acao_primeira'] = a
                             break
+        except Exception:
+            pass
+
+        # ═══ NÍVEIS DE ASSINATURA (descoberta por perfil, não por nome) ═══
+
+        # 28. dominio_assinatura — dominio descoberto pela assinatura dos arquivos
+        # NAO usa nome do diretorio — usa fingerprint + tokens estruturais
+        try:
+            dom_sig = self._descobrir_dominio_por_assinatura(entrada)
+            if dom_sig:
+                niveis['dominio_assinatura'] = dom_sig
+        except Exception:
+            pass
+
+        # 29. score_assinatura — score da melhor correspondencia de assinatura
+        try:
+            if hasattr(self, '_perfis_dominio') and self._perfis_dominio:
+                from mcr.signature import MCRSignature
+                dados = entrada.encode('utf-8')
+                sig_input = MCRSignature.extrair(dados, rapido=True)
+                fp_input = sig_input.get('fingerprint', [0]*8)
+                tokens_input = set(_re.findall(r'[a-zA-Z_][a-zA-Z0-9_]{2,}', entrada.lower()))
+                import math
+                scores = {}
+                for tool, perfil in self._perfis_dominio.items():
+                    jaccard = len(tokens_input & perfil['tokens']) / max(len(tokens_input | perfil['tokens']), 1)
+                    dot = sum(a * b for a, b in zip(fp_input, perfil['fingerprint']))
+                    na = math.sqrt(sum(a * a for a in fp_input))
+                    nb = math.sqrt(sum(b * b for b in perfil['fingerprint']))
+                    cosseno = dot / max(na * nb, 0.001)
+                    scores[tool] = round(jaccard * 0.5 + cosseno * 0.5, 2)
+                if scores:
+                    niveis['score_assinatura'] = str(max(scores.values()))
         except Exception:
             pass
 
