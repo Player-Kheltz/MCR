@@ -611,16 +611,56 @@ class MCR:
         wrappers['validar'] = _validar
 
         def _conectar(entrada="", texto="", **kw):
+            """Conecta dois conceitos via Conexao (ponte otima) + Bridge (analogia)."""
             msg = entrada or texto
             conexao = self._lazy('_conexao', 'mcr.conexao.MCRConexao')
+            bridge = self._lazy('_bridge', 'mcr.bridge.MCRBridge')
+            palavras = _re.findall(r'[a-z\xc3-\xff]{3,}', msg.lower())
+            if len(palavras) < 2:
+                return {'sucesso': False, 'tipo': 'conectar', 'erro': 'precisa 2 conceitos'}
+            
+            resultado = {'sucesso': True, 'tipo': 'conectar', 'conceitos': palavras[:4]}
+            
+            # Conexao: encontra palavra-ponte entre os 2 conceitos mais significativos
             if conexao:
-                # Tenta conectar os dois conceitos mais frequentes
-                palavras = _re.findall(r'[a-z\xc3-\xff]{3,}', msg.lower())
-                if len(palavras) >= 2:
+                try:
                     ponte = conexao.conectar(self.mk_palavra, self.mk, palavras[0], palavras[1])
-                    return {'sucesso': ponte is not None, 'tipo': 'conectar',
-                            'ponte': ponte, 'conceitos': palavras[:2]}
-            return {'sucesso': False, 'tipo': 'conectar', 'erro': 'sem conexao'}
+                    resultado['ponte'] = ponte
+                except Exception:
+                    pass
+            
+            # Bridge: verifica analogia entre os conceitos
+            if bridge and len(palavras) >= 4:
+                try:
+                    analogia = bridge.analogia(palavras[0], palavras[1], palavras[2], palavras[3])
+                    resultado['analogia'] = analogia
+                except Exception:
+                    pass
+            
+            # PONTE_OTIMA: calcula score da conexao via Equacao MCR
+            try:
+                from mcr.equacao_mcr import calcular_ponte
+                # Divergencia: quao diferentes sao os conceitos
+                tokens_a = set(palavras[0]) if palavras else set()
+                tokens_b = set(palavras[1]) if len(palavras) > 1 else set()
+                divergencia = 1.0 - len(tokens_a & tokens_b) / max(len(tokens_a | tokens_b), 1)
+                # Especificidade: quao raros sao no coupling
+                dist_a = self._coupling._palavra_acao.get(palavras[0], {})
+                dist_b = self._coupling._palavra_acao.get(palavras[1], {})
+                freq_a = sum(dist_a.values()) / max(self._coupling._total, 1)
+                freq_b = sum(dist_b.values()) / max(self._coupling._total, 1)
+                especificidade = 1.0 - (freq_a + freq_b) / 2
+                # Profundidade: entropia dos conceitos no Markov
+                from math import log2
+                h_a = len(dist_a) / max(len(self._coupling._palavra_acao), 1)
+                h_b = len(dist_b) / max(len(self._coupling._palavra_acao), 1)
+                profundidade = (h_a + h_b) / 2
+                score_ponte = calcular_ponte(divergencia, especificidade, profundidade)
+                resultado['score_ponte'] = round(score_ponte, 3)
+            except Exception:
+                pass
+            
+            return resultado
         wrappers['conectar'] = _conectar
 
         def _aprender(entrada="", texto="", **kw):
@@ -1199,6 +1239,40 @@ class MCR:
 
         # ─── Observador Universal (auto-observação contínua) ──
         self._alimentar_observador(entrada, acao, resultado)
+
+        # ─── Conexao + Bridge: enriquece resultado com pontes cross-domain ──
+        # Se o input contem palavras de multiplos dominios, encontra analogias
+        if nota > self._th('bridge_nota_min', 0.3):
+            try:
+                palavras_input = _re.findall(r'[a-z\xc3-\xff]{3,}', entrada.lower())
+                # Verifica se palavras pertencem a acoes diferentes no coupling
+                acoes_palavras = set()
+                for p in set(palavras_input):
+                    dist = self._coupling._palavra_acao.get(p, {})
+                    if dist:
+                        acoes_palavras.update(dist.keys())
+                # Se 2+ acoes diferentes no mesmo input = cross-domain
+                if len(acoes_palavras) >= 2:
+                    bridge = self._lazy('_bridge', 'mcr.bridge.MCRBridge')
+                    if bridge and len(palavras_input) >= 2:
+                        # Analogia: conceito_a -> conceito_b no dominio X
+                        # vs conceito_c -> conceito_d no dominio Y
+                        if len(palavras_input) >= 4:
+                            ana = bridge.analogia(
+                                palavras_input[0], palavras_input[1],
+                                palavras_input[2], palavras_input[3])
+                            if ana.get('analogo'):
+                                resultado['_analogia'] = ana
+                    # Conexao: encontra palavra-ponte entre os dominios
+                    conexao = self._lazy('_conexao', 'mcr.conexao.MCRConexao')
+                    if conexao and len(palavras_input) >= 2:
+                        ponte = conexao.conectar(
+                            self.mk_palavra, self.mk,
+                            palavras_input[0], palavras_input[1])
+                        if ponte:
+                            resultado['_ponte_dominios'] = ponte
+            except Exception:
+                pass
 
         # ─── Atualiza contexto de conversa ──
         self._ultima_interacao = time.time()
