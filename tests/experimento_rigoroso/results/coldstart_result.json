@@ -1,28 +1,28 @@
 {
   "coldstart": true,
   "sem_llm": true,
-  "rodada_1": 98.8,
-  "rodada_1b": 99.3,
+  "rodada_1": 98.6,
+  "rodada_1b": 99.1,
   "rodada_2": 100.0,
   "melhoria_1b": 0.5,
-  "melhoria_2": 1.2,
+  "melhoria_2": 1.4,
   "persistencia_ok": true,
-  "mk_estados": 100,
-  "mk_transicoes": 126,
+  "mk_estados": 102,
+  "mk_transicoes": 135,
   "por_acao": {
-    "aprender": {
+    "analisar": {
       "r1": 100.0,
+      "r2": 100.0
+    },
+    "buscar": {
+      "r1": 100.0,
+      "r2": 100.0
+    },
+    "responder": {
+      "r1": 93.8,
       "r2": 100.0
     },
     "editar": {
-      "r1": 100.0,
-      "r2": 100.0
-    },
-    "conectar": {
-      "r1": 100.0,
-      "r2": 100.0
-    },
-    "analisar": {
       "r1": 100.0,
       "r2": 100.0
     },
@@ -34,15 +34,15 @@
       "r1": 99.7,
       "r2": 100.0
     },
-    "responder": {
-      "r1": 94.7,
-      "r2": 100.0
-    },
-    "buscar": {
+    "aprender": {
       "r1": 100.0,
       "r2": 100.0
     },
     "validar": {
+      "r1": 100.0,
+      "r2": 100.0
+    },
+    "conectar": {
       "r1": 100.0,
       "r2": 100.0
     }

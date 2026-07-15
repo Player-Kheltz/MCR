@@ -1,11 +1,6 @@
 {
   "metadata": {
-    "timestamp": "2026-07-14 17:47:41",
-    "total_padroes": 1,
-    "tipos": {
-      "npc": 1,
-      "total": 1
-    }
+    "total": 2
   },
   "padroes": [
     {
@@ -40,6 +35,16 @@
       "funcoes": [],
       "tabelas": [],
       "tamanho_linhas": 66
+    },
+    {
+      "timestamp": "2026-07-15 15:17:30",
+      "arquivo": "E:\\MCR\\server\\data\\scripts\\lib\\defaults_move_event.lua",
+      "linguagem": "lua",
+      "tipo": "generic",
+      "api_calls": [],
+      "variaveis": [],
+      "tamanho_linhas": 26,
+      "estudado_por": "auto_curiosidade_mcr_meta"
     }
   ]
 }

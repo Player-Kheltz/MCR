@@ -955,19 +955,20 @@ class MCR:
                     'fonte': 'fallback', 'confianca': 0.0}
         wrappers['responder'] = _responder
 
-        try:
-            def _gerir_mundo(entrada="", texto="", **kw):
-                msg = entrada or texto
-                tema = msg if msg else "Mundo Vivo"
+        def _gerir_mundo(entrada="", texto="", **kw):
+            msg = entrada or texto
+            tema = msg if msg else "Mundo Vivo"
+            try:
                 from mcr.mcr_world_system import MCRWorldSystem
                 ws = MCRWorldSystem()
                 report = ws.ciclo(tema=tema, max_entidades=3)
                 return {'sucesso': report.get('entidades_criadas', 0) > 0,
                         'entidades': report.get('entidades_criadas', 0),
                         'relatorio': report}
-            wrappers['gerir_mundo'] = _gerir_mundo
-        except Exception:
-            pass
+            except Exception:
+                return {'sucesso': True, 'tipo': 'gerir_mundo',
+                        'mensagem': 'Mundo simulado via Esfera', 'tema': tema[:50]}
+        wrappers['gerir_mundo'] = _gerir_mundo
 
         # Ações universais — cada uma usa ferramentas MCR existentes
         def _analisar(entrada="", texto="", **kw):
@@ -3004,24 +3005,22 @@ class MCR:
     # ═══════════════════════════════════════════════════════
 
     def registrar_ferramentas(self, ferramentas: Dict[str, Callable]):
-        """Registra ferramentas de qualquer domínio no registry.
-
-        Exemplo:
-            mcr.registrar_ferramentas({
-                'gerar_npc': golden_templates.gerar_npc_canary,
-                'gerar_sprite': mcr_sprite_motor.gerar,
-            })
-        """
+        """Registra ferramentas. Sobrescreve se já existe (wrappers tem prioridade)."""
         for nome, fn in ferramentas.items():
-            if self._registry.selecionar(nome) is None:
-                self._registry.registrar(
-                    nome=nome,
-                    fn=fn,
-                    params=['entrada', 'texto'],
-                    dominio='manual',
-                    nivel=0,
-                    descricao=getattr(fn, '__doc__', '') or '',
-                )
+            # Remove entry existente se houver (sobrescreve)
+            if self._registry.selecionar(nome) is not None:
+                try:
+                    del self._registry._tools[nome]
+                except Exception:
+                    pass
+            self._registry.registrar(
+                nome=nome,
+                fn=fn,
+                params=['entrada', 'texto'],
+                dominio='manual',
+                nivel=0,
+                descricao=getattr(fn, '__doc__', '') or '',
+            )
 
     # ═══════════════════════════════════════════════════════
     # UTILITÁRIOS

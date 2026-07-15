@@ -151,15 +151,19 @@ class MCRMeta:
             variaveis = p.get('variaveis', [])
             arquivo = Path(p.get('arquivo', '')).stem
 
+            # Calcula componentes individualmente
+            div = len(set(api_calls)) / max(len(api_calls), 1) if api_calls else 0.0
+            espec = len(set(variaveis)) / max(len(variaveis), 1) if variaveis else 0.3
+            prof = min(1.0, p.get('tamanho_linhas', 50) / 200.0)
             nota = MCRMeta._calcular_ponte_otima(
                 api_calls, variaveis, p.get('tamanho_linhas', 50))
 
             topicos[arquivo] = {
                 'arquivo': p.get('arquivo', ''),
                 'tipo': tipo,
-                'divergencia': round(divergencia, 3),
-                'especificidade': round(especificidade, 3),
-                'profundidade': round(profundidade, 3),
+                'divergencia': round(div, 3),
+                'especificidade': round(espec, 3),
+                'profundidade': round(prof, 3),
                 'nota': nota,
                 'api_calls': api_calls[:5],
             }
