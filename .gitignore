@@ -101,9 +101,6 @@ mcr_devia_v2.py
 mundo_tibia.py
 npc_vivo.py
 percepcao.py
-rede_npcs.py
-hdc_core.py
-sdm_core.py
 fix_mcr_devia_v2.py
 
 # C# script artifacts
