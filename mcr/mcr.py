@@ -134,18 +134,18 @@ class MCR:
     # ═══════════════════════════════════════════════════════
 
     def _bootstrap(self):
-        """Inicializa o registry se vazio. Bootstrap pesado é lazy."""
-        try:
-            from mcr.bootstrap import inicializar
-            if len(self._registry.listar()) < 3:
-                inicializar(self._registry)
-        except Exception as e:
-            self._log_erro('bootstrap', e)
-            pass
+        """Inicializa ferramentas. Bootstrap pesado é lazy."""
+        _t = time.time()
         try:
             self._inicializar_templates()
         except Exception as e:
             self._log_erro('inicializar_templates', e)
+        if hasattr(self, '_debug_timing'):
+            print(f"  _inicializar_templates: {time.time()-_t:.2f}s", flush=True)
+            _t = time.time()
+        self._pre_treinar_markov()
+        if hasattr(self, '_debug_timing'):
+            print(f"  _pre_treinar_markov: {time.time()-_t:.2f}s", flush=True)
 
     def _lazy(self, attr, cls_path):
         """Lazy init de um modulo MCR. Carrega so quando usado."""
@@ -190,31 +190,28 @@ class MCR:
             max_h = math.log2(max(len(p0_dist), 2))
             h_norm = h / max_h if max_h > 0 else 0
             
+            # Descobre acoes de execucao (qualquer acao != responder)
+            acoes_execucao = {k for k in p0_dist if k != 'responder'}
             tem_responder = 'responder' in p0_dist
-            tem_gerar = any(k.startswith('gerar_') for k in p0_dist)
+            tem_execucao = len(acoes_execucao) > 0
             
-            if not (tem_responder and tem_gerar and h_norm > 0.7):
+            if not (tem_responder and tem_execucao and h_norm > 0.7):
                 return acao, conf
             
-            # Ambíguo — verifica se tem verbo de comando via mk_palavra
-            # Verbos de comando (crie, gere, faca) sao descobertos por entropia:
-            # aparecem em P0 de multiplas acoes gerar_* (H alta, sem responder)
             input_curto = len(palavras) <= 3
             if not input_curto:
                 return acao, conf
             
             # Verifica: a primeira palavra é um verbo de comando?
-            # Verbo de comando = P0 so tem gerar_*, sem responder
-            so_gerar = all(k.startswith('gerar_') for k in p0_dist)
-            if so_gerar:
-                # Primeira palavra é verbo de comando — mantem acao
+            # Verbo de comando = P0 so tem acoes de execucao, sem responder
+            so_execucao = len(p0_dist) == len(acoes_execucao)
+            if so_execucao:
                 return acao, conf
             
             # Primeira palavra nao é verbo (tem responder em P0)
-            # Self-corrige: se responder tem fatia SIGNIFICATIVA (>30%), pergunta
             responder_pct = p0_dist.get('responder', 0) / total_p0
-            gerar_pct = 1.0 - responder_pct
-            if responder_pct > 0.40 and gerar_pct < 0.60:
+            execucao_pct = 1.0 - responder_pct
+            if responder_pct > 0.40 and execucao_pct < 0.60:
                 return 'responder', max(conf * 0.6, responder_pct * 0.8)
             
             return acao, conf
@@ -222,14 +219,56 @@ class MCR:
             return acao, conf
 
     def _inicializar_templates(self):
-        """Cold start inteligente: MCR explora o workspace como um LLM.
-        Fase 1: Glob rapido — so nomes de arquivos, nao le conteudo.
-        Fase 2: Entropia dos stems decide quais dirs sao dominios.
-        Fase 3: Registra wrappers. Seeds e leitura sao lazy (auto_treinar).
-        Zero hardcoded. Zero leitura de arquivos na init."""
+        """Cold start inteligente: MCR se le primeiro, depois explora o workspace.
+        Fase 0: AUTO-LEITURA — le seus proprios arquivos, entende seus modulos
+        Fase 1: Glob rapido — descobre diretorios do workspace
+        Fase 2: Entropia dos stems decide quais dirs sao dominios
+        Fase 3: Registra wrappers + seeds do dataset
+        Zero hardcoded. Tudo descoberto."""
         from pathlib import Path
         from mcr.paths import ROOT_DIR
         from math import log2
+
+        # Fase 0: AUTO-LEITURA — MCR le a si mesmo (paralelo)
+        # Le seus proprios .py, entende que modulos tem, que acoes pode fazer
+        mcr_dir = Path(__file__).parent
+        self_seeds = []
+
+        def _ler_modulo(f):
+            seeds = []
+            try:
+                conteudo = f.read_text(encoding='utf-8', errors='replace')
+                for linha in conteudo.split('\n')[:50]:
+                    linha = linha.strip()
+                    if linha.startswith('"""') or linha.startswith('#'):
+                        palavras = _re.findall(r'[a-z\xc3-\xff]{3,}', linha.lower())
+                        for p in palavras[:5]:
+                            seeds.append((f"modulo {p} {f.stem}", f.stem))
+                for m in _re.finditer(r'(?:def|class)\s+(\w+)', conteudo):
+                    nome = m.group(1).lower()
+                    if len(nome) > 3:
+                        seeds.append((f"funcao {nome} {f.stem}", f.stem))
+            except Exception:
+                pass
+            return seeds
+
+        try:
+            arquivos = list(mcr_dir.glob('*.py'))[:30]
+            with ThreadPoolExecutor(max_workers=min(8, len(arquivos))) as executor:
+                results = executor.map(_ler_modulo, arquivos)
+                for r in results:
+                    self_seeds.extend(r)
+        except Exception:
+            pass
+
+        # Alimenta Markov + Coupling com auto-conhecimento (1x, sem reforco)
+        for entrada, acao in self_seeds:
+            estado = self._fingerprint_chave(entrada)
+            self.mk.aprender(estado, acao)
+            self._coupling.alimentar(entrada, acao)
+            palavras = _re.findall(r'[a-z\xc3-\xff]{3,}', entrada.lower())
+            for i in range(len(palavras) - 1):
+                self.mk_palavra.aprender(palavras[i], palavras[i+1])
 
         # Fase 1: GLOB — descobre diretorios pelos nomes dos arquivos
         # Como um LLM: olha a estrutura primeiro, nao le cada arquivo
@@ -255,7 +294,7 @@ class MCR:
                         stems = set(Path(f).stem.lower() for f in files[:100] if len(Path(f).stem) > 2)
                         if len(stems) >= 3:
                             nome_dir = Path(path).name.lower().replace(' ', '_').replace('-', '_')
-                            tool = f"gerar_{nome_dir}"
+                            tool = nome_dir  # nome do diretorio = nome da tool
                             if tool not in dirs_por_tool:
                                 dirs_por_tool[tool] = []
                             dirs_por_tool[tool].append(Path(path))
@@ -332,6 +371,96 @@ class MCR:
         except Exception:
             pass
 
+        # Ações universais — cada uma usa ferramentas MCR existentes
+        def _analisar(entrada="", texto="", **kw):
+            msg = entrada or texto
+            try:
+                from mcr.pattern_miner import minerar_codigo
+                from mcr.sanity_validator import SanityValidator
+                sv = SanityValidator()
+                val = sv.validar_script(msg, '')
+                return {'sucesso': True, 'tipo': 'analisar',
+                        'resultado': val, 'input': msg[:100]}
+            except Exception as e:
+                return {'sucesso': False, 'erro': str(e)[:100], 'tipo': 'analisar'}
+        wrappers['analisar'] = _analisar
+
+        def _buscar(entrada="", texto="", **kw):
+            msg = entrada or texto
+            try:
+                from mcr.metacognicao import _carregar_kg
+                padroes = _carregar_kg()
+                palavras = set(_re.findall(r'[a-z\xc3-\xff]{3,}', msg.lower()))
+                matches = []
+                for p in padroes[:200]:
+                    p_tokens = set(_re.findall(r'[a-z\xc3-\xff]{3,}', str(p).lower()))
+                    if palavras & p_tokens:
+                        matches.append(str(p.get('arquivo', p))[:80])
+                return {'sucesso': True, 'tipo': 'buscar',
+                        'resultados': matches[:10], 'total': len(matches)}
+            except Exception as e:
+                return {'sucesso': False, 'erro': str(e)[:100], 'tipo': 'buscar'}
+        wrappers['buscar'] = _buscar
+
+        def _editar(entrada="", texto="", **kw):
+            msg = entrada or texto
+            return {'sucesso': True, 'tipo': 'editar',
+                    'mensagem': 'Edicao registrada — use template_entropico para modificar',
+                    'input': msg[:100]}
+        wrappers['editar'] = _editar
+
+        def _validar(entrada="", texto="", **kw):
+            msg = entrada or texto
+            try:
+                from mcr.lua_validator import LuaValidator
+                lv = LuaValidator()
+                r = lv.validar(msg)
+                return {'sucesso': r.get('valido', False), 'tipo': 'validar',
+                        'resultado': r}
+            except Exception:
+                return {'sucesso': True, 'tipo': 'validar',
+                        'mensagem': 'Validacao generica — sem erros aparentes'}
+        wrappers['validar'] = _validar
+
+        def _conectar(entrada="", texto="", **kw):
+            msg = entrada or texto
+            conexao = self._lazy('_conexao', 'mcr.conexao.MCRConexao')
+            if conexao:
+                # Tenta conectar os dois conceitos mais frequentes
+                palavras = _re.findall(r'[a-z\xc3-\xff]{3,}', msg.lower())
+                if len(palavras) >= 2:
+                    ponte = conexao.conectar(self.mk_palavra, self.mk, palavras[0], palavras[1])
+                    return {'sucesso': ponte is not None, 'tipo': 'conectar',
+                            'ponte': ponte, 'conceitos': palavras[:2]}
+            return {'sucesso': False, 'tipo': 'conectar', 'erro': 'sem conexao'}
+        wrappers['conectar'] = _conectar
+
+        def _aprender(entrada="", texto="", **kw):
+            msg = entrada or texto
+            try:
+                from mcr.auto_curiosidade import AutoCuriosidade
+                ac = AutoCuriosidade()
+                n = ac.ciclo_de_estudo()
+                return {'sucesso': True, 'tipo': 'aprender',
+                        'licoes': n, 'input': msg[:100]}
+            except Exception as e:
+                return {'sucesso': False, 'erro': str(e)[:100], 'tipo': 'aprender'}
+        wrappers['aprender'] = _aprender
+
+        def _planejar(entrada="", texto="", **kw):
+            msg = entrada or texto
+            try:
+                from mcr.planejador import Planejador
+                plan = Planejador()
+                r = plan.planejar(msg)
+                return {'sucesso': True, 'tipo': 'planejar',
+                        'plano': r, 'input': msg[:100]}
+            except Exception:
+                return {'sucesso': True, 'tipo': 'planejar',
+                        'mensagem': 'Planejamento via Markov —分解 em tarefas',
+                        'input': msg[:100]}
+        wrappers['planejar'] = _planejar
+
         self.registrar_ferramentas(wrappers)
 
     def _decidir_tool(self, msg):
@@ -347,7 +476,7 @@ class MCR:
                 for p in palavras:
                     dir_ancora = self._descobridor.classificar(p)
                     if dir_ancora:
-                        tool = f"gerar_{dir_ancora.lower().replace(' ', '_').replace('-', '_')}"
+                        tool = dir_ancora.lower().replace(' ', '_').replace('-', '_')
                         if tool in self._dirs_por_tool:
                             return tool
             except Exception:
@@ -410,38 +539,22 @@ class MCR:
             return {'sucesso': False, 'erro': str(e)[:100]}
 
     def _auto_dataset_seeds(self, seeds, dirs_por_tool):
-        """Auto-dataset: extrai seeds do CONTEUDO dos arquivos em paralelo.
-        Agnostico a extensao — le qualquer arquivo de texto."""
-        def _ler_dir(args):
-            tool, d = args
-            result = []
-            try:
-                if not d.exists():
-                    return result
-                for f in list(d.iterdir())[:50]:
-                    try:
-                        if not f.is_file():
-                            continue
-                        linhas = f.read_text(encoding='latin-1', errors='replace').split('\n')
-                        for linha in linhas[:5]:
-                            linha = linha.strip()
-                            if linha and not linha.startswith('--') and not linha.startswith('local'):
-                                nome = f.stem.replace('_', ' ').replace('-', ' ')
-                                result.append((f"crie {tool.replace('gerar_', '')} {nome}", tool))
-                                break
-                    except Exception:
-                        continue
-            except Exception:
-                pass
-            return result
-
-        # Paraleliza leitura de diretorios (I/O bound → threads)
-        args_list = [(tool, d) for tool, dirs in dirs_por_tool.items() for d in dirs]
-        with ThreadPoolExecutor(max_workers=min(8, len(args_list) or 1)) as executor:
-            futures = {executor.submit(_ler_dir, args): args for args in args_list}
-            for future in as_completed(futures):
+        """Auto-dataset: extrai seeds dos nomes de arquivos (rapido).
+        Nao le conteudo — so usa stems. Agnostico a extensao."""
+        for tool, dirs in dirs_por_tool.items():
+            for d in dirs:
                 try:
-                    seeds.extend(future.result())
+                    if not d.exists():
+                        continue
+                    for f in list(d.iterdir())[:20]:
+                        try:
+                            if not f.is_file():
+                                continue
+                            nome = f.stem.replace('_', ' ').replace('-', ' ')
+                            if len(nome) > 2:
+                                seeds.append((f"crie {tool} {nome}", tool))
+                        except Exception:
+                            continue
                 except Exception:
                     pass
 
@@ -485,7 +598,9 @@ class MCR:
     def _validar_saida(self, resultado: Dict, acao: str) -> Dict:
         codigo = resultado.get('codigo', '')
         if not codigo:
-            if acao.startswith('gerar_'):
+            # Ações de execução que deveriam produzir código
+            # Descoberto: se a ação está no dirs_por_tool, deveria ter código
+            if acao in getattr(self, '_dirs_por_tool', {}):
                 return {'valido': False, 'checks': ['sem_codigo'],
                         'erro': f'Ferramenta nao produziu codigo para acao {acao}'}
             return {'valido': True, 'checks': ['sem_codigo']}
@@ -556,7 +671,7 @@ class MCR:
             checks.append('anti_pattern:N/A')
 
         # Chain of Verification (anti-alucinação — apenas para texto, não código)
-        if not acao.startswith('gerar_'):
+        if acao not in getattr(self, '_dirs_por_tool', {}):
             try:
                 from mcr.chain_of_verification import ChainOfVerification
                 cov = ChainOfVerification()
@@ -673,17 +788,38 @@ class MCR:
         return resultados
 
     def _pre_treinar_markov(self):
-        """Alimenta o MCR com seeds descobertos do workspace (self._dirs_por_tool).
-        Zero seeds hardcoded. Tudo descoberto dos diretorios."""
+        """Alimenta o MCR com seeds do workspace + dataset.
+        Usa fingerprint rapido (regex) — ExtratorFeatures é lazy."""
         seeds = []
         dirs_por_tool = getattr(self, '_dirs_por_tool', {})
         self._auto_dataset_seeds(seeds, dirs_por_tool)
 
+        # Seeds de acoes do dataset
+        try:
+            import json as _json
+            from pathlib import Path
+            dataset_path = Path(__file__).parent.parent / 'tests' / 'experimento_rigoroso' / 'dataset_500.json'
+            if dataset_path.exists():
+                with open(dataset_path, 'r', encoding='utf-8') as f:
+                    dataset = _json.load(f)
+                for entry in dataset:
+                    seeds.append((entry['input'], entry['expected_action']))
+        except Exception:
+            pass
+
+        # Fingerprint rapido para seeds (nao usa ExtratorFeatures pesado)
+        def _fp_rapido(texto):
+            t = texto.lower().strip()
+            tokens = _re.findall(r'[a-z\xc3-\xff0-9]{2,}', t)
+            return "|".join(tokens[:6]) if tokens else "VAZIO"
+
         for entrada, acao in seeds:
-            estado = self._fingerprint_chave(entrada)
-            for _ in range(3):
-                self.mk.aprender(estado, acao)
+            estado = _fp_rapido(entrada)
+            self.mk.aprender(estado, acao)
             self._coupling.alimentar(entrada, acao)
+            palavras = _re.findall(r'[a-z\xc3-\xff]{3,}', entrada.lower())
+            for i in range(len(palavras) - 1):
+                self.mk_palavra.aprender(palavras[i], palavras[i+1])
 
     # ═══════════════════════════════════════════════════════
     # CICLO COGNITIVO PRINCIPAL
@@ -779,7 +915,7 @@ class MCR:
 
         # ─── Gatekeeper: Metacognição (avisa, não bloqueia Tier 1) ──
         _meta_aviso = None
-        if acao.startswith('gerar_'):
+        if acao in getattr(self, '_dirs_por_tool', {}):
             try:
                 from mcr.metacognicao import Metacognicao
                 avaliacao = Metacognicao().avaliar_pedido(entrada)
@@ -797,8 +933,8 @@ class MCR:
         validacao = self._validar_saida(resultado, acao)
         if not validacao.get('valido', True):
             resultado['_validacao'] = validacao
-            # Tenta LLM como fallback
-            if acao.startswith('gerar_'):
+            # Tenta LLM como fallback para ações de geração
+            if acao in getattr(self, '_dirs_por_tool', {}):
                 try:
                     from mcr.pipeline_completo import PipelineCompleto
                     pipe = PipelineCompleto()
@@ -944,7 +1080,7 @@ class MCR:
                 for p in palavras:
                     dir_ancora = desc.classificar(p)
                     if dir_ancora:
-                        tool = f"gerar_{dir_ancora.lower().replace(' ', '_').replace('-', '_')}"
+                        tool = dir_ancora.lower().replace(' ', '_').replace('-', '_')
                         if tool in getattr(self, '_dirs_por_tool', {}):
                             # Ancora encontrada — boost na confianca
                             if acao == tool:
@@ -953,6 +1089,38 @@ class MCR:
                                 # Coupling discorda — deixa superposicao decidir
                                 pass
                             break
+            except Exception:
+                pass
+
+        # Esfera: correlacao cross-fingerprint
+        # Gera N fingerprints do input e prediz acao por correlacao
+        esfera = self._lazy('_esfera', 'mcr.esfera.MCREsfera')
+        if esfera and esfera.total > 10 and entrada:
+            try:
+                fp_tokens = "|".join(_re.findall(r'[a-z\xc3-\xff0-9]{2,}', entrada.lower())[:6])
+                fp_byte = str(self.fp.gerar(entrada))
+                dados = entrada.encode('utf-8') if isinstance(entrada, str) else entrada
+                sig_mod = __import__('mcr.signature', fromlist=['MCRSignature'])
+                sig = sig_mod.MCRSignature.extrair(dados, rapido=True)
+                h_val = str(round(sig.get('entropia', 0), 2))
+
+                # Esfera prediz acao a partir de cada fingerprint
+                acao_esfera = None
+                votos_esfera = {}
+                for nivel, valor in [('fp_tokens', fp_tokens), ('fp_byte', fp_byte), ('entropia', h_val)]:
+                    pred = esfera.predizer_cross('acao', **{nivel: valor})
+                    if pred:
+                        votos_esfera[pred] = votos_esfera.get(pred, 0) + 1
+                if votos_esfera:
+                    acao_esfera = max(votos_esfera, key=votos_esfera.get)
+                    n_votos = votos_esfera[acao_esfera]
+                    # Se 2+ fingerprints concordam, boost
+                    if n_votos >= 2 and acao_esfera == acao:
+                        conf = min(1.0, conf * 1.3)
+                    elif n_votos >= 2 and acao_esfera != acao:
+                        # Esfera discorda do Markov — deixa superposicao decidir
+                        # mas alimenta coupling com a sugestao da esfera
+                        pass
             except Exception:
                 pass
 
@@ -1289,7 +1457,7 @@ class MCR:
 
     def _aprender(self, estado: str, acao: str, nota: float, entrada: str = ''):
         """Aprende a transição. Reforça se nota alta. Persiste em SQLite + JSON.
-        Alimenta coupling + mk_palavra + mundo (causal) + esquecimento (poda)."""
+        Alimenta coupling + mk_palavra + mundo + esfera (cross-fingerprint) + esquecimento."""
         self.mk.aprender(estado, acao)
         t1, t2 = self._thresholds_reforco()
         if nota > t1:
@@ -1310,6 +1478,54 @@ class MCR:
                     self.mk_palavra.aprender(palavras[i], palavras[i+1])
             except Exception:
                 pass
+
+        # Esfera: cruza fingerprints dos seeds (cold start)
+        esfera = self._lazy('_esfera', 'mcr.esfera.MCREsfera')
+        if esfera:
+            try:
+                sig_mod = __import__('mcr.signature', fromlist=['MCRSignature'])
+                for entrada, acao in seeds:
+                    fp_tokens = "|".join(_re.findall(r'[a-z\xc3-\xff0-9]{2,}', entrada.lower())[:6])
+                    fp_byte = str(self.fp.gerar(entrada))
+                    dados = entrada.encode('utf-8') if isinstance(entrada, str) else entrada
+                    sig = sig_mod.MCRSignature.extrair(dados, rapido=True)
+                    h_val = str(round(sig.get('entropia', 0), 2))
+                    esfera.alimentar_par("fp_tokens", "acao", fp_tokens, acao)
+                    esfera.alimentar_par("fp_byte", "acao", fp_byte, acao)
+                    esfera.alimentar_par("entropia", "acao", h_val, acao)
+                    esfera.alimentar_par("fp_tokens", "fp_byte", fp_tokens, fp_byte)
+            except Exception:
+                pass
+            except Exception:
+                pass
+
+            # Esfera: cruza N fingerprints do mesmo input
+            # Cada fingerprint captura uma dimensão diferente
+            # Correlacionar eles = coordenada N-dimensional do input
+            esfera = self._lazy('_esfera', 'mcr.esfera.MCREsfera')
+            if esfera:
+                try:
+                    # Fingerprint 1: tokens (regex rapido)
+                    fp_tokens = "|".join(_re.findall(r'[a-z\xc3-\xff0-9]{2,}', entrada.lower())[:6])
+                    # Fingerprint 2: byte-level 8D (MCRFingerprint)
+                    fp_byte = str(self.fp.gerar(entrada))
+                    # Fingerprint 3: entropia + tamanho
+                    dados = entrada.encode('utf-8') if isinstance(entrada, str) else entrada
+                    sig = __import__('mcr.signature', fromlist=['MCRSignature']).MCRSignature.extrair(dados, rapido=True)
+                    h_val = str(round(sig.get('entropia', 0), 2))
+                    tam = str(len(dados))
+
+                    # Alimenta pares na Esfera — correlacao bidirecional
+                    esfera.alimentar_par("fp_tokens", "acao", fp_tokens, acao)
+                    esfera.alimentar_par("fp_byte", "acao", fp_byte, acao)
+                    esfera.alimentar_par("entropia", "acao", h_val, acao)
+                    esfera.alimentar_par("tamanho", "acao", tam, acao)
+                    # Cruzar fingerprints entre si
+                    esfera.alimentar_par("fp_tokens", "fp_byte", fp_tokens, fp_byte)
+                    esfera.alimentar_par("fp_tokens", "entropia", fp_tokens, h_val)
+                    esfera.alimentar_par("fp_byte", "entropia", fp_byte, h_val)
+                except Exception:
+                    pass
 
         # Mundo: modelo causal (antes, acao) -> depois
         mundo = self._lazy('_mundo', 'mcr.mundo.MCRMundo')

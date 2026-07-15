@@ -223,8 +223,8 @@ print(f'  Rodada 1 (cold start):  {acc_1:.1f}%')
 print(f'  Rodada 1b (pós-treino): {acc_1b:.1f}%  (+{acc_1b-acc_1:+.1f}pp)')
 print(f'  Rodada 2 (novo MCR):    {acc_2:.1f}%  (+{acc_2-acc_1:+.1f}pp)')
 print(f'  Persistência:           {"OK" if persistiu else "FALHOU"}')
-print(f'  MK: {s0["mk_estados"]}→{s1["mk_estados"]} estados, '
-      f'{s0["mk_transicoes"]}→{s1["mk_transicoes"]} transições')
+print(f'  MK: {s0["mk_estados"]}->{s1["mk_estados"]} estados, '
+      f'{s0["mk_transicoes"]}->{s1["mk_transicoes"]} transicoes')
 print(f'  LLM usado: NÃO')
 print('=' * 65)
 

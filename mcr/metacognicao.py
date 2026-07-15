@@ -92,17 +92,8 @@ def _descobrir_sinonimos():
     return 0.70
 _MCR_THRESHOLD = None
 try:
-    import sys as _sys
-    from pathlib import Path as _Path
-    import MCR as _M
-    if not hasattr(_M, 'MCRBridge'):
-        class _MB:
-            def __init__(self): self._descobriu = True
-            def descobrir(self): return {'modulos': 48, 'comandos': 52}
-        _M.MCRBridge = _MB
-    from MCR import MCRThreshold
+    from mcr.decisor import MCRThreshold
     _MCR_THRESHOLD = MCRThreshold('metacognicao')
-    # Alimenta com observacoes iniciais para calibrar
     _MCR_THRESHOLD.observar(0.70)
     _MCR_THRESHOLD.observar(0.75)
     _MCR_THRESHOLD.observar(0.65)

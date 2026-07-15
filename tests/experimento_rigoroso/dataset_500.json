@@ -6378,5 +6378,845 @@
       "items": [],
       "has_shop": false
     }
+  },
+  {
+    "id": 500,
+    "input": "analise o codigo do npc ferreiro",
+    "expected_action": "analisar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "analise codigo",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 501,
+    "input": "analise este script lua",
+    "expected_action": "analisar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "analise script",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 502,
+    "input": "analise a estrutura do monstro",
+    "expected_action": "analisar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "analise estrutura",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 503,
+    "input": "analise o projeto completo",
+    "expected_action": "analisar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "analise projeto",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 504,
+    "input": "analise o sprite de espada",
+    "expected_action": "analisar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "analise sprite",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 505,
+    "input": "analise o que esta errado no codigo",
+    "expected_action": "analisar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "analise erro",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 506,
+    "input": "analise a quest de tibia",
+    "expected_action": "analisar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "analise quest",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 507,
+    "input": "analise os dialogos do npc",
+    "expected_action": "analisar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "analise dialogos",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 508,
+    "input": "analise o items.xml",
+    "expected_action": "analisar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "analise items",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 509,
+    "input": "analise o balanceamento do servidor",
+    "expected_action": "analisar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "analise balanceamento",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 510,
+    "input": "busque por ferreiro no codigo",
+    "expected_action": "buscar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "buscar ferreiro",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 511,
+    "input": "busque todos os npcs que vendem armas",
+    "expected_action": "buscar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "buscar npcs armas",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 512,
+    "input": "busque arquivos lua no servidor",
+    "expected_action": "buscar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "buscar lua",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 513,
+    "input": "busque o monstro dragao",
+    "expected_action": "buscar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "buscar dragao",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 514,
+    "input": "busque onde fica o npc mago",
+    "expected_action": "buscar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "buscar mago",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 515,
+    "input": "busque por quests de nivel alto",
+    "expected_action": "buscar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "buscar quests",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 516,
+    "input": "busque sprites de escudo",
+    "expected_action": "buscar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "buscar sprites",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 517,
+    "input": "busque itens de cura no items.xml",
+    "expected_action": "buscar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "buscar itens cura",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 518,
+    "input": "busque funcoes que usam npcHandler",
+    "expected_action": "buscar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "buscar funcoes",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 519,
+    "input": "busque o id do item espada",
+    "expected_action": "buscar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "buscar id espada",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 520,
+    "input": "edite o arquivo npc ferreiro",
+    "expected_action": "editar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "editar npc",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 521,
+    "input": "edite o monstro dragao para ter mais vida",
+    "expected_action": "editar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "editar monstro vida",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 522,
+    "input": "edite o dialogo do npc mago",
+    "expected_action": "editar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "editar dialogo",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 523,
+    "input": "edite a quest para dar mais experiencia",
+    "expected_action": "editar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "editar quest",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 524,
+    "input": "edite o loot do monstro goblin",
+    "expected_action": "editar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "editar loot",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 525,
+    "input": "edite o looktype do npc vendedor",
+    "expected_action": "editar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "editar looktype",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 526,
+    "input": "edite o script lua do guard",
+    "expected_action": "editar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "editar script",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 527,
+    "input": "edite as coordenadas do npc",
+    "expected_action": "editar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "editar coordenadas",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 528,
+    "input": "edite o shop do npc para vender espadas",
+    "expected_action": "editar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "editar shop",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 529,
+    "input": "edite o nome do monstro para demonio",
+    "expected_action": "editar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "editar nome",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 530,
+    "input": "valide o codigo lua do npc",
+    "expected_action": "validar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "validar lua npc",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 531,
+    "input": "valide o script do monstro",
+    "expected_action": "validar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "validar monstro",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 532,
+    "input": "valide a sintaxe do codigo",
+    "expected_action": "validar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "validar sintaxe",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 533,
+    "input": "valide o npc antes de salvar",
+    "expected_action": "validar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "validar npc",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 534,
+    "input": "valide as apis do script",
+    "expected_action": "validar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "validar apis",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 535,
+    "input": "valide o quest script",
+    "expected_action": "validar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "validar quest",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 536,
+    "input": "valide se o codigo esta correto",
+    "expected_action": "validar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "validar correto",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 537,
+    "input": "valide o shadow do script lua",
+    "expected_action": "validar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "validar shadow",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 538,
+    "input": "valide a estrutura do monstro",
+    "expected_action": "validar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "validar estrutura",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 539,
+    "input": "valide o npc gerado",
+    "expected_action": "validar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "validar gerado",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 540,
+    "input": "conecte npc e monstro",
+    "expected_action": "conectar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "conectar npc monstro",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 541,
+    "input": "conecte o conceito de magia com sprite",
+    "expected_action": "conectar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "conectar magia sprite",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 542,
+    "input": "conecte ferreiro e espada",
+    "expected_action": "conectar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "conectar ferreiro espada",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 543,
+    "input": "conecte os dominios de npc e quest",
+    "expected_action": "conectar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "conectar npc quest",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 544,
+    "input": "conecte o texto com o sprite",
+    "expected_action": "conectar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "conectar texto sprite",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 545,
+    "input": "conecte as ideias de loot e shop",
+    "expected_action": "conectar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "conectar loot shop",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 546,
+    "input": "conecte os padroes do codigo",
+    "expected_action": "conectar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "conectar padroes",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 547,
+    "input": "conecte o conceito de dragao com fogo",
+    "expected_action": "conectar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "conectar dragao fogo",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 548,
+    "input": "conecte os topicos markov e entropia",
+    "expected_action": "conectar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "conectar markov entropia",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 549,
+    "input": "conecte os dois codigos",
+    "expected_action": "conectar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "conectar codigos",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 550,
+    "input": "aprenda sobre npcs de tibia",
+    "expected_action": "aprender",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "aprender npcs",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 551,
+    "input": "aprenda o conceito de markov",
+    "expected_action": "aprender",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "aprender markov",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 552,
+    "input": "aprenda como funciona o sistema de quest",
+    "expected_action": "aprender",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "aprender quest",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 553,
+    "input": "aprenda os padroes do codigo lua",
+    "expected_action": "aprender",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "aprender lua",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 554,
+    "input": "aprenda sobre sprites e suas cores",
+    "expected_action": "aprender",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "aprender sprites",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 555,
+    "input": "aprenda a estrutura dos monstros",
+    "expected_action": "aprender",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "aprender monstros",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 556,
+    "input": "aprenda com os dialogos dos npcs",
+    "expected_action": "aprender",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "aprender dialogos",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 557,
+    "input": "aprenda sobre o items.xml",
+    "expected_action": "aprender",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "aprender items",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 558,
+    "input": "aprenda as apis do canary",
+    "expected_action": "aprender",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "aprender apis",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 559,
+    "input": "aprenda com os erros do sistema",
+    "expected_action": "aprender",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "aprender erros",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 560,
+    "input": "planeje uma quest de dragao",
+    "expected_action": "planejar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "planejar quest dragao",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 561,
+    "input": "planeje um sistema de shop",
+    "expected_action": "planejar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "planejar shop",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 562,
+    "input": "planeje o balanceamento do servidor",
+    "expected_action": "planejar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "planejar balanceamento",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 563,
+    "input": "planeje a criacao de um npc complexo",
+    "expected_action": "planejar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "planejar npc",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 564,
+    "input": "planeje uma serie de monstros",
+    "expected_action": "planejar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "planejar monstros",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 565,
+    "input": "planeje a estrutura do projeto",
+    "expected_action": "planejar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "planejar projeto",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 566,
+    "input": "planeje os proximos passos",
+    "expected_action": "planejar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "planejar passos",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 567,
+    "input": "planeje uma cidade completa",
+    "expected_action": "planejar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "planejar cidade",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 568,
+    "input": "planeje o sistema de habilidades",
+    "expected_action": "planejar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "planejar habilidades",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 569,
+    "input": "planeje a integracao de sistemas",
+    "expected_action": "planejar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "planejar integracao",
+      "expected_keywords": []
+    }
   }
 ]
