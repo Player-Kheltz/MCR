@@ -1397,29 +1397,22 @@ class MCR:
 
     def _avaliar(self, entrada: str, resultado: Dict, acao: str,
                   confianca: float = 0.1, validacao: Dict = None) -> float:
-        """Equação MCR v3.0 — Sigmoide 5D com métricas orgânicas.
-
-        5 dimensões ortogonais derivadas do sistema, não inventadas:
-        - CERTEZA: confiança da predição Markov (0-1)
-        - COMPLETUDE: checks estruturais passados / total (0-1)
-        - INFORMACAO: entropia Shannon normalizada da saída (0-1)
-        - ESTABILIDADE: gaussiana da entropia do Markov (pune loops e caos)
-        - EFICIENCIA: 1/log2(n_tools+1) (recompensa simplicidade)
-
-        Sigmoide com threshold: abaixo de tau, nota ≈ 0 (ruído).
-        Penalidade dinâmica baseada na taxa de falha real da ferramenta.
+        """Equação MCR — Sigmoide 5D. Fonte unica: equacao_mcr.py.
+        
+        O MCR descobre os pesos do log de execucoes (auto-calibracao).
+        Nao reimplementa a equacao — usa avaliar_5d() da fonte da verdade.
         """
         import math
-
-        # 1. CERTEZA — confiança do Markov
+        
+        # 1. CERTEZA — confianca do Markov
         certeza = max(0.0, min(1.0, confianca))
-
+        
         # 2. COMPLETUDE — checks estruturais
         checks = validacao.get('checks', []) if validacao else []
-        completude = (sum(1 for c in checks if ':OK' in str(c)) /
+        completude = (sum(1 for c in checks if ':OK' in str(c) or ':presente' in str(c)) /
                       max(len(checks), 1)) if checks else 0.5
-
-        # 3. INFORMAÇÃO — entropia da saída
+        
+        # 3. INFORMACAO — entropia da saida
         saida = str(resultado.get('codigo', '') or resultado.get('resposta', '')
                      or resultado.get('erro', ''))
         freq = Counter(saida) if saida else Counter()
@@ -1427,31 +1420,29 @@ class MCR:
         h_out = -sum((c/total) * math.log2(c/total) for c in freq.values() if c > 0)
         h_max = math.log2(max(len(freq), 2))
         informacao = h_out / h_max if h_max > 0 else 0.0
-
-        # 4. ESTABILIDADE — gaussiana (pune H→0 e H→1, premia edge of chaos)
-        h_m = 1.0 - certeza  # proxy: mais certeza = menos entropia
+        
+        # 4. ESTABILIDADE — gaussiana (premia edge of chaos)
+        h_m = 1.0 - certeza
         h_opt, sigma = self._calibrar_estabilidade()
         estabilidade = math.exp(-((h_m - h_opt) / sigma)**2)
-
-        # 5. EFICIÊNCIA — recompensa simplicidade (dinâmica)
+        
+        # 5. EFICIENCIA — recompensa simplicidade (niveis necessarios, nao tools)
+        n_niveis = len(self._extrair_niveis(entrada)) if entrada else 1
         n_tools = len(self._registry.listar())
-        eficiencia = 1.0 / math.log2(max(n_tools, 2)) if n_tools > 0 else 1.0
-
-        # Pesos (calibrados via experimento: MCC 1.000)
-        w = {'certeza': 3, 'completude': 3, 'informacao': 2,
-             'estabilidade': 2, 'eficiencia': 1}
-        d = {'certeza': certeza, 'completude': completude,
-             'informacao': informacao, 'estabilidade': estabilidade,
-             'eficiencia': eficiencia}
-
-        soma = sum(w[k] * d[k] for k in d) / sum(w.values())
-
-        # Sigmoide: threshold tau — abaixo disso é ruído
-        theta, tau = 3.0, 0.4
-        nota = 1.0 / (1.0 + math.exp(-theta * (soma - tau)))
-
-        # Penalidade dinâmica — taxa real de falha da ferramenta
-        # Usa equacao_mcr.get_penalidade() para classificar tipo de falha
+        eficiencia = 1.0 / math.log2(max(n_tools + n_niveis, 2))
+        
+        # Pesos: descobertos do log se suficiente, senao defaults da equacao
+        from mcr.equacao_mcr import avaliar_5d, EQUACAO_5D
+        pesos = EQUACAO_5D['pesos']
+        if len(self._execucoes) >= 30:
+            try:
+                pesos = self._descobrir_pesos()
+            except Exception:
+                pass
+        
+        nota = avaliar_5d(certeza, completude, informacao, estabilidade, eficiencia, pesos)
+        
+        # Penalidade dinamica — taxa real de falha
         tool = None
         termos = acao.replace('_', ' ').lower().split()
         for nome in self._registry.listar():
@@ -1462,12 +1453,53 @@ class MCR:
         taxa_falha = 0.0
         if tool and tool.usos > 0:
             taxa_falha = 1.0 - tool.taxa_sucesso()
-        # Classifica tipo de ponte e aplica penalidade da equação
-        tipo_ponte = classificar_tipo_ponte(soma, taxa_falha)
+        tipo_ponte = classificar_tipo_ponte(nota, taxa_falha)
         penalidade_eq = get_penalidade(tipo_ponte)
         penalidade = max(min(0.95, taxa_falha), penalidade_eq * taxa_falha)
-
+        
         return max(0.0, min(1.0, nota * (1.0 - penalidade)))
+    
+    def _descobrir_pesos(self) -> dict:
+        """Descobre pesos otimos do log de execucoes via correlacao.
+        O MCR aprende quais dimensoes importam — zero hardcode."""
+        import statistics
+        # Para cada dimensao, mede correlacao com sucesso real
+        # Pesos sao proporcionais a correlacao
+        execs = self._execucoes[-100:]
+        if len(execs) < 30:
+            from mcr.equacao_mcr import EQUACAO_5D
+            return EQUACAO_5D['pesos']
+        
+        # Extrai dimensoes e sucesso do log
+        dims = {'certeza': [], 'completude': [], 'informacao': [],
+                'estabilidade': [], 'eficiencia': []}
+        sucessos = []
+        for e in execs:
+            for d in dims:
+                dims[d].append(e.get(d, 0.5))
+            sucessos.append(e.get('sucesso', 0))
+        
+        # Correlacao de Pearson com sucesso
+        from mcr.equacao_mcr import EQUACAO_5D
+        pesos = {}
+        for d in dims:
+            try:
+                vals = dims[d]
+                media_v = statistics.mean(vals)
+                media_s = statistics.mean(sucessos)
+                num = sum((v - media_v) * (s - media_s) for v, s in zip(vals, sucessos))
+                den_v = math.sqrt(sum((v - media_v)**2 for v in vals))
+                den_s = math.sqrt(sum((s - media_s)**2 for s in sucessos))
+                if den_v > 0 and den_s > 0:
+                    corr = abs(num / (den_v * den_s))
+                else:
+                    corr = 0.5
+                # Peso = correlacao * 4 (escala similar ao default 2)
+                pesos[d] = max(0.5, min(6.0, round(corr * 4, 1)))
+            except Exception:
+                pesos[d] = EQUACAO_5D['pesos'].get(d, 2)
+        
+        return pesos
 
     def _calibrar_estabilidade(self):
         """Auto-calibra h_opt e sigma do log de execuções."""
@@ -1554,14 +1586,37 @@ class MCR:
     # ═══════════════════════════════════════════════════════
 
     def _log_execucao(self, estado, acao, confianca, resultado, validacao, nota, entrada_raw=""):
-        """Salva dados completos da execução para experimentos futuros."""
+        """Salva dados completos da execução para experimentos e auto-calibracao."""
         import json as _json
         try:
+            # Extrai dimensoes para _descobrir_pesos poder correlacionar
+            import math
+            certeza = max(0.0, min(1.0, float(confianca)))
+            checks = validacao.get('checks', []) if validacao else []
+            completude = (sum(1 for c in checks if ':OK' in str(c) or ':presente' in str(c)) /
+                          max(len(checks), 1)) if checks else 0.5
+            saida = str(resultado.get('codigo', '') or resultado.get('resposta', '') or resultado.get('erro', ''))
+            freq = Counter(saida) if saida else Counter()
+            total = len(saida) if saida else 1
+            h_out = -sum((c/total) * math.log2(c/total) for c in freq.values() if c > 0)
+            h_max = math.log2(max(len(freq), 2))
+            informacao = h_out / h_max if h_max > 0 else 0.0
+            h_m = 1.0 - certeza
+            h_opt, sigma = self._calibrar_estabilidade()
+            estabilidade = math.exp(-((h_m - h_opt) / max(sigma, 0.01))**2)
+            n_tools = len(self._registry.listar())
+            eficiencia = 1.0 / math.log2(max(n_tools, 2)) if n_tools > 0 else 1.0
+            
             entrada = {
                 'estado': str(estado)[:200],
                 'entrada_raw': str(entrada_raw)[:200],
                 'acao': str(acao),
                 'confianca': round(float(confianca), 4),
+                'certeza': round(certeza, 4),
+                'completude': round(completude, 4),
+                'informacao': round(informacao, 4),
+                'estabilidade': round(estabilidade, 4),
+                'eficiencia': round(eficiencia, 4),
                 'codigo': str(resultado.get('codigo', '') or resultado.get('resposta', ''))[:2000],
                 'checks': _json.dumps(validacao.get('checks', [])),
                 'sucesso': 1 if resultado.get('sucesso', False) else 0,
@@ -1571,7 +1626,6 @@ class MCR:
             self._execucoes.append(entrada)
             if len(self._execucoes) > 500:
                 self._execucoes = self._execucoes[-500:]
-            # Persiste a cada 10 execuções
             if len(self._execucoes) % 10 == 0:
                 self._salvar_execucoes()
         except Exception:
