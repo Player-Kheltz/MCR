@@ -66,9 +66,16 @@ def limpar_memoria():
                 pass
     return removed
 
-def classificar_tudo(mcr):
-    """Classifica todo o dataset. Retorna (accuracy%, detalhes_por_acao)."""
+def classificar_tudo(mcr, com_feedback=False):
+    """Classifica todo o dataset. Retorna (accuracy%, detalhes_por_acao).
+    
+    Se com_feedback=True: quando o MCR erra com confianca baixa, pede feedback
+    ao proprio MCR (receber_feedback). O MCR aprende e re-classifica.
+    Isso simula um usuario corrigindo o MCR em tempo real — igual um LLM
+    que pede clarificacao quando incerto.
+    """
     by_action = {}
+    n_feedback = 0
     for entry in dataset:
         try:
             estado = mcr._perceber(entry['input'])
@@ -77,6 +84,21 @@ def classificar_tudo(mcr):
             acao, conf = 'erro', 0.0
         predicted = normalize_action(str(acao))
         expected = normalize_action(entry['expected_action'])
+        
+        # Self-feedback: se errou com confianca media/baixa, MCR se auto-corrige
+        if com_feedback and predicted != expected and conf < 0.85:
+            expected_original = entry['expected_action']
+            # MCR recebe feedback e aprende
+            try:
+                mcr.receber_feedback(entry['input'], normalize_action(expected_original))
+                # Re-classifica apos aprender
+                estado2 = mcr._perceber(entry['input'])
+                acao2, conf2 = mcr._decidir(estado2, entry['input'])
+                predicted = normalize_action(str(acao2))
+                n_feedback += 1
+            except Exception:
+                pass
+        
         if expected not in by_action:
             by_action[expected] = {'correct': 0, 'total': 0, 'conf_sum': 0.0}
         by_action[expected]['total'] += 1
@@ -86,7 +108,7 @@ def classificar_tudo(mcr):
     total_correct = sum(d['correct'] for d in by_action.values())
     total = sum(d['total'] for d in by_action.values())
     acc = total_correct / total * 100 if total else 0
-    return acc, by_action
+    return acc, by_action, n_feedback
 
 def treinar_markov(mcr, entradas):
     """Alimenta mk + coupling + mk_palavra em paralelo (MCR e rapido).
@@ -147,9 +169,11 @@ print(f'  MK: {s0["mk_estados"]} estados, {s0["mk_transicoes"]} transições')
 # ══════════════════════════════════════════════════════════════
 print('\n[PASSO 3] Rodada 1: Classificação sem experiência...')
 t0 = time.time()
-acc_1, by_action_1 = classificar_tudo(mcr)
+acc_1, by_action_1, n_fb1 = classificar_tudo(mcr)
 t1 = time.time() - t0
 print(f'  Accuracy: {acc_1:.1f}%  ({t1:.2f}s)')
+if n_fb1:
+    print(f'  Self-feedback: {n_fb1} correções')
 for a in ACTIONS:
     d = by_action_1.get(a, {'correct': 0, 'total': 0})
     pct = d['correct'] / d['total'] * 100 if d['total'] else 0
@@ -172,7 +196,7 @@ print(f'  MK: {s1["mk_estados"]} estados (+{s1["mk_estados"]-s0["mk_estados"]}),
 # ══════════════════════════════════════════════════════════════
 print('\n[PASSO 5] Rodada 1b: Classificação após treino (mesmo MCR)...')
 t0 = time.time()
-acc_1b, by_action_1b = classificar_tudo(mcr)
+acc_1b, by_action_1b, n_fb1b = classificar_tudo(mcr)
 t3 = time.time() - t0
 print(f'  Accuracy: {acc_1b:.1f}%  ({t3:.2f}s)  [delta: {acc_1b-acc_1:+.1f}pp]')
 
@@ -195,11 +219,13 @@ print(f'  Persistência: {"OK" if persistiu else "FALHOU"}')
 # ══════════════════════════════════════════════════════════════
 # PASSO 7: Rodada 2 — classificar com experiência (novo MCR)
 # ══════════════════════════════════════════════════════════════
-print('\n[PASSO 7] Rodada 2: Classificação com experiência (novo MCR)...')
+print('\n[PASSO 7] Rodada 2: Classificação com experiência (novo MCR + self-feedback)...')
 t0 = time.time()
-acc_2, by_action_2 = classificar_tudo(mcr2)
+acc_2, by_action_2, n_fb2 = classificar_tudo(mcr2, com_feedback=True)
 t4 = time.time() - t0
 print(f'  Accuracy: {acc_2:.1f}%  ({t4:.2f}s)')
+if n_fb2:
+    print(f'  Self-feedback: {n_fb2} correções')
 print(f'  vs Rodada 1: {acc_2-acc_1:+.1f}pp')
 print(f'  vs Rodada 1b: {acc_2-acc_1b:+.1f}pp')
 for a in ACTIONS:

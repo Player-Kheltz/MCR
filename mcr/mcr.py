@@ -2460,17 +2460,13 @@ class MCR:
         self._obs_ativado = True
 
     def receber_feedback(self, entrada_original: str, acao_correta: str):
-        """Aprende com feedback do usuário (quando MCR pediu clarificação).
-        
-        Fluxo:
-          1. MCR: processar("mago elfico") → confiança baixa → pede feedback
-          2. Usuário: receber_feedback("mago elfico", "responder")
-          3. MCR aprende: fingerprint("mago elfico") → responder (nota maxima)
-          4. Atualiza contexto de conversa
-        """
+        """Aprende com feedback. Reforca multiplas vezes para superar
+        frequencias antigas. Igual um humano que repete para lembrar."""
         estado = self._perceber(entrada_original)
-        nota = 1.0  # feedback do usuário = máxima confiança
-        self._aprender(estado, acao_correta, nota, entrada_original)
+        nota = 1.0
+        # Reforca 5x — feedback do usuario é maxima prioridade
+        for _ in range(5):
+            self._aprender(estado, acao_correta, nota, entrada_original)
         self._contexto_conversa.append(acao_correta)
         self._ultima_interacao = time.time()
         return {'sucesso': True, 'aprendido': True,
