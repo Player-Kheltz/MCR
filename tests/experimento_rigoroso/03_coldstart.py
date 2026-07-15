@@ -27,16 +27,18 @@ with open('E:/MCR/tests/experimento_rigoroso/dataset_500.json', 'r', encoding='u
     dataset = json.load(f)
 print(f'Dataset: {len(dataset)} entradas')
 
-ACTIONS = ['gerar_npc', 'gerar_monstro', 'gerar_quest', 'gerar_sprite', 'responder']
+# ACTIONS descoberto do dataset (zero hardcoded)
+ACTIONS = list(set(e['expected_action'] for e in dataset))
 
 def normalize_action(action):
-    return action.replace('_lua', '').replace('gerar_npc_lua', 'gerar_npc').replace('gerar_monstro_lua', 'gerar_monstro')
+    return str(action).replace('_lua', '')
 
 def limpar_memoria():
+    # Paths descobertos do proprio engine (os.path.dirname(engine.__file__))
+    import mcr.engine as _eng
+    _engine_dir = os.path.dirname(os.path.abspath(_eng.__file__))
     patterns = [
-        'E:/MCR/mcr/kernel/markov_*.json',
-        'E:/MCR/mcr/markov_*.json',
-        'E:/MCR/devia/kernel/mcr_kernel/markov_*.json',
+        os.path.join(_engine_dir, 'markov_*.json'),
     ]
     removed = 0
     for pat in patterns:
@@ -54,7 +56,7 @@ def classificar_tudo(mcr):
     for entry in dataset:
         try:
             estado = mcr._perceber(entry['input'])
-            acao, conf = mcr._decidir(estado)
+            acao, conf = mcr._decidir(estado, entry['input'])
         except Exception:
             acao, conf = 'erro', 0.0
         predicted = normalize_action(str(acao))
@@ -71,12 +73,17 @@ def classificar_tudo(mcr):
     return acc, by_action
 
 def treinar_markov(mcr, entradas):
-    """Alimenta mk diretamente com (fingerprint, ação_correta). Sem LLM."""
+    """Alimenta mk + coupling + mk_palavra com (fingerprint, ação_correta). Sem LLM."""
     for entry in entradas:
         try:
             estado = mcr._perceber(entry['input'])
             acao = entry['expected_action']
             mcr.mk.aprender(estado, acao)
+            mcr._coupling.alimentar(entry['input'], acao)
+            import re as _re
+            palavras = _re.findall(r'[a-z\xc3-\xff]{3,}', entry['input'].lower())
+            for i in range(len(palavras) - 1):
+                mcr.mk_palavra.aprender(palavras[i], palavras[i+1])
         except Exception:
             pass
 

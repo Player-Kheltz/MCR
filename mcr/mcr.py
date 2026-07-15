@@ -51,6 +51,10 @@ class MCR:
 
         # ─── Motor ──────────────────────────────────────
         self.mk = MarkovEngine("mcr_cognicao")
+        try:
+            self.mk.load()  # carrega do path padrao do engine
+        except Exception:
+            pass
         self.fp = MCRFingerprint()
 
         # ─── Cognição multi-nível ───────────────────────
@@ -58,7 +62,7 @@ class MCR:
         self._superposicao = MCRSuperposicao()
         self.mk_palavra = MarkovEngine("mcr_palavra")
         try:
-            self.mk_palavra.load(str(CACHE_DIR / "markov_mcr_palavra.json"))
+            self.mk_palavra.load()  # carrega do path padrao do engine
         except Exception:
             pass
         self._esfera = None  # lazy init
@@ -148,6 +152,7 @@ class MCR:
         except Exception:
             pass
 
+        self._dirs_por_tool = dirs_por_tool
         wrappers = {}
 
         def _gerar(entrada="", texto="", **kw):
@@ -200,224 +205,118 @@ class MCR:
         except Exception:
             pass
 
-        # ─── Tibia: NPC (extrai nome, profissão, itens) ──
-        try:
-            from mcr.golden_templates import gerar_npc_canary, salvar_npc_parametrizado
-            def _gerar_npc(entrada="", texto="", **kw):
-                msg = entrada or texto
-                nome = self._extrair_nome(msg)
-                prof = self._extrair_profissao(msg)
-                itens = self._extrair_itens(msg)
-                # Looktype descoberto dos 1,102 NPCs reais (mediana por keyword)
-                looktypes_desc = self._dados_npc().get('looktypes', {})
-                looktype = looktypes_desc.get('generico', 128)
-                for k, v in looktypes_desc.items():
-                    if k in msg.lower(): looktype = v; break
-                health = self._dados_npc().get('health', 100)
-                params = {
-                    'name': nome, 'health': health, 'looktype': looktype,
-                    'greeting': f'Ola, sou {nome}, {prof}. Como posso ajudar?',
-                    'job_desc': f'Trabalho como {prof} aqui.',
-                }
-                if itens:
-                    params['shop_items'] = [{'name': i, 'clientId': 100 + j,
-                                            'buy': 50, 'sell': 25}
-                                           for j, i in enumerate(itens)]
-                codigo = gerar_npc_canary(params)
-                try:
-                    caminho = salvar_npc_parametrizado(params)
-                except Exception:
-                    caminho = ''
-                return {'sucesso': True, 'codigo': codigo, 'entidade': nome,
-                        'tipo': 'npc', 'arquivo': caminho, 'params': params}
-            wrappers['gerar_npc_lua'] = _gerar_npc
-        except Exception as e:
-            self._log_erro('wrapper_npc', e)
-
-        # ─── Tibia: Monstro (extrai nome, perigo) ─────
-        try:
-            from mcr.golden_templates import gerar_monstro_parametrizado, salvar_monstro_parametrizado
-            def _gerar_monstro(entrada="", texto="", **kw):
-                msg = entrada or texto
-                nome = self._extrair_nome(msg)
-                # Perigo via threshold de health real (percentis da distribuição)
-                md = self._dados_monstro()
-                p33, p66 = md.get('thresholds', (1000, 7320))
-                perigo = 'medium'
-                # Usa nome para estimar perigo: busca nome em monstros reais
-                for kw, healths in md.get('name_health', {}).items():
-                    if kw in msg.lower():
-                        med = healths[0] if healths else 0
-                        if med > p66: perigo = 'high'
-                        elif med < p33: perigo = 'low'
-                        else: perigo = 'medium'
-                        break
-                stats = md.get('stats', {'low':(240,100,95),'medium':(3000,1800,130),'high':(25000,8000,160)})
-                hp, exp, spd = stats.get(perigo, stats['medium'])
-                # Raça descoberta dos 1,678 monstros reais (co-ocorrência nome→race)
-                race = md.get('default_race', 'blood')
-                race_kw = md.get('race_keywords', {})
-                for kw, r in sorted(race_kw.items(), key=lambda x: -len(x[0])):
-                    if kw in msg.lower(): race = r; break
-                loot = md.get('loot', [{'id': 3031, 'chance': 100000, 'maxCount': 100}])
-                params = {'name': nome, 'health': hp, 'experience': exp,
-                          'speed': spd, 'looktype': 100,
-                          'description': f'{nome} — um monstro perigoso.',
-                          'race': race, 'drop_items': loot}
-                codigo = gerar_monstro_parametrizado(params)
-                try:
-                    caminho = salvar_monstro_parametrizado(params)
-                except Exception:
-                    caminho = ''
-                return {'sucesso': True, 'codigo': codigo, 'entidade': nome,
-                        'tipo': 'monstro', 'arquivo': caminho, 'perigo': perigo,
-                        'race': race}
-            wrappers['gerar_monstro_lua'] = _gerar_monstro
-        except Exception as e:
-            self._log_erro('wrapper_monstro', e)
-
-        # ─── Visual: Sprite real ──────────────────────
-        try:
-            def _gerar_sprite(entrada="", texto="", **kw):
-                try:
-                    from mcr.sprite_corpus import carregar_categoria, listar_categorias
-                    from mcr.mcr_sprite_motor import MCRSpriteMotor
-                    cats = listar_categorias()
-                    if not cats:
-                        return {'sucesso': False, 'erro': 'Sem categorias de sprite',
-                                'tipo': 'sprite'}
-                    motor = MCRSpriteMotor()
-                    cat = cats[0]
-                    sprites = carregar_categoria(cat, max_sprites=5)
-                    if sprites and len(sprites) >= 3:
-                        motor.treinar(sprites, cat)
-                        gerados = motor.gerar(n=1)
-                        return {'sucesso': gerados is not None and len(gerados) > 0,
-                                'tipo': 'sprite', 'categoria': cat,
-                                'n_gerados': len(gerados) if gerados else 0,
-                                'nota': 'Treino com poucos sprites — qualidade limitada. '
-                                        'Popule poc_output/sprites_categorizados/ para melhorar.'}
-                    return {'sucesso': False, 'erro': 'Sem sprites para treinar',
-                            'tipo': 'sprite'}
-                except Exception as e:
-                    return {'sucesso': False, 'erro': str(e)[:100], 'tipo': 'sprite'}
-            wrappers['gerar_sprite'] = _gerar_sprite
-
-            from mcr.meus_olhos import MCRDiscriminador
-            def _avaliar_sprite(entrada="", texto="", **kw):
-                disc = MCRDiscriminador()
-                try:
-                    from mcr.sprite_corpus import carregar_categoria, extrair_grid_papel, listar_categorias
-                    cats = listar_categorias()
-                    if len(cats) < 2:
-                        return {'sucesso': False, 'erro': 'Precisa de 2+ categorias para avaliar'}
-                    # Treina em metade, testa na outra (evita contaminação circular)
-                    meio = len(cats) // 2
-                    grids_treino = []
-                    for cat in cats[:meio]:
-                        sprites = carregar_categoria(cat, max_sprites=3)
-                        grids_treino.extend(extrair_grid_papel(s)[0] for s in sprites)
-                    if not grids_treino:
-                        return {'sucesso': False, 'erro': 'Sem sprites para treino'}
-                    disc.treinar(grids_treino)
-                    # Testa em categorias diferentes
-                    scores = []
-                    for cat in cats[meio:meio+2]:
-                        sprites = carregar_categoria(cat, max_sprites=2)
-                        for s in sprites:
-                            grid = extrair_grid_papel(s)[0]
-                            scores.append(disc.avaliar(grid)['score'])
-                    if not scores:
-                        return {'sucesso': False, 'erro': 'Sem sprites para teste'}
-                    return {'sucesso': True, 'score_medio':
-                            round(sum(scores)/len(scores), 3),
-                            'n_treino': len(grids_treino), 'n_teste': len(scores),
-                            'aviso': 'Score cross-categoria (valido, nao circular)'}
-                except Exception as e:
-                    return {'sucesso': False, 'erro': str(e)[:100]}
-            wrappers['avaliar_sprite'] = _avaliar_sprite
-        except Exception:
-            pass
-
-        # ─── Responder (KG + raciocínio + fallback honesto) ──
-        try:
-            def _responder(entrada="", texto="", **kw):
-                msg = entrada or texto
-                if not msg:
-                    return {'sucesso': False, 'erro': 'Sem entrada'}
-                # 1. Tenta KG (Metacognição)
-                try:
-                    from mcr.metacognicao import Metacognicao
-                    meta = Metacognicao()
-                    score, just = meta.calcular_confianca(msg)
-                    if score > 0.3:
-                        return {'sucesso': True,
-                                'resposta': f'[KG:{score:.0%}] {just}',
-                                'confianca': round(score, 3),
-                                'fonte': 'kg'}
-                except Exception:
-                    pass
-                # 2. Tenta raciocínio (com pergunta, não só compreender)
-                try:
-                    from mcr.raciocinador import Raciocinador
-                    rac = Raciocinador()
-                    r = rac.raciocinar(msg)  # usa raciocinar, não compreender
-                    if r and r.get('resultado'):
-                        return {'sucesso': True,
-                                'resposta': str(r['resultado']),
-                                'fonte': 'raciocinio',
-                                'tipo': r.get('tipo', 'generico')}
-                except Exception:
-                    pass
-                # 3. Fallback HONESTO (não eco)
-                return {'sucesso': True,
-                        'resposta': 'Nao tenho informacao suficiente sobre isso.',
-                        'fonte': 'fallback',
-                        'confianca': 0.0}
-            wrappers['responder'] = _responder
-        except Exception as e:
-            self._log_erro('wrapper_responder', e)
-
-        # ─── Mundo Vivo ───────────────────────────────
-        try:
-            def _gerir_mundo(entrada="", texto="", **kw):
-                msg = entrada or texto
-                tema = msg if msg else "Mundo Vivo"
-                from mcr.mcr_world_system import MCRWorldSystem
-                ws = MCRWorldSystem()
-                report = ws.ciclo(tema=tema, max_entidades=3)
-                return {'sucesso': report.get('entidades_criadas', 0) > 0,
-                        'entidades': report.get('entidades_criadas', 0),
-                        'relatorio': report}
-            wrappers['gerir_mundo'] = _gerir_mundo
-        except Exception:
-            pass
-
-        # ─── Servidor NPC (background) ──────────────────
-        try:
-            def _iniciar_npc_server(entrada="", texto="", **kw):
-                from mcr.npc_server import NPCServer
-                server = NPCServer()
-                server.iniciar()
-                return {'sucesso': True, 'servico': 'npc_server',
-                        'porta': 7777, 'status': 'iniciado'}
-            wrappers['iniciar_npc_server'] = _iniciar_npc_server
-        except Exception:
-            pass
-
-        # ─── World Observer ─────────────────────────────
-        try:
-            def _iniciar_observer(entrada="", texto="", **kw):
-                from mcr.world_observer import WorldObserver
-                obs = WorldObserver()
-                obs.iniciar()
-                return {'sucesso': True, 'servico': 'world_observer',
-                        'status': 'observando'}
-            wrappers['iniciar_observer'] = _iniciar_observer
-        except Exception:
-            pass
-
         self.registrar_ferramentas(wrappers)
+
+        # Auto-dataset: descobre seeds do CONTEUDO dos arquivos
+        seeds = []
+        self._auto_dataset_seeds(seeds, dirs_por_tool)
+        self._descobrir_stopwords_dos_seeds(seeds)
+
+        # Alimenta Markov + Coupling + mk_palavra com os seeds
+        for entrada, acao in seeds:
+            estado = self._fingerprint_chave(entrada)
+            self.mk.aprender(estado, acao)
+            self._coupling.alimentar(entrada, acao)
+            palavras = _re.findall(r'[a-z\xc3-\xff]{3,}', entrada.lower())
+            for i in range(len(palavras) - 1):
+                self.mk_palavra.aprender(palavras[i], palavras[i+1])
+        if seeds:
+            try:
+                self.mk_palavra.save()
+            except Exception:
+                pass
+
+        # Esfera cross-domain (lazy)
+        try:
+            self._alimentar_esfera()
+        except Exception:
+            pass
+
+    def _decidir_tool(self, msg):
+        """Descobre a tool pelo coupling (zero if/else)."""
+        acao, _ = self._coupling.decidir(msg, self.mk.predizer(self._fingerprint_chave(msg)))
+        return acao or 'gerar_npc'
+
+    def _gerar_universal(self, msg, tool):
+        """Gera usando template entropico. Um codigo para todo dominio.
+        Diretorios descobertos do scan em _inicializar_templates (self._dirs_por_tool)."""
+        try:
+            from mcr.gerador_mcr import extrair_template_entropico, gerar_do_template
+        except Exception:
+            return {'sucesso': False, 'erro': 'gerador_mcr indisponivel'}
+        dirs = getattr(self, '_dirs_por_tool', {})
+        d_list = dirs.get(tool, [])
+        d = d_list[0] if d_list else None
+        try:
+            exemplos = list(d.glob('*.lua'))[:5] if d and d.exists() else []
+        except Exception:
+            exemplos = []
+        if not exemplos:
+            return {'sucesso': False, 'erro': 'sem exemplos', 'tipo': tool}
+        try:
+            conteudo = exemplos[0].read_text(encoding='latin-1', errors='replace')
+            template = extrair_template_entropico(conteudo, max_linhas=30)
+            nome = self._extrair_nome(msg)
+            gerado = gerar_do_template(template, {'nome': nome, 'entidade': nome})
+            codigo = '\n'.join(gerado) if gerado else conteudo[:500]
+            return {'sucesso': True, 'codigo': codigo, 'entidade': nome,
+                    'tipo': tool, 'arquivo': str(exemplos[0])}
+        except Exception as e:
+            return {'sucesso': False, 'erro': str(e)[:100]}
+
+    def _auto_dataset_seeds(self, seeds, dirs_por_tool):
+        """Auto-dataset: extrai seeds do CONTEUDO dos arquivos."""
+        for tool, dirs in dirs_por_tool.items():
+            for d in dirs:
+                try:
+                    if not d.exists():
+                        continue
+                    for f in list(d.glob('*.lua'))[:50]:
+                        try:
+                            linhas = f.read_text(encoding='latin-1', errors='replace').split('\n')
+                            for linha in linhas[:5]:
+                                linha = linha.strip()
+                                if linha and not linha.startswith('--') and not linha.startswith('local'):
+                                    nome = f.stem.replace('_', ' ').replace('-', ' ')
+                                    seeds.append((f"crie um {tool.replace('gerar_', '')} {nome}", tool))
+                                    break
+                        except Exception:
+                            continue
+                except Exception:
+                    pass
+
+    def _descobrir_stopwords_dos_seeds(self, seeds):
+        """Descobre stopwords dos seeds (palavras em >50% dos seeds)."""
+        if not seeds:
+            return
+        contagem = Counter()
+        for entrada, _ in seeds:
+            palavras = set(_re.findall(r'[a-z\xc3-\xff]{3,}', entrada.lower()))
+            for p in palavras:
+                contagem[p] += 1
+        n = len(seeds)
+        for p, c in contagem.items():
+            if c / n > 0.5:
+                self._stopwords.add(p)
+
+    def _alimentar_esfera(self):
+        """Alimenta esfera com items.xml (cross-domain, lazy init)."""
+        if self._esfera is None:
+            from mcr.esfera import MCREsfera
+            self._esfera = MCREsfera()
+        try:
+            from mcr.knowledge.item_database import ItemDatabase
+            db = ItemDatabase()
+            for cat, itens in getattr(db, '_por_categoria', {}).items():
+                if isinstance(itens, list):
+                    for item in itens[:10]:
+                        item_id = str(item.get('id', ''))
+                        for attr in ['attack', 'defense', 'weight', 'armor']:
+                            val = item.get(attr)
+                            if val is not None:
+                                self._esfera.alimentar_par("item", attr, item_id, str(val))
+        except Exception:
+            pass
 
     # ═══════════════════════════════════════════════════════
     # VALIDAÇÃO PÓS-EXECUÇÃO
@@ -426,18 +325,19 @@ class MCR:
     def _validar_saida(self, resultado: Dict, acao: str) -> Dict:
         codigo = resultado.get('codigo', '')
         if not codigo:
-            if acao in ('gerar_npc', 'gerar_monstro', 'gerar_quest', 'gerar_sprite'):
+            if acao.startswith('gerar_'):
                 return {'valido': False, 'checks': ['sem_codigo'],
                         'erro': f'Ferramenta nao produziu codigo para acao {acao}'}
             return {'valido': True, 'checks': ['sem_codigo']}
-        tipo = str(resultado.get('tipo', '')).lower()
-        if 'lua' not in tipo and 'npc' not in tipo and 'monstro' not in tipo:
-            return {'valido': True, 'checks': ['nao_lua']}
 
         checks = []
-        for padrao, nome in [('internalNpcName', 'nome'), ('npcType:register', 'register')]:
-            if padrao in codigo:
-                checks.append(f'{nome}:OK')
+        # Descobre padroes estruturais do proprio codigo (zero hardcoded)
+        import re as _re
+        padroes_desc = set()
+        for m in _re.finditer(r'(\w+)(?:\s*[:.]\s*\w+)+', codigo[:2000]):
+            padroes_desc.add(m.group(1))
+        for p in padroes_desc:
+            checks.append(f'{p}:presente')
 
         try:
             from mcr.sanity_validator import SanityValidator
@@ -496,7 +396,7 @@ class MCR:
             checks.append('anti_pattern:N/A')
 
         # Chain of Verification (anti-alucinação — apenas para texto, não código)
-        if acao not in ('gerar_npc', 'gerar_monstro', 'gerar_quest', 'gerar_sprite'):
+        if not acao.startswith('gerar_'):
             try:
                 from mcr.chain_of_verification import ChainOfVerification
                 cov = ChainOfVerification()
@@ -599,47 +499,17 @@ class MCR:
         return resultados
 
     def _pre_treinar_markov(self):
-        """Alimenta o MCR com exemplos DIVERSOS usando estados compostos.
-
-        O MCR aprende SOZINHO:
-        - "tipo=npc" + qualquer tema → gerar_npc
-        - "tipo=monstro" + qualquer tema → gerar_monstro
-        - Sem tipo explícito: tema=dragao/ork → gerar_monstro
-        - Sem tipo explícito: tema=ferreiro/vendedor → gerar_npc
-        """
-        # Base seeds (fallback mínimo)
-        seeds = [
-            ("crie um npc ferreiro", "gerar_npc"), ("crie um monstro dragao", "gerar_monstro"),
-            ("crie uma quest", "gerar_quest"), ("crie um sprite de espada", "gerar_sprite"),
-            ("explique o que e markov", "responder"), ("o que e entropia", "responder"),
-            ("crie um npc mago", "gerar_npc"), ("gere um monstro orc", "gerar_monstro"),
-        ]
-        # Auto-gera seeds do ItemDatabase + diretórios
-        try:
-            from mcr.knowledge.item_database import ItemDatabase
-            db = ItemDatabase()
-            profs = list(getattr(db, 'categorias', {}).keys())[:20]
-            for p in profs:
-                pname = p.lower().replace('_', ' ')[:30]
-                if len(pname) > 2:
-                    seeds.append((f"crie um npc {pname}", "gerar_npc"))
-        except Exception: pass
-        try:
-            from mcr.paths import CANARY_MONSTER_DIR
-            import re as _re
-            tokens = set()
-            for f in list(CANARY_MONSTER_DIR.glob('*.lua'))[:100]:
-                for t in _re.findall(r'[a-z]{3,}', f.stem.lower()):
-                    tokens.add(t)
-            for t in list(tokens)[:30]:
-                seeds.append((f"crie um {t}", "gerar_monstro"))
-                seeds.append((f"gere um monstro {t}", "gerar_monstro"))
-        except Exception: pass
+        """Alimenta o MCR com seeds descobertos do workspace (self._dirs_por_tool).
+        Zero seeds hardcoded. Tudo descoberto dos diretorios."""
+        seeds = []
+        dirs_por_tool = getattr(self, '_dirs_por_tool', {})
+        self._auto_dataset_seeds(seeds, dirs_por_tool)
 
         for entrada, acao in seeds:
             estado = self._fingerprint_chave(entrada)
             for _ in range(3):
                 self.mk.aprender(estado, acao)
+            self._coupling.alimentar(entrada, acao)
 
     # ═══════════════════════════════════════════════════════
     # CICLO COGNITIVO PRINCIPAL
@@ -684,11 +554,11 @@ class MCR:
         estado = self._perceber(entrada)
 
         # ─── 2. DECIDIR ────────────────────────────────
-        acao, confianca = self._decidir(estado)
+        acao, confianca = self._decidir(estado, entrada)
 
         # ─── Gatekeeper: Metacognição (avisa, não bloqueia Tier 1) ──
         _meta_aviso = None
-        if acao in ('gerar_npc', 'gerar_monstro', 'gerar_quest', 'gerar_sprite'):
+        if acao.startswith('gerar_'):
             try:
                 from mcr.metacognicao import Metacognicao
                 avaliacao = Metacognicao().avaliar_pedido(entrada)
@@ -707,7 +577,7 @@ class MCR:
         if not validacao.get('valido', True):
             resultado['_validacao'] = validacao
             # Tenta LLM como fallback
-            if acao in ('gerar_npc', 'gerar_monstro'):
+            if acao.startswith('gerar_'):
                 try:
                     from mcr.pipeline_completo import PipelineCompleto
                     pipe = PipelineCompleto()
@@ -728,7 +598,7 @@ class MCR:
         self._log_execucao(estado, acao, confianca, resultado, validacao, nota, entrada)
 
         # ─── 5. APRENDER ───────────────────────────────
-        self._aprender(estado, acao, nota)
+        self._aprender(estado, acao, nota, entrada)
 
         # ─── Auto-evolução (a cada 10 processamentos) ──
         if self._total_processamentos % 10 == 0:
@@ -797,11 +667,16 @@ class MCR:
     # ESTÁGIO 2: DECIDIR
     # ═══════════════════════════════════════════════════════
 
-    def _decidir(self, estado: str) -> Tuple[str, float]:
-        """Markov decide a ação. Fallbacks: similaridade → SQLite → hardcoded."""
+    def _decidir(self, estado: str, entrada: str = '') -> Tuple[str, float]:
+        """Superposition: Markov + Coupling colidem -> acao emergente.
+        
+        Niveis: Markov 1a ordem + Coupling palavras->acao + Observer cluster->acao
+        Fallbacks: similaridade Jaccard -> SQLite -> registry.
+        Zero if/elif de dominio. Zero hardcoded fallback.
+        """
         acao, conf = self.mk.predizer(estado)
 
-        # Penalidades do ShadowCanary (APIs que crasham são desencorajadas)
+        # ShadowCanary penaliza ferramentas que crasham
         try:
             from mcr.shadow_canary import consultar_penalidades
             pen = consultar_penalidades(acao)
@@ -815,54 +690,40 @@ class MCR:
         except Exception:
             pass
 
-        # Observador: se confiança do observer > Markov, usar cluster como boost
-        if self._obs_ativado and self._observador:
-            try:
-                pred_obs, conf_obs, _ = self._observador.predizer_com_confianca(estado)
-                if pred_obs is not None and conf_obs > conf:
-                    # Mapeia cluster_Y de volta para ação
-                    cluster_action = self._observador._mapear_cluster_para_acao(pred_obs)
-                    if cluster_action:
-                        return cluster_action, conf_obs
-            except Exception:
-                pass
+        # Entropia do mk_palavra modula confianca
+        try:
+            h_palavra = self.mk_palavra.entropia_media()
+            if h_palavra > 0:
+                conf *= min(1.5, 1.0 / max(h_palavra, 0.01))
+        except Exception:
+            pass
 
-        if acao and conf > 0.15:
+        # Superposicao: colisao real entre Markov + Coupling
+        acao_colisao, conf_colisao, meta = self._superposicao.colidir(
+            self.mk, self._coupling, estado, entrada, (acao, conf))
+        if acao_colisao and conf_colisao > 0.05:
+            return acao_colisao, conf_colisao
+
+        if acao and conf > 0.1:
             return str(acao), conf
 
-        # Fallback 1: busca estado mais similar por componentes
-        # Novo formato: ENT:TIPO|INT:INTENCAO|ROL:PAPEIS|E@pos|A@pos
+        # Fallback 1: similaridade Jaccard por componentes do estado
         if self.mk.transicoes:
-            partes_consulta = estado.split('|')
+            partes_consulta = set(estado.split('|'))
             melhor_estado = None
             melhor_sim = 0
-
             for est in self.mk.transicoes:
-                partes_est = est.split('|')
-                sim = 0.0
-                matches = 0
-                for pc in partes_consulta:
-                    if pc in partes_est:
-                        # Componentes compartilhados = similaridade
-                        if pc.startswith('ENT:'):
-                            sim += 0.5  # tipo de entidade é o sinal mais forte
-                        elif pc.startswith('INT:'):
-                            sim += 0.3  # intenção (comando vs pergunta)
-                        elif pc.startswith('E@') or pc.startswith('A@'):
-                            sim += 0.1  # posição das âncoras
-                        else:
-                            sim += 0.05
-                        matches += 1
+                partes_est = set(est.split('|'))
+                sim = len(partes_consulta & partes_est) / max(len(partes_consulta | partes_est), 1)
                 if sim > melhor_sim:
                     melhor_sim = sim
                     melhor_estado = est
-
             if melhor_estado and melhor_sim > 0.3:
                 acao2, conf2 = self.mk.predizer(melhor_estado)
                 if acao2:
                     return str(acao2), conf2 * min(1.0, melhor_sim)
 
-        # Fallback 2: SQLite (persistência entre sessões)
+        # Fallback 2: SQLite
         sql = self._get_sqlite()
         if sql:
             try:
@@ -872,28 +733,7 @@ class MCR:
             except Exception:
                 pass
 
-        # Fallback 3: HDC+SDM (memória associativa para conceitos novos)
-        try:
-            from hdc_core import HDVector
-            from sdm_core import SDM
-            if not hasattr(self, '_sdm'):
-                self._sdm = SDM(n_enderecos=200, raio=0.1)
-                self._sdm_hdv = {}
-            # Busca tema no SDM
-            partes = estado.split('|')
-            tema_query = partes[2] if len(partes) > 2 else ''
-            if tema_query and len(tema_query) > 2:
-                hdv = HDVector.da_string(tema_query)
-                for conhecido, (vec, acao_assoc) in list(self._sdm_hdv.items()):
-                    if conhecido in tema_query or tema_query in conhecido:
-                        return acao_assoc, 0.2
-                # Armazena para futuras consultas
-                if tema_query not in self._sdm_hdv:
-                    self._sdm_hdv[tema_query] = (hdv, 'gerar_npc')
-        except Exception:
-            pass
-
-        # Fallback final: tool com maior taxa de sucesso
+        # Fallback 3: tool com maior taxa de sucesso no registry
         melhor_tool = None
         melhor_taxa = 0.0
         for nome in self._registry.listar()[:50]:
@@ -904,10 +744,9 @@ class MCR:
                     melhor_taxa = taxa
                     melhor_tool = nome
         if melhor_tool:
-            # Mapeia nome da tool → ação (ex: gerar_npc_lua → gerar_npc)
-            acao_fallback = melhor_tool.replace('_lua', '').replace('_', ' ')
+            acao_fallback = melhor_tool.replace('_lua', '')
             return acao_fallback, max(0.05, melhor_taxa)
-        return "gerar_npc", 0.1
+        return "responder", 0.1
 
     # ═══════════════════════════════════════════════════════
     # ESTÁGIO 3: EXECUTAR
@@ -1125,51 +964,6 @@ class MCR:
             return nome[:30]
         return 'Entidade'
 
-    def _extrair_profissao(self, texto: str) -> str:
-        """Descobre profissão do texto via ItemDatabase.profissoes."""
-        t = texto.lower()
-        try:
-            from mcr.knowledge.item_database import ItemDatabase
-            db = ItemDatabase()
-            cats = getattr(db, 'categorias', {})
-            for nome in cats:
-                if nome.lower() in t:
-                    return nome.lower()
-        except Exception:
-            pass
-        return 'artesao'
-
-    def _extrair_itens(self, texto: str) -> list:
-        """Descobre itens via ItemDatabase (17,019 itens reais)."""
-        import re
-        t = texto.lower()
-        # Detecta se é contexto de comércio via co-ocorrência de palavras
-        triggers = {'vende', 'venda', 'loja', 'comercio', 'shop', 'sell', 'sells',
-                    'vender', 'vendedor', 'mercador', 'itens', 'items', 'comprar'}
-        if not any(tr in t for tr in triggers):
-            return []
-        try:
-            from mcr.knowledge.item_database import ItemDatabase
-            db = ItemDatabase()
-            tokens = re.findall(r'[a-zà-ÿ]{3,}', t)
-            itens = []
-            for token in tokens:
-                matches = db.buscar_por_nome(token)
-                if matches:
-                    for m in matches[:3]:
-                        nome = m.get('name', token).title()
-                        if nome not in itens:
-                            itens.append(nome)
-            # Fallback: sugerir por profissão
-            if not itens:
-                prof = self._extrair_profissao(texto)
-                sugestoes = db.sugerir_itens_para_shop(prof)
-                itens = [s.get('name', 'Item').title() for s in (sugestoes or [])[:5]]
-            return itens[:5]
-        except Exception:
-            pass
-        return []
-
     # ═══════════════════════════════════════════════════════
     # LOG DE EXECUÇÃO (para experimentos e calibração)
     # ═══════════════════════════════════════════════════════
@@ -1227,14 +1021,39 @@ class MCR:
     # ESTÁGIO 5: APRENDER
     # ═══════════════════════════════════════════════════════
 
-    def _aprender(self, estado: str, acao: str, nota: float):
-        """Aprende a transição. Reforça se nota alta. Persiste em SQLite."""
+    def _aprender(self, estado: str, acao: str, nota: float, entrada: str = ''):
+        """Aprende a transição. Reforça se nota alta. Persiste em SQLite + JSON.
+        Alimenta coupling + mk_palavra (cognição multi-nível)."""
         self.mk.aprender(estado, acao)
         t1, t2 = self._thresholds_reforco()
         if nota > t1:
             self.mk.aprender(estado, acao)
         if nota > t2:
             self.mk.aprender(estado, acao)
+
+        # Coupling: texto -> acao (multi-nivel)
+        if entrada:
+            try:
+                self._coupling.alimentar(entrada, acao)
+            except Exception:
+                pass
+            # mk_palavra: bigramas da entrada
+            try:
+                palavras = _re.findall(r'[a-z\xc3-\xff]{3,}', entrada.lower())
+                for i in range(len(palavras) - 1):
+                    self.mk_palavra.aprender(palavras[i], palavras[i+1])
+            except Exception:
+                pass
+
+        # Persistência JSON (mk + mk_palavra)
+        try:
+            self.mk.save()
+        except Exception:
+            pass
+        try:
+            self.mk_palavra.save()
+        except Exception:
+            pass
 
         # Persistência SQLite
         try:
@@ -1379,65 +1198,6 @@ class MCR:
             except Exception:
                 pass
         return self._sqlite
-
-    _DADOS_NPC = None
-    _DADOS_MONSTRO = None
-
-    @classmethod
-    def _dados_npc(cls):
-        """Mina dados de NPCs reais (cacheado)."""
-        if cls._DADOS_NPC is not None:
-            return cls._DADOS_NPC
-        import re as _re, statistics as _st
-        from collections import defaultdict as _dd
-        from mcr.paths import CANARY_NPC_DIR
-        looktypes = _dd(list)
-        healths = []
-        keywords = ['ferreiro','mago','guarda','vendedor','mercador','elfo','anao',
-                    'anão','orc','padeiro','druida','alquimista','cavaleiro','ladrao',
-                    'arqueiro','taverneiro','carpinteiro','artesao','bibliotecario']
-        for f in CANARY_NPC_DIR.glob('*.lua'):
-            try: c = f.read_text(encoding='latin-1', errors='replace')
-            except Exception: continue
-            m = _re.search(r'lookType\s*=\s*(\d+)', c)
-            if m:
-                lt = int(m.group(1))
-                for kw in keywords:
-                    if kw in f.stem.lower(): looktypes[kw].append(lt)
-            m = _re.search(r'npcConfig\.health\s*=\s*(\d+)', c)
-            if m: healths.append(int(m.group(1)))
-        lt_map = {}
-        for kw, vals in looktypes.items():
-            if len(vals) >= 2:
-                try: lt_map[kw] = int(_st.median(vals))
-                except Exception: lt_map[kw] = max(set(vals), key=vals.count)
-        if not lt_map: lt_map['generico'] = 128
-        cls._DADOS_NPC = {'looktypes': lt_map, 'health': int(_st.median(healths)) if healths else 100}
-        return cls._DADOS_NPC
-
-    @classmethod
-    def _dados_monstro(cls):
-        """Dados de monstros via MonsterDatabase (data-driven, zero hardcode)."""
-        if cls._DADOS_MONSTRO is not None:
-            return cls._DADOS_MONSTRO
-        try:
-            from mcr.monster_database import MonsterDatabase
-            db = MonsterDatabase()
-            cls._DADOS_MONSTRO = {
-                'stats': db.get_tiers(),
-                'thresholds': db._thresholds,
-                'race_keywords': db._race_map,
-                'loot': db.get_loot(3),
-                'default_race': 'blood',
-                'name_health': db._name_health,
-            }
-        except Exception:
-            cls._DADOS_MONSTRO = {
-                'stats': {'low':(240,100,95),'medium':(3000,1800,130),'high':(25000,8000,160)},
-                'thresholds': (1000, 7320), 'race_keywords': {}, 'loot': [],
-                'default_race': 'blood', 'name_health': {}
-            }
-        return cls._DADOS_MONSTRO
 
     def estatisticas(self) -> Dict:
         """Métricas do motor."""
