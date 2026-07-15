@@ -10,6 +10,7 @@ Uso:
   → ação que emerge da colisão, não da predição individual
 """
 import math
+import re
 from collections import defaultdict, Counter
 from typing import Dict, Tuple, Optional
 
@@ -22,18 +23,16 @@ class MCRSuperposicao:
         self.total = 0
 
     def colidir(self, mk, coupling, estado: str, texto: str,
-                mk_pred: Tuple = None) -> Tuple[Optional[str], float, Dict]:
-        """Colide Markov (decisão) com Coupling (palavras) no mesmo estado.
-
-        Args:
-            mk: MarkovEngine de decisão
-            coupling: MCRCoupling multi-nível
-            estado: fingerprint atual
-            texto: input do usuário
-            mk_pred: (acao, conf) da predição Markov (opcional)
-
-        Returns:
-            (acao_colisao, confiança, metadados)
+                mk_pred: Tuple = None, mk_palavra=None) -> Tuple[Optional[str], float, Dict]:
+        """Colide Markov (decisão) + Coupling (palavras) + mk_palavra (bigramas).
+        
+        Tres rotas colidem no mesmo estado:
+        1. Markov: P(acao | estado) — decisao direta
+        2. Coupling: P(acao | palavras) — correlacao palavra→acao
+        3. mk_palavra: P(acao | bigramas) — estrutura do comando
+        
+        mk_palavra distingue "crie mago" (comando) de "mago elfico" (pergunta)
+        porque o bigrama "crie→mago" so aparece em comandos.
         """
         self.total += 1
 
@@ -44,7 +43,6 @@ class MCRSuperposicao:
             acao_mk, conf_mk = mk.predizer(estado)
 
         # 2. Rota Coupling (palavras → ação)
-        import re
         palavras = set(re.findall(r'[a-zà-ÿ]{3,}', texto.lower()))
         scores_cp = defaultdict(float)
         for p in palavras:
@@ -53,22 +51,53 @@ class MCRSuperposicao:
             for a, c in dist.items():
                 scores_cp[a] += c / total
 
+        # 3. Rota mk_palavra (bigramas → estrutura do comando)
+        # Entropia descobre: verbos de comando (crie, gere) tem H alta
+        # porque aparecem em multiplas acoes. Palavras de dominio (mago, dragao)
+        # tem H baixa porque so aparecem em uma acao.
+        # Se a primeira palavra tem H baixa, provavelmente NAO e comando.
+        comando_score = 0.0
+        if coupling and palavras:
+            lista_palavras = re.findall(r'[a-zà-ÿ]{3,}', texto.lower())
+            if lista_palavras:
+                primeira = lista_palavras[0]
+                dist_primeira = coupling._palavra_acao.get(primeira, {})
+                if dist_primeira:
+                    total_p = sum(dist_primeira.values())
+                    h_p = 0.0
+                    for c in dist_primeira.values():
+                        p = c / total_p
+                        if p > 0: h_p -= p * math.log2(p)
+                    max_h_p = math.log2(max(len(dist_primeira), 2))
+                    h_norm_p = h_p / max_h_p if max_h_p > 0 else 0
+                    # H alta = comando generico (crie, gere, faca)
+                    # H baixa = palavra de dominio (mago, dragao, sprite)
+                    comando_score = h_norm_p
+
         if not scores_cp:
+            if comando_score < 0.3 and acao_mk and acao_mk != 'responder':
+                return 'responder', conf_mk * 0.5, {'rota': 'mk_palavra_override'}
             return acao_mk, conf_mk, {'rota': 'markov'}
 
         melhor_cp = max(scores_cp, key=scores_cp.get)
         conf_cp = scores_cp[melhor_cp] / max(sum(scores_cp.values()), 1)
 
-        # 3. Colisão
+        # Se primeira palavra tem H baixa (nao e verbo de comando)
+        # e coupling quer gerar_* com confianca media, favorece responder
+        if comando_score < 0.3 and melhor_cp != 'responder' and conf_cp < 0.9:
+            scores_cp['responder'] = scores_cp.get('responder', 0) + (1.0 - comando_score) * 0.8
+
+        melhor_cp = max(scores_cp, key=scores_cp.get)
+        conf_cp = scores_cp[melhor_cp] / max(sum(scores_cp.values()), 1)
+
+        # Colisão
         acao_mk_norm = str(acao_mk)
         melhor_cp_norm = str(melhor_cp)
 
         if acao_mk_norm == melhor_cp_norm:
-            # Concordam → boost
             return acao_mk, max(conf_mk, conf_cp), {'rota': 'colisao_concordam', 'forca': conf_cp}
 
-        # Discordam → a colisão gera algo NOVO
-        # Usa a distribuição completa (não só o argmax) como candidatos
+        # Discordam → combinacao ponderada
         combinada = defaultdict(float)
         if acao_mk:
             combinada[str(acao_mk)] = conf_mk * 0.4

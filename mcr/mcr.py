@@ -92,6 +92,8 @@ class MCR:
         self._memoria: List[Dict] = []
         self._total_processamentos = 0
         self._sessao_inicio = time.time()
+        self._ultima_interacao = time.time()
+        self._contexto_conversa: List[str] = []  # ultimas acoes para contexto
         self._erros: List[Dict] = []  # log de erros para debug
 
         # ─── Identidade (absorvida de mcr_self) ─────────
@@ -666,24 +668,48 @@ class MCR:
         # ─── 2. DECIDIR ────────────────────────────────
         acao, confianca = self._decidir(estado, entrada)
 
-        # ─── Feedback: MCR pede clarificação quando incerto ──
-        # Igual LLM: se confiança baixa e entropia alta, pergunta ao usuário
-        if confianca < 0.15:
+        # ─── Feedback contextual: MCR pede clarificação quando incerto ──
+        # Igual LLM: usa contexto de conversa + intervalo de tempo.
+        # Se usuario estava criando NPC e manda "mago dragao", continua.
+        # Se usuario do nada manda "mago dragao" apos tempo longo, pergunta.
+        agora = time.time()
+        intervalo = agora - self._ultima_interacao
+        tem_contexto = len(self._contexto_conversa) > 0 and intervalo < 120  # 2 min
+        input_curto = len(entrada.split()) <= 3
+
+        if confianca < 0.15 or (input_curto and not tem_contexto and confianca < 0.5):
             try:
                 h = self.mk.entropia(estado)
             except Exception:
                 h = 1.0
-            if h > 0.5:
-                # MCR não sabe — pede feedback honesto
+            if h > 0.3 or (input_curto and not tem_contexto):
+                # Feedback natural — usa contexto se tem
+                if tem_contexto:
+                    ultima_acao = self._contexto_conversa[-1]
+                    resposta = (
+                        f'Voce quer continuar criando {ultima_acao.replace("gerar_", "")} '
+                        f'com "{entrada[:50]}"? Pode confirmar?'
+                    )
+                else:
+                    # Sem contexto — pergunta aberta natural
+                    palavras = _re.findall(r'[a-z\xc3-\xff]{3,}', entrada.lower())
+                    sujeito = palavras[0] if palavras else entrada[:20]
+                    resposta = (
+                        f'"{sujeito}" — voce quer criar algo com isso, '
+                        f'ou esta perguntando sobre? Me diz pra eu ajudar.'
+                    )
+                self._ultima_interacao = agora
                 return {
                     'sucesso': False,
                     'acao': 'feedback',
                     'nota': 0.0,
                     'confianca': round(confianca, 3),
                     'resultado': {
-                        'resposta': f'Nao entendi "{entrada[:50]}". Voce quer criar, explicar ou gerar algo?',
+                        'resposta': resposta,
                         'tipo': 'feedback',
                         'esperando': True,
+                        'contexto': self._contexto_conversa[-3:],
+                        'intervalo_segundos': round(intervalo, 1),
                     },
                     'tempo': round(time.time() - t0, 3),
                     'entrada': entrada[:200],
@@ -767,6 +793,12 @@ class MCR:
 
         # ─── Observador Universal (auto-observação contínua) ──
         self._alimentar_observador(entrada, acao, resultado)
+
+        # ─── Atualiza contexto de conversa ──
+        self._ultima_interacao = time.time()
+        self._contexto_conversa.append(acao)
+        if len(self._contexto_conversa) > 10:
+            self._contexto_conversa = self._contexto_conversa[-10:]
 
         tempo_total = round(time.time() - t0, 3)
         return {
@@ -862,9 +894,9 @@ class MCR:
             except Exception:
                 pass
 
-        # Superposicao: colisao real entre Markov + Coupling
+        # Superposicao: colisao Markov + Coupling + mk_palavra (bigramas)
         acao_colisao, conf_colisao, meta = self._superposicao.colidir(
-            self.mk, self._coupling, estado, entrada, (acao, conf))
+            self.mk, self._coupling, estado, entrada, (acao, conf), self.mk_palavra)
         if acao_colisao and conf_colisao > 0.05:
             return acao_colisao, conf_colisao
 
@@ -1322,11 +1354,14 @@ class MCR:
         Fluxo:
           1. MCR: processar("mago elfico") → confiança baixa → pede feedback
           2. Usuário: receber_feedback("mago elfico", "responder")
-          3. MCR aprende: fingerprint("mago elfico") → responder
+          3. MCR aprende: fingerprint("mago elfico") → responder (nota maxima)
+          4. Atualiza contexto de conversa
         """
         estado = self._perceber(entrada_original)
         nota = 1.0  # feedback do usuário = máxima confiança
         self._aprender(estado, acao_correta, nota, entrada_original)
+        self._contexto_conversa.append(acao_correta)
+        self._ultima_interacao = time.time()
         return {'sucesso': True, 'aprendido': True,
                 'entrada': entrada_original[:100], 'acao': acao_correta}
 
