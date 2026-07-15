@@ -12,6 +12,7 @@ As ferramentas executam. O domínio é irrelevante.
 import time
 import hashlib
 import os
+import math as _math
 import re as _re
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -82,6 +83,13 @@ class MCR:
         self.mk_trigrama = MarkovEngine("mcr_trigrama")
         try:
             self.mk_trigrama.load()
+        except Exception:
+            pass
+        # Markov de padrão estrutural — agnóstico a vocabulário
+        # P("VASVSVS" → gerar) — só importa a estrutura, não as palavras
+        self.mk_padrao = MarkovEngine("mcr_padrao")
+        try:
+            self.mk_padrao.load()
         except Exception:
             pass
 
@@ -1074,6 +1082,70 @@ class MCR:
                         'input': msg[:100]}
         wrappers['planejar'] = _planejar
 
+        # Ferramentas de arquivo — capacidades cognitivas do MCR
+        def _buscar_arquivos(entrada="", texto="", **kw):
+            """Glob: encontra arquivos por padrao. Agnostico — usa pathlib."""
+            from pathlib import Path
+            msg = entrada or texto
+            try:
+                raiz = Path(__file__).parent.parent
+                padrao = msg.lower().replace('busque ', '').replace('arquivos ', '').strip()
+                resultados = list(raiz.rglob(f"*{padrao}*"))[:20]
+                return {'sucesso': True, 'tipo': 'buscar_arquivos',
+                        'resultados': [str(r.relative_to(raiz)) for r in resultados],
+                        'total': len(resultados)}
+            except Exception as e:
+                return {'sucesso': False, 'erro': str(e)[:100]}
+        wrappers['buscar_arquivos'] = _buscar_arquivos
+
+        def _buscar_conteudo(entrada="", texto="", **kw):
+            """Grep: busca padrao em arquivos. Agnostico — usa regex."""
+            msg = entrada or texto
+            try:
+                raiz = Path(__file__).parent.parent
+                padrao = msg.lower().replace('busque por ', '').replace('busque ', '').strip()
+                resultados = []
+                for f in raiz.rglob('*.py'):
+                    try:
+                        conteudo = f.read_text(encoding='utf-8', errors='replace')
+                        for i, linha in enumerate(conteudo.split('\n')[:200], 1):
+                            if padrao in linha.lower():
+                                resultados.append(f'{f.name}:{i}: {linha.strip()[:60]}')
+                                if len(resultados) >= 15: break
+                    except Exception: continue
+                    if len(resultados) >= 15: break
+                return {'sucesso': True, 'tipo': 'buscar_conteudo',
+                        'resultados': resultados, 'total': len(resultados)}
+            except Exception as e:
+                return {'sucesso': False, 'erro': str(e)[:100]}
+        wrappers['buscar_conteudo'] = _buscar_conteudo
+
+        def _ler_arquivo(entrada="", texto="", **kw):
+            """Read: le arquivo com offset/limit. Agnostico."""
+            msg = entrada or texto
+            try:
+                from pathlib import Path
+                raiz = Path(__file__).parent.parent
+                # Extrai nome do arquivo do input
+                palavras = msg.split()
+                nome_arq = None
+                for p in palavras:
+                    if p.endswith('.py') or p.endswith('.lua') or p.endswith('.json'):
+                        nome_arq = p
+                        break
+                if not nome_arq:
+                    return {'sucesso': False, 'erro': 'sem nome de arquivo'}
+                caminho = raiz / nome_arq
+                if not caminho.exists():
+                    return {'sucesso': False, 'erro': f'{nome_arq} nao encontrado'}
+                linhas = caminho.read_text(encoding='utf-8', errors='replace').split('\n')
+                return {'sucesso': True, 'tipo': 'ler_arquivo',
+                        'arquivo': nome_arq, 'linhas': len(linhas),
+                        'conteudo': '\n'.join(linhas[:50])}
+            except Exception as e:
+                return {'sucesso': False, 'erro': str(e)[:100]}
+        wrappers['ler_arquivo'] = _ler_arquivo
+
         self.registrar_ferramentas(wrappers)
 
     def _decidir_tool(self, msg):
@@ -1794,6 +1866,38 @@ class MCR:
             if conf > self._th('early_exit_conf', 0.9):
                 return acao, conf
         
+        # Trigrama na superposição (não fallback): vota junto com Markov
+        # Trigramas com H baixa (poucas ações) pesam mais — igual coupling
+        if entrada and self.mk_trigrama.transicoes:
+            try:
+                palavras_in = _re.findall(r'[a-z\xc3-\xff]{3,}', entrada.lower())
+                votos_tri = {}
+                for p in palavras_in:
+                    for j in range(max(len(p) - 2, 0)):
+                        t = p[j:j+3]
+                        dist = self.mk_trigrama.transicoes.get(t, {})
+                        total = sum(dist.values()) or 1
+                        # Peso entrópico: trigrama com H baixa pesa mais
+                        h_t = 0.0
+                        for c in dist.values():
+                            prob = c / total
+                            if prob > 0: h_t -= prob * _math.log2(prob)
+                        max_h_t = _math.log2(max(len(dist), 2))
+                        h_norm_t = h_t / max_h_t if max_h_t > 0 else 0
+                        peso_t = 1.0 - h_norm_t
+                        for a, c in dist.items():
+                            votos_tri[a] = votos_tri.get(a, 0) + (c / total) * peso_t
+                if votos_tri:
+                    melhor_tri = max(votos_tri, key=votos_tri.get)
+                    conf_tri = votos_tri[melhor_tri] / max(sum(votos_tri.values()), 1)
+                    # Superposição: se trigrama está mais confiante, combina
+                    if conf_tri > conf:
+                        acao, conf = melhor_tri, conf_tri
+                    elif conf_tri > 0.3 and acao == melhor_tri:
+                        conf = min(1.0, conf * 1.2)  # concordam → boost
+            except Exception:
+                pass
+        
         # Ações conhecidas: descobertas do mk (apenas verbos validos)
         # Cacheado — nao recalcula a cada _decidir
         if not hasattr(self, '_acoes_validas_cache'):
@@ -1832,7 +1936,8 @@ class MCR:
         # Observer: cluster X->Y boost (se confianca observer > markov)
         cluster_id = None
         cluster_conf = 0.0
-        if self._obs_ativado and self._observador:
+        # Observer: skip se conf alta (latência)
+        if self._obs_ativado and self._observador and conf < 0.7:
             try:
                 pred_obs, conf_obs, _ = self._observador.predizer_com_confianca(estado)
                 if pred_obs is not None:
@@ -1843,9 +1948,9 @@ class MCR:
             except Exception:
                 pass
 
-        # Descobridor: se input contem ancora de dominio, boost
+        # Descobridor: skip se conf alta (latência)
         desc = self._lazy('_descobridor', 'mcr.descobridor.DescobridorUniversal')
-        if desc and desc._treinado:
+        if desc and desc._treinado and conf < 0.7:
             try:
                 palavras = _re.findall(r'[a-z\xc3-\xff]{3,}', entrada.lower())
                 for p in palavras:
@@ -1863,10 +1968,10 @@ class MCR:
             except Exception:
                 pass
 
-        # Esfera: correlacao N-dimensional (16 niveis via _extrair_niveis)
-        # Cada nivel vota na acao. 3+ votos concordando = boost ou substitui
+        # Esfera: só consulta quando conf baixa (latência) e tem dados
+        # Skip se conf > 0.7 — Markov+Coupling+Trigrama já resolveram
         esfera = self._lazy('_esfera', 'mcr.esfera.MCREsfera')
-        if esfera and esfera.total > 10 and entrada:
+        if esfera and esfera.total > 10 and entrada and conf < 0.7:
             try:
                 niveis = self._extrair_niveis(entrada)
                 n_niveis = len(niveis)
@@ -1892,12 +1997,11 @@ class MCR:
                         dist_nivel = esfera.cross.get(nivel, {}).get(valor, {}).get('acao', {})
                         total_dist = sum(dist_nivel.values()) if dist_nivel else 0
                         if total_dist >= 2:
-                            from math import log2
                             h_n = 0.0
                             for c in dist_nivel.values():
                                 p = c / total_dist
-                                if p > 0: h_n -= p * log2(p)
-                            max_h_n = log2(max(len(dist_nivel), 2))
+                                if p > 0: h_n -= p * _math.log2(p)
+                            max_h_n = _math.log2(max(len(dist_nivel), 2))
                             h_norm_n = h_n / max_h_n if max_h_n > 0 else 0
                             peso_n = 1.0 - h_norm_n
                         else:
@@ -1932,10 +2036,9 @@ class MCR:
         if acao and acao != 'responder' and conf < self._th('self_feedback_conf', 0.85):
             acao, conf = self._self_feedback(acao, conf, entrada)
 
-        # Mundo: simulacao causal — "se fizer X, o que acontece?"
-        # Se o mundo prevê falha para esta ação, reduz confiança
+        # Mundo: skip se conf alta (latência)
         mundo = self._lazy('_mundo', 'mcr.mundo.MCRMundo')
-        if mundo and estado and conf > 0.1:
+        if mundo and estado and 0.1 < conf < 0.7:
             try:
                 simulacao = mundo.simular(estado[:50], acao)
                 if simulacao:
