@@ -161,6 +161,10 @@ mcr.mk_palavra.transicoes = {}
 mcr.mk_palavra.freq = type(mcr.mk_palavra.freq)()
 mcr.mk_palavra.total = 0
 mcr.mk_palavra._entropia_cache = {}
+mcr.mk_trigrama.transicoes = {}
+mcr.mk_trigrama.freq = type(mcr.mk_trigrama.freq)()
+mcr.mk_trigrama.total = 0
+mcr.mk_trigrama._entropia_cache = {}
 from collections import defaultdict
 mcr._coupling._palavra_acao = defaultdict(lambda: defaultdict(int))
 mcr._coupling._cluster_acao = defaultdict(lambda: defaultdict(int))
@@ -182,6 +186,10 @@ for entry in treino:
     palavras = re.findall(r'[a-z\xc3-\xff]{3,}', entry['input'].lower())
     for i in range(len(palavras)-1):
         mcr.mk_palavra.aprender(palavras[i], palavras[i+1])
+    # Trigramas de caracteres — agnóstico a idioma
+    for p in palavras:
+        for j in range(max(len(p) - 2, 0)):
+            mcr.mk_trigrama.aprender(p[j:j+3], acao)
 t_train_mcr = time.time() - t0
 
 # Holdout — ZERO-SHOT (sem feedback)

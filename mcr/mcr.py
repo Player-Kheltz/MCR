@@ -1952,6 +1952,26 @@ class MCR:
                 pass
 
         if acao and conf > 0.1:
+            # Se conf baixa e trigrama tem opinião diferente, considera
+            if conf < self._th('trigrama_consultar', 0.5) and entrada and self.mk_trigrama.transicoes:
+                try:
+                    palavras_in = _re.findall(r'[a-z\xc3-\xff]{3,}', entrada.lower())
+                    votos_tri = {}
+                    for p in palavras_in:
+                        for j in range(max(len(p) - 2, 0)):
+                            t = p[j:j+3]
+                            dist = self.mk_trigrama.transicoes.get(t, {})
+                            total = sum(dist.values()) or 1
+                            for a, c in dist.items():
+                                votos_tri[a] = votos_tri.get(a, 0) + c / total
+                    if votos_tri:
+                        melhor_tri = max(votos_tri, key=votos_tri.get)
+                        conf_tri = votos_tri[melhor_tri] / max(sum(votos_tri.values()), 1)
+                        # Se trigrama está mais confiante que Markov, substitui
+                        if conf_tri > conf and melhor_tri != acao:
+                            return self._normalizar_acao(melhor_tri), conf_tri
+                except Exception:
+                    pass
             return self._normalizar_acao(acao), conf
 
         # Fallback 1: Trigramas de caracteres (agnóstico a idioma)
