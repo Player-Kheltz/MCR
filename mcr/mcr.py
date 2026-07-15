@@ -94,7 +94,7 @@ class MCR:
         except Exception:
             pass
 
-        # ─── 13 Módulos MCR (lazy init) ─────────────────
+        # ─── Módulos MCR (lazy init) ─────────────────────
         self._esfera = None          # correlacao N-dimensional
         self._esquecimento = None    # poda por entropia
         self._hiperesfera = None     # auto-descoberta de tokenizacao
@@ -105,6 +105,13 @@ class MCR:
         self._variador = None        # preenche gaps com valores reais
         self._descobridor = None     # frequencia diferencial
         self._thresholds = None      # thresholds descobertos (MCRThreshold)
+        self._hdc = None             # hiperdimensional computing (10k-dim)
+        self._sdm = None             # sparse distributed memory
+        self._radar = None           # busca por similaridade (4 ondas)
+        self._sig_cluster = None     # descoberta de tipos sem rotulos
+        self._autobiography = None   # memoria narrativa de longo prazo
+        self._meta_evolution = None  # auto-ajuste de pesos da Equacao
+        self._pattern_engine = None  # tokenizacao texto/logs + eixo nirvana-caos
         self._stopwords = set()
 
         # ─── Registry ───────────────────────────────────
@@ -159,6 +166,13 @@ class MCR:
     def _bootstrap(self):
         """Inicializa ferramentas. Bootstrap pesado é lazy."""
         _t = time.time()
+        # Popula registry com módulos descobertos do workspace
+        try:
+            from mcr.bootstrap import inicializar
+            if len(self._registry.listar()) < 5:
+                inicializar(self._registry)
+        except Exception:
+            pass
         try:
             self._inicializar_templates()
         except Exception as e:
@@ -1359,6 +1373,48 @@ class MCR:
                 return {'sucesso': False, 'erro': str(e)[:100]}
         wrappers['autoteste'] = _autoteste
 
+        # Gerar codigo multi-linguagem
+        def _gerar_codigo(entrada="", texto="", **kw):
+            msg = entrada or texto
+            try:
+                from mcr.gerador_codigo import GeradorCodigo
+                g = GeradorCodigo()
+                r = g.gerar_lua() if 'lua' in msg.lower() else g.gerar_python()
+                return {'sucesso': True, 'tipo': 'gerar_codigo',
+                        'codigo': r.get('codigo', '')[:500], 'input': msg[:100]}
+            except Exception as e:
+                return {'sucesso': False, 'erro': str(e)[:100], 'tipo': 'gerar_codigo'}
+        wrappers['gerar_codigo'] = _gerar_codigo
+
+        # Diagnosticar
+        def _diagnosticar(entrada="", texto="", **kw):
+            msg = entrada or texto
+            try:
+                stats = self.estatisticas()
+                stats['erros'] = len(self._erros)
+                stats['erros_recentes'] = [str(e)[:60] for e in self._erros[-5:]]
+                return {'sucesso': True, 'tipo': 'diagnosticar',
+                        'stats': stats, 'input': msg[:100]}
+            except Exception as e:
+                return {'sucesso': False, 'erro': str(e)[:100]}
+        wrappers['diagnosticar'] = _diagnosticar
+
+        # Revisar (auto-revisor)
+        def _revisar(entrada="", texto="", **kw):
+            msg = entrada or texto
+            try:
+                # Verifica coerencia via chain_of_verification
+                from mcr.chain_of_verification import ChainOfVerification
+                cov = ChainOfVerification()
+                r = cov.verificar_coerencia_estrutural(msg)
+                return {'sucesso': True, 'tipo': 'revisar',
+                        'valido': r.get('valido', True),
+                        'erros': r.get('erros', [])[:5]}
+            except Exception:
+                return {'sucesso': True, 'tipo': 'revisar',
+                        'mensagem': 'Revisao generica'}
+        wrappers['revisar'] = _revisar
+
         self.registrar_ferramentas(wrappers)
 
     def _decidir_tool(self, msg):
@@ -2327,6 +2383,20 @@ class MCR:
             except Exception:
                 pass
 
+        # Fallback 2b: Radar — busca por similaridade em 4 ondas
+        radar = self._lazy('_radar', 'mcr.mcr_radar')
+        if radar and entrada:
+            try:
+                candidatos = list(self.mk.transicoes.keys())[:50]
+                resultado_radar = radar.buscar(entrada, candidatos)
+                if resultado_radar:
+                    acao_r, conf_r = resultado_radar[0], resultado_radar[1] if len(resultado_radar) > 1 else 0.3
+                    acao_r_norm = self._normalizar_acao(acao_r)
+                    if acao_r_norm and conf_r > 0.1:
+                        return acao_r_norm, conf_r
+            except Exception:
+                pass
+
         # Fallback 3: similaridade Jaccard por componentes do estado
         if self.mk.transicoes:
             partes_consulta = set(estado.split('|'))
@@ -2485,6 +2555,14 @@ class MCR:
         if len(self._execucoes) >= 30:
             try:
                 pesos = self._descobrir_pesos()
+            except Exception:
+                pass
+        
+        # Meta: auto-ajuste de pesos via PONTE_OTIMA
+        meta_evo = self._lazy('_meta_evolution', 'mcr.mcr_meta')
+        if meta_evo:
+            try:
+                pesos = meta_evo.ajustar_pesos(pesos) if hasattr(meta_evo, 'ajustar_pesos') else pesos
             except Exception:
                 pass
         
@@ -2770,9 +2848,24 @@ class MCR:
         mundo = self._lazy('_mundo', 'mcr.mundo.MCRMundo')
         if mundo and entrada:
             try:
-                # estado antes = fingerprint, acao = tool, depois = resultado
                 depois = f"{acao}:{'ok' if nota > 0.5 else 'fail'}"
                 mundo.aprender(estado[:50], acao, depois)
+            except Exception:
+                pass
+
+        # SignatureCluster: descobre tipos sem rotulos
+        sig_cluster = self._lazy('_sig_cluster', 'mcr.mcr_signature_cluster')
+        if sig_cluster and entrada:
+            try:
+                sig_cluster.clusterizar()
+            except Exception:
+                pass
+
+        # Autobiography: memoria narrativa de longo prazo
+        autobio = self._lazy('_autobiography', 'mcr.mcr_autobiography')
+        if autobio and entrada:
+            try:
+                autobio.recordar(entrada[:100])
             except Exception:
                 pass
 
