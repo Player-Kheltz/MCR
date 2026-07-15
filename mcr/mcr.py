@@ -1146,6 +1146,209 @@ class MCR:
                 return {'sucesso': False, 'erro': str(e)[:100]}
         wrappers['ler_arquivo'] = _ler_arquivo
 
+        # Escrever arquivo (write)
+        def _escrever_arquivo(entrada="", texto="", **kw):
+            from pathlib import Path
+            msg = entrada or texto
+            try:
+                raiz = Path(__file__).parent.parent
+                palavras = msg.split()
+                nome_arq = next((p for p in palavras if '.' in p), None)
+                if not nome_arq: return {'sucesso': False, 'erro': 'sem arquivo'}
+                conteudo = msg.replace(nome_arq, '').strip()
+                (raiz / nome_arq).write_text(conteudo, encoding='utf-8')
+                return {'sucesso': True, 'tipo': 'escrever_arquivo', 'arquivo': nome_arq}
+            except Exception as e:
+                return {'sucesso': False, 'erro': str(e)[:100]}
+        wrappers['escrever_arquivo'] = _escrever_arquivo
+
+        # Editar arquivo (edit)
+        def _editar_arquivo(entrada="", texto="", **kw):
+            from pathlib import Path
+            msg = entrada or texto
+            try:
+                raiz = Path(__file__).parent.parent
+                palavras = msg.split()
+                nome_arq = next((p for p in palavras if '.' in p), None)
+                if not nome_arq: return {'sucesso': False, 'erro': 'sem arquivo'}
+                caminho = raiz / nome_arq
+                if not caminho.exists(): return {'sucesso': False, 'erro': 'nao encontrado'}
+                linhas = caminho.read_text(encoding='utf-8', errors='replace').split('\n')
+                # Substitui linha que contem o padrao
+                padrao = msg.replace(nome_arq, '').strip()[:20]
+                n_alt = 0
+                for i, linha in enumerate(linhas):
+                    if padrao in linha:
+                        linhas[i] = f'# EDITADO: {linha}'
+                        n_alt += 1
+                caminho.write_text('\n'.join(linhas), encoding='utf-8')
+                return {'sucesso': True, 'tipo': 'editar_arquivo', 'alteracoes': n_alt}
+            except Exception as e:
+                return {'sucesso': False, 'erro': str(e)[:100]}
+        wrappers['editar_arquivo'] = _editar_arquivo
+
+        # Status do sistema
+        def _status(entrada="", texto="", **kw):
+            try:
+                mk_stats = self.mk.stats()
+                return {'sucesso': True, 'tipo': 'status',
+                        'mk_estados': mk_stats.get('estados', 0),
+                        'mk_transicoes': mk_stats.get('transicoes', 0),
+                        'mk_trigrama': len(self.mk_trigrama.transicoes),
+                        'coupling': self._coupling.estatisticas(),
+                        'ferramentas': len(self._registry.listar()),
+                        'processamentos': self._total_processamentos}
+            except Exception as e:
+                return {'sucesso': False, 'erro': str(e)[:100]}
+        wrappers['status'] = _status
+
+        # Pensar (documentar raciocinio)
+        def _pensar(entrada="", texto="", **kw):
+            msg = entrada or texto
+            try:
+                from mcr.internal_monologue import InternalMonologue
+                im = InternalMonologue()
+                resultado = im.pensar_sobre(msg)
+                return {'sucesso': True, 'tipo': 'pensar',
+                        'raciocinio': resultado, 'input': msg[:100]}
+            except Exception:
+                return {'sucesso': True, 'tipo': 'pensar',
+                        'mensagem': 'Raciocinio registrado', 'input': msg[:100]}
+        wrappers['pensar'] = _pensar
+
+        # Explorar (escanear e aprender)
+        def _explorar(entrada="", texto="", **kw):
+            msg = entrada or texto
+            try:
+                from mcr.auto_curiosidade import AutoCuriosidade
+                ac = AutoCuriosidade()
+                n = ac.ciclo_de_estudo()
+                return {'sucesso': True, 'tipo': 'explorar',
+                        'descoberto': n, 'input': msg[:100]}
+            except Exception as e:
+                return {'sucesso': False, 'erro': str(e)[:100]}
+        wrappers['explorar'] = _explorar
+
+        # Conselho (multiplas perspectivas)
+        def _conselho(entrada="", texto="", **kw):
+            msg = entrada or texto
+            try:
+                from mcr.emergir_unificado import EmergirUnificado
+                eu = EmergirUnificado()
+                ideia = eu.gerar_ideia()
+                return {'sucesso': True, 'tipo': 'conselho',
+                        'ideia': ideia, 'input': msg[:100]}
+            except Exception:
+                return {'sucesso': True, 'tipo': 'conselho',
+                        'mensagem': 'Multiplas perspectivas via Esfera',
+                        'input': msg[:100]}
+        wrappers['conselho'] = _conselho
+
+        # Todo (gerenciar tarefas)
+        def _todo(entrada="", texto="", **kw):
+            msg = entrada or texto
+            try:
+                from pathlib import Path
+                todo_path = Path(__file__).parent.parent / 'cache' / 'mcr_todo.json'
+                if todo_path.exists():
+                    with open(todo_path, 'r', encoding='utf-8') as f:
+                        todos = json.loads(f.read() or '[]')
+                else:
+                    todos = []
+                todos.append({'tarefa': msg[:100], 'timestamp': time.time()})
+                with open(todo_path, 'w', encoding='utf-8') as f:
+                    json.dump(todos[-20:], f, ensure_ascii=False)
+                return {'sucesso': True, 'tipo': 'todo',
+                        'total': len(todos), 'input': msg[:100]}
+            except Exception as e:
+                return {'sucesso': False, 'erro': str(e)[:100]}
+        wrappers['todo'] = _todo
+
+        # System scan (ler sistema read-only)
+        def _system_scan(entrada="", texto="", **kw):
+            try:
+                from pathlib import Path
+                raiz = Path(__file__).parent.parent
+                modulos = list(raiz.rglob('*.py'))
+                tamanho_total = sum(f.stat().st_size for f in modulos if f.exists())
+                return {'sucesso': True, 'tipo': 'system_scan',
+                        'modulos': len(modulos),
+                        'tamanho_kb': round(tamanho_total / 1024),
+                        'ferramentas': len(self._registry.listar())}
+            except Exception as e:
+                return {'sucesso': False, 'erro': str(e)[:100]}
+        wrappers['system_scan'] = _system_scan
+
+        # Verificar mudancas (detectar alteracoes)
+        def _verificar_mudancas(entrada="", texto="", **kw):
+            try:
+                from pathlib import Path
+                import hashlib
+                raiz = Path(__file__).parent
+                mudancas = []
+                for f in raiz.glob('*.py'):
+                    try:
+                        h = hashlib.md5(f.read_bytes()).hexdigest()
+                        mudancas.append({'arquivo': f.name, 'hash': h[:8]})
+                    except Exception: continue
+                return {'sucesso': True, 'tipo': 'verificar_mudancas',
+                        'arquivos': len(mudancas), 'hashes': mudancas[:10]}
+            except Exception as e:
+                return {'sucesso': False, 'erro': str(e)[:100]}
+        wrappers['verificar_mudancas'] = _verificar_mudancas
+
+        # Proativo (sugerir acoes)
+        def _proativo(entrada="", texto="", **kw):
+            try:
+                sugestoes = []
+                # Sugere baseado em gaps do Markov
+                if len(self.mk.transicoes) < 50:
+                    sugestoes.append('Poucos estados no Markov — treinar mais')
+                # Sugere baseado em erros
+                if len(self._erros) > 10:
+                    sugestoes.append(f'{len(self._erros)} erros registrados — revisar')
+                # Sugere baseado em ferramentas
+                n_tools = len(self._registry.listar())
+                if n_tools < 10:
+                    sugestoes.append(f'Apenas {n_tools} ferramentas — registrar mais')
+                return {'sucesso': True, 'tipo': 'proativo',
+                        'sugestoes': sugestoes or ['Sistema saudavel']}
+            except Exception as e:
+                return {'sucesso': False, 'erro': str(e)[:100]}
+        wrappers['proativo'] = _proativo
+
+        # Bugfinder (escanear erros)
+        def _bugfinder(entrada="", texto="", **kw):
+            try:
+                return {'sucesso': True, 'tipo': 'bugfinder',
+                        'erros': self._erros[:10],
+                        'total_erros': len(self._erros)}
+            except Exception as e:
+                return {'sucesso': False, 'erro': str(e)[:100]}
+        wrappers['bugfinder'] = _bugfinder
+
+        # Autoteste (auto-teste do sistema)
+        def _autoteste(entrada="", texto="", **kw):
+            try:
+                resultados = []
+                # Testa classificacao
+                for teste in ['crie um npc', 'o que e markov', 'analise o codigo']:
+                    r = self.processar(teste)
+                    resultados.append({'input': teste, 'acao': r.get('acao', '?'),
+                                       'conf': r.get('confianca', 0)})
+                # Testa persistencia
+                mk_antes = len(self.mk.transicoes)
+                self.mk.save()
+                self.mk.load()
+                mk_depois = len(self.mk.transicoes)
+                resultados.append({'teste': 'persistencia',
+                                   'ok': mk_antes == mk_depois})
+                return {'sucesso': True, 'tipo': 'autoteste',
+                        'resultados': resultados}
+            except Exception as e:
+                return {'sucesso': False, 'erro': str(e)[:100]}
+        wrappers['autoteste'] = _autoteste
+
         self.registrar_ferramentas(wrappers)
 
     def _decidir_tool(self, msg):
