@@ -719,14 +719,16 @@ class MCR:
         except Exception:
             pass
 
-        # Alimenta Markov + Coupling com auto-conhecimento (1x, sem reforco)
-        for entrada, acao in self_seeds:
-            estado = self._fingerprint_chave(entrada)
-            self.mk.aprender(estado, acao)
-            self._coupling.alimentar(entrada, acao)
-            palavras = _re.findall(r'[a-z\xc3-\xff]{3,}', entrada.lower())
-            for i in range(len(palavras) - 1):
-                self.mk_palavra.aprender(palavras[i], palavras[i+1])
+        # Alimenta Esfera com auto-conhecimento (NUNCA mk/coupling — polui acoes)
+        esfera = self._lazy('_esfera', 'mcr.esfera.MCREsfera')
+        if esfera:
+            for entrada, modulo in self_seeds:
+                try:
+                    niveis = self._extrair_niveis(entrada)
+                    for nivel, valor in niveis.items():
+                        esfera.alimentar_par(nivel, "modulo", valor, modulo)
+                except Exception:
+                    pass
 
         # Fase 1: GLOB — descobre diretorios pelos nomes dos arquivos
         # Como um LLM: olha a estrutura primeiro, nao le cada arquivo
@@ -1856,6 +1858,7 @@ class MCR:
                 pass
 
         # Fallback 3: tool com maior taxa de sucesso no registry
+        # Só retorna se for ação válida (não poluição de nomes de módulo)
         melhor_tool = None
         melhor_taxa = 0.0
         for nome in self._registry.listar()[:50]:
