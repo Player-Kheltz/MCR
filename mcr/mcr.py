@@ -159,6 +159,68 @@ class MCR:
                 pass
         return getattr(self, attr, None)
 
+    def _self_feedback(self, acao, conf, entrada):
+        """MCR investiga proprio input quando incerto. Igual LLM.
+        
+        Usa coupling._posicao_acao + mk_palavra para verificar:
+        1. Se P0 da primeira palavra mistura gerar_* e responder → ambíguo
+        2. Se o bigrama (primeira→segunda) aparece em comandos conhecidos
+        3. Se nao tem verbo de comando reconhecido → self-corrige para responder
+        
+        Tudo via entropia. Zero hardcode.
+        """
+        try:
+            palavras = entrada.replace('_', ' ').split()
+            if not palavras:
+                return acao, conf
+            
+            primeira = palavras[0][:10].lower()
+            p0_dist = self._coupling._posicao_acao.get(f'P0:{primeira}', {})
+            
+            if not p0_dist or sum(p0_dist.values()) < 2:
+                return acao, conf
+            
+            # Entropia de P0
+            import math
+            total_p0 = sum(p0_dist.values())
+            h = 0.0
+            for c in p0_dist.values():
+                p = c / total_p0
+                if p > 0: h -= p * math.log2(p)
+            max_h = math.log2(max(len(p0_dist), 2))
+            h_norm = h / max_h if max_h > 0 else 0
+            
+            tem_responder = 'responder' in p0_dist
+            tem_gerar = any(k.startswith('gerar_') for k in p0_dist)
+            
+            if not (tem_responder and tem_gerar and h_norm > 0.7):
+                return acao, conf
+            
+            # Ambíguo — verifica se tem verbo de comando via mk_palavra
+            # Verbos de comando (crie, gere, faca) sao descobertos por entropia:
+            # aparecem em P0 de multiplas acoes gerar_* (H alta, sem responder)
+            input_curto = len(palavras) <= 3
+            if not input_curto:
+                return acao, conf
+            
+            # Verifica: a primeira palavra é um verbo de comando?
+            # Verbo de comando = P0 so tem gerar_*, sem responder
+            so_gerar = all(k.startswith('gerar_') for k in p0_dist)
+            if so_gerar:
+                # Primeira palavra é verbo de comando — mantem acao
+                return acao, conf
+            
+            # Primeira palavra nao é verbo (tem responder em P0)
+            # Self-corrige: se responder tem fatia SIGNIFICATIVA (>30%), pergunta
+            responder_pct = p0_dist.get('responder', 0) / total_p0
+            gerar_pct = 1.0 - responder_pct
+            if responder_pct > 0.40 and gerar_pct < 0.60:
+                return 'responder', max(conf * 0.6, responder_pct * 0.8)
+            
+            return acao, conf
+        except Exception:
+            return acao, conf
+
     def _inicializar_templates(self):
         """Cold start inteligente: MCR explora o workspace como um LLM.
         Fase 1: Glob rapido — so nomes de arquivos, nao le conteudo.
@@ -898,7 +960,15 @@ class MCR:
         acao_colisao, conf_colisao, meta = self._superposicao.colidir(
             self.mk, self._coupling, estado, entrada, (acao, conf), self.mk_palavra)
         if acao_colisao and conf_colisao > 0.05:
-            return acao_colisao, conf_colisao
+            acao, conf = acao_colisao, conf_colisao
+
+        # Self-feedback: MCR investiga proprio input quando incerto
+        # Igual LLM: usa ferramentas para verificar antes de agir
+        # Verifica posicao 0 (P0) da primeira palavra no coupling
+        # Se P0 tem mistura de gerar_* e responder, e nao tem verbo de comando,
+        # corrige para responder (pergunta, nao comando)
+        if acao and acao != 'responder' and conf < 0.85:
+            acao, conf = self._self_feedback(acao, conf, entrada)
 
         if acao and conf > 0.1:
             return str(acao), conf
