@@ -114,12 +114,19 @@ class MCRSuperposicao:
         if acao_mk_norm == melhor_cp_norm:
             return acao_mk, max(conf_mk, conf_cp), {'rota': 'colisao_concordam', 'forca': conf_cp}
 
-        # Discordam → combinacao ponderada
+        # Discordam → combinacao por peso entrópico (1-H)
+        # A rota com menor entropia (mais certeza) pesa mais
+        # Igual ao coupling._superpor: peso = (1 - entropia_normalizada)
+        h_mk = 0.0 if not acao_mk else 1.0 - conf_mk  # H alta = conf baixa
+        h_cp = 1.0 - conf_cp
+        peso_mk = max(0.01, 1.0 - h_mk)
+        peso_cp = max(0.01, 1.0 - h_cp)
+        
         combinada = defaultdict(float)
         if acao_mk:
-            combinada[str(acao_mk)] = conf_mk * 0.4
+            combinada[str(acao_mk)] = conf_mk * peso_mk
         for a, s in scores_cp.items():
-            combinada[a] += s * 0.6
+            combinada[a] += s * peso_cp
 
         if not combinada:
             return acao_mk, conf_mk, {'rota': 'markov'}

@@ -97,14 +97,16 @@ def classificar_tipo_ponte(score: float, jaccard_bytes: float = 0.0) -> str:
 def calcular_ponte(divergencia: float, especificidade: float,
                    profundidade: float) -> float:
     """Calcula PONTE_OTIMA.
-
-    PONTE_OTIMA = (div * w_div + esp * w_esp + prof * w_prof) / 10
+    
+    PONTE_OTIMA = (div * w_div + esp * w_esp + prof * w_prof) / soma_pesos
+    Normalizacao pela soma dos pesos (nao fixa /10) — adaptativo.
     """
     w_div = EQUACAO_5D['ponte_divergencia']
     w_esp = EQUACAO_5D['ponte_especificidade']
     w_prof = EQUACAO_5D['ponte_profundidade']
+    soma_pesos = w_div + w_esp + w_prof
     score = (divergencia * w_div + especificidade * w_esp +
-             profundidade * w_prof) / 10.0
+             profundidade * w_prof) / max(soma_pesos, 0.01)
     return min(1.0, max(0.0, score))
 
 

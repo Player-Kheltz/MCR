@@ -82,6 +82,7 @@ class MCR:
         self._genesis = None         # auto-expansao de dominios
         self._variador = None        # preenche gaps com valores reais
         self._descobridor = None     # frequencia diferencial
+        self._thresholds = None      # thresholds descobertos (MCRThreshold)
         self._stopwords = set()
 
         # ─── Registry ───────────────────────────────────
@@ -159,6 +160,33 @@ class MCR:
                 pass
         return getattr(self, attr, None)
 
+    def _th(self, chave, fallback):
+        """Obtem threshold descoberto pelo MCRThreshold. Zero hardcode.
+        O MCR observa valores reais e calcula a mediana."""
+        if self._thresholds is None:
+            try:
+                from mcr.decisor import MCRThreshold
+                self._thresholds = MCRThreshold("mcr_params")
+            except Exception:
+                return fallback
+        try:
+            return self._thresholds.obter(chave, fallback)
+        except Exception:
+            return fallback
+
+    def _th_observar(self, chave, valor):
+        """Observa um valor real para calibrar threshold."""
+        if self._thresholds is None:
+            try:
+                from mcr.decisor import MCRThreshold
+                self._thresholds = MCRThreshold("mcr_params")
+            except Exception:
+                return
+        try:
+            self._thresholds.aprender(chave, valor)
+        except Exception:
+            pass
+
     def _extrair_niveis(self, entrada):
         """Extrai N níveis de fingerprint do mesmo input.
         Intrínsecos: do input alone (estáveis, não mudam com aprendizado)
@@ -191,13 +219,29 @@ class MCR:
         # 4. intencao — primeira palavra (verbo ou conceito)
         niveis['intencao'] = palavras[0][:10].lower() if palavras else ''
         
-        # 5. padrao — estrutura sintática por posição (V/A/S/X)
+        # 5. padrao — estrutura sintática descoberta por frequência diferencial
+        # P0 com H baixa = verbo (define a ação)
+        # P1 com H alta = artigo/conector (não define a ação)
+        # Resto com len>3 = substantivo
         tipos = []
         for i, p in enumerate(palavras[:6]):
-            if i == 0 and len(p) > 3:
-                tipos.append('V')
-            elif p.lower() in ('um', 'uma', 'o', 'a', 'os', 'as', 'the', 'an', 'a'):
-                tipos.append('A')
+            p_lower = p[:10].lower()
+            pos_dist = self._coupling._posicao_acao.get(f'P{i}:{p_lower}', {})
+            total_pos = sum(pos_dist.values())
+            if total_pos >= 2:
+                from math import log2
+                h_pos = 0.0
+                for c in pos_dist.values():
+                    prob = c / total_pos
+                    if prob > 0: h_pos -= prob * log2(prob)
+                max_h_pos = log2(max(len(pos_dist), 2))
+                h_norm_pos = h_pos / max_h_pos if max_h_pos > 0 else 0
+                if h_norm_pos < 0.3:
+                    tipos.append('V')  # H baixa em P0 = verbo específico
+                elif h_norm_pos > 0.7:
+                    tipos.append('C')  # H alta = conector/artigo genérico
+                else:
+                    tipos.append('S')  # H média = substantivo
             elif len(p) > 3:
                 tipos.append('S')
             else:
@@ -339,7 +383,7 @@ class MCR:
             tem_responder = 'responder' in p0_dist
             tem_execucao = len(acoes_execucao) > 0
             
-            if not (tem_responder and tem_execucao and h_norm > 0.7):
+            if not (tem_responder and tem_execucao and h_norm > self._th('feedback_h_min', 0.7)):
                 return acao, conf
             
             input_curto = len(palavras) <= 3
@@ -355,7 +399,7 @@ class MCR:
             # Primeira palavra nao é verbo (tem responder em P0)
             responder_pct = p0_dist.get('responder', 0) / total_p0
             execucao_pct = 1.0 - responder_pct
-            if responder_pct > 0.40 and execucao_pct < 0.60:
+            if responder_pct > self._th('feedback_responder_min', 0.40) and execucao_pct < self._th('feedback_execucao_max', 0.60):
                 return 'responder', max(conf * 0.6, responder_pct * 0.8)
             
             return acao, conf
@@ -1031,10 +1075,10 @@ class MCR:
         # Se usuario do nada manda "mago dragao" apos tempo longo, pergunta.
         agora = time.time()
         intervalo = agora - self._ultima_interacao
-        tem_contexto = len(self._contexto_conversa) > 0 and intervalo < 120  # 2 min
+        tem_contexto = len(self._contexto_conversa) > 0 and intervalo < self._th('contexto_intervalo', 120)
         input_curto = len(entrada.split()) <= 3
 
-        if confianca < 0.15 or (input_curto and not tem_contexto and confianca < 0.5):
+        if confianca < self._th('feedback_conf_baixa', 0.15) or (input_curto and not tem_contexto and confianca < self._th('feedback_conf_media', 0.5)):
             try:
                 h = self.mk.entropia(estado)
             except Exception:
@@ -1119,10 +1163,15 @@ class MCR:
         # ─── Auto-evolução (a cada 10 processamentos) ──
         if self._total_processamentos % 10 == 0:
             try:
-                self.mk_palavra = self.mk
                 from mcr.mcr_auto_evolution import MCRAutoEvolution
                 evo = MCRAutoEvolution(mcr_system=self)
                 evo.ciclo(n_mutacoes=3)
+            except Exception:
+                pass
+            # Observar thresholds reais para calibrar
+            try:
+                self._th_observar('confianca_media', confianca)
+                self._th_observar('nota_media', nota)
             except Exception:
                 pass
             # M1: Re-treina ExtratorFeatures com dados acumulados
@@ -1267,9 +1316,9 @@ class MCR:
                     acao_esfera = max(votos_esfera, key=votos_esfera.get)
                     n_votos = votos_esfera[acao_esfera]
                     # 3+ niveis concordam = boost forte
-                    if n_votos >= 3 and acao_esfera == acao:
+                    if n_votos >= self._th('esfera_votos_min', 3) and acao_esfera == acao:
                         conf = min(1.0, conf * 1.4)
-                    elif n_votos >= 3 and acao_esfera != acao and conf < 0.5:
+                    elif n_votos >= self._th('esfera_votos_min', 3) and acao_esfera != acao and conf < self._th('esfera_conf_substitui', 0.5):
                         acao = acao_esfera
                         conf = max(conf, n_votos / max(n_niveis, 1))
             except Exception:
@@ -1421,10 +1470,18 @@ class MCR:
         h_max = math.log2(max(len(freq), 2))
         informacao = h_out / h_max if h_max > 0 else 0.0
         
-        # 4. ESTABILIDADE — gaussiana (premia edge of chaos)
-        h_m = 1.0 - certeza
+        # 4. ESTABILIDADE — entropia REAL do Markov (nao proxy 1-certeza)
+        # Mede quao deterministico o estado atual e no Markov
+        # H=0 (deterministico) ou H=max (caos) = instavel
+        # H intermediario = edge of chaos = estavel
+        try:
+            h_m = self.mk.entropia(estado)
+            max_h_m = math.log2(max(len(self.mk.transicoes.get(estado, {})), 2))
+            h_m_norm = h_m / max_h_m if max_h_m > 0 else 1.0
+        except Exception:
+            h_m_norm = 0.5
         h_opt, sigma = self._calibrar_estabilidade()
-        estabilidade = math.exp(-((h_m - h_opt) / sigma)**2)
+        estabilidade = math.exp(-((h_m_norm - h_opt) / max(sigma, 0.01))**2)
         
         # 5. EFICIENCIA — recompensa simplicidade (niveis necessarios, nao tools)
         n_niveis = len(self._extrair_niveis(entrada)) if entrada else 1
@@ -1601,7 +1658,12 @@ class MCR:
             h_out = -sum((c/total) * math.log2(c/total) for c in freq.values() if c > 0)
             h_max = math.log2(max(len(freq), 2))
             informacao = h_out / h_max if h_max > 0 else 0.0
-            h_m = 1.0 - certeza
+            try:
+                h_m_raw = self.mk.entropia(estado)
+                max_h_m = math.log2(max(len(self.mk.transicoes.get(estado, {})), 2))
+                h_m = h_m_raw / max_h_m if max_h_m > 0 else 1.0
+            except Exception:
+                h_m = 0.5
             h_opt, sigma = self._calibrar_estabilidade()
             estabilidade = math.exp(-((h_m - h_opt) / max(sigma, 0.01))**2)
             n_tools = len(self._registry.listar())
