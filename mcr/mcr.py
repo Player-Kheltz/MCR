@@ -995,13 +995,41 @@ class MCR:
             except Exception:
                 return 0
 
-        # Executa 4 fases em paralelo (I/O bound → threads)
-        with ThreadPoolExecutor(max_workers=4) as executor:
+        # Fase 5: Genesis — auto-expande para novos diretorios
+        def _genesis_expandir():
+            genesis = self._lazy('_genesis', 'mcr.genesis.MCRGenesis')
+            if not genesis:
+                return 0
+            total = 0
+            from pathlib import Path
+            from mcr.paths import ROOT_DIR
+            # Escaneia diretorios que nao estao em _dirs_por_tool
+            dirs_conhecidos = set()
+            for dirs in self._dirs_por_tool.values():
+                for d in dirs:
+                    dirs_conhecidos.add(str(d))
+            for root, dirs, files in os.walk(ROOT_DIR):
+                dirs[:] = [d for d in dirs if not d.startswith('.') and not d.startswith('__')]
+                depth = len(Path(root).relative_to(ROOT_DIR).parts)
+                if depth >= 3:
+                    dirs.clear()
+                    continue
+                if str(root) in dirs_conhecidos:
+                    continue
+                if len(files) >= 5:
+                    r = genesis.expandir(self, root)
+                    if r:
+                        total += r.get('seeds', 0)
+            return total
+
+        # Executa 5 fases em paralelo (I/O bound → threads)
+        with ThreadPoolExecutor(max_workers=5) as executor:
             futures = {
                 executor.submit(_auto_estudo): 'auto_estudo',
                 executor.submit(_minerar_dialogos): 'dialogos',
                 executor.submit(_minerar_padroes): 'padroes',
                 executor.submit(_indexar_dbs): 'dbs',
+                executor.submit(_genesis_expandir): 'genesis',
             }
             for future in as_completed(futures):
                 nome = futures[future]
@@ -1293,8 +1321,26 @@ class MCR:
     # ═══════════════════════════════════════════════════════
 
     def _perceber(self, entrada: str) -> str:
-        """Gera fingerprint da entrada como chave Markov."""
-        return self._fingerprint_chave(entrada)
+        """Gera fingerprint da entrada como chave Markov.
+        Hiperesfera descobre a melhor tokenizacao por entropia."""
+        # Hiperesfera: descobre melhor dimensao para o input
+        hip = self._lazy('_hiperesfera', 'mcr.hiperesfera.MCRHiperesfera')
+        if hip is None:
+            return self._fingerprint_chave(entrada)
+        try:
+            hip.descobrir(entrada)
+            melhor_dim = hip.melhor_dimensao()
+            # Se melhor dimensao e bigrama/trigrama, usa como fingerprint
+            if melhor_dim in ('bigrama', 'trigrama'):
+                if melhor_dim == 'bigrama':
+                    tokens = [entrada[i:i+2].lower() for i in range(len(entrada)-1)]
+                else:
+                    tokens = [entrada[i:i+3].lower() for i in range(len(entrada)-2)]
+                return "|".join(tokens[:8]) if tokens else "VAZIO"
+            # Senao usa fingerprint padrao
+            return self._fingerprint_chave(entrada)
+        except Exception:
+            return self._fingerprint_chave(entrada)
 
     def _fingerprint_chave(self, texto: str) -> str:
         """Gera chave Markov via ExtratorFeatures (100% descoberto dos dados)."""
@@ -1345,12 +1391,16 @@ class MCR:
             pass
 
         # Observer: cluster X->Y boost (se confianca observer > markov)
+        cluster_id = None
+        cluster_conf = 0.0
         if self._obs_ativado and self._observador:
             try:
                 pred_obs, conf_obs, _ = self._observador.predizer_com_confianca(estado)
-                if pred_obs is not None and conf_obs > conf:
-                    # Alimenta coupling com cluster do observer
-                    self._coupling.alimentar_cluster(pred_obs, str(acao))
+                if pred_obs is not None:
+                    cluster_id = pred_obs
+                    cluster_conf = conf_obs
+                    if conf_obs > conf:
+                        self._coupling.alimentar_cluster(pred_obs, str(acao))
             except Exception:
                 pass
 
@@ -1409,8 +1459,27 @@ class MCR:
         # Verifica posicao 0 (P0) da primeira palavra no coupling
         # Se P0 tem mistura de gerar_* e responder, e nao tem verbo de comando,
         # corrige para responder (pergunta, nao comando)
-        if acao and acao != 'responder' and conf < 0.85:
+        if acao and acao != 'responder' and conf < self._th('self_feedback_conf', 0.85):
             acao, conf = self._self_feedback(acao, conf, entrada)
+
+        # Mundo: simulacao causal — "se fizer X, o que acontece?"
+        # Se o mundo prevê falha para esta ação, reduz confiança
+        mundo = self._lazy('_mundo', 'mcr.mundo.MCRMundo')
+        if mundo and estado and conf > 0.1:
+            try:
+                simulacao = mundo.simular(estado[:50], acao)
+                if simulacao:
+                    # Verifica se a simulacao prevê sucesso ou falha
+                    dist = mundo._acao.get(f"{estado[:50]}|{acao}", {})
+                    if dist:
+                        total_sim = sum(dist.values())
+                        n_ok = dist.get(f"{acao}:ok", 0)
+                        n_fail = dist.get(f"{acao}:fail", 0)
+                        if total_sim > 0 and n_fail > n_ok:
+                            # Mundo prevê mais falhas que sucessos — reduz conf
+                            conf *= 0.7
+            except Exception:
+                pass
 
         if acao and conf > 0.1:
             return str(acao), conf
