@@ -2494,22 +2494,33 @@ class MCR:
     # ═══════════════════════════════════════════════════════
 
     def _executar(self, acao: str, entrada: str) -> Dict:
-        """Seleciona e executa a ferramenta do registry."""
-        # Mapeamento de ações → ferramentas por nome parcial
+        """Seleciona e executa a ferramenta do registry.
+        Prioriza match exato, depois match parcial."""
+        # 1. Match exato
+        entry = self._registry.selecionar(acao)
+        if entry:
+            try:
+                resultado = entry.executar(entrada=entrada, texto=entrada)
+                if isinstance(resultado, dict):
+                    resultado['_tool'] = entry.nome
+                    return resultado
+                return {'sucesso': True, 'saida': str(resultado)[:500], '_tool': entry.nome}
+            except Exception as e:
+                return {'sucesso': False, 'erro': str(e)[:200], 'acao': acao, '_tool': entry.nome}
+
+        # 2. Match parcial
         candidatas = self._registry.listar()
         melhor = None
         melhor_score = -1
-
-        # Ação → palavra-chave para busca
         termos_busca = acao.replace('_', ' ').lower().split()
-
         for nome in candidatas:
             entry = self._registry.selecionar(nome)
             if entry is None:
                 continue
             nome_lower = nome.lower()
-            # Score: quantos termos da ação aparecem no nome da tool
             score = sum(1 for t in termos_busca if t in nome_lower)
+            # Penaliza nomes muito longos (evita gerar_com_identidade > gerar)
+            score -= 0.1 * (len(nome_lower.split('_')) - 1)
             if score > melhor_score:
                 melhor_score = score
                 melhor = entry
