@@ -65,6 +65,12 @@ class MCR:
             self._coupling.load()
         except Exception:
             pass
+        
+        # Migração one-shot: normaliza ações persistidas em disco
+        # gerar_npc -> gerar, gerar_monstro -> gerar (verbo generico)
+        # Idempotente: se já normalizado, roda em <1ms
+        self._migrar_acoes()
+        
         self._superposicao = MCRSuperposicao()
         self.mk_palavra = MarkovEngine("mcr_palavra")
         try:
@@ -147,6 +153,92 @@ class MCR:
         self._pre_treinar_markov()
         if hasattr(self, '_debug_timing'):
             print(f"  _pre_treinar_markov: {time.time()-_t:.2f}s", flush=True)
+
+    def _migrar_acoes(self):
+        """Migração one-shot: normaliza ações persistidas em disco.
+        gerar_npc -> gerar, gerar_monstro -> gerar.
+        Idempotente: se já normalizado, sai em <1ms."""
+        from collections import defaultdict as _dd
+        
+        # Descobre verbos validos (2+ ações com mesmo prefixo)
+        contagem = _dd(int)
+        for acao in self._coupling._freq_acao:
+            s = str(acao)
+            if '_' in s:
+                contagem[s.split('_')[0]] += 1
+        verbos = {v for v, n in contagem.items() if n >= 2}
+        
+        def _norm(acao):
+            s = str(acao)
+            if '_' not in s:
+                return s
+            verbo = s.split('_')[0]
+            return verbo if verbo in verbos else s
+        
+        # Verifica se precisa migrar
+        precisa = False
+        for est in self.mk.transicoes:
+            for acao in self.mk.transicoes[est]:
+                if _norm(acao) != str(acao):
+                    precisa = True
+                    break
+            if precisa:
+                break
+        if not precisa:
+            return
+        
+        # Migra mk.transicoes
+        novas = {}
+        for est, dist in self.mk.transicoes.items():
+            nova = {}
+            for acao, freq in dist.items():
+                a = _norm(acao)
+                nova[a] = nova.get(a, 0) + freq
+            novas[est] = nova
+        self.mk.transicoes = novas
+        if hasattr(self.mk, '_entropia_cache'):
+            self.mk._entropia_cache = {}
+        
+        # Migra coupling._freq_acao
+        novo_freq = {}
+        for acao, freq in self._coupling._freq_acao.items():
+            a = _norm(acao)
+            novo_freq[a] = novo_freq.get(a, 0) + freq
+        self._coupling._freq_acao = _dd(int, novo_freq)
+        
+        # Migra coupling._palavra_acao
+        nova_palavra = {}
+        for p, dist in self._coupling._palavra_acao.items():
+            nova = {}
+            for acao, freq in dist.items():
+                a = _norm(acao)
+                nova[a] = nova.get(a, 0) + freq
+            nova_palavra[p] = nova
+        self._coupling._palavra_acao = _dd(
+            lambda: _dd(int),
+            {k: _dd(int, v) for k, v in nova_palavra.items()})
+        
+        # Migra coupling._posicao_acao
+        nova_pos = {}
+        for p, dist in self._coupling._posicao_acao.items():
+            nova = {}
+            for acao, freq in dist.items():
+                a = _norm(acao)
+                nova[a] = nova.get(a, 0) + freq
+            nova_pos[p] = nova
+        self._coupling._posicao_acao = _dd(
+            lambda: _dd(int),
+            {k: _dd(int, v) for k, v in nova_pos.items()})
+        
+        # Salva normalizado
+        try:
+            self.mk.save()
+        except Exception:
+            pass
+        try:
+            self._coupling.save()
+        except Exception:
+            pass
 
     def _lazy(self, attr, cls_path):
         """Lazy init de um modulo MCR. Carrega so quando usado."""
@@ -1640,15 +1732,18 @@ class MCR:
             return self._fingerprint_chave(entrada)
 
     def _fingerprint_chave(self, texto: str) -> str:
-        """Gera chave Markov via ExtratorFeatures (100% descoberto dos dados)."""
+        """Gera chave Markov. ExtratorFeatures se rico, senao regex rapido.
+        Se ExtratorFeatures retorna generico (GEN/VAZIO/curto), fallback regex."""
         try:
             from mcr.extrator_features import get_extrator
-            return get_extrator().extrair(texto)
+            estado = get_extrator().extrair(texto)
+            # Se estado é genérico, usa regex (preserva tokens especificos)
+            if estado and len(estado) > 4 and estado not in ('GEN', 'VAZIO', 'UNKNOWN'):
+                return estado
         except Exception:
             pass
-        import re
         t = texto.lower().strip()
-        tokens = re.findall(r'[a-zà-ÿ0-9]{2,}', t)
+        tokens = _re.findall(r'[a-z\xc3-\xff0-9]{2,}', t)
         return "|".join(tokens[:6]) if tokens else "VAZIO"
 
     # ═══════════════════════════════════════════════════════
