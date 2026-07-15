@@ -2,7 +2,7 @@
 Evita duplicatas, contradicoes, e informacao falsa.
 Contradicoes sao resolvidas automaticamente pelo ContextCrew."""
 import os, json, time, hashlib, urllib.request
-from modulos.util import fast as _util_fast
+from mcr.encoding import read_file as fast
 
 SANDBOX = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'sandbox'))
 BUFFER_PATH = os.path.join(SANDBOX, '.mcr_devia', 'lessons_buffer.json')
@@ -12,7 +12,7 @@ _embedding_cache_buf = {}
 
 def _fast(prompt, temp=0.1):
     try:
-        return _util_fast(prompt, temp, "fast") or None
+        return fast(prompt, temp, "fast") or None
     except Exception: return None
 
 def _gerar_embedding_buffer(texto):
