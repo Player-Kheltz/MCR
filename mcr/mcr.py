@@ -1416,6 +1416,33 @@ class MCR:
                         'mensagem': 'Revisao generica'}
         wrappers['revisar'] = _revisar
 
+        # Sanitizar (truncation fixer)
+        def _sanitizar(entrada="", texto="", **kw):
+            msg = entrada or texto
+            try:
+                from mcr.truncation_fixer import fix_truncation
+                corrigido = fix_truncation(msg)
+                n_correcoes = sum(1 for a, b in zip(corrigido.split('\n'), msg.split('\n')) if a != b)
+                return {'sucesso': True, 'tipo': 'sanitizar',
+                        'corrigido': corrigido[:500], 'correcoes': n_correcoes}
+            except Exception:
+                return {'sucesso': True, 'tipo': 'sanitizar',
+                        'mensagem': 'Sanitizacao generica'}
+        wrappers['sanitizar'] = _sanitizar
+
+        # Analisar codigo (code analyzer)
+        def _analisar_codigo(entrada="", texto="", **kw):
+            msg = entrada or texto
+            try:
+                from mcr.code_analyzer import analisar_arquivo
+                bugs = analisar_arquivo(msg)
+                return {'sucesso': True, 'tipo': 'analisar_codigo',
+                        'bugs': bugs[:5] if bugs else [], 'total': len(bugs) if bugs else 0}
+            except Exception as e:
+                return {'sucesso': True, 'tipo': 'analisar_codigo',
+                        'mensagem': str(e)[:80]}
+        wrappers['analisar_codigo'] = _analisar_codigo
+
         self.registrar_ferramentas(wrappers)
 
     def _decidir_tool(self, msg):
