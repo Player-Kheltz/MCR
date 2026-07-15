@@ -160,6 +160,27 @@ class MCR:
                 pass
         return getattr(self, attr, None)
 
+    def _normalizar_acao(self, acao):
+        """Normaliza acao: gerar_npc -> gerar, gerar_monstro -> gerar.
+        O dominio (npc, monstro) é descoberto por assinatura, não por hardcode.
+        Verbos descobertos por entropia: aparecem em P0 de multiplas acoes
+        (H alta = verbo generico como 'gerar'). Substantivos aparecem em P1+
+        e definem o dominio."""
+        acao = str(acao)
+        if '_' not in acao:
+            return acao
+        verbo = acao.split('_')[0]
+        # Verbo generico = aparece como prefixo de 2+ acoes diferentes
+        # Descoberto dinamicamente do coupling, nao hardcoded
+        try:
+            # Conta quantas acoes comecam com este verbo
+            n_acoes = sum(1 for a in self._coupling._freq_acao if str(a).startswith(verbo + '_'))
+            if n_acoes >= 2:
+                return verbo
+        except Exception:
+            pass
+        return acao
+
     def _descobrir_dominio_por_assinatura(self, entrada):
         """Descobre o dominio do input pela ASSINATURA, nao pelo nome.
         
@@ -1294,16 +1315,21 @@ class MCR:
 
     def _pre_treinar_markov(self):
         """Alimenta o MCR com seeds do workspace + dataset.
-        Seeds de diretorios → coupling + esfera (aprendizado de dominio)
-        Seeds de dataset → mk + coupling + mk_palavra (aprendizado de acao)
-        Usa fingerprint rapido (regex)."""
         
-        # Seeds de diretorios (aprendizado de dominio — nao vai para mk de decisao)
+        Filosofia MCR: acao = SO verbo (gerar, responder, analisar...)
+        Dominio (npc, monstro, sprite) = descoberto por assinatura, nao hardcode.
+        
+        Seeds de diretorios → Esfera (perfil de assinatura, NUNCA coupling)
+        Seeds de dataset → mk + coupling + mk_palavra (acao normalizada p/ verbo)
+        Esfera → aprende P(nivel → acao) e P(nivel → dominio) separadamente
+        """
+        
+        # Seeds de diretorios → SO Esfera (assinatura de dominio)
         seeds_dir = []
         dirs_por_tool = getattr(self, '_dirs_por_tool', {})
         self._auto_dataset_seeds(seeds_dir, dirs_por_tool)
 
-        # Seeds de dataset (aprendizado de acao — vai para mk de decisao)
+        # Seeds de dataset → mk + coupling (acao normalizada para verbo)
         seeds_dataset = []
         try:
             import json as _json
@@ -1313,7 +1339,9 @@ class MCR:
                 with open(dataset_path, 'r', encoding='utf-8') as f:
                     dataset = _json.load(f)
                 for entry in dataset:
-                    seeds_dataset.append((entry['input'], entry['expected_action']))
+                    # Normaliza: gerar_npc -> gerar, responder -> responder
+                    acao_norm = self._normalizar_acao(entry['expected_action'])
+                    seeds_dataset.append((entry['input'], acao_norm, entry['expected_action']))
         except Exception:
             pass
 
@@ -1322,27 +1350,36 @@ class MCR:
             tokens = _re.findall(r'[a-z\xc3-\xff0-9]{2,}', t)
             return "|".join(tokens[:6]) if tokens else "VAZIO"
 
-        # Seeds de diretorios → coupling + esfera (dominio, nao acao)
-        for entrada, acao in seeds_dir:
-            self._coupling.alimentar(entrada, acao)
+        # Seeds de diretorios → Esfera (perfil de assinatura, NUNCA coupling)
+        esfera = self._lazy('_esfera', 'mcr.esfera.MCREsfera')
+        if esfera:
+            try:
+                for entrada, dominio in seeds_dir:
+                    niveis = self._extrair_niveis(entrada)
+                    for nivel, valor in niveis.items():
+                        esfera.alimentar_par(nivel, "dominio", valor, dominio)
+            except Exception:
+                pass
 
-        # Seeds de dataset → mk + coupling + mk_palavra (acao real)
-        for entrada, acao in seeds_dataset:
+        # Seeds de dataset → mk + coupling + mk_palavra (acao = SO verbo)
+        for entrada, acao_norm, acao_original in seeds_dataset:
             estado = _fp_rapido(entrada)
-            self.mk.aprender(estado, acao)
-            self._coupling.alimentar(entrada, acao)
+            self.mk.aprender(estado, acao_norm)
+            self._coupling.alimentar(entrada, acao_norm)
             palavras = _re.findall(r'[a-z\xc3-\xff]{3,}', entrada.lower())
             for i in range(len(palavras) - 1):
                 self.mk_palavra.aprender(palavras[i], palavras[i+1])
 
-        # Esfera: alimenta com _extrair_niveis (cold start) — só seeds de dataset
-        esfera = self._lazy('_esfera', 'mcr.esfera.MCREsfera')
+        # Esfera: aprende P(nivel → acao) e P(nivel → dominio_original)
         if esfera:
             try:
-                for entrada, acao in seeds_dataset:
+                for entrada, acao_norm, acao_original in seeds_dataset:
                     niveis = self._extrair_niveis(entrada)
                     for nivel, valor in niveis.items():
-                        esfera.alimentar_par(nivel, "acao", valor, acao)
+                        # Acao normalizada (verbo)
+                        esfera.alimentar_par(nivel, "acao", valor, acao_norm)
+                        # Dominio original (para o teste validar)
+                        esfera.alimentar_par(nivel, "dominio_original", valor, acao_original)
                     items = list(niveis.items())
                     for i, (n1, v1) in enumerate(items):
                         for n2, v2 in items[i+1:]:
@@ -2156,18 +2193,20 @@ class MCR:
 
     def _aprender(self, estado: str, acao: str, nota: float, entrada: str = ''):
         """Aprende a transição. Reforça se nota alta. Persiste em SQLite + JSON.
-        Alimenta coupling + mk_palavra + mundo + esfera (N niveis) + esquecimento."""
-        self.mk.aprender(estado, acao)
+        Alimenta coupling + mk_palavra + mundo + esfera (N niveis) + esquecimento.
+        Acao normalizada para verbo (gerar_npc -> gerar). Dominio separado."""
+        acao_norm = self._normalizar_acao(acao)
+        self.mk.aprender(estado, acao_norm)
         t1, t2 = self._thresholds_reforco()
         if nota > t1:
-            self.mk.aprender(estado, acao)
+            self.mk.aprender(estado, acao_norm)
         if nota > t2:
-            self.mk.aprender(estado, acao)
+            self.mk.aprender(estado, acao_norm)
 
-        # Coupling: texto -> acao (multi-nivel)
+        # Coupling: texto -> acao normalizada (verbo)
         if entrada:
             try:
-                self._coupling.alimentar(entrada, acao)
+                self._coupling.alimentar(entrada, acao_norm)
             except Exception:
                 pass
             # mk_palavra: bigramas da entrada

@@ -1,48 +1,44 @@
 {
   "coldstart": true,
   "sem_llm": true,
-  "rodada_1": 95.2,
-  "rodada_1b": 98.2,
-  "rodada_2": 97.2,
-  "melhoria_1b": 3.0,
-  "melhoria_2": 2.0,
+  "rodada_1": 96.1,
+  "rodada_1b": 98.8,
+  "rodada_2": 98.4,
+  "melhoria_1b": 2.7,
+  "melhoria_2": 2.3,
   "persistencia_ok": true,
   "mk_estados": 95,
   "mk_transicoes": 141,
   "por_acao": {
-    "gerar_quest": {
-      "r1": 75.0,
-      "r2": 100.0
-    },
     "responder": {
-      "r1": 91.2,
-      "r2": 93.8
+      "r1": 94.7,
+      "r2": 97.3
+    },
+    "gerar_monstro": {
+      "r1": 100.0,
+      "r2": 100.0
     },
     "analisar": {
       "r1": 100.0,
       "r2": 100.0
     },
-    "validar": {
+    "gerar_sprite": {
+      "r1": 74.5,
+      "r2": 89.4
+    },
+    "buscar": {
       "r1": 100.0,
       "r2": 100.0
     },
-    "gerar_monstro": {
-      "r1": 99.3,
+    "gerar_quest": {
+      "r1": 75.0,
       "r2": 100.0
     },
     "aprender": {
       "r1": 100.0,
       "r2": 100.0
     },
-    "gerar_npc": {
-      "r1": 99.4,
-      "r2": 99.4
-    },
     "planejar": {
-      "r1": 100.0,
-      "r2": 100.0
-    },
-    "buscar": {
       "r1": 100.0,
       "r2": 100.0
     },
@@ -50,13 +46,17 @@
       "r1": 100.0,
       "r2": 100.0
     },
-    "gerar_sprite": {
-      "r1": 74.5,
-      "r2": 83.0
-    },
     "conectar": {
       "r1": 100.0,
       "r2": 100.0
+    },
+    "validar": {
+      "r1": 100.0,
+      "r2": 100.0
+    },
+    "gerar_npc": {
+      "r1": 99.4,
+      "r2": 99.4
     }
   }
 }
