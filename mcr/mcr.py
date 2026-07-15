@@ -77,6 +77,13 @@ class MCR:
             self.mk_palavra.load()
         except Exception:
             pass
+        # Markov de trigramas de caracteres — agnóstico a idioma
+        # "elabore" e "crie" compartilham trigramas morfológicos
+        self.mk_trigrama = MarkovEngine("mcr_trigrama")
+        try:
+            self.mk_trigrama.load()
+        except Exception:
+            pass
 
         # ─── 13 Módulos MCR (lazy init) ─────────────────
         self._esfera = None          # correlacao N-dimensional
@@ -707,6 +714,20 @@ class MCR:
         except Exception:
             pass
 
+        # 30. trigrama — primeiros 5 trigramas de caracteres (agnóstico a idioma)
+        try:
+            trigs = []
+            for p in palavras_lower[:3]:
+                for j in range(max(len(p) - 2, 0)):
+                    trigs.append(p[j:j+3])
+            niveis['trigrama'] = '|'.join(trigs[:5])
+        except Exception:
+            pass
+
+        # 31. sufixo — últimos 3 chars da primeira palavra (função gramatical)
+        if palavras:
+            niveis['sufixo'] = palavras[0][-3:].lower()
+
         return niveis
 
     def _self_feedback(self, acao, conf, entrada):
@@ -1144,7 +1165,7 @@ class MCR:
                                 continue
                             nome = f.stem.replace('_', ' ').replace('-', ' ')
                             if len(nome) > 2:
-                                seeds.append((f"crie {tool} {nome}", tool))
+                                seeds.append((f"{tool} {nome}", tool))
                         except Exception:
                             continue
                 except Exception:
@@ -1229,11 +1250,11 @@ class MCR:
                 return {'valido': False, 'checks': checks,
                         'erro': f'Erros:{erros_reais} SQL:{sql_injection}'}
             if estruturas_faltando:
-                checks.append(f'lua:avisos({len(estruturas_faltando)})')
+                checks.append(f'validador:avisos({len(estruturas_faltando)})')
             else:
-                checks.append('lua:OK')
+                checks.append('validador:OK')
         except Exception as e:
-            checks.append(f'lua:ERRO={str(e)[:40]}')
+            checks.append(f'validador:ERRO={str(e)[:40]}')
 
         # Shadow Canary (execução sandbox — BLOQUEIA se crash)
         try:
@@ -1463,6 +1484,10 @@ class MCR:
             palavras = _re.findall(r'[a-z\xc3-\xff]{3,}', entrada.lower())
             for i in range(len(palavras) - 1):
                 self.mk_palavra.aprender(palavras[i], palavras[i+1])
+            # Trigramas de caracteres — agnóstico a idioma
+            for p in palavras:
+                for j in range(max(len(p) - 2, 0)):
+                    self.mk_trigrama.aprender(p[j:j+3], acao_norm)
 
         # Esfera: aprende P(nivel → acao) e P(nivel → dominio_original)
         if esfera:
@@ -1545,7 +1570,7 @@ class MCR:
                 if tem_contexto:
                     ultima_acao = self._contexto_conversa[-1]
                     resposta = (
-                        f'Voce quer continuar criando {ultima_acao.replace("gerar_", "")} '
+                        f'Voce quer continuar {ultima_acao} '
                         f'com "{entrada[:50]}"? Pode confirmar?'
                     )
                 else:
@@ -1763,9 +1788,11 @@ class MCR:
         """
         acao, conf = self.mk.predizer(estado)
         
-        # Garante que acao é normalizada (verbo generico)
+        # Early exit: se Markov está muito confiante, pula tudo (latência)
         if acao:
             acao = self._normalizar_acao(acao)
+            if conf > self._th('early_exit_conf', 0.9):
+                return acao, conf
         
         # Ações conhecidas: descobertas do mk (apenas verbos validos)
         # Cacheado — nao recalcula a cada _decidir
@@ -1927,69 +1954,44 @@ class MCR:
         if acao and conf > 0.1:
             return self._normalizar_acao(acao), conf
 
-        # Fallback 1: Kernel smoothing por fingerprint estrutural
-        # Quando o MCR não conhece as palavras, usa a ASSINATURA do input
-        # para encontrar o estado mais similar. Agnóstico a idioma.
-        # "elabore uma petição" e "crie um npc" têm mesma estrutura P0(V)+P2(S)
-        if self.mk.transicoes and entrada:
+        # Fallback 1: Trigramas de caracteres (agnóstico a idioma)
+        # "elabore" e "crie" compartilham trigramas → mesma ação
+        if entrada and self.mk_trigrama.transicoes:
             try:
-                import math
-                # Fingerprint do input: byte 8D + padrão estrutural
-                fp_input = self.fp.gerar(entrada)
-                palavras_in = entrada.replace('_', ' ').split()
-                # Padrão estrutural: V/A/S por posição (agnóstico a idioma)
-                padrao_in = []
-                for i, p in enumerate(palavras_in[:6]):
-                    if i == 0 and len(p) > 3:
-                        padrao_in.append('V')
-                    elif len(p) <= 3 and p.lower() not in ('not', 'and', 'the', 'que', 'uma', 'um'):
-                        padrao_in.append('A')
-                    elif len(p) > 3:
-                        padrao_in.append('S')
-                    else:
-                        padrao_in.append('X')
-                padrao_in_str = ''.join(padrao_in)
-                
-                # Compara com cada estado conhecido por similaridade de fingerprint
-                melhor_estado = None
-                melhor_score = 0
-                for est in self.mk.transicoes:
-                    # Fingerprint do estado conhecido
-                    fp_est = self.fp.gerar(est)
-                    # Cosseno dos fingerprints 8D
-                    dot = sum(a * b for a, b in zip(fp_input, fp_est))
-                    na = math.sqrt(sum(a * a for a in fp_input))
-                    nb = math.sqrt(sum(b * b for b in fp_est))
-                    cosseno = dot / max(na * nb, 0.001)
-                    # Similaridade de padrão estrutural
-                    est_palavras = est.split('|')
-                    padrao_est = []
-                    for i, p in enumerate(est_palavras[:6]):
-                        if i == 0 and len(p) > 3:
-                            padrao_est.append('V')
-                        elif len(p) <= 3:
-                            padrao_est.append('A')
-                        elif len(p) > 3:
-                            padrao_est.append('S')
-                        else:
-                            padrao_est.append('X')
-                    padrao_est_str = ''.join(padrao_est)
-                    # Score: cosseno fingerprint + match de padrão estrutural
-                    score = cosseno * 0.6
-                    if padrao_in_str == padrao_est_str:
-                        score += 0.4  # mesma estrutura = boost
-                    if score > melhor_score:
-                        melhor_score = score
-                        melhor_estado = est
-                
-                if melhor_estado and melhor_score > self._th('kernel_score_min', 0.3):
-                    acao_k, conf_k = self.mk.predizer(melhor_estado)
-                    if acao_k:
-                        return self._normalizar_acao(acao_k), conf_k * melhor_score
+                palavras_in = _re.findall(r'[a-z\xc3-\xff]{3,}', entrada.lower())
+                votos_tri = {}
+                for p in palavras_in:
+                    for j in range(max(len(p) - 2, 0)):
+                        t = p[j:j+3]
+                        dist = self.mk_trigrama.transicoes.get(t, {})
+                        total = sum(dist.values()) or 1
+                        for a, c in dist.items():
+                            votos_tri[a] = votos_tri.get(a, 0) + c / total
+                if votos_tri:
+                    melhor_tri = max(votos_tri, key=votos_tri.get)
+                    conf_tri = votos_tri[melhor_tri] / max(sum(votos_tri.values()), 1)
+                    if conf_tri > self._th('trigrama_conf_min', 0.1):
+                        return self._normalizar_acao(melhor_tri), conf_tri
             except Exception:
                 pass
 
-        # Fallback 1b: similaridade Jaccard por componentes do estado
+        # Fallback 2: Padrão estrutural via Esfera (agnóstico a idioma)
+        # Quando vocabulário é novo, a estrutura V/A/S ainda funciona
+        if entrada:
+            try:
+                esfera = self._lazy('_esfera', 'mcr.esfera.MCREsfera')
+                if esfera and esfera.total > 10:
+                    n_conhecidas = sum(1 for p in set(palavras_in) if p in self._coupling._palavra_acao) if palavras_in else 0
+                    if n_conhecidas == 0:
+                        niveis = self._extrair_niveis(entrada)
+                        if 'padrao' in niveis:
+                            pred_padrao = esfera.predizer_cross('acao', padrao=niveis['padrao'])
+                            if pred_padrao:
+                                return self._normalizar_acao(pred_padrao), 0.5
+            except Exception:
+                pass
+
+        # Fallback 3: similaridade Jaccard por componentes do estado
         if self.mk.transicoes:
             partes_consulta = set(estado.split('|'))
             melhor_estado = None
@@ -2265,16 +2267,23 @@ class MCR:
             self._erros = self._erros[-100:]
 
     def _extrair_nome(self, texto: str) -> str:
-        """Extrai nome de entidade. Filtra itens via ItemDatabase."""
-        import re
-        # Stopwords mínimas (comandos + artigos — universais)
-        stops = r'\b(crie|criar|gere|gerar|faca|fazer|um|uma|novo|nova|'
-        stops += r'npc|monstro|monster|quest|sprite|de|do|da|que|venda|'
-        stops += r'com|para|the|an|of|in|to|for|and|that|this|with|from|'
-        stops += r'sell|sells|create|generate|make|build|forge|a|is|it)\b'
-        limpo = re.sub(stops, ' ', texto, flags=re.IGNORECASE)
-        limpo = re.sub(r'\s+', ' ', limpo).strip()
-        # Filtra itens via ItemDatabase (dinâmico, não hardcoded)
+        """Extrai nome de entidade. Stopwords descobertas por frequência.
+        Zero hardcode — palavras que aparecem em >50% dos seeds sao stopwords."""
+        # Stopwords descobertas dos seeds (ja calculadas em _descobrir_stopwords_dos_seeds)
+        stops_set = getattr(self, '_stopwords', set())
+        # Adiciona verbos do dataset (P0 com H alta = verbos genericos)
+        try:
+            for acao in self._coupling._freq_acao:
+                s = str(acao)
+                if '_' in s:
+                    stops_set.add(s.split('_')[0])
+        except Exception:
+            pass
+        # Remove stopwords do texto
+        palavras = texto.split()
+        limpas = [p for p in palavras if p.lower() not in stops_set and len(p) > 2]
+        limpo = ' '.join(limpas)
+        # Filtra itens via ItemDatabase (dinâmico)
         palavras_itens = set()
         try:
             from mcr.knowledge.item_database import ItemDatabase
@@ -2398,6 +2407,10 @@ class MCR:
                 palavras = _re.findall(r'[a-z\xc3-\xff]{3,}', entrada.lower())
                 for i in range(len(palavras) - 1):
                     self.mk_palavra.aprender(palavras[i], palavras[i+1])
+                # Trigramas de caracteres — agnóstico a idioma
+                for p in palavras:
+                    for j in range(max(len(p) - 2, 0)):
+                        self.mk_trigrama.aprender(p[j:j+3], acao_norm)
             except Exception:
                 pass
 
