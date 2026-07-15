@@ -36,7 +36,7 @@ class MCRCoupling:
     def alimentar(self, texto: str, acao: str):
         """Alimenta o coupling com uma observação."""
         self._total += 1
-        acao = str(acao).replace('_lua', '')
+        acao = str(acao)
         self._freq_acao[acao] += 1
 
         palavras = re.findall(r'[a-zà-ÿ]{3,}', texto.lower())
@@ -54,7 +54,7 @@ class MCRCoupling:
 
     def alimentar_cluster(self, cluster_id, acao: str):
         """Alimenta correlação Observer cluster → ação."""
-        acao = str(acao).replace('_lua', '')
+        acao = str(acao)
         self._cluster_acao[f"C{cluster_id}"][acao] += 1
 
     # ═══════════════════════════════════════════════════════
@@ -76,7 +76,7 @@ class MCRCoupling:
         # Nível 1: Markov 1ª ordem
         acao_mk, conf_mk = mk_pred
         if acao_mk:
-            d_mk = {str(acao_mk).replace('_lua', ''): conf_mk}
+            d_mk = {str(acao_mk): conf_mk}
             h_mk = self._entropia_dist(d_mk)
             distribs.append((d_mk, h_mk))
 
@@ -217,3 +217,42 @@ class MCRCoupling:
             'clusters': len(self._cluster_acao),
             'posicoes': len(self._posicao_acao),
         }
+
+    def save(self, caminho: str = None):
+        """Persiste o coupling em JSON."""
+        import json, os
+        if caminho is None:
+            caminho = os.path.join(os.path.dirname(__file__),
+                                   f'coupling_{self.__class__.__name__}.json')
+        dados = {
+            'total': self._total,
+            'palavra_acao': {k: dict(v) for k, v in self._palavra_acao.items()},
+            'cluster_acao': {k: dict(v) for k, v in self._cluster_acao.items()},
+            'posicao_acao': {k: dict(v) for k, v in self._posicao_acao.items()},
+            'freq_acao': dict(self._freq_acao),
+        }
+        with open(caminho, 'w', encoding='utf-8') as f:
+            json.dump(dados, f, ensure_ascii=False)
+
+    def load(self, caminho: str = None) -> bool:
+        """Carrega o coupling de JSON."""
+        import json, os
+        if caminho is None:
+            caminho = os.path.join(os.path.dirname(__file__),
+                                   f'coupling_{self.__class__.__name__}.json')
+        if not os.path.exists(caminho):
+            return False
+        try:
+            with open(caminho, 'r', encoding='utf-8') as f:
+                dados = json.load(f)
+            self._total = dados.get('total', 0)
+            self._palavra_acao = defaultdict(lambda: defaultdict(int),
+                                             {k: defaultdict(int, v) for k, v in dados.get('palavra_acao', {}).items()})
+            self._cluster_acao = defaultdict(lambda: defaultdict(int),
+                                             {k: defaultdict(int, v) for k, v in dados.get('cluster_acao', {}).items()})
+            self._posicao_acao = defaultdict(lambda: defaultdict(int),
+                                             {k: defaultdict(int, v) for k, v in dados.get('posicao_acao', {}).items()})
+            self._freq_acao = defaultdict(int, dados.get('freq_acao', {}))
+            return True
+        except Exception:
+            return False

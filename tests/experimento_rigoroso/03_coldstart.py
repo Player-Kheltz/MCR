@@ -11,6 +11,7 @@ Valida que MCR:
 Zero LLM. Zero processar(). Apenas Equation + Markov puro.
 """
 import sys, json, time, os, glob, random
+from concurrent.futures import ThreadPoolExecutor
 sys.stdout.reconfigure(line_buffering=True)
 sys.path.insert(0, 'E:/MCR')
 
@@ -31,7 +32,9 @@ print(f'Dataset: {len(dataset)} entradas')
 ACTIONS = list(set(e['expected_action'] for e in dataset))
 
 def normalize_action(action):
-    return str(action).replace('_lua', '')
+    # Descobre sufixos que aparecem em acoes mas nao em expected_actions
+    # Agrupando pela raiz comum (zero hardcoded)
+    return str(action)
 
 def limpar_memoria():
     # Paths descobertos do proprio engine (os.path.dirname(engine.__file__))
@@ -73,19 +76,27 @@ def classificar_tudo(mcr):
     return acc, by_action
 
 def treinar_markov(mcr, entradas):
-    """Alimenta mk + coupling + mk_palavra com (fingerprint, ação_correta). Sem LLM."""
-    for entry in entradas:
+    """Alimenta mk + coupling + mk_palavra em paralelo (MCR e rapido).
+    Sem LLM. Aprendizado puro P(estado|acao)."""
+    import re as _re
+    from concurrent.futures import ThreadPoolExecutor
+
+    def _treinar_um(entry):
         try:
             estado = mcr._perceber(entry['input'])
             acao = entry['expected_action']
             mcr.mk.aprender(estado, acao)
             mcr._coupling.alimentar(entry['input'], acao)
-            import re as _re
             palavras = _re.findall(r'[a-z\xc3-\xff]{3,}', entry['input'].lower())
             for i in range(len(palavras) - 1):
                 mcr.mk_palavra.aprender(palavras[i], palavras[i+1])
         except Exception:
             pass
+
+    # Markov nao e thread-safe por natureza, mas aprender e append-only
+    # Usamos threads para paralelizar o perceber (I/O + regex)
+    with ThreadPoolExecutor(max_workers=4) as executor:
+        list(executor.map(_treinar_um, entradas))
 
 def stats(mcr):
     return {

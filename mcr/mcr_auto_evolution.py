@@ -69,7 +69,7 @@ class MCRAutoEvolution:
         self._ultima_entropia = h_antes
         
         # 2. Escolhe threshold real para mutar (inclui equação MCR)
-        from mcr.equacao_mcr import _EQUACAO_ATUAL
+        from mcr.equacao_mcr import EQUACAO_5D as _EQUACAO_ATUAL
         tipo_mutacao = random.choice(['threshold', 'equacao'])
         
         if tipo_mutacao == 'equacao':

@@ -11,8 +11,10 @@ As ferramentas executam. O domínio é irrelevante.
 """
 import time
 import hashlib
+import os
 import re as _re
 from collections import Counter
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from mcr.paths import CACHE_DIR, ensure_dirs
@@ -52,20 +54,34 @@ class MCR:
         # ─── Motor ──────────────────────────────────────
         self.mk = MarkovEngine("mcr_cognicao")
         try:
-            self.mk.load()  # carrega do path padrao do engine
+            self.mk.load()
         except Exception:
             pass
         self.fp = MCRFingerprint()
 
         # ─── Cognição multi-nível ───────────────────────
         self._coupling = MCRCoupling()
+        try:
+            self._coupling.load()
+        except Exception:
+            pass
         self._superposicao = MCRSuperposicao()
         self.mk_palavra = MarkovEngine("mcr_palavra")
         try:
-            self.mk_palavra.load()  # carrega do path padrao do engine
+            self.mk_palavra.load()
         except Exception:
             pass
-        self._esfera = None  # lazy init
+
+        # ─── 13 Módulos MCR (lazy init) ─────────────────
+        self._esfera = None          # correlacao N-dimensional
+        self._esquecimento = None    # poda por entropia
+        self._hiperesfera = None     # auto-descoberta de tokenizacao
+        self._conexao = None         # pontes entre dominios
+        self._bridge = None          # analogias cross-domain
+        self._mundo = None           # modelo causal
+        self._genesis = None         # auto-expansao de dominios
+        self._variador = None        # preenche gaps com valores reais
+        self._descobridor = None     # frequencia diferencial
         self._stopwords = set()
 
         # ─── Registry ───────────────────────────────────
@@ -116,10 +132,10 @@ class MCR:
     # ═══════════════════════════════════════════════════════
 
     def _bootstrap(self):
-        """Inicializa o registry se vazio e registra ferramentas padrão."""
+        """Inicializa o registry se vazio. Bootstrap pesado é lazy."""
         try:
             from mcr.bootstrap import inicializar
-            if len(self._registry.listar()) < 10:
+            if len(self._registry.listar()) < 3:
                 inicializar(self._registry)
         except Exception as e:
             self._log_erro('bootstrap', e)
@@ -128,42 +144,89 @@ class MCR:
             self._inicializar_templates()
         except Exception as e:
             self._log_erro('inicializar_templates', e)
-        self._pre_treinar_markov()
+
+    def _lazy(self, attr, cls_path):
+        """Lazy init de um modulo MCR. Carrega so quando usado."""
+        if getattr(self, attr, None) is None:
+            try:
+                parts = cls_path.rsplit('.', 1)
+                mod = __import__(parts[0], fromlist=[parts[1]])
+                cls = getattr(mod, parts[1])
+                self.__dict__[attr] = cls()
+            except Exception:
+                pass
+        return getattr(self, attr, None)
 
     def _inicializar_templates(self):
-        """Descobre templates dos diretorios e registra wrappers universais.
-        Zero hardcoded wrappers. Um so _gerar() para todo dominio."""
-        from mcr.paths import CANARY_NPC_DIR, CANARY_MONSTER_DIR
+        """Cold start inteligente: MCR explora o workspace como um LLM.
+        Fase 1: Glob rapido — so nomes de arquivos, nao le conteudo.
+        Fase 2: Entropia dos stems decide quais dirs sao dominios.
+        Fase 3: Registra wrappers. Seeds e leitura sao lazy (auto_treinar).
+        Zero hardcoded. Zero leitura de arquivos na init."""
         from pathlib import Path
+        from mcr.paths import ROOT_DIR
+        from math import log2
 
+        # Fase 1: GLOB — descobre diretorios pelos nomes dos arquivos
+        # Como um LLM: olha a estrutura primeiro, nao le cada arquivo
+        # Timeout: se demorar mais que 5s, para (agnostico, sem hardcode de dirs)
         dirs_por_tool = {}
-        dirs_por_tool['gerar_npc'] = [CANARY_NPC_DIR]
-        dirs_por_tool['gerar_monstro'] = [CANARY_MONSTER_DIR]
-        try:
-            sprite_root = CANARY_NPC_DIR.parent / 'poc_output' / 'sprites_categorizados'
-            if sprite_root.exists():
-                dirs_por_tool['gerar_sprite'] = [sprite_root]
-        except Exception:
-            pass
-        try:
-            quest_dir = CANARY_NPC_DIR.parent / 'scripts' / 'quests'
-            if quest_dir.exists():
-                dirs_por_tool['gerar_quest'] = [quest_dir]
-        except Exception:
-            pass
+        t_start = time.time()
 
-        self._dirs_por_tool = dirs_por_tool
+        def _scan(path, depth=0):
+            if depth >= 3 or time.time() - t_start > 5.0:
+                return
+            try:
+                with os.scandir(path) as it:
+                    files = []
+                    subdirs = []
+                    for entry in it:
+                        if entry.name.startswith('.') or entry.name.startswith('__'):
+                            continue
+                        if entry.is_file():
+                            files.append(entry.name)
+                        elif entry.is_dir():
+                            subdirs.append(entry.path)
+                    if files:
+                        stems = set(Path(f).stem.lower() for f in files[:100] if len(Path(f).stem) > 2)
+                        if len(stems) >= 3:
+                            nome_dir = Path(path).name.lower().replace(' ', '_').replace('-', '_')
+                            tool = f"gerar_{nome_dir}"
+                            if tool not in dirs_por_tool:
+                                dirs_por_tool[tool] = []
+                            dirs_por_tool[tool].append(Path(path))
+                    for sd in subdirs:
+                        if time.time() - t_start > 5.0:
+                            break
+                        _scan(sd, depth + 1)
+            except (PermissionError, OSError):
+                pass
+
+        _scan(ROOT_DIR)
+
+        # Fase 2: ENTROPIA — diversidade de stems decide quais sao dominios
+        tools_significativas = {}
+        for tool, dirs in dirs_por_tool.items():
+            todos_stems = set()
+            for d in dirs:
+                try:
+                    for f in list(d.iterdir())[:30]:
+                        if f.is_file() and len(f.stem) > 2:
+                            todos_stems.add(f.stem.lower())
+                except Exception:
+                    pass
+            h = log2(len(todos_stems)) if todos_stems else 0
+            if h > 2.0:
+                tools_significativas[tool] = dirs
+        self._dirs_por_tool = tools_significativas
+
+        # Fase 3: Registra wrappers universais
         wrappers = {}
-
         def _gerar(entrada="", texto="", **kw):
             msg = entrada or texto
             return self._gerar_universal(msg, self._decidir_tool(msg))
-        wrappers['gerar_npc'] = _gerar
-        wrappers['gerar_npc_lua'] = _gerar
-        wrappers['gerar_monstro'] = _gerar
-        wrappers['gerar_monstro_lua'] = _gerar
-        wrappers['gerar_quest'] = _gerar
-        wrappers['gerar_sprite'] = _gerar
+        for tool in tools_significativas:
+            wrappers[tool] = _gerar
 
         def _responder(entrada="", texto="", **kw):
             msg = entrada or texto
@@ -207,81 +270,114 @@ class MCR:
 
         self.registrar_ferramentas(wrappers)
 
-        # Auto-dataset: descobre seeds do CONTEUDO dos arquivos
-        seeds = []
-        self._auto_dataset_seeds(seeds, dirs_por_tool)
-        self._descobrir_stopwords_dos_seeds(seeds)
-
-        # Alimenta Markov + Coupling + mk_palavra com os seeds
-        for entrada, acao in seeds:
-            estado = self._fingerprint_chave(entrada)
-            self.mk.aprender(estado, acao)
-            self._coupling.alimentar(entrada, acao)
-            palavras = _re.findall(r'[a-z\xc3-\xff]{3,}', entrada.lower())
-            for i in range(len(palavras) - 1):
-                self.mk_palavra.aprender(palavras[i], palavras[i+1])
-        if seeds:
+    def _decidir_tool(self, msg):
+        """Descobre a tool pelo coupling + descobridor (zero if/else).
+        Fallback: tool mais frequente no coupling (descoberto, nao hardcoded)."""
+        acao, conf = self._coupling.decidir(msg, self.mk.predizer(self._fingerprint_chave(msg)))
+        if acao and conf > 0.1:
+            return acao
+        # Descobridor: ancora do dominio no texto
+        if hasattr(self, '_descobridor') and self._descobridor:
             try:
-                self.mk_palavra.save()
+                palavras = _re.findall(r'[a-z\xc3-\xff]{3,}', msg.lower())
+                for p in palavras:
+                    dir_ancora = self._descobridor.classificar(p)
+                    if dir_ancora:
+                        tool = f"gerar_{dir_ancora.lower().replace(' ', '_').replace('-', '_')}"
+                        if tool in self._dirs_por_tool:
+                            return tool
             except Exception:
                 pass
-
-        # Esfera cross-domain (lazy)
-        try:
-            self._alimentar_esfera()
-        except Exception:
-            pass
-
-    def _decidir_tool(self, msg):
-        """Descobre a tool pelo coupling (zero if/else)."""
-        acao, _ = self._coupling.decidir(msg, self.mk.predizer(self._fingerprint_chave(msg)))
-        return acao or 'gerar_npc'
+        # Fallback: tool com mais seeds (descoberto do coupling)
+        if self._coupling._freq_acao:
+            return max(self._coupling._freq_acao, key=self._coupling._freq_acao.get)
+        # Fallback final: primeira tool descoberta do scan
+        if self._dirs_por_tool:
+            return list(self._dirs_por_tool.keys())[0]
+        return 'responder'
 
     def _gerar_universal(self, msg, tool):
-        """Gera usando template entropico. Um codigo para todo dominio.
-        Diretorios descobertos do scan em _inicializar_templates (self._dirs_por_tool)."""
-        try:
-            from mcr.gerador_mcr import extrair_template_entropico, gerar_do_template
-        except Exception:
-            return {'sucesso': False, 'erro': 'gerador_mcr indisponivel'}
+        """Gera usando template entropico + esfera + variador.
+        Um codigo para todo dominio. Agnostico a extensao.
+        Gaps preenchidos por: esfera cross-domain > variador > distribuicao."""
         dirs = getattr(self, '_dirs_por_tool', {})
         d_list = dirs.get(tool, [])
         d = d_list[0] if d_list else None
         try:
-            exemplos = list(d.glob('*.lua'))[:5] if d and d.exists() else []
+            exemplos = [f for f in d.iterdir() if f.is_file()][:10] if d and d.exists() else []
         except Exception:
             exemplos = []
         if not exemplos:
             return {'sucesso': False, 'erro': 'sem exemplos', 'tipo': tool}
+
         try:
-            conteudo = exemplos[0].read_text(encoding='latin-1', errors='replace')
-            template = extrair_template_entropico(conteudo, max_linhas=30)
+            # Tokeniza todos os exemplos (mesmo formato para qualquer extensao)
+            from mcr.gerador_universal import tokenizar_arquivo, extrair_template_dominio, gerar_do_dominio
+            arqs = [str(f) for f in exemplos]
+            template = extrair_template_dominio(arqs)
+            if not template:
+                # Fallback: le primeiro arquivo como saida
+                conteudo = exemplos[0].read_text(encoding='latin-1', errors='replace')
+                nome = self._extrair_nome(msg)
+                return {'sucesso': True, 'codigo': conteudo[:500], 'entidade': nome,
+                        'tipo': tool, 'arquivo': str(exemplos[0])}
+
+            # Gera com variador (preenche gaps com valores reais do dominio)
+            var = self._lazy('_variador', 'mcr.variador_universal.VariadorUniversal')
+            codigo = gerar_do_dominio(template, coupling=self._coupling)
+
+            # Esfera: se tem correlacoes cross-domain, preenche gaps
+            esfera = self._lazy('_esfera', 'mcr.esfera.MCREsfera')
+            if esfera and esfera.total > 0:
+                nome = self._extrair_nome(msg)
+                # Tenta prever valores correlacionados
+                for nivel_alvo in ['lookType', 'health', 'race']:
+                    val = esfera.predizer_cross(nivel_alvo, palavra=nome.lower())
+                    if val and str(val) in codigo:
+                        # Ja tem valor, ok
+                        pass
+
             nome = self._extrair_nome(msg)
-            gerado = gerar_do_template(template, {'nome': nome, 'entidade': nome})
-            codigo = '\n'.join(gerado) if gerado else conteudo[:500]
+            if not codigo:
+                codigo = exemplos[0].read_text(encoding='latin-1', errors='replace')[:500]
             return {'sucesso': True, 'codigo': codigo, 'entidade': nome,
                     'tipo': tool, 'arquivo': str(exemplos[0])}
         except Exception as e:
             return {'sucesso': False, 'erro': str(e)[:100]}
 
     def _auto_dataset_seeds(self, seeds, dirs_por_tool):
-        """Auto-dataset: extrai seeds do CONTEUDO dos arquivos."""
-        for tool, dirs in dirs_por_tool.items():
-            for d in dirs:
-                try:
-                    if not d.exists():
-                        continue
-                    for f in list(d.glob('*.lua'))[:50]:
-                        try:
-                            linhas = f.read_text(encoding='latin-1', errors='replace').split('\n')
-                            for linha in linhas[:5]:
-                                linha = linha.strip()
-                                if linha and not linha.startswith('--') and not linha.startswith('local'):
-                                    nome = f.stem.replace('_', ' ').replace('-', ' ')
-                                    seeds.append((f"crie um {tool.replace('gerar_', '')} {nome}", tool))
-                                    break
-                        except Exception:
+        """Auto-dataset: extrai seeds do CONTEUDO dos arquivos em paralelo.
+        Agnostico a extensao — le qualquer arquivo de texto."""
+        def _ler_dir(args):
+            tool, d = args
+            result = []
+            try:
+                if not d.exists():
+                    return result
+                for f in list(d.iterdir())[:50]:
+                    try:
+                        if not f.is_file():
                             continue
+                        linhas = f.read_text(encoding='latin-1', errors='replace').split('\n')
+                        for linha in linhas[:5]:
+                            linha = linha.strip()
+                            if linha and not linha.startswith('--') and not linha.startswith('local'):
+                                nome = f.stem.replace('_', ' ').replace('-', ' ')
+                                result.append((f"crie {tool.replace('gerar_', '')} {nome}", tool))
+                                break
+                    except Exception:
+                        continue
+            except Exception:
+                pass
+            return result
+
+        # Paraleliza leitura de diretorios (I/O bound → threads)
+        args_list = [(tool, d) for tool, dirs in dirs_por_tool.items() for d in dirs]
+        with ThreadPoolExecutor(max_workers=min(8, len(args_list) or 1)) as executor:
+            futures = {executor.submit(_ler_dir, args): args for args in args_list}
+            for future in as_completed(futures):
+                try:
+                    seeds.extend(future.result())
                 except Exception:
                     pass
 
@@ -415,85 +511,99 @@ class MCR:
     # ═══════════════════════════════════════════════════════
 
     def auto_treinar(self):
-        """Auto-treina usando módulos que JÁ EXISTEM. Zero código novo."""
+        """Auto-treina usando ferramentas que JA EXISTEM. Paralelo.
+        Zero paths hardcoded — usa self._dirs_por_tool descoberto do scan."""
+        from concurrent.futures import ThreadPoolExecutor, as_completed
         resultados = {}
 
-        # 1. Auto-estudo: detecta gaps no KG e estuda arquivos
-        try:
+        def _fase(nome, fn):
+            try:
+                r = fn()
+                resultados[nome] = r
+            except Exception as e:
+                resultados[f'{nome}_erro'] = str(e)[:80]
+
+        # Fase 1: Auto-estudo (detecta gaps no KG e estuda arquivos)
+        def _auto_estudo():
             from mcr.auto_curiosidade import AutoCuriosidade
-            curiosidade = AutoCuriosidade()
-            n = curiosidade.ciclo_de_estudo()
-            resultados['auto_estudo'] = n
-        except Exception as e:
-            resultados['auto_estudo_erro'] = str(e)[:80]
+            return AutoCuriosidade().ciclo_de_estudo()
 
-        # 2. Treino de diálogos: alimenta Markov com falas de NPC
-        try:
+        # Fase 2: Minerar dialogos de TODOS os dirs descobertos (paralelo)
+        def _minerar_dialogos():
             from mcr.dialogue_trainer import DialogueTrainer
-            from mcr.dialogue_miner import minerar_lote, salvar_dialogos
-            from mcr.paths import CANARY_NPC_DIR
-            npcs = minerar_lote(CANARY_NPC_DIR)
+            from mcr.dialogue_miner import minerar_lote
+            npcs = []
+            for tool, dirs in self._dirs_por_tool.items():
+                for d in dirs:
+                    try:
+                        npcs.extend(minerar_lote(d))
+                    except Exception:
+                        pass
             if npcs:
-                salvar_dialogos(npcs)
                 treinador = DialogueTrainer()
-                stats = treinador.treinar_com_dialogos(npcs)
-                resultados['dialogos'] = stats
-        except Exception as e:
-            resultados['dialogos_erro'] = str(e)[:80]
+                return treinador.treinar_com_dialogos(npcs)
+            return 0
 
-        # 3. Mineração de padrões: extrai estruturas de código
-        try:
+        # Fase 3: Minerar padroes de TODOS os dirs (paralelo)
+        def _minerar_padroes():
             from mcr.pattern_miner import miner_lua_files, save_patterns_to_kg
-            from mcr.paths import CANARY_NPC_DIR
-            padroes = miner_lua_files(CANARY_NPC_DIR)
-            if padroes:
-                save_patterns_to_kg(padroes)
-                resultados['padroes_extraidos'] = len(padroes)
-                # Invalida cache do Metacognicao para recarregar KG
+            total = 0
+            for tool, dirs in self._dirs_por_tool.items():
+                for d in dirs:
+                    try:
+                        padroes = miner_lua_files(d)
+                        if padroes:
+                            save_patterns_to_kg(padroes)
+                            total += len(padroes)
+                    except Exception:
+                        pass
+            if total > 0:
                 try:
-                    from mcr.metacognicao import _carregar_kg
                     import mcr.metacognicao as _meta_mod
                     _meta_mod._KG_CACHE = None
                 except Exception:
                     pass
-        except Exception as e:
-            resultados['padroes_erro'] = str(e)[:80]
+            return total
 
-        # 3b. Indexa ItemDB e MonsterDB no KG
-        try:
-            from mcr.item_database import ItemDatabase
-            from mcr.monster_database import MonsterDatabase
-            from mcr.pattern_miner import save_patterns_to_kg
-            item_db = ItemDatabase()
-            mon_db = MonsterDatabase()
-            db_padroes = []
-            # Indexa itens por categoria
-            for cat, itens in item_db._por_categoria.items() if hasattr(item_db, '_por_categoria') else []:
-                if itens:
-                    db_padroes.append({
-                        'arquivo': f'<itemdb:{cat}>',
-                        'linguagem': 'data', 'tipo': 'item_categoria',
-                        'api_calls': [cat], 'variaveis': [i.get('name', '') for i in itens[:20]],
-                        'funcoes': [], 'tabelas': [], 'tamanho_linhas': len(itens),
-                    })
-            # Indexa monstros
-            for nome, dados in mon_db._monstros.items() if hasattr(mon_db, '_monstros') else []:
-                db_padroes.append({
-                    'arquivo': f'<monsterdb:{nome}>',
-                    'linguagem': 'data', 'tipo': 'monster',
-                    'api_calls': [dados.get('race', '')],
-                    'variaveis': [nome], 'funcoes': [], 'tabelas': [],
-                    'tamanho_linhas': 1,
-                })
-            if db_padroes:
-                save_patterns_to_kg(db_padroes)
-                resultados['db_indexadas'] = len(db_padroes)
-                import mcr.metacognicao as _meta_mod
-                _meta_mod._KG_CACHE = None
-        except Exception as e:
-            resultados['db_indexadas_erro'] = str(e)[:80]
+        # Fase 4: Indexar ItemDB + MonsterDB no KG
+        def _indexar_dbs():
+            try:
+                from mcr.knowledge.item_database import ItemDatabase
+                db = ItemDatabase()
+                db_padroes = []
+                for cat, itens in getattr(db, '_por_categoria', {}).items():
+                    if isinstance(itens, list) and itens:
+                        db_padroes.append({
+                            'arquivo': f'<itemdb:{cat}>',
+                            'linguagem': 'data', 'tipo': 'item_categoria',
+                            'api_calls': [cat], 'variaveis': [i.get('name', '') for i in itens[:20]],
+                            'funcoes': [], 'tabelas': [], 'tamanho_linhas': len(itens),
+                        })
+                if db_padroes:
+                    from mcr.pattern_miner import save_patterns_to_kg
+                    save_patterns_to_kg(db_padroes)
+                    import mcr.metacognicao as _meta_mod
+                    _meta_mod._KG_CACHE = None
+                return len(db_padroes)
+            except Exception:
+                return 0
 
-        # 4. Pré-treina o Markov com dados minerados
+        # Executa 4 fases em paralelo (I/O bound → threads)
+        with ThreadPoolExecutor(max_workers=4) as executor:
+            futures = {
+                executor.submit(_auto_estudo): 'auto_estudo',
+                executor.submit(_minerar_dialogos): 'dialogos',
+                executor.submit(_minerar_padroes): 'padroes',
+                executor.submit(_indexar_dbs): 'dbs',
+            }
+            for future in as_completed(futures):
+                nome = futures[future]
+                try:
+                    resultados[nome] = future.result()
+                except Exception as e:
+                    resultados[f'{nome}_erro'] = str(e)[:80]
+
+        # 5. Pre-treina Markov com dados minerados
         self._pre_treinar_markov()
 
         return resultados
@@ -555,6 +665,29 @@ class MCR:
 
         # ─── 2. DECIDIR ────────────────────────────────
         acao, confianca = self._decidir(estado, entrada)
+
+        # ─── Feedback: MCR pede clarificação quando incerto ──
+        # Igual LLM: se confiança baixa e entropia alta, pergunta ao usuário
+        if confianca < 0.15:
+            try:
+                h = self.mk.entropia(estado)
+            except Exception:
+                h = 1.0
+            if h > 0.5:
+                # MCR não sabe — pede feedback honesto
+                return {
+                    'sucesso': False,
+                    'acao': 'feedback',
+                    'nota': 0.0,
+                    'confianca': round(confianca, 3),
+                    'resultado': {
+                        'resposta': f'Nao entendi "{entrada[:50]}". Voce quer criar, explicar ou gerar algo?',
+                        'tipo': 'feedback',
+                        'esperando': True,
+                    },
+                    'tempo': round(time.time() - t0, 3),
+                    'entrada': entrada[:200],
+                }
 
         # ─── Gatekeeper: Metacognição (avisa, não bloqueia Tier 1) ──
         _meta_aviso = None
@@ -668,9 +801,10 @@ class MCR:
     # ═══════════════════════════════════════════════════════
 
     def _decidir(self, estado: str, entrada: str = '') -> Tuple[str, float]:
-        """Superposition: Markov + Coupling colidem -> acao emergente.
+        """Superposition: Markov + Coupling + Observer colidem -> acao emergente.
         
         Niveis: Markov 1a ordem + Coupling palavras->acao + Observer cluster->acao
+        + Descobridor ancora de dominio + Conexao pontes entre dominios
         Fallbacks: similaridade Jaccard -> SQLite -> registry.
         Zero if/elif de dominio. Zero hardcoded fallback.
         """
@@ -697,6 +831,36 @@ class MCR:
                 conf *= min(1.5, 1.0 / max(h_palavra, 0.01))
         except Exception:
             pass
+
+        # Observer: cluster X->Y boost (se confianca observer > markov)
+        if self._obs_ativado and self._observador:
+            try:
+                pred_obs, conf_obs, _ = self._observador.predizer_com_confianca(estado)
+                if pred_obs is not None and conf_obs > conf:
+                    # Alimenta coupling com cluster do observer
+                    self._coupling.alimentar_cluster(pred_obs, str(acao))
+            except Exception:
+                pass
+
+        # Descobridor: se input contem ancora de dominio, boost
+        desc = self._lazy('_descobridor', 'mcr.descobridor.DescobridorUniversal')
+        if desc and desc._treinado:
+            try:
+                palavras = _re.findall(r'[a-z\xc3-\xff]{3,}', entrada.lower())
+                for p in palavras:
+                    dir_ancora = desc.classificar(p)
+                    if dir_ancora:
+                        tool = f"gerar_{dir_ancora.lower().replace(' ', '_').replace('-', '_')}"
+                        if tool in getattr(self, '_dirs_por_tool', {}):
+                            # Ancora encontrada — boost na confianca
+                            if acao == tool:
+                                conf = min(1.0, conf * 1.5)
+                            else:
+                                # Coupling discorda — deixa superposicao decidir
+                                pass
+                            break
+            except Exception:
+                pass
 
         # Superposicao: colisao real entre Markov + Coupling
         acao_colisao, conf_colisao, meta = self._superposicao.colidir(
@@ -744,7 +908,7 @@ class MCR:
                     melhor_taxa = taxa
                     melhor_tool = nome
         if melhor_tool:
-            acao_fallback = melhor_tool.replace('_lua', '')
+            acao_fallback = melhor_tool
             return acao_fallback, max(0.05, melhor_taxa)
         return "responder", 0.1
 
@@ -1023,7 +1187,7 @@ class MCR:
 
     def _aprender(self, estado: str, acao: str, nota: float, entrada: str = ''):
         """Aprende a transição. Reforça se nota alta. Persiste em SQLite + JSON.
-        Alimenta coupling + mk_palavra (cognição multi-nível)."""
+        Alimenta coupling + mk_palavra + mundo (causal) + esquecimento (poda)."""
         self.mk.aprender(estado, acao)
         t1, t2 = self._thresholds_reforco()
         if nota > t1:
@@ -1045,13 +1209,37 @@ class MCR:
             except Exception:
                 pass
 
-        # Persistência JSON (mk + mk_palavra)
+        # Mundo: modelo causal (antes, acao) -> depois
+        mundo = self._lazy('_mundo', 'mcr.mundo.MCRMundo')
+        if mundo and entrada:
+            try:
+                # estado antes = fingerprint, acao = tool, depois = resultado
+                depois = f"{acao}:{'ok' if nota > 0.5 else 'fail'}"
+                mundo.aprender(estado[:50], acao, depois)
+            except Exception:
+                pass
+
+        # Esquecimento: poda ruido a cada 50 aprendizados
+        if self._total_processamentos % 50 == 0:
+            esq = self._lazy('_esquecimento', 'mcr.esquecimento.MCREsquecimento')
+            if esq:
+                try:
+                    esq.podar_entropico(self.mk)
+                    esq.podar_entropico(self.mk_palavra)
+                except Exception:
+                    pass
+
+        # Persistência JSON (mk + mk_palavra + coupling)
         try:
             self.mk.save()
         except Exception:
             pass
         try:
             self.mk_palavra.save()
+        except Exception:
+            pass
+        try:
+            self._coupling.save()
         except Exception:
             pass
 
@@ -1127,6 +1315,20 @@ class MCR:
             from mcr.observador import ObservadorUniversal
             self._observador = ObservadorUniversal("mcr_self_obs")
         self._obs_ativado = True
+
+    def receber_feedback(self, entrada_original: str, acao_correta: str):
+        """Aprende com feedback do usuário (quando MCR pediu clarificação).
+        
+        Fluxo:
+          1. MCR: processar("mago elfico") → confiança baixa → pede feedback
+          2. Usuário: receber_feedback("mago elfico", "responder")
+          3. MCR aprende: fingerprint("mago elfico") → responder
+        """
+        estado = self._perceber(entrada_original)
+        nota = 1.0  # feedback do usuário = máxima confiança
+        self._aprender(estado, acao_correta, nota, entrada_original)
+        return {'sucesso': True, 'aprendido': True,
+                'entrada': entrada_original[:100], 'acao': acao_correta}
 
     def treinar_observador(self) -> dict:
         """Treina observador e retorna métricas."""

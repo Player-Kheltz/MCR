@@ -60,8 +60,8 @@ class MCRSuperposicao:
         conf_cp = scores_cp[melhor_cp] / max(sum(scores_cp.values()), 1)
 
         # 3. Colisão
-        acao_mk_norm = str(acao_mk).replace('_lua', '')
-        melhor_cp_norm = str(melhor_cp).replace('_lua', '')
+        acao_mk_norm = str(acao_mk)
+        melhor_cp_norm = str(melhor_cp)
 
         if acao_mk_norm == melhor_cp_norm:
             # Concordam → boost
