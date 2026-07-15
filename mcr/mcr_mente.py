@@ -12,9 +12,9 @@ from pathlib import Path
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
 
-from devia.kernel.mcr_kernel.engine import MCR, compose_state
-from devia.kernel.mcr_kernel.decisor import MCRPesoNota, MCREntropia
-from devia.kernel.mcr_kernel.signature import MCRSignature
+from mcr.engine import MCR, compose_state
+from mcr.decisor import MCRPesoNota, MCREntropia
+from mcr.signature import MCRSignature
 from mcr_universal.core.signature import MCRSignatureExpansiva
 
 
@@ -226,13 +226,13 @@ class MCRMente:
                         resultado['detalhes']['score_disc'] = round(sum(scores)/len(scores), 3)
 
                     elif passo == 'MCRSignature':
-                        from devia.kernel.mcr_kernel.signature import MCRSignature
+                        from mcr.signature import MCRSignature
                         sig = MCRSignature.extrair(input_data.encode('utf-8')[:500], rapido=True)
                         resultado['detalhes']['entropia'] = round(sig.get('entropia', 0), 3)
                         resultado['detalhes']['estados'] = sig.get('estados', 0)
 
                     elif passo == 'MCRFingerprint':
-                        from devia.kernel.mcr_kernel.signature import MCRFingerprint
+                        from mcr.signature import MCRFingerprint
                         resultado['detalhes']['fingerprint_8d'] = MCRFingerprint.gerar(input_data[:200])
 
                     elif passo == 'extrair_regioes':

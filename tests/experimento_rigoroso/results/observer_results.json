@@ -1,0 +1,3362 @@
+[
+  {
+    "id": 1,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 2,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 3,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 4,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 5,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 6,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 7,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 8,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 9,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 10,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 11,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 12,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 13,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 14,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 15,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 16,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 17,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 18,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 19,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 20,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 21,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 22,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 23,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 24,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 25,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 26,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 27,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 28,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 29,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 30,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 31,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 32,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 33,
+    "predicted_action": null,
+    "expected": "gerar_sprite",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 34,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 35,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 36,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 37,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 38,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 39,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 40,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 41,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 42,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 43,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 44,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 45,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 46,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 47,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 48,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 49,
+    "predicted_action": null,
+    "expected": "gerar_sprite",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 50,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 51,
+    "predicted_action": null,
+    "expected": "gerar_sprite",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 52,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 53,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 54,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 55,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 56,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 57,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 58,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 59,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 60,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 61,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 62,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 63,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 64,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 65,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 66,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 67,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 68,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 69,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 70,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 71,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 72,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 73,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 74,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 75,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 76,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 77,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 78,
+    "predicted_action": null,
+    "expected": "gerar_sprite",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 79,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 80,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 81,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 82,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 83,
+    "predicted_action": null,
+    "expected": "gerar_sprite",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 84,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 85,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 86,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 87,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 88,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 89,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 90,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 91,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 92,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 93,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 94,
+    "predicted_action": null,
+    "expected": "gerar_sprite",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 95,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 96,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 97,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 98,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 99,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 100,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 101,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 102,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 103,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 104,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 105,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 106,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 107,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 108,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 109,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 110,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 111,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 112,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 113,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 114,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 115,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 116,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 117,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 118,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 119,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 120,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 121,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 122,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 123,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 124,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 125,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 126,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 127,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 128,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 129,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 130,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 131,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 132,
+    "predicted_action": null,
+    "expected": "gerar_sprite",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 133,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 134,
+    "predicted_action": null,
+    "expected": "gerar_sprite",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 135,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 136,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 137,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 138,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 139,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 140,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 141,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 142,
+    "predicted_action": null,
+    "expected": "gerar_sprite",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 143,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 144,
+    "predicted_action": null,
+    "expected": "gerar_sprite",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 145,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 146,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 147,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 148,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 149,
+    "predicted_action": null,
+    "expected": "gerar_sprite",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 150,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 151,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 152,
+    "predicted_action": null,
+    "expected": "gerar_sprite",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 153,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 154,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 155,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 156,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 157,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 158,
+    "predicted_action": null,
+    "expected": "gerar_sprite",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 159,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 160,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 161,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 162,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 163,
+    "predicted_action": null,
+    "expected": "gerar_sprite",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 164,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 165,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 166,
+    "predicted_action": "gerar_monstro",
+    "expected": "responder",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 167,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 168,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 169,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 170,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 171,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 172,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 173,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 174,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 175,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 176,
+    "predicted_action": null,
+    "expected": "gerar_sprite",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 177,
+    "predicted_action": null,
+    "expected": "gerar_sprite",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 178,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 179,
+    "predicted_action": null,
+    "expected": "gerar_sprite",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 180,
+    "predicted_action": null,
+    "expected": "gerar_sprite",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 181,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 182,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 183,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 184,
+    "predicted_action": null,
+    "expected": "gerar_sprite",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 185,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 186,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 187,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 188,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 189,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 190,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 191,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 192,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 193,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 194,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 195,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 196,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 197,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 198,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 199,
+    "predicted_action": null,
+    "expected": "gerar_sprite",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 200,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 201,
+    "predicted_action": null,
+    "expected": "gerar_sprite",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 202,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 203,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 204,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 205,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 206,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 207,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 208,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 209,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 210,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 211,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 212,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 213,
+    "predicted_action": null,
+    "expected": "gerar_sprite",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 214,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 215,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 216,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 217,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 218,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 219,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 220,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 221,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 222,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 223,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 224,
+    "predicted_action": null,
+    "expected": "gerar_sprite",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 225,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 226,
+    "predicted_action": "gerar_monstro",
+    "expected": "responder",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 227,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 228,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 229,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 230,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 231,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 232,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 233,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 234,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 235,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 236,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 237,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 238,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 239,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 240,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 241,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 242,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 243,
+    "predicted_action": null,
+    "expected": "gerar_sprite",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 244,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 245,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 246,
+    "predicted_action": null,
+    "expected": "gerar_sprite",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 247,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 248,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 249,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 250,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 251,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 252,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 253,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 254,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 255,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 256,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 257,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 258,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 259,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 260,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 261,
+    "predicted_action": null,
+    "expected": "gerar_sprite",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 262,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 263,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 264,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 265,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 266,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 267,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 268,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 269,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 270,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 271,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 272,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 273,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 274,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 275,
+    "predicted_action": null,
+    "expected": "gerar_sprite",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 276,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 277,
+    "predicted_action": null,
+    "expected": "gerar_sprite",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 278,
+    "predicted_action": null,
+    "expected": "gerar_sprite",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 279,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 280,
+    "predicted_action": "gerar_monstro",
+    "expected": "responder",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 281,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 282,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 283,
+    "predicted_action": null,
+    "expected": "gerar_sprite",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 284,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 285,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 286,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 287,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 288,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 289,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 290,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 291,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 292,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 293,
+    "predicted_action": null,
+    "expected": "gerar_sprite",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 294,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 295,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 296,
+    "predicted_action": null,
+    "expected": "gerar_sprite",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 297,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 298,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 299,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 300,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 301,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 302,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 303,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 304,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 305,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 306,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 307,
+    "predicted_action": null,
+    "expected": "gerar_sprite",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 308,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 309,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 310,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 311,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 312,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 313,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 314,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 315,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 316,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 317,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 318,
+    "predicted_action": null,
+    "expected": "gerar_sprite",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 319,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 320,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 321,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 322,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 323,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 324,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 325,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 326,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 327,
+    "predicted_action": null,
+    "expected": "gerar_sprite",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 328,
+    "predicted_action": null,
+    "expected": "gerar_sprite",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 329,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 330,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 331,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 332,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 333,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 334,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 335,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 336,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 337,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 338,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 339,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 340,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 341,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 342,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 343,
+    "predicted_action": null,
+    "expected": "gerar_sprite",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 344,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 345,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 346,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 347,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 348,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 349,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 350,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 351,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 352,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 353,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 354,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 355,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 356,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 357,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 358,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 359,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 360,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 361,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 362,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 363,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 364,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 365,
+    "predicted_action": null,
+    "expected": "gerar_sprite",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 366,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 367,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 368,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 369,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 370,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 371,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 372,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 373,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 374,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 375,
+    "predicted_action": null,
+    "expected": "gerar_sprite",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 376,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 377,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 378,
+    "predicted_action": null,
+    "expected": "gerar_sprite",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 379,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 380,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 381,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 382,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 383,
+    "predicted_action": null,
+    "expected": "gerar_sprite",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 384,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 385,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 386,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 387,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 388,
+    "predicted_action": null,
+    "expected": "gerar_sprite",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 389,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 390,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 391,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 392,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 393,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 394,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 395,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 396,
+    "predicted_action": null,
+    "expected": "gerar_sprite",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 397,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 398,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 399,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 400,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 401,
+    "predicted_action": null,
+    "expected": "gerar_sprite",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 402,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 403,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 404,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 405,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 406,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 407,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 408,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 409,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 410,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 411,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 412,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 413,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 414,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 415,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 416,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 417,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 418,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 419,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 420,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 421,
+    "predicted_action": null,
+    "expected": "gerar_sprite",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 422,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 423,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 424,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 425,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 426,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 427,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 428,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 429,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 430,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 431,
+    "predicted_action": null,
+    "expected": "gerar_sprite",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 432,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 433,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 434,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 435,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 436,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 437,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 438,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 439,
+    "predicted_action": null,
+    "expected": "gerar_sprite",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 440,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 441,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 442,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 443,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 444,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 445,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 446,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 447,
+    "predicted_action": "gerar_monstro",
+    "expected": "responder",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 448,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 449,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 450,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 451,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 452,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 453,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 454,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 455,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 456,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 457,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 458,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 459,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 460,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 461,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 462,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 463,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 464,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 465,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 466,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 467,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 468,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 469,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 470,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 471,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 472,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 473,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 474,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 475,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 476,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 477,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 478,
+    "predicted_action": null,
+    "expected": "gerar_npc",
+    "confidence": 1.0,
+    "correct": false
+  },
+  {
+    "id": 479,
+    "predicted_action": null,
+    "expected": "gerar_monstro",
+    "confidence": 0.0,
+    "correct": false
+  },
+  {
+    "id": 480,
+    "predicted_action": null,
+    "expected": "responder",
+    "confidence": 0.0,
+    "correct": false
+  }
+]

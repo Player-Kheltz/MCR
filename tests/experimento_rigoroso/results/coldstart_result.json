@@ -1,0 +1,34 @@
+{
+  "coldstart": true,
+  "sem_llm": true,
+  "rodada_1": 95.9,
+  "rodada_1b": 96.3,
+  "rodada_2": 96.3,
+  "melhoria_1b": 0.4,
+  "melhoria_2": 0.4,
+  "persistencia_ok": true,
+  "mk_estados": 0,
+  "mk_transicoes": 0,
+  "por_acao": {
+    "gerar_npc": {
+      "r1": 97.1,
+      "r2": 97.1
+    },
+    "gerar_monstro": {
+      "r1": 97.3,
+      "r2": 97.3
+    },
+    "gerar_quest": {
+      "r1": 100.0,
+      "r2": 100.0
+    },
+    "gerar_sprite": {
+      "r1": 85.1,
+      "r2": 85.1
+    },
+    "responder": {
+      "r1": 96.5,
+      "r2": 98.2
+    }
+  }
+}

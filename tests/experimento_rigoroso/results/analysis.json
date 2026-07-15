@@ -1,0 +1,36 @@
+{
+  "confusion_matrix": {
+    "gerar_monstro": {
+      "gerar_monstro": 105,
+      "gerar_npc": 41,
+      "responder": 1,
+      "gerar_sprite": 0
+    },
+    "responder": {
+      "gerar_npc": 94,
+      "gerar_monstro": 15,
+      "responder": 1,
+      "gerar_quest": 3,
+      "gerar_sprite": 0
+    },
+    "gerar_npc": {
+      "gerar_monstro": 118,
+      "gerar_npc": 54,
+      "responder": 1,
+      "gerar_sprite": 0
+    },
+    "gerar_sprite": {
+      "gerar_monstro": 29,
+      "gerar_npc": 17,
+      "responder": 1,
+      "gerar_sprite": 0
+    }
+  },
+  "macro_f1": 0.2024,
+  "accuracy": 0.3333,
+  "critical_gaps": [
+    "gerar_sprite 0%",
+    "responder 0.9%",
+    "gerar_npc 31.2%"
+  ]
+}

@@ -62,7 +62,7 @@ class MCRAutoEvolution:
         if not self._mcr:
             return {'erro': 'MCRSystem nao disponivel'}
         
-        from devia.kernel.mcr_kernel.decisor import MCRThreshold
+        from mcr.decisor import MCRThreshold
         
         # 1. Entropia antes (medida real)
         h_antes = self.entropia_global()

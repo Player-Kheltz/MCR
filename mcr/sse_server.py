@@ -17,7 +17,6 @@ import urllib.parse as _urlparse
 
 from mcr.config_llm import MODELO
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'devia', 'kernel'))
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
 
 _canal = queue.Queue()
@@ -260,7 +259,7 @@ class _Handler(BaseHTTPRequestHandler):
                 total_quests = sum(len(n.get('quests', [])) for n in npcs.values())
                 entropia = 0.5
                 try:
-                    from devia.kernel.mcr_kernel.engine import MCR
+                    from mcr.engine import MCR
                     mk = MCR('sys_entropy')
                     entropia = round(mk.entropia_media(), 3) if mk.transicoes else 0.5
                 except Exception:

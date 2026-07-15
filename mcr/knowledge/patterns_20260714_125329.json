@@ -1,0 +1,32 @@
+{
+  "metadata": {
+    "timestamp": "2026-07-14 12:53:29",
+    "total_padroes": 1,
+    "tipos": {
+      "npc": 1,
+      "total": 1
+    }
+  },
+  "padroes": [
+    {
+      "arquivo": "<execucao:gerar_npc>",
+      "linguagem": "lua",
+      "tipo": "npc",
+      "api_calls": [
+        "Game.createNpcType",
+        "KeywordHandler:new",
+        "keywordHandler:addKeyword",
+        "npcType:register"
+      ],
+      "variaveis": [
+        "internalNpcName",
+        "keywordHandler",
+        "npcConfig",
+        "npcType"
+      ],
+      "funcoes": [],
+      "tabelas": [],
+      "tamanho_linhas": 31
+    }
+  ]
+}

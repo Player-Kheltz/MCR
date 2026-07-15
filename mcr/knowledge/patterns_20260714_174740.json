@@ -1,0 +1,43 @@
+{
+  "metadata": {
+    "timestamp": "2026-07-14 17:47:40",
+    "total_padroes": 1,
+    "tipos": {
+      "npc": 1,
+      "total": 1
+    }
+  },
+  "padroes": [
+    {
+      "arquivo": "<execucao:gerar_npc>",
+      "linguagem": "lua",
+      "tipo": "npc",
+      "api_calls": [
+        "Game.createNpcType",
+        "KeywordHandler:new",
+        "KeywordHandler:new()\n= 2 then\n\tnpcHandler:onCloseChannel",
+        "NpcHandler:new",
+        "npcHandler:checkInteraction",
+        "npcHandler:onAppear",
+        "npcHandler:onCloseChannel",
+        "npcHandler:onDisappear",
+        "npcHandler:onMove",
+        "npcHandler:onSay",
+        "npcHandler:say",
+        "npcType.onAppear = \tnpcHandler:onThink",
+        "npcType.onDisappear",
+        "npcType.onThink",
+        "player:addCondition"
+      ],
+      "variaveis": [
+        "lookHead",
+        "lookType",
+        "npcConfig",
+        "npcType"
+      ],
+      "funcoes": [],
+      "tabelas": [],
+      "tamanho_linhas": 56
+    }
+  ]
+}

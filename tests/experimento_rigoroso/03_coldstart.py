@@ -1,0 +1,231 @@
+"""03: ColdStart — Teste de aprendizado real do MCR.
+
+Valida que MCR:
+1. Começa do zero (memória limpa)
+2. Classifica sem experiência (Rodada 1)
+3. Aprende do dataset (fingerprint→ação direto, sem LLM)
+4. Persiste (save/load)
+5. Classifica com experiência (Rodada 2) → melhoria
+6. Limpa memória no final
+
+Zero LLM. Zero processar(). Apenas Equation + Markov puro.
+"""
+import sys, json, time, os, glob, random
+sys.stdout.reconfigure(line_buffering=True)
+sys.path.insert(0, 'E:/MCR')
+
+RESULTS_DIR = 'E:/MCR/tests/experimento_rigoroso/results'
+os.makedirs(RESULTS_DIR, exist_ok=True)
+
+print('=' * 65)
+print('  COLDSTART TEST — MCR Learning Validation')
+print('  Zero LLM. Zero processar(). Equation + Markov puro.')
+print('=' * 65)
+
+# ─── LOAD DATASET ──────────────────────────────────────────
+with open('E:/MCR/tests/experimento_rigoroso/dataset_500.json', 'r', encoding='utf-8') as f:
+    dataset = json.load(f)
+print(f'Dataset: {len(dataset)} entradas')
+
+ACTIONS = ['gerar_npc', 'gerar_monstro', 'gerar_quest', 'gerar_sprite', 'responder']
+
+def normalize_action(action):
+    return action.replace('_lua', '').replace('gerar_npc_lua', 'gerar_npc').replace('gerar_monstro_lua', 'gerar_monstro')
+
+def limpar_memoria():
+    patterns = [
+        'E:/MCR/mcr/kernel/markov_*.json',
+        'E:/MCR/mcr/markov_*.json',
+        'E:/MCR/devia/kernel/mcr_kernel/markov_*.json',
+    ]
+    removed = 0
+    for pat in patterns:
+        for f in glob.glob(pat):
+            try:
+                os.remove(f)
+                removed += 1
+            except Exception:
+                pass
+    return removed
+
+def classificar_tudo(mcr):
+    """Classifica todo o dataset. Retorna (accuracy%, detalhes_por_acao)."""
+    by_action = {}
+    for entry in dataset:
+        try:
+            estado = mcr._perceber(entry['input'])
+            acao, conf = mcr._decidir(estado)
+        except Exception:
+            acao, conf = 'erro', 0.0
+        predicted = normalize_action(str(acao))
+        expected = entry['expected_action']
+        if expected not in by_action:
+            by_action[expected] = {'correct': 0, 'total': 0, 'conf_sum': 0.0}
+        by_action[expected]['total'] += 1
+        by_action[expected]['conf_sum'] += conf
+        if predicted == expected:
+            by_action[expected]['correct'] += 1
+    total_correct = sum(d['correct'] for d in by_action.values())
+    total = sum(d['total'] for d in by_action.values())
+    acc = total_correct / total * 100 if total else 0
+    return acc, by_action
+
+def treinar_markov(mcr, entradas):
+    """Alimenta mk diretamente com (fingerprint, ação_correta). Sem LLM."""
+    for entry in entradas:
+        try:
+            estado = mcr._perceber(entry['input'])
+            acao = entry['expected_action']
+            mcr.mk.aprender(estado, acao)
+        except Exception:
+            pass
+
+def stats(mcr):
+    return {
+        'mk_estados': len(mcr.mk.transicoes),
+        'mk_transicoes': sum(len(v) for v in mcr.mk.transicoes.values()),
+        'mk_total': mcr.mk.total,
+    }
+
+
+# ══════════════════════════════════════════════════════════════
+# PASSO 1: Limpar memória (Cold Start)
+# ══════════════════════════════════════════════════════════════
+print('\n[PASSO 1] Limpando memória...')
+removed = limpar_memoria()
+print(f'  Removidos: {removed} arquivos')
+
+# Reset ExtratorFeatures singleton
+try:
+    import mcr.extrator_features as ef_mod
+    ef_mod._extrator = None
+except Exception:
+    pass
+
+# ══════════════════════════════════════════════════════════════
+# PASSO 2: Criar MCR do zero
+# ══════════════════════════════════════════════════════════════
+print('\n[PASSO 2] Criando MCR (Cold Start)...')
+from mcr.mcr import MCR
+mcr = MCR()
+s0 = stats(mcr)
+print(f'  MK: {s0["mk_estados"]} estados, {s0["mk_transicoes"]} transições')
+
+# ══════════════════════════════════════════════════════════════
+# PASSO 3: Rodada 1 — classificar sem experiência
+# ══════════════════════════════════════════════════════════════
+print('\n[PASSO 3] Rodada 1: Classificação sem experiência...')
+t0 = time.time()
+acc_1, by_action_1 = classificar_tudo(mcr)
+t1 = time.time() - t0
+print(f'  Accuracy: {acc_1:.1f}%  ({t1:.2f}s)')
+for a in ACTIONS:
+    d = by_action_1.get(a, {'correct': 0, 'total': 0})
+    pct = d['correct'] / d['total'] * 100 if d['total'] else 0
+    print(f'    {a}: {d["correct"]}/{d["total"]} = {pct:.1f}%')
+
+# ══════════════════════════════════════════════════════════════
+# PASSO 4: Treinar — alimentar mk com dados do dataset
+# ══════════════════════════════════════════════════════════════
+print('\n[PASSO 4] Treinando Markov com dados do dataset...')
+t0 = time.time()
+treinar_markov(mcr, dataset)
+t2 = time.time() - t0
+s1 = stats(mcr)
+print(f'  Treinado em {t2:.2f}s')
+print(f'  MK: {s1["mk_estados"]} estados (+{s1["mk_estados"]-s0["mk_estados"]}), '
+      f'{s1["mk_transicoes"]} transições (+{s1["mk_transicoes"]-s0["mk_transicoes"]})')
+
+# ══════════════════════════════════════════════════════════════
+# PASSO 5: Rodada 1b — classificar DEPOIS de treinar (mesmo MCR)
+# ══════════════════════════════════════════════════════════════
+print('\n[PASSO 5] Rodada 1b: Classificação após treino (mesmo MCR)...')
+t0 = time.time()
+acc_1b, by_action_1b = classificar_tudo(mcr)
+t3 = time.time() - t0
+print(f'  Accuracy: {acc_1b:.1f}%  ({t3:.2f}s)  [delta: {acc_1b-acc_1:+.1f}pp]')
+
+# ══════════════════════════════════════════════════════════════
+# PASSO 6: Salvar + Criar novo MCR + Carregar
+# ══════════════════════════════════════════════════════════════
+print('\n[PASSO 6] Salvando + recarregando...')
+mcr.mk.save()
+try:
+    import mcr.extrator_features as ef_mod
+    ef_mod._extrator = None
+except Exception:
+    pass
+mcr2 = MCR()
+s2 = stats(mcr2)
+persistiu = s2['mk_transicoes'] > 0
+print(f'  MK recarregado: {s2["mk_estados"]} estados, {s2["mk_transicoes"]} transições')
+print(f'  Persistência: {"OK" if persistiu else "FALHOU"}')
+
+# ══════════════════════════════════════════════════════════════
+# PASSO 7: Rodada 2 — classificar com experiência (novo MCR)
+# ══════════════════════════════════════════════════════════════
+print('\n[PASSO 7] Rodada 2: Classificação com experiência (novo MCR)...')
+t0 = time.time()
+acc_2, by_action_2 = classificar_tudo(mcr2)
+t4 = time.time() - t0
+print(f'  Accuracy: {acc_2:.1f}%  ({t4:.2f}s)')
+print(f'  vs Rodada 1: {acc_2-acc_1:+.1f}pp')
+print(f'  vs Rodada 1b: {acc_2-acc_1b:+.1f}pp')
+for a in ACTIONS:
+    d = by_action_2.get(a, {'correct': 0, 'total': 0})
+    pct = d['correct'] / d['total'] * 100 if d['total'] else 0
+    d0 = by_action_1.get(a, {'correct': 0, 'total': 0})
+    pct0 = d0['correct'] / d0['total'] * 100 if d0['total'] else 0
+    print(f'    {a}: {d["correct"]}/{d["total"]} = {pct:.1f}%  (was {pct0:.1f}%)')
+
+# ══════════════════════════════════════════════════════════════
+# PASSO 8: Entropia
+# ══════════════════════════════════════════════════════════════
+print('\n[PASSO 8] Entropia:')
+try:
+    h = mcr2.mk.entropia_media()
+    print(f'  MK decisão: {h:.4f}')
+except Exception as e:
+    print(f'  Erro: {e}')
+
+# ══════════════════════════════════════════════════════════════
+# PASSO 9: Limpar
+# ══════════════════════════════════════════════════════════════
+print('\n[PASSO 9] Limpando memória pós-teste...')
+removed = limpar_memoria()
+print(f'  Removidos: {removed} arquivos')
+
+# ══════════════════════════════════════════════════════════════
+# RESULTADO
+# ══════════════════════════════════════════════════════════════
+print('\n' + '=' * 65)
+print('  RESULTADO')
+print('=' * 65)
+print(f'  Rodada 1 (cold start):  {acc_1:.1f}%')
+print(f'  Rodada 1b (pós-treino): {acc_1b:.1f}%  (+{acc_1b-acc_1:+.1f}pp)')
+print(f'  Rodada 2 (novo MCR):    {acc_2:.1f}%  (+{acc_2-acc_1:+.1f}pp)')
+print(f'  Persistência:           {"OK" if persistiu else "FALHOU"}')
+print(f'  MK: {s0["mk_estados"]}→{s1["mk_estados"]} estados, '
+      f'{s0["mk_transicoes"]}→{s1["mk_transicoes"]} transições')
+print(f'  LLM usado: NÃO')
+print('=' * 65)
+
+# Salvar
+resultado = {
+    'coldstart': True, 'sem_llm': True,
+    'rodada_1': round(acc_1, 1),
+    'rodada_1b': round(acc_1b, 1),
+    'rodada_2': round(acc_2, 1),
+    'melhoria_1b': round(acc_1b - acc_1, 1),
+    'melhoria_2': round(acc_2 - acc_1, 1),
+    'persistencia_ok': persistiu,
+    'mk_estados': s1['mk_estados'] - s0['mk_estados'],
+    'mk_transicoes': s1['mk_transicoes'] - s0['mk_transicoes'],
+    'por_acao': {a: {
+        'r1': round(by_action_1.get(a, {}).get('correct', 0) / max(by_action_1.get(a, {}).get('total', 1), 1) * 100, 1),
+        'r2': round(by_action_2.get(a, {}).get('correct', 0) / max(by_action_2.get(a, {}).get('total', 1), 1) * 100, 1),
+    } for a in ACTIONS},
+}
+with open(os.path.join(RESULTS_DIR, 'coldstart_result.json'), 'w') as f:
+    json.dump(resultado, f, indent=2, ensure_ascii=False)
+print(f'\nSalvo em {RESULTS_DIR}/coldstart_result.json')

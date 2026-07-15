@@ -1,0 +1,26 @@
+{
+  "metadata": {
+    "timestamp": "2026-07-14 00:17:18",
+    "total_padroes": 1,
+    "tipos": {
+      "generic": 1,
+      "total": 1
+    }
+  },
+  "padroes": [
+    {
+      "arquivo": "<execucao:gerar_monstro>",
+      "linguagem": "lua",
+      "tipo": "generic",
+      "api_calls": [
+        "Ajuste:* Para ser mais claro na restrição",
+        "NOME: Silas da Névoa de Eridanus\nRACA: Humano\nSEXO: Masculino\nIDADE: 57 anos\nHISTORIA: Antigo guardião das ruínas próximas à Fundação de Eridanus, ele foi marcado por uma maldição antiga durante a Origem do SPA e perdeu parte da visão em um incidente com Lúcio. Agora trabalha como vigia voluntário perto de Aldric para proteger os viajantes que buscam itens raros no mercado, usando essa máscara antiga herdada dos antigos forjadores locais para esconder suas cicatrizes. Ele prefere a companhia silenciosa das armadilhas antigas em vez da vida na cidade movimentada como Eliana e Valtorion preferem.\nPERSONALIDADE: Cético, Leal, **Melancólico",
+        "colocar: **Sombrio**, **Leal**, **Curioso"
+      ],
+      "variaveis": [],
+      "funcoes": [],
+      "tabelas": [],
+      "tamanho_linhas": 10
+    }
+  ]
+}

@@ -23,7 +23,7 @@ import numpy as np
 
 from mcr.regioes_anatomicas import extrair_regioes_cromaticas
 from mcr.visual_coupling import VisualCoupling, _discretizar_cor, _discretizar_geometria, _discretizar_posicao
-from devia.kernel.MCR_legacy import MCRCoupling
+from mcr.coupling import MCRCoupling
 
 # Cores Lab* → RGB aproximadas (dos dados dos orcs)
 CORES_LAB = {

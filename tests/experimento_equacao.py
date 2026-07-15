@@ -1,4 +1,4 @@
-"""PASSO 2: Experimento comparativo — 3 fórmulas × 50 execuções."""
+﻿"""PASSO 2: Experimento comparativo — 3 fórmulas × 50 execuções."""
 import sys, json, math, time
 from collections import Counter
 
@@ -22,7 +22,7 @@ def formula_atual(ex):
     entrada = ex.get('entrada', ex.get('estado', ''))
     saida = ex.get('codigo', '')
     # Divergência via fingerprint 8D
-    from devia.kernel.mcr_kernel.signature import MCRFingerprint
+    from mcr.signature import MCRFingerprint
     fp_e = MCRFingerprint.gerar(entrada) if entrada else [0]*8
     fp_s = MCRFingerprint.gerar(saida) if saida else [0]*8
     div = sum(abs(a-b)/10.0 for a,b in zip(fp_e, fp_s)) / max(len(fp_e),1)

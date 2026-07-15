@@ -53,7 +53,7 @@ _CPP_STMT_PATTERNS = [
 
 
 def _tokenizar_cpp(codigo: str) -> List[str]:
-    from devia.kernel.mcr_kernel.signature import _DELIMITADORES_UNIVERSAIS
+    from mcr.signature import _DELIMITADORES_UNIVERSAIS
     return _DELIMITADORES_UNIVERSAIS.split(codigo)
 
 

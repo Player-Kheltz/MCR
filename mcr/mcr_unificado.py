@@ -37,7 +37,7 @@ class Percebe:
     def _get_markov(self):
         if self._markov is None:
             try:
-                from devia.kernel.mcr_kernel.engine import MCR
+                from mcr.engine import MCR
                 self._markov = MCR("percebe")
             except Exception:
                 self._markov = None
@@ -110,7 +110,7 @@ class Decompoe:
     def _get_markov(self):
         if self._markov is None:
             try:
-                from devia.kernel.mcr_kernel.engine import MCR
+                from mcr.engine import MCR
                 self._markov = MCR("decompoe")
             except Exception:
                 self._markov = None
@@ -164,7 +164,7 @@ class Seleciona:
     def _get_markov(self):
         if self._markov is None:
             try:
-                from devia.kernel.mcr_kernel.engine import MCR
+                from mcr.engine import MCR
                 self._markov = MCR("seleciona")
             except Exception:
                 self._markov = None
@@ -306,7 +306,7 @@ class Aprende:
         self._historico.append(transicao)
 
         try:
-            from devia.kernel.mcr_kernel.engine import MCR
+            from mcr.engine import MCR
             m = MCR("aprende")
             m.aprender(
                 classificacao.get('dominio', 'unknown'),

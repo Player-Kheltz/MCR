@@ -1,4 +1,4 @@
-"""MCR.py — Shim no root do projeto.
+﻿"""MCR.py — Shim no root do projeto.
 
 Redireciona imports antigos que faziam 'from MCR import *'
 ou 'exec(MCR.py)' para o kernel real em devia/kernel/.
@@ -25,7 +25,7 @@ try:
         MCRConfig,
     )
 except ImportError:
-    from devia.kernel.mcr_kernel.engine import MCR, MCRBridge
+    from mcr.engine import MCR, MCRBridge
 
 try:
     from CerebroAGI import CerebroAGI

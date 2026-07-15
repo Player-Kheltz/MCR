@@ -1,0 +1,31 @@
+{
+  "metadata": {
+    "timestamp": "2026-07-13 23:42:31",
+    "total_padroes": 1,
+    "tipos": {
+      "generic": 1,
+      "total": 1
+    }
+  },
+  "padroes": [
+    {
+      "arquivo": "<execucao:gerar_monstro>",
+      "linguagem": "lua",
+      "tipo": "generic",
+      "api_calls": [
+        "FALA_DESPEDIDA",
+        "FALA_SOBRE_SUA_VIDA",
+        "HISTORIA: Exilado da Caverna Original durante a Grande Guerra de Valtorion, Zarathos foi banido para as terras frias perto do SPA e agora habita nas profundezas adjacentes à Fundacao de Eridanus. Ele se tornou um guardião relutante dessa área porque odeia o fogo das forjas humanas tanto quanto ama a escuridão, mas precisa manter seu status como monstro. Dizem que ele ficou parado ali há séculos aguardando alguém entender sua loucura sem matá-lo imediatamente pela presença de Aldric Forjador nas proximidades.\nPERSONALIDADE: Violento",
+        "Melancólico",
+        "Melancólico (Inesperado para um monstro).\nTRACO_SECRETO: Acredita que os humanos devem pagar impostos em ouro puro apenas por ter o direito de entrar no inferno sem ser atacados, uma opinião polêmica mesmo entre seus próprios demônios.\nFALA_APRESENTACAO",
+        "NOME: Zarathos do Crepúsculo Negro\nRACA: Demônio",
+        "SEXO: Masculino",
+        "Sombrio"
+      ],
+      "variaveis": [],
+      "funcoes": [],
+      "tabelas": [],
+      "tamanho_linhas": 10
+    }
+  ]
+}

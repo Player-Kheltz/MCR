@@ -20,8 +20,8 @@ import re, math, time, statistics
 from collections import Counter, defaultdict
 from typing import Dict, List, Tuple, Optional, Set
 
-from devia.kernel.mcr_kernel.engine import MCR as MarkovEngine
-from devia.kernel.mcr_kernel.signature import MCRSignature
+from mcr.engine import MCR as MarkovEngine
+from mcr.signature import MCRSignature
 
 
 class ObservadorUniversal:

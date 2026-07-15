@@ -15,7 +15,7 @@ from typing import Dict, List, Tuple
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
 
-from devia.kernel.mcr_kernel.engine import MCR
+from mcr.engine import MCR
 from mcr_universal.core.signature import MCRSignatureExpansiva
 from mcr.executor_map import _reg as executor_reg, _resolver
 
@@ -256,7 +256,7 @@ class MCRMentePura:
 
         # Se nao achou, tentar por entropia
         if tipo is None or conf < 0.1:
-            from devia.kernel.mcr_kernel.signature import MCRSignature
+            from mcr.signature import MCRSignature
             sig = MCRSignature.extrair(dados, rapido=True)
             h = int(sig.get('entropia', 1.0) * 10)
             tipo, conf = self.mcr_percepcao.predizer(f'h:{h}')
@@ -352,19 +352,19 @@ class MCRMentePura:
             status = 'sucesso'
 
         elif ferramenta == 'MCRFingerprint':
-            from devia.kernel.mcr_kernel.signature import MCRFingerprint
+            from mcr.signature import MCRFingerprint
             fp = MCRFingerprint.gerar('sprite armors')
             detalhes['fingerprint'] = [round(x, 2) for x in fp]
             status = 'sucesso'
 
         elif ferramenta == 'MCRSignature':
-            from devia.kernel.mcr_kernel.signature import MCRSignature
+            from mcr.signature import MCRSignature
             sig = MCRSignature.extrair('sprite armors'.encode())
             detalhes['h'] = round(sig.get('entropia', 0), 3)
             status = 'sucesso'
 
         elif ferramenta == 'MCRAutoMelhoria':
-            from devia.kernel.mcr_kernel.evolution import MCRAutoMelhoria
+            from mcr.evolution import MCRAutoMelhoria
             am = MCRAutoMelhoria()
             detalhes['ciclo'] = 'executado'
             status = 'sucesso'
@@ -410,7 +410,7 @@ class MCRMentePura:
         percepcao = {'tipo': 'desconhecido', 'entropia': 0}
         dados = input_texto.encode('utf-8')
         try:
-            sig = __import__('devia.kernel.mcr_kernel.signature', fromlist=['MCRSignature']).MCRSignature
+            sig = __import__('mcr.signature', fromlist=['MCRSignature']).MCRSignature
             percepcao['entropia'] = round(sig.extrair(dados, rapido=True).get('entropia', 0), 3)
         except Exception:
             pass

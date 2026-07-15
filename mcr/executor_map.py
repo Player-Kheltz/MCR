@@ -79,54 +79,54 @@ _reg = ExecutorRegistry()
 # ─── Registro de todos os tokens ──────────────────────────
 
 # === KERNEL ===
-_reg.registrar('MCR', 'devia.kernel.mcr_kernel.engine.MCR', descricao='Cria MCR engine')
-_reg.registrar('aprender', 'devia.kernel.mcr_kernel.engine.MCR.aprender', ['a', 'b'])
-_reg.registrar('aprender_sequencia', 'devia.kernel.mcr_kernel.engine.MCR.aprender_sequencia', ['seq'])
-_reg.registrar('aprender_batch', 'devia.kernel.mcr_kernel.engine.MCR.aprender_batch', ['sequencias'])
-_reg.registrar('predizer', 'devia.kernel.mcr_kernel.engine.MCR.predizer', ['a'])
-_reg.registrar('gerar', 'devia.kernel.mcr_kernel.engine.MCR.gerar', ['semente', 'passos'])
-_reg.registrar('entropia', 'devia.kernel.mcr_kernel.engine.MCR.entropia', ['a'])
-_reg.registrar('entropia_media', 'devia.kernel.mcr_kernel.engine.MCR.entropia_media')
-_reg.registrar('jaccard', 'devia.kernel.mcr_kernel.engine.MCR.jaccard', ['outra'])
-_reg.registrar('stats', 'devia.kernel.mcr_kernel.engine.MCR.stats')
-_reg.registrar('compose_state', 'devia.kernel.mcr_kernel.engine.compose_state', ['base', 'context'])
-_reg.registrar('compor_contexto', 'devia.kernel.mcr_kernel.engine.compor_contexto', ['tokens', 'ctx'])
+_reg.registrar('MCR', 'mcr.engine.MCR', descricao='Cria MCR engine')
+_reg.registrar('aprender', 'mcr.engine.MCR.aprender', ['a', 'b'])
+_reg.registrar('aprender_sequencia', 'mcr.engine.MCR.aprender_sequencia', ['seq'])
+_reg.registrar('aprender_batch', 'mcr.engine.MCR.aprender_batch', ['sequencias'])
+_reg.registrar('predizer', 'mcr.engine.MCR.predizer', ['a'])
+_reg.registrar('gerar', 'mcr.engine.MCR.gerar', ['semente', 'passos'])
+_reg.registrar('entropia', 'mcr.engine.MCR.entropia', ['a'])
+_reg.registrar('entropia_media', 'mcr.engine.MCR.entropia_media')
+_reg.registrar('jaccard', 'mcr.engine.MCR.jaccard', ['outra'])
+_reg.registrar('stats', 'mcr.engine.MCR.stats')
+_reg.registrar('compose_state', 'mcr.engine.compose_state', ['base', 'context'])
+_reg.registrar('compor_contexto', 'mcr.engine.compor_contexto', ['tokens', 'ctx'])
 
 # === MCRSQLite ===
 _reg.registrar('MCRSQLite', 'mcr.mcr_sqlite.MCRSQLite', ['db_path'])
 
 # === DECISOR ===
-_reg.registrar('MCRThreshold', 'devia.kernel.mcr_kernel.decisor.MCRThreshold', ['nome'])
-_reg.registrar('MCRDecisor', 'devia.kernel.mcr_kernel.decisor.MCRDecisor', ['nome'])
-_reg.registrar('MCRPesoNota', 'devia.kernel.mcr_kernel.decisor.MCRPesoNota', ['nome'])
-_reg.registrar('MCREntropia', 'devia.kernel.mcr_kernel.decisor.MCREntropia', ['nome'])
-_reg.registrar('MCRRuido', 'devia.kernel.mcr_kernel.decisor.MCRRuido', ['nome'])
-_reg.registrar('MCRDiagnostico', 'devia.kernel.mcr_kernel.decisor.MCRDiagnostico', ['nome'])
-_reg.registrar('MCRPeso', 'devia.kernel.mcr_kernel.decisor.MCRPeso', ['nome'])
-_reg.registrar('MCRDecisor', 'devia.kernel.mcr_kernel.decisor.MCRDecisor', ['nome'])
+_reg.registrar('MCRThreshold', 'mcr.decisor.MCRThreshold', ['nome'])
+_reg.registrar('MCRDecisor', 'mcr.decisor.MCRDecisor', ['nome'])
+_reg.registrar('MCRPesoNota', 'mcr.decisor.MCRPesoNota', ['nome'])
+_reg.registrar('MCREntropia', 'mcr.decisor.MCREntropia', ['nome'])
+_reg.registrar('MCRRuido', 'mcr.decisor.MCRRuido', ['nome'])
+_reg.registrar('MCRDiagnostico', 'mcr.decisor.MCRDiagnostico', ['nome'])
+_reg.registrar('MCRPeso', 'mcr.decisor.MCRPeso', ['nome'])
+_reg.registrar('MCRDecisor', 'mcr.decisor.MCRDecisor', ['nome'])
 
 # === SIGNATURE ===
-_reg.registrar('MCRFingerprint', 'devia.kernel.mcr_kernel.signature.MCRFingerprint')
-_reg.registrar('MCRSignature', 'devia.kernel.mcr_kernel.signature.MCRSignature')
-_reg.registrar('raw_token_set', 'devia.kernel.mcr_kernel.signature.raw_token_set', ['texto'])
+_reg.registrar('MCRFingerprint', 'mcr.signature.MCRFingerprint')
+_reg.registrar('MCRSignature', 'mcr.signature.MCRSignature')
+_reg.registrar('raw_token_set', 'mcr.signature.raw_token_set', ['texto'])
 _reg.registrar('MCRSignatureExpansiva', 'mcr_universal.core.signature.MCRSignatureExpansiva')
 
 # === MEMORIA ===
-_reg.registrar('MCRCruzado', 'devia.kernel.mcr_kernel.memory.MCRCruzado')
-_reg.registrar('MCRConector', 'devia.kernel.mcr_kernel.memory.MCRConector')
-_reg.registrar('MCRCadeia', 'devia.kernel.mcr_kernel.memory.MCRCadeia')
-_reg.registrar('MCRBufferKG', 'devia.kernel.mcr_kernel.memory.MCRBufferKG')
-_reg.registrar('MCRKGAuto', 'devia.kernel.mcr_kernel.memory.MCRKGAuto')
+_reg.registrar('MCRCruzado', 'mcr.memory.MCRCruzado')
+_reg.registrar('MCRConector', 'mcr.memory.MCRConector')
+_reg.registrar('MCRCadeia', 'mcr.memory.MCRCadeia')
+_reg.registrar('MCRBufferKG', 'mcr.memory.MCRBufferKG')
+_reg.registrar('MCRKGAuto', 'mcr.memory.MCRKGAuto')
 
 # === META ===
-_reg.registrar('MCRMetaNivel', 'devia.kernel.mcr_kernel.meta.MCRMetaNivel')
-_reg.registrar('MCRMetaGap', 'devia.kernel.mcr_kernel.meta.MCRMetaGap')
-_reg.registrar('MCRSelfIndex', 'devia.kernel.mcr_kernel.meta.MCRSelfIndex')
-_reg.registrar('MCRSelfHeal', 'devia.kernel.mcr_kernel.meta.MCRSelfHeal')
+_reg.registrar('MCRMetaNivel', 'mcr.meta.MCRMetaNivel')
+_reg.registrar('MCRMetaGap', 'mcr.meta.MCRMetaGap')
+_reg.registrar('MCRSelfIndex', 'mcr.meta.MCRSelfIndex')
+_reg.registrar('MCRSelfHeal', 'mcr.meta.MCRSelfHeal')
 
 # === EVOLUCAO ===
-_reg.registrar('MCRAutoMelhoria', 'devia.kernel.mcr_kernel.evolution.MCRAutoMelhoria')
-_reg.registrar('MCRFuel', 'devia.kernel.mcr_kernel.evolution.MCRFuel')
+_reg.registrar('MCRAutoMelhoria', 'mcr.evolution.MCRAutoMelhoria')
+_reg.registrar('MCRFuel', 'mcr.evolution.MCRFuel')
 
 # === SPRITE CORPUS ===
 _reg.registrar('carregar_categoria', 'mcr.sprite_corpus.carregar_categoria', ['nome', 'max_sprites'])
@@ -174,8 +174,8 @@ _reg.registrar('EmergirCrossModal', 'mcr.emergir_crossmodal.EmergirCrossModal')
 _reg.registrar('MCRConexao', 'mcr_universal.emergence.conexao.MCRConexao')
 
 # === SYSTEM ===
-_reg.registrar('MCRPergunta', 'devia.kernel.mcr_kernel.system.MCRPergunta')
-_reg.registrar('MCRGeracao', 'devia.kernel.mcr_kernel.system.MCRGeracao')
+_reg.registrar('MCRPergunta', 'mcr.system.MCRPergunta')
+_reg.registrar('MCRGeracao', 'mcr.system.MCRGeracao')
 
 # === VISUAL COUPLING ===
 _reg.registrar('VisualCoupling', 'mcr.visual_coupling.VisualCoupling')
@@ -186,8 +186,8 @@ _reg.registrar('lab_para_rgb', 'mcr.cielab.lab_para_rgb', ['L', 'a', 'b'])
 _reg.registrar('delta_e76', 'mcr.cielab.delta_e76', ['c1', 'c2'])
 
 # === TOOLREGISTRY TOOLS ===
-_reg.registrar('ToolRegistry', 'devia.knowledge.tool_registry.ToolRegistry')
-_reg.registrar('KnowledgeGraph', 'devia.knowledge.kg.KnowledgeGraph')
+_reg.registrar('ToolRegistry', 'mcr.knowledge.tool_registry.ToolRegistry')
+_reg.registrar('KnowledgeGraph', 'mcr.knowledge.kg.KnowledgeGraph')
 _reg.registrar('NPCGenerator', 'devia.modules.npc_generator.NPCGenerator')
 _reg.registrar('LuaValidator', 'mcr.lua_validator.LuaValidator')
 _reg.registrar('SanityValidator', 'mcr.sanity_validator.SanityValidator')
@@ -237,12 +237,12 @@ _reg.registrar('Autobiography', 'mcr.mcr_autobiography.Autobiography')
 _reg.registrar('Conversa', 'mcr.mcr_conversa.Conversa')
 
 # === KERNEL (P3) ===
-_reg.registrar('MCRWorker', 'devia.kernel.mcr_kernel.evolution.MCRWorker')
-_reg.registrar('MCRSystem', 'devia.kernel.mcr_kernel.system.MCRSystem')
-_reg.registrar('MCRMestreV2', 'devia.kernel.mcr_kernel.system.MCRMestreV2')
-_reg.registrar('MCRFeedback', 'devia.kernel.mcr_kernel.feedback.MCRFeedback')
-_reg.registrar('MCRSession', 'devia.kernel.mcr_kernel.feedback.MCRSession')
-_reg.registrar('MCRFilosofia', 'devia.kernel.mcr_kernel.feedback.MCRFilosofia')
+_reg.registrar('MCRWorker', 'mcr.evolution.MCRWorker')
+_reg.registrar('MCRSystem', 'mcr.system.MCRSystem')
+_reg.registrar('MCRMestreV2', 'mcr.system.MCRMestreV2')
+_reg.registrar('MCRFeedback', 'mcr.feedback.MCRFeedback')
+_reg.registrar('MCRSession', 'mcr.feedback.MCRSession')
+_reg.registrar('MCRFilosofia', 'mcr.feedback.MCRFilosofia')
 
 # === GERADOR MULTINIVEL ===
 _reg.registrar('GeradorMultinivel', 'mcr.generator_multinivel.GeradorMultinivel')
@@ -276,13 +276,13 @@ _reg.registrar('WorldAnomalyDetector', 'mcr.world_anomaly_detector.WorldAnomalyD
 _reg.registrar('WorldObserver', 'mcr.world_observer.WorldObserver')
 
 # === KERNEL — alto valor restante ===
-_reg.registrar('MCRBridge', 'devia.kernel.mcr_kernel.engine.MCRBridge')
-_reg.registrar('MCRAssinatura', 'devia.kernel.mcr_kernel.feedback.MCRAssinatura')
-_reg.registrar('GeradorNarrativa', 'devia.kernel.mcr_kernel.system.GeradorNarrativa')
-_reg.registrar('AutoavaliadorSemantico', 'devia.kernel.mcr_kernel.system.AutoavaliadorSemantico')
-_reg.registrar('MCRMestre', 'devia.kernel.mcr_kernel.system.MCRMestre')
-_reg.registrar('MCRExpansao', 'devia.kernel.mcr_kernel.evolution.MCRExpansao')
-_reg.registrar('MCRPersistencia', 'devia.kernel.mcr_kernel.persistence.MCRPersistencia')
+_reg.registrar('MCRBridge', 'mcr.engine.MCRBridge')
+_reg.registrar('MCRAssinatura', 'mcr.feedback.MCRAssinatura')
+_reg.registrar('GeradorNarrativa', 'mcr.system.GeradorNarrativa')
+_reg.registrar('AutoavaliadorSemantico', 'mcr.system.AutoavaliadorSemantico')
+_reg.registrar('MCRMestre', 'mcr.system.MCRMestre')
+_reg.registrar('MCRExpansao', 'mcr.evolution.MCRExpansao')
+_reg.registrar('MCRPersistencia', 'mcr.persistence.MCRPersistencia')
 
 # === MCR/ — TODOS os restantes ===
 _reg.registrar('ChainOfVerification', 'mcr.chain_of_verification.ChainOfVerification')
@@ -297,9 +297,9 @@ _reg.registrar('ShadowDotnet', 'mcr.shadow_dotnet.ShadowDotnet')
 _reg.registrar('SpriteExtractor', 'mcr.sprite_extractor.SpriteExtractor')
 
 # === MCR_KERNEL — infraestrutura ===
-_reg.registrar('MCRTarefa', 'devia.kernel.mcr_kernel.evolution.MCRTarefa')
-_reg.registrar('MCRSpawner', 'devia.kernel.mcr_kernel.evolution.MCRSpawner')
-_reg.registrar('MCRWebLearn', 'devia.kernel.mcr_kernel.feedback.MCRWebLearn')
+_reg.registrar('MCRTarefa', 'mcr.evolution.MCRTarefa')
+_reg.registrar('MCRSpawner', 'mcr.evolution.MCRSpawner')
+_reg.registrar('MCRWebLearn', 'mcr.feedback.MCRWebLearn')
 
 # === DEVIA/KERNEL — utilitarios standalone ===
 _reg.registrar('HDCVocab', 'devia.kernel.hdc_core.HDCVocab')
@@ -313,9 +313,9 @@ _reg.registrar('MCRRAG', 'devia.kernel.rag_mcr.MCRRAG')
 _reg.registrar('WatchdogMCR', 'devia.kernel.watchdog_mcr.WatchdogMCR')
 _reg.registrar('RedeNPCs', 'devia.kernel.rede_npcs.RedeNPCs')
 _reg.registrar('MCRDevIARevived', 'devia.kernel.fix_mcr_devia_v2.MCRDevIARevived')
-_reg.registrar('MCRDevIAV2', 'devia.kernel.mcr_devia_v2.MCRDevIAV2')
-_reg.registrar('MarkovDecider', 'devia.kernel.mcr_devia_v2.MarkovDecider')
-_reg.registrar('EntropyValidator', 'devia.kernel.mcr_devia_v2.EntropyValidator')
+_reg.registrar('MCRDevIAV2', 'mcr.coupling.MCRDevIAV2')
+_reg.registrar('MarkovDecider', 'mcr.coupling.MarkovDecider')
+_reg.registrar('EntropyValidator', 'mcr.coupling.EntropyValidator')
 _reg.registrar('MCRNPCv2', 'devia.kernel.npc_vivo.MCRNPCv2')
 _reg.registrar('PercepcaoNPC', 'devia.kernel.percepcao.PercepcaoNPC')
 _reg.registrar('Radar', 'devia.kernel.Radar.Radar')

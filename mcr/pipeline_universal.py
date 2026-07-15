@@ -24,13 +24,13 @@ _BASE = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 sys.path.insert(0, _BASE)
 
 # ─── MCR Core ──────────────────────────────────────────────
-from devia.kernel.mcr_kernel.engine import MCR
-from devia.kernel.mcr_kernel.decisor import (
+from mcr.engine import MCR
+from mcr.decisor import (
     MCRThreshold, MCRDecisor, MCRPesoNota, MCREntropia
 )
-from devia.kernel.mcr_kernel.signature import MCRSignature, MCRFingerprint
-from devia.kernel.mcr_kernel.meta import MCRMetaNivel
-from devia.kernel.mcr_kernel.evolution import MCRAutoMelhoria
+from mcr.signature import MCRSignature, MCRFingerprint
+from mcr.meta import MCRMetaNivel
+from mcr.evolution import MCRAutoMelhoria
 
 from mcr_universal.core.signature import MCRSignatureExpansiva
 from mcr.template_entropico import extrair_template_entropico, gerar_do_template, resumir_template

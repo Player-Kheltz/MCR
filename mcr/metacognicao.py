@@ -94,7 +94,6 @@ _MCR_THRESHOLD = None
 try:
     import sys as _sys
     from pathlib import Path as _Path
-    _sys.path.insert(0, str(_Path(__file__).parent.parent / 'devia' / 'kernel'))
     import MCR as _M
     if not hasattr(_M, 'MCRBridge'):
         class _MB:
@@ -176,10 +175,7 @@ class Metacognicao:
             bigrama = palavras[i] + ' ' + palavras[i + 1]
             if len(bigrama) > 5:
                 termos.add(bigrama)
-        # Expande por sinonimos
-        for termo in list(termos):
-            if termo in _get_sinonimos():
-                termos.add(_get_sinonimos()[termo])
+        # Expande por bigramas (sinônimos via KG seriam descobertos)
         return termos
 
     def _tipos_relevantes(self, termos: set) -> Dict[str, float]:
@@ -235,8 +231,14 @@ class Metacognicao:
         # Se o prompt menciona multiplos tipos conhecidos, maior chance de acerto
         score_cobertura = min(1.0, len(tipos_relevantes) * 0.35)
 
-        # Score final ponderado
-        score = score_tipo * 0.40 + score_api * 0.40 + score_cobertura * 0.20
+        # Score final via Equation 5D (unificada)
+        from mcr.equacao_mcr import avaliar_5d
+        certeza = score_tipo
+        completude = score_api
+        informacao = score_cobertura
+        estabilidade = 0.5
+        eficiencia = 1.0 / max(1, len(self._indice_tipos))
+        score = avaliar_5d(certeza, completude, informacao, estabilidade, eficiencia)
         score = round(min(1.0, max(0.0, score)), 3)
 
         # Justificativa

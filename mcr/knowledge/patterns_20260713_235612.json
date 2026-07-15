@@ -1,0 +1,25 @@
+{
+  "metadata": {
+    "timestamp": "2026-07-13 23:56:12",
+    "total_padroes": 1,
+    "tipos": {
+      "generic": 1,
+      "total": 1
+    }
+  },
+  "padroes": [
+    {
+      "arquivo": "<execucao:gerar_monstro>",
+      "linguagem": "lua",
+      "tipo": "generic",
+      "api_calls": [
+        "scythe",
+        "war!"
+      ],
+      "variaveis": [],
+      "funcoes": [],
+      "tabelas": [],
+      "tamanho_linhas": 1
+    }
+  ]
+}

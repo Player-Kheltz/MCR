@@ -1,0 +1,27 @@
+{
+  "metadata": {
+    "timestamp": "2026-07-13 23:52:30",
+    "total_padroes": 1,
+    "tipos": {
+      "generic": 1,
+      "total": 1
+    }
+  },
+  "padroes": [
+    {
+      "arquivo": "<execucao:gerar_monstro>",
+      "linguagem": "lua",
+      "tipo": "generic",
+      "api_calls": [
+        "NOME: Kaelen",
+        "RACA: Humano\nSEXO: Masculino\nIDADE: 42 anos\nHISTORIA: Ex-cozinheiro na Fundação de Eridanus que descobriu acidentalmente que o óleo secreto usado para temperar as sopas dos guardias endurecia como aço. Após uma briga com o **Elder Blacksmith** sobre quem detinha a receita correta, fugiu do laboratório e decidiu alugar um pequeno galpão no limite sul da cidade, onde agora vende escudos tratados em sua própria",
+        "RACA: Humano\nSEXO: Masculino\nIDADE: 42 anos\nHISTORIA: Ex-cozinheiro na Fundação de Eridanus que descobriu acidentalmente que o óleo secreto usado para temperar as sopas dos guardias endurecia como aço. Após uma briga com o **Elder Blacksmith** sobre quem detinha a receita correta, fugiu do laboratório e decidiu alugar um pequeno galpão no limite sul da cidade, onde agora vende escudos tratados em sua própria \"fornalha de tempero\". Ele ainda usa seu avental na batalha porque acredita que as roupas sujas protegem mais contra maldições antigas.\nPERSONALIDADE: Prático, Metódico e Melancólico",
+        "TRACO_SECRETO: Ele tem uma mania bizarra de cheirar cada escudo antes da venda, como se verificasse a"
+      ],
+      "variaveis": [],
+      "funcoes": [],
+      "tabelas": [],
+      "tamanho_linhas": 10
+    }
+  ]
+}

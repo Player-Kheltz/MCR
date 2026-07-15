@@ -12,8 +12,6 @@ from typing import Optional
 
 # Path setup para imports do DevIA e prototype
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'devia', 'kernel'))
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'devia', 'knowledge'))
 
 from mcr.npc_sanity_filter import filtrar_resposta, enriquecer_com_historia
 from mcr.dialogue_trainer import DialogueTrainer
@@ -120,23 +118,25 @@ def processar_dialogo(dados: dict) -> dict:
     if not resposta:
         resposta = _gerar_resposta_markov(npc_id, player_id, mensagem)
 
-    # 2. Se MCR nao gerou nada, tenta o EpisodicMemory
-    if not resposta and _MCR_SYSTEM and _MCR_SYSTEM.kg:
+    # 3. Fallback KG (Metacognicao — confianca + justificativa)
+    if not resposta:
         try:
-            res = _MCR_SYSTEM.kg.buscar(mensagem[:30], max_r=1)
-            if res:
-                resposta = res[0].get('texto', '')
+            from mcr.metacognicao import Metacognicao
+            meta = Metacognicao()
+            score, just = meta.calcular_confianca(mensagem)
+            if score > 0.3:
+                resposta = just
         except Exception:
             pass
 
-    # 3. Enriquece com historico
+    # 4. Enriquece com historico
     historico = _buscar_memoria(player_id, npc_id)
     resposta = enriquecer_com_historia(resposta, historico)
 
-    # 4. Filtro de sanidade
+    # 5. Filtro de sanidade
     resposta = filtrar_resposta(resposta, npc_id)
 
-    # 5. Registra na EpisodicMemory para contexto futuro
+    # 6. Registra na EpisodicMemory para contexto futuro
     if _MEMORIA and resposta:
         try:
             _MEMORIA.registrar(

@@ -184,8 +184,8 @@ class BridgeHandler(BaseHTTPRequestHandler):
                 self._send_json({'status': 'erro', 'mensagem': 'Campo "tema" obrigatorio'}, 400)
                 return
             try:
-                from devia.kernel.mcr_kernel.engine import MCR
-                from devia.kernel.mcr_kernel.memory import MCRConector, MCRCadeia, _get_kg
+                from mcr.engine import MCR
+                from mcr.memory import MCRConector, MCRCadeia, _get_kg
 
                 conector = MCRConector()
 

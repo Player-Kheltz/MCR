@@ -1,0 +1,562 @@
+[
+  {
+    "id": 460,
+    "action": "gerar_npc",
+    "sem_ok": false,
+    "predicted": "gerar_npc",
+    "input": "Create a draconiano mendigo NPC that sells anel"
+  },
+  {
+    "id": 80,
+    "action": "gerar_npc",
+    "sem_ok": true,
+    "predicted": "gerar_monstro",
+    "input": "Create an NPC mensageiro"
+  },
+  {
+    "id": 23,
+    "action": "gerar_npc",
+    "sem_ok": true,
+    "predicted": "gerar_npc",
+    "input": "Create a draconiano artesao NPC that sells escudos"
+  },
+  {
+    "id": 204,
+    "action": "gerar_npc",
+    "sem_ok": false,
+    "predicted": "gerar_monstro",
+    "input": "Crie um NPC sacerdote halfling"
+  },
+  {
+    "id": 181,
+    "action": "gerar_npc",
+    "sem_ok": true,
+    "predicted": "gerar_npc",
+    "input": "NPC com loja"
+  },
+  {
+    "id": 160,
+    "action": "gerar_npc",
+    "sem_ok": true,
+    "predicted": "gerar_monstro",
+    "input": "Gere um NPC taverneiro"
+  },
+  {
+    "id": 100,
+    "action": "gerar_npc",
+    "sem_ok": true,
+    "predicted": "gerar_monstro",
+    "input": "Crie um NPC mensageiro"
+  },
+  {
+    "id": 74,
+    "action": "gerar_npc",
+    "sem_ok": false,
+    "predicted": "gerar_monstro",
+    "input": "Crie um NPC instructer que vende botas"
+  },
+  {
+    "id": 382,
+    "action": "gerar_npc",
+    "sem_ok": false,
+    "predicted": "gerar_npc",
+    "input": "Build a gnomo cavaleiro NPC selling escudos who ja viajou o mundo"
+  },
+  {
+    "id": 67,
+    "action": "gerar_npc",
+    "sem_ok": true,
+    "predicted": "gerar_npc",
+    "input": " npc "
+  },
+  {
+    "id": 432,
+    "action": "gerar_npc",
+    "sem_ok": false,
+    "predicted": "gerar_monstro",
+    "input": "Crie um NPC tecelao"
+  },
+  {
+    "id": 301,
+    "action": "gerar_npc",
+    "sem_ok": true,
+    "predicted": "gerar_monstro",
+    "input": "Gere um NPC padeiro"
+  },
+  {
+    "id": 28,
+    "action": "gerar_npc",
+    "sem_ok": false,
+    "predicted": "gerar_npc",
+    "input": "Build a anao guarda NPC selling pocoes who coleta ervas raras"
+  },
+  {
+    "id": 24,
+    "action": "gerar_npc",
+    "sem_ok": true,
+    "predicted": "gerar_npc",
+    "input": "Create a orc vendedor NPC that sells espadas"
+  },
+  {
+    "id": 69,
+    "action": "gerar_npc",
+    "sem_ok": false,
+    "predicted": "gerar_monstro",
+    "input": "Crie um NPC guia gnomo que vende armaduras e odeia monstros"
+  },
+  {
+    "id": 154,
+    "action": "gerar_npc",
+    "sem_ok": false,
+    "predicted": "gerar_monstro",
+    "input": "Crie um NPC mendigo que vende botas"
+  },
+  {
+    "id": 167,
+    "action": "gerar_npc",
+    "sem_ok": true,
+    "predicted": "gerar_npc",
+    "input": "mago orc que coleta ervas raras e conhece o rei"
+  },
+  {
+    "id": 357,
+    "action": "gerar_npc",
+    "sem_ok": false,
+    "predicted": "gerar_npc",
+    "input": "Create a elfico mercador NPC that sells varinhas"
+  },
+  {
+    "id": 436,
+    "action": "gerar_npc",
+    "sem_ok": false,
+    "predicted": "gerar_monstro",
+    "input": "Crie um NPC taverneiro que vende espadas"
+  },
+  {
+    "id": 398,
+    "action": "gerar_npc",
+    "sem_ok": true,
+    "predicted": "gerar_npc",
+    "input": "alquimista draconiano que fabula armas unicas"
+  },
+  {
+    "id": 170,
+    "action": "gerar_monstro",
+    "sem_ok": true,
+    "predicted": "gerar_monstro",
+    "input": "Crie um monstro wraith"
+  },
+  {
+    "id": 448,
+    "action": "gerar_monstro",
+    "sem_ok": false,
+    "predicted": "gerar_monstro",
+    "input": "Gere um monstro minotauro de tempestade"
+  },
+  {
+    "id": 356,
+    "action": "gerar_monstro",
+    "sem_ok": false,
+    "predicted": "gerar_monstro",
+    "input": "Gere um monstro dragao"
+  },
+  {
+    "id": 190,
+    "action": "gerar_monstro",
+    "sem_ok": true,
+    "predicted": "gerar_monstro",
+    "input": "Gere um monstro serpente lendario"
+  },
+  {
+    "id": 377,
+    "action": "gerar_monstro",
+    "sem_ok": false,
+    "predicted": "gerar_monstro",
+    "input": "Crie um monstro hidra"
+  },
+  {
+    "id": 239,
+    "action": "gerar_monstro",
+    "sem_ok": true,
+    "predicted": "gerar_monstro",
+    "input": "Gere um monstro"
+  },
+  {
+    "id": 4,
+    "action": "gerar_monstro",
+    "sem_ok": false,
+    "predicted": "gerar_npc",
+    "input": "Generate a anciao dragao"
+  },
+  {
+    "id": 136,
+    "action": "gerar_monstro",
+    "sem_ok": false,
+    "predicted": "gerar_npc",
+    "input": "Generate a fantasma monster"
+  },
+  {
+    "id": 358,
+    "action": "gerar_monstro",
+    "sem_ok": false,
+    "predicted": "gerar_npc",
+    "input": "Generate a de fogo ciclope"
+  },
+  {
+    "id": 305,
+    "action": "gerar_monstro",
+    "sem_ok": false,
+    "predicted": "gerar_monstro",
+    "input": "Generate an ancient venenoso golem that drops rare items"
+  },
+  {
+    "id": 133,
+    "action": "gerar_monstro",
+    "sem_ok": false,
+    "predicted": "gerar_monstro",
+    "input": "Gere um monstro aranha de gelo"
+  },
+  {
+    "id": 189,
+    "action": "gerar_monstro",
+    "sem_ok": true,
+    "predicted": "gerar_monstro",
+    "input": "Gere um monstro serpente selvagem"
+  },
+  {
+    "id": 304,
+    "action": "gerar_monstro",
+    "sem_ok": true,
+    "predicted": "gerar_monstro",
+    "input": "Gere um monstro goblin fraco"
+  },
+  {
+    "id": 85,
+    "action": "gerar_monstro",
+    "sem_ok": true,
+    "predicted": "gerar_monstro",
+    "input": "Gere um monstro behemoth"
+  },
+  {
+    "id": 73,
+    "action": "gerar_monstro",
+    "sem_ok": true,
+    "predicted": "gerar_monstro",
+    "input": "Gere um monstro golem medio"
+  },
+  {
+    "id": 326,
+    "action": "gerar_monstro",
+    "sem_ok": true,
+    "predicted": "gerar_monstro",
+    "input": "Gere um monstro wraith venenoso lendario com habilidades especiais"
+  },
+  {
+    "id": 79,
+    "action": "gerar_monstro",
+    "sem_ok": false,
+    "predicted": "gerar_npc",
+    "input": "Generate an ancient de gelo goblin that drops rare items"
+  },
+  {
+    "id": 319,
+    "action": "gerar_monstro",
+    "sem_ok": false,
+    "predicted": "gerar_monstro",
+    "input": "Gere um monstro urso anciao"
+  },
+  {
+    "id": 309,
+    "action": "gerar_monstro",
+    "sem_ok": true,
+    "predicted": "gerar_npc",
+    "input": "monstro NPC"
+  },
+  {
+    "id": 222,
+    "action": "gerar_monstro",
+    "sem_ok": false,
+    "predicted": "gerar_monstro",
+    "input": "Generate an ancient de tempestade behemoth that drops rare items"
+  },
+  {
+    "id": 447,
+    "action": "responder",
+    "sem_ok": false,
+    "predicted": "gerar_quest",
+    "input": "Como funciona o que e PID"
+  },
+  {
+    "id": 15,
+    "action": "responder",
+    "sem_ok": false,
+    "predicted": "gerar_npc",
+    "input": "Como funciona explique a equacao MCR"
+  },
+  {
+    "id": 416,
+    "action": "responder",
+    "sem_ok": false,
+    "predicted": "gerar_npc",
+    "input": "como o KG e populado automaticamente"
+  },
+  {
+    "id": 233,
+    "action": "responder",
+    "sem_ok": false,
+    "predicted": "gerar_npc",
+    "input": "como o MCR aprende"
+  },
+  {
+    "id": 279,
+    "action": "responder",
+    "sem_ok": false,
+    "predicted": "gerar_monstro",
+    "input": "Explain what is a fingerprint"
+  },
+  {
+    "id": 62,
+    "action": "responder",
+    "sem_ok": false,
+    "predicted": "gerar_npc",
+    "input": "por que o MCR e melhor que LLM para tarefas estruturadas"
+  },
+  {
+    "id": 185,
+    "action": "responder",
+    "sem_ok": false,
+    "predicted": "gerar_npc",
+    "input": "monstro perigoso"
+  },
+  {
+    "id": 39,
+    "action": "responder",
+    "sem_ok": false,
+    "predicted": "gerar_npc",
+    "input": "me fale sobre NPC"
+  },
+  {
+    "id": 285,
+    "action": "responder",
+    "sem_ok": false,
+    "predicted": "gerar_npc",
+    "input": "o que e auto-evolucao no MCR"
+  },
+  {
+    "id": 141,
+    "action": "responder",
+    "sem_ok": false,
+    "predicted": "gerar_npc",
+    "input": "como o MCR decide qual ferramenta usar"
+  },
+  {
+    "id": 463,
+    "action": "responder",
+    "sem_ok": false,
+    "predicted": "gerar_npc",
+    "input": "Voce sabe previsao do tempo para amanha"
+  },
+  {
+    "id": 342,
+    "action": "responder",
+    "sem_ok": false,
+    "predicted": "gerar_npc",
+    "input": "criar codigo"
+  },
+  {
+    "id": 341,
+    "action": "responder",
+    "sem_ok": false,
+    "predicted": "gerar_npc",
+    "input": "Explique explique a equacao MCR"
+  },
+  {
+    "id": 473,
+    "action": "responder",
+    "sem_ok": false,
+    "predicted": "gerar_npc",
+    "input": "Voce sabe qual e o preco do bitcoin hoje"
+  },
+  {
+    "id": 173,
+    "action": "responder",
+    "sem_ok": false,
+    "predicted": "gerar_npc",
+    "input": "Voce sabe qual e o sentido da vida"
+  },
+  {
+    "id": 289,
+    "action": "responder",
+    "sem_ok": false,
+    "predicted": "gerar_npc",
+    "input": "explique a equacao MCR"
+  },
+  {
+    "id": 95,
+    "action": "responder",
+    "sem_ok": false,
+    "predicted": "gerar_npc",
+    "input": "previsao do tempo para amanha"
+  },
+  {
+    "id": 410,
+    "action": "responder",
+    "sem_ok": false,
+    "predicted": "gerar_npc",
+    "input": "o que e Markov e por que funciona para decisoes"
+  },
+  {
+    "id": 27,
+    "action": "responder",
+    "sem_ok": false,
+    "predicted": "gerar_npc",
+    "input": "dragao de fogo"
+  },
+  {
+    "id": 385,
+    "action": "responder",
+    "sem_ok": false,
+    "predicted": "gerar_npc",
+    "input": "qual e o sentido da vida"
+  },
+  {
+    "id": 176,
+    "action": "gerar_sprite",
+    "sem_ok": false,
+    "predicted": "gerar_monstro",
+    "input": "Crie um sprite de armadura envenenada"
+  },
+  {
+    "id": 184,
+    "action": "gerar_sprite",
+    "sem_ok": true,
+    "predicted": "gerar_monstro",
+    "input": "Crie um sprite de chapeu mágica"
+  },
+  {
+    "id": 94,
+    "action": "gerar_sprite",
+    "sem_ok": true,
+    "predicted": "gerar_monstro",
+    "input": "Crie um sprite de livro"
+  },
+  {
+    "id": 439,
+    "action": "gerar_sprite",
+    "sem_ok": true,
+    "predicted": "gerar_monstro",
+    "input": "Crie um sprite de mascara antiga"
+  },
+  {
+    "id": 132,
+    "action": "gerar_sprite",
+    "sem_ok": true,
+    "predicted": "gerar_monstro",
+    "input": "Crie um sprite de pocao dourada"
+  },
+  {
+    "id": 246,
+    "action": "gerar_sprite",
+    "sem_ok": true,
+    "predicted": "gerar_monstro",
+    "input": "Crie um sprite de chave"
+  },
+  {
+    "id": 180,
+    "action": "gerar_sprite",
+    "sem_ok": false,
+    "predicted": "gerar_monstro",
+    "input": "Crie um sprite de anel simples"
+  },
+  {
+    "id": 283,
+    "action": "gerar_sprite",
+    "sem_ok": true,
+    "predicted": "gerar_monstro",
+    "input": "crie um sprite de NPC"
+  },
+  {
+    "id": 243,
+    "action": "gerar_sprite",
+    "sem_ok": true,
+    "predicted": "gerar_npc",
+    "input": "Create a antiga cajado sprite"
+  },
+  {
+    "id": 149,
+    "action": "gerar_sprite",
+    "sem_ok": true,
+    "predicted": "responder",
+    "input": "um sprite"
+  },
+  {
+    "id": 375,
+    "action": "gerar_sprite",
+    "sem_ok": true,
+    "predicted": "gerar_npc",
+    "input": "gerar sprite"
+  },
+  {
+    "id": 224,
+    "action": "gerar_sprite",
+    "sem_ok": true,
+    "predicted": "gerar_npc",
+    "input": "Create a antiga armadura sprite"
+  },
+  {
+    "id": 163,
+    "action": "gerar_sprite",
+    "sem_ok": true,
+    "predicted": "gerar_monstro",
+    "input": "Crie um sprite de anel"
+  },
+  {
+    "id": 383,
+    "action": "gerar_sprite",
+    "sem_ok": true,
+    "predicted": "gerar_npc",
+    "input": "Create a lendaria chave sprite"
+  },
+  {
+    "id": 83,
+    "action": "gerar_sprite",
+    "sem_ok": true,
+    "predicted": "gerar_monstro",
+    "input": "Crie um sprite de escudo dourada"
+  },
+  {
+    "id": 365,
+    "action": "gerar_sprite",
+    "sem_ok": false,
+    "predicted": "gerar_monstro",
+    "input": "Crie um sprite de livro simples"
+  },
+  {
+    "id": 318,
+    "action": "gerar_sprite",
+    "sem_ok": true,
+    "predicted": "gerar_npc",
+    "input": "Create a envenenada bota sprite"
+  },
+  {
+    "id": 343,
+    "action": "gerar_sprite",
+    "sem_ok": true,
+    "predicted": "gerar_npc",
+    "input": "Create a prateada mascara sprite"
+  },
+  {
+    "id": 134,
+    "action": "gerar_sprite",
+    "sem_ok": true,
+    "predicted": "gerar_monstro",
+    "input": "Crie um sprite de machado"
+  },
+  {
+    "id": 421,
+    "action": "gerar_sprite",
+    "sem_ok": true,
+    "predicted": "gerar_npc",
+    "input": "sprite pocao"
+  }
+]

@@ -1,0 +1,18 @@
+{
+  "score": "11/12",
+  "pct": 92,
+  "tempo_total": 1.7,
+  "tempo_medio": 0.2,
+  "mk_estados": 127,
+  "mk_transicoes": 148,
+  "mk_entropia": 0.1237,
+  "mk_palavra_estados": 259,
+  "mk_palavra_transicoes": 772,
+  "observer_pares": 10,
+  "observer_treinado": true,
+  "coupling_palavras": 343,
+  "npcs_gerados": 3,
+  "monstros_gerados": 3,
+  "jsons_persistidos": 2,
+  "reload_routing": 4
+}

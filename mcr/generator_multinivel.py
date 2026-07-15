@@ -4,7 +4,6 @@ Usa MCRMotor + DeterministicFiller para gerar sem LLM.
 """
 import os, sys, re
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'devia', 'kernel'))
 
 
 class GeradorMultinivel:

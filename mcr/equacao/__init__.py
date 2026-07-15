@@ -1,9 +1,8 @@
-"""equacao — Equação MCR. Fonte da verdade do sistema.
+"""equacao — Equação MCR Sigmoide 5D. Fonte da verdade do sistema.
 
-Define como o MCR avalia conexões, pontes e similaridades.
-Parâmetros calibrados por evolução.
+Re-exporta de mcr.equacao_mcr (fonte da verdade).
 """
-from .equacao_mcr import (
-    get_eq, calcular_ponte, classificar_tipo_ponte,
-    get_penalidade, get_formula, aplicar_formula,
+from mcr.equacao_mcr import (
+    EQUACAO_5D, avaliar_5d, calcular_ponte,
+    classificar_tipo_ponte, get_penalidade, get_eq,
 )

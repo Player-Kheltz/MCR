@@ -181,4 +181,5 @@ class DialogueTrainer:
             'npcs_treinados': self.total_npcs,
             'dialogos_aprendidos': self.total_dialogos,
             'personas': len(self.npc_personas),
+            'entropia_palavra': round(self.mcr.mk_palavra.entropia_media(), 4) if self.total_dialogos > 0 else 1.0,
         }

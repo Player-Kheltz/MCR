@@ -51,7 +51,6 @@ class Conversa:
     def _executar_acao(self, message: str) -> str:
         """Chama o pipeline do DevIA para executar a acao."""
         try:
-            sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'devia', 'kernel'))
             from mcr_devia import processar
             resultado = processar(message)
             if resultado and resultado.get('resposta'):

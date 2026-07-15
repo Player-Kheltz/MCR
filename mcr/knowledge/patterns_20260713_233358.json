@@ -1,0 +1,25 @@
+{
+  "metadata": {
+    "timestamp": "2026-07-13 23:33:58",
+    "total_padroes": 1,
+    "tipos": {
+      "generic": 1,
+      "total": 1
+    }
+  },
+  "padroes": [
+    {
+      "arquivo": "<execucao:gerar_monstro>",
+      "linguagem": "lua",
+      "tipo": "generic",
+      "api_calls": [
+        "NOME: Sylvaris\nRACA: Elfo\nSEXO: Masculino\nIDADE: 42 Anos de Vida Mortal",
+        "pessoal.\nPERSONALIDADE: Meticuloso, Elegante e Paranóico\nTRACO_SECRETO: Ele guarda uma coleção de varinhas quebradas no canto da loja porque acredita serem"
+      ],
+      "variaveis": [],
+      "funcoes": [],
+      "tabelas": [],
+      "tamanho_linhas": 10
+    }
+  ]
+}

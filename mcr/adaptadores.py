@@ -17,7 +17,6 @@ from pathlib import Path
 
 _ROOT = str(Path(__file__).resolve().parent.parent)
 sys.path.insert(0, _ROOT)
-sys.path.insert(0, os.path.join(_ROOT, 'devia', 'kernel'))
 
 
 # ═══════════════════════════════════════════════════════════
@@ -29,7 +28,7 @@ sys.path.insert(0, os.path.join(_ROOT, 'devia', 'kernel'))
 def acoes_para_tarefas(acoes: List[str], entrada: str = '',
                        contexto: dict = None) -> list:
     """Converte lista de nomes de ação → lista de MCRTarefa executáveis."""
-    from devia.kernel.mcr_kernel.evolution import MCRTarefa
+    from mcr.evolution import MCRTarefa
     tarefas = []
     for acao in acoes:
         fn = _resolver_acao(acao)
@@ -50,14 +49,6 @@ def _resolver_acao(acao: str) -> Optional[Callable]:
         result = _reg.executar(acao)
         if result is not None:
             return lambda **kw: _reg.executar(acao)
-    except Exception:
-        pass
-
-    # Tenta comandos
-    try:
-        cmd_module = __import__(f'devia.comandos.cmd_{acao}', fromlist=['execute'])
-        if hasattr(cmd_module, 'execute'):
-            return cmd_module.execute
     except Exception:
         pass
 
@@ -199,7 +190,7 @@ def _acao_conectar_topicos(**kwargs):
     topicos = contexto.get('topicos', [])
     if len(topicos) >= 2:
         try:
-            from devia.kernel.mcr_kernel.memory import MCRConector
+            from mcr.memory import MCRConector
             c = MCRConector()
             c.alimentar(topicos[0], 'topico_a')
             c.alimentar(topicos[1], 'topico_b')
@@ -246,7 +237,7 @@ class PipelineConectado:
     def _init_modulos(self):
         # MarkovDecider — com seeds para não classificar tudo como "criar_sql"
         try:
-            from devia.kernel.mcr_devia_v2 import MarkovDecider
+            from mcr.coupling import MarkovDecider
             self._decider = MarkovDecider()
             # Semear com exemplos no formato normalizado (3 palavras, lower, sem pontuacao)
             seeds = [
@@ -279,16 +270,12 @@ class PipelineConectado:
         except Exception as e:
             self._decider = None
         
-        # MarkovRouter
-        try:
-            from devia.kernel.MarkovRouter import MarkovRouter
-            self._router = MarkovRouter()
-        except Exception as e:
-            self._router = None
+        # MarkovRouter — legacy removido
+        self._router = None
         
         # MCRSpawner
         try:
-            from devia.kernel.mcr_kernel.evolution import MCRSpawner, MCRTarefa
+            from mcr.evolution import MCRSpawner, MCRTarefa
             self._spawner = MCRSpawner()
         except Exception as e:
             self._spawner = None
@@ -302,47 +289,35 @@ class PipelineConectado:
         except Exception as e:
             self._mk = None
         
-        # IntentionEngine — modulo de intencoes do DevIA
-        try:
-            from devia.modules.intention_engine import IntentionEngine
-            self._intention = IntentionEngine()
-        except Exception as e:
-            self._intention = None
+        # IntentionEngine — legacy removido
+        self._intention = None
         
         # MCRConector
         try:
-            from devia.kernel.mcr_kernel.memory import MCRConector
+            from mcr.memory import MCRConector
             self._conector = MCRConector()
         except Exception as e:
             self._conector = None
         
         # MCRFuel
         try:
-            from devia.kernel.mcr_kernel.evolution import MCRFuel
+            from mcr.evolution import MCRFuel
             self._fuel = MCRFuel()
         except Exception as e:
             self._fuel = None
         
         # MCRAutoMelhoria
         try:
-            from devia.kernel.mcr_kernel.evolution import MCRAutoMelhoria
+            from mcr.evolution import MCRAutoMelhoria
             self._auto_melhoria = MCRAutoMelhoria()
         except Exception as e:
             self._auto_melhoria = None
         
-        # HDC
-        try:
-            from devia.kernel.hdc_core import HDVector, HDCVocab
-            self._hdc = HDCVocab()
-        except Exception as e:
-            self._hdc = None
+        # HDC — legacy removido
+        self._hdc = None
         
-        # SDM
-        try:
-            from devia.kernel.sdm_core import SDM
-            self._sdm = SDM(n_enderecos=500, raio=0.08)
-        except Exception as e:
-            self._sdm = None
+        # SDM — legacy removido
+        self._sdm = None
         
         # MCRMotor (multi-level emergence) - path do mcr-universal
         try:
@@ -353,7 +328,7 @@ class PipelineConectado:
         
         # MCRCadeia (loop-safe)
         try:
-            from devia.kernel.mcr_kernel.memory import MCRCadeia
+            from mcr.memory import MCRCadeia
             if self._conector:
                 self._cadeia = MCRCadeia(self._conector)
             else:
@@ -363,35 +338,35 @@ class PipelineConectado:
         
         # MCRRuido
         try:
-            from devia.kernel.mcr_kernel.decisor import MCRRuido
+            from mcr.decisor import MCRRuido
             self._ruido = MCRRuido()
         except Exception as e:
             self._ruido = None
         
         # MCRExpansao
         try:
-            from devia.kernel.mcr_kernel.evolution import MCRExpansao
+            from mcr.evolution import MCRExpansao
             self._expansao = MCRExpansao()
         except Exception as e:
             self._expansao = None
         
         # MCRSelfHeal
         try:
-            from devia.kernel.mcr_kernel.meta import MCRSelfHeal
+            from mcr.meta import MCRSelfHeal
             self._self_heal = MCRSelfHeal
         except Exception as e:
             self._self_heal = None
         
         # MCRPergunta
         try:
-            from devia.kernel.mcr_kernel.system import MCRPergunta
+            from mcr.system import MCRPergunta
             self._pergunta = MCRPergunta()
         except Exception as e:
             self._pergunta = None
         
         # MCRGeracao
         try:
-            from devia.kernel.mcr_kernel.system import MCRGeracao
+            from mcr.system import MCRGeracao
             self._geracao = MCRGeracao()
         except Exception as e:
             self._geracao = None

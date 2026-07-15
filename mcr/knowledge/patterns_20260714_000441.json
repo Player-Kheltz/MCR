@@ -1,0 +1,29 @@
+{
+  "metadata": {
+    "timestamp": "2026-07-14 00:04:41",
+    "total_padroes": 1,
+    "tipos": {
+      "generic": 1,
+      "total": 1
+    }
+  },
+  "padroes": [
+    {
+      "arquivo": "<execucao:gerar_monstro>",
+      "linguagem": "lua",
+      "tipo": "generic",
+      "api_calls": [
+        "FALA_DESPEDIDA",
+        "FALA_SOBRE_SUA_VIDA",
+        "Gigantes.\nTRACO_SECRETO: Possui um pavor irracional de insetos peçonhentos que acha",
+        "HISTORIA: Antigo guardião das ruínas que protegem a Fundação de Eridanus, foi deixado para trás após um conflito antigo envolvendo Valtorion e os antigos Elder Blacksmith. Cansado da guerra constante no mundo acima do SPA Origin, ele se refugiou na caverna mais profunda onde as runas o mantêm imutável por séculos. Dizem que ele guarda segredos sobre a Origem do SPA, mas prefere ficar quieto para não incomodar seu jardim de cogumelos sagrados nas sombras.\nPERSONALIDADE: Feroz",
+        "NOME: Grungoth o Venerável\nRACA: Troll\nSEXO: Masculino\nIDADE: +450 Anos",
+        "soco.\nFALA_APRESENTACAO"
+      ],
+      "variaveis": [],
+      "funcoes": [],
+      "tabelas": [],
+      "tamanho_linhas": 10
+    }
+  ]
+}

@@ -190,7 +190,7 @@ class ChainOfVerification:
 
         # Fallback: busca no cache/similaridade
         try:
-            from devia.kernel.mcr_kernel.signature import raw_token_set
+            from mcr.signature import raw_token_set
             from mcr.cache_hierarquico import CacheHierarquico
             cache = CacheHierarquico()
             resp = cache.buscar(pergunta_verif)

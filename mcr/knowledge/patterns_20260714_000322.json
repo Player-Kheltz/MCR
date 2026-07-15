@@ -1,0 +1,26 @@
+{
+  "metadata": {
+    "timestamp": "2026-07-14 00:03:22",
+    "total_padroes": 1,
+    "tipos": {
+      "generic": 1,
+      "total": 1
+    }
+  },
+  "padroes": [
+    {
+      "arquivo": "<execucao:gerar_monstro>",
+      "linguagem": "lua",
+      "tipo": "generic",
+      "api_calls": [
+        "Poético",
+        "Poético (sua observação melancólica da guerra o faz ver beleza no caos)\nTRACO_SECRETO: Ele tem um medo secreto e paralisante de aranhas, chegando a tremer se houver uma teia perto do balcão.\nFALA_APRESENTACAO",
+        "que"
+      ],
+      "variaveis": [],
+      "funcoes": [],
+      "tabelas": [],
+      "tamanho_linhas": 10
+    }
+  ]
+}

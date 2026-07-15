@@ -1,0 +1,44 @@
+{
+  "metadata": {
+    "timestamp": "2026-07-14 17:21:45",
+    "total_padroes": 1,
+    "tipos": {
+      "npc": 1,
+      "total": 1
+    }
+  },
+  "padroes": [
+    {
+      "arquivo": "<execucao:gerar_npc>",
+      "linguagem": "lua",
+      "tipo": "npc",
+      "api_calls": [
+        "FocusModule:new",
+        "NpcHandler:new",
+        "npcHandler:addModule",
+        "npcHandler:onAppear",
+        "npcHandler:onCloseChannel",
+        "npcHandler:onDisappear",
+        "npcHandler:onMove",
+        "npcHandler:onThink",
+        "npcHandler:say",
+        "npcHandler:setTopic",
+        "npcType:register"
+      ],
+      "variaveis": [
+        "",
+        "floorchange",
+        "lookBody",
+        "lookHead",
+        "lookType",
+        "npcConfig",
+        "npcHandler",
+        "npcType",
+        "text"
+      ],
+      "funcoes": [],
+      "tabelas": [],
+      "tamanho_linhas": 53
+    }
+  ]
+}

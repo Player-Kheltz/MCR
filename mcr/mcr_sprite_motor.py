@@ -19,9 +19,9 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
 
 from mcr.mcr_sqlite import MCRSQLite
-from devia.kernel.mcr_kernel.engine import MCR, compose_state, compor_contexto
-from devia.kernel.mcr_kernel.decisor import MCRDecisor, MCREntropia, MCRPesoNota
-from devia.kernel.mcr_kernel.meta import MCRMetaNivel
+from mcr.engine import MCR, compose_state, compor_contexto
+from mcr.decisor import MCRDecisor, MCREntropia, MCRPesoNota
+from mcr.meta import MCRMetaNivel
 from mcr.sprite_corpus import carregar_categoria, extrair_grid_papel
 from mcr.tokenizador_hierarquico import extrair_regioes, ordenar_regioes
 

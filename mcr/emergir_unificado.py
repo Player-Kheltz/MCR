@@ -45,7 +45,6 @@ except ImportError:
 
 # EmergirEngine esta em devia/modules/emergir.py
 try:
-    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'devia', 'modules'))
     from emergir import EmergirEngine
 except ImportError:
     EmergirEngine = None
@@ -57,7 +56,6 @@ except ImportError:
     RadarMCR = None
 
 try:
-    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'devia', 'kernel'))
     from Radar import Radar
 except ImportError:
     Radar = None

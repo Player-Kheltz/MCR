@@ -1,0 +1,28 @@
+{
+  "metadata": {
+    "timestamp": "2026-07-13 23:35:07",
+    "total_padroes": 1,
+    "tipos": {
+      "generic": 1,
+      "total": 1
+    }
+  },
+  "padroes": [
+    {
+      "arquivo": "<execucao:gerar_monstro>",
+      "linguagem": "lua",
+      "tipo": "generic",
+      "api_calls": [
+        "NOME: Kaelen o Tiro Curvo\nRACA: Elfo\nSEXO: Masculino\nIDADE: 42 anos\nHISTORIA: Antigamente servia como guarda-costas na fronteira de Carlinos para a Fundacao de Eridanus, mas foi ferido por uma armadilha que pertencia ao Comerciante de Armadilhas. Agora vive em Thais vendendo equipamentos leves porque acredita que sua antiga arma",
+        "TRACO_SECRETO: Acredita secretamente que as armaduras são feitas de metal",
+        "andar"
+      ],
+      "variaveis": [
+        "PERSONALIDADE"
+      ],
+      "funcoes": [],
+      "tabelas": [],
+      "tamanho_linhas": 10
+    }
+  ]
+}

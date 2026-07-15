@@ -11,7 +11,6 @@ Fallback: LLM, entao cache.aprender()
 import os, sys, json, time, hashlib
 from typing import Dict, Optional
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'devia', 'kernel'))
 
 CACHE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'devia', 'kernel', 'cache')
 os.makedirs(CACHE_DIR, exist_ok=True)
@@ -59,7 +58,7 @@ class CacheHierarquico:
             md = MarkovDecider()
             classe, conf = md.classificar(pergunta)
             if conf > 0.3:
-                from devia.kernel.mcr_kernel.signature import raw_token_set
+                from mcr.signature import raw_token_set
                 tokens_q = raw_token_set(pergunta)
                 # Busca no cache L1 por classe similar + similaridade minima
                 for k, v in self._l1.items():
@@ -81,8 +80,8 @@ class CacheHierarquico:
         
         # L3: Fingerprint (Jaccard de tokens)
         try:
-            from devia.kernel.mcr_kernel.signature import raw_token_set
-            from devia.kernel.mcr_kernel.engine import MCR
+            from mcr.signature import raw_token_set
+            from mcr.engine import MCR
             tokens_pergunta = raw_token_set(pergunta)
             if tokens_pergunta:
                 melhor = None

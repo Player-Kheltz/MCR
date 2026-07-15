@@ -49,7 +49,6 @@ class MCRWorldSystem:
         # MCR interno para transicoes de estado do mundo
         # Usa classe MCR do kernel (stdlib)
         import sys as _sys
-        _sys.path.insert(0, str(os.path.join(os.path.dirname(__file__), '..', 'devia', 'kernel')))
         try:
             from MCR import MCR as MCR_base
         except Exception:
@@ -361,7 +360,7 @@ class MCRWorldSystem:
         # Tenta MCRConector primeiro (zero LLM, zero rede)
         texto = None
         try:
-            from devia.kernel.mcr_kernel.memory import MCRConector
+            from mcr.memory import MCRConector
             conector = MCRConector()
             for n in personagens[:3]:
                 conector.alimentar(f"NPC: {n}", n)

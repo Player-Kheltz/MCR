@@ -148,7 +148,7 @@ class MCRDaemon:
 
         # MCRConector (pontes semânticas)
         try:
-            from devia.kernel.mcr_kernel.memory import MCRConector
+            from mcr.memory import MCRConector
             self._conector = MCRConector()
             print('[Daemon] MCRConector ativo')
         except Exception as e:

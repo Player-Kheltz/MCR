@@ -15,7 +15,6 @@ from typing import Dict, Optional
 
 from mcr.config_llm import MODELO
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'devia', 'kernel'))
 
 _logger = logging.getLogger('mcr.pipeline')
 
@@ -25,7 +24,7 @@ OLLAMA_URL = "http://localhost:11434/api/generate"
 def _similaridade_jaccard(a: str, b: str) -> float:
     """Similaridade Jaccard entre dois textos (tokenizado como raw_token_set)."""
     try:
-        from devia.kernel.mcr_kernel.signature import raw_token_set
+        from mcr.signature import raw_token_set
         ta = raw_token_set(a)
         tb = raw_token_set(b)
         if not ta or not tb:
@@ -240,7 +239,6 @@ class PipelineCompleto:
         self._lessons_buffer = []
         try:
             import os, sys as _sys
-            _sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'devia', 'kernel'))
             from FeedbackFilter import FeedbackFilter
             self._feedback_filter = FeedbackFilter()
             print('[FeedbackFilter] Ativo')

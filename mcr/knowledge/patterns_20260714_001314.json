@@ -1,0 +1,28 @@
+{
+  "metadata": {
+    "timestamp": "2026-07-14 00:13:14",
+    "total_padroes": 1,
+    "tipos": {
+      "generic": 1,
+      "total": 1
+    }
+  },
+  "padroes": [
+    {
+      "arquivo": "<execucao:gerar_monstro>",
+      "linguagem": "lua",
+      "tipo": "generic",
+      "api_calls": [
+        "FALA_DESPEDIDA",
+        "FALA_SOBRE_SUA_VIDA",
+        "HISTORIA: Antigamente guardião da Fundação de Eridanus, foi transformado em monstro após um acidente com uma poção proibida. Ele não aceita ficar no subsolo porque odeia a escuridão total e prefere vigiar as ruínas antigas onde os NPCs como Valtorion costumam se reunir para planejar defesas contra invasores do SPA. Vive na fronteira entre o mundo vivo e o antigo, protegendo o fluxo de magia sem causar dano aos viajantes que respeitam seu espaço sagrado.\nPERSONALIDADE: Melancólico, Vigilante e Engraçadinho",
+        "NOME: Sibilus\nRACA: Orc\nSEXO: Masculino\nIDADE: ~120 Anos",
+        "TRACO_SECRETO: Hobby Bizarro: Ele adora colecionar pedras brilhantes do chão para organizá-las em padrões geométricos no ar usando o vento.\nFALA_APRESENTACAO"
+      ],
+      "variaveis": [],
+      "funcoes": [],
+      "tabelas": [],
+      "tamanho_linhas": 10
+    }
+  ]
+}

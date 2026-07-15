@@ -35,48 +35,104 @@ class ExtratorFeatures:
                 dir_npc: str = None, dir_monster: str = None):
         """Treina o extrator com dados disponíveis.
 
-        Args:
-            frases_rotuladas: lista de frases de exemplo
-            dir_npc, dir_monster: caminhos para diretórios (opcional)
+        Descobre sementes dos dados reais (NPCs + monstros).
+        Zero hardcode — tudo via DescobridorUniversal.
         """
-        frases = frases_rotuladas or [
-            # Português
-            "crie um npc ferreiro anão", "gere um monstro dragão ancião",
-            "crie uma quest para o ferreiro", "explique o que é entropia",
-            "crie um sprite de escudo", "como funciona o mcr",
-            "crie um npc mago élfico", "crie um npc guarda orc",
-            "gere um monstro lobo sombrio", "gere um monstro demônio menor",
-            "crie uma quest para o mago", "explique o sistema spa",
-            "crie um sprite de espada", "crie um sprite de poção",
-            "faca um npc mercador", "faca um monstro esqueleto",
-            "crie um npc vendedor", "gere um monstro vampiro",
-            "crie um npc alquimista", "gere um monstro golem",
-            "crie um npc druida", "gere um monstro ciclope",
-            "crie um npc bardo", "gere um monstro serpente",
-            # Inglês
-            "create an npc blacksmith dwarf", "generate a fire dragon",
-            "create a quest for the blacksmith", "explain what entropy is",
-            "create a shield sprite", "make an orc warrior npc",
-            "forge me a wizard elf", "build a goblin merchant",
-            "create an npc guard captain", "generate an ice dragon",
-            "create a potion sprite", "generate a lightning demon",
-            "make a dwarf npc vendor", "build an elf npc archer",
-        ]
+        if frases_rotuladas:
+            frases = frases_rotuladas
+        else:
+            frases = self._descobrir_seeds_de_dados(dir_npc, dir_monster)
 
         # Tokeniza todas as frases
         todas = [re.findall(r'[a-zà-ÿ0-9]{2,}', f.lower()) for f in frases]
 
-        # ─── Nível 1: Posição ──────────────────────────────
-        self._descobrir_por_posicao(todas)
-
-        # ─── Nível 2: Co-ocorrência por diretório ──────────
+        # ─── Nível 1: Co-ocorrência por diretório (PRIMEIRO) ──
+        # Diretório distingue npc de monstro — precisa rodar antes de posicao
+        if not dir_npc or not dir_monster:
+            try:
+                from mcr.paths import CANARY_NPC_DIR, CANARY_MONSTER_DIR
+                if dir_npc is None:
+                    dir_npc = str(CANARY_NPC_DIR)
+                if dir_monster is None:
+                    dir_monster = str(CANARY_MONSTER_DIR)
+            except Exception:
+                pass
         if dir_npc and dir_monster:
             self._descobrir_por_diretorio(dir_npc, dir_monster)
+
+        # ─── Nível 2: Posição ──────────────────────────────
+        self._descobrir_por_posicao(todas)
 
         # ─── Nível 3: Assinatura morfológica ───────────────
         self._descobrir_por_assinatura()
 
         self._treinado = True
+
+    def _descobrir_seeds_de_dados(self, dir_npc: str = None,
+                                   dir_monster: str = None) -> List[str]:
+        """Descobre sementes dos NPCs e monstros reais."""
+        from pathlib import Path
+        if dir_npc is None:
+            try:
+                from mcr.paths import CANARY_NPC_DIR, CANARY_MONSTER_DIR
+                dir_npc = str(CANARY_NPC_DIR)
+                dir_monster = str(CANARY_MONSTER_DIR)
+            except Exception:
+                return self._frases_fallback()
+
+        nomes_npc = self._extrair_nomes_dir(Path(dir_npc))
+        nomes_monster = self._extrair_nomes_dir(Path(dir_monster))
+
+        frases = []
+        # Templates PT
+        tpl_pt_npc = ["crie um npc {n}", "gere um npc {n}", "faca um npc {n}"]
+        tpl_pt_mon = ["gere um monstro {n}", "crie um monstro {n}", "faca um monstro {n}"]
+        # Templates EN
+        tpl_en_npc = ["create an npc {n}", "make a {n} npc", "build an npc {n}"]
+        tpl_en_mon = ["generate a {n}", "create a {n} monster", "make a {n}"]
+
+        for nome in nomes_npc:
+            for t in tpl_pt_npc + tpl_en_npc:
+                frases.append(t.format(n=nome))
+        for nome in nomes_monster:
+            for t in tpl_pt_mon + tpl_en_mon:
+                frases.append(t.format(n=nome))
+
+        # Adiciona verbos de ação descobertos dos nomes
+        if frases:
+            acoes = set()
+            for f in frases:
+                tokens = re.findall(r'[a-z]{3,}', f.lower())
+                for tok in tokens:
+                    if tok in ('crie', 'gere', 'faca', 'create', 'make',
+                               'build', 'generate', 'forge', 'explain'):
+                        acoes.add(tok)
+            # Gera frases de pergunta com os verbos descobertos
+            perguntas = [f"{a} o que e markov" for a in acoes if a in ('explique', 'explain')]
+            frases.extend(perguntas)
+
+        return frases if frases else self._frases_fallback()
+
+    def _extrair_nomes_dir(self, diretorio: Path) -> List[str]:
+        """Extrai nomes de entidades de arquivos Lua."""
+        nomes = []
+        if not diretorio.exists():
+            return nomes
+        for f in list(diretorio.glob('**/*.lua'))[:500]:
+            try:
+                conteudo = f.read_text(encoding='latin-1', errors='replace')
+                for m in re.finditer(r'name\s*=\s*["\']([^"\']+)["\']', conteudo):
+                    nome = m.group(1).strip().lower()
+                    if len(nome) > 2 and len(nome) < 40:
+                        nomes.append(nome)
+            except Exception:
+                continue
+        return list(set(nomes))
+
+    def _frases_fallback(self) -> List[str]:
+        """Fallback mínimo quando não há dados disponíveis."""
+        return ["crie um npc", "gere um monstro", "crie uma quest",
+                "crie um sprite", "explique o que e markov"]
 
     # ═══════════════════════════════════════════════════════
     # NÍVEL 1: POSIÇÃO (via template_entropico)

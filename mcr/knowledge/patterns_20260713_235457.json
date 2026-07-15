@@ -1,0 +1,25 @@
+{
+  "metadata": {
+    "timestamp": "2026-07-13 23:54:57",
+    "total_padroes": 1,
+    "tipos": {
+      "generic": 1,
+      "total": 1
+    }
+  },
+  "padroes": [
+    {
+      "arquivo": "<execucao:gerar_monstro>",
+      "linguagem": "lua",
+      "tipo": "generic",
+      "api_calls": [
+        "NOME: Sibilus da Escada de Cristal\nRACA: Reptiliano\nSEXO: Masculino\nIDADE: 450 Anos",
+        "TRACO_SECRETO: Tem um hobby bizarro de costurar casacos para seus ovos imaginários"
+      ],
+      "variaveis": [],
+      "funcoes": [],
+      "tabelas": [],
+      "tamanho_linhas": 10
+    }
+  ]
+}

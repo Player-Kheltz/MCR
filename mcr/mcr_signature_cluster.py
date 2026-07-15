@@ -75,7 +75,7 @@ class SignatureCluster:
         Varre todas as entidades, le o arquivo original e extrai
         raw_token_set usando apenas delimitadores universais (sem parser).
         """
-        from devia.kernel.mcr_kernel.signature import raw_token_set_from_file
+        from mcr.signature import raw_token_set_from_file
         for ent in self.entidades:
             arq = ent.get('arquivo', '')
             if arq:

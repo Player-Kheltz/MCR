@@ -57,7 +57,7 @@ _SQL_STMT_PATTERNS = [
 
 def _tokenizar_sql(codigo: str) -> List[str]:
     """Tokeniza SQL usando delimitadores universais + tratamento de strings."""
-    from devia.kernel.mcr_kernel.signature import _DELIMITADORES_UNIVERSAIS
+    from mcr.signature import _DELIMITADORES_UNIVERSAIS
     return _DELIMITADORES_UNIVERSAIS.split(codigo)
 
 

@@ -5,7 +5,6 @@ Zero dependencias externas — apenas hdc_core e sdm_core.
 """
 import os, sys
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'devia', 'kernel'))
 from hdc_core import HDVector, HDCVocab
 from sdm_core import SDM
 

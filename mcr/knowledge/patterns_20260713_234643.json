@@ -1,0 +1,25 @@
+{
+  "metadata": {
+    "timestamp": "2026-07-13 23:46:43",
+    "total_padroes": 1,
+    "tipos": {
+      "generic": 1,
+      "total": 1
+    }
+  },
+  "padroes": [
+    {
+      "arquivo": "<execucao:gerar_monstro>",
+      "linguagem": "lua",
+      "tipo": "generic",
+      "api_calls": [
+        "NOME: Theron do Portão\nRACA: Humano\nSEXO: Masculino\nIDADE: 42 anos\nHISTORIA: Ex-espião da Legião de Eridanus, ele foi deixado para trás após uma missão falha contra a Origem do SPA. Ele agora vende armaduras antigas que salvaram sua vida e as de outros na fronteira de Carlin, pois acredita que metal puro é mais seguro que magia velada",
+        "NOME: Theron do Portão\nRACA: Humano\nSEXO: Masculino\nIDADE: 42 anos\nHISTORIA: Ex-espião da Legião de Eridanus, ele foi deixado para trás após uma missão falha contra a Origem do SPA. Ele agora vende armaduras antigas que salvaram sua vida e as de outros na fronteira de Carlin, pois acredita que metal puro é mais seguro que magia velada (como aquela usada por Lúcio).\nPERSONALIDADE: Cauteloso, Sóbrio e Sensível\nTRACO_SECRETO: Ele tem um medo secreto de ouvir o som das flechas no ar; diz que se não tiver uma armadura pesada vestida, ele sente que a"
+      ],
+      "variaveis": [],
+      "funcoes": [],
+      "tabelas": [],
+      "tamanho_linhas": 10
+    }
+  ]
+}

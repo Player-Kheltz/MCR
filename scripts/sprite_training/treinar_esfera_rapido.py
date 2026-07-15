@@ -17,7 +17,7 @@ import numpy as np
 
 from mcr.regioes_anatomicas import extrair_regioes_cromaticas
 from mcr.visual_coupling import VisualCoupling
-from devia.kernel.MCR_legacy import MCRCoupling
+from mcr.coupling import MCRCoupling
 
 CAT_DIR = Path(_ROOT) / 'poc_output' / 'sprites_categorizados'
 OUT_DIR = Path(_ROOT) / 'poc_output' / 'esfera_categorizada'

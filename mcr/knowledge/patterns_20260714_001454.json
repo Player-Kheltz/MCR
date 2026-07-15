@@ -1,0 +1,27 @@
+{
+  "metadata": {
+    "timestamp": "2026-07-14 00:14:54",
+    "total_padroes": 1,
+    "tipos": {
+      "generic": 1,
+      "total": 1
+    }
+  },
+  "padroes": [
+    {
+      "arquivo": "<execucao:gerar_monstro>",
+      "linguagem": "lua",
+      "tipo": "generic",
+      "api_calls": [
+        "Medroso",
+        "NOME: Baroth",
+        "RACA: Bestial",
+        "RACA: Bestial (Behemoth) [etc]\nSEXO: Indefinido [Neutro]\nIDADE: 500 Mil Anos Geológicos\nHISTORIA: Entronizado"
+      ],
+      "variaveis": [],
+      "funcoes": [],
+      "tabelas": [],
+      "tamanho_linhas": 10
+    }
+  ]
+}

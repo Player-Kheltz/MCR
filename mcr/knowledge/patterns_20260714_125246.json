@@ -1,0 +1,28 @@
+{
+  "metadata": {
+    "timestamp": "2026-07-14 12:52:46",
+    "total_padroes": 1,
+    "tipos": {
+      "monster": 1,
+      "total": 1
+    }
+  },
+  "padroes": [
+    {
+      "arquivo": "<execucao:gerar_monstro>",
+      "linguagem": "lua",
+      "tipo": "monster",
+      "api_calls": [
+        "Game.createMonsterType",
+        "mType:register"
+      ],
+      "variaveis": [
+        "mType",
+        "monster"
+      ],
+      "funcoes": [],
+      "tabelas": [],
+      "tamanho_linhas": 37
+    }
+  ]
+}

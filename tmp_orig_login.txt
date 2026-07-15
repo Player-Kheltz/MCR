@@ -1,0 +1,100 @@
+﻿void ProtocolGame::login(const std::string &name, uint32_t accountId, OperatingSystem_t operatingSystem) {
+	// OTCV8 features
+	if (otclientV8 > 0) {
+		sendFeatures();
+	}
+
+	// Extended opcodes
+	if (operatingSystem >= CLIENTOS_OTCLIENT_LINUX) {
+		isOTC = true;
+		if (isOTC && otclientV8 == 0) {
+			sendOTCRFeatures();
+		}
+		NetworkMessage opcodeMessage;
+		opcodeMessage.addByte(0x32);
+		opcodeMessage.addByte(0x00);
+		opcodeMessage.add<uint16_t>(0x00);
+		writeToOutputBuffer(opcodeMessage);
+	}
+
+	g_logger().debug("entrar do jogador na vers\343o '{}' e oldProtocol '{}'", getVersion(), oldProtocol);
+
+	// dispatcher thread
+	std::shared_ptr<Player> foundPlayer = g_game().getPlayerByName(name);
+	if (!foundPlayer) {
+		player = std::make_shared<Player>(getThis());
+		player->setName(name);
+
+		player->setID();
+
+		if (!IOLoginDataLoad::preLoadPlayer(player, name)) {
+			disconnectClient("N├úo foi poss├¡vel carregar seu personagem.");
+			return;
+		}
+
+		if (IOBan::isPlayerNamelocked(player->getGUID())) {
+			disconnectClient("Seu personagem foi bloqueado.");
+			return;
+		}
+
+		if (g_game().getGameState() == GAME_STATE_CLOSING && !player->hasFlag(PlayerFlags_t::CanAlwaysLogin)) {
+			disconnectClient("O jogo est\341 acabando.\nTente novamente mais tarde.");
+			return;
+		}
+
+		if (g_game().getGameState() == GAME_STATE_CLOSED && !player->hasFlag(PlayerFlags_t::CanAlwaysLogin)) {
+			auto maintainMessage = g_configManager().getString(MAINTAIN_MODE_MESSAGE);
+			if (!maintainMessage.empty()) {
+				disconnectClient(maintainMessage);
+			} else {
+				disconnectClient("O servidor est\341 fechado n\343o momento.\nTente novamente mais tarde.");
+			}
+			return;
+		}
+
+		if (g_configManager().getBoolean(ONLY_PREMIUM_ACCOUNT) && !player->isPremium() && (player->getGroup()->id < GROUP_TYPE_GAMEMASTER || player->getAccountType() < ACCOUNT_TYPE_GAMEMASTER)) {
+			disconnectClient("Your premium time for this account is out.\n\nTo play please buy additional premium time from our website");
+			return;
+		}
+
+		auto onlineCount = g_game().getPlayersByAccount(player->getAccount()).size();
+		auto maxOnline = g_configManager().getNumber(MAX_PLAYERS_PER_ACCOUNT);
+		if (player->getAccountType() < ACCOUNT_TYPE_GAMEMASTER && onlineCount >= maxOnline) {
+			disconnectClient(fmt::format("Voc\352 s\363 pode fazer entrar com o caracter {} {} \n da sua conta ao mesmo tempo.", maxOnline, maxOnline > 1 ? "s" : ""));
+			return;
+		}
+
+		if (!player->hasFlag(PlayerFlags_t::CannotBeBanned)) {
+			BanInfo banInfo;
+			if (IOBan::isAccountBanned(accountId, banInfo)) {
+				if (banInfo.reason.empty()) {
+					banInfo.reason = "(none)";
+				}
+
+				std::ostringstream ss;
+				if (banInfo.expiresAt > 0) {
+					ss << "Sua conta foi banida at\351 " << formatDateShort(banInfo.expiresAt) << " by " << banInfo.bannedBy << ".\n\nMotivo especificado:\n"
+					   << banInfo.reason;
+				} else {
+					ss << "Sua conta foi banida permanentemente por " << banInfo.bannedBy << ".\n\nMotivo especificado:\n"
+					   << banInfo.reason;
+				}
+				disconnectClient(ss.str());
+				return;
+			}
+		}
+
+		WaitingList &waitingList = WaitingList::getInstance();
+		if (!waitingList.clientLogin(player)) {
+			auto currentSlot = static_cast<uint32_t>(waitingList.getClientSlot(player));
+			auto retryTime = static_cast<uint32_t>(WaitingList::getTime(currentSlot));
+			std::ostringstream ss;
+
+			ss << "Muitos jogadores online.\nVoc\352 est\341 n\343o lugar "
+			   << currentSlot << " na lista de espera.";
+
+			auto output = OutputMessagePool::getOutputMessage();
+			output->addByte(0x16);
+			output->addString(ss.str());
+			output->addByte(retryTime);
+			send(output);

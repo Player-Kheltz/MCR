@@ -1,0 +1,45 @@
+{
+  "metadata": {
+    "timestamp": "2026-07-14 15:37:29",
+    "total_padroes": 1,
+    "tipos": {
+      "npc": 1,
+      "total": 1
+    }
+  },
+  "padroes": [
+    {
+      "arquivo": "<execucao:gerar_npc>",
+      "linguagem": "lua",
+      "tipo": "npc",
+      "api_calls": [
+        "Game.createItem",
+        "Game.createNpcType",
+        "end",
+        "npc:sellItem",
+        "npcHandler:onAppear",
+        "npcHandler:onDisappear",
+        "npcHandler:onMove",
+        "npcHandler:onSay",
+        "npcHandler:onThink",
+        "npcHandler:setTopic",
+        "npcType.onAppear = npcType:register",
+        "npcType.onDisappear",
+        "npcType.onThink = KeywordHandler:new",
+        "player:getStorageValue",
+        "text"
+      ],
+      "variaveis": [
+        "lookHead",
+        "lookType",
+        "npcConfig",
+        "npcHandler",
+        "npcType",
+        "text"
+      ],
+      "funcoes": [],
+      "tabelas": [],
+      "tamanho_linhas": 53
+    }
+  ]
+}

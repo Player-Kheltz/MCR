@@ -11,20 +11,25 @@ As ferramentas executam. O domínio é irrelevante.
 """
 import time
 import hashlib
+import re as _re
 from collections import Counter
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from mcr.paths import CACHE_DIR, ensure_dirs
 
 # ─── Motor Markov (intacto) ─────────────────────────────────
-from devia.kernel.mcr_kernel.engine import MCR as MarkovEngine
-from devia.kernel.mcr_kernel.signature import MCRFingerprint
+from mcr.engine import MCR as MarkovEngine
+from mcr.signature import MCRFingerprint
 
 # ─── Equação MCR (intacta) ──────────────────────────────────
 from mcr.equacao_mcr import calcular_ponte, classificar_tipo_ponte, get_penalidade
 
 # ─── Registry (intacto) ─────────────────────────────────────
 from mcr.registry import get_registry, MCRRegistry, ToolEntry
+
+# ─── Cognição multi-nível (acoplamento + superposition) ─────
+from mcr.coupling import MCRCoupling
+from mcr.superposicao import MCRSuperposicao
 
 
 class MCR:
@@ -47,6 +52,17 @@ class MCR:
         # ─── Motor ──────────────────────────────────────
         self.mk = MarkovEngine("mcr_cognicao")
         self.fp = MCRFingerprint()
+
+        # ─── Cognição multi-nível ───────────────────────
+        self._coupling = MCRCoupling()
+        self._superposicao = MCRSuperposicao()
+        self.mk_palavra = MarkovEngine("mcr_palavra")
+        try:
+            self.mk_palavra.load(str(CACHE_DIR / "markov_mcr_palavra.json"))
+        except Exception:
+            pass
+        self._esfera = None  # lazy init
+        self._stopwords = set()
 
         # ─── Registry ───────────────────────────────────
         self._registry = get_registry()
@@ -105,14 +121,84 @@ class MCR:
             self._log_erro('bootstrap', e)
             pass
         try:
-            self._registrar_wrappers()
+            self._inicializar_templates()
         except Exception as e:
-            self._log_erro('registrar_wrappers', e)
+            self._log_erro('inicializar_templates', e)
         self._pre_treinar_markov()
 
-    def _registrar_wrappers(self):
-        """Cria wrappers REAIS que adaptam ferramentas ao padrão (entrada, texto)."""
+    def _inicializar_templates(self):
+        """Descobre templates dos diretorios e registra wrappers universais.
+        Zero hardcoded wrappers. Um so _gerar() para todo dominio."""
+        from mcr.paths import CANARY_NPC_DIR, CANARY_MONSTER_DIR
+        from pathlib import Path
+
+        dirs_por_tool = {}
+        dirs_por_tool['gerar_npc'] = [CANARY_NPC_DIR]
+        dirs_por_tool['gerar_monstro'] = [CANARY_MONSTER_DIR]
+        try:
+            sprite_root = CANARY_NPC_DIR.parent / 'poc_output' / 'sprites_categorizados'
+            if sprite_root.exists():
+                dirs_por_tool['gerar_sprite'] = [sprite_root]
+        except Exception:
+            pass
+        try:
+            quest_dir = CANARY_NPC_DIR.parent / 'scripts' / 'quests'
+            if quest_dir.exists():
+                dirs_por_tool['gerar_quest'] = [quest_dir]
+        except Exception:
+            pass
+
         wrappers = {}
+
+        def _gerar(entrada="", texto="", **kw):
+            msg = entrada or texto
+            return self._gerar_universal(msg, self._decidir_tool(msg))
+        wrappers['gerar_npc'] = _gerar
+        wrappers['gerar_npc_lua'] = _gerar
+        wrappers['gerar_monstro'] = _gerar
+        wrappers['gerar_monstro_lua'] = _gerar
+        wrappers['gerar_quest'] = _gerar
+        wrappers['gerar_sprite'] = _gerar
+
+        def _responder(entrada="", texto="", **kw):
+            msg = entrada or texto
+            if not msg:
+                return {'sucesso': False, 'erro': 'Sem entrada'}
+            try:
+                from mcr.metacognicao import Metacognicao
+                meta = Metacognicao()
+                score, just = meta.calcular_confianca(msg)
+                if score > 0.3:
+                    return {'sucesso': True, 'resposta': f'[KG:{score:.0%}] {just}',
+                            'confianca': round(score, 3), 'fonte': 'kg'}
+            except Exception:
+                pass
+            try:
+                from mcr.raciocinador import Raciocinador
+                rac = Raciocinador()
+                r = rac.raciocinar(msg)
+                if r and r.get('resultado'):
+                    return {'sucesso': True, 'resposta': str(r['resultado']),
+                            'fonte': 'raciocinio', 'tipo': r.get('tipo', 'generico')}
+            except Exception:
+                pass
+            return {'sucesso': True, 'resposta': 'Nao tenho informacao suficiente.',
+                    'fonte': 'fallback', 'confianca': 0.0}
+        wrappers['responder'] = _responder
+
+        try:
+            def _gerir_mundo(entrada="", texto="", **kw):
+                msg = entrada or texto
+                tema = msg if msg else "Mundo Vivo"
+                from mcr.mcr_world_system import MCRWorldSystem
+                ws = MCRWorldSystem()
+                report = ws.ciclo(tema=tema, max_entidades=3)
+                return {'sucesso': report.get('entidades_criadas', 0) > 0,
+                        'entidades': report.get('entidades_criadas', 0),
+                        'relatorio': report}
+            wrappers['gerir_mundo'] = _gerir_mundo
+        except Exception:
+            pass
 
         # ─── Tibia: NPC (extrai nome, profissão, itens) ──
         try:
@@ -530,7 +616,7 @@ class MCR:
         ]
         # Auto-gera seeds do ItemDatabase + diretórios
         try:
-            from devia.knowledge.item_database import ItemDatabase
+            from mcr.knowledge.item_database import ItemDatabase
             db = ItemDatabase()
             profs = list(getattr(db, 'categorias', {}).keys())[:20]
             for p in profs:
@@ -1025,7 +1111,7 @@ class MCR:
         # Filtra itens via ItemDatabase (dinâmico, não hardcoded)
         palavras_itens = set()
         try:
-            from devia.knowledge.item_database import ItemDatabase
+            from mcr.knowledge.item_database import ItemDatabase
             db = ItemDatabase()
             for p in limpo.lower().split():
                 if db.buscar_por_nome(p):
@@ -1043,7 +1129,7 @@ class MCR:
         """Descobre profissão do texto via ItemDatabase.profissoes."""
         t = texto.lower()
         try:
-            from devia.knowledge.item_database import ItemDatabase
+            from mcr.knowledge.item_database import ItemDatabase
             db = ItemDatabase()
             cats = getattr(db, 'categorias', {})
             for nome in cats:
@@ -1063,7 +1149,7 @@ class MCR:
         if not any(tr in t for tr in triggers):
             return []
         try:
-            from devia.knowledge.item_database import ItemDatabase
+            from mcr.knowledge.item_database import ItemDatabase
             db = ItemDatabase()
             tokens = re.findall(r'[a-zà-ÿ]{3,}', t)
             itens = []

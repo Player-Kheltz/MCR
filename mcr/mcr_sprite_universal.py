@@ -25,13 +25,13 @@ import numpy as np
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
 
 # ─── MCR Core ──────────────────────────────────────────────
-from devia.kernel.mcr_kernel.engine import MCR
-from devia.kernel.mcr_kernel.decisor import (
+from mcr.engine import MCR
+from mcr.decisor import (
     MCRThreshold, MCRDecisor, MCRPesoNota, MCREntropia, MCRRuido
 )
-from devia.kernel.mcr_kernel.signature import MCRSignature, MCRFingerprint
-from devia.kernel.mcr_kernel.meta import MCRMetaNivel
-from devia.kernel.mcr_kernel.evolution import MCRAutoMelhoria, MCRFuel
+from mcr.signature import MCRSignature, MCRFingerprint
+from mcr.meta import MCRMetaNivel
+from mcr.evolution import MCRAutoMelhoria, MCRFuel
 
 # ─── MCR Sprite ────────────────────────────────────────────
 from mcr.meus_olhos import MCRDiscriminador

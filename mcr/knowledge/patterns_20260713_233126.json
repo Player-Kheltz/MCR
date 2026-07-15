@@ -1,0 +1,26 @@
+{
+  "metadata": {
+    "timestamp": "2026-07-13 23:31:26",
+    "total_padroes": 1,
+    "tipos": {
+      "generic": 1,
+      "total": 1
+    }
+  },
+  "padroes": [
+    {
+      "arquivo": "<execucao:gerar_monstro>",
+      "linguagem": "lua",
+      "tipo": "generic",
+      "api_calls": [
+        "NOME: Ignis Varr, o Queimado do SPA\nRACA: Demônio\nSEXO: Masculino\nIDADE: Eterna\nHISTORIA: Antigo guardião na Fundação de Eridanus antes do evento",
+        "TRACO_SECRETO: Ele ama colecionar pedras brilhantes e organiza ossos encontrados no magma por cor de tamanho para suas",
+        "final.\nPERSONALIDADE: Imponente, Cruel, Metódico"
+      ],
+      "variaveis": [],
+      "funcoes": [],
+      "tabelas": [],
+      "tamanho_linhas": 10
+    }
+  ]
+}

@@ -32,25 +32,36 @@ def _extrair_blocos(codigo: str) -> List[str]:
 
 
 def _classificar_bloco(bloco: str) -> str:
-    """Classifica bloco de código Lua por tipo estrutural."""
+    """Classifica bloco de código Lua por tipo estrutural.
+    
+    Descobre tipos dos dados reais via assinatura de tokens.
+    """
+    tokens = set(bloco.lower().split())
     b = bloco.lower()
-    if 'internalnpcname' in b or 'createnpctype' in b:
-        return 'header'
-    if 'npcConfig.name' in b or 'npcConfig.health' in b or 'npcConfig.outfit' in b:
-        return 'config'
-    if 'npcConfig.shop' in b or 'shop =' in b or 'shop_items' in b:
-        return 'shop'
-    if 'keywordhandler' in b:
-        return 'keyword'
-    if 'npcHandler' in b or 'onThink' in b or 'onSay' in b or 'onAppear' in b:
-        return 'callbacks'
-    if 'register' in b:
-        return 'register'
-    if 'MonsterType' in b or 'monster.outfit' in b or 'monster.loot' in b:
-        return 'monster_config'
-    if 'storageValue' in b or 'QuestLog' in b or 'getStorage' in b:
-        return 'quest_logic'
-    return 'other'
+
+    # Assinaturas descobertas: cada tipo tem tokens característicos
+    # que co-ocorrem nos arquivos Lua reais
+    _ASSINATURAS = {
+        'header': {'internalnpcname', 'createnpctype', 'type'},
+        'config': {'npcconfig.name', 'npcconfig.health', 'npcconfig.outfit'},
+        'shop': {'npcconfig.shop', 'shop =', 'shop_items', 'buyable'},
+        'keyword': {'keywordhandler', 'keywordhandler:registerkeyword'},
+        'callbacks': {'npchandler', 'onthink', 'onsay', 'onappear', 'ontrade'},
+        'register': {'register', 'registerfunction'},
+        'monster_config': {'monstertype', 'monster.outfit', 'monster.loot'},
+        'quest_logic': {'storagevalue', 'questlog', 'getstorage'},
+    }
+
+    # Score: quantos tokens da assinatura aparecem no bloco
+    melhor_tipo = 'other'
+    melhor_score = 0
+    for tipo, assinatura in _ASSINATURAS.items():
+        score = len(tokens & assinatura)
+        if score > melhor_score:
+            melhor_score = score
+            melhor_tipo = tipo
+
+    return melhor_tipo if melhor_score >= 1 else 'other'
 
 
 class TemplateModular:

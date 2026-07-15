@@ -1,0 +1,29 @@
+{
+  "metadata": {
+    "timestamp": "2026-07-14 00:13:54",
+    "total_padroes": 1,
+    "tipos": {
+      "generic": 1,
+      "total": 1
+    }
+  },
+  "padroes": [
+    {
+      "arquivo": "<execucao:gerar_monstro>",
+      "linguagem": "lua",
+      "tipo": "generic",
+      "api_calls": [
+        "HISTORIA: Um escavador fugitivo que vive escondido nas cavernas subterrâneas próximas à Fundacao de Eridanus, após ter sido perdoado por Valtorion apenas com o serviço de limpeza das armadilhas antigas. Ele se perdeu enquanto caçava peixes na ribeira do rio Elara e decidiu ficar ali porque a água era mais calma que as discussões políticas entre os elfos da aldeia vizinha, onde Mara costumava brigar por terra fértil.\nPERSONALIDADE: Cauteloso, Obediente",
+        "NOME: Grimbletoque",
+        "Oculto",
+        "RACA: Goblin\nSEXO: Masculino\nIDADE: 40 Anos de Vida Monstruosa",
+        "TRACO_SECRETO: Ele é obcecado por colecionar pedras bonitas que achou e as guarda num baú de madeira apodrecida para",
+        "bizarro: tenta ensinar goblins menores como dançar na chuva, mesmo sabendo que eles não gostam.\nFALA_APRESENTACAO: Ei... ei! Você é de quem eu ouvi falar? O Elara Moonshadow disse para eu ter cuidado com estranhos. Quem você é dessa vez? Não me matei logo, por favor, sou só um limpador da armadilha do Aldric Forjador.\nFALA_SOBRE_SUA_VIDA: A vida aqui embaixo é tranquila se não tem alguém gritando"
+      ],
+      "variaveis": [],
+      "funcoes": [],
+      "tabelas": [],
+      "tamanho_linhas": 10
+    }
+  ]
+}

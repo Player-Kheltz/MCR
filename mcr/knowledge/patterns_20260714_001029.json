@@ -1,0 +1,26 @@
+{
+  "metadata": {
+    "timestamp": "2026-07-14 00:10:29",
+    "total_padroes": 1,
+    "tipos": {
+      "generic": 1,
+      "total": 1
+    }
+  },
+  "padroes": [
+    {
+      "arquivo": "<execucao:gerar_monstro>",
+      "linguagem": "lua",
+      "tipo": "generic",
+      "api_calls": [
+        "NOME: Barnabé do Ferro Velho\nRACA: Gnomo\nSEXO: Masculino\nIDADE: 45 anos de idade humana equivalente\nHISTORIA: Após ser exilado da Origem do SPA por uma briga com o próprio mestre, Aldrin Forjador",
+        "TRACO_SECRETO: Ele tem o hábito bizarro de deixar uma pequena oferta de moedas para cada criatura que vê morta, não por esmola aos mortos-vivos, mas porque acredita em",
+        "monstro chegar perto de quem ama.\nPERSONALIDADE: Carinhoso, Cético e Melancólico"
+      ],
+      "variaveis": [],
+      "funcoes": [],
+      "tabelas": [],
+      "tamanho_linhas": 10
+    }
+  ]
+}

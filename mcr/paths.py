@@ -33,7 +33,7 @@ DEVIA_DATA_DIR = DEVIA_DIR / "data"
 MCR_PY = DEVIA_KERNEL_DIR / "MCR.py"
 
 # ─── Knowledge Graph ────────────────────────────────────────────
-KG_DIR = DEVIA_KNOWLEDGE_DIR
+KG_DIR = ROOT_DIR / "mcr" / "knowledge"
 
 # ─── Dados gerados ──────────────────────────────────────────────
 DATA_DIR = ROOT_DIR / "data"

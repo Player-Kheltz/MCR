@@ -746,7 +746,6 @@ def _gerar_codigo_llm(prompt: str, max_tokens: int = 1000) -> str:
 def _validar_sintaxe(codigo: str) -> tuple:
     """Valida sintaxe Lua. Retorna (valido, erro)."""
     try:
-        sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'devia', 'kernel'))
         from LuaSyntaxValidator import verificar_sintaxe
         return verificar_sintaxe(codigo)
     except Exception as e:

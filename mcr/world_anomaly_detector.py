@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Dict, List, Set, Optional, Tuple
 from collections import Counter
 
-from devia.kernel.mcr_kernel.signature import raw_token_set
+from mcr.signature import raw_token_set
 
 
 def _entropia_shannon(tokens: Set[str]) -> float:

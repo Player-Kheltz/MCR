@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """Cold Start Massivo — minera o ecossistema MCR por partes.
 
 Processa cada diretorio como um mini cold start independente,
@@ -10,7 +10,7 @@ from collections import Counter
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..'))
 
-from devia.kernel.mcr_kernel.signature import raw_token_set
+from mcr.signature import raw_token_set
 from mcr.mcr_signature_cluster import SignatureCluster
 
 _BASE = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..')

@@ -23,7 +23,7 @@ import numpy as np
 
 from mcr.regioes_anatomicas import extrair_regioes_cromaticas
 from mcr.visual_coupling import VisualCoupling
-from devia.kernel.MCR_legacy import MCRCoupling
+from mcr.coupling import MCRCoupling
 
 # MapaLab → RGB (cores DISTINTAS para cada região)
 LAB_PARA_RGB = {
