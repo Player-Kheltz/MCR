@@ -159,6 +159,150 @@ class MCR:
                 pass
         return getattr(self, attr, None)
 
+    def _extrair_niveis(self, entrada):
+        """Extrai N níveis de fingerprint do mesmo input.
+        Intrínsecos: do input alone (estáveis, não mudam com aprendizado)
+        Derivados: input + estado do sistema (adaptativos)
+        Quanto mais níveis, mais precisa a coordenada N-dimensional."""
+        dados = entrada.encode('utf-8') if isinstance(entrada, str) else entrada
+        palavras = entrada.replace('_', ' ').split()
+        palavras_lower = _re.findall(r'[a-z\xc3-\xff]{3,}', entrada.lower())
+        from math import log2
+        
+        niveis = {}
+        
+        # ═══ NÍVEIS INTRÍNSECOS (do input alone) ═══
+        
+        # 1. byte — buckets 8D (MCRFingerprint)
+        try:
+            niveis['byte'] = str(self.fp.gerar(entrada))
+        except Exception:
+            pass
+        
+        # 2. palavra — tokens 3+ chars (primeiros 6)
+        niveis['palavra'] = "|".join(palavras_lower[:6]) if palavras_lower else 'VAZIO'
+        
+        # 3. token — tipo de cada caractere (L/N/S)
+        niveis['token'] = ''.join(
+            'L' if c.isalpha() else 'N' if c.isdigit() else 'S'
+            for c in entrada[:30] if not c.isspace()
+        )
+        
+        # 4. intencao — primeira palavra (verbo ou conceito)
+        niveis['intencao'] = palavras[0][:10].lower() if palavras else ''
+        
+        # 5. padrao — estrutura sintática por posição (V/A/S/X)
+        tipos = []
+        for i, p in enumerate(palavras[:6]):
+            if i == 0 and len(p) > 3:
+                tipos.append('V')
+            elif p.lower() in ('um', 'uma', 'o', 'a', 'os', 'as', 'the', 'an', 'a'):
+                tipos.append('A')
+            elif len(p) > 3:
+                tipos.append('S')
+            else:
+                tipos.append('X')
+        niveis['padrao'] = ''.join(tipos)
+        
+        # 6. entropia — Shannon normalizada
+        try:
+            sig_mod = __import__('mcr.signature', fromlist=['MCRSignature'])
+            sig = sig_mod.MCRSignature.extrair(dados, rapido=True)
+            niveis['entropia'] = str(round(sig.get('entropia', 0), 2))
+            # 7. estados — estados únicos
+            niveis['estados'] = str(sig.get('estados', 0))
+            # 8. transicoes — transições Markov
+            niveis['transicoes'] = str(sig.get('transicoes', 0))
+        except Exception:
+            pass
+        
+        # 9. tamanho — bytes
+        niveis['tamanho'] = str(len(dados))
+        
+        # 10. ruido — proporção de não-alfabéticos
+        n_alpha = sum(1 for c in entrada if c.isalpha())
+        niveis['ruido'] = str(round(1.0 - n_alpha / max(len(entrada), 1), 2))
+        
+        # 11. cadeia — primeiro bigrama
+        if len(palavras_lower) >= 2:
+            niveis['cadeia'] = f"{palavras_lower[0]}->{palavras_lower[1]}"
+        else:
+            niveis['cadeia'] = ''
+        
+        # ═══ NÍVEIS DERIVADOS (input + estado do sistema) ═══
+        
+        # 12. similaridade — Jaccard com estado mais frequente
+        try:
+            if self.mk.transicoes and self.mk.freq:
+                estado_freq = max(self.mk.freq, key=self.mk.freq.get)
+                tokens_freq = set(estado_freq.split('|'))
+                tokens_in = set(niveis['palavra'].split('|'))
+                if tokens_freq or tokens_in:
+                    jacc = len(tokens_freq & tokens_in) / max(len(tokens_freq | tokens_in), 1)
+                    niveis['similaridade'] = str(round(jacc, 2))
+        except Exception:
+            pass
+        
+        # 13. conector — palavra do input com mais conexões no coupling
+        try:
+            if palavras_lower:
+                melhor_p = None
+                melhor_count = 0
+                for p in set(palavras_lower):
+                    dist = self._coupling._palavra_acao.get(p, {})
+                    total = sum(dist.values())
+                    if total > melhor_count:
+                        melhor_count = total
+                        melhor_p = p
+                niveis['conector'] = melhor_p or ''
+        except Exception:
+            pass
+        
+        # 14. busca — quantas palavras o coupling já conhece
+        try:
+            n_conhecidas = sum(1 for p in set(palavras_lower) if p in self._coupling._palavra_acao)
+            niveis['busca'] = str(n_conhecidas)
+        except Exception:
+            pass
+        
+        # 15. peso — 1 - entropia média das palavras no coupling
+        try:
+            pesos = []
+            for p in set(palavras_lower):
+                dist = self._coupling._palavra_acao.get(p, {})
+                if dist:
+                    total = sum(dist.values())
+                    h = 0.0
+                    for c in dist.values():
+                        prob = c / total
+                        if prob > 0: h -= prob * log2(prob)
+                    max_h = log2(max(len(dist), 2))
+                    h_norm = h / max_h if max_h > 0 else 0
+                    pesos.append(1.0 - h_norm)
+            if pesos:
+                niveis['peso'] = str(round(sum(pesos) / len(pesos), 2))
+        except Exception:
+            pass
+        
+        # 16. diagnostico — entropia da distribuição de ações
+        try:
+            acoes = {}
+            for p in set(palavras_lower):
+                dist = self._coupling._palavra_acao.get(p, {})
+                for a, c in dist.items():
+                    acoes[a] = acoes.get(a, 0) + c
+            if acoes:
+                total = sum(acoes.values())
+                h = 0.0
+                for c in acoes.values():
+                    prob = c / total
+                    if prob > 0: h -= prob * log2(prob)
+                niveis['diagnostico'] = str(round(h, 2))
+        except Exception:
+            pass
+        
+        return niveis
+
     def _self_feedback(self, acao, conf, entrada):
         """MCR investiga proprio input quando incerto. Igual LLM.
         
@@ -821,6 +965,21 @@ class MCR:
             for i in range(len(palavras) - 1):
                 self.mk_palavra.aprender(palavras[i], palavras[i+1])
 
+        # Esfera: alimenta com _extrair_niveis (cold start)
+        esfera = self._lazy('_esfera', 'mcr.esfera.MCREsfera')
+        if esfera:
+            try:
+                for entrada, acao in seeds:
+                    niveis = self._extrair_niveis(entrada)
+                    for nivel, valor in niveis.items():
+                        esfera.alimentar_par(nivel, "acao", valor, acao)
+                    items = list(niveis.items())
+                    for i, (n1, v1) in enumerate(items):
+                        for n2, v2 in items[i+1:]:
+                            esfera.alimentar_par(n1, n2, v1, v2)
+            except Exception:
+                pass
+
     # ═══════════════════════════════════════════════════════
     # CICLO COGNITIVO PRINCIPAL
     # ═══════════════════════════════════════════════════════
@@ -1092,43 +1251,27 @@ class MCR:
             except Exception:
                 pass
 
-        # Esfera: correlacao N-dimensional (7 niveis)
-        # Gera 7 fingerprints do input e prediz acao por votacao
+        # Esfera: correlacao N-dimensional (16 niveis via _extrair_niveis)
+        # Cada nivel vota na acao. 3+ votos concordando = boost ou substitui
         esfera = self._lazy('_esfera', 'mcr.esfera.MCREsfera')
         if esfera and esfera.total > 10 and entrada:
             try:
-                fp_tokens = "|".join(_re.findall(r'[a-z\xc3-\xff0-9]{2,}', entrada.lower())[:6])
-                fp_byte = str(self.fp.gerar(entrada))
-                dados = entrada.encode('utf-8') if isinstance(entrada, str) else entrada
-                sig_mod = __import__('mcr.signature', fromlist=['MCRSignature'])
-                sig = sig_mod.MCRSignature.extrair(dados, rapido=True)
-                h_val = str(round(sig.get('entropia', 0), 2))
-                tam = str(len(dados))
-                palavras_in = entrada.replace('_', ' ').split()
-                intencao = palavras_in[0][:10].lower() if palavras_in else ''
-                padrao = ''.join('L' if c.isalpha() else 'N' if c.isdigit() else 'S'
-                                 for c in entrada[:20] if not c.isspace())
-                p0 = f"P0:{intencao}"
-
-                # Esfera prediz acao a partir de cada nivel (votacao)
+                niveis = self._extrair_niveis(entrada)
+                n_niveis = len(niveis)
                 votos_esfera = {}
-                for nivel, valor in [('fp_tokens', fp_tokens), ('fp_byte', fp_byte),
-                                     ('entropia', h_val), ('tamanho', tam),
-                                     ('intencao', intencao), ('padrao', padrao),
-                                     ('p0', p0)]:
+                for nivel, valor in niveis.items():
                     pred = esfera.predizer_cross('acao', **{nivel: valor})
                     if pred:
                         votos_esfera[pred] = votos_esfera.get(pred, 0) + 1
                 if votos_esfera:
                     acao_esfera = max(votos_esfera, key=votos_esfera.get)
                     n_votos = votos_esfera[acao_esfera]
-                    # Se 3+ niveis concordam, boost forte
+                    # 3+ niveis concordam = boost forte
                     if n_votos >= 3 and acao_esfera == acao:
                         conf = min(1.0, conf * 1.4)
                     elif n_votos >= 3 and acao_esfera != acao and conf < 0.5:
-                        # Esfera discorda com mais votos — substitui se conf baixa
                         acao = acao_esfera
-                        conf = max(conf, n_votos / 7.0)
+                        conf = max(conf, n_votos / max(n_niveis, 1))
             except Exception:
                 pass
 
@@ -1487,33 +1630,18 @@ class MCR:
             except Exception:
                 pass
 
-            # Esfera: cruza N niveis do mesmo input
-            # Niveis: tokens, byte 8D, entropia, tamanho, intencao, padrao, P0
+            # Esfera: cruza N níveis do mesmo input via _extrair_niveis
             esfera = self._lazy('_esfera', 'mcr.esfera.MCREsfera')
             if esfera:
                 try:
-                    sig_mod = __import__('mcr.signature', fromlist=['MCRSignature'])
-                    fp_tokens = "|".join(_re.findall(r'[a-z\xc3-\xff0-9]{2,}', entrada.lower())[:6])
-                    fp_byte = str(self.fp.gerar(entrada))
-                    dados = entrada.encode('utf-8') if isinstance(entrada, str) else entrada
-                    sig = sig_mod.MCRSignature.extrair(dados, rapido=True)
-                    h_val = str(round(sig.get('entropia', 0), 2))
-                    tam = str(len(dados))
-                    palavras_in = entrada.replace('_', ' ').split()
-                    intencao = palavras_in[0][:10].lower() if palavras_in else ''
-                    padrao = ''.join('L' if c.isalpha() else 'N' if c.isdigit() else 'S'
-                                     for c in entrada[:20] if not c.isspace())
-                    p0 = f"P0:{intencao}"
-                    for nivel, valor in [('fp_tokens', fp_tokens), ('fp_byte', fp_byte),
-                                         ('entropia', h_val), ('tamanho', tam),
-                                         ('intencao', intencao), ('padrao', padrao),
-                                         ('p0', p0)]:
+                    niveis = self._extrair_niveis(entrada)
+                    # Alimenta cada nível → ação
+                    for nivel, valor in niveis.items():
                         esfera.alimentar_par(nivel, "acao", valor, acao)
-                    niveis_vals = [('fp_tokens', fp_tokens), ('fp_byte', fp_byte),
-                                   ('entropia', h_val), ('intencao', intencao),
-                                   ('padrao', padrao), ('p0', p0)]
-                    for i, (n1, v1) in enumerate(niveis_vals):
-                        for n2, v2 in niveis_vals[i+1:]:
+                    # Cruzar níveis entre si (correlação N-dimensional)
+                    items = list(niveis.items())
+                    for i, (n1, v1) in enumerate(items):
+                        for n2, v2 in items[i+1:]:
                             esfera.alimentar_par(n1, n2, v1, v2)
                 except Exception:
                     pass

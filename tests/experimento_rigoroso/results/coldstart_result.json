@@ -1,15 +1,19 @@
 {
   "coldstart": true,
   "sem_llm": true,
-  "rodada_1": 96.3,
+  "rodada_1": 96.4,
   "rodada_1b": 97.2,
   "rodada_2": 97.2,
-  "melhoria_1b": 0.9,
-  "melhoria_2": 0.9,
+  "melhoria_1b": 0.7,
+  "melhoria_2": 0.7,
   "persistencia_ok": true,
   "mk_estados": 95,
   "mk_transicoes": 141,
   "por_acao": {
+    "validar": {
+      "r1": 100.0,
+      "r2": 100.0
+    },
     "gerar_npc": {
       "r1": 100.0,
       "r2": 100.0
@@ -18,11 +22,19 @@
       "r1": 100.0,
       "r2": 100.0
     },
-    "conectar": {
+    "responder": {
+      "r1": 95.6,
+      "r2": 96.5
+    },
+    "gerar_quest": {
+      "r1": 75.0,
+      "r2": 91.7
+    },
+    "editar": {
       "r1": 100.0,
       "r2": 100.0
     },
-    "gerar_monstro": {
+    "conectar": {
       "r1": 100.0,
       "r2": 100.0
     },
@@ -38,23 +50,11 @@
       "r1": 100.0,
       "r2": 100.0
     },
-    "editar": {
+    "gerar_monstro": {
       "r1": 100.0,
       "r2": 100.0
-    },
-    "gerar_quest": {
-      "r1": 75.0,
-      "r2": 91.7
-    },
-    "responder": {
-      "r1": 94.7,
-      "r2": 96.5
     },
     "analisar": {
-      "r1": 100.0,
-      "r2": 100.0
-    },
-    "validar": {
       "r1": 100.0,
       "r2": 100.0
     }
