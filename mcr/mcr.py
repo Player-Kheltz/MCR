@@ -1927,7 +1927,69 @@ class MCR:
         if acao and conf > 0.1:
             return self._normalizar_acao(acao), conf
 
-        # Fallback 1: similaridade Jaccard por componentes do estado
+        # Fallback 1: Kernel smoothing por fingerprint estrutural
+        # Quando o MCR não conhece as palavras, usa a ASSINATURA do input
+        # para encontrar o estado mais similar. Agnóstico a idioma.
+        # "elabore uma petição" e "crie um npc" têm mesma estrutura P0(V)+P2(S)
+        if self.mk.transicoes and entrada:
+            try:
+                import math
+                # Fingerprint do input: byte 8D + padrão estrutural
+                fp_input = self.fp.gerar(entrada)
+                palavras_in = entrada.replace('_', ' ').split()
+                # Padrão estrutural: V/A/S por posição (agnóstico a idioma)
+                padrao_in = []
+                for i, p in enumerate(palavras_in[:6]):
+                    if i == 0 and len(p) > 3:
+                        padrao_in.append('V')
+                    elif len(p) <= 3 and p.lower() not in ('not', 'and', 'the', 'que', 'uma', 'um'):
+                        padrao_in.append('A')
+                    elif len(p) > 3:
+                        padrao_in.append('S')
+                    else:
+                        padrao_in.append('X')
+                padrao_in_str = ''.join(padrao_in)
+                
+                # Compara com cada estado conhecido por similaridade de fingerprint
+                melhor_estado = None
+                melhor_score = 0
+                for est in self.mk.transicoes:
+                    # Fingerprint do estado conhecido
+                    fp_est = self.fp.gerar(est)
+                    # Cosseno dos fingerprints 8D
+                    dot = sum(a * b for a, b in zip(fp_input, fp_est))
+                    na = math.sqrt(sum(a * a for a in fp_input))
+                    nb = math.sqrt(sum(b * b for b in fp_est))
+                    cosseno = dot / max(na * nb, 0.001)
+                    # Similaridade de padrão estrutural
+                    est_palavras = est.split('|')
+                    padrao_est = []
+                    for i, p in enumerate(est_palavras[:6]):
+                        if i == 0 and len(p) > 3:
+                            padrao_est.append('V')
+                        elif len(p) <= 3:
+                            padrao_est.append('A')
+                        elif len(p) > 3:
+                            padrao_est.append('S')
+                        else:
+                            padrao_est.append('X')
+                    padrao_est_str = ''.join(padrao_est)
+                    # Score: cosseno fingerprint + match de padrão estrutural
+                    score = cosseno * 0.6
+                    if padrao_in_str == padrao_est_str:
+                        score += 0.4  # mesma estrutura = boost
+                    if score > melhor_score:
+                        melhor_score = score
+                        melhor_estado = est
+                
+                if melhor_estado and melhor_score > self._th('kernel_score_min', 0.3):
+                    acao_k, conf_k = self.mk.predizer(melhor_estado)
+                    if acao_k:
+                        return self._normalizar_acao(acao_k), conf_k * melhor_score
+            except Exception:
+                pass
+
+        # Fallback 1b: similaridade Jaccard por componentes do estado
         if self.mk.transicoes:
             partes_consulta = set(estado.split('|'))
             melhor_estado = None
