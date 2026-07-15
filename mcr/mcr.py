@@ -1733,12 +1733,15 @@ class MCR:
 
     def _fingerprint_chave(self, texto: str) -> str:
         """Gera chave Markov. ExtratorFeatures se rico, senao regex rapido.
-        Se ExtratorFeatures retorna generico (GEN/VAZIO/curto), fallback regex."""
+        ExtratorFeatures retorna clusters como C2|P0:C2 para inputs desconhecidos.
+        Regex preserva tokens especificos — agnostico a idioma."""
         try:
             from mcr.extrator_features import get_extrator
             estado = get_extrator().extrair(texto)
-            # Se estado é genérico, usa regex (preserva tokens especificos)
-            if estado and len(estado) > 4 and estado not in ('GEN', 'VAZIO', 'UNKNOWN'):
+            # Se estado tem tokens especificos (letras), usa ExtratorFeatures
+            # Se so tem clusters genericos (C2, P0, GEN, etc), usa regex
+            if estado and not all(part.split(':')[0] in ('C', 'P', 'GEN', 'VAZIO', 'UNKNOWN', 'E', 'A', 'INT', 'ROL', 'ENT') 
+                                 for part in estado.split('|') if part):
                 return estado
         except Exception:
             pass
