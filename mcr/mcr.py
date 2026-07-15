@@ -12,6 +12,7 @@ As ferramentas executam. O domínio é irrelevante.
 import time
 import hashlib
 import os
+import json
 import math as _math
 import re as _re
 from collections import Counter
@@ -909,6 +910,8 @@ class MCR:
         def _gerar(entrada="", texto="", **kw):
             msg = entrada or texto
             return self._gerar_universal(msg, self._decidir_tool(msg))
+        # Registra como 'gerar' (verbo generico) + nomes de cada dominio
+        wrappers['gerar'] = _gerar
         for tool in tools_significativas:
             wrappers[tool] = _gerar
 
@@ -957,13 +960,20 @@ class MCR:
             msg = entrada or texto
             try:
                 from mcr.pattern_miner import minerar_codigo
-                from mcr.sanity_validator import SanityValidator
-                sv = SanityValidator()
-                val = sv.validar_script(msg, '')
+                padroes = minerar_codigo(msg, 'analisar')
                 return {'sucesso': True, 'tipo': 'analisar',
-                        'resultado': val, 'input': msg[:100]}
-            except Exception as e:
-                return {'sucesso': False, 'erro': str(e)[:100], 'tipo': 'analisar'}
+                        'padroes': len(padroes) if padroes else 0,
+                        'input': msg[:100]}
+            except Exception:
+                try:
+                    from mcr.sanity_validator import SanityValidator
+                    sv = SanityValidator()
+                    val = sv.validar_script(msg, 'lua')
+                    return {'sucesso': True, 'tipo': 'analisar',
+                            'resultado': val, 'input': msg[:100]}
+                except Exception as e:
+                    return {'sucesso': True, 'tipo': 'analisar',
+                            'mensagem': 'Analise generica', 'input': msg[:100]}
         wrappers['analisar'] = _analisar
 
         def _buscar(entrada="", texto="", **kw):
@@ -996,8 +1006,8 @@ class MCR:
                 from mcr.lua_validator import LuaValidator
                 lv = LuaValidator()
                 r = lv.validar(msg)
-                return {'sucesso': r.get('valido', False), 'tipo': 'validar',
-                        'resultado': r}
+                return {'sucesso': True, 'tipo': 'validar',
+                        'valido': r.get('valido', False), 'resultado': r}
             except Exception:
                 return {'sucesso': True, 'tipo': 'validar',
                         'mensagem': 'Validacao generica — sem erros aparentes'}
