@@ -15,7 +15,7 @@ Universal: qualquer idioma, qualquer token, qualquer dominio.
 """
 from collections import defaultdict
 from typing import Dict, List, Tuple, Optional
-import re, math
+import re, math, json
 
 
 class MCRCoupling:
@@ -32,6 +32,7 @@ class MCRCoupling:
         self._total = 0
         self._freq_acao: Dict[str, int] = defaultdict(int)
         self._composicoes_aprendidas: Dict[tuple, str] = {}
+        self._estado_features: Dict[str, Dict[str, int]] = defaultdict(lambda: defaultdict(int))
 
     def _extrair_features_nd(self, texto: str, acao: str):
         """Extrai features N-dimensionais do texto e associa a acao.
@@ -152,6 +153,9 @@ class MCRCoupling:
         self._total += outro._total
         for a, c in outro._freq_acao.items():
             self._freq_acao[a] += c
+        for p, d in outro._estado_features.items():
+            for f, c in d.items():
+                self._estado_features[p][f] += c
         return self
 
     def alimentar_swarm(self, pares: list, chunk_size: int = 0):
@@ -563,6 +567,216 @@ class MCRCoupling:
                 sig = self.compor(sig, sig_p)
         return sig if sig else {}
 
+    def _extrair_features_estado(self, estado) -> set:
+        """FASE 3 — Extrai features N-dimensionais de um estado do mundo.
+
+        Flatten recursivo de dict/list/JSON para features markovianas:
+          - est_val:{path}:{value}  — valor especifico do atributo
+          - est_attr:{key}          — nome do atributo (compartilhado)
+
+        Os est_attr:* sao o insight chave: "fogo" e "gelo" compartilham
+        est_attr:temp (ambos tem temperatura) mas diferem em est_val:temp:200
+        vs est_val:temp:-5. Isto e o mesmo padrao de antonimos da FASE 2
+        (mesmo contexto, valores opostos) — reusamos a infraestrutura.
+
+        Pilar 1: cada feature e uma transicao P(feature|palavra).
+        Pilar 3: funciona com qualquer dict — Tibia, IoT, jogo, whatever.
+
+        Args:
+            estado: dict, JSON string, ou valor primitivo
+        Returns:
+            set de features est_val:* e est_attr:*
+        """
+        if isinstance(estado, str):
+            try:
+                estado = json.loads(estado)
+            except (json.JSONDecodeError, ValueError):
+                return set()
+
+        feats = set()
+
+        def _flatten(prefix, obj):
+            if isinstance(obj, dict):
+                for k, v in obj.items():
+                    _flatten(f"{prefix}:{k}", v)
+            elif isinstance(obj, (list, tuple)):
+                for i, v in enumerate(obj):
+                    _flatten(f"{prefix}:{i}", v)
+            else:
+                val = str(obj).lower().strip()
+                if val:
+                    feats.add(f"est_val:{prefix}:{val}")
+                    parts = prefix.split(":")
+                    for attr in parts:
+                        if attr:
+                            feats.add(f"est_attr:{attr}")
+
+        _flatten("est", estado)
+        return feats
+
+    def alimentar_estado(self, texto: str, estado) -> None:
+        """FASE 3.1 — Grounding simbolico: alimenta par (texto, estado_do_mundo).
+
+        Associa um texto a um estado estruturado do mundo (dict/JSON).
+        O estado e decomposto em features est_val:* e est_attr:* e
+        armazenado em _estado_features[palavra][feature].
+
+        Pilar 1: P(state_feature | word) — transicao markoviana.
+        Pilar 5: alimenta -> predizer -> aprender (loop fechado).
+
+        Exemplo:
+            c.alimentar_estado("fogo", {"temp":200,"dano":5,"cor":"vermelho"})
+            c.alimentar_estado("gelo", {"temp":-5,"dano":0,"cor":"branco"})
+            c.consultar_atributo("fogo", "temp")  # -> ("200", conf)
+
+        Args:
+            texto: texto de entrada (descricao do conceito/acao)
+            estado: dict, JSON string, ou valor estruturado
+        """
+        feats = self._extrair_features_estado(estado)
+        if not feats:
+            return
+
+        palavras = re.findall(r'[a-zà-ÿ]{3,}', texto.lower())
+        for p in set(palavras):
+            for feat in feats:
+                self._estado_features[p][feat] += 1
+
+    def _assinatura_estado(self, conceito: str) -> Dict[str, int]:
+        """FASE 3 — Assinatura de estado de um conceito (features est_* apenas).
+
+        Diferente de _assinatura_palavra (que mistura acao/ctx/pos),
+        esta assinatura so tem features de estado do mundo (est_val/est_attr).
+        Usada por raciocinar_estado() para encontrar conceitos compartilhados.
+
+        Args:
+            conceito: texto do conceito (uma ou mais palavras)
+        Returns:
+            dict de features est_* com contagens
+        """
+        palavras = re.findall(r'[a-zà-ÿ]{3,}', conceito.lower())
+        sig = defaultdict(int)
+        for p in set(palavras):
+            dist = self._estado_features.get(p, {})
+            for f, c in dist.items():
+                sig[f] += c
+        return dict(sig) if sig else {}
+
+    def predizer_estado(self, texto: str) -> Dict[str, Tuple[str, float]]:
+        """FASE 3.2 — Prediz estado do mundo associado ao texto.
+
+        Agrega features est_val:* de todas as palavras do texto (e suas
+        similares via NMI) e retorna um dict de atributo -> (valor, confianca).
+
+        Pilar 2: confianca e relativa (score / total), sem threshold.
+        Pilar 5: se a palavra nao foi vista, busca similares (aprendizado).
+
+        Args:
+            texto: texto de entrada
+        Returns:
+            dict: atributo -> (valor, confianca) ordenado por confianca
+        """
+        palavras = re.findall(r'[a-zà-ÿ]{3,}', texto.lower())
+        scores: Dict[str, float] = defaultdict(float)
+
+        for p in set(palavras):
+            dist = self._estado_features.get(p, {})
+            if not dist:
+                proxies = self.palavras_similares(p, threshold=0.20)
+                for prox, conf in proxies:
+                    d = self._estado_features.get(prox, {})
+                    if not d:
+                        continue
+                    td = sum(d.values()) or 1
+                    for f, c in d.items():
+                        scores[f] += (c / td) * conf
+                continue
+            total = sum(dist.values()) or 1
+            for f, c in dist.items():
+                scores[f] += c / total
+
+        if not scores:
+            return {}
+
+        estado: Dict[str, Tuple[str, float]] = {}
+        for feat, score in scores.items():
+            if feat.startswith("est_val:est:"):
+                parts = feat.split(":", 3)
+                if len(parts) >= 4:
+                    key = parts[2]
+                    val = parts[3]
+                    if key not in estado or score > estado[key][1]:
+                        estado[key] = (val, score)
+
+        return dict(sorted(estado.items(), key=lambda x: -x[1][1]))
+
+    def consultar_atributo(self, texto: str, atributo: str) -> Tuple[Optional[str], float]:
+        """FASE 3 — Consulta um atributo especifico do estado de um conceito.
+
+        Args:
+            texto: conceito (ex: "fogo")
+            atributo: nome do atributo (ex: "temp")
+        Returns:
+            (valor, confianca) ou (None, 0.0)
+        """
+        estado = self.predizer_estado(texto)
+        resultado = estado.get(atributo.lower())
+        return resultado if resultado else (None, 0.0)
+
+    def raciocinar_estado(self, conceito_a: str,
+                          conceito_b: str) -> Dict[str, list]:
+        """FASE 3.2 — Raciocinio sobre estados: combina dois conceitos.
+
+        Usa compor() da FASE 1 para combinar as assinaturas de estado
+        de dois conceitos. Os atributos compartilhados (est_attr:*)
+        emergem como o "conceito compartilhado" — sem rotulos.
+
+        Exemplo:
+            raciocinar_estado("fogo", "gelo")
+            -> {"atributos_compartilhados": ["temp", "dano", "cor"],
+                "nmi": 0.85,
+                "conceito_emergente": ["temp", "dano", "cor"]}
+
+        "fogo" e "gelo" compartilham est_attr:temp (ambos tem temperatura)
+        mas diferem em est_val:temp:200 vs est_val:temp:-5.
+        O conceito emergente "temperatura" nao foi rotulado — emergiu
+        da composicao markoviana.
+
+        Pilar 1: P(feature|conceito) — tudo transicao.
+        Pilar 2: NMI decide o que e compartilhado, sem threshold.
+        Pilar 5: usa compor() que aprende o tipo de composicao.
+
+        Args:
+            conceito_a: primeiro conceito (ex: "fogo")
+            conceito_b: segundo conceito (ex: "gelo")
+        Returns:
+            dict com atributos_compartilhados, nmi, conceito_emergente
+        """
+        sig_a = self._assinatura_estado(conceito_a)
+        sig_b = self._assinatura_estado(conceito_b)
+        if not sig_a or not sig_b:
+            return {"atributos_compartilhados": [], "nmi": 0.0,
+                    "conceito_emergente": []}
+
+        nmi = self._nmi(sig_a, sig_b)
+        sig_composto = self.compor(sig_a, sig_b)
+
+        attrs_compostos = {k.replace("est_attr:", ""): v
+                           for k, v in sig_composto.items()
+                           if k.startswith("est_attr:")}
+
+        attrs_a = {k.replace("est_attr:", "") for k in sig_a
+                   if k.startswith("est_attr:")}
+        attrs_b = {k.replace("est_attr:", "") for k in sig_b
+                   if k.startswith("est_attr:")}
+        compartilhados = attrs_a & attrs_b
+
+        return {
+            "atributos_compartilhados": sorted(compartilhados),
+            "nmi": round(nmi, 4),
+            "conceito_emergente": sorted(attrs_compostos.keys()),
+        }
+
     def _corte_dinamico(self, scores: List[float]) -> int:
         """Descobre o corte natural numa lista de scores usando entropia.
 
@@ -951,6 +1165,7 @@ class MCRCoupling:
             'freq_acao': dict(self._freq_acao),
             'feature_acao': {k: dict(v) for k, v in self._feature_acao.items()},
             'acao_features': {k: dict(v) for k, v in self._acao_features.items()},
+            'estado_features': {k: dict(v) for k, v in self._estado_features.items()},
             'ngrama': {str(ordem): {'|'.join(pref): dict(prox_dict)
                        for pref, prox_dict in ord_dict.items()}
                        for ordem, ord_dict in self._ngrama.items()},
@@ -983,7 +1198,9 @@ class MCRCoupling:
             self._feature_acao = defaultdict(lambda: defaultdict(int),
                                              {k: base(v) for k, v in cp(dados, 'feature_acao').items()})
             self._acao_features = defaultdict(lambda: defaultdict(int),
-                                              {k: base(v) for k, v in cp(dados, 'acao_features').items()})
+                                               {k: base(v) for k, v in cp(dados, 'acao_features').items()})
+            self._estado_features = defaultdict(lambda: defaultdict(int),
+                                                {k: base(v) for k, v in cp(dados, 'estado_features').items()})
             ng_raw = dados.get('ngrama', {})
             self._ngrama = defaultdict(lambda: defaultdict(lambda: defaultdict(int)))
             for ordem_str, ord_dict in ng_raw.items():

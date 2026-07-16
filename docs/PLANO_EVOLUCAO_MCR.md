@@ -127,7 +127,7 @@ Cada fase deve ser auditada contra os 6 pilares antes de ser considerada complet
 |---|---|---|---|---|---|
 | 1 (compor) | ✅ assinaturas markovianas | ✅ gaussiana(H) decide estabilidade | ✅ genérico | ✅ aprende tipo por par | ✅ avalia candidatos |
 | 2 (relações) | ✅ extrai de _transicao | ✅ derivada 2ª decide corte | ✅ genérico | ✅ cache por palavra | pendente |
-| 3 (grounding simbólico) | pendente | pendente | pendente | pendente | pendente |
+| 3 (grounding simbólico) | ✅ P(state\|word) | ✅ NMI decide attrs | ✅ qualquer dict | ✅ alimenta→predizer | pendente |
 | 4 (grounding ambiental) | pendente | pendente | pendente | pendente | pendente |
 | 5 (hierárquico) | pendente | pendente (delta_H≈0 para) | pendente | pendente | pendente |
 | 6 (multimodal) | pendente | pendente | pendente | pendente | pendente |
@@ -235,35 +235,48 @@ Não precisa de cluster nem threshold — só do CONTRASTE entre dois NMI parcia
 ---
 
 ## FASE 3 — Grounding Simbólico
-**Status**: pronto para implementar
+**Status**: IMPLEMENTADA e VALIDADA (2026-07-16)
 **Esforço**: baixo | **Impacto**: médio
 
-### 3.1 Alimentar com pares (texto, estado_do_mundo)
-```python
-coupling.alimentar("fogo", '{"temp":200,"dano":5,"cor":"vermelho"}')
-coupling.alimentar("gelo", '{"temp":-5,"dano":0,"cor":"branco"}')
-```
+### Resultados reais (32 PASS / 0 FAIL)
+| Teste | Resultado |
+|---|---|
+| alimentar_estado("fogo", {temp:200,...}) | ✅ features est_val + est_attr |
+| predizer_estado("fogo") → temp=200 | ✅ |
+| consultar_atributo("gelo", "cor") → branco | ✅ |
+| raciocinar_estado("fogo","gelo") → temp,cor,dano | ✅ conceito emergente |
+| raciocinar_estado("fogo","espada") → dano,cor (sem temp) | ✅ distinção correta |
+| Tibia-like: "mago atacou fogo" → ator=mago, elemento=fogo | ✅ aninhado |
+| save/load com _estado_features | ✅ persistência |
+| Regressão dataset 500 | 94.7%, 3.68ms — SEM REGRESSÃO |
 
-### 3.2 Raciocínio sobre estados
-```python
-# MCR aprende: fogo + gelo → temperatura média
-# Via NMI: sig("fogo") ∩ sig("gelo") → conceito compartilhado = "temperatura"
-# P(temp_media | fogo, gelo) aprendido das observações
-```
+### 3.1 `alimentar_estado(texto, estado)` — IMPLEMENTADO
+Associa texto a estado estruturado (dict/JSON). Flatten recursivo:
+- `est_val:{path}:{value}` — valor específico
+- `est_attr:{key}` — nome do atributo (compartilhado entre conceitos)
 
-### 3.3 Grounding via Tibia (ambiente simulado real)
-Tibia já tem estado do mundo mensurável:
-- NPCs: posição, vocação, level, itens
-- Monstros: HP, dano, elemento, loot
-- Mapa: coordenadas, tipo de terreno
-- Combate: dano causado, elemento, resistência
+Insight: "fogo" e "gelo" compartilham `est_attr:temp` (ambos têm temperatura)
+mas diferem em `est_val:temp:200` vs `est_val:temp:-5`. Mesmo padrão de
+antônimos da FASE 2 — reusamos a infraestrutura de contraste de planos.
 
-```python
-coupling.alimentar(
-    "o mago atacou com fogo",
-    '{"ator":"mago","acao":"atacar","elemento":"fogo","dano":150,"mana":-30}'
-)
-```
+### 3.2 `raciocinar_estado(a, b)` — IMPLEMENTADO
+Usa `compor()` da FASE 1 para combinar assinaturas de estado.
+Atributos compartilhados (est_attr:*) emergem como "conceito compartilhado"
+sem rótulos. "fogo" + "gelo" → temperatura, dano, cor emergem naturalmente.
+
+### 3.3 Grounding Tibia-like — VALIDADO
+Estado aninhado (ator, acao, elemento, dano, mana) funciona:
+`alimentar_estado("mago atacou fogo", {"ator":"mago",...})` →
+`predizer_estado("mago atacou fogo")` retorna ator=mago, elemento=fogo.
+
+### Métodos implementados
+- `_extrair_features_estado(estado)` — flatten dict/JSON → features
+- `alimentar_estado(texto, estado)` — P(state_feature | word)
+- `_assinatura_estado(conceito)` — assinatura só de features est_*
+- `predizer_estado(texto)` — agrega e retorna dict atributo→(valor,conf)
+- `consultar_atributo(texto, atributo)` — query específica
+- `raciocinar_estado(a, b)` — compor + extrair attrs compartilhados
+- `save/load/merge` atualizados para `_estado_features`
 
 ---
 
@@ -397,7 +410,7 @@ suas assinaturas convergem. MCR descobre que são a mesma coisa
 ## Ordem de Execução
 1. **FASE 1** (compor) — ✅ IMPLEMENTADA e VALIDADA (2026-07-16)
 2. **FASE 2** (relações) — ✅ IMPLEMENTADA e VALIDADA (2026-07-16)
-3. **FASE 3** (grounding simbólico) — código existe, só dados
+3. **FASE 3** (grounding simbólico) — ✅ IMPLEMENTADA e VALIDADA (2026-07-16)
 4. **FASE 4** (grounding ambiental) — sensores do PC
 5. **FASE 5** (hierárquico) — MCR de MCRs
 6. **FASE 6** (multimodal) — conectar assinatura
@@ -411,7 +424,7 @@ suas assinaturas convergem. MCR descobre que são a mesma coisa
 | 1 | Regressão zero-shot | 94.7% | 94.7% | ✅ |
 | 1 | Regressão latência | <5ms | 3.65ms | ✅ |
 | 2 | Relações extraídas corretas | >80% | 100% (15/15 testes) | ✅ |
-| 3 | Raciocínio sobre estados | validar | — | pendente |
+| 3 | Raciocínio sobre estados | validar | 32/32 testes | ✅ |
 | 4 | Contexto ambiental melhora accuracy | >96% | — | pendente |
 | 5 | Geração de 50+ tokens coerentes | validar | — | pendente |
 | 6 | Cross-modal: áudio↔texto matching | >60% | — | pendente |
