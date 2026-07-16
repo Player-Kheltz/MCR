@@ -916,22 +916,8 @@ class MCR:
                 pass
 
         _scan(ROOT_DIR)
-        # Tambem escaneia nichos/ (exemplos de dominio movidos) — depth=-1 p/ alcancar npc/monster
-        try:
-            nicho_dir = Path(__file__).parent.parent / 'nichos'
-            if nicho_dir.exists():
-                _scan(nicho_dir, depth=0)
-                # Garante que subdiretorios profundos sejam alcancados
-                for sub in list(nicho_dir.rglob('*/'))[:100]:
-                    if sub.is_dir() and not sub.name.startswith('.') and not sub.name.startswith('__'):
-                        files = [f for f in sub.iterdir() if f.is_file() and not f.name.startswith('.')]
-                        if len(files) >= 2 and len(set(f.stem.lower() for f in files)) >= 2:
-                            nome_dir = sub.name.lower().replace(' ', '_').replace('-', '_')
-                            if nome_dir not in dirs_por_tool:
-                                dirs_por_tool[nome_dir] = []
-                            dirs_por_tool[nome_dir].append(sub)
-        except Exception:
-            pass
+        # NAO escaneia nichos/ — dominio Tibia é o berço, não o motor.
+        # O MCR é agnóstico: descobre diretorios pela entropia do ROOT_DIR.
 
         # Fase 2: ENTROPIA — diversidade de stems decide quais sao dominios
         tools_significativas = {}
@@ -1613,20 +1599,8 @@ class MCR:
                 max_sim = sim
                 melhor_tri = tool
         
-        if melhor_tri and max_sim > 0.4: # 'monstro' vs 'monster' compartilha 'mon', 'ons', 'nst'
+        if melhor_tri and max_sim > 0.4:
             return melhor_tri
-
-        # 4. Procura em nichos/ por match textual em stems
-        try:
-            from pathlib import Path
-            nicho_dir = Path(__file__).parent.parent / 'nichos'
-            for d in [nicho_dir / 'tibia' / 'mcr']:
-                if d.exists():
-                    for f in d.iterdir():
-                        if f.is_file() and f.stem.lower() in msg.lower():
-                            return f.stem
-        except Exception:
-            pass
 
         return None
 
@@ -1639,13 +1613,7 @@ class MCR:
         dirs = getattr(self, '_dirs_por_tool', {})
         d_list = dirs.get(tool, [])
         if not d_list:
-            try:
-                from pathlib import Path
-                nd = Path(__file__).parent.parent / 'nichos' / 'tibia' / 'mcr'
-                if nd.exists():
-                    d_list = [nd]
-            except Exception:
-                pass
+            return {'sucesso': False, 'erro': f'dominio {tool} nao encontrado'}
         d = d_list[0] if d_list else None
         try:
             exemplos = [f for f in d.iterdir() if f.is_file()][:10] if d and d.exists() else []

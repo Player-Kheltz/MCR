@@ -354,16 +354,24 @@ class MCRCoupling:
         return self._cache_assinatura[p]
 
     def _nmi(self, dict_a, dict_b) -> float:
-        """Information Mutua Normalizada - implementacao MCR pura.
+        """Similaridade por reducao de incerteza da mistura — MCR puro.
 
-        MCR: duas entidades sao similares SE combinadas reduzem a
-        incerteza sobre o proximo estado da cadeia markoviana.
+        Implementa uma variante de Informacao Mutua baseada na entropia
+        da MISTURA das duas distribuicoes marginais:
 
-        I(a;b) = H(a) + H(b) - H(a,b)
-        sim(a,b) = I(a;b) / max(H(a), H(b))  IN [0, 1]
+          H_mix = -sum ((pa[k] + pb[k]) / (ta + tb)) * log2(...)
+          sim(a,b) = (H(a) + H(b) - H_mix) / max(H(a), H(b))
 
-        Nao usa cosseno, SVD, distancia - so Markov+Entropia.
-        Retorna 0 se nao ha informacao compartilhada.
+        Nao é NMI classico (que requer distribuicao conjunta p(a,b)),
+        mas captura a mesma ideia: duas distribuicoes similares reduzem
+        a incerteza quando combinadas.
+
+        Propriedades:
+          - a == b => 1.0 (maxima similaridade)
+          - a ∩ b = {} => 0.0 (disjuntas, zero informacao compartilhada)
+          - Retorna em [0, 1]
+
+        Nao usa cosseno, SVD, distancia — so Markov + Entropia.
         """
         if not dict_a or not dict_b:
             return 0.0

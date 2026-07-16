@@ -77,7 +77,6 @@ class ObservadorUniversal:
             key = self._fp_key(fp)
             if key in clusters:
                 continue
-            # Encontra o cluster mais próximo
             melhor_id = None
             melhor_sim = 0.0
             for exist_key, cid in clusters.items():
@@ -92,6 +91,24 @@ class ObservadorUniversal:
                 clusters[key] = proximo_id
                 proximo_id += 1
 
+        return clusters
+
+    def _clusterizar_categorico(self, valores: List[str]) -> Dict[str, int]:
+        """Clusteriza valores categoricos (strings) por identidade.
+        
+        Para Y que sao acoes ('gerar_npc', 'responder', etc), fingerprint
+        de bytes colapsa tudo num cluster so porque strings curtas tem
+        bigramas quase identicos. Usa a string direta como cluster key.
+        """
+        clusters = {}
+        mapa = {}
+        proximo_id = 0
+        for val in valores:
+            val_norm = str(val).split(':')[0] if ':' in str(val) else str(val)
+            if val_norm not in mapa:
+                mapa[val_norm] = proximo_id
+                proximo_id += 1
+            clusters[val_norm] = mapa[val_norm]
         return clusters
 
     def _cosine_sim(self, a: List[float], b: List[float]) -> float:
@@ -114,22 +131,22 @@ class ObservadorUniversal:
         if len(self._pares) < 5:
             return self
 
-        # 1. Gera fingerprints
+        # 1. Gera fingerprints de X (entrada); Y é categorico (acao)
         self._fp_x = [self._fingerprint(x) for x, _ in self._pares]
-        self._fp_y = [self._fingerprint(y) for _, y in self._pares]
+        self._fp_y = []  # nao usado — Y é clusterizado por identidade
 
-        # 2. Clusteriza X e Y independentemente
+        # 2. Clusteriza X (fingerprint) e Y (categorico — acoes sao strings curtas)
         self._clusters_x = self._clusterizar(self._fp_x)
-        self._clusters_y = self._clusterizar(self._fp_y)
+        self._clusters_y = self._clusterizar_categorico(
+            [y for _, y in self._pares])
 
         # 2b. Mapeamento reverso cluster_Y → ação mais comum
         from collections import Counter
         cluster_acoes = {}
         for i, (_, y) in enumerate(self._pares):
-            fp_key = self._fp_key(self._fp_y[i])
-            cid = self._clusters_y.get(fp_key, 0)
-            acao_base = y.split(':')[0] if ':' in y else y
-            cluster_acoes.setdefault(cid, Counter())[acao_base] += 1
+            y_norm = str(y).split(':')[0] if ':' in str(y) else str(y)
+            cid = self._clusters_y.get(y_norm, 0)
+            cluster_acoes.setdefault(cid, Counter())[y_norm] += 1
         self._cluster_para_acao = {
             cid: counter.most_common(1)[0][0]
             for cid, counter in cluster_acoes.items()
@@ -141,9 +158,9 @@ class ObservadorUniversal:
         # 4. Aprende associações cluster_X → cluster_Y
         for i, (x, y) in enumerate(self._pares):
             fp_x = self._fp_x[i]
-            fp_y = self._fp_y[i]
+            y_norm = str(y).split(':')[0] if ':' in str(y) else str(y)
             cid_x = self._clusters_x.get(self._fp_key(fp_x), 0)
-            cid_y = self._clusters_y.get(self._fp_key(fp_y), 0)
+            cid_y = self._clusters_y.get(y_norm, 0)
             estado = f"CX{cid_x}"
             acao = f"CY{cid_y}"
             self._mk.aprender(estado, acao)
