@@ -535,6 +535,61 @@ class MCRCoupling:
         return avaliar_5d(certeza, completude, informacao,
                           estabilidade, eficiencia)
 
+    def _tentar_inversao_funtor(self, prev: str, palavra: str) -> Optional[str]:
+        """FASE 1+2 — Detecta funtor (alta entropia) e encontra antonimo.
+
+        Pilar 2: ENTROPIA descobre funtores — palavras que aparecem com
+        acoes diversas sao modificadores de polaridade (nao, nunca,
+        tambem, etc). Quando detectado, o conceito seguinte e invertido
+        via seu antonimo — descoberto pela infraestrutura da FASE 2
+        (extrair_relacoes: contraste ctx-NMI x (1-acao-NMI)).
+
+        Sem hardcode: qualquer palavra de alta entropia vira funtor.
+        "nao" nao e especial — sua entropia alta e que a revela.
+
+        Args:
+            prev: palavra anterior (possivel funtor)
+            palavra: palavra atual (cujjo antonimo queremos)
+        Returns:
+            antonimo da palavra, ou None se prev nao e funtor
+        """
+        if not hasattr(self, '_cache_funtores'):
+            self._cache_funtores = {}
+            self._cache_antonimos_frase = {}
+            self._cache_stats_h = None
+
+        if self._cache_stats_h is None:
+            entropias = []
+            for w in self._palavra_acao:
+                h = self._entropia_shannon(self._palavra_acao.get(w, {}))
+                if h > 0:
+                    entropias.append(h)
+            if entropias:
+                mean_h = sum(entropias) / len(entropias)
+                var_h = sum((h - mean_h) ** 2 for h in entropias) / len(entropias)
+                std_h = var_h ** 0.5
+                self._cache_stats_h = (mean_h, std_h)
+            else:
+                self._cache_stats_h = (0.0, 0.0)
+
+        mean_h, std_h = self._cache_stats_h
+        if std_h <= 0:
+            return None
+
+        if prev not in self._cache_funtores:
+            h_prev = self._entropia_shannon(self._palavra_acao.get(prev, {}))
+            self._cache_funtores[prev] = h_prev > mean_h + std_h
+
+        if not self._cache_funtores[prev]:
+            return None
+
+        if palavra not in self._cache_antonimos_frase:
+            rels = self.extrair_relacoes(palavra)
+            ants = rels.get('antonimos', [])
+            self._cache_antonimos_frase[palavra] = ants[0][0] if ants else None
+
+        return self._cache_antonimos_frase.get(palavra)
+
     def _assinatura_frase(self, frase: str) -> Dict[str, int]:
         """FASE 1.2 — Assinatura composicional de uma frase multi-palavra.
 
@@ -547,9 +602,15 @@ class MCRCoupling:
                                                 sig("monstro")),
                                          sig("dragao"))
 
-        Isso habilita similaridade("cachorro verde", "cachorro") sem
-        nenhuma mudanca em _nmi() — a assinatura composta ja carrega
-        a informacao combinada.
+        FASE 1+2 — Negacao por funtor entrópico:
+        Se a palavra anterior tem alta entropia (aparece com acoes
+        diversas), ela e um FUNTOR (modificador de polaridade). O
+        conceito seguinte e invertido via seu ANTONIMO, descoberto
+        pela FASE 2 (extrair_relacoes). "nao bom" => sig("ruim").
+
+        Pilar 2: entropia descobre o funtor (sem hardcode "if == nao").
+        Pilar 2: contraste ctx x acao descobre o antonimo (FASE 2).
+        Pilar 5: usar => aprender => reusar (cache de funtores).
 
         Args:
             frase: texto de entrada (uma ou mais palavras)
@@ -561,10 +622,24 @@ class MCRCoupling:
             return {}
 
         sig = self._assinatura_palavra(palavras[0])
-        for p in palavras[1:]:
+        for i in range(1, len(palavras)):
+            p = palavras[i]
+            prev = palavras[i - 1]
             sig_p = self._assinatura_palavra(p)
-            if sig_p:
-                sig = self.compor(sig, sig_p)
+            if not sig_p:
+                continue
+
+            antonym = self._tentar_inversao_funtor(prev, p)
+            if antonym:
+                sig_ant = self._assinatura_palavra(antonym)
+                if sig_ant:
+                    if i == 1:
+                        sig = sig_ant
+                    else:
+                        sig = self.compor(sig, sig_ant)
+                    continue
+
+            sig = self.compor(sig, sig_p)
         return sig if sig else {}
 
     def _extrair_features_estado(self, estado) -> set:

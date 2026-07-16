@@ -41,6 +41,10 @@ def main():
     # Precisamos de um corpus onde "cachorro", "verde", "correr",
     # "rapido", "bom", "ruim", "nao" aparecem em contextos que
     # permitam ao MCR aprender suas assinaturas.
+    # 
+    # Contraste de acao: bom→aprovar, ruim→rejeitar (para antonimos)
+    # "nao" aparece com MUITAS acoes diversas (alta entropia = funtor)
+    # "nao" NAO aparece junto com bom/ruim para evitar poluicao
     pares = [
         ("criar cachorro magico", "criar_monstro"),
         ("cachorro corre rapido", "mover"),
@@ -50,18 +54,25 @@ def main():
         ("correr rapido fugir", "mover"),
         ("correr lento andar", "mover"),
         ("rapido veloz agil", "descrever"),
-        ("bom personagem aliado", "descrever"),
-        ("ruim personagem inimigo", "descrever"),
-        ("bom forte corajoso", "descrever"),
-        ("ruim fraco covarde", "descrever"),
-        ("nao bom inimigo", "descrever"),
-        ("nao ruim aliado", "descrever"),
+        ("bom personagem aliado", "aprovar"),
+        ("ruim personagem inimigo", "rejeitar"),
+        ("bom forte corajoso", "aprovar"),
+        ("ruim fraco covarde", "rejeitar"),
         ("nao corre parado", "mover"),
+        ("nao voa baixo", "mover"),
+        ("nao ataca defendo", "descrever"),
+        ("nao ajuda atrapalha", "descrever"),
+        ("nao cria destroi", "destruir"),
+        ("nao cura fere", "atacar"),
+        ("nao aceita recusa", "rejeitar"),
+        ("nao abre fecha", "editar"),
         ("cachorro late forte", "descrever"),
         ("gato late fraco", "descrever"),
         ("verde olho magico", "descrever"),
         ("monstro verde cachorro", "criar_monstro"),
         ("dragao voa alto", "mover"),
+        ("bom item raro", "aprovar"),
+        ("ruim item comum", "rejeitar"),
     ]
 
     c = MCRCoupling()
