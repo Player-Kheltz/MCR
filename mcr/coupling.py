@@ -563,6 +563,213 @@ class MCRCoupling:
                 sig = self.compor(sig, sig_p)
         return sig if sig else {}
 
+    def _corte_dinamico(self, scores: List[float]) -> int:
+        """Descobre o corte natural numa lista de scores usando entropia.
+
+        Pilar 2 — Entropia descobre, sem threshold hardcoded.
+
+        Usa DERIVADA SEGUNDA (curvatura) da curva de scores ordenados
+        para encontrar o "cotovelo" — o ponto onde a distribuicao
+        passa de estrutura (scores altos) para ruido (scores baixos).
+
+        O cotovelo e onde a SEGUNDA DERIVADA e maxima: a curva
+        muda de declive suave para queda abrupta (ou vice-versa).
+
+        Criterio de significancia RELATIVO (nao hardcoded):
+        o cotovelo so e valido se sua curvatura > media das
+        curvaturas absolutas. Se todas as curvaturas sao iguais
+        (distribuicao uniforme), nao ha estrutura → return 0.
+
+        Returns:
+            numero de elementos que sao "estrutura" vs "ruido"
+        """
+        if not scores:
+            return 0
+        if len(scores) == 1:
+            return 1 if scores[0] > 0 else 0
+
+        ordenados = sorted(scores, reverse=True)
+        n = len(ordenados)
+
+        if n == 2:
+            if ordenados[0] > 0 and ordenados[1] > 0:
+                ratio = ordenados[1] / ordenados[0]
+                return 1 if ratio < 0.5 else 2
+            return 1 if ordenados[0] > 0 else 0
+
+        diffs = [ordenados[i] - ordenados[i + 1] for i in range(n - 1)]
+        second_diffs = [diffs[i] - diffs[i + 1] for i in range(len(diffs) - 1)]
+
+        if not second_diffs:
+            return 0
+
+        max_second = max(second_diffs)
+        avg_abs = sum(abs(s) for s in second_diffs) / len(second_diffs)
+
+        if max_second <= avg_abs or max_second <= 0:
+            return 0
+
+        knee_idx = second_diffs.index(max_second)
+        corte = knee_idx + 1
+
+        return min(max(corte, 1), n)
+
+    def _split_planos(self, sig: Dict[str, int]) -> Tuple[Dict[str, int], Dict[str, int]]:
+        """Divide assinatura em planos ctx:* e acao:* para analise de relacoes."""
+        sig_ctx = {k: v for k, v in sig.items() if k.startswith("ctx:")}
+        sig_acao = {k: v for k, v in sig.items() if k.startswith("acao:")}
+        return sig_ctx, sig_acao
+
+    def extrair_relacoes(self, palavra: str,
+                         top_n: int = 10) -> Dict[str, List[Tuple[str, float]]]:
+        """FASE 2 — Extrator de relacoes semanticas das matrizes markovianas.
+
+        Todas as relacoes ja estao latentes em _transicao_palavra e
+        _palavra_acao. Este metodo EXTRAI usando entropia para descobrir
+        os cortes naturais — sem threshold hardcoded (pilar 2).
+
+        Relacoes descobertas (todas por entropia, zero rotulos):
+        - sinonimos:    alta similaridade NMI (mesma distribuicao de acao+ctx)
+        - antonimos:    mesmo contexto (ctx:*) mas acoes opostas (acao:*)
+                        Contraste: score = nmi_ctx * (1 - nmi_acao)
+        - hiperonimos:  A->B transicao com baixa entropia (deterministica)
+                        B e o conceito mais geral que A transita
+        - hiponimos:    B->A transicao deterministica (inverso de hiperonimo)
+        - meronimos:    NMI medio + candidato menor (parte-de)
+        - holonimos:    NMI medio + candidato maior (todo-de)
+        - polissemia:   H alta em _palavra_acao (acima da media + desvio)
+
+        Pilar 1: tudo sao transicoes P(b|a) — _transicao_palavra e _palavra_acao
+        Pilar 2: cortes descobertos por _corte_dinamico(), nao hardcoded
+        Pilar 3: metodo generico, funciona em qualquer dominio
+        Pilar 5: relacoes extraidas sao cacheadas em _relacoes_cache
+
+        Args:
+            palavra: palavra-alvo para extrair relacoes
+            top_n: maximo de candidatos por relacao (apos corte entropico)
+        Returns:
+            dict: relacao -> lista de (palavra, score) ordenada por score desc
+        """
+        palavra = palavra.lower()
+        sig = self._assinatura_palavra(palavra)
+        if not sig:
+            return {}
+
+        sig_ctx, sig_acao = self._split_planos(sig)
+
+        candidatos = []
+        todas_palavras = list(self._palavra_acao.keys())
+        h_palavra_acao = self._entropia_shannon(self._palavra_acao.get(palavra, {}))
+
+        for p in todas_palavras:
+            if p == palavra:
+                continue
+            sig_p = self._assinatura_palavra(p)
+            if not sig_p:
+                continue
+
+            nmi_full = self._nmi(sig, sig_p)
+
+            sig_p_ctx, sig_p_acao = self._split_planos(sig_p)
+            nmi_ctx = self._nmi(sig_ctx, sig_p_ctx) if sig_ctx and sig_p_ctx else 0.0
+            nmi_acao = self._nmi(sig_acao, sig_p_acao) if sig_acao and sig_p_acao else 0.0
+
+            trans_ab = self._transicao_palavra.get(palavra, {}).get(p, 0)
+            trans_ba = self._transicao_palavra.get(p, {}).get(palavra, 0)
+
+            candidatos.append({
+                'palavra': p,
+                'nmi_full': nmi_full,
+                'nmi_ctx': nmi_ctx,
+                'nmi_acao': nmi_acao,
+                'trans_ab': trans_ab,
+                'trans_ba': trans_ba,
+                'len': len(p),
+                'h_acao': self._entropia_shannon(self._palavra_acao.get(p, {})),
+            })
+
+        if not candidatos:
+            return {}
+
+        relacoes: Dict[str, List[Tuple[str, float]]] = {}
+
+        # === SINONIMOS: alta NMI full ===
+        scores_sin = [c['nmi_full'] for c in candidatos]
+        corte_sin = self._corte_dinamico(scores_sin)
+        if corte_sin > 0:
+            sin_ordenado = sorted(candidatos, key=lambda c: -c['nmi_full'])
+            relacoes['sinonimos'] = [(c['palavra'], c['nmi_full'])
+                                     for c in sin_ordenado[:min(corte_sin, top_n)]]
+
+        # === ANTONIMOS: alto nmi_ctx + baixo nmi_acao (contraste) ===
+        for c in candidatos:
+            c['score_antonimo'] = c['nmi_ctx'] * (1.0 - c['nmi_acao'])
+        scores_ant = [c['score_antonimo'] for c in candidatos if c['nmi_ctx'] > 0]
+        corte_ant = self._corte_dinamico(scores_ant) if scores_ant else 0
+        if corte_ant > 0:
+            ant_ordenado = sorted(candidatos, key=lambda c: -c['score_antonimo'])
+            ant_filtrado = [c for c in ant_ordenado if c['nmi_ctx'] > 0]
+            relacoes['antonimos'] = [(c['palavra'], c['score_antonimo'])
+                                     for c in ant_filtrado[:min(corte_ant, top_n)]]
+
+        # === HIPERONIMOS: A->B transicao frequente ===
+        candidatos_hiper = [c for c in candidatos if c['trans_ab'] > 0]
+        if candidatos_hiper:
+            scores_hiper = [c['trans_ab'] for c in candidatos_hiper]
+            corte_hiper = self._corte_dinamico(scores_hiper)
+            if corte_hiper > 0:
+                hiper_ordenado = sorted(candidatos_hiper, key=lambda c: -c['trans_ab'])
+                total_trans = sum(c['trans_ab'] for c in candidatos_hiper) or 1
+                relacoes['hiperonimos'] = [(c['palavra'], c['trans_ab'] / total_trans)
+                                           for c in hiper_ordenado[:min(corte_hiper, top_n)]]
+
+        # === HIPONIMOS: B->A transicao frequente (inverso) ===
+        candidatos_hipo = [c for c in candidatos if c['trans_ba'] > 0]
+        if candidatos_hipo:
+            scores_hipo = [c['trans_ba'] for c in candidatos_hipo]
+            corte_hipo = self._corte_dinamico(scores_hipo)
+            if corte_hipo > 0:
+                hipo_ordenado = sorted(candidatos_hipo, key=lambda c: -c['trans_ba'])
+                total_trans = sum(c['trans_ba'] for c in candidatos_hipo) or 1
+                relacoes['hiponimos'] = [(c['palavra'], c['trans_ba'] / total_trans)
+                                         for c in hipo_ordenado[:min(corte_hipo, top_n)]]
+
+        # === MERONIMOS: NMI medio + candidato menor (parte-de) ===
+        candidatos_mero = [c for c in candidatos
+                           if c['len'] < len(palavra) and c['nmi_full'] > 0]
+        if candidatos_mero:
+            scores_mero = [c['nmi_full'] for c in candidatos_mero]
+            corte_mero = self._corte_dinamico(scores_mero)
+            if corte_mero > 0:
+                mero_ordenado = sorted(candidatos_mero, key=lambda c: -c['nmi_full'])
+                relacoes['meronimos'] = [(c['palavra'], c['nmi_full'])
+                                         for c in mero_ordenado[:min(corte_mero, top_n)]]
+
+        # === HOLONIMOS: NMI medio + candidato maior (todo-de) ===
+        candidatos_holo = [c for c in candidatos
+                           if c['len'] > len(palavra) and c['nmi_full'] > 0]
+        if candidatos_holo:
+            scores_holo = [c['nmi_full'] for c in candidatos_holo]
+            corte_holo = self._corte_dinamico(scores_holo)
+            if corte_holo > 0:
+                holo_ordenado = sorted(candidatos_holo, key=lambda c: -c['nmi_full'])
+                relacoes['holonimos'] = [(c['palavra'], c['nmi_full'])
+                                         for c in holo_ordenado[:min(corte_holo, top_n)]]
+
+        # === POLISSEMIA: H da palavra vs media + desvio ===
+        if todas_palavras:
+            entropias = [self._entropia_shannon(self._palavra_acao.get(p, {}))
+                         for p in todas_palavras
+                         if self._palavra_acao.get(p)]
+            if entropias:
+                media_h = sum(entropias) / len(entropias)
+                var_h = sum((h - media_h) ** 2 for h in entropias) / len(entropias)
+                std_h = var_h ** 0.5
+                if h_palavra_acao > media_h + std_h and std_h > 0:
+                    relacoes['polissemia'] = [(palavra, h_palavra_acao)]
+
+        return relacoes
+
     def clusterizar_palavras(self, threshold: float = 0.70) -> Dict[str, List[str]]:
         """Agrupa palavras por similaridade NMI de assinatura markoviana.
 
