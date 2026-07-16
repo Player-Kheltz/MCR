@@ -1,0 +1,7222 @@
+[
+  {
+    "id": 12,
+    "input": "arco encantado",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "arco encantado",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 74,
+    "input": "Crie um NPC instructer que vende botas",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "profession": "instructer",
+      "race": null,
+      "items": [
+        "botas"
+      ],
+      "has_shop": true
+    }
+  },
+  {
+    "id": 97,
+    "input": "Generate a selvagem esqueleto",
+    "expected_action": "gerar_monstro",
+    "language": "en",
+    "complexity": "medium",
+    "semantic_fields": {
+      "creature_type": "esqueleto",
+      "modifier": "selvagem",
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 337,
+    "input": "Gere um monstro behemoth de fogo",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "creature_type": "behemoth",
+      "modifier": "de fogo",
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 291,
+    "input": "Create an NPC cavaleiro",
+    "expected_action": "gerar_npc",
+    "language": "en",
+    "complexity": "simple",
+    "semantic_fields": {
+      "profession": "cavaleiro",
+      "race": null,
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 121,
+    "input": "Create an NPC sacerdote",
+    "expected_action": "gerar_npc",
+    "language": "en",
+    "complexity": "simple",
+    "semantic_fields": {
+      "profession": "sacerdote",
+      "race": null,
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 462,
+    "input": "Crie um NPC mestre de armas",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "profession": "mestre de armas",
+      "race": null,
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 210,
+    "input": "Como funciona como funciona o Markov",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "como funciona o Markov",
+      "expected_keywords": [
+        "markov",
+        "transicao",
+        "probabilidade"
+      ]
+    }
+  },
+  {
+    "id": 172,
+    "input": "escudo de prata",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "escudo de prata",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 320,
+    "input": "Gere um monstro demonio",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "creature_type": "demonio",
+      "modifier": null,
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 120,
+    "input": "Crie um NPC bibliotecario elfico",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "profession": "bibliotecario",
+      "race": "elfico",
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 417,
+    "input": "Explique o que e fingerprint",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "o que e fingerprint",
+      "expected_keywords": [
+        "fingerprint",
+        "hash",
+        "64d"
+      ]
+    }
+  },
+  {
+    "id": 114,
+    "input": "Crie um NPC carpinteiro elfico",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "profession": "carpinteiro",
+      "race": "elfico",
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 115,
+    "input": "como o MCR decide quando nao sabe",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "como o MCR decide quando nao sabe",
+      "expected_keywords": [
+        "incerteza",
+        "decisao",
+        "fallback"
+      ]
+    }
+  },
+  {
+    "id": 126,
+    "input": "Explique o que e TKK",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "o que e TKK",
+      "expected_keywords": [
+        "tkk",
+        "servidor",
+        "tibia"
+      ]
+    }
+  },
+  {
+    "id": 368,
+    "input": "mago elfico",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "mago elfico",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 254,
+    "input": "Generate a pequeno behemoth",
+    "expected_action": "gerar_monstro",
+    "language": "en",
+    "complexity": "medium",
+    "semantic_fields": {
+      "creature_type": "behemoth",
+      "modifier": "pequeno",
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 288,
+    "input": "gere um NPC",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "profession": "unknown",
+      "race": null,
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 464,
+    "input": "Create an NPC instructer",
+    "expected_action": "gerar_npc",
+    "language": "en",
+    "complexity": "simple",
+    "semantic_fields": {
+      "profession": "instructer",
+      "race": null,
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 364,
+    "input": "Gere um monstro troll",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "creature_type": "troll",
+      "modifier": null,
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 457,
+    "input": "dragao de gelo anciao gigante",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "creature_type": "unknown",
+      "modifier": null,
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 375,
+    "input": "gerar sprite",
+    "expected_action": "gerar_sprite",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "item_type": "unknown",
+      "modifier": null
+    }
+  },
+  {
+    "id": 184,
+    "input": "Crie um sprite de chapeu mágica",
+    "expected_action": "gerar_sprite",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "item_type": "chapeu",
+      "modifier": "mágica"
+    }
+  },
+  {
+    "id": 70,
+    "input": "Build a orc vendedor NPC selling varinhas who ja viajou o mundo",
+    "expected_action": "gerar_npc",
+    "language": "en",
+    "complexity": "complex",
+    "semantic_fields": {
+      "profession": "vendedor",
+      "race": "orc",
+      "items": [
+        "varinhas"
+      ],
+      "has_shop": true
+    }
+  },
+  {
+    "id": 144,
+    "input": "Crie um sprite de machado escura",
+    "expected_action": "gerar_sprite",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "item_type": "machado",
+      "modifier": "escura"
+    }
+  },
+  {
+    "id": 408,
+    "input": "como o ShadowCanary evita erros",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "como o ShadowCanary evita erros",
+      "expected_keywords": [
+        "shadow",
+        "canary",
+        "erros",
+        "penalidade"
+      ]
+    }
+  },
+  {
+    "id": 405,
+    "input": "Gere um monstro ciclope lendario",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "creature_type": "ciclope",
+      "modifier": null,
+      "danger": "lendario"
+    }
+  },
+  {
+    "id": 223,
+    "input": "Crie um monstro lobo",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "creature_type": "lobo",
+      "modifier": null,
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 319,
+    "input": "Gere um monstro urso anciao",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "creature_type": "urso",
+      "modifier": "anciao",
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 118,
+    "input": "armadura de dragao",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "armadura de dragao",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 206,
+    "input": "qual e o numero da sorte",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "answerable": false,
+      "topic": "unknown",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 330,
+    "input": "make an npc",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "profession": "unknown",
+      "race": null,
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 299,
+    "input": "Crie um NPC cavaleiro draconiano que vende chapeu e conhece o rei",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "profession": "cavaleiro",
+      "race": "draconiano",
+      "items": [
+        "chapeu"
+      ],
+      "has_shop": true
+    }
+  },
+  {
+    "id": 345,
+    "input": "Crie um NPC instructer orc que vende botas e fabula armas unicas",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "profession": "instructer",
+      "race": "orc",
+      "items": [
+        "botas"
+      ],
+      "has_shop": true
+    }
+  },
+  {
+    "id": 256,
+    "input": "elemental de fogo menor",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "creature_type": "unknown",
+      "modifier": null,
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 40,
+    "input": "crie um npc mago elfico que vende pocoes",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "profession": "unknown",
+      "race": null,
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 332,
+    "input": "Generate a hidra monster",
+    "expected_action": "gerar_monstro",
+    "language": "en",
+    "complexity": "simple",
+    "semantic_fields": {
+      "creature_type": "hidra",
+      "modifier": null,
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 397,
+    "input": "Crie um NPC mercador",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "profession": "mercador",
+      "race": null,
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 424,
+    "input": "Gere um NPC curandeiro",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "profession": "curandeiro",
+      "race": null,
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 449,
+    "input": "Create a elfico curandeiro NPC that sells armaduras",
+    "expected_action": "gerar_npc",
+    "language": "en",
+    "complexity": "medium",
+    "semantic_fields": {
+      "profession": "curandeiro",
+      "race": "elfico",
+      "items": [
+        "armaduras"
+      ],
+      "has_shop": true
+    }
+  },
+  {
+    "id": 451,
+    "input": "Crie um NPC druida halfling",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "profession": "druida",
+      "race": "halfling",
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 395,
+    "input": "Generate a nebuloso lich",
+    "expected_action": "gerar_monstro",
+    "language": "en",
+    "complexity": "medium",
+    "semantic_fields": {
+      "creature_type": "lich",
+      "modifier": "nebuloso",
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 91,
+    "input": "como funciona o Markov",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "como funciona o Markov",
+      "expected_keywords": [
+        "markov",
+        "transicao",
+        "probabilidade"
+      ]
+    }
+  },
+  {
+    "id": 239,
+    "input": "Gere um monstro",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "creature_type": "unknown",
+      "modifier": null,
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 338,
+    "input": "Generate a pequeno urso",
+    "expected_action": "gerar_monstro",
+    "language": "en",
+    "complexity": "medium",
+    "semantic_fields": {
+      "creature_type": "urso",
+      "modifier": "pequeno",
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 25,
+    "input": "Crie um monstro bruxa",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "creature_type": "bruxa",
+      "modifier": null,
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 322,
+    "input": "Gere um monstro lich antigo forte com habilidades especiais",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "creature_type": "lich",
+      "modifier": "antigo",
+      "danger": "forte"
+    }
+  },
+  {
+    "id": 432,
+    "input": "Crie um NPC tecelao",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "profession": "tecelao",
+      "race": null,
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 474,
+    "input": "Crie um NPC mendigo",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "profession": "mendigo",
+      "race": null,
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 137,
+    "input": "o que e um monstro",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "o que e um monstro",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 390,
+    "input": "Gere um monstro lich antigo",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "creature_type": "lich",
+      "modifier": "antigo",
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 62,
+    "input": "por que o MCR e melhor que LLM para tarefas estruturadas",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "por que o MCR e melhor que LLM para tarefas estruturadas",
+      "expected_keywords": [
+        "mcr",
+        "llm",
+        "estruturado"
+      ]
+    }
+  },
+  {
+    "input": "Crie uma quest de coleta de itens",
+    "expected_action": "gerar_quest"
+  },
+  {
+    "id": 480,
+    "input": "Voce sabe quem vai ganhar a copa do mundo",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": false,
+      "topic": "unknown",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 43,
+    "input": "Generate a medusa monster",
+    "expected_action": "gerar_monstro",
+    "language": "en",
+    "complexity": "simple",
+    "semantic_fields": {
+      "creature_type": "medusa",
+      "modifier": null,
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 275,
+    "input": "Crie um sprite de armadura",
+    "expected_action": "gerar_sprite",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "item_type": "armadura",
+      "modifier": null
+    }
+  },
+  {
+    "id": 216,
+    "input": "Generate a orc monster",
+    "expected_action": "gerar_monstro",
+    "language": "en",
+    "complexity": "simple",
+    "semantic_fields": {
+      "creature_type": "orc",
+      "modifier": null,
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 208,
+    "input": "Build a anao padeiro NPC selling escudos who tem um passado misterioso",
+    "expected_action": "gerar_npc",
+    "language": "en",
+    "complexity": "complex",
+    "semantic_fields": {
+      "profession": "padeiro",
+      "race": "anao",
+      "items": [
+        "escudos"
+      ],
+      "has_shop": true
+    }
+  },
+  {
+    "id": 298,
+    "input": "Gere um monstro lobo",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "creature_type": "lobo",
+      "modifier": null,
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 171,
+    "input": "faca npc",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "profession": "unknown",
+      "race": null,
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 476,
+    "input": "Gere um NPC alquimista",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "profession": "alquimista",
+      "race": null,
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 164,
+    "input": "Gere um monstro fantasma selvagem",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "creature_type": "fantasma",
+      "modifier": "selvagem",
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 150,
+    "input": "Gere um monstro urso gigante perigoso com habilidades especiais",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "creature_type": "urso",
+      "modifier": "gigante",
+      "danger": "perigoso"
+    }
+  },
+  {
+    "id": 102,
+    "input": "Build a anao instructer NPC selling espadas who ama ouro",
+    "expected_action": "gerar_npc",
+    "language": "en",
+    "complexity": "complex",
+    "semantic_fields": {
+      "profession": "instructer",
+      "race": "anao",
+      "items": [
+        "espadas"
+      ],
+      "has_shop": true
+    }
+  },
+  {
+    "id": 119,
+    "input": "Crie um NPC bibliotecario",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "profession": "bibliotecario",
+      "race": null,
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 358,
+    "input": "Generate a de fogo ciclope",
+    "expected_action": "gerar_monstro",
+    "language": "en",
+    "complexity": "medium",
+    "semantic_fields": {
+      "creature_type": "ciclope",
+      "modifier": "de fogo",
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 454,
+    "input": "Crie um NPC mensageiro orc",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "profession": "mensageiro",
+      "race": "orc",
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 357,
+    "input": "Create a elfico mercador NPC that sells varinhas",
+    "expected_action": "gerar_npc",
+    "language": "en",
+    "complexity": "medium",
+    "semantic_fields": {
+      "profession": "mercador",
+      "race": "elfico",
+      "items": [
+        "varinhas"
+      ],
+      "has_shop": true
+    }
+  },
+  {
+    "id": 266,
+    "input": "Explique o que e um NPC",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "o que e um NPC",
+      "expected_keywords": [
+        "npc",
+        "personagem",
+        "jogo"
+      ]
+    }
+  },
+  {
+    "id": 29,
+    "input": "Crie um NPC cavaleiro",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "profession": "cavaleiro",
+      "race": null,
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 202,
+    "input": "por que o MCR nao precisa de GPU",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "por que o MCR nao precisa de GPU",
+      "expected_keywords": [
+        "gpu",
+        "mcr",
+        "economico"
+      ]
+    }
+  },
+  {
+    "id": 356,
+    "input": "Gere um monstro dragao",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "creature_type": "dragao",
+      "modifier": null,
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 264,
+    "input": "Crie um NPC instructer gnomo",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "profession": "instructer",
+      "race": "gnomo",
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 317,
+    "input": "Voce sabe qual e a capital da mongolia",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": false,
+      "topic": "unknown",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 129,
+    "input": "Gere um NPC minerador",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "profession": "minerador",
+      "race": null,
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 196,
+    "input": "Explique o que e cluster",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "o que e cluster",
+      "expected_keywords": [
+        "cluster",
+        "agrupamento",
+        "similaridade"
+      ]
+    }
+  },
+  {
+    "id": 224,
+    "input": "Create a antiga armadura sprite",
+    "expected_action": "gerar_sprite",
+    "language": "en",
+    "complexity": "medium",
+    "semantic_fields": {
+      "item_type": "armadura",
+      "modifier": "antiga"
+    }
+  },
+  {
+    "id": 279,
+    "input": "Explain what is a fingerprint",
+    "expected_action": "responder",
+    "language": "en",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "what is a fingerprint",
+      "expected_keywords": [
+        "fingerprint",
+        "hash",
+        "64d"
+      ]
+    }
+  },
+  {
+    "id": 377,
+    "input": "Crie um monstro hidra",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "creature_type": "hidra",
+      "modifier": null,
+      "danger": "medium"
+    }
+  },
+  {
+    "input": "Faca uma quest de combate em arena",
+    "expected_action": "gerar_quest"
+  },
+  {
+    "id": 382,
+    "input": "Build a gnomo cavaleiro NPC selling escudos who ja viajou o mundo",
+    "expected_action": "gerar_npc",
+    "language": "en",
+    "complexity": "complex",
+    "semantic_fields": {
+      "profession": "cavaleiro",
+      "race": "gnomo",
+      "items": [
+        "escudos"
+      ],
+      "has_shop": true
+    }
+  },
+  {
+    "id": 124,
+    "input": "como criar espada",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "como criar espada",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 72,
+    "input": "o que e clusterizacao e como funciona no MCR",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "o que e clusterizacao e como funciona no MCR",
+      "expected_keywords": [
+        "cluster",
+        "mcr",
+        "similaridade"
+      ]
+    }
+  },
+  {
+    "id": 460,
+    "input": "Create a draconiano mendigo NPC that sells anel",
+    "expected_action": "gerar_npc",
+    "language": "en",
+    "complexity": "medium",
+    "semantic_fields": {
+      "profession": "mendigo",
+      "race": "draconiano",
+      "items": [
+        "anel"
+      ],
+      "has_shop": true
+    }
+  },
+  {
+    "id": 355,
+    "input": "Build a draconiano tecelao NPC selling varinhas who odeia monstros",
+    "expected_action": "gerar_npc",
+    "language": "en",
+    "complexity": "complex",
+    "semantic_fields": {
+      "profession": "tecelao",
+      "race": "draconiano",
+      "items": [
+        "varinhas"
+      ],
+      "has_shop": true
+    }
+  },
+  {
+    "id": 159,
+    "input": "o que e auto-calibracao da equacao",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "o que e auto-calibracao da equacao",
+      "expected_keywords": [
+        "auto-calibracao",
+        "equacao",
+        "pesos"
+      ]
+    }
+  },
+  {
+    "id": 95,
+    "input": "previsao do tempo para amanha",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "answerable": false,
+      "topic": "unknown",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 30,
+    "input": "Generate a nebuloso goblin",
+    "expected_action": "gerar_monstro",
+    "language": "en",
+    "complexity": "medium",
+    "semantic_fields": {
+      "creature_type": "goblin",
+      "modifier": "nebuloso",
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 32,
+    "input": "Gere um monstro bruxa selvagem",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "creature_type": "bruxa",
+      "modifier": "selvagem",
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 2,
+    "input": "Explain how does Markov work",
+    "expected_action": "responder",
+    "language": "en",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "how does Markov work",
+      "expected_keywords": [
+        "markov",
+        "transition",
+        "probability"
+      ]
+    }
+  },
+  {
+    "id": 478,
+    "input": "Crie um NPC mensageiro humano que vende varinhas e tem um passado misterioso",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "profession": "mensageiro",
+      "race": "humano",
+      "items": [
+        "varinhas"
+      ],
+      "has_shop": true
+    }
+  },
+  {
+    "id": 55,
+    "input": "Crie um NPC mago",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "profession": "mago",
+      "race": null,
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 281,
+    "input": "Gere um monstro lobo venenoso",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "creature_type": "lobo",
+      "modifier": "venenoso",
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 134,
+    "input": "Crie um sprite de machado",
+    "expected_action": "gerar_sprite",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "item_type": "machado",
+      "modifier": null
+    }
+  },
+  {
+    "id": 343,
+    "input": "Create a prateada mascara sprite",
+    "expected_action": "gerar_sprite",
+    "language": "en",
+    "complexity": "medium",
+    "semantic_fields": {
+      "item_type": "mascara",
+      "modifier": "prateada"
+    }
+  },
+  {
+    "id": 374,
+    "input": "Build a gnomo curandeiro NPC selling pocoes who tem uma quest secreta",
+    "expected_action": "gerar_npc",
+    "language": "en",
+    "complexity": "complex",
+    "semantic_fields": {
+      "profession": "curandeiro",
+      "race": "gnomo",
+      "items": [
+        "pocoes"
+      ],
+      "has_shop": true
+    }
+  },
+  {
+    "id": 47,
+    "input": "cajado druidico",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "cajado druidico",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 230,
+    "input": "Crie um NPC taverneiro draconiano",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "profession": "taverneiro",
+      "race": "draconiano",
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 177,
+    "input": "Create a lendaria anel sprite",
+    "expected_action": "gerar_sprite",
+    "language": "en",
+    "complexity": "medium",
+    "semantic_fields": {
+      "item_type": "anel",
+      "modifier": "lendaria"
+    }
+  },
+  {
+    "id": 251,
+    "input": "Create an NPC minerador",
+    "expected_action": "gerar_npc",
+    "language": "en",
+    "complexity": "simple",
+    "semantic_fields": {
+      "profession": "minerador",
+      "race": null,
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 112,
+    "input": "Crie um NPC alquimista",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "profession": "alquimista",
+      "race": null,
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 385,
+    "input": "qual e o sentido da vida",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "answerable": false,
+      "topic": "unknown",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 149,
+    "input": "um sprite",
+    "expected_action": "gerar_sprite",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "item_type": "unknown",
+      "modifier": null
+    }
+  },
+  {
+    "id": 438,
+    "input": "como o observador universal aprende padroes",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "como o observador universal aprende padroes",
+      "expected_keywords": [
+        "observador",
+        "padroes",
+        "aprendizado"
+      ]
+    }
+  },
+  {
+    "id": 447,
+    "input": "Como funciona o que e PID",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "o que e PID",
+      "expected_keywords": [
+        "pid",
+        "processo",
+        "identificador"
+      ]
+    }
+  },
+  {
+    "id": 292,
+    "input": "Build a orc taverneiro NPC selling escudos who tem um passado misterioso",
+    "expected_action": "gerar_npc",
+    "language": "en",
+    "complexity": "complex",
+    "semantic_fields": {
+      "profession": "taverneiro",
+      "race": "orc",
+      "items": [
+        "escudos"
+      ],
+      "has_shop": true
+    }
+  },
+  {
+    "id": 199,
+    "input": "Crie um sprite de mascara",
+    "expected_action": "gerar_sprite",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "item_type": "mascara",
+      "modifier": null
+    }
+  },
+  {
+    "id": 347,
+    "input": "Create a draconiano alquimista NPC that sells pocoes",
+    "expected_action": "gerar_npc",
+    "language": "en",
+    "complexity": "medium",
+    "semantic_fields": {
+      "profession": "alquimista",
+      "race": "draconiano",
+      "items": [
+        "pocoes"
+      ],
+      "has_shop": true
+    }
+  },
+  {
+    "id": 45,
+    "input": "Generate a minotauro monster",
+    "expected_action": "gerar_monstro",
+    "language": "en",
+    "complexity": "simple",
+    "semantic_fields": {
+      "creature_type": "minotauro",
+      "modifier": null,
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 36,
+    "input": "Gere um monstro bruxa",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "creature_type": "bruxa",
+      "modifier": null,
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 403,
+    "input": "how does MCR learn",
+    "expected_action": "responder",
+    "language": "en",
+    "complexity": "simple",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "how does MCR learn",
+      "expected_keywords": [
+        "learning",
+        "markov",
+        "reinforcement"
+      ]
+    }
+  },
+  {
+    "id": 54,
+    "input": "Generate a lich monster",
+    "expected_action": "gerar_monstro",
+    "language": "en",
+    "complexity": "simple",
+    "semantic_fields": {
+      "creature_type": "lich",
+      "modifier": null,
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 56,
+    "input": "Build a elfico mago NPC selling anel who tem um passado misterioso",
+    "expected_action": "gerar_npc",
+    "language": "en",
+    "complexity": "complex",
+    "semantic_fields": {
+      "profession": "mago",
+      "race": "elfico",
+      "items": [
+        "anel"
+      ],
+      "has_shop": true
+    }
+  },
+  {
+    "id": 86,
+    "input": "Explique o que e Canary",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "o que e Canary",
+      "expected_keywords": [
+        "canary",
+        "servidor",
+        "tibia"
+      ]
+    }
+  },
+  {
+    "id": 238,
+    "input": "Crie um NPC taverneiro",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "profession": "taverneiro",
+      "race": null,
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 469,
+    "input": "Create a orc cozinheiro NPC that sells varinhas",
+    "expected_action": "gerar_npc",
+    "language": "en",
+    "complexity": "medium",
+    "semantic_fields": {
+      "profession": "cozinheiro",
+      "race": "orc",
+      "items": [
+        "varinhas"
+      ],
+      "has_shop": true
+    }
+  },
+  {
+    "id": 399,
+    "input": "diferenca entre Markov e LLM",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "diferenca entre Markov e LLM",
+      "expected_keywords": [
+        "markov",
+        "llm",
+        "probabilidade"
+      ]
+    }
+  },
+  {
+    "id": 51,
+    "input": "crie sprite de machado de guerra antigo",
+    "expected_action": "gerar_sprite",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "item_type": "unknown",
+      "modifier": null
+    }
+  },
+  {
+    "id": 163,
+    "input": "Crie um sprite de anel",
+    "expected_action": "gerar_sprite",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "item_type": "anel",
+      "modifier": null
+    }
+  },
+  {
+    "id": 229,
+    "input": "what is entropy",
+    "expected_action": "responder",
+    "language": "en",
+    "complexity": "simple",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "what is entropy",
+      "expected_keywords": [
+        "entropy",
+        "shannon",
+        "information"
+      ]
+    }
+  },
+  {
+    "id": 73,
+    "input": "Gere um monstro golem medio",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "creature_type": "golem",
+      "modifier": null,
+      "danger": "medio"
+    }
+  },
+  {
+    "id": 209,
+    "input": "Create an NPC curandeiro",
+    "expected_action": "gerar_npc",
+    "language": "en",
+    "complexity": "simple",
+    "semantic_fields": {
+      "profession": "curandeiro",
+      "race": null,
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 214,
+    "input": "explique Shannon",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "explique Shannon",
+      "expected_keywords": [
+        "shannon",
+        "entropia",
+        "bits"
+      ]
+    }
+  },
+  {
+    "id": 6,
+    "input": "quando vai acabar a pandemia",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "answerable": false,
+      "topic": "unknown",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 183,
+    "input": "Generate a nebuloso lobo",
+    "expected_action": "gerar_monstro",
+    "language": "en",
+    "complexity": "medium",
+    "semantic_fields": {
+      "creature_type": "lobo",
+      "modifier": "nebuloso",
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 116,
+    "input": "Gere um monstro orc",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "creature_type": "orc",
+      "modifier": null,
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 248,
+    "input": "Gere um NPC ladrao",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "profession": "ladrao",
+      "race": null,
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 443,
+    "input": "Crie um NPC vendedor que vende pocoes",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "profession": "vendedor",
+      "race": null,
+      "items": [
+        "pocoes"
+      ],
+      "has_shop": true
+    }
+  },
+  {
+    "id": 156,
+    "input": "Gere um monstro goblin corrompido lendario com habilidades especiais",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "creature_type": "goblin",
+      "modifier": "corrompido",
+      "danger": "lendario"
+    }
+  },
+  {
+    "id": 293,
+    "input": "Crie um sprite de cajado antiga",
+    "expected_action": "gerar_sprite",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "item_type": "cajado",
+      "modifier": "antiga"
+    }
+  },
+  {
+    "id": 88,
+    "input": "Generate a nebuloso vampiro",
+    "expected_action": "gerar_monstro",
+    "language": "en",
+    "complexity": "medium",
+    "semantic_fields": {
+      "creature_type": "vampiro",
+      "modifier": "nebuloso",
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 175,
+    "input": "Gere um monstro golem antigo mitico com habilidades especiais",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "creature_type": "golem",
+      "modifier": "antigo",
+      "danger": "mitico"
+    }
+  },
+  {
+    "id": 333,
+    "input": "Create a orc taverneiro NPC that sells chapeu",
+    "expected_action": "gerar_npc",
+    "language": "en",
+    "complexity": "medium",
+    "semantic_fields": {
+      "profession": "taverneiro",
+      "race": "orc",
+      "items": [
+        "chapeu"
+      ],
+      "has_shop": true
+    }
+  },
+  {
+    "id": 178,
+    "input": "Crie um NPC guarda que vende escudos",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "profession": "guarda",
+      "race": null,
+      "items": [
+        "escudos"
+      ],
+      "has_shop": true
+    }
+  },
+  {
+    "id": 236,
+    "input": "Crie um NPC sacerdote",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "profession": "sacerdote",
+      "race": null,
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 381,
+    "input": "um monstro muito forte",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "creature_type": "unknown",
+      "modifier": null,
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 167,
+    "input": "mago orc que coleta ervas raras e conhece o rei",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "profession": "unknown",
+      "race": null,
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 168,
+    "input": "Generate a serpente monster",
+    "expected_action": "gerar_monstro",
+    "language": "en",
+    "complexity": "simple",
+    "semantic_fields": {
+      "creature_type": "serpente",
+      "modifier": null,
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 131,
+    "input": "NPC vende nada",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "profession": "unknown",
+      "race": null,
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 305,
+    "input": "Generate an ancient venenoso golem that drops rare items",
+    "expected_action": "gerar_monstro",
+    "language": "en",
+    "complexity": "complex",
+    "semantic_fields": {
+      "creature_type": "golem",
+      "modifier": "venenoso",
+      "danger": "legendary"
+    }
+  },
+  {
+    "id": 369,
+    "input": "Gere um monstro ciclope venenoso",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "creature_type": "ciclope",
+      "modifier": "venenoso",
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 82,
+    "input": "Crie um monstro serpente",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "creature_type": "serpente",
+      "modifier": null,
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 173,
+    "input": "Voce sabe qual e o sentido da vida",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": false,
+      "topic": "unknown",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 98,
+    "input": "Como funciona como o MCR aprende",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "como o MCR aprende",
+      "expected_keywords": [
+        "aprendizado",
+        "markov",
+        "reforco"
+      ]
+    }
+  },
+  {
+    "id": 39,
+    "input": "me fale sobre NPC",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "me fale sobre NPC",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 157,
+    "input": "quem vai ganhar a copa do mundo",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "answerable": false,
+      "topic": "unknown",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 17,
+    "input": "Create a elfico tecelao NPC that sells chapeu",
+    "expected_action": "gerar_npc",
+    "language": "en",
+    "complexity": "medium",
+    "semantic_fields": {
+      "profession": "tecelao",
+      "race": "elfico",
+      "items": [
+        "chapeu"
+      ],
+      "has_shop": true
+    }
+  },
+  {
+    "id": 401,
+    "input": "Create a simples escudo sprite",
+    "expected_action": "gerar_sprite",
+    "language": "en",
+    "complexity": "medium",
+    "semantic_fields": {
+      "item_type": "escudo",
+      "modifier": "simples"
+    }
+  },
+  {
+    "id": 450,
+    "input": "Gere um monstro esqueleto selvagem mortal com habilidades especiais",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "creature_type": "esqueleto",
+      "modifier": "selvagem",
+      "danger": "mortal"
+    }
+  },
+  {
+    "id": 38,
+    "input": "Crie um NPC curandeiro que vende anel",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "profession": "curandeiro",
+      "race": null,
+      "items": [
+        "anel"
+      ],
+      "has_shop": true
+    }
+  },
+  {
+    "id": 16,
+    "input": "Generate a wraith monster",
+    "expected_action": "gerar_monstro",
+    "language": "en",
+    "complexity": "simple",
+    "semantic_fields": {
+      "creature_type": "wraith",
+      "modifier": null,
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 428,
+    "input": "Gere um monstro vampiro",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "creature_type": "vampiro",
+      "modifier": null,
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 380,
+    "input": "Gere um monstro serpente de lava medio com habilidades especiais",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "creature_type": "serpente",
+      "modifier": "de lava",
+      "danger": "medio"
+    }
+  },
+  {
+    "id": 65,
+    "input": "o que e looktype",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "o que e looktype",
+      "expected_keywords": [
+        "looktype",
+        "aparencia",
+        "sprite"
+      ]
+    }
+  },
+  {
+    "id": 290,
+    "input": "Create an NPC ferreiro",
+    "expected_action": "gerar_npc",
+    "language": "en",
+    "complexity": "simple",
+    "semantic_fields": {
+      "profession": "ferreiro",
+      "race": null,
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "input": "Gere uma quest de escolta de caravana",
+    "expected_action": "gerar_quest"
+  },
+  {
+    "id": 316,
+    "input": "Crie um NPC sacerdote elfico que vende botas e ja viajou o mundo",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "profession": "sacerdote",
+      "race": "elfico",
+      "items": [
+        "botas"
+      ],
+      "has_shop": true
+    }
+  },
+  {
+    "id": 472,
+    "input": "Gere um monstro lobo de lava medio com habilidades especiais",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "creature_type": "lobo",
+      "modifier": "de lava",
+      "danger": "medio"
+    }
+  },
+  {
+    "id": 201,
+    "input": "Create a de fogo espada sprite",
+    "expected_action": "gerar_sprite",
+    "language": "en",
+    "complexity": "medium",
+    "semantic_fields": {
+      "item_type": "espada",
+      "modifier": "de fogo"
+    }
+  },
+  {
+    "id": 354,
+    "input": "como o MCR valida codigo gerado",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "como o MCR valida codigo gerado",
+      "expected_keywords": [
+        "validacao",
+        "codigo",
+        "lua",
+        "sanity"
+      ]
+    }
+  },
+  {
+    "id": 284,
+    "input": "Crie um NPC",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "profession": "unknown",
+      "race": null,
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 142,
+    "input": "sprite de espada dourada magica",
+    "expected_action": "gerar_sprite",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "item_type": "unknown",
+      "modifier": null
+    }
+  },
+  {
+    "id": 100,
+    "input": "Crie um NPC mensageiro",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "profession": "mensageiro",
+      "race": null,
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 241,
+    "input": "generate monster",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "creature_type": "unknown",
+      "modifier": null,
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 218,
+    "input": "Como funciona o que e looktype",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "o que e looktype",
+      "expected_keywords": [
+        "looktype",
+        "aparencia",
+        "sprite"
+      ]
+    }
+  },
+  {
+    "id": 96,
+    "input": "Gere um monstro wraith anciao",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "creature_type": "wraith",
+      "modifier": "anciao",
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 174,
+    "input": "Gere um monstro vampiro venenoso mortal com habilidades especiais",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "creature_type": "vampiro",
+      "modifier": "venenoso",
+      "danger": "mortal"
+    }
+  },
+  {
+    "id": 113,
+    "input": "como funciona Lua",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "como funciona Lua",
+      "expected_keywords": [
+        "lua",
+        "script",
+        "codigo"
+      ]
+    }
+  },
+  {
+    "input": "Crie uma quest de puzzle em um templo",
+    "expected_action": "gerar_quest"
+  },
+  {
+    "id": 233,
+    "input": "como o MCR aprende",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "como o MCR aprende",
+      "expected_keywords": [
+        "aprendizado",
+        "markov",
+        "reforco"
+      ]
+    }
+  },
+  {
+    "id": 307,
+    "input": "crie um sprite",
+    "expected_action": "gerar_sprite",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "item_type": "unknown",
+      "modifier": null
+    }
+  },
+  {
+    "id": 325,
+    "input": "Gere um monstro medusa perigoso",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "creature_type": "medusa",
+      "modifier": null,
+      "danger": "perigoso"
+    }
+  },
+  {
+    "id": 342,
+    "input": "criar codigo",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "criar codigo",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 276,
+    "input": "Gere um monstro orc de lava",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "creature_type": "orc",
+      "modifier": "de lava",
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 398,
+    "input": "alquimista draconiano que fabula armas unicas",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "profession": "unknown",
+      "race": null,
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 269,
+    "input": "Crie um NPC cavaleiro que vende botas",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "profession": "cavaleiro",
+      "race": null,
+      "items": [
+        "botas"
+      ],
+      "has_shop": true
+    }
+  },
+  {
+    "id": 456,
+    "input": "Crie um NPC guia que vende chapeu",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "profession": "guia",
+      "race": null,
+      "items": [
+        "chapeu"
+      ],
+      "has_shop": true
+    }
+  },
+  {
+    "id": 295,
+    "input": "Crie um NPC guia",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "profession": "guia",
+      "race": null,
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 294,
+    "input": "Gere um monstro ciclope selvagem forte com habilidades especiais",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "creature_type": "ciclope",
+      "modifier": "selvagem",
+      "danger": "forte"
+    }
+  },
+  {
+    "id": 391,
+    "input": "como criar um NPC",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "como criar um NPC",
+      "expected_keywords": [
+        "npc",
+        "personagem",
+        "criar"
+      ]
+    }
+  },
+  {
+    "id": 133,
+    "input": "Gere um monstro aranha de gelo",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "creature_type": "aranha",
+      "modifier": "de gelo",
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 378,
+    "input": "Crie um sprite de bota simples",
+    "expected_action": "gerar_sprite",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "item_type": "bota",
+      "modifier": "simples"
+    }
+  },
+  {
+    "id": 235,
+    "input": "Create a elfico mensageiro NPC that sells escudos",
+    "expected_action": "gerar_npc",
+    "language": "en",
+    "complexity": "medium",
+    "semantic_fields": {
+      "profession": "mensageiro",
+      "race": "elfico",
+      "items": [
+        "escudos"
+      ],
+      "has_shop": true
+    }
+  },
+  {
+    "id": 314,
+    "input": "Create a gnomo sacerdote NPC that sells espadas",
+    "expected_action": "gerar_npc",
+    "language": "en",
+    "complexity": "medium",
+    "semantic_fields": {
+      "profession": "sacerdote",
+      "race": "gnomo",
+      "items": [
+        "espadas"
+      ],
+      "has_shop": true
+    }
+  },
+  {
+    "id": 50,
+    "input": "o que e entropia",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "o que e entropia",
+      "expected_keywords": [
+        "entropia",
+        "shannon",
+        "informacao"
+      ]
+    }
+  },
+  {
+    "id": 468,
+    "input": "o que e cluster",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "o que e cluster",
+      "expected_keywords": [
+        "cluster",
+        "agrupamento",
+        "similaridade"
+      ]
+    }
+  },
+  {
+    "id": 470,
+    "input": "Gere um monstro goblin",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "creature_type": "goblin",
+      "modifier": null,
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 37,
+    "input": "Create an NPC guarda",
+    "expected_action": "gerar_npc",
+    "language": "en",
+    "complexity": "simple",
+    "semantic_fields": {
+      "profession": "guarda",
+      "race": null,
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 155,
+    "input": "create NPC",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "profession": "unknown",
+      "race": null,
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 339,
+    "input": "o que e fingerprint",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "o que e fingerprint",
+      "expected_keywords": [
+        "fingerprint",
+        "hash",
+        "64d"
+      ]
+    }
+  },
+  {
+    "id": 146,
+    "input": "Generate an ancient pequeno wraith that drops rare items",
+    "expected_action": "gerar_monstro",
+    "language": "en",
+    "complexity": "complex",
+    "semantic_fields": {
+      "creature_type": "wraith",
+      "modifier": "pequeno",
+      "danger": "legendary"
+    }
+  },
+  {
+    "id": 329,
+    "input": "Generate an ancient anciao medusa that drops rare items",
+    "expected_action": "gerar_monstro",
+    "language": "en",
+    "complexity": "complex",
+    "semantic_fields": {
+      "creature_type": "medusa",
+      "modifier": "anciao",
+      "danger": "legendary"
+    }
+  },
+  {
+    "id": 141,
+    "input": "como o MCR decide qual ferramenta usar",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "como o MCR decide qual ferramenta usar",
+      "expected_keywords": [
+        "mcr",
+        "decidir",
+        "ferramenta",
+        "markov"
+      ]
+    }
+  },
+  {
+    "id": 15,
+    "input": "Como funciona explique a equacao MCR",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "explique a equacao MCR",
+      "expected_keywords": [
+        "equacao",
+        "sigmoide",
+        "cincodimensional"
+      ]
+    }
+  },
+  {
+    "id": 473,
+    "input": "Voce sabe qual e o preco do bitcoin hoje",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": false,
+      "topic": "unknown",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 303,
+    "input": "Explique como o MCR aprende",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "como o MCR aprende",
+      "expected_keywords": [
+        "aprendizado",
+        "markov",
+        "reforco"
+      ]
+    }
+  },
+  {
+    "id": 9,
+    "input": "Generate a behemoth monster",
+    "expected_action": "gerar_monstro",
+    "language": "en",
+    "complexity": "simple",
+    "semantic_fields": {
+      "creature_type": "behemoth",
+      "modifier": null,
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 304,
+    "input": "Gere um monstro goblin fraco",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "creature_type": "goblin",
+      "modifier": null,
+      "danger": "fraco"
+    }
+  },
+  {
+    "id": 425,
+    "input": "Create a anao druida NPC that sells chapeu",
+    "expected_action": "gerar_npc",
+    "language": "en",
+    "complexity": "medium",
+    "semantic_fields": {
+      "profession": "druida",
+      "race": "anao",
+      "items": [
+        "chapeu"
+      ],
+      "has_shop": true
+    }
+  },
+  {
+    "id": 252,
+    "input": "como o MCR lida com dados que nunca viu",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "como o MCR lida com dados que nunca viu",
+      "expected_keywords": [
+        "dados",
+        "novos",
+        "generalizacao"
+      ]
+    }
+  },
+  {
+    "id": 440,
+    "input": "Como funciona como criar um NPC",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "como criar um NPC",
+      "expected_keywords": [
+        "npc",
+        "personagem",
+        "criar"
+      ]
+    }
+  },
+  {
+    "id": 192,
+    "input": "Crie um NPC arqueiro gnomo que vende pocoes e fabula armas unicas",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "profession": "arqueiro",
+      "race": "gnomo",
+      "items": [
+        "pocoes"
+      ],
+      "has_shop": true
+    }
+  },
+  {
+    "id": 87,
+    "input": "Gere um monstro hidra nebuloso",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "creature_type": "hidra",
+      "modifier": "nebuloso",
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 48,
+    "input": "Crie um NPC ferreiro",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "profession": "ferreiro",
+      "race": null,
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 226,
+    "input": "o que e PID",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "o que e PID",
+      "expected_keywords": [
+        "pid",
+        "processo",
+        "identificador"
+      ]
+    }
+  },
+  {
+    "id": 128,
+    "input": "Crie um NPC mercador que vende anel",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "profession": "mercador",
+      "race": null,
+      "items": [
+        "anel"
+      ],
+      "has_shop": true
+    }
+  },
+  {
+    "id": 465,
+    "input": "o que e TKK",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "o que e TKK",
+      "expected_keywords": [
+        "tkk",
+        "servidor",
+        "tibia"
+      ]
+    }
+  },
+  {
+    "id": 188,
+    "input": "Create a elfico padeiro NPC that sells espadas",
+    "expected_action": "gerar_npc",
+    "language": "en",
+    "complexity": "medium",
+    "semantic_fields": {
+      "profession": "padeiro",
+      "race": "elfico",
+      "items": [
+        "espadas"
+      ],
+      "has_shop": true
+    }
+  },
+  {
+    "id": 442,
+    "input": "dragao",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "creature_type": "unknown",
+      "modifier": null,
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 400,
+    "input": "Generate a nebuloso aranha",
+    "expected_action": "gerar_monstro",
+    "language": "en",
+    "complexity": "medium",
+    "semantic_fields": {
+      "creature_type": "aranha",
+      "modifier": "nebuloso",
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 46,
+    "input": "Create a draconiano guia NPC that sells pocoes",
+    "expected_action": "gerar_npc",
+    "language": "en",
+    "complexity": "medium",
+    "semantic_fields": {
+      "profession": "guia",
+      "race": "draconiano",
+      "items": [
+        "pocoes"
+      ],
+      "has_shop": true
+    }
+  },
+  {
+    "id": 228,
+    "input": "Crie um NPC guarda elfico",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "profession": "guarda",
+      "race": "elfico",
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 161,
+    "input": "Crie um NPC minerador halfling",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "profession": "minerador",
+      "race": "halfling",
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 277,
+    "input": "sprite armor",
+    "expected_action": "gerar_sprite",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "item_type": "unknown",
+      "modifier": null
+    }
+  },
+  {
+    "id": 312,
+    "input": "gere monstro orc",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "creature_type": "unknown",
+      "modifier": null,
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 71,
+    "input": "Crie um NPC cozinheiro que vende escudos",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "profession": "cozinheiro",
+      "race": null,
+      "items": [
+        "escudos"
+      ],
+      "has_shop": true
+    }
+  },
+  {
+    "id": 336,
+    "input": "Crie um NPC guarda",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "profession": "guarda",
+      "race": null,
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 190,
+    "input": "Gere um monstro serpente lendario",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "creature_type": "serpente",
+      "modifier": null,
+      "danger": "lendario"
+    }
+  },
+  {
+    "id": 57,
+    "input": "Build a anao ferreiro NPC selling espadas who fabula armas unicas",
+    "expected_action": "gerar_npc",
+    "language": "en",
+    "complexity": "complex",
+    "semantic_fields": {
+      "profession": "ferreiro",
+      "race": "anao",
+      "items": [
+        "espadas"
+      ],
+      "has_shop": true
+    }
+  },
+  {
+    "id": 430,
+    "input": "Generate an ancient pequeno grifo that drops rare items",
+    "expected_action": "gerar_monstro",
+    "language": "en",
+    "complexity": "complex",
+    "semantic_fields": {
+      "creature_type": "grifo",
+      "modifier": "pequeno",
+      "danger": "legendary"
+    }
+  },
+  {
+    "id": 182,
+    "input": "Explique diferenca entre Markov e LLM",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "diferenca entre Markov e LLM",
+      "expected_keywords": [
+        "markov",
+        "llm",
+        "probabilidade"
+      ]
+    }
+  },
+  {
+    "id": 283,
+    "input": "crie um sprite de NPC",
+    "expected_action": "gerar_sprite",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "item_type": "unknown",
+      "modifier": null
+    }
+  },
+  {
+    "id": 19,
+    "input": "explique monstro",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "explique monstro",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 458,
+    "input": "Crie um NPC instructer",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "profession": "instructer",
+      "race": null,
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 162,
+    "input": "o que e um NPC",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "o que e um NPC",
+      "expected_keywords": [
+        "npc",
+        "personagem",
+        "jogo"
+      ]
+    }
+  },
+  {
+    "id": 349,
+    "input": "Crie um NPC curandeiro",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "profession": "curandeiro",
+      "race": null,
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 42,
+    "input": "botas de velocidade",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "botas de velocidade",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 363,
+    "input": "vendedor humano misterioso com passado sombrio",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "profession": "unknown",
+      "race": null,
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 13,
+    "input": "pocao de vida",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "pocao de vida",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 402,
+    "input": "Gere um monstro grifo",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "creature_type": "grifo",
+      "modifier": null,
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 261,
+    "input": "Crie um sprite de bota",
+    "expected_action": "gerar_sprite",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "item_type": "bota",
+      "modifier": null
+    }
+  },
+  {
+    "id": 117,
+    "input": "crie um NPC dragao",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "profession": "unknown",
+      "race": null,
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 310,
+    "input": "Crie um NPC artesao que vende escudos",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "profession": "artesao",
+      "race": null,
+      "items": [
+        "escudos"
+      ],
+      "has_shop": true
+    }
+  },
+  {
+    "id": 262,
+    "input": "Crie um NPC vendedor elfico que vende escudos e tem uma quest secreta",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "profession": "vendedor",
+      "race": "elfico",
+      "items": [
+        "escudos"
+      ],
+      "has_shop": true
+    }
+  },
+  {
+    "id": 461,
+    "input": "Crie um NPC mago draconiano que vende escudos e tem um passado misterioso",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "profession": "mago",
+      "race": "draconiano",
+      "items": [
+        "escudos"
+      ],
+      "has_shop": true
+    }
+  },
+  {
+    "id": 44,
+    "input": "Gere um monstro aranha",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "creature_type": "aranha",
+      "modifier": null,
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 431,
+    "input": "Crie um sprite de arco",
+    "expected_action": "gerar_sprite",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "item_type": "arco",
+      "modifier": null
+    }
+  },
+  {
+    "id": 296,
+    "input": "Crie um sprite de pocao",
+    "expected_action": "gerar_sprite",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "item_type": "pocao",
+      "modifier": null
+    }
+  },
+  {
+    "input": "Gere uma quest de exploracao na floresta",
+    "expected_action": "gerar_quest"
+  },
+  {
+    "id": 213,
+    "input": "sprite",
+    "expected_action": "gerar_sprite",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "item_type": "unknown",
+      "modifier": null
+    }
+  },
+  {
+    "id": 212,
+    "input": "Generate an ancient pequeno elemental that drops rare items",
+    "expected_action": "gerar_monstro",
+    "language": "en",
+    "complexity": "complex",
+    "semantic_fields": {
+      "creature_type": "elemental",
+      "modifier": "pequeno",
+      "danger": "legendary"
+    }
+  },
+  {
+    "id": 28,
+    "input": "Build a anao guarda NPC selling pocoes who coleta ervas raras",
+    "expected_action": "gerar_npc",
+    "language": "en",
+    "complexity": "complex",
+    "semantic_fields": {
+      "profession": "guarda",
+      "race": "anao",
+      "items": [
+        "pocoes"
+      ],
+      "has_shop": true
+    }
+  },
+  {
+    "id": 79,
+    "input": "Generate an ancient de gelo goblin that drops rare items",
+    "expected_action": "gerar_monstro",
+    "language": "en",
+    "complexity": "complex",
+    "semantic_fields": {
+      "creature_type": "goblin",
+      "modifier": "de gelo",
+      "danger": "legendary"
+    }
+  },
+  {
+    "id": 154,
+    "input": "Crie um NPC mendigo que vende botas",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "profession": "mendigo",
+      "race": null,
+      "items": [
+        "botas"
+      ],
+      "has_shop": true
+    }
+  },
+  {
+    "id": 34,
+    "input": "gere um monstro que dropa ouro",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "creature_type": "unknown",
+      "modifier": null,
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 280,
+    "input": "Explique o que e PID",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "o que e PID",
+      "expected_keywords": [
+        "pid",
+        "processo",
+        "identificador"
+      ]
+    }
+  },
+  {
+    "id": 135,
+    "input": "por que entropia e importante para cognicao",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "por que entropia e importante para cognicao",
+      "expected_keywords": [
+        "entropia",
+        "cognicao",
+        "informacao"
+      ]
+    }
+  },
+  {
+    "id": 415,
+    "input": "criar npc guard",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "profession": "unknown",
+      "race": null,
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 195,
+    "input": "Gere um monstro goblin de tempestade",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "creature_type": "goblin",
+      "modifier": "de tempestade",
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 441,
+    "input": "Voce sabe qual e o melhor time do brasil",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": false,
+      "topic": "unknown",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 362,
+    "input": "Crie um NPC artesao",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "profession": "artesao",
+      "race": null,
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 427,
+    "input": "Generate a esqueleto monster",
+    "expected_action": "gerar_monstro",
+    "language": "en",
+    "complexity": "simple",
+    "semantic_fields": {
+      "creature_type": "esqueleto",
+      "modifier": null,
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 306,
+    "input": "Explique como funciona o Markov",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "como funciona o Markov",
+      "expected_keywords": [
+        "markov",
+        "transicao",
+        "probabilidade"
+      ]
+    }
+  },
+  {
+    "id": 237,
+    "input": "anel magico",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "anel magico",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 285,
+    "input": "o que e auto-evolucao no MCR",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "o que e auto-evolucao no MCR",
+      "expected_keywords": [
+        "auto-evolucao",
+        "mcr",
+        "mutacao"
+      ]
+    }
+  },
+  {
+    "input": "Gere uma quest de defesa contra horda",
+    "expected_action": "gerar_quest"
+  },
+  {
+    "id": 4,
+    "input": "Generate a anciao dragao",
+    "expected_action": "gerar_monstro",
+    "language": "en",
+    "complexity": "medium",
+    "semantic_fields": {
+      "creature_type": "dragao",
+      "modifier": "anciao",
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 383,
+    "input": "Create a lendaria chave sprite",
+    "expected_action": "gerar_sprite",
+    "language": "en",
+    "complexity": "medium",
+    "semantic_fields": {
+      "item_type": "chave",
+      "modifier": "lendaria"
+    }
+  },
+  {
+    "id": 388,
+    "input": "Crie um sprite de arco antiga",
+    "expected_action": "gerar_sprite",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "item_type": "arco",
+      "modifier": "antiga"
+    }
+  },
+  {
+    "input": "Crie uma quest de entrega de suprimentos",
+    "expected_action": "gerar_quest"
+  },
+  {
+    "id": 138,
+    "input": "Gere um monstro hidra",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "creature_type": "hidra",
+      "modifier": null,
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 3,
+    "input": "qual a diferenca entre Markov e Rede Neural",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "qual a diferenca entre Markov e Rede Neural",
+      "expected_keywords": [
+        "markov",
+        "neural",
+        "diferenca"
+      ]
+    }
+  },
+  {
+    "id": 60,
+    "input": "Gere um monstro orc anciao lendario com habilidades especiais",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "creature_type": "orc",
+      "modifier": "anciao",
+      "danger": "lendario"
+    }
+  },
+  {
+    "id": 414,
+    "input": "Explique o que e entropia",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "o que e entropia",
+      "expected_keywords": [
+        "entropia",
+        "shannon",
+        "informacao"
+      ]
+    }
+  },
+  {
+    "id": 66,
+    "input": "como o fingerprint de 64 dimensoes funciona",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "como o fingerprint de 64 dimensoes funciona",
+      "expected_keywords": [
+        "fingerprint",
+        "64",
+        "dimensoes",
+        "hash"
+      ]
+    }
+  },
+  {
+    "id": 33,
+    "input": "Crie um sprite de escudo",
+    "expected_action": "gerar_sprite",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "item_type": "escudo",
+      "modifier": null
+    }
+  },
+  {
+    "input": "Faca uma quest de protecao da vila",
+    "expected_action": "gerar_quest"
+  },
+  {
+    "id": 205,
+    "input": "responder pergunta",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "responder pergunta",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 203,
+    "input": "Gere um NPC guarda",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "profession": "guarda",
+      "race": null,
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 309,
+    "input": "monstro NPC",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "creature_type": "unknown",
+      "modifier": null,
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 466,
+    "input": "qual a diferenca entre Markov de 1a e 2a ordem",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "qual a diferenca entre Markov de 1a e 2a ordem",
+      "expected_keywords": [
+        "markov",
+        "ordem",
+        "transicao"
+      ]
+    }
+  },
+  {
+    "id": 151,
+    "input": "Gere um monstro fantasma",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "creature_type": "fantasma",
+      "modifier": null,
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 379,
+    "input": "Gere um monstro vampiro venenoso",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "creature_type": "vampiro",
+      "modifier": "venenoso",
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 321,
+    "input": "npc ferreiro anao velho",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "profession": "unknown",
+      "race": null,
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 475,
+    "input": "Gere um monstro medusa venenoso",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "creature_type": "medusa",
+      "modifier": "venenoso",
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 437,
+    "input": "sprite de escudo",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "sprite de escudo",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 231,
+    "input": "Crie um NPC ferreiro elfico que vende varinhas e coleta ervas raras",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "profession": "ferreiro",
+      "race": "elfico",
+      "items": [
+        "varinhas"
+      ],
+      "has_shop": true
+    }
+  },
+  {
+    "id": 125,
+    "input": "Crie um NPC mestre de armas anao",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "profession": "mestre de armas",
+      "race": "anao",
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 14,
+    "input": "Generate an ancient de tempestade bruxa that drops rare items",
+    "expected_action": "gerar_monstro",
+    "language": "en",
+    "complexity": "complex",
+    "semantic_fields": {
+      "creature_type": "bruxa",
+      "modifier": "de tempestade",
+      "danger": "legendary"
+    }
+  },
+  {
+    "id": 222,
+    "input": "Generate an ancient de tempestade behemoth that drops rare items",
+    "expected_action": "gerar_monstro",
+    "language": "en",
+    "complexity": "complex",
+    "semantic_fields": {
+      "creature_type": "behemoth",
+      "modifier": "de tempestade",
+      "danger": "legendary"
+    }
+  },
+  {
+    "id": 81,
+    "input": "Gere um NPC mercador",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "profession": "mercador",
+      "race": null,
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 394,
+    "input": "Gere um NPC ferreiro",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "profession": "ferreiro",
+      "race": null,
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 301,
+    "input": "Gere um NPC padeiro",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "profession": "padeiro",
+      "race": null,
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 211,
+    "input": "Gere um NPC druida",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "profession": "druida",
+      "race": null,
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 445,
+    "input": "por que a equacao usa sigmoide e nao linear",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "por que a equacao usa sigmoide e nao linear",
+      "expected_keywords": [
+        "sigmoide",
+        "equacao",
+        "linear"
+      ]
+    }
+  },
+  {
+    "id": 93,
+    "input": "Crie um NPC alquimista elfico",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "profession": "alquimista",
+      "race": "elfico",
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 92,
+    "input": "Generate an ancient selvagem dragao that drops rare items",
+    "expected_action": "gerar_monstro",
+    "language": "en",
+    "complexity": "complex",
+    "semantic_fields": {
+      "creature_type": "dragao",
+      "modifier": "selvagem",
+      "danger": "legendary"
+    }
+  },
+  {
+    "id": 247,
+    "input": "crie um npc que nao existe",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "profession": "unknown",
+      "race": null,
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 61,
+    "input": "Generate a de tempestade troll",
+    "expected_action": "gerar_monstro",
+    "language": "en",
+    "complexity": "medium",
+    "semantic_fields": {
+      "creature_type": "troll",
+      "modifier": "de tempestade",
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 444,
+    "input": "Gere um monstro esqueleto",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "creature_type": "esqueleto",
+      "modifier": null,
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 147,
+    "input": "Create a anao ferreiro NPC that sells varinhas",
+    "expected_action": "gerar_npc",
+    "language": "en",
+    "complexity": "medium",
+    "semantic_fields": {
+      "profession": "ferreiro",
+      "race": "anao",
+      "items": [
+        "varinhas"
+      ],
+      "has_shop": true
+    }
+  },
+  {
+    "id": 227,
+    "input": "Crie um NPC guia draconiano",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "profession": "guia",
+      "race": "draconiano",
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 103,
+    "input": "Crie um NPC vendedor",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "profession": "vendedor",
+      "race": null,
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 352,
+    "input": "Generate an ancient antigo urso that drops rare items",
+    "expected_action": "gerar_monstro",
+    "language": "en",
+    "complexity": "complex",
+    "semantic_fields": {
+      "creature_type": "urso",
+      "modifier": "antigo",
+      "danger": "legendary"
+    }
+  },
+  {
+    "id": 240,
+    "input": "por que entropia diminui quando Markov aprende",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "por que entropia diminui quando Markov aprende",
+      "expected_keywords": [
+        "entropia",
+        "markov",
+        "aprendizado"
+      ]
+    }
+  },
+  {
+    "id": 27,
+    "input": "dragao de fogo",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "dragao de fogo",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 130,
+    "input": "machado de guerra",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "machado de guerra",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 136,
+    "input": "Generate a fantasma monster",
+    "expected_action": "gerar_monstro",
+    "language": "en",
+    "complexity": "simple",
+    "semantic_fields": {
+      "creature_type": "fantasma",
+      "modifier": null,
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 191,
+    "input": "Gere um monstro grifo antigo",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "creature_type": "grifo",
+      "modifier": "antigo",
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 101,
+    "input": "Gere um monstro fantasma selvagem mitico com habilidades especiais",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "creature_type": "fantasma",
+      "modifier": "selvagem",
+      "danger": "mitico"
+    }
+  },
+  {
+    "id": 194,
+    "input": "Create a halfling mago NPC that sells anel",
+    "expected_action": "gerar_npc",
+    "language": "en",
+    "complexity": "medium",
+    "semantic_fields": {
+      "profession": "mago",
+      "race": "halfling",
+      "items": [
+        "anel"
+      ],
+      "has_shop": true
+    }
+  },
+  {
+    "id": 245,
+    "input": "Crie um NPC padeiro halfling",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "profession": "padeiro",
+      "race": "halfling",
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 346,
+    "input": "Gere um NPC mensageiro",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "profession": "mensageiro",
+      "race": null,
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 53,
+    "input": "Create a humano mestre de armas NPC that sells armaduras",
+    "expected_action": "gerar_npc",
+    "language": "en",
+    "complexity": "medium",
+    "semantic_fields": {
+      "profession": "mestre de armas",
+      "race": "humano",
+      "items": [
+        "armaduras"
+      ],
+      "has_shop": true
+    }
+  },
+  {
+    "id": 265,
+    "input": "Crie um NPC artesao elfico que vende armaduras e fabula armas unicas",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "profession": "artesao",
+      "race": "elfico",
+      "items": [
+        "armaduras"
+      ],
+      "has_shop": true
+    }
+  },
+  {
+    "id": 249,
+    "input": "Gere um monstro golem",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "creature_type": "golem",
+      "modifier": null,
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 479,
+    "input": "Crie um monstro phoenix",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "creature_type": "phoenix",
+      "modifier": null,
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 327,
+    "input": "Crie um sprite de anel de fogo",
+    "expected_action": "gerar_sprite",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "item_type": "anel",
+      "modifier": "de fogo"
+    }
+  },
+  {
+    "id": 302,
+    "input": "Build a humano guia NPC selling botas who ja viajou o mundo",
+    "expected_action": "gerar_npc",
+    "language": "en",
+    "complexity": "complex",
+    "semantic_fields": {
+      "profession": "guia",
+      "race": "humano",
+      "items": [
+        "botas"
+      ],
+      "has_shop": true
+    }
+  },
+  {
+    "id": 348,
+    "input": "Gere um monstro dragao fraco",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "creature_type": "dragao",
+      "modifier": null,
+      "danger": "fraco"
+    }
+  },
+  {
+    "id": 331,
+    "input": "Explain what is entropy",
+    "expected_action": "responder",
+    "language": "en",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "what is entropy",
+      "expected_keywords": [
+        "entropy",
+        "shannon",
+        "information"
+      ]
+    }
+  },
+  {
+    "id": 64,
+    "input": "Crie um NPC bibliotecario que vende pocoes",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "profession": "bibliotecario",
+      "race": null,
+      "items": [
+        "pocoes"
+      ],
+      "has_shop": true
+    }
+  },
+  {
+    "id": 108,
+    "input": "Generate a venenoso phoenix",
+    "expected_action": "gerar_monstro",
+    "language": "en",
+    "complexity": "medium",
+    "semantic_fields": {
+      "creature_type": "phoenix",
+      "modifier": "venenoso",
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 104,
+    "input": "Voce sabe qual e o numero da sorte",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": false,
+      "topic": "unknown",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 244,
+    "input": "o que e Canary",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "o que e Canary",
+      "expected_keywords": [
+        "canary",
+        "servidor",
+        "tibia"
+      ]
+    }
+  },
+  {
+    "id": 7,
+    "input": "Gere um monstro vampiro medio",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "creature_type": "vampiro",
+      "modifier": null,
+      "danger": "medio"
+    }
+  },
+  {
+    "id": 234,
+    "input": "Generate a anciao golem",
+    "expected_action": "gerar_monstro",
+    "language": "en",
+    "complexity": "medium",
+    "semantic_fields": {
+      "creature_type": "golem",
+      "modifier": "anciao",
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 52,
+    "input": "crie o npc ferreiro mais forte",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "profession": "unknown",
+      "race": null,
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 273,
+    "input": "Generate a phoenix monster",
+    "expected_action": "gerar_monstro",
+    "language": "en",
+    "complexity": "simple",
+    "semantic_fields": {
+      "creature_type": "phoenix",
+      "modifier": null,
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 259,
+    "input": "Gere um monstro dragao venenoso",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "creature_type": "dragao",
+      "modifier": "venenoso",
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 132,
+    "input": "Crie um sprite de pocao dourada",
+    "expected_action": "gerar_sprite",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "item_type": "pocao",
+      "modifier": "dourada"
+    }
+  },
+  {
+    "id": 463,
+    "input": "Voce sabe previsao do tempo para amanha",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": false,
+      "topic": "unknown",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 110,
+    "input": "Gere um monstro ciclope",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "creature_type": "ciclope",
+      "modifier": null,
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 434,
+    "input": "Crie um NPC mago halfling",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "profession": "mago",
+      "race": "halfling",
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 219,
+    "input": "Gere um monstro esqueleto nebuloso",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "creature_type": "esqueleto",
+      "modifier": "nebuloso",
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 246,
+    "input": "Crie um sprite de chave",
+    "expected_action": "gerar_sprite",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "item_type": "chave",
+      "modifier": null
+    }
+  },
+  {
+    "id": 193,
+    "input": "Create an NPC mercador",
+    "expected_action": "gerar_npc",
+    "language": "en",
+    "complexity": "simple",
+    "semantic_fields": {
+      "profession": "mercador",
+      "race": null,
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 152,
+    "input": "Crie um sprite de espada",
+    "expected_action": "gerar_sprite",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "item_type": "espada",
+      "modifier": null
+    }
+  },
+  {
+    "id": 107,
+    "input": "qual a diferenca entre entropia de Shannon e entropia de Tsallis",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "qual a diferenca entre entropia de Shannon e entropia de Tsallis",
+      "expected_keywords": [
+        "shannon",
+        "tsallis",
+        "diferenca"
+      ]
+    }
+  },
+  {
+    "id": 433,
+    "input": "Generate an ancient antigo aranha that drops rare items",
+    "expected_action": "gerar_monstro",
+    "language": "en",
+    "complexity": "complex",
+    "semantic_fields": {
+      "creature_type": "aranha",
+      "modifier": "antigo",
+      "danger": "legendary"
+    }
+  },
+  {
+    "id": 467,
+    "input": "Gere um NPC vendedor",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "profession": "vendedor",
+      "race": null,
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 386,
+    "input": "Crie um NPC ladrao que vende botas",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "profession": "ladrao",
+      "race": null,
+      "items": [
+        "botas"
+      ],
+      "has_shop": true
+    }
+  },
+  {
+    "id": 361,
+    "input": "Generate a anciao wraith",
+    "expected_action": "gerar_monstro",
+    "language": "en",
+    "complexity": "medium",
+    "semantic_fields": {
+      "creature_type": "wraith",
+      "modifier": "anciao",
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 68,
+    "input": "Generate a ciclope monster",
+    "expected_action": "gerar_monstro",
+    "language": "en",
+    "complexity": "simple",
+    "semantic_fields": {
+      "creature_type": "ciclope",
+      "modifier": null,
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 360,
+    "input": "crie um NPC que vende tudo",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "profession": "unknown",
+      "race": null,
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 392,
+    "input": "Gere um monstro serpente",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "creature_type": "serpente",
+      "modifier": null,
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 267,
+    "input": "build npc",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "profession": "unknown",
+      "race": null,
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 187,
+    "input": "Crie um NPC tecelao gnomo",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "profession": "tecelao",
+      "race": "gnomo",
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 423,
+    "input": "Generate an ancient de lava phoenix that drops rare items",
+    "expected_action": "gerar_monstro",
+    "language": "en",
+    "complexity": "complex",
+    "semantic_fields": {
+      "creature_type": "phoenix",
+      "modifier": "de lava",
+      "danger": "legendary"
+    }
+  },
+  {
+    "id": 94,
+    "input": "Crie um sprite de livro",
+    "expected_action": "gerar_sprite",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "item_type": "livro",
+      "modifier": null
+    }
+  },
+  {
+    "id": 185,
+    "input": "monstro perigoso",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "monstro perigoso",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 23,
+    "input": "Create a draconiano artesao NPC that sells escudos",
+    "expected_action": "gerar_npc",
+    "language": "en",
+    "complexity": "medium",
+    "semantic_fields": {
+      "profession": "artesao",
+      "race": "draconiano",
+      "items": [
+        "escudos"
+      ],
+      "has_shop": true
+    }
+  },
+  {
+    "id": 287,
+    "input": "chapeu de mago",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "chapeu de mago",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 189,
+    "input": "Gere um monstro serpente selvagem",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "creature_type": "serpente",
+      "modifier": "selvagem",
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 105,
+    "input": "Gere um NPC artesao",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "profession": "artesao",
+      "race": null,
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 198,
+    "input": "fantasma wraith lich behemoth",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "creature_type": "unknown",
+      "modifier": null,
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 140,
+    "input": "Create an NPC mendigo",
+    "expected_action": "gerar_npc",
+    "language": "en",
+    "complexity": "simple",
+    "semantic_fields": {
+      "profession": "mendigo",
+      "race": null,
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 204,
+    "input": "Crie um NPC sacerdote halfling",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "profession": "sacerdote",
+      "race": "halfling",
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 5,
+    "input": "Crie um NPC alquimista que vende varinhas",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "profession": "alquimista",
+      "race": null,
+      "items": [
+        "varinhas"
+      ],
+      "has_shop": true
+    }
+  },
+  {
+    "id": 384,
+    "input": "Gere um monstro aranha forte",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "creature_type": "aranha",
+      "modifier": null,
+      "danger": "forte"
+    }
+  },
+  {
+    "id": 396,
+    "input": "criar sprite de escudo",
+    "expected_action": "gerar_sprite",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "item_type": "unknown",
+      "modifier": null
+    }
+  },
+  {
+    "id": 272,
+    "input": "Gere um monstro hidra de lava lendario com habilidades especiais",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "creature_type": "hidra",
+      "modifier": "de lava",
+      "danger": "lendario"
+    }
+  },
+  {
+    "id": 243,
+    "input": "Create a antiga cajado sprite",
+    "expected_action": "gerar_sprite",
+    "language": "en",
+    "complexity": "medium",
+    "semantic_fields": {
+      "item_type": "cajado",
+      "modifier": "antiga"
+    }
+  },
+  {
+    "id": 217,
+    "input": "Generate a elemental monster",
+    "expected_action": "gerar_monstro",
+    "language": "en",
+    "complexity": "simple",
+    "semantic_fields": {
+      "creature_type": "elemental",
+      "modifier": null,
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 367,
+    "input": "Gere um monstro demonio selvagem",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "creature_type": "demonio",
+      "modifier": "selvagem",
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 21,
+    "input": "Create a gnomo instructer NPC that sells pocoes",
+    "expected_action": "gerar_npc",
+    "language": "en",
+    "complexity": "medium",
+    "semantic_fields": {
+      "profession": "instructer",
+      "race": "gnomo",
+      "items": [
+        "pocoes"
+      ],
+      "has_shop": true
+    }
+  },
+  {
+    "id": 139,
+    "input": "Crie um NPC carpinteiro que vende pocoes",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "profession": "carpinteiro",
+      "race": null,
+      "items": [
+        "pocoes"
+      ],
+      "has_shop": true
+    }
+  },
+  {
+    "id": 78,
+    "input": "Create a lendaria arco sprite",
+    "expected_action": "gerar_sprite",
+    "language": "en",
+    "complexity": "medium",
+    "semantic_fields": {
+      "item_type": "arco",
+      "modifier": "lendaria"
+    }
+  },
+  {
+    "id": 410,
+    "input": "o que e Markov e por que funciona para decisoes",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "o que e Markov e por que funciona para decisoes",
+      "expected_keywords": [
+        "markov",
+        "decisoes",
+        "transicao"
+      ]
+    }
+  },
+  {
+    "id": 260,
+    "input": "qual e a capital da mongolia",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "answerable": false,
+      "topic": "unknown",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 180,
+    "input": "Crie um sprite de anel simples",
+    "expected_action": "gerar_sprite",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "item_type": "anel",
+      "modifier": "simples"
+    }
+  },
+  {
+    "id": 242,
+    "input": "Gere um NPC sacerdote",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "profession": "sacerdote",
+      "race": null,
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 200,
+    "input": "Gere um NPC mago",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "profession": "mago",
+      "race": null,
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 22,
+    "input": "Como funciona diferenca entre Markov e LLM",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "diferenca entre Markov e LLM",
+      "expected_keywords": [
+        "markov",
+        "llm",
+        "probabilidade"
+      ]
+    }
+  },
+  {
+    "id": 477,
+    "input": "gerar texto",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "gerar texto",
+      "expected_keywords": []
+    }
+  },
+  {
+    "input": "Crie uma quest de resgate de refens",
+    "expected_action": "gerar_quest"
+  },
+  {
+    "id": 170,
+    "input": "Crie um monstro wraith",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "creature_type": "wraith",
+      "modifier": null,
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 416,
+    "input": "como o KG e populado automaticamente",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "como o KG e populado automaticamente",
+      "expected_keywords": [
+        "kg",
+        "padroes",
+        "mineracao"
+      ]
+    }
+  },
+  {
+    "id": 406,
+    "input": "Gere um monstro elemental",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "creature_type": "elemental",
+      "modifier": null,
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 80,
+    "input": "Create an NPC mensageiro",
+    "expected_action": "gerar_npc",
+    "language": "en",
+    "complexity": "simple",
+    "semantic_fields": {
+      "profession": "mensageiro",
+      "race": null,
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 274,
+    "input": "Create an NPC vendedor",
+    "expected_action": "gerar_npc",
+    "language": "en",
+    "complexity": "simple",
+    "semantic_fields": {
+      "profession": "vendedor",
+      "race": null,
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 393,
+    "input": "Crie um monstro demonio",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "creature_type": "demonio",
+      "modifier": null,
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 160,
+    "input": "Gere um NPC taverneiro",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "profession": "taverneiro",
+      "race": null,
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 59,
+    "input": "Gere um monstro troll antigo lendario com habilidades especiais",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "creature_type": "troll",
+      "modifier": "antigo",
+      "danger": "lendario"
+    }
+  },
+  {
+    "id": 341,
+    "input": "Explique explique a equacao MCR",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "explique a equacao MCR",
+      "expected_keywords": [
+        "equacao",
+        "sigmoide",
+        "cincodimensional"
+      ]
+    }
+  },
+  {
+    "id": 127,
+    "input": "Gere um monstro wraith mitico",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "creature_type": "wraith",
+      "modifier": null,
+      "danger": "mitico"
+    }
+  },
+  {
+    "id": 271,
+    "input": "Gere um NPC carpinteiro",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "profession": "carpinteiro",
+      "race": null,
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 446,
+    "input": "Build a anao mensageiro NPC selling botas who odeia monstros",
+    "expected_action": "gerar_npc",
+    "language": "en",
+    "complexity": "complex",
+    "semantic_fields": {
+      "profession": "mensageiro",
+      "race": "anao",
+      "items": [
+        "botas"
+      ],
+      "has_shop": true
+    }
+  },
+  {
+    "id": 300,
+    "input": "Create a gnomo arqueiro NPC that sells chapeu",
+    "expected_action": "gerar_npc",
+    "language": "en",
+    "complexity": "medium",
+    "semantic_fields": {
+      "profession": "arqueiro",
+      "race": "gnomo",
+      "items": [
+        "chapeu"
+      ],
+      "has_shop": true
+    }
+  },
+  {
+    "id": 459,
+    "input": "espada dourada",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "espada dourada",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 289,
+    "input": "explique a equacao MCR",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "explique a equacao MCR",
+      "expected_keywords": [
+        "equacao",
+        "sigmoide",
+        "cincodimensional"
+      ]
+    }
+  },
+  {
+    "id": 411,
+    "input": "Crie um NPC vendedor halfling",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "profession": "vendedor",
+      "race": "halfling",
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 84,
+    "input": "guarda gnomo que odeia monstros e protege a vila",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "profession": "unknown",
+      "race": null,
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 429,
+    "input": "Explique explique Shannon",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "explique Shannon",
+      "expected_keywords": [
+        "shannon",
+        "entropia",
+        "bits"
+      ]
+    }
+  },
+  {
+    "id": 370,
+    "input": "Build a orc mendigo NPC selling chapeu who odeia monstros",
+    "expected_action": "gerar_npc",
+    "language": "en",
+    "complexity": "complex",
+    "semantic_fields": {
+      "profession": "mendigo",
+      "race": "orc",
+      "items": [
+        "chapeu"
+      ],
+      "has_shop": true
+    }
+  },
+  {
+    "id": 257,
+    "input": "como o PatternMiner extrai padroes de codigo",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "como o PatternMiner extrai padroes de codigo",
+      "expected_keywords": [
+        "pattern",
+        "miner",
+        "codigo",
+        "ast"
+      ]
+    }
+  },
+  {
+    "id": 232,
+    "input": "Generate a menor demonio",
+    "expected_action": "gerar_monstro",
+    "language": "en",
+    "complexity": "medium",
+    "semantic_fields": {
+      "creature_type": "demonio",
+      "modifier": "menor",
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 123,
+    "input": "Voce sabe quando vai acabar a pandemia",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": false,
+      "topic": "unknown",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 35,
+    "input": "Explique o que e looktype",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "o que e looktype",
+      "expected_keywords": [
+        "looktype",
+        "aparencia",
+        "sprite"
+      ]
+    }
+  },
+  {
+    "id": 24,
+    "input": "Create a orc vendedor NPC that sells espadas",
+    "expected_action": "gerar_npc",
+    "language": "en",
+    "complexity": "medium",
+    "semantic_fields": {
+      "profession": "vendedor",
+      "race": "orc",
+      "items": [
+        "espadas"
+      ],
+      "has_shop": true
+    }
+  },
+  {
+    "id": 455,
+    "input": "Crie um NPC tecelao halfling que vende botas e ama ouro",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "profession": "tecelao",
+      "race": "halfling",
+      "items": [
+        "botas"
+      ],
+      "has_shop": true
+    }
+  },
+  {
+    "id": 282,
+    "input": "Gere um monstro elemental sombrio",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "creature_type": "elemental",
+      "modifier": "sombrio",
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 334,
+    "input": "um npc",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "profession": "unknown",
+      "race": null,
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 153,
+    "input": "qual a vantagem do Markov sobre LLM",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "qual a vantagem do Markov sobre LLM",
+      "expected_keywords": [
+        "markov",
+        "llm",
+        "vantagem",
+        "rapido"
+      ]
+    }
+  },
+  {
+    "id": 10,
+    "input": "Gere um NPC cozinheiro",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "profession": "cozinheiro",
+      "race": null,
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 11,
+    "input": "Crie um NPC mendigo humano",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "profession": "mendigo",
+      "race": "humano",
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 143,
+    "input": "Generate an ancient pequeno hidra that drops rare items",
+    "expected_action": "gerar_monstro",
+    "language": "en",
+    "complexity": "complex",
+    "semantic_fields": {
+      "creature_type": "hidra",
+      "modifier": "pequeno",
+      "danger": "legendary"
+    }
+  },
+  {
+    "id": 83,
+    "input": "Crie um sprite de escudo dourada",
+    "expected_action": "gerar_sprite",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "item_type": "escudo",
+      "modifier": "dourada"
+    }
+  },
+  {
+    "id": 181,
+    "input": "NPC com loja",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "profession": "unknown",
+      "race": null,
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 366,
+    "input": "Gere um monstro minotauro antigo medio com habilidades especiais",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "creature_type": "minotauro",
+      "modifier": "antigo",
+      "danger": "medio"
+    }
+  },
+  {
+    "id": 176,
+    "input": "Crie um sprite de armadura envenenada",
+    "expected_action": "gerar_sprite",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "item_type": "armadura",
+      "modifier": "envenenada"
+    }
+  },
+  {
+    "id": 420,
+    "input": "demonio corrompido antigo",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "creature_type": "unknown",
+      "modifier": null,
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 165,
+    "input": "Gere um monstro behemoth antigo mitico com habilidades especiais",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "creature_type": "behemoth",
+      "modifier": "antigo",
+      "danger": "mitico"
+    }
+  },
+  {
+    "input": "Faca uma quest de investigacao criminal",
+    "expected_action": "gerar_quest"
+  },
+  {
+    "id": 452,
+    "input": "what is a fingerprint",
+    "expected_action": "responder",
+    "language": "en",
+    "complexity": "simple",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "what is a fingerprint",
+      "expected_keywords": [
+        "fingerprint",
+        "hash",
+        "64d"
+      ]
+    }
+  },
+  {
+    "id": 365,
+    "input": "Crie um sprite de livro simples",
+    "expected_action": "gerar_sprite",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "item_type": "livro",
+      "modifier": "simples"
+    }
+  },
+  {
+    "id": 435,
+    "input": "NPC NPC NPC",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "profession": "unknown",
+      "race": null,
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 1,
+    "input": "Gere um monstro demonio perigoso",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "creature_type": "demonio",
+      "modifier": null,
+      "danger": "perigoso"
+    }
+  },
+  {
+    "id": 158,
+    "input": "Crie um sprite de espada prateada",
+    "expected_action": "gerar_sprite",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "item_type": "espada",
+      "modifier": "prateada"
+    }
+  },
+  {
+    "id": 421,
+    "input": "sprite pocao",
+    "expected_action": "gerar_sprite",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "item_type": "unknown",
+      "modifier": null
+    }
+  },
+  {
+    "id": 419,
+    "input": "Crie um NPC cozinheiro draconiano que vende espadas e conhece o rei",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "profession": "cozinheiro",
+      "race": "draconiano",
+      "items": [
+        "espadas"
+      ],
+      "has_shop": true
+    }
+  },
+  {
+    "id": 67,
+    "input": " npc ",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "profession": "unknown",
+      "race": null,
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 122,
+    "input": "ferreiro elfico que vende espadas lendarias e tem uma quest secreta",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "profession": "unknown",
+      "race": null,
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 77,
+    "input": "Crie um NPC arqueiro",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "profession": "arqueiro",
+      "race": null,
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 270,
+    "input": "Explain explain the MCR equation",
+    "expected_action": "responder",
+    "language": "en",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "explain the MCR equation",
+      "expected_keywords": [
+        "equation",
+        "sigmoid",
+        "five"
+      ]
+    }
+  },
+  {
+    "id": 263,
+    "input": "Generate a troll monster",
+    "expected_action": "gerar_monstro",
+    "language": "en",
+    "complexity": "simple",
+    "semantic_fields": {
+      "creature_type": "troll",
+      "modifier": null,
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 69,
+    "input": "Crie um NPC guia gnomo que vende armaduras e odeia monstros",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "profession": "guia",
+      "race": "gnomo",
+      "items": [
+        "armaduras"
+      ],
+      "has_shop": true
+    }
+  },
+  {
+    "id": 90,
+    "input": "Crie um NPC arqueiro orc",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "profession": "arqueiro",
+      "race": "orc",
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 359,
+    "input": "Crie um NPC mestre de armas que vende espadas",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "profession": "mestre de armas",
+      "race": null,
+      "items": [
+        "espadas"
+      ],
+      "has_shop": true
+    }
+  },
+  {
+    "id": 148,
+    "input": "Crie um NPC sacerdote que vende escudos",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "profession": "sacerdote",
+      "race": null,
+      "items": [
+        "escudos"
+      ],
+      "has_shop": true
+    }
+  },
+  {
+    "id": 311,
+    "input": "Gere um monstro grifo selvagem medio com habilidades especiais",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "creature_type": "grifo",
+      "modifier": "selvagem",
+      "danger": "medio"
+    }
+  },
+  {
+    "id": 371,
+    "input": "Gere um NPC mestre de armas",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "profession": "mestre de armas",
+      "race": null,
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 89,
+    "input": "Crie um NPC minerador elfico que vende escudos e conhece o rei",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "profession": "minerador",
+      "race": "elfico",
+      "items": [
+        "escudos"
+      ],
+      "has_shop": true
+    }
+  },
+  {
+    "id": 99,
+    "input": "Create an NPC padeiro",
+    "expected_action": "gerar_npc",
+    "language": "en",
+    "complexity": "simple",
+    "semantic_fields": {
+      "profession": "padeiro",
+      "race": null,
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 255,
+    "input": "Create an NPC cozinheiro",
+    "expected_action": "gerar_npc",
+    "language": "en",
+    "complexity": "simple",
+    "semantic_fields": {
+      "profession": "cozinheiro",
+      "race": null,
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 186,
+    "input": "lobo sombrio venenoso",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "creature_type": "unknown",
+      "modifier": null,
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 351,
+    "input": "Build a gnomo cozinheiro NPC selling espadas who conhece o rei",
+    "expected_action": "gerar_npc",
+    "language": "en",
+    "complexity": "complex",
+    "semantic_fields": {
+      "profession": "cozinheiro",
+      "race": "gnomo",
+      "items": [
+        "espadas"
+      ],
+      "has_shop": true
+    }
+  },
+  {
+    "id": 215,
+    "input": "monstro",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "creature_type": "unknown",
+      "modifier": null,
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 340,
+    "input": "Gere um monstro troll corrompido",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "creature_type": "troll",
+      "modifier": "corrompido",
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 318,
+    "input": "Create a envenenada bota sprite",
+    "expected_action": "gerar_sprite",
+    "language": "en",
+    "complexity": "medium",
+    "semantic_fields": {
+      "item_type": "bota",
+      "modifier": "envenenada"
+    }
+  },
+  {
+    "id": 373,
+    "input": "npc npc",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "profession": "unknown",
+      "race": null,
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 439,
+    "input": "Crie um sprite de mascara antiga",
+    "expected_action": "gerar_sprite",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "item_type": "mascara",
+      "modifier": "antiga"
+    }
+  },
+  {
+    "id": 407,
+    "input": "Create an NPC tecelao",
+    "expected_action": "gerar_npc",
+    "language": "en",
+    "complexity": "simple",
+    "semantic_fields": {
+      "profession": "tecelao",
+      "race": null,
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 297,
+    "input": "Crie um NPC tecelao que vende varinhas",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "profession": "tecelao",
+      "race": null,
+      "items": [
+        "varinhas"
+      ],
+      "has_shop": true
+    }
+  },
+  {
+    "id": 353,
+    "input": "Build a elfico mestre de armas NPC selling chapeu who tem um passado misterioso",
+    "expected_action": "gerar_npc",
+    "language": "en",
+    "complexity": "complex",
+    "semantic_fields": {
+      "profession": "mestre de armas",
+      "race": "elfico",
+      "items": [
+        "chapeu"
+      ],
+      "has_shop": true
+    }
+  },
+  {
+    "id": 221,
+    "input": "Crie um NPC padeiro",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "profession": "padeiro",
+      "race": null,
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 350,
+    "input": "Gere um monstro phoenix selvagem lendario com habilidades especiais",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "creature_type": "phoenix",
+      "modifier": "selvagem",
+      "danger": "lendario"
+    }
+  },
+  {
+    "id": 253,
+    "input": "Gere um monstro elemental de gelo medio com habilidades especiais",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "creature_type": "elemental",
+      "modifier": "de gelo",
+      "danger": "medio"
+    }
+  },
+  {
+    "id": 63,
+    "input": "me conte sobre entropia",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "me conte sobre entropia",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 169,
+    "input": "Explique como criar um NPC",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "como criar um NPC",
+      "expected_keywords": [
+        "npc",
+        "personagem",
+        "criar"
+      ]
+    }
+  },
+  {
+    "id": 426,
+    "input": "Como funciona o que e cluster",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "o que e cluster",
+      "expected_keywords": [
+        "cluster",
+        "agrupamento",
+        "similaridade"
+      ]
+    }
+  },
+  {
+    "id": 225,
+    "input": "Crie um NPC mercador humano",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "profession": "mercador",
+      "race": "humano",
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 41,
+    "input": "qual e o preco do bitcoin hoje",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "answerable": false,
+      "topic": "unknown",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 313,
+    "input": "npc muito legal",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "profession": "unknown",
+      "race": null,
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 106,
+    "input": "Gere um monstro lich",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "creature_type": "lich",
+      "modifier": null,
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 111,
+    "input": "NPC ferreiro",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "profession": "unknown",
+      "race": null,
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 76,
+    "input": "how does Markov work",
+    "expected_action": "responder",
+    "language": "en",
+    "complexity": "simple",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "how does Markov work",
+      "expected_keywords": [
+        "markov",
+        "transition",
+        "probability"
+      ]
+    }
+  },
+  {
+    "id": 250,
+    "input": "Explain how does MCR learn",
+    "expected_action": "responder",
+    "language": "en",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "how does MCR learn",
+      "expected_keywords": [
+        "learning",
+        "markov",
+        "reinforcement"
+      ]
+    }
+  },
+  {
+    "input": "Crie uma quest de procura de artefato",
+    "expected_action": "gerar_quest"
+  },
+  {
+    "id": 453,
+    "input": "Gere um monstro golem gigante",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "creature_type": "golem",
+      "modifier": "gigante",
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 323,
+    "input": "Crie um monstro minotauro",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "creature_type": "minotauro",
+      "modifier": null,
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 448,
+    "input": "Gere um monstro minotauro de tempestade",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "creature_type": "minotauro",
+      "modifier": "de tempestade",
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 328,
+    "input": "Crie um sprite de cajado",
+    "expected_action": "gerar_sprite",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "item_type": "cajado",
+      "modifier": null
+    }
+  },
+  {
+    "id": 207,
+    "input": "Crie um NPC cavaleiro gnomo",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "profession": "cavaleiro",
+      "race": "gnomo",
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 75,
+    "input": "qual a formula da equacao MCR",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "qual a formula da equacao MCR",
+      "expected_keywords": [
+        "equacao",
+        "formula",
+        "sigmoide"
+      ]
+    }
+  },
+  {
+    "input": "Gere uma quest de boss em uma caverna",
+    "expected_action": "gerar_quest"
+  },
+  {
+    "id": 58,
+    "input": "Crie um NPC arqueiro que vende armaduras",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "profession": "arqueiro",
+      "race": null,
+      "items": [
+        "armaduras"
+      ],
+      "has_shop": true
+    }
+  },
+  {
+    "id": 344,
+    "input": "Generate a bruxa monster",
+    "expected_action": "gerar_monstro",
+    "language": "en",
+    "complexity": "simple",
+    "semantic_fields": {
+      "creature_type": "bruxa",
+      "modifier": null,
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 49,
+    "input": "Crie um sprite de chave lendaria",
+    "expected_action": "gerar_sprite",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "item_type": "chave",
+      "modifier": "lendaria"
+    }
+  },
+  {
+    "id": 31,
+    "input": "Gere um monstro urso",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "creature_type": "urso",
+      "modifier": null,
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 278,
+    "input": "Create a envenenada machado sprite",
+    "expected_action": "gerar_sprite",
+    "language": "en",
+    "complexity": "medium",
+    "semantic_fields": {
+      "item_type": "machado",
+      "modifier": "envenenada"
+    }
+  },
+  {
+    "id": 26,
+    "input": "crie um monstro",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "creature_type": "unknown",
+      "modifier": null,
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 268,
+    "input": "Crie um NPC mago que vende botas",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "profession": "mago",
+      "race": null,
+      "items": [
+        "botas"
+      ],
+      "has_shop": true
+    }
+  },
+  {
+    "id": 436,
+    "input": "Crie um NPC taverneiro que vende espadas",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "profession": "taverneiro",
+      "race": null,
+      "items": [
+        "espadas"
+      ],
+      "has_shop": true
+    }
+  },
+  {
+    "id": 413,
+    "input": "Generate an ancient menor ciclope that drops rare items",
+    "expected_action": "gerar_monstro",
+    "language": "en",
+    "complexity": "complex",
+    "semantic_fields": {
+      "creature_type": "ciclope",
+      "modifier": "menor",
+      "danger": "legendary"
+    }
+  },
+  {
+    "id": 85,
+    "input": "Gere um monstro behemoth",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "creature_type": "behemoth",
+      "modifier": null,
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 18,
+    "input": "Gere um monstro medusa",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "creature_type": "medusa",
+      "modifier": null,
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 389,
+    "input": "Como funciona o que e um NPC",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "o que e um NPC",
+      "expected_keywords": [
+        "npc",
+        "personagem",
+        "jogo"
+      ]
+    }
+  },
+  {
+    "id": 418,
+    "input": "Gere um NPC bibliotecario",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "profession": "bibliotecario",
+      "race": null,
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 324,
+    "input": "Gere um monstro phoenix",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "creature_type": "phoenix",
+      "modifier": null,
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 197,
+    "input": "Gere um monstro minotauro",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "creature_type": "minotauro",
+      "modifier": null,
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 315,
+    "input": "Crie um NPC guarda halfling que vende varinhas e tem um passado misterioso",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "profession": "guarda",
+      "race": "halfling",
+      "items": [
+        "varinhas"
+      ],
+      "has_shop": true
+    }
+  },
+  {
+    "id": 387,
+    "input": "Crie um monstro urso",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "creature_type": "urso",
+      "modifier": null,
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 409,
+    "input": "Gere um monstro dragao anciao mitico com habilidades especiais",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "creature_type": "dragao",
+      "modifier": "anciao",
+      "danger": "mitico"
+    }
+  },
+  {
+    "id": 8,
+    "input": "gere um NPC orc",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "profession": "unknown",
+      "race": null,
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 404,
+    "input": "Crie um monstro behemoth",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "creature_type": "behemoth",
+      "modifier": null,
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 286,
+    "input": "explain the MCR equation",
+    "expected_action": "responder",
+    "language": "en",
+    "complexity": "simple",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "explain the MCR equation",
+      "expected_keywords": [
+        "equation",
+        "sigmoid",
+        "five"
+      ]
+    }
+  },
+  {
+    "id": 109,
+    "input": "Generate an ancient sombrio minotauro that drops rare items",
+    "expected_action": "gerar_monstro",
+    "language": "en",
+    "complexity": "complex",
+    "semantic_fields": {
+      "creature_type": "minotauro",
+      "modifier": "sombrio",
+      "danger": "legendary"
+    }
+  },
+  {
+    "id": 20,
+    "input": "Gere um monstro phoenix venenoso",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "creature_type": "phoenix",
+      "modifier": "venenoso",
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 145,
+    "input": "Como funciona explique Shannon",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "explique Shannon",
+      "expected_keywords": [
+        "shannon",
+        "entropia",
+        "bits"
+      ]
+    }
+  },
+  {
+    "id": 166,
+    "input": "como o DescobridorUniversal funciona",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "como o DescobridorUniversal funciona",
+      "expected_keywords": [
+        "descobridor",
+        "frequencia",
+        "ancoras"
+      ]
+    }
+  },
+  {
+    "id": 422,
+    "input": "Explique como funciona Lua",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "como funciona Lua",
+      "expected_keywords": [
+        "lua",
+        "script",
+        "codigo"
+      ]
+    }
+  },
+  {
+    "id": 376,
+    "input": "qual e o melhor time do brasil",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "answerable": false,
+      "topic": "unknown",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 412,
+    "input": "como o ExtratorFeatures descobre clusters",
+    "expected_action": "responder",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "como o ExtratorFeatures descobre clusters",
+      "expected_keywords": [
+        "extrator",
+        "clusters",
+        "entropia"
+      ]
+    }
+  },
+  {
+    "id": 220,
+    "input": "Gere um monstro wraith",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "creature_type": "wraith",
+      "modifier": null,
+      "danger": "medium"
+    }
+  },
+  {
+    "id": 258,
+    "input": "ferreiro",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "profession": "unknown",
+      "race": null,
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 326,
+    "input": "Gere um monstro wraith venenoso lendario com habilidades especiais",
+    "expected_action": "gerar_monstro",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "creature_type": "wraith",
+      "modifier": "venenoso",
+      "danger": "lendario"
+    }
+  },
+  {
+    "id": 308,
+    "input": "Create a humano guarda NPC that sells botas",
+    "expected_action": "gerar_npc",
+    "language": "en",
+    "complexity": "medium",
+    "semantic_fields": {
+      "profession": "guarda",
+      "race": "humano",
+      "items": [
+        "botas"
+      ],
+      "has_shop": true
+    }
+  },
+  {
+    "id": 372,
+    "input": "Crie um NPC ladrao anao que vende botas e ama ouro",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "complex",
+    "semantic_fields": {
+      "profession": "ladrao",
+      "race": "anao",
+      "items": [
+        "botas"
+      ],
+      "has_shop": true
+    }
+  },
+  {
+    "id": 179,
+    "input": "Crie um sprite de chapeu",
+    "expected_action": "gerar_sprite",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "item_type": "chapeu",
+      "modifier": null
+    }
+  },
+  {
+    "id": 335,
+    "input": "Gere um NPC tecelao",
+    "expected_action": "gerar_npc",
+    "language": "pt",
+    "complexity": "simple",
+    "semantic_fields": {
+      "profession": "tecelao",
+      "race": null,
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 471,
+    "input": "Create an NPC alquimista",
+    "expected_action": "gerar_npc",
+    "language": "en",
+    "complexity": "simple",
+    "semantic_fields": {
+      "profession": "alquimista",
+      "race": null,
+      "items": [],
+      "has_shop": false
+    }
+  },
+  {
+    "id": 500,
+    "input": "analise o codigo do npc ferreiro",
+    "expected_action": "analisar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "analise codigo",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 501,
+    "input": "analise este script lua",
+    "expected_action": "analisar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "analise script",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 502,
+    "input": "analise a estrutura do monstro",
+    "expected_action": "analisar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "analise estrutura",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 503,
+    "input": "analise o projeto completo",
+    "expected_action": "analisar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "analise projeto",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 504,
+    "input": "analise o sprite de espada",
+    "expected_action": "analisar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "analise sprite",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 505,
+    "input": "analise o que esta errado no codigo",
+    "expected_action": "analisar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "analise erro",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 506,
+    "input": "analise a quest de tibia",
+    "expected_action": "analisar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "analise quest",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 507,
+    "input": "analise os dialogos do npc",
+    "expected_action": "analisar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "analise dialogos",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 508,
+    "input": "analise o items.xml",
+    "expected_action": "analisar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "analise items",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 509,
+    "input": "analise o balanceamento do servidor",
+    "expected_action": "analisar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "analise balanceamento",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 510,
+    "input": "busque por ferreiro no codigo",
+    "expected_action": "buscar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "buscar ferreiro",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 511,
+    "input": "busque todos os npcs que vendem armas",
+    "expected_action": "buscar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "buscar npcs armas",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 512,
+    "input": "busque arquivos lua no servidor",
+    "expected_action": "buscar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "buscar lua",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 513,
+    "input": "busque o monstro dragao",
+    "expected_action": "buscar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "buscar dragao",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 514,
+    "input": "busque onde fica o npc mago",
+    "expected_action": "buscar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "buscar mago",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 515,
+    "input": "busque por quests de nivel alto",
+    "expected_action": "buscar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "buscar quests",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 516,
+    "input": "busque sprites de escudo",
+    "expected_action": "buscar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "buscar sprites",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 517,
+    "input": "busque itens de cura no items.xml",
+    "expected_action": "buscar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "buscar itens cura",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 518,
+    "input": "busque funcoes que usam npcHandler",
+    "expected_action": "buscar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "buscar funcoes",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 519,
+    "input": "busque o id do item espada",
+    "expected_action": "buscar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "buscar id espada",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 520,
+    "input": "edite o arquivo npc ferreiro",
+    "expected_action": "editar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "editar npc",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 521,
+    "input": "edite o monstro dragao para ter mais vida",
+    "expected_action": "editar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "editar monstro vida",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 522,
+    "input": "edite o dialogo do npc mago",
+    "expected_action": "editar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "editar dialogo",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 523,
+    "input": "edite a quest para dar mais experiencia",
+    "expected_action": "editar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "editar quest",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 524,
+    "input": "edite o loot do monstro goblin",
+    "expected_action": "editar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "editar loot",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 525,
+    "input": "edite o looktype do npc vendedor",
+    "expected_action": "editar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "editar looktype",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 526,
+    "input": "edite o script lua do guard",
+    "expected_action": "editar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "editar script",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 527,
+    "input": "edite as coordenadas do npc",
+    "expected_action": "editar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "editar coordenadas",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 528,
+    "input": "edite o shop do npc para vender espadas",
+    "expected_action": "editar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "editar shop",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 529,
+    "input": "edite o nome do monstro para demonio",
+    "expected_action": "editar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "editar nome",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 530,
+    "input": "valide o codigo lua do npc",
+    "expected_action": "validar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "validar lua npc",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 531,
+    "input": "valide o script do monstro",
+    "expected_action": "validar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "validar monstro",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 532,
+    "input": "valide a sintaxe do codigo",
+    "expected_action": "validar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "validar sintaxe",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 533,
+    "input": "valide o npc antes de salvar",
+    "expected_action": "validar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "validar npc",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 534,
+    "input": "valide as apis do script",
+    "expected_action": "validar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "validar apis",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 535,
+    "input": "valide o quest script",
+    "expected_action": "validar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "validar quest",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 536,
+    "input": "valide se o codigo esta correto",
+    "expected_action": "validar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "validar correto",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 537,
+    "input": "valide o shadow do script lua",
+    "expected_action": "validar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "validar shadow",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 538,
+    "input": "valide a estrutura do monstro",
+    "expected_action": "validar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "validar estrutura",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 539,
+    "input": "valide o npc gerado",
+    "expected_action": "validar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "validar gerado",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 540,
+    "input": "conecte npc e monstro",
+    "expected_action": "conectar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "conectar npc monstro",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 541,
+    "input": "conecte o conceito de magia com sprite",
+    "expected_action": "conectar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "conectar magia sprite",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 542,
+    "input": "conecte ferreiro e espada",
+    "expected_action": "conectar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "conectar ferreiro espada",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 543,
+    "input": "conecte os dominios de npc e quest",
+    "expected_action": "conectar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "conectar npc quest",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 544,
+    "input": "conecte o texto com o sprite",
+    "expected_action": "conectar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "conectar texto sprite",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 545,
+    "input": "conecte as ideias de loot e shop",
+    "expected_action": "conectar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "conectar loot shop",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 546,
+    "input": "conecte os padroes do codigo",
+    "expected_action": "conectar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "conectar padroes",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 547,
+    "input": "conecte o conceito de dragao com fogo",
+    "expected_action": "conectar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "conectar dragao fogo",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 548,
+    "input": "conecte os topicos markov e entropia",
+    "expected_action": "conectar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "conectar markov entropia",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 549,
+    "input": "conecte os dois codigos",
+    "expected_action": "conectar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "conectar codigos",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 550,
+    "input": "aprenda sobre npcs de tibia",
+    "expected_action": "aprender",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "aprender npcs",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 551,
+    "input": "aprenda o conceito de markov",
+    "expected_action": "aprender",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "aprender markov",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 552,
+    "input": "aprenda como funciona o sistema de quest",
+    "expected_action": "aprender",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "aprender quest",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 553,
+    "input": "aprenda os padroes do codigo lua",
+    "expected_action": "aprender",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "aprender lua",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 554,
+    "input": "aprenda sobre sprites e suas cores",
+    "expected_action": "aprender",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "aprender sprites",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 555,
+    "input": "aprenda a estrutura dos monstros",
+    "expected_action": "aprender",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "aprender monstros",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 556,
+    "input": "aprenda com os dialogos dos npcs",
+    "expected_action": "aprender",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "aprender dialogos",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 557,
+    "input": "aprenda sobre o items.xml",
+    "expected_action": "aprender",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "aprender items",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 558,
+    "input": "aprenda as apis do canary",
+    "expected_action": "aprender",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "aprender apis",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 559,
+    "input": "aprenda com os erros do sistema",
+    "expected_action": "aprender",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "aprender erros",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 560,
+    "input": "planeje uma quest de dragao",
+    "expected_action": "planejar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "planejar quest dragao",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 561,
+    "input": "planeje um sistema de shop",
+    "expected_action": "planejar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "planejar shop",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 562,
+    "input": "planeje o balanceamento do servidor",
+    "expected_action": "planejar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "planejar balanceamento",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 563,
+    "input": "planeje a criacao de um npc complexo",
+    "expected_action": "planejar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "planejar npc",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 564,
+    "input": "planeje uma serie de monstros",
+    "expected_action": "planejar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "planejar monstros",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 565,
+    "input": "planeje a estrutura do projeto",
+    "expected_action": "planejar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "planejar projeto",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 566,
+    "input": "planeje os proximos passos",
+    "expected_action": "planejar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "planejar passos",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 567,
+    "input": "planeje uma cidade completa",
+    "expected_action": "planejar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "planejar cidade",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 568,
+    "input": "planeje o sistema de habilidades",
+    "expected_action": "planejar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "planejar habilidades",
+      "expected_keywords": []
+    }
+  },
+  {
+    "id": 569,
+    "input": "planeje a integracao de sistemas",
+    "expected_action": "planejar",
+    "language": "pt",
+    "complexity": "medium",
+    "semantic_fields": {
+      "answerable": true,
+      "topic": "planejar integracao",
+      "expected_keywords": []
+    }
+  }
+]

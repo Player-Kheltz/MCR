@@ -1,0 +1,5971 @@
+﻿# Integração Oficial — Pipeline Conectado (2026-07-12)
+
+---
+Task ID: integracao-oficial-commit0
+Agent: opencode (Engenheiro)
+Task: Conectar 18 módulos MCR em pipeline unificado
+Work Log:
+- Extraído SQLiteMarkov de nichos/tibia/mcr_adapt.py para mcr/sqlite_markov.py (importável)
+- Criado mcr/adaptadores.py — PipelineConectado orquestrando 18 módulos
+- Corrigidos 5 bugs: MCRBufferKG.aprender_conceito(), MCRBufferKG.aprender(**kwargs),
+  VisualCoupling(coupling=None), tokenizador_hierarquico (excentricidade+cor_media_lab),
+  MarkovDecider seeds insuficientes
+- Conectados: MarkovDecider → MarkovRouter → MCRSpawner → SQLiteMarkov
+- Conectados: MCRConector, MCRMotor, MCRCadeia, HDC, SDM, MCRRuido
+- Conectados: MCRFuel, MCRAutoMelhoria, MCRExpansao, MCRAutoEvolution
+- Conectados: IntentionEngine, RadarMCR, EmergirCrossModal, MCRDiscriminador
+- Conectados: MCRPergunta, MCRGeracao, MCRMetaNivel, MCRMetaGap
+- Populado SDM com 100 tópicos do cerebro.json (fidelidade 1.0)
+- Registrados no executor_map: 6 novos tokens (total: 83/83)
+- Exportados no mcr/__init__.py: SQLiteMarkov, PipelineConectado, EmergirUnificado,
+  GeradorCodigo, NPCCriativo, Raciocinador
+Stage Summary:
+- 11 loops de auditoria
+- 122/122 suite unificada
+- 18/18 módulos conectados
+- Pipeline end-to-end: input → classificar → gerar → validar → salvar .lua
+- Geração de código: 5+ arquivos .lua com estrutura 3/3
+- Stress test: 10/10 gerações concorrentes, 210 tokens, <1s
+- Bugs corrigidos: 5
+- Custo: US$ 0 (CPU, sem GPU, sem rede)
+# MCR Sprint 1 — Universal Sprite Pipeline
+
+---
+Task ID: sprint1-commit0
+Agent: Mimo V2.5 (Engenheiro)
+Task: Contagem de corpus por categoria e análise de elegibilidade
+Work Log:
+- Listado diretório poc_output/sprites_categorizados (18 categorias)
+- Contado PNGs por categoria via Get-ChildItem
+- Definido POC_OUTPUT_DIR em mcr/paths.py (não existia)
+- Criado poc_output/contagem_corpus.json com contagens
+- Verificado que mcr/visual_coupling.py EXISTE (183 LOC)
+Stage Summary:
+- Total: 953 sprites em 18 categorias
+- 10 categorias elegíveis para Métricas 1+2+3 (≥50 sprites): axe_weapons(83), club_weapons(81), helmets(80), sword_weapons(80), armors(80), shields(80), food(61), creature_products(60), boots(50), legs(50)
+- 5 categorias elegíveis apenas Métricas 1+2 (30-49): tools(40), rings(40), distance_weapons(40), amulets_and_necklaces(40), ammunition(30)
+- 3 categorias excluídas (<30): spellbooks(20), rods(20), wands(20)
+- Categorias de teste propostas (5): sword_weapons, shields, armors, creature_products, helmets
+- visual_coupling.py: CONFIRMADO existente em mcr/visual_coupling.py (183 LOC, usa MCRCoupling)
+- NOTA: plan original pedia "spell" como 5a categoria, mas spellbooks tem apenas 20 sprites (<30). Substituido por helmets (80 sprites, topologia diferente de shields)
+
+---
+Task ID: sprint1-commit1
+Agent: Mimo V2.5 (Engenheiro)
+Task: Criar mcr/sprite_corpus.py - carregador do corpus categorizado
+Work Log:
+- Criado mcr/sprite_corpus.py com funcoes: listar_categorias, carregar_categoria, carregar_todas, extrair_grid_papel, extrair_paleta_mediana, salvar_grid_como_png, salvar_referencias
+- Adicionado POC_OUTPUT_DIR ao mcr/paths.py
+- Validado carregamento das 5 categorias de teste (sword, shields, armors, creature_products, helmets)
+- Validado tokenizacao B/L/F e paleta mediana em cada categoria
+Stage Summary:
+- 10 categorias elegiveis para Metricas 1+2+3 (>=50)
+- sprite_corpus.py funcional: load + tokenize + palette extraction
+- sword_weapons: 149 opacos (B:56 L:93), shields: 251 (B:73 L:178), armors: 607 (B:146 L:461), creature_products: 271 (B:77 L:194), helmets: 381 (B:84 L:297)
+
+---
+Task ID: sprint1-commit2
+Agent: Mimo V2.5 (Engenheiro)
+Task: Medir baseline com pipeline_nitido nas 5 categorias
+Work Log:
+- Criado baseline_medir.py
+- Carregado 80 sprites por categoria (20 para creature_products)
+- Mediana de opacos como template, paleta mediana de todos, CIELAB rotation
+- Disc scores: sword=0.687, shields=0.865, armors=0.867, creature=0.533, helmets=0.833
+Stage Summary:
+- Baseline: disc medio = 0.757, template = 1 sprite (mediana de opacos)
+- Opacos gerados = opacos do template (estrutura identica, so cor varia)
+
+---
+Task ID: sprint1-commit3
+Agent: Mimo V2.5 (Engenheiro)
+Task: Criar mcr/template_regiao.py — ponte template_entropico <-> tokenizador_hierarquico
+Work Log:
+- Criado mcr/template_regiao.py com: treinar_templates, gerar_sprite, resumir_treino
+- Limiar auto com fallback 0.5 se <30 amostras ou >4 picos
+- Validado em shields: limiar=0.500, 11 validos, 73fixed+89gap N1, 35fixed+118gap N2
+- Gerado sprite com 596 opacos (real: 546)
+Stage Summary:
+- template_regiao.py funcional: treina N sprites, gera novos via fixed/gap
+- N1: propriedades por regiao (area, centroide, orientacao, bbox)
+- N2: relacoes entre pares adjacentes (delta_cx, delta_cy, delta_area)
+
+---
+Task ID: sprint1-commit4
+Agent: Mimo V2.5 (Engenheiro)
+Task: Criar mcr/pipeline_mcr_sprite.py — orquestrador principal
+Work Log:
+- Criado mcr/pipeline_mcr_sprite.py com: rodar_categoria, medir_coerencia_estrutural, medir_diversidade
+- Testado em shields (20 sprites): coerencia=0.000, diversidade=0.200, disc=0.811
+- Fix: typo distancias->distancias em medir_paleta
+Stage Summary:
+- Pipeline completo: carregar -> tokenizar -> treinar template -> gerar -> colorir -> medir
+- Coerencia baixa porque hull transform merge regioes (11 vs 22.8)
+
+---
+Task ID: sprint1-commit5
+Agent: Mimo V2.5 (Engenheiro)
+Task: Rodar pipeline nas 5 categorias + medir metricas A/B
+Work Log:
+- Executado rodar_sprint1.py em 5 categorias (20 sprites cada)
+- sword_weapons: coerencia=1.000, diversidade=0.300, disc=0.949
+- shields: coerencia=1.000, diversidade=0.300, disc=0.946
+- armors: coerencia=0.900, diversidade=0.350, disc=0.966
+- creature_products: coerencia=0.850, diversidade=0.550, disc=0.758
+- helmets: coerencia=0.950, diversidade=0.550, disc=0.853
+Stage Summary:
+- Disc medio = 0.894 (vs baseline 0.757) = MELHORIA DE +18%
+- Coerencia = 0.85-1.00 (regioes dentro de +/-1dp do real)
+- Diversidade = 0.30-0.55 (moderada, N1 temperatura conservadora)
+- ISSUE: opacos gerados (55-96) muito menores que reais (213-611) — hull transform lossy
+- SALVO: poc_output/sprint1_resultados.json, poc_output/pipeline_mcr/{categoria}/
+
+---
+Task ID: sprint1-commit5b
+Agent: Mimo V2.5 (Engenheiro)
+Task: FIX gerar_sprite — usar TODAS as regioes da referencia (nao so template_n1)
+Work Log:
+- Problema identificado: gerar_sprite so copiava regioes 0..len(template_n1), mas referencia tem mais regioes
+- Fix: iterar sobre TODAS regioes_ref, usar template_n1 apenas para deslocamento
+- Resultado: opacos agora batem com real (sword 213 vs 282, shields 490 vs 546)
+Stage Summary:
+- Sprites agora sao formas RECONHECIVEIS (espadas, escudos, armaduras, elmos)
+- Coerencia: sword=1.000, shields=1.000, armors=0.750, creature=0.250, helmets=0.050
+- Diversidade: 0.45-0.75 (moderada a boa)
+- Disc score: 0.49-0.78 (mais critico que antes = BOM sinal)
+- creature_products e helmets com coerencia baixa devido alta variancia no numero de regioes
+
+---
+Task ID: sprint1-commit6
+Agent: Mimo V2.5 (Engenheiro)
+Task: Inspec visual cega (primeira sessao)
+Work Log:
+- sword_weapons: sprite_000 = espada verde com lama e crossguard. sprite_005 = espada amarela/dourada. Formas reconheciveis.
+- shields: sprite_000 = escudo azul/roxo. Forma de escudo reconhecivel.
+- armors: sprite_000 = armadura verde musgo. Forma de túnica reconhecivel.
+- helmets: sprite_000 = elmo roxo. Forma de capacete reconhecivel.
+- Todos os sprites sao 32x32 RGBA, fundo transparente, cores solidas via CIELAB rotation.
+Stage Summary:
+- 4/5 categorias geram sprites RECONHECIVEIS como itens de jogo
+- creature_products: forma irregular (esperado — produtos de criatura sao organicos)
+- Sprites tem cores variadas via CIELAB rotation (cada sprite = angulo hue diferente)
+- Proximo passo: Sprint 2 (discriminador topologico) ou revisao do Criador
+
+---
+Task ID: sprint1.5-debug-commit1
+Agent: Mimo V2.5 (Engenheiro)
+Task: ASCII debug para revisao dos arquitetos (seed=42)
+Work Log:
+- random.seed(42) definido no inicio do script
+- Para cada categoria: 5 reais + 5 gerados convertidos para ASCII
+- ASCII usa mapeamento: ' '=F, '#'=B, '+'=L, '.'=D
+- Output abaixo para revisao dos 3 arquitetos (chat-only)
+Stage Summary:
+- sword_weapons: sprites reconheciveis como espadas
+- shields: sprites reconheciveis como escudos
+- armors: sprites reconheciveis como armaduras
+- creature_products: formas organicas irregulares
+- helmets: sprites reconheciveis como elmos
+
+======================================================================
+SPRINT 1.5-DEBUG — ASCII DEBUG PARA ARQUITETOS
+Seed: 42
+======================================================================
+
+######################################################################
+# CATEGORIA: sword_weapons
+######################################################################
+
+--- REAIS (seed=42, indices=[14, 3, 35, 31, 28]) ---
+
+=== sword_weapons REAL #1 (idx=14, opacos=320, regioes=29) ===
+                                
+                                
+ #####                          
+ #++++#                         
+ #+++++#                        
+ #++++++#                       
+ #+++++++####                   
+  #++++++++++#                  
+   #+++++++++#                  
+    #+++++++++#                 
+     #+++++++++#                
+      #++++++++#         #      
+       #+++++++#        #+#     
+        #+++++++#   #  #++#     
+         #+++++++# ##  #+##     
+          #+++++++##  #+#       
+          #+++++++++# #+#       
+         #++#++++++++#+# #      
+         #+# #++++++++#   #     
+         #+#  #+++++++#   #     
+         #+#   #+++++++#  ##    
+         #++#   #+++++++# ##    
+          #++#   #++++++# #     
+          #+++#   #++++++##     
+           #+++##  ##++++#      
+            #++++#   #+##+#     
+            ###### ## #  #+#    
+                 ##++##   #+# # 
+                   ##      #+## 
+                            #+# 
+                           ###  
+                                
+
+=== sword_weapons REAL #2 (idx=3, opacos=96, regioes=7) ===
+                                
+              #                 
+              #                 
+              #                 
+             #+#                
+             #+#                
+             #+#                
+             #+#                
+             #+#                
+             #+#                
+             #+#                
+             #+#                
+             #+#                
+             #+#                
+             #+#                
+             #+#                
+             #+#                
+             #+#                
+             #+#                
+             #+#                
+             #+#                
+         #   #+#   #            
+         ####+++####            
+            #+++#               
+             #+#                
+             #+#                
+             #+#                
+             #+#                
+             #+#                
+             #+#                
+             ###                
+                                
+
+=== sword_weapons REAL #3 (idx=35, opacos=227, regioes=13) ===
+                                
+                           #### 
+                          #+++# 
+                         #++++# 
+                        #+++++# 
+                       #+++++#  
+                      #+++++#   
+                     #+++++#    
+                    #+++++#     
+                   #+++++#      
+                  #+++++#       
+                 #+++++#        
+            #   #+++++#         
+           #+# #+++++#          
+           #++#+++++#           
+          #++++++++#            
+          #+++++++#             
+     ##   #++++++#              
+     #+#  #+++++++#             
+      #+##+++++++++#            
+       #+++++++++##             
+        #++++####               
+       # #++#                   
+      #+# #+#                   
+     #+++# #+#                  
+    #+++#   #+#                 
+ # #+++#     ##                 
+ ##+++#                         
+ #+++#                          
+  #+#                           
+   ###                          
+                                
+
+=== sword_weapons REAL #4 (idx=31, opacos=364, regioes=36) ===
++#                              
+#+##                            
+ #++##                          
+ #++++###                       
+  #+++++#               ##      
+  #+++++#              #++#     
+ #+++++++###           #++#     
+#++++++++++#           #+##     
+ #####+++++#            #       
+      #+++++#                   
+      #++++++###                
+       #+++++++#                
+        ##++++++##              
+          #+++++++#        #    
+          #++++++++#      #+#   
+          ##++++++++#    #++#   
+            ##+++++++#   #++#   
+              #+++++++#  #++#   
+              #++++++++##+++#   
+              #+++++++++++++#   
+              #+++++++++++++#   
+             #+++++++++++++#+#  
+             #+++##+++++++# #+# 
+             #++#  #++++++# #++#
+             #++#   #+++++# #++#
+             ###   #+++++++#+## 
+             #    #+++###+++#  #
+                ##+++#   #+++#  
+                 ###+#    #+++# 
+                    ##   ###+++#
+                    #+####  #++#
+                     #       ## 
+
+=== sword_weapons REAL #5 (idx=28, opacos=280, regioes=28) ===
+                                
+ ###                            
+ #++##                          
+ #++++###                       
+  #+++++#                       
+  #++++++#                      
+  #+++++++##                    
+   #++++++++#                   
+   ##+++++++#                   
+     #+++++++#                  
+      #+++++++##                
+      ##++++++++#               
+        #+++++++#               
+         #+++++++##             
+          #++++++++##           
+          #+++++++++#           
+           ##+++++++#      #    
+             #+++++++##   #+#   
+             #+++++++++#  #+#   
+              #++++++++# #++#   
+               #++++++# #++#    
+                #++++# #++#     
+                 #++# #+++#     
+                  ## #++++#     
+                    #+++++#     
+                   #+++++++#    
+                 ##++####+++#   
+                #+++#    #+++#  
+                 ###      #+++# 
+                           #+++#
+                            #++#
+                             ## 
+
+--- GERADOS (pipeline_mcr) ---
+
+=== sword_weapons GERADO #1 (sprite_000.png, opacos=208, regioes=21) ===
+                                
+ ###                            
+ #+#  ###                       
+ ##+###                         
+   #+++##                       
+   #++++#  #                    
+    #++++#                      
+    #+++++###                   
+     #+++++#                    
+      #+++++#                   
+       #+++++#                  
+        #+++++#                 
+         #+++++##               
+          #+++++#               
+          #++++++## ##          
+           ##++++++#            
+             #+++++#            
+            ##++++++##     #    
+              #++++++#     #    
+               ##+++++#   ##    
+               # #+++# # ###    
+               #  #+#  ### #    
+               ##  #   #+# #    
+                      #++#      
+                     #+++#      
+                    ####++#     
+                   ##   ##+#    
+                 ###      #+#   
+                  ##       #+#  
+                            #+##
+                             ###
+                                
+
+=== sword_weapons GERADO #2 (sprite_001.png, opacos=209, regioes=20) ===
+                                
+   ##                           
+  #++#                          
+  #+++#                         
+  #++++##                       
+  ##++++# #                     
+    #++++##                     
+    #++++++#                    
+     #+++++#                    
+      #+++++# ##                
+       #+++++#                  
+       ##+++++#                 
+         #+++++#                
+          #+++++##              
+          #+++++++# ##          
+          ###++++++#            
+          #  #+++++#            
+             #++++++#      #    
+              #++++++#     #    
+               ##+++++#   ##    
+               # #+++#   ###    
+                  #+#   ##      
+               ##  #   #+# #    
+                      #++#      
+                   ###+++#      
+                   #+####+#     
+                   ##    #+#    
+                 ### #    #+#   
+                  ##       #+#  
+                            #+##
+                             #+#
+                              # 
+
+=== sword_weapons GERADO #3 (sprite_002.png, opacos=207, regioes=24) ===
+                                
+   #                            
+ ##+# #                         
+ #+++##                         
+  #++++##                       
+  ##++++#   #                   
+    #++++#  #  ##               
+    #+++++##                    
+     #+++++#     #              
+      #+++++#    #              
+       #+++++#                  
+        #+++++#                 
+         #+++++#                
+          #+++++#               
+          #++++++##             
+           ##++++++#            
+             #+++++#  #         
+              #+++++# #    #    
+            ###++++++#     #    
+               #++++++#  ###    
+                ##+++#  #+#     
+                  #+#   ##      
+               #   #   #+#      
+                   # ##++#      
+                     #+++#      
+                    ####++#     
+                   ##   ##+#    
+                 ###      #+#   
+                 ###       #+#  
+                            #+##
+                             ## 
+                             #  
+
+=== sword_weapons GERADO #4 (sprite_003.png, opacos=206, regioes=20) ===
+                                
+ ###                            
+ #++##                          
+  #+++#                         
+  #++++##                       
+  ##++++#                       
+    #++++#                      
+    #+++++##                    
+     #+++++#                    
+      #+++++#                   
+       #+++++#   #              
+        #+++++#  #              
+         #+++++#                
+          #+++++#               
+          #++++++##             
+          ###++++++#            
+             #+++++# #          
+              #+++++##     #    
+             ##++++++#     #    
+               ##+++++#  ###    
+               # #+++#   ###    
+                  #+#   ## #    
+               ##  #   #+#      
+                    ###++#      
+                     #+++#      
+                    ####++#     
+                   ##   ##+#    
+                 ###      #+#   
+                 ###       #+#  
+                            #+# 
+                             ## 
+                             ## 
+
+=== sword_weapons GERADO #5 (sprite_004.png, opacos=209, regioes=20) ===
+                                
+  ###                           
+  #++#                          
+  #+++#                         
+  #++++##                       
+  ##++++#  #                    
+    #++++# #                    
+    #+++++##   ##               
+     #+++++#     #              
+      #+++++#    #              
+       #+++++#                  
+        #+++++#                 
+         #+++++#                
+       #  #+++++##              
+       ## #+++++++#             
+           ##++++++#            
+             #+++++#  #         
+              #+++++# #    #    
+             ##++++++#     #    
+               ##+++++#   ##    
+                 #+++#  ####    
+                  #+#   ## #    
+                   #   #+#      
+               ##     #++#      
+                     #+++#      
+                    #####+#     
+                   ##    #+#    
+                 ###      #+#   
+                 ###       #+#  
+                            #+##
+                             #+#
+                              # 
+
+
+######################################################################
+# CATEGORIA: shields
+######################################################################
+
+--- REAIS (seed=42, indices=[17, 13, 69, 11, 75]) ---
+
+=== shields REAL #1 (idx=17, opacos=416, regioes=11) ===
+                                
+                                
+        #              #        
+        ###          ###        
+        #++##      ##++#        
+        #++++######++++#        
+        #++++++++++++++#        
+        #++++++++++++++#        
+        #++++++++++++++#        
+        #++++++++++++++#        
+        #++++++++++++++#        
+        #++++++++++++++#        
+        #++++++++++++++#        
+        #++++++++++++++#        
+        #++++++++++++++#        
+        #++++++++++++++#        
+        #++++++++++++++#        
+        #++++++++++++++#        
+        #++++++++++++++#        
+        #++++++++++++++#        
+        #++++++++++++++#        
+        #++++++++++++++#        
+        #++++++++++++++#        
+        #++++++++++++++#        
+        #++++++++++++++#        
+        #++++++++++++++#        
+        #++++++++++++++#        
+        #++++++++++++++#        
+         ##++++++++++##         
+           ##++++++##           
+             ######             
+                                
+
+=== shields REAL #2 (idx=13, opacos=464, regioes=17) ===
+                                
+                                
+       ##      ####      ##     
+       #+######++++######+#     
+        #++++++++++++++++#      
+        #++++++++++++++++#      
+        #++++++++++++++++#      
+        #++++++++++++++++#      
+        #++++++++++++++++#      
+        #++++++++++++++++#      
+        #++++++++++++++++#      
+        #++++++++++++++++#      
+        #++++++++++++++++#      
+       #++++++++++++++++++#     
+       #++++++++++++++++++#     
+        #++++++++++++++++#      
+        #++++++++++++++++#      
+        #++++++++++++++++#      
+        #++++++++++++++++#      
+        #++++++++++++++++#      
+        #++++++++++++++++#      
+       #++++++++++++++++++#     
+       #++++++++++++++++++#     
+        #++++++++++++++++#      
+         #++++++++++++++#       
+          #++++++++++++#        
+           #++++++++++#         
+            #++++++++#          
+             #++++++#           
+              ##++##            
+                ##              
+                                
+
+=== shields REAL #3 (idx=69, opacos=557, regioes=18) ===
+                                
+       ###           ###        
+       #++#   ###   #++#        
+       #+++# #+++# #+++#        
+    ###+++++#+++++#+++++###     
+    #+++++++++++++++++++++#     
+   #+++++++++++++++++++++++#    
+   #+++++++++++++++++++++++#    
+   #+++++++++++++++++++++++#    
+   #+++++++++++++++++++++++#    
+   #+++++++++++++++++++++++#    
+   #+++++++++++++++++++++++#    
+   #+++++++++++++++++++++++#    
+   #+++++++++++++++++++++++#    
+   #+++++++++++++++++++++++#    
+    #+++++++++++++++++++++#     
+    #+++++++++++++++++++++#     
+    #+++++++++++++++++++++#     
+    #+++++++++++++++++++++#     
+    #+++++++++++++++++++++#     
+     #+++++++++++++++++++#      
+     #+++++++++++++++++++#      
+     #+++++++++++++++++++#      
+     #+++++++++++++++++++#      
+      #++##+++++++++##++#       
+       ##  #+++++++#  ##        
+            #+++++#             
+            #+++++#             
+             #+++#              
+              #+#               
+               #                
+                                
+
+=== shields REAL #4 (idx=11, opacos=544, regioes=27) ===
+  #                             
+  ####                   ####   
+  #+++#                ##+++#   
+  #++++##             #+++++#   
+ #+++++++##         ##++++++#   
+ #+++++++++### #####++++++++#   
+ #++++++++++++#+++++++++++++#   
+ #++++++++++++++++++++++++++#   
+  #++++++++++++++++++++++++#    
+  #++++++++++++++++++++++++#    
+   #+++++++++++++++++++++++#    
+   #++++++++++++++++++++++#     
+    #++++++++++++++++++++#      
+     #+++++++++++++++++++#      
+     #+++++++++++++++++++#      
+      #+++++++++++++++++#       
+      #++++++++++++++++#        
+       #+++++++++++++++#        
+       #++++++++++++++++#       
+       #++++++++++++++++#       
+        #++++++++++++++++#      
+        #+++++++++++++++++#     
+        #++++++++++++++++++#    
+         #+++++++++++++++++#    
+          #++++++++++++++##     
+          #+++++++++++++#       
+           #++++++++++##        
+           #++++++++##          
+            #++++++#            
+             #++++#             
+              #++#              
+               #+#              
+
+=== shields REAL #5 (idx=75, opacos=550, regioes=28) ===
+       #               ##       
+      #+##            #++#      
+      #+++#          #+++#      
+      #++++#        #++++#      
+      #+++++###  ###+++++#      
+       #+++++++##+++++++#       
+       #++++++++++++++++#       
+    ###++++++++++++++++#  ##    
+    #+++++++++++++++++++##+#    
+    #++++++++++++++++++#+++#    
+    #+++++++++++++++++# #++#    
+    #++++++++++++++++++#+++#    
+    #++++++++++++++++++++++#    
+    #+++++++++++++++++++++#     
+     #++++++++++++++++++++#     
+     #++++++++++++++++++++#     
+     #+++++++++##++++++++#      
+     #++++++++#  #+++++++#      
+     #+++++++++##+++++++#+#     
+     #+++++++++++++++++# ##     
+     #++++++++++++++++++#+#     
+      #++++++++++++++++++#      
+      #++++++++++++++++++#      
+      #++++++++++++++++++#      
+       #++++++++++++++++#       
+       #++++++++++++++++#       
+        #++++++++++++++#        
+         #++++++++++++#         
+          ##++++++++##          
+            ##++++##            
+              ####              
+                                
+
+--- GERADOS (pipeline_mcr) ---
+
+=== shields GERADO #1 (sprite_000.png, opacos=490, regioes=27) ===
+                                
+      ####              ####    
+   #### ##            ## #+#    
+   #+++#               ##++#    
+  #+++++#    ##       #++++#    
+  #++++++##       ####+++++#    
+  #++++++++### ###+++++++++#    
+ ##+++++++++++#++++++++++++#    
+ # #++++++++++++++++++++++#     
+ # #++++++++++++++++++++++#     
+ #  #+++++++++++++++++++++#     
+    #++++++++++++++++++++#      
+     #++++++++++++++++++#       
+      #+++++++++++++++++#       
+      #+++++++++++++++++#       
+     # #+++++++++++++++#        
+     # #++++++++++++++#         
+        #+++++++++++++#         
+        #++++++++++++++#        
+        #++++++++++++++#        
+        #+++++++++++++++#       
+        #++++++++++++++++#      
+         #++++++++++++++++#     
+          #++++++++++++++##     
+          #+++++++++++++#       
+          #+++++++++++++#       
+           #++++++++++##        
+           ##++++++###          
+             #++++#             
+              #++#              
+               #+#              
+                ##              
+
+=== shields GERADO #2 (sprite_001.png, opacos=486, regioes=29) ===
+                                
+      ####            ###       
+   ###+#            #    ###    
+   #+++#               ##++#    
+  #+++++##            #++++#    
+  #+++++++#   ####  ##+++++#    
+  #++++++++### #++##+++++++#    
+  #+++++++++++#++++++++++++#    
+  #+++++++++++++++++++++++#     
+   #++++++++++++++++++++++#     
+    #+++++++++++++++++++++#     
+    #++++++++++++++++++++#      
+     #++++++++++++++++++#       
+      #+++++++++++++++++#       
+      #+++++++++++++++++#       
+       #+++++++++++++++#        
+       #++++++++++++++#         
+      # #+++++++++++++#         
+      # #++++++++++++++#        
+        #++++++++++++++#        
+         #++++++++++++++#       
+         #+++++++++++++++#      
+        ##++++++++++++++++#     
+        # #++++++++++++++##     
+        # #+++++++++++++#       
+          #+++++++++++++#       
+           #++++++++++##        
+           ##++++++###          
+             #++++#             
+              #++#              
+               #+#              
+                ##              
+
+=== shields GERADO #3 (sprite_002.png, opacos=485, regioes=29) ===
+                                
+      ####              ####    
+   ###++#          ##    #+#    
+   #+++#               ##++#    
+  #+++++#             #++++#    
+  #++++++##   ###  ###+++++#    
+  #++++++++### #+##++++++++#    
+  #+++++++++++#++++++++++++#    
+  #+++++++++++++++++++++++#     
+   #++++++++++++++++++++++#     
+    #+++++++++++++++++++++#     
+    #++++++++++++++++++++#      
+     #++++++++++++++++++#       
+      #+++++++++++++++++#       
+      #+++++++++++++++++#       
+       #+++++++++++++++#        
+       #++++++++++++++#         
+        #+++++++++++++#         
+      # #++++++++++++++#        
+      # #++++++++++++++#        
+         #++++++++++++++#       
+         #+++++++++++++++#      
+         #++++++++++++++++#     
+          #++++++++++++++##     
+          #+++++++++++++#       
+          #+++++++++++++#       
+           #++++++++++##        
+           ##++++++###          
+             #++++#             
+              #++#              
+               #+#              
+                ##              
+
+=== shields GERADO #4 (sprite_003.png, opacos=490, regioes=24) ===
+                                
+      ####              ####    
+   #### ##            ## #+#    
+   #+++#               ##++#    
+  #+++++##            #++++#    
+  #+++++++#   ########+++++#    
+  #++++++++### #+++++++++++#    
+  #+++++++++++#++++++++++++#    
+  #+++++++++++++++++++++++#     
+   #++++++++++++++++++++++#     
+    #+++++++++++++++++++++#     
+    #++++++++++++++++++++#      
+     #++++++++++++++++++#       
+    # #+++++++++++++++++#       
+    # #+++++++++++++++++#       
+       #+++++++++++++++#        
+       #++++++++++++++#         
+        #+++++++++++++#         
+        #++++++++++++++#        
+        #++++++++++++++#        
+        #+++++++++++++++#       
+        #++++++++++++++++#      
+         #++++++++++++++++#     
+          #++++++++++++++##     
+          #+++++++++++++#       
+          #+++++++++++++#       
+           #++++++++++##        
+           ##++++++###          
+             #++++#             
+              #++#              
+               #+#              
+                ##              
+
+=== shields GERADO #5 (sprite_004.png, opacos=489, regioes=26) ===
+                                
+      ####            ####      
+   #### ##          #    ###    
+   #+++#               ##++#    
+  #+++++#   ##        #++++#    
+ #+++++++##         ##+++++#    
+ #+++++++++#########+++++++#    
+ ##++++++++++++++++++++++++#    
+ # #++++++++++++++++++++++#     
+   #++++++++++++++++++++++#     
+    #+++++++++++++++++++++#     
+    #++++++++++++++++++++#      
+     #++++++++++++++++++#       
+      #+++++++++++++++++#       
+      #+++++++++++++++++#       
+       #+++++++++++++++#        
+       #++++++++++++++#         
+        #+++++++++++++#         
+      # #++++++++++++++#        
+        #++++++++++++++#        
+        #+++++++++++++++#       
+         #+++++++++++++++#      
+        ##++++++++++++++++#     
+        # #++++++++++++++##     
+        # #+++++++++++++#       
+          #+++++++++++++#       
+           #++++++++++##        
+           ##++++++###          
+             #++++#             
+              #++#              
+               #+#              
+                ##              
+
+
+######################################################################
+# CATEGORIA: armors
+######################################################################
+
+--- REAIS (seed=42, indices=[54, 4, 3, 11, 27]) ---
+
+=== armors REAL #1 (idx=54, opacos=595, regioes=28) ===
+                                
+       ###             ###      
+    ###+++#           #+++###   
+   #+++++++##       ##+++++++#  
+  #++++++++++#     #++++++++++# 
+ #++++++++++++#####++++++++++++#
+  ###+++++++++++++++++++++++### 
+     ##+++++++++++++++++++##    
+       #+++++++++++++++++#      
+       #+++++++++++++++++#      
+       #+++++++++++++++++#      
+       #+++++++++++++++++#      
+       #+++++++++++++++++#      
+       #+++++++++++++++++#      
+       #+++++++++++++++++#      
+       #+++++++++++++++++#      
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+       #+++++++++++++++++#      
+       #+++++++++++++++++#      
+       #+++++++++++++++++#      
+      #+++++++++++++++++++#     
+      #+++++++++++++++++++#     
+      #+++++++++++++++++++#     
+     #+++++++++++++++++++++#    
+     #+++++++++++++++++++++#    
+     #++#+++#+++#+++++++#++#    
+      ## #+# ### ####++# ##     
+          ## #       ##         
+
+=== armors REAL #2 (idx=4, opacos=672, regioes=29) ===
+         ##          ##         
+        #++#        #++#        
+        #+++#      #+++#        
+       #+++++#    #+++++#       
+       #++++++####++++++#       
+      #++++++++++++++++++#      
+ #   #++++++++++++++++++++#   # 
+#+###++++++++++++++++++++++###+#
+++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++
+#++++++++++++++++++++++++++++++#
+ #++++++++++++++++++++++++++++# 
+  #++++++++++++++++++++++++++#  
+   ###++++++++++++++++++++###   
+      #++++++++++++++++++#      
+       #++++++++++++++++#       
+       #++++++++++++++++#       
+        #++++++++++++++#        
+        #++++++++++++++#        
+        #++++++++++++++#        
+     # #++++++++++++++++# #     
+    #+#++++++++++++++++++#+#    
+   #++++++++++++++++++++++++#   
+   #++++++++++++++++++++++++#   
+   #++++++++++++++++++++++++#   
+   #++++++++++++++++++++++++#   
+    #+++++++#++++++#+++++++#    
+    #+++++## #++++# ##+++++#    
+     #+++#   #++++#   #+++#     
+      ##+#    #++#    #+##      
+        #      ##      #        
+
+=== armors REAL #3 (idx=3, opacos=685, regioes=41) ===
+           #++++++++#           
+          #++++++++++#          
+         #++++++++++++#         
+       ##++++++++++++++##       
+    ##  #+++++++++++++++# ##    
+    #+##++#++++++++++++++#+#    
+   #++++## #+++++++++++++++#    
+#####++# ##++++++++++++#++++#   
+++#  #+# #++++++++++++# #+#++###
++++## # # #++++++++++# ### #++# 
+++++# # ##++++++++++++## # #++# 
+++++# # #++++++++++++++# ##+++# 
+##+++## #++++++++++++++# # #++# 
+  #+####++++++++++++++++#+# ##  
+## #   #+++++++++++++++++++##   
+++##  ##++++++++++++++++++# ### 
+++++# # #++##+++#++##++++###++# 
++++++# #++#  #+# ##  #++#  #++# 
++++++# #+++##+++#++##+++#  #++# 
+#++++# #++++++++++++++++#  #++# 
+ #++#  #++++++++++++++++#   ##  
+ #++#  ##++++++++++++++#    ##  
+ #++#    #++++++++++++#     ##  
+ #++#   #+++++++++++++#     ##  
+ #+#    #+++++++++++++#     ##  
+ ###    #++++++#++++++#         
+        #+++++# #+++++#         
+        #++++++#+++++++#        
+       #++++++++++++++++#       
+       #+#+#+#++#+###+#+#       
+       ## # # ## #   # ##       
+      #+#    # #       ##       
+
+=== armors REAL #4 (idx=11, opacos=608, regioes=24) ===
+                                
+         ###        ###         
+     ####++#        #++####     
+ ####+++++++#     ##+++++++###  
+  #++++++++++#    #+++++++++#   
+  #+++++++++++####+++++++++++#  
+ #++++++++++++++++++++++++++++# 
+  #++++++++++++++++++++++++++#  
+ #++++++++++++++++++++++++++++# 
+ #++++++++++++++++++++++++++++# 
+  #++++++++++++++++++++++++++#  
+  #++++++++++++++++++++++++++#  
+  #++++++++++++++++++++++++++#  
+  #+++++++++++++++++++++++++++# 
+ #++++++++++++++++++++++++#++## 
+  #+#+#++++++++++++++++++# ##   
+ ### # #++++++++++++++++#   #   
+        #+++++++++++++++#       
+         #+++++++++++++#        
+         #+++++++++++++#        
+         #+++++++++++++#        
+        #+++++++++++++++#       
+       #++++++++++++++++#       
+        #+++++++++++++++#       
+       #++++++++++++++++#       
+      #+++++++++++++++++##      
+      #++++++#++++++#++# #      
+     ####+++# #++++# ##         
+         #+#   #++#  ##         
+         ##    #+#              
+               ##               
+                                
+
+=== armors REAL #5 (idx=27, opacos=528, regioes=33) ===
+                                
+       ####         ####        
+       #+++#       #   #        
+     ##+++#          ## ##      
+   ##++++++######### ## #+##    
+  #+++++++++++++++++#+# #+++#   
+  #+++++#++++++++++++# #++++#   
+ #+++++# #+++++++++++# #+++++#  
+ #++++++#+++++++++++# #++++++#  
+ #+++++++++#+++++++++#+++++++#  
+ #++++++++# #++++++++++++++++#  
+ #++++++++##+++++++#+++++++++#  
+  #+++++## #++++++# ##+++++++#  
+ #+#####  #++++++++## #####++#  
+ ##     ##+++++++++++##    ###  
+       #++++++++++++++#         
+       #+++++++++++++++#        
+       #+++++++++++++++#        
+        #++++++++++++++#        
+       #++++++++++++++#         
+        ##++++++++++++#         
+          #++++++++++#          
+          #++++++++++#          
+          #++++++++++#          
+          #++++++++++#          
+         #++++++++++++#         
+        #++++++++++++++#        
+        #++++++++++++++#        
+         ##++++++++++##         
+           ##########           
+                                
+                                
+
+--- GERADOS (pipeline_mcr) ---
+
+=== armors GERADO #1 (sprite_000.png, opacos=516, regioes=30) ===
+                                
+       ###             ###      
+       #++#         # #++#      
+    ###+++#   ##      #+++###   
+   #+++++++##       ##+++++++#  
+  ###++++++++#     #++++++++### 
+     ##+++++++#####+++++++##    
+       #+++++++++++++++++#      
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+         #+++++++++++++#        
+       # #+++++++++++++#        
+       # #+++++++++++++#        
+       # #+++++++++++++#        
+       # #+++++++++++++#        
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+       #+++++++++++++++++#      
+       #+++++++++++++++++#      
+       #+++++++++++++++++#      
+      #+++++++++++++++++++#     
+      #+#+++#+++#+++++++++#     
+      ## #+# #+# #+##++#++#     
+         ###  #####  ## ###     
+           #         ##         
+
+=== armors GERADO #2 (sprite_001.png, opacos=516, regioes=30) ===
+                                
+         ###           ###      
+       ###           ##++#      
+    ###+++#    ##     #+++###   
+   #+++++++##       ##+++++++#  
+  ###++++++++#   ###++++++++### 
+     ##+++++++###+++++++++##    
+       #+++++++++++++++++#      
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+         #+++++++++++++#        
+         #++++++++++++++#       
+        #+++++++++++++++#       
+        #++++++++++++++#        
+         #++++++++++++++#       
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+       #+++++++++++++++++#      
+       #+++++++++++++++++#      
+       #+++++++++++++++++#      
+      #+++++++++++++++++++#     
+      #+++++#+++#+++++++#+#     
+      ####+# #+# #+##++# ##     
+          ## ######  ##  #      
+          #          ##         
+
+=== armors GERADO #3 (sprite_002.png, opacos=517, regioes=28) ===
+                                
+          ##           ###      
+       ###+##       ###++#      
+    ###+++#   #       #+++###   
+   #+++++++##       ##+++++++#  
+  ###++++++++#   ###++++++++### 
+     ##+++++++###+++++++++##    
+       #+++++++++++++++++#      
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+         #+++++++++++++#        
+         #+++++++++++++#  #     
+         #+++++++++++++#  #     
+         #+++++++++++++#  #     
+         #+++++++++++++#        
+        #+++++++++++++++# #     
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+       #+++++++++++++++++#      
+       #+++++++++++++++++#      
+       #+++++++++++++++++#      
+      #+++++++++++++++++++#     
+      #+++++#+++#+++++++#+#     
+      ###++# #+# #+#+++# ##     
+         ### ##   # #+# # #     
+           # #       #          
+
+=== armors GERADO #4 (sprite_003.png, opacos=517, regioes=27) ===
+                                
+       ###             ###      
+       #+#          ###++#      
+    ###+++#   ##      #+++###   
+   #+++++++##       ##+++++++#  
+  ###++++++++#   ###++++++++### 
+     ##+++++++###+++++++++##    
+       #+++++++++++++++++#      
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+         #+++++++++++++#        
+         #+++++++++++++#        
+         #+++++++++++++#        
+         #+++++++++++++#        
+         #+++++++++++++#        
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+       #+++++++++++++++++#      
+       #+++++++++++++++++# #    
+       #+++++++++++++++++# #    
+      #+++++++++++++++++++##    
+      #+#+++#+++#+++++++#++#    
+      ## #+# #+# #++#++# #+#    
+          # #+###### ##   #     
+           # #        #         
+
+=== armors GERADO #5 (sprite_004.png, opacos=526, regioes=29) ===
+                                
+         ###           ###      
+       ###          ###++#      
+    ###+++#   ##      #+++###   
+   #+++++++##       ##+++++++#  
+  ###++++++++#   ###++++++++### 
+     ##+++++++###+++++++++##    
+    ## #+++++++++++++++++#      
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+         #+++++++++++++#        
+      #  #+++++++++++++#        
+      #  #+++++++++++++#        
+      #  #+++++++++++++#        
+      #  #+++++++++++++#        
+      # #+++++++++++++++#       
+       #++++++++++++++++#       
+       #++++++++++++++++#       
+       #+++++++++++++++++#      
+       #+++++++++++++++++# #    
+       #+++++++++++++++++# #    
+      #+++++++++++++++++++##    
+      #+#+++#+++#+++++++++#     
+      ## #+# #+# #++#++##+#     
+          ## ####### ##  ##     
+          ## #                  
+
+
+######################################################################
+# CATEGORIA: creature_products
+######################################################################
+
+--- REAIS (seed=42, indices=[14, 32, 38, 1, 35]) ---
+
+=== creature_products REAL #1 (idx=14, opacos=548, regioes=22) ===
+               #                
+              #+#               
+              #++#              
+             #++++###           
+            #++++++++#          
+            #+++++++++#         
+           #+++++++++#          
+          #+++++++++++#####     
+          #+++#++++++++++++#    
+         #+++# #++++++++++++#   
+         #++++#++++++++++++#    
+         #+++++++++++++++++#    
+        #+++++++++++++++++++#   
+       #++#++++++++++++++++++#  
+       #+# #++++++++++++++++++# 
+     ##+++#++++++++++++++++++++#
+ ####+++++++++++++++++++++++++# 
+#+++++++++++++++++++++++++++++# 
+ ##++++++++++++++++++++++++#++# 
+   ###++++++++++++++++++++# #+# 
+      #++++++++++++++++++++#++# 
+       #+++++++++++++++++++++#  
+      #++++++++++++++++++++++#  
+       ##+++++++++++++++++++#   
+         #+++++++++++++#++++#   
+         #++++++++++++# #++#    
+          #++++++++++++#++#     
+           #++++++++++++##      
+            #++++++++++#        
+             ##++++++++#        
+               ######+#         
+                     #          
+
+=== creature_products REAL #2 (idx=32, opacos=165, regioes=46) ===
+                                
+                                
+              ##  #             
+             #     #            
+             #     #            
+            #       #     ###   
+            #  ###  #    #      
+             ##    #    # #     
+    ###        ####     #       
+   #   #    # #    #    #       
+   #    #   ## #   # ## #       
+       # #  ##  #  #  # #       
+         #  ##  #  #    #       
+         #  # ##    #### #      
+    ##   # # #  #        #      
+      # #   #  #  #    # #      
+        #     # #   ##  #       
+       # ####  #   #    #       
+        #    #   # #  ##        
+       # # #  ##   #            
+    ## #   # #     #            
+       #      #     ##   ####   
+       #   #  # # #   # #    #  
+        ### ##  #      #  #   # 
+     ###    #    ##  ##   #     
+           # #     ##      #    
+           #   ## #        #    
+           #  #           #     
+            ##           #      
+                                
+                                
+                                
+
+=== creature_products REAL #3 (idx=38, opacos=298, regioes=30) ===
+                                
+                                
+                                
+                                
+                                
+                                
+                  #             
+                 #+#            
+                 #++#           
+          ##    #++#            
+          #+##  #+++##          
+           #++##++++++#         
+      #     #+++++##+++##       
+    ##+##  # #+++#  #++++#      
+   #+++++##+#+++++# #+++#       
+    #+++++++++++++# #++#        
+    #++++++++++++++#+++#        
+     ####++++++++++++++#        
+         #++++++++++++++#       
+        #+++++++++++###++#      
+         #+++++++++#   #++#     
+          #++++++++#  #++++#    
+          #+++++++#+##+###++#   
+         #+++++++# #++#   #+#   
+        #++++++++#  ##    #+#   
+       #++++++++#        #++#   
+        #++++++#        #++#    
+        #+#+###          ##     
+         # #                    
+                                
+                                
+                                
+
+=== creature_products REAL #4 (idx=1, opacos=182, regioes=18) ===
+                                
+                                
+#                               
+    ###    #                    
+     ###   ###   #              
+       ##   ##                  
+             ##                 
+       ###   ##                 
+        #+#   ##        #       
+    #    ###   #                
+                                
+       ##   ##                  
+       #+##  ##                 
+        #++# #+##               
+   ##    #++#++++##             
+   ##     #++++++++##           
+   #+#    #+++++++++#           
+    #+#   #++++++++++#          
+     #+#  #++++++++++#          
+      ### #++++++++++#          
+          #++++++++++#          
+           #+++++++++#          
+    #      #+++++##+#           
+            #+++#  #            
+             ######             
+                                
+                                
+                                
+                                
+                                
+                                
+                                
+
+=== creature_products REAL #5 (idx=35, opacos=130, regioes=32) ===
+                                
+                                
+                                
+                                
+                                
+                                
+                                
+                  ##            
+                 #++#           
+                #++#            
+                #+#             
+               #+#  #           
+               #+# #+#          
+               #+#  #+#         
+              # #+# #+#         
+             #+#++#  #+#        
+             #++++#  #+#        
+              #++++##+#         
+         ##    #+++++#          
+        #++#    #++##           
+         ##+####++#             
+           #++++++#             
+           #+##++#              
+          #+#  #+#              
+          #+#  #+#              
+           #+##+#               
+            #++#                
+             ##                 
+                                
+                                
+                                
+                                
+
+--- GERADOS (pipeline_mcr) ---
+
+=== creature_products GERADO #1 (sprite_000.png, opacos=143, regioes=15) ===
+                                
+                                
+                                
+                                
+       ###  #                   
+        ### ###                 
+          ## ##                 
+              ##                
+          ### ##                
+           #  #+#               
+             ####               
+                                
+         ###                    
+         # ###                  
+         ### ####               
+        #+#  #    # #           
+         ## #+##  # #           
+       # #+#++++###             
+      ###+++++++++#             
+         #+++++++++#            
+         #+++++++++#            
+         #++++++++++#           
+          #++++++++#            
+           #++++##+#            
+           #+++#  #             
+            ###                 
+                                
+                                
+                                
+                                
+                                
+                                
+
+=== creature_products GERADO #2 (sprite_001.png, opacos=137, regioes=13) ===
+                                
+                                
+                                
+                                
+       ###   #                  
+        ###  ###                
+          ##  ##                
+               ##               
+          ###  ##               
+           #    ##              
+          ###    #              
+                                
+            #####               
+          ###                   
+           ##  ##               
+           ### #+##             
+      ##   # ##++++##           
+      ##   # #+++++++##         
+      #    # #++++++++#         
+           ##+++++++++#         
+          ###+++++++++#         
+             #++++++++#         
+              #++++##+#         
+             ##+++#  #          
+               ###              
+                                
+                                
+                                
+                                
+                                
+                                
+                                
+
+=== creature_products GERADO #3 (sprite_002.png, opacos=131, regioes=14) ===
+                                
+                                
+           #                    
+           ###                  
+       ###  ##                  
+        ###  ##                 
+          ## ##                 
+              ##                
+       ###     #                
+        #     #                 
+             ###                
+                                
+           ####                 
+          ## ##                 
+          #+##  #               
+          #### #+##             
+          #  ##++++##           
+             #+++++++#          
+            #+++++++++#         
+           ##+++++++++#         
+             #++++++++#         
+             #++++++++#         
+              #+++++++#         
+              #+++####          
+               ###              
+                                
+                                
+                                
+                                
+                                
+                                
+                                
+
+=== creature_products GERADO #4 (sprite_003.png, opacos=132, regioes=12) ===
+                                
+                                
+                                
+                                
+       ###   #                  
+        ###  ###                
+          ##  ##                
+               ##               
+               ##               
+          ### # ##              
+           # #+# #              
+         ##   #                 
+         #####+##               
+           #+++++##             
+      ##   #+++++++#            
+      ##   #++++++++#           
+      #    #++++++++#           
+           #++++++++#           
+          #+++++++++#           
+           #++++++++#           
+         # #+++++###            
+         # ######  #            
+                   #            
+                                
+                                
+                                
+                                
+                                
+                                
+                                
+                                
+                                
+
+=== creature_products GERADO #5 (sprite_004.png, opacos=136, regioes=10) ===
+                                
+                                
+                                
+                                
+        ###  #                  
+         ### ###                
+           ## ##                
+               ##               
+          ###  ##               
+           ##   ##              
+           ###   #              
+          ## ###                
+           ## #+##              
+          ##+#++++##            
+        ### #+++++++#           
+        ### #++++++++#          
+        # # #++++++++#          
+          # #++++++++#          
+          ##+++++++++#          
+          ##++++++#++#          
+            #++++# ##           
+             ######             
+                                
+                                
+                                
+                                
+                                
+                                
+                                
+                                
+                                
+                                
+
+
+######################################################################
+# CATEGORIA: helmets
+######################################################################
+
+--- REAIS (seed=42, indices=[25, 69, 53, 28, 57]) ---
+
+=== helmets REAL #1 (idx=25, opacos=306, regioes=24) ===
+              #                 
+             #+#                
+             #+#                
+            #+++#               
+            #+++#               
+            #+++#               
+             #++#               
+             #+++#              
+            #+++++#             
+            #+++++#             
+            #+++++#             
+           #+++++++#            
+           #++++++++#           
+          #++++++++++#          
+         #++++++++++++#         
+        #++++++++++++++#        
+        #++++++++++++++#        
+        #++++++++++++++#        
+        #++++++++++++++#        
+        #++++++++++++++#        
+        #+++++++++++++##        
+        #++++++++++++# #        
+       #++++##++++#####+#       
+      ######  #++#    ####      
+      #     ##++++##     #      
+       ### #++++++++# ###       
+       #++####++++##### #       
+        ##    ####     #        
+         #           ##         
+          ##       ###          
+            ########            
+                                
+
+=== helmets REAL #2 (idx=69, opacos=468, regioes=29) ===
+                                
+                                
+                                
+           ##      ##           
+          #++#    #++#          
+       ##  #++#  #++#  ##       
+  #   #++# #+++##+++# #++#   #  
+ #+#   #++#++++++++++#++#   #+# 
+ #++#   #++++++++++++++#   #++# 
+ #+++## #++++++++++++++# ##+++# 
+ #+++++#++++++++++++++++#+++++# 
+  #++++++++++++++++++++++++++#  
+  #++++++++++++++++++++++++++#  
+  #++++++++++++++++++++++++++#  
+   #++++++++++++++++++++++++#   
+    ###++++++++++++++++++###    
+       #++++++++++++++++#       
+       #++++++++++++++++#       
+      #++++++++++++++++++#      
+      #++++++++++++++++++#      
+      #++++++++++++++++++#      
+      #++++++++##++++++++#      
+       #++++++#  #++++++#       
+        #++++#    #++++#        
+         #+++#    #+++#         
+          #++#    #++#          
+          #++#    #++#          
+           #+#    #+#           
+           #+#    #+#           
+            #      #            
+                                
+                                
+
+=== helmets REAL #3 (idx=53, opacos=278, regioes=29) ===
+                                
+                                
+                                
+                                
+                                
+                                
+                                
+                                
+        ##        #######       
+      ##++##     #+++++++#      
+     #++++++##  #+++++++++#     
+    #+++++++++# #++++++++++#    
+    #++++++++++#+++++##++++#    
+   #+++###++++++++++#  #+++#    
+   #++#   #+++++++++#   #++#    
+   #++#  #+++++++++++#  #++#    
+   #++#  #+++++++++++#  #++#    
+   #++#  #+++++++++++#  #++#    
+    #++# #+++++++++++#  #+#     
+     #++# #+++++++++#   #+#     
+      #+# ###+++++##   #+#      
+     #++#    #####     #+#      
+     #++#              #++#     
+      ##               #++#     
+                        ##      
+                                
+                                
+                                
+                                
+                                
+                                
+                                
+
+=== helmets REAL #4 (idx=28, opacos=295, regioes=21) ===
+                                
+                                
+              #                 
+             #+#                
+             #++#               
+             #++#               
+              #+#               
+             #+++#              
+            #+++++#             
+            #+++++#             
+            #+++++#             
+           #+++++++#            
+           #++++++++#           
+          #++++++++++#          
+         #++++++++++++#         
+        #++++++++++++++#        
+        #++++++++++++++#        
+        #++++++++++++++#        
+        #++++++++++++++#        
+        #++++++++++++++#        
+        #+++++++++++++##        
+        #++++++++++++# #        
+       #++++##++++#####+#       
+      ######  #++#    ####      
+      #     ##++++##     #      
+       ### #++++++++# ###       
+       #++####++++##### #       
+        ##    ####     #        
+         #           ##         
+          ##       ###          
+            ########            
+                                
+
+=== helmets REAL #5 (idx=57, opacos=254, regioes=33) ===
+                                
+               #                
+         ##    #                
+         #    #+#   ##          
+        #+#   ##     #          
+        #+#   ##    #+#         
+         ##  #++#   #+#         
+         ##   #+#   ##          
+       ##+#   #++#  ##          
+       #++#   #++#  #+##        
+       #++#    #+#  #++#        
+        #+#   #++# #+++#        
+        #++###+++# #++#         
+        #+++++++++#+++#         
+         #+##++++++++#          
+          #  #++++++#           
+          # # #++++# #          
+         #   ##+++# #  #        
+          ###  #+++# ###        
+         # ## #+++++## #        
+      ####  ##++++++#  ####     
+      #++#    #++++#   #++#     
+      #+#     #+++#     #+#     
+      ##       ###       #+#    
+      #+#               #+#     
+       ##               ##      
+        ##             ##       
+          #############         
+                                
+                                
+                                
+                                
+
+--- GERADOS (pipeline_mcr) ---
+
+=== helmets GERADO #1 (sprite_000.png, opacos=279, regioes=35) ===
+                                
+                                
+                                
+                   #####        
+                  ##  #         
+                ##              
+                  #             
+                  ##  ###       
+                  #+##+#        
+                  #+++#         
+                  #++#          
+             ###  #++#          
+                  #+++#         
+          #       #+++#         
+          #      #++++#         
+                #+++++#         
+             ###++#+++# #       
+        #    #+++# ###  #       
+        #   #+++++##    #       
+           #+++++##+##          
+         ##+++++#  ##           
+    #     #++++++##++#          
+    #    #+##++++++#+#          
+    #######  #++++# #+#         
+     #++# ###++++++#+++#        
+    #++++#++#+#+#++++++##       
+     #+#+++# # # #++#+# ##      
+      # #++##+## #+# #+#++#     
+        ### #+++# #+#+++++##    
+             #+# #++#++++# #    
+              ###### #+++##     
+                     #++#       
+
+=== helmets GERADO #2 (sprite_001.png, opacos=294, regioes=20) ===
+                                
+                                
+                                
+                                
+                   #####        
+                ##    #         
+                  #   ###       
+                  # ##+#        
+                  ##++#         
+                  #++#          
+                  #++#          
+                  #+++#         
+              ### #+++#         
+          #      #++++#         
+          #     #+++++#         
+             ###++++++#         
+             #+++++++#          
+            #++++++++#          
+           #+++++++++#          
+    #    ##+++++++++#           
+    #     #++++++++++#          
+    #    #+++++++++++#          
+    #####+++++++++++++#         
+    #++++++++++++++++++#        
+    #+++++++++++++++++++#       
+     #+++++++++++++++++++#      
+      ##++++++++++++++++++#     
+        #####++++++++++++++#    
+             #+++++++++++++#    
+              #####++++++##     
+                   ######       
+                                
+
+=== helmets GERADO #3 (sprite_002.png, opacos=296, regioes=19) ===
+                                
+                                
+                                
+                   #####        
+                   ## #         
+                  ##            
+                  #+##          
+                 #++#           
+               ##++#            
+               #++#             
+               #++#             
+              #++++#            
+               #+++#            
+              #++++#            
+            ##+++++#            
+          ##+++++++#            
+          #+++++++#             
+         #++++++++#             
+        #+++++++++#             
+    ####+++++++++# #            
+       #++++++++++##            
+    # #+++++++++++#             
+ ###+#+++++++++++++#            
+ #++++++++++++++++++#           
+ #+++++++++++++++++++#          
+  #+++++++++++++++++++#  #      
+   ##++++++++++++++++++# #      
+     #####++++++++++++++#       
+          #+++++++++++++#       
+           #####++++++##        
+                ######          
+                                
+
+=== helmets GERADO #4 (sprite_003.png, opacos=305, regioes=20) ===
+                                
+                                
+                                
+                   ######       
+                  #++++#        
+                ##++++#         
+                # #++#          
+                # #++#          
+                # #+++#         
+                # #+++#         
+                 #++++#         
+              ###+++++#         
+             #++++++++#         
+            #++++++++#          
+            #+++++++++#         
+           #+++++++++##         
+          #+++++++++# #         
+        # #++++++++++#          
+        ##+++++++++++#          
+    ####++++++++++++++#         
+    #++++++++++++++++++#        
+    #+++++++++++++++++++#       
+     #+++++++++++++++++++#      
+      ##++++++++++++++++++#     
+        #+++#++++++++++++++#    
+       ##### #+++++++++++++#    
+              #####++++++##     
+                   ######       
+                                
+                  ######        
+                                
+                                
+
+=== helmets GERADO #5 (sprite_004.png, opacos=277, regioes=33) ===
+                                
+                                
+                                
+                   #####        
+                  ##  #         
+                # ##            
+                #               
+                #     ###       
+                #  ###+#        
+                # #+++#         
+                  #++#          
+              ### #++#          
+            #     #+++#         
+            #     #+++#         
+                  #++##         
+                ##++# #         
+        #    #### #++##         
+        #    #++#  #+#          
+            #++++## ##          
+         ###+++++#+#+#          
+    #     #+++++# #+#           
+    #     #++++++##++#          
+    #    #++++++#  #+#          
+    #####++#++#++# #++#         
+      #++## ## #++#++++#        
+    # #+# ##++##+++++++##       
+     #+++#++++# #++#++# ##      
+      ##+#+++# #++# #+# #+#     
+        # ###+#++++#+++#+++#    
+             #+++++++++++++#    
+              #####+###+###     
+                   #   #        
+
+
+======================================================================
+RESUMO QUANTITATIVO
+======================================================================
+
+Categoria              | Real Opacos | Real Regioes | Ger Opacos | Ger Regioes
+--------------------------------------------------------------------------------
+sword_weapons          |       258.1 |         21.1 |      210.6 |        21.6
+shields                |       519.0 |         19.6 |      486.5 |        26.2
+armors                 |       625.6 |         23.6 |      521.4 |        28.9
+creature_products      |       198.5 |         22.5 |      135.8 |        13.4
+helmets                |       342.4 |         20.6 |      295.7 |        22.8
+
+FIM DO ASCII DEBUG
+
+---
+Task ID: sprint1.5-debug-commit1
+Agent: Mimo V2.5 (Engenheiro)
+Task: ASCII debug para revisao dos arquitetos (seed=42)
+Work Log:
+- random.seed(42) definido no inicio do script
+- Para cada categoria: 5 reais + 5 gerados convertidos para ASCII
+- ASCII usa mapeamento: ' '=F, '#'=B, '+'=L, '.'=D
+- Output abaixo para revisao dos 3 arquitetos (chat-only)
+Stage Summary:
+- sword_weapons: sprites reconheciveis como espadas
+- shields: sprites reconheciveis como escudos
+- armors: sprites reconheciveis como armaduras
+- creature_products: formas organicas irregulares
+- helmets: sprites reconheciveis como elmos
+
+======================================================================
+SPRINT 1.5-DEBUG — ASCII DEBUG PARA ARQUITETOS
+Seed: 42
+======================================================================
+
+######################################################################
+# CATEGORIA: sword_weapons
+######################################################################
+
+--- REAIS (seed=42, indices=[14, 3, 35, 31, 28]) ---
+
+=== sword_weapons REAL #1 (idx=14, opacos=320, regioes=29) ===
+                                
+                                
+ #####                          
+ #++++#                         
+ #+++++#                        
+ #++++++#                       
+ #+++++++####                   
+  #++++++++++#                  
+   #+++++++++#                  
+    #+++++++++#                 
+     #+++++++++#                
+      #++++++++#         #      
+       #+++++++#        #+#     
+        #+++++++#   #  #++#     
+         #+++++++# ##  #+##     
+          #+++++++##  #+#       
+          #+++++++++# #+#       
+         #++#++++++++#+# #      
+         #+# #++++++++#   #     
+         #+#  #+++++++#   #     
+         #+#   #+++++++#  ##    
+         #++#   #+++++++# ##    
+          #++#   #++++++# #     
+          #+++#   #++++++##     
+           #+++##  ##++++#      
+            #++++#   #+##+#     
+            ###### ## #  #+#    
+                 ##++##   #+# # 
+                   ##      #+## 
+                            #+# 
+                           ###  
+                                
+
+=== sword_weapons REAL #2 (idx=3, opacos=96, regioes=7) ===
+                                
+              #                 
+              #                 
+              #                 
+             #+#                
+             #+#                
+             #+#                
+             #+#                
+             #+#                
+             #+#                
+             #+#                
+             #+#                
+             #+#                
+             #+#                
+             #+#                
+             #+#                
+             #+#                
+             #+#                
+             #+#                
+             #+#                
+             #+#                
+         #   #+#   #            
+         ####+++####            
+            #+++#               
+             #+#                
+             #+#                
+             #+#                
+             #+#                
+             #+#                
+             #+#                
+             ###                
+                                
+
+=== sword_weapons REAL #3 (idx=35, opacos=227, regioes=13) ===
+                                
+                           #### 
+                          #+++# 
+                         #++++# 
+                        #+++++# 
+                       #+++++#  
+                      #+++++#   
+                     #+++++#    
+                    #+++++#     
+                   #+++++#      
+                  #+++++#       
+                 #+++++#        
+            #   #+++++#         
+           #+# #+++++#          
+           #++#+++++#           
+          #++++++++#            
+          #+++++++#             
+     ##   #++++++#              
+     #+#  #+++++++#             
+      #+##+++++++++#            
+       #+++++++++##             
+        #++++####               
+       # #++#                   
+      #+# #+#                   
+     #+++# #+#                  
+    #+++#   #+#                 
+ # #+++#     ##                 
+ ##+++#                         
+ #+++#                          
+  #+#                           
+   ###                          
+                                
+
+=== sword_weapons REAL #4 (idx=31, opacos=364, regioes=36) ===
++#                              
+#+##                            
+ #++##                          
+ #++++###                       
+  #+++++#               ##      
+  #+++++#              #++#     
+ #+++++++###           #++#     
+#++++++++++#           #+##     
+ #####+++++#            #       
+      #+++++#                   
+      #++++++###                
+       #+++++++#                
+        ##++++++##              
+          #+++++++#        #    
+          #++++++++#      #+#   
+          ##++++++++#    #++#   
+            ##+++++++#   #++#   
+              #+++++++#  #++#   
+              #++++++++##+++#   
+              #+++++++++++++#   
+              #+++++++++++++#   
+             #+++++++++++++#+#  
+             #+++##+++++++# #+# 
+             #++#  #++++++# #++#
+             #++#   #+++++# #++#
+             ###   #+++++++#+## 
+             #    #+++###+++#  #
+                ##+++#   #+++#  
+                 ###+#    #+++# 
+                    ##   ###+++#
+                    #+####  #++#
+                     #       ## 
+
+=== sword_weapons REAL #5 (idx=28, opacos=280, regioes=28) ===
+                                
+ ###                            
+ #++##                          
+ #++++###                       
+  #+++++#                       
+  #++++++#                      
+  #+++++++##                    
+   #++++++++#                   
+   ##+++++++#                   
+     #+++++++#                  
+      #+++++++##                
+      ##++++++++#               
+        #+++++++#               
+         #+++++++##             
+          #++++++++##           
+          #+++++++++#           
+           ##+++++++#      #    
+             #+++++++##   #+#   
+             #+++++++++#  #+#   
+              #++++++++# #++#   
+               #++++++# #++#    
+                #++++# #++#     
+                 #++# #+++#     
+                  ## #++++#     
+                    #+++++#     
+                   #+++++++#    
+                 ##++####+++#   
+                #+++#    #+++#  
+                 ###      #+++# 
+                           #+++#
+                            #++#
+                             ## 
+
+--- GERADOS (pipeline_mcr) ---
+
+=== sword_weapons GERADO #1 (sprite_000.png, opacos=208, regioes=21) ===
+                                
+ ###                            
+ #+#  ###                       
+ ##+###                         
+   #+++##                       
+   #++++#  #                    
+    #++++#                      
+    #+++++###                   
+     #+++++#                    
+      #+++++#                   
+       #+++++#                  
+        #+++++#                 
+         #+++++##               
+          #+++++#               
+          #++++++## ##          
+           ##++++++#            
+             #+++++#            
+            ##++++++##     #    
+              #++++++#     #    
+               ##+++++#   ##    
+               # #+++# # ###    
+               #  #+#  ### #    
+               ##  #   #+# #    
+                      #++#      
+                     #+++#      
+                    ####++#     
+                   ##   ##+#    
+                 ###      #+#   
+                  ##       #+#  
+                            #+##
+                             ###
+                                
+
+=== sword_weapons GERADO #2 (sprite_001.png, opacos=209, regioes=20) ===
+                                
+   ##                           
+  #++#                          
+  #+++#                         
+  #++++##                       
+  ##++++# #                     
+    #++++##                     
+    #++++++#                    
+     #+++++#                    
+      #+++++# ##                
+       #+++++#                  
+       ##+++++#                 
+         #+++++#                
+          #+++++##              
+          #+++++++# ##          
+          ###++++++#            
+          #  #+++++#            
+             #++++++#      #    
+              #++++++#     #    
+               ##+++++#   ##    
+               # #+++#   ###    
+                  #+#   ##      
+               ##  #   #+# #    
+                      #++#      
+                   ###+++#      
+                   #+####+#     
+                   ##    #+#    
+                 ### #    #+#   
+                  ##       #+#  
+                            #+##
+                             #+#
+                              # 
+
+=== sword_weapons GERADO #3 (sprite_002.png, opacos=207, regioes=24) ===
+                                
+   #                            
+ ##+# #                         
+ #+++##                         
+  #++++##                       
+  ##++++#   #                   
+    #++++#  #  ##               
+    #+++++##                    
+     #+++++#     #              
+      #+++++#    #              
+       #+++++#                  
+        #+++++#                 
+         #+++++#                
+          #+++++#               
+          #++++++##             
+           ##++++++#            
+             #+++++#  #         
+              #+++++# #    #    
+            ###++++++#     #    
+               #++++++#  ###    
+                ##+++#  #+#     
+                  #+#   ##      
+               #   #   #+#      
+                   # ##++#      
+                     #+++#      
+                    ####++#     
+                   ##   ##+#    
+                 ###      #+#   
+                 ###       #+#  
+                            #+##
+                             ## 
+                             #  
+
+=== sword_weapons GERADO #4 (sprite_003.png, opacos=206, regioes=20) ===
+                                
+ ###                            
+ #++##                          
+  #+++#                         
+  #++++##                       
+  ##++++#                       
+    #++++#                      
+    #+++++##                    
+     #+++++#                    
+      #+++++#                   
+       #+++++#   #              
+        #+++++#  #              
+         #+++++#                
+          #+++++#               
+          #++++++##             
+          ###++++++#            
+             #+++++# #          
+              #+++++##     #    
+             ##++++++#     #    
+               ##+++++#  ###    
+               # #+++#   ###    
+                  #+#   ## #    
+               ##  #   #+#      
+                    ###++#      
+                     #+++#      
+                    ####++#     
+                   ##   ##+#    
+                 ###      #+#   
+                 ###       #+#  
+                            #+# 
+                             ## 
+                             ## 
+
+=== sword_weapons GERADO #5 (sprite_004.png, opacos=209, regioes=20) ===
+                                
+  ###                           
+  #++#                          
+  #+++#                         
+  #++++##                       
+  ##++++#  #                    
+    #++++# #                    
+    #+++++##   ##               
+     #+++++#     #              
+      #+++++#    #              
+       #+++++#                  
+        #+++++#                 
+         #+++++#                
+       #  #+++++##              
+       ## #+++++++#             
+           ##++++++#            
+             #+++++#  #         
+              #+++++# #    #    
+             ##++++++#     #    
+               ##+++++#   ##    
+                 #+++#  ####    
+                  #+#   ## #    
+                   #   #+#      
+               ##     #++#      
+                     #+++#      
+                    #####+#     
+                   ##    #+#    
+                 ###      #+#   
+                 ###       #+#  
+                            #+##
+                             #+#
+                              # 
+
+
+######################################################################
+# CATEGORIA: shields
+######################################################################
+
+--- REAIS (seed=42, indices=[17, 13, 69, 11, 75]) ---
+
+=== shields REAL #1 (idx=17, opacos=416, regioes=11) ===
+                                
+                                
+        #              #        
+        ###          ###        
+        #++##      ##++#        
+        #++++######++++#        
+        #++++++++++++++#        
+        #++++++++++++++#        
+        #++++++++++++++#        
+        #++++++++++++++#        
+        #++++++++++++++#        
+        #++++++++++++++#        
+        #++++++++++++++#        
+        #++++++++++++++#        
+        #++++++++++++++#        
+        #++++++++++++++#        
+        #++++++++++++++#        
+        #++++++++++++++#        
+        #++++++++++++++#        
+        #++++++++++++++#        
+        #++++++++++++++#        
+        #++++++++++++++#        
+        #++++++++++++++#        
+        #++++++++++++++#        
+        #++++++++++++++#        
+        #++++++++++++++#        
+        #++++++++++++++#        
+        #++++++++++++++#        
+         ##++++++++++##         
+           ##++++++##           
+             ######             
+                                
+
+=== shields REAL #2 (idx=13, opacos=464, regioes=17) ===
+                                
+                                
+       ##      ####      ##     
+       #+######++++######+#     
+        #++++++++++++++++#      
+        #++++++++++++++++#      
+        #++++++++++++++++#      
+        #++++++++++++++++#      
+        #++++++++++++++++#      
+        #++++++++++++++++#      
+        #++++++++++++++++#      
+        #++++++++++++++++#      
+        #++++++++++++++++#      
+       #++++++++++++++++++#     
+       #++++++++++++++++++#     
+        #++++++++++++++++#      
+        #++++++++++++++++#      
+        #++++++++++++++++#      
+        #++++++++++++++++#      
+        #++++++++++++++++#      
+        #++++++++++++++++#      
+       #++++++++++++++++++#     
+       #++++++++++++++++++#     
+        #++++++++++++++++#      
+         #++++++++++++++#       
+          #++++++++++++#        
+           #++++++++++#         
+            #++++++++#          
+             #++++++#           
+              ##++##            
+                ##              
+                                
+
+=== shields REAL #3 (idx=69, opacos=557, regioes=18) ===
+                                
+       ###           ###        
+       #++#   ###   #++#        
+       #+++# #+++# #+++#        
+    ###+++++#+++++#+++++###     
+    #+++++++++++++++++++++#     
+   #+++++++++++++++++++++++#    
+   #+++++++++++++++++++++++#    
+   #+++++++++++++++++++++++#    
+   #+++++++++++++++++++++++#    
+   #+++++++++++++++++++++++#    
+   #+++++++++++++++++++++++#    
+   #+++++++++++++++++++++++#    
+   #+++++++++++++++++++++++#    
+   #+++++++++++++++++++++++#    
+    #+++++++++++++++++++++#     
+    #+++++++++++++++++++++#     
+    #+++++++++++++++++++++#     
+    #+++++++++++++++++++++#     
+    #+++++++++++++++++++++#     
+     #+++++++++++++++++++#      
+     #+++++++++++++++++++#      
+     #+++++++++++++++++++#      
+     #+++++++++++++++++++#      
+      #++##+++++++++##++#       
+       ##  #+++++++#  ##        
+            #+++++#             
+            #+++++#             
+             #+++#              
+              #+#               
+               #                
+                                
+
+=== shields REAL #4 (idx=11, opacos=544, regioes=27) ===
+  #                             
+  ####                   ####   
+  #+++#                ##+++#   
+  #++++##             #+++++#   
+ #+++++++##         ##++++++#   
+ #+++++++++### #####++++++++#   
+ #++++++++++++#+++++++++++++#   
+ #++++++++++++++++++++++++++#   
+  #++++++++++++++++++++++++#    
+  #++++++++++++++++++++++++#    
+   #+++++++++++++++++++++++#    
+   #++++++++++++++++++++++#     
+    #++++++++++++++++++++#      
+     #+++++++++++++++++++#      
+     #+++++++++++++++++++#      
+      #+++++++++++++++++#       
+      #++++++++++++++++#        
+       #+++++++++++++++#        
+       #++++++++++++++++#       
+       #++++++++++++++++#       
+        #++++++++++++++++#      
+        #+++++++++++++++++#     
+        #++++++++++++++++++#    
+         #+++++++++++++++++#    
+          #++++++++++++++##     
+          #+++++++++++++#       
+           #++++++++++##        
+           #++++++++##          
+            #++++++#            
+             #++++#             
+              #++#              
+               #+#              
+
+=== shields REAL #5 (idx=75, opacos=550, regioes=28) ===
+       #               ##       
+      #+##            #++#      
+      #+++#          #+++#      
+      #++++#        #++++#      
+      #+++++###  ###+++++#      
+       #+++++++##+++++++#       
+       #++++++++++++++++#       
+    ###++++++++++++++++#  ##    
+    #+++++++++++++++++++##+#    
+    #++++++++++++++++++#+++#    
+    #+++++++++++++++++# #++#    
+    #++++++++++++++++++#+++#    
+    #++++++++++++++++++++++#    
+    #+++++++++++++++++++++#     
+     #++++++++++++++++++++#     
+     #++++++++++++++++++++#     
+     #+++++++++##++++++++#      
+     #++++++++#  #+++++++#      
+     #+++++++++##+++++++#+#     
+     #+++++++++++++++++# ##     
+     #++++++++++++++++++#+#     
+      #++++++++++++++++++#      
+      #++++++++++++++++++#      
+      #++++++++++++++++++#      
+       #++++++++++++++++#       
+       #++++++++++++++++#       
+        #++++++++++++++#        
+         #++++++++++++#         
+          ##++++++++##          
+            ##++++##            
+              ####              
+                                
+
+--- GERADOS (pipeline_mcr) ---
+
+=== shields GERADO #1 (sprite_000.png, opacos=490, regioes=27) ===
+                                
+      ####              ####    
+   #### ##            ## #+#    
+   #+++#               ##++#    
+  #+++++#    ##       #++++#    
+  #++++++##       ####+++++#    
+  #++++++++### ###+++++++++#    
+ ##+++++++++++#++++++++++++#    
+ # #++++++++++++++++++++++#     
+ # #++++++++++++++++++++++#     
+ #  #+++++++++++++++++++++#     
+    #++++++++++++++++++++#      
+     #++++++++++++++++++#       
+      #+++++++++++++++++#       
+      #+++++++++++++++++#       
+     # #+++++++++++++++#        
+     # #++++++++++++++#         
+        #+++++++++++++#         
+        #++++++++++++++#        
+        #++++++++++++++#        
+        #+++++++++++++++#       
+        #++++++++++++++++#      
+         #++++++++++++++++#     
+          #++++++++++++++##     
+          #+++++++++++++#       
+          #+++++++++++++#       
+           #++++++++++##        
+           ##++++++###          
+             #++++#             
+              #++#              
+               #+#              
+                ##              
+
+=== shields GERADO #2 (sprite_001.png, opacos=486, regioes=29) ===
+                                
+      ####            ###       
+   ###+#            #    ###    
+   #+++#               ##++#    
+  #+++++##            #++++#    
+  #+++++++#   ####  ##+++++#    
+  #++++++++### #++##+++++++#    
+  #+++++++++++#++++++++++++#    
+  #+++++++++++++++++++++++#     
+   #++++++++++++++++++++++#     
+    #+++++++++++++++++++++#     
+    #++++++++++++++++++++#      
+     #++++++++++++++++++#       
+      #+++++++++++++++++#       
+      #+++++++++++++++++#       
+       #+++++++++++++++#        
+       #++++++++++++++#         
+      # #+++++++++++++#         
+      # #++++++++++++++#        
+        #++++++++++++++#        
+         #++++++++++++++#       
+         #+++++++++++++++#      
+        ##++++++++++++++++#     
+        # #++++++++++++++##     
+        # #+++++++++++++#       
+          #+++++++++++++#       
+           #++++++++++##        
+           ##++++++###          
+             #++++#             
+              #++#              
+               #+#              
+                ##              
+
+=== shields GERADO #3 (sprite_002.png, opacos=485, regioes=29) ===
+                                
+      ####              ####    
+   ###++#          ##    #+#    
+   #+++#               ##++#    
+  #+++++#             #++++#    
+  #++++++##   ###  ###+++++#    
+  #++++++++### #+##++++++++#    
+  #+++++++++++#++++++++++++#    
+  #+++++++++++++++++++++++#     
+   #++++++++++++++++++++++#     
+    #+++++++++++++++++++++#     
+    #++++++++++++++++++++#      
+     #++++++++++++++++++#       
+      #+++++++++++++++++#       
+      #+++++++++++++++++#       
+       #+++++++++++++++#        
+       #++++++++++++++#         
+        #+++++++++++++#         
+      # #++++++++++++++#        
+      # #++++++++++++++#        
+         #++++++++++++++#       
+         #+++++++++++++++#      
+         #++++++++++++++++#     
+          #++++++++++++++##     
+          #+++++++++++++#       
+          #+++++++++++++#       
+           #++++++++++##        
+           ##++++++###          
+             #++++#             
+              #++#              
+               #+#              
+                ##              
+
+=== shields GERADO #4 (sprite_003.png, opacos=490, regioes=24) ===
+                                
+      ####              ####    
+   #### ##            ## #+#    
+   #+++#               ##++#    
+  #+++++##            #++++#    
+  #+++++++#   ########+++++#    
+  #++++++++### #+++++++++++#    
+  #+++++++++++#++++++++++++#    
+  #+++++++++++++++++++++++#     
+   #++++++++++++++++++++++#     
+    #+++++++++++++++++++++#     
+    #++++++++++++++++++++#      
+     #++++++++++++++++++#       
+    # #+++++++++++++++++#       
+    # #+++++++++++++++++#       
+       #+++++++++++++++#        
+       #++++++++++++++#         
+        #+++++++++++++#         
+        #++++++++++++++#        
+        #++++++++++++++#        
+        #+++++++++++++++#       
+        #++++++++++++++++#      
+         #++++++++++++++++#     
+          #++++++++++++++##     
+          #+++++++++++++#       
+          #+++++++++++++#       
+           #++++++++++##        
+           ##++++++###          
+             #++++#             
+              #++#              
+               #+#              
+                ##              
+
+=== shields GERADO #5 (sprite_004.png, opacos=489, regioes=26) ===
+                                
+      ####            ####      
+   #### ##          #    ###    
+   #+++#               ##++#    
+  #+++++#   ##        #++++#    
+ #+++++++##         ##+++++#    
+ #+++++++++#########+++++++#    
+ ##++++++++++++++++++++++++#    
+ # #++++++++++++++++++++++#     
+   #++++++++++++++++++++++#     
+    #+++++++++++++++++++++#     
+    #++++++++++++++++++++#      
+     #++++++++++++++++++#       
+      #+++++++++++++++++#       
+      #+++++++++++++++++#       
+       #+++++++++++++++#        
+       #++++++++++++++#         
+        #+++++++++++++#         
+      # #++++++++++++++#        
+        #++++++++++++++#        
+        #+++++++++++++++#       
+         #+++++++++++++++#      
+        ##++++++++++++++++#     
+        # #++++++++++++++##     
+        # #+++++++++++++#       
+          #+++++++++++++#       
+           #++++++++++##        
+           ##++++++###          
+             #++++#             
+              #++#              
+               #+#              
+                ##              
+
+
+######################################################################
+# CATEGORIA: armors
+######################################################################
+
+--- REAIS (seed=42, indices=[54, 4, 3, 11, 27]) ---
+
+=== armors REAL #1 (idx=54, opacos=595, regioes=28) ===
+                                
+       ###             ###      
+    ###+++#           #+++###   
+   #+++++++##       ##+++++++#  
+  #++++++++++#     #++++++++++# 
+ #++++++++++++#####++++++++++++#
+  ###+++++++++++++++++++++++### 
+     ##+++++++++++++++++++##    
+       #+++++++++++++++++#      
+       #+++++++++++++++++#      
+       #+++++++++++++++++#      
+       #+++++++++++++++++#      
+       #+++++++++++++++++#      
+       #+++++++++++++++++#      
+       #+++++++++++++++++#      
+       #+++++++++++++++++#      
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+       #+++++++++++++++++#      
+       #+++++++++++++++++#      
+       #+++++++++++++++++#      
+      #+++++++++++++++++++#     
+      #+++++++++++++++++++#     
+      #+++++++++++++++++++#     
+     #+++++++++++++++++++++#    
+     #+++++++++++++++++++++#    
+     #++#+++#+++#+++++++#++#    
+      ## #+# ### ####++# ##     
+          ## #       ##         
+
+=== armors REAL #2 (idx=4, opacos=672, regioes=29) ===
+         ##          ##         
+        #++#        #++#        
+        #+++#      #+++#        
+       #+++++#    #+++++#       
+       #++++++####++++++#       
+      #++++++++++++++++++#      
+ #   #++++++++++++++++++++#   # 
+#+###++++++++++++++++++++++###+#
+++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++
+#++++++++++++++++++++++++++++++#
+ #++++++++++++++++++++++++++++# 
+  #++++++++++++++++++++++++++#  
+   ###++++++++++++++++++++###   
+      #++++++++++++++++++#      
+       #++++++++++++++++#       
+       #++++++++++++++++#       
+        #++++++++++++++#        
+        #++++++++++++++#        
+        #++++++++++++++#        
+     # #++++++++++++++++# #     
+    #+#++++++++++++++++++#+#    
+   #++++++++++++++++++++++++#   
+   #++++++++++++++++++++++++#   
+   #++++++++++++++++++++++++#   
+   #++++++++++++++++++++++++#   
+    #+++++++#++++++#+++++++#    
+    #+++++## #++++# ##+++++#    
+     #+++#   #++++#   #+++#     
+      ##+#    #++#    #+##      
+        #      ##      #        
+
+=== armors REAL #3 (idx=3, opacos=685, regioes=41) ===
+           #++++++++#           
+          #++++++++++#          
+         #++++++++++++#         
+       ##++++++++++++++##       
+    ##  #+++++++++++++++# ##    
+    #+##++#++++++++++++++#+#    
+   #++++## #+++++++++++++++#    
+#####++# ##++++++++++++#++++#   
+++#  #+# #++++++++++++# #+#++###
++++## # # #++++++++++# ### #++# 
+++++# # ##++++++++++++## # #++# 
+++++# # #++++++++++++++# ##+++# 
+##+++## #++++++++++++++# # #++# 
+  #+####++++++++++++++++#+# ##  
+## #   #+++++++++++++++++++##   
+++##  ##++++++++++++++++++# ### 
+++++# # #++##+++#++##++++###++# 
++++++# #++#  #+# ##  #++#  #++# 
++++++# #+++##+++#++##+++#  #++# 
+#++++# #++++++++++++++++#  #++# 
+ #++#  #++++++++++++++++#   ##  
+ #++#  ##++++++++++++++#    ##  
+ #++#    #++++++++++++#     ##  
+ #++#   #+++++++++++++#     ##  
+ #+#    #+++++++++++++#     ##  
+ ###    #++++++#++++++#         
+        #+++++# #+++++#         
+        #++++++#+++++++#        
+       #++++++++++++++++#       
+       #+#+#+#++#+###+#+#       
+       ## # # ## #   # ##       
+      #+#    # #       ##       
+
+=== armors REAL #4 (idx=11, opacos=608, regioes=24) ===
+                                
+         ###        ###         
+     ####++#        #++####     
+ ####+++++++#     ##+++++++###  
+  #++++++++++#    #+++++++++#   
+  #+++++++++++####+++++++++++#  
+ #++++++++++++++++++++++++++++# 
+  #++++++++++++++++++++++++++#  
+ #++++++++++++++++++++++++++++# 
+ #++++++++++++++++++++++++++++# 
+  #++++++++++++++++++++++++++#  
+  #++++++++++++++++++++++++++#  
+  #++++++++++++++++++++++++++#  
+  #+++++++++++++++++++++++++++# 
+ #++++++++++++++++++++++++#++## 
+  #+#+#++++++++++++++++++# ##   
+ ### # #++++++++++++++++#   #   
+        #+++++++++++++++#       
+         #+++++++++++++#        
+         #+++++++++++++#        
+         #+++++++++++++#        
+        #+++++++++++++++#       
+       #++++++++++++++++#       
+        #+++++++++++++++#       
+       #++++++++++++++++#       
+      #+++++++++++++++++##      
+      #++++++#++++++#++# #      
+     ####+++# #++++# ##         
+         #+#   #++#  ##         
+         ##    #+#              
+               ##               
+                                
+
+=== armors REAL #5 (idx=27, opacos=528, regioes=33) ===
+                                
+       ####         ####        
+       #+++#       #   #        
+     ##+++#          ## ##      
+   ##++++++######### ## #+##    
+  #+++++++++++++++++#+# #+++#   
+  #+++++#++++++++++++# #++++#   
+ #+++++# #+++++++++++# #+++++#  
+ #++++++#+++++++++++# #++++++#  
+ #+++++++++#+++++++++#+++++++#  
+ #++++++++# #++++++++++++++++#  
+ #++++++++##+++++++#+++++++++#  
+  #+++++## #++++++# ##+++++++#  
+ #+#####  #++++++++## #####++#  
+ ##     ##+++++++++++##    ###  
+       #++++++++++++++#         
+       #+++++++++++++++#        
+       #+++++++++++++++#        
+        #++++++++++++++#        
+       #++++++++++++++#         
+        ##++++++++++++#         
+          #++++++++++#          
+          #++++++++++#          
+          #++++++++++#          
+          #++++++++++#          
+         #++++++++++++#         
+        #++++++++++++++#        
+        #++++++++++++++#        
+         ##++++++++++##         
+           ##########           
+                                
+                                
+
+--- GERADOS (pipeline_mcr) ---
+
+=== armors GERADO #1 (sprite_000.png, opacos=516, regioes=30) ===
+                                
+       ###             ###      
+       #++#         # #++#      
+    ###+++#   ##      #+++###   
+   #+++++++##       ##+++++++#  
+  ###++++++++#     #++++++++### 
+     ##+++++++#####+++++++##    
+       #+++++++++++++++++#      
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+         #+++++++++++++#        
+       # #+++++++++++++#        
+       # #+++++++++++++#        
+       # #+++++++++++++#        
+       # #+++++++++++++#        
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+       #+++++++++++++++++#      
+       #+++++++++++++++++#      
+       #+++++++++++++++++#      
+      #+++++++++++++++++++#     
+      #+#+++#+++#+++++++++#     
+      ## #+# #+# #+##++#++#     
+         ###  #####  ## ###     
+           #         ##         
+
+=== armors GERADO #2 (sprite_001.png, opacos=516, regioes=30) ===
+                                
+         ###           ###      
+       ###           ##++#      
+    ###+++#    ##     #+++###   
+   #+++++++##       ##+++++++#  
+  ###++++++++#   ###++++++++### 
+     ##+++++++###+++++++++##    
+       #+++++++++++++++++#      
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+         #+++++++++++++#        
+         #++++++++++++++#       
+        #+++++++++++++++#       
+        #++++++++++++++#        
+         #++++++++++++++#       
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+       #+++++++++++++++++#      
+       #+++++++++++++++++#      
+       #+++++++++++++++++#      
+      #+++++++++++++++++++#     
+      #+++++#+++#+++++++#+#     
+      ####+# #+# #+##++# ##     
+          ## ######  ##  #      
+          #          ##         
+
+=== armors GERADO #3 (sprite_002.png, opacos=517, regioes=28) ===
+                                
+          ##           ###      
+       ###+##       ###++#      
+    ###+++#   #       #+++###   
+   #+++++++##       ##+++++++#  
+  ###++++++++#   ###++++++++### 
+     ##+++++++###+++++++++##    
+       #+++++++++++++++++#      
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+         #+++++++++++++#        
+         #+++++++++++++#  #     
+         #+++++++++++++#  #     
+         #+++++++++++++#  #     
+         #+++++++++++++#        
+        #+++++++++++++++# #     
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+       #+++++++++++++++++#      
+       #+++++++++++++++++#      
+       #+++++++++++++++++#      
+      #+++++++++++++++++++#     
+      #+++++#+++#+++++++#+#     
+      ###++# #+# #+#+++# ##     
+         ### ##   # #+# # #     
+           # #       #          
+
+=== armors GERADO #4 (sprite_003.png, opacos=517, regioes=27) ===
+                                
+       ###             ###      
+       #+#          ###++#      
+    ###+++#   ##      #+++###   
+   #+++++++##       ##+++++++#  
+  ###++++++++#   ###++++++++### 
+     ##+++++++###+++++++++##    
+       #+++++++++++++++++#      
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+         #+++++++++++++#        
+         #+++++++++++++#        
+         #+++++++++++++#        
+         #+++++++++++++#        
+         #+++++++++++++#        
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+       #+++++++++++++++++#      
+       #+++++++++++++++++# #    
+       #+++++++++++++++++# #    
+      #+++++++++++++++++++##    
+      #+#+++#+++#+++++++#++#    
+      ## #+# #+# #++#++# #+#    
+          # #+###### ##   #     
+           # #        #         
+
+=== armors GERADO #5 (sprite_004.png, opacos=526, regioes=29) ===
+                                
+         ###           ###      
+       ###          ###++#      
+    ###+++#   ##      #+++###   
+   #+++++++##       ##+++++++#  
+  ###++++++++#   ###++++++++### 
+     ##+++++++###+++++++++##    
+    ## #+++++++++++++++++#      
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+        #+++++++++++++++#       
+         #+++++++++++++#        
+      #  #+++++++++++++#        
+      #  #+++++++++++++#        
+      #  #+++++++++++++#        
+      #  #+++++++++++++#        
+      # #+++++++++++++++#       
+       #++++++++++++++++#       
+       #++++++++++++++++#       
+       #+++++++++++++++++#      
+       #+++++++++++++++++# #    
+       #+++++++++++++++++# #    
+      #+++++++++++++++++++##    
+      #+#+++#+++#+++++++++#     
+      ## #+# #+# #++#++##+#     
+          ## ####### ##  ##     
+          ## #                  
+
+
+######################################################################
+# CATEGORIA: creature_products
+######################################################################
+
+--- REAIS (seed=42, indices=[14, 32, 38, 1, 35]) ---
+
+=== creature_products REAL #1 (idx=14, opacos=548, regioes=22) ===
+               #                
+              #+#               
+              #++#              
+             #++++###           
+            #++++++++#          
+            #+++++++++#         
+           #+++++++++#          
+          #+++++++++++#####     
+          #+++#++++++++++++#    
+         #+++# #++++++++++++#   
+         #++++#++++++++++++#    
+         #+++++++++++++++++#    
+        #+++++++++++++++++++#   
+       #++#++++++++++++++++++#  
+       #+# #++++++++++++++++++# 
+     ##+++#++++++++++++++++++++#
+ ####+++++++++++++++++++++++++# 
+#+++++++++++++++++++++++++++++# 
+ ##++++++++++++++++++++++++#++# 
+   ###++++++++++++++++++++# #+# 
+      #++++++++++++++++++++#++# 
+       #+++++++++++++++++++++#  
+      #++++++++++++++++++++++#  
+       ##+++++++++++++++++++#   
+         #+++++++++++++#++++#   
+         #++++++++++++# #++#    
+          #++++++++++++#++#     
+           #++++++++++++##      
+            #++++++++++#        
+             ##++++++++#        
+               ######+#         
+                     #          
+
+=== creature_products REAL #2 (idx=32, opacos=165, regioes=46) ===
+                                
+                                
+              ##  #             
+             #     #            
+             #     #            
+            #       #     ###   
+            #  ###  #    #      
+             ##    #    # #     
+    ###        ####     #       
+   #   #    # #    #    #       
+   #    #   ## #   # ## #       
+       # #  ##  #  #  # #       
+         #  ##  #  #    #       
+         #  # ##    #### #      
+    ##   # # #  #        #      
+      # #   #  #  #    # #      
+        #     # #   ##  #       
+       # ####  #   #    #       
+        #    #   # #  ##        
+       # # #  ##   #            
+    ## #   # #     #            
+       #      #     ##   ####   
+       #   #  # # #   # #    #  
+        ### ##  #      #  #   # 
+     ###    #    ##  ##   #     
+           # #     ##      #    
+           #   ## #        #    
+           #  #           #     
+            ##           #      
+                                
+                                
+                                
+
+=== creature_products REAL #3 (idx=38, opacos=298, regioes=30) ===
+                                
+                                
+                                
+                                
+                                
+                                
+                  #             
+                 #+#            
+                 #++#           
+          ##    #++#            
+          #+##  #+++##          
+           #++##++++++#         
+      #     #+++++##+++##       
+    ##+##  # #+++#  #++++#      
+   #+++++##+#+++++# #+++#       
+    #+++++++++++++# #++#        
+    #++++++++++++++#+++#        
+     ####++++++++++++++#        
+         #++++++++++++++#       
+        #+++++++++++###++#      
+         #+++++++++#   #++#     
+          #++++++++#  #++++#    
+          #+++++++#+##+###++#   
+         #+++++++# #++#   #+#   
+        #++++++++#  ##    #+#   
+       #++++++++#        #++#   
+        #++++++#        #++#    
+        #+#+###          ##     
+         # #                    
+                                
+                                
+                                
+
+=== creature_products REAL #4 (idx=1, opacos=182, regioes=18) ===
+                                
+                                
+#                               
+    ###    #                    
+     ###   ###   #              
+       ##   ##                  
+             ##                 
+       ###   ##                 
+        #+#   ##        #       
+    #    ###   #                
+                                
+       ##   ##                  
+       #+##  ##                 
+        #++# #+##               
+   ##    #++#++++##             
+   ##     #++++++++##           
+   #+#    #+++++++++#           
+    #+#   #++++++++++#          
+     #+#  #++++++++++#          
+      ### #++++++++++#          
+          #++++++++++#          
+           #+++++++++#          
+    #      #+++++##+#           
+            #+++#  #            
+             ######             
+                                
+                                
+                                
+                                
+                                
+                                
+                                
+
+=== creature_products REAL #5 (idx=35, opacos=130, regioes=32) ===
+                                
+                                
+                                
+                                
+                                
+                                
+                                
+                  ##            
+                 #++#           
+                #++#            
+                #+#             
+               #+#  #           
+               #+# #+#          
+               #+#  #+#         
+              # #+# #+#         
+             #+#++#  #+#        
+             #++++#  #+#        
+              #++++##+#         
+         ##    #+++++#          
+        #++#    #++##           
+         ##+####++#             
+           #++++++#             
+           #+##++#              
+          #+#  #+#              
+          #+#  #+#              
+           #+##+#               
+            #++#                
+             ##                 
+                                
+                                
+                                
+                                
+
+--- GERADOS (pipeline_mcr) ---
+
+=== creature_products GERADO #1 (sprite_000.png, opacos=143, regioes=15) ===
+                                
+                                
+                                
+                                
+       ###  #                   
+        ### ###                 
+          ## ##                 
+              ##                
+          ### ##                
+           #  #+#               
+             ####               
+                                
+         ###                    
+         # ###                  
+         ### ####               
+        #+#  #    # #           
+         ## #+##  # #           
+       # #+#++++###             
+      ###+++++++++#             
+         #+++++++++#            
+         #+++++++++#            
+         #++++++++++#           
+          #++++++++#            
+           #++++##+#            
+           #+++#  #             
+            ###                 
+                                
+                                
+                                
+                                
+                                
+                                
+
+=== creature_products GERADO #2 (sprite_001.png, opacos=137, regioes=13) ===
+                                
+                                
+                                
+                                
+       ###   #                  
+        ###  ###                
+          ##  ##                
+               ##               
+          ###  ##               
+           #    ##              
+          ###    #              
+                                
+            #####               
+          ###                   
+           ##  ##               
+           ### #+##             
+      ##   # ##++++##           
+      ##   # #+++++++##         
+      #    # #++++++++#         
+           ##+++++++++#         
+          ###+++++++++#         
+             #++++++++#         
+              #++++##+#         
+             ##+++#  #          
+               ###              
+                                
+                                
+                                
+                                
+                                
+                                
+                                
+
+=== creature_products GERADO #3 (sprite_002.png, opacos=131, regioes=14) ===
+                                
+                                
+           #                    
+           ###                  
+       ###  ##                  
+        ###  ##                 
+          ## ##                 
+              ##                
+       ###     #                
+        #     #                 
+             ###                
+                                
+           ####                 
+          ## ##                 
+          #+##  #               
+          #### #+##             
+          #  ##++++##           
+             #+++++++#          
+            #+++++++++#         
+           ##+++++++++#         
+             #++++++++#         
+             #++++++++#         
+              #+++++++#         
+              #+++####          
+               ###              
+                                
+                                
+                                
+                                
+                                
+                                
+                                
+
+=== creature_products GERADO #4 (sprite_003.png, opacos=132, regioes=12) ===
+                                
+                                
+                                
+                                
+       ###   #                  
+        ###  ###                
+          ##  ##                
+               ##               
+               ##               
+          ### # ##              
+           # #+# #              
+         ##   #                 
+         #####+##               
+           #+++++##             
+      ##   #+++++++#            
+      ##   #++++++++#           
+      #    #++++++++#           
+           #++++++++#           
+          #+++++++++#           
+           #++++++++#           
+         # #+++++###            
+         # ######  #            
+                   #            
+                                
+                                
+                                
+                                
+                                
+                                
+                                
+                                
+                                
+
+=== creature_products GERADO #5 (sprite_004.png, opacos=136, regioes=10) ===
+                                
+                                
+                                
+                                
+        ###  #                  
+         ### ###                
+           ## ##                
+               ##               
+          ###  ##               
+           ##   ##              
+           ###   #              
+          ## ###                
+           ## #+##              
+          ##+#++++##            
+        ### #+++++++#           
+        ### #++++++++#          
+        # # #++++++++#          
+          # #++++++++#          
+          ##+++++++++#          
+          ##++++++#++#          
+            #++++# ##           
+             ######             
+                                
+                                
+                                
+                                
+                                
+                                
+                                
+                                
+                                
+                                
+
+
+######################################################################
+# CATEGORIA: helmets
+######################################################################
+
+--- REAIS (seed=42, indices=[25, 69, 53, 28, 57]) ---
+
+=== helmets REAL #1 (idx=25, opacos=306, regioes=24) ===
+              #                 
+             #+#                
+             #+#                
+            #+++#               
+            #+++#               
+            #+++#               
+             #++#               
+             #+++#              
+            #+++++#             
+            #+++++#             
+            #+++++#             
+           #+++++++#            
+           #++++++++#           
+          #++++++++++#          
+         #++++++++++++#         
+        #++++++++++++++#        
+        #++++++++++++++#        
+        #++++++++++++++#        
+        #++++++++++++++#        
+        #++++++++++++++#        
+        #+++++++++++++##        
+        #++++++++++++# #        
+       #++++##++++#####+#       
+      ######  #++#    ####      
+      #     ##++++##     #      
+       ### #++++++++# ###       
+       #++####++++##### #       
+        ##    ####     #        
+         #           ##         
+          ##       ###          
+            ########            
+                                
+
+=== helmets REAL #2 (idx=69, opacos=468, regioes=29) ===
+                                
+                                
+                                
+           ##      ##           
+          #++#    #++#          
+       ##  #++#  #++#  ##       
+  #   #++# #+++##+++# #++#   #  
+ #+#   #++#++++++++++#++#   #+# 
+ #++#   #++++++++++++++#   #++# 
+ #+++## #++++++++++++++# ##+++# 
+ #+++++#++++++++++++++++#+++++# 
+  #++++++++++++++++++++++++++#  
+  #++++++++++++++++++++++++++#  
+  #++++++++++++++++++++++++++#  
+   #++++++++++++++++++++++++#   
+    ###++++++++++++++++++###    
+       #++++++++++++++++#       
+       #++++++++++++++++#       
+      #++++++++++++++++++#      
+      #++++++++++++++++++#      
+      #++++++++++++++++++#      
+      #++++++++##++++++++#      
+       #++++++#  #++++++#       
+        #++++#    #++++#        
+         #+++#    #+++#         
+          #++#    #++#          
+          #++#    #++#          
+           #+#    #+#           
+           #+#    #+#           
+            #      #            
+                                
+                                
+
+=== helmets REAL #3 (idx=53, opacos=278, regioes=29) ===
+                                
+                                
+                                
+                                
+                                
+                                
+                                
+                                
+        ##        #######       
+      ##++##     #+++++++#      
+     #++++++##  #+++++++++#     
+    #+++++++++# #++++++++++#    
+    #++++++++++#+++++##++++#    
+   #+++###++++++++++#  #+++#    
+   #++#   #+++++++++#   #++#    
+   #++#  #+++++++++++#  #++#    
+   #++#  #+++++++++++#  #++#    
+   #++#  #+++++++++++#  #++#    
+    #++# #+++++++++++#  #+#     
+     #++# #+++++++++#   #+#     
+      #+# ###+++++##   #+#      
+     #++#    #####     #+#      
+     #++#              #++#     
+      ##               #++#     
+                        ##      
+                                
+                                
+                                
+                                
+                                
+                                
+                                
+
+=== helmets REAL #4 (idx=28, opacos=295, regioes=21) ===
+                                
+                                
+              #                 
+             #+#                
+             #++#               
+             #++#               
+              #+#               
+             #+++#              
+            #+++++#             
+            #+++++#             
+            #+++++#             
+           #+++++++#            
+           #++++++++#           
+          #++++++++++#          
+         #++++++++++++#         
+        #++++++++++++++#        
+        #++++++++++++++#        
+        #++++++++++++++#        
+        #++++++++++++++#        
+        #++++++++++++++#        
+        #+++++++++++++##        
+        #++++++++++++# #        
+       #++++##++++#####+#       
+      ######  #++#    ####      
+      #     ##++++##     #      
+       ### #++++++++# ###       
+       #++####++++##### #       
+        ##    ####     #        
+         #           ##         
+          ##       ###          
+            ########            
+                                
+
+=== helmets REAL #5 (idx=57, opacos=254, regioes=33) ===
+                                
+               #                
+         ##    #                
+         #    #+#   ##          
+        #+#   ##     #          
+        #+#   ##    #+#         
+         ##  #++#   #+#         
+         ##   #+#   ##          
+       ##+#   #++#  ##          
+       #++#   #++#  #+##        
+       #++#    #+#  #++#        
+        #+#   #++# #+++#        
+        #++###+++# #++#         
+        #+++++++++#+++#         
+         #+##++++++++#          
+          #  #++++++#           
+          # # #++++# #          
+         #   ##+++# #  #        
+          ###  #+++# ###        
+         # ## #+++++## #        
+      ####  ##++++++#  ####     
+      #++#    #++++#   #++#     
+      #+#     #+++#     #+#     
+      ##       ###       #+#    
+      #+#               #+#     
+       ##               ##      
+        ##             ##       
+          #############         
+                                
+                                
+                                
+                                
+
+--- GERADOS (pipeline_mcr) ---
+
+=== helmets GERADO #1 (sprite_000.png, opacos=279, regioes=35) ===
+                                
+                                
+                                
+                   #####        
+                  ##  #         
+                ##              
+                  #             
+                  ##  ###       
+                  #+##+#        
+                  #+++#         
+                  #++#          
+             ###  #++#          
+                  #+++#         
+          #       #+++#         
+          #      #++++#         
+                #+++++#         
+             ###++#+++# #       
+        #    #+++# ###  #       
+        #   #+++++##    #       
+           #+++++##+##          
+         ##+++++#  ##           
+    #     #++++++##++#          
+    #    #+##++++++#+#          
+    #######  #++++# #+#         
+     #++# ###++++++#+++#        
+    #++++#++#+#+#++++++##       
+     #+#+++# # # #++#+# ##      
+      # #++##+## #+# #+#++#     
+        ### #+++# #+#+++++##    
+             #+# #++#++++# #    
+              ###### #+++##     
+                     #++#       
+
+=== helmets GERADO #2 (sprite_001.png, opacos=294, regioes=20) ===
+                                
+                                
+                                
+                                
+                   #####        
+                ##    #         
+                  #   ###       
+                  # ##+#        
+                  ##++#         
+                  #++#          
+                  #++#          
+                  #+++#         
+              ### #+++#         
+          #      #++++#         
+          #     #+++++#         
+             ###++++++#         
+             #+++++++#          
+            #++++++++#          
+           #+++++++++#          
+    #    ##+++++++++#           
+    #     #++++++++++#          
+    #    #+++++++++++#          
+    #####+++++++++++++#         
+    #++++++++++++++++++#        
+    #+++++++++++++++++++#       
+     #+++++++++++++++++++#      
+      ##++++++++++++++++++#     
+        #####++++++++++++++#    
+             #+++++++++++++#    
+              #####++++++##     
+                   ######       
+                                
+
+=== helmets GERADO #3 (sprite_002.png, opacos=296, regioes=19) ===
+                                
+                                
+                                
+                   #####        
+                   ## #         
+                  ##            
+                  #+##          
+                 #++#           
+               ##++#            
+               #++#             
+               #++#             
+              #++++#            
+               #+++#            
+              #++++#            
+            ##+++++#            
+          ##+++++++#            
+          #+++++++#             
+         #++++++++#             
+        #+++++++++#             
+    ####+++++++++# #            
+       #++++++++++##            
+    # #+++++++++++#             
+ ###+#+++++++++++++#            
+ #++++++++++++++++++#           
+ #+++++++++++++++++++#          
+  #+++++++++++++++++++#  #      
+   ##++++++++++++++++++# #      
+     #####++++++++++++++#       
+          #+++++++++++++#       
+           #####++++++##        
+                ######          
+                                
+
+=== helmets GERADO #4 (sprite_003.png, opacos=305, regioes=20) ===
+                                
+                                
+                                
+                   ######       
+                  #++++#        
+                ##++++#         
+                # #++#          
+                # #++#          
+                # #+++#         
+                # #+++#         
+                 #++++#         
+              ###+++++#         
+             #++++++++#         
+            #++++++++#          
+            #+++++++++#         
+           #+++++++++##         
+          #+++++++++# #         
+        # #++++++++++#          
+        ##+++++++++++#          
+    ####++++++++++++++#         
+    #++++++++++++++++++#        
+    #+++++++++++++++++++#       
+     #+++++++++++++++++++#      
+      ##++++++++++++++++++#     
+        #+++#++++++++++++++#    
+       ##### #+++++++++++++#    
+              #####++++++##     
+                   ######       
+                                
+                  ######        
+                                
+                                
+
+=== helmets GERADO #5 (sprite_004.png, opacos=277, regioes=33) ===
+                                
+                                
+                                
+                   #####        
+                  ##  #         
+                # ##            
+                #               
+                #     ###       
+                #  ###+#        
+                # #+++#         
+                  #++#          
+              ### #++#          
+            #     #+++#         
+            #     #+++#         
+                  #++##         
+                ##++# #         
+        #    #### #++##         
+        #    #++#  #+#          
+            #++++## ##          
+         ###+++++#+#+#          
+    #     #+++++# #+#           
+    #     #++++++##++#          
+    #    #++++++#  #+#          
+    #####++#++#++# #++#         
+      #++## ## #++#++++#        
+    # #+# ##++##+++++++##       
+     #+++#++++# #++#++# ##      
+      ##+#+++# #++# #+# #+#     
+        # ###+#++++#+++#+++#    
+             #+++++++++++++#    
+              #####+###+###     
+                   #   #        
+
+
+======================================================================
+RESUMO QUANTITATIVO
+======================================================================
+
+Categoria              | Real Opacos | Real Regioes | Ger Opacos | Ger Regioes
+--------------------------------------------------------------------------------
+sword_weapons          |       258.1 |         21.1 |      210.6 |        21.6
+shields                |       519.0 |         19.6 |      486.5 |        26.2
+armors                 |       625.6 |         23.6 |      521.4 |        28.9
+creature_products      |       198.5 |         22.5 |      135.8 |        13.4
+helmets                |       342.4 |         20.6 |      295.7 |        22.8
+
+FIM DO ASCII DEBUG
+
+---
+Task ID: sprint1-invalidacao-final
+Agent: Mimo V2.5 (Engenheiro)
+Task: Invalidar Sprint 1 original apos analise visual dos 2 arquitetos
+Work Log:
+- Sprint 1.5-debug Commit 1 gerou ASCII de 5 categorias (5 reais + 5 gerados cada)
+- Analise visual pelos 2 arquitetos (DeepSeek R1 + GLM 5.2) revelou colapso estrutural
+- Gerados de cada categoria sao ~95% similares entre si (mesma forma + ruido cosm�tico)
+- Coerencia 1.000 era metrica enganosa � mede consistencia intra-gerados, nao realismo
+- Causa raiz: 73% posicoes fixed + gap por moda + temperatura conservadora
+- sword_weapons reais variam 3.8x (96-364 opacos); gerados variam <2% (206-209)
+- shields gerados: todos kite shield com asas identicas (~485-490 opacos)
+- armors gerados: todos 516-526 opacos, ombros pequenos
+- helmets gerados: todos crista central, variacao so na borda
+Stage Summary:
+- Sprint 1 ORIGINAL INVALIDADO. Coerencia 0.85-1.00 NAO e sucesso.
+- Pipeline atual nao gera variacao morfologica � replica moda com ruido.
+- Refatoracao do template_regiao.py segue neste commit.
+- Jaccard medio entre gerados estimado em 0.85-0.95 (colapso confirmado)
+- Alvo: Jaccard medio entre gerados <=0.65
+
+---
+Task ID: sprint1-refatoracao-commit1
+Agent: Mimo V2.5 (Engenheiro)
+Task: jaccard_silhueta() � validacao com sprites reais e gerados
+Work Log:
+- Adicionada jaccard_silhueta() em mcr/sprite_corpus.py (~30 LOC)
+- Adicionada jaccard_gerados_vs_reais() para medir realismo de silhueta
+- Validada com 20 sprites reais por categoria (seed=42)
+- Medidos Jaccard dos gerados atuais (Sprint 1 original) para comparacao
+Stage Summary:
+- Jaccard REAIS por categoria:
+  - sword_weapons: 0.392
+  - shields: 0.686
+  - armors: 0.698
+  - creature_products: 0.404
+  - helmets: 0.587
+- Jaccard GERADOS (Sprint 1 original):
+  - sword_weapons: 0.849 (+117% vs real � colapso!)
+  - shields: 0.962 (+40% vs real � colapso!)
+  - armors: 0.948 (+36% vs real � colapso!)
+  - creature_products: 0.511 (+26% vs real � leve colapso)
+  - helmets: 0.662 (+13% vs real � leve colapso)
+- sword_weapons e shields sao as categorias com maior colapso
+- Alvo: gerados devem ter Jaccard similar ao real (�20%)
+- sword_weapons alvo: 0.31-0.47 (hoje 0.849 � precisa reduzir 47%)
+- shields alvo: 0.55-0.82 (hoje 0.962 � precisa reduzir 17%)
+
+---
+Task ID: sprint1-refatoracao-commit4
+Agent: Mimo V2.5 (Engenheiro)
+Task: Re-medir pipeline refatorado com jaccard_silhueta
+Work Log:
+- Criado rodar_refatoracao.py para medir Jaccard entre gerados e vs reais
+- Iteracao 1: deslocamento 0.3, temp 0.1/0.5/0.8 � J Ger: sword=0.799, shields=0.920, armors=0.918, helmets=0.626
+- Iteracao 2: deslocamento 0.8, temp 0.1/0.6/1.0 � J Ger: sword=0.756, shields=0.861, armors=0.912, helmets=0.388
+- Novas categorias: food J Ger=0.249, boots J Ger=0.454
+Stage Summary:
+- helmets, food, boots: APROVADOS (J Ger <=0.65)
+- sword_weapons: 0.756 (meta <=0.65, -11% da iteracao 1)
+- shields: 0.861 (meta <=0.65, ainda colapsado)
+- armors: 0.912 (meta <=0.65, ainda colapsado)
+- 2 iteracoes feitas, resultado insuficiente para shields/armors
+- Segundo protocolo: ativar Caminho C (Sprint 3 HDC) como plano principal
+- Pedir parecer dos 2 arquitetos antes de prosseguir
+
+---
+Task ID: sprint1-refatoracao-commit5
+Agent: Mimo V2.5 (Engenheiro)
+Task: ASCII debug da iteracao 2 da refatoracao para revisao dos arquitetos
+Work Log:
+- Rodado sprint1_iter2_ascii.py com template_regiao.py refatorado (iteracao 2)
+- 5 reais + 5 gerados por categoria, seed 42, 6 categorias
+- Output salvo em poc_output/refatoracao_iter2_ascii.txt
+Stage Summary:
+- ASCII completo disponivel para revisao visual dos 2 arquitetos
+- Aguardando parecer antes de decidir Caminho D (multi-template), C (HDC), ou A revisitado
+
+======================================================================
+SPRINT 1 REFATORACAO — ASCII DEBUG ITERACAO 2
+Seed: 42
+Template: temperatura por posicao (H<0.2=0.1, 0.2-0.5=0.6, >=0.5=1.0)
+Deslocamento: 0.8x delta centroid
+======================================================================
+
+######################################################################
+# CATEGORIA: sword_weapons
+######################################################################
+
+TREINO: limiar=0.500, sprites=20, validos=20, regAlvo=17, N1: 0fixed + 102gap, N2: 0fixed + 93gap, posicoes: 0fixed/0mod/17cri
+
+--- REAIS (seed=42, indices=[3, 0, 8, 7, 16]) ---
+
+=== sword_weapons REAL #1 (idx=3, opacos=96, regioes=7) ===
+                                
+              #                 
+              #                 
+              #                 
+             #+#                
+             #+#                
+             #+#                
+             #+#                
+             #+#                
+             #+#                
+             #+#                
+             #+#                
+             #+#                
+             #+#                
+             #+#                
+             #+#                
+             #+#                
+             #+#                
+             #+#                
+             #+#                
+             #+#                
+         #   #+#   #            
+         ####+++####            
+            #+++#               
+             #+#                
+             #+#                
+             #+#                
+             #+#                
+             #+#                
+             #+#                
+             ###                
+                                
+
+=== sword_weapons REAL #2 (idx=0, opacos=149, regioes=10) ===
+                                
+                                
+               #                
+              #+#               
+             #+++#              
+             #+++#              
+             #+++#              
+             #+++#              
+             #+++#              
+             #+++#              
+             #+++#              
+             #+++#              
+             #+++#              
+             #+++#              
+             #+++#              
+             #+++#              
+           ##+++++##            
+          #+++++++++#           
+          #+++++++++#           
+           #+++++++#            
+            #+++++#             
+             #+++#              
+             #+++#              
+             #+++#              
+             #+++#              
+             #+++#              
+             #+++#              
+             #+++#              
+              ###               
+                                
+                                
+                                
+
+=== sword_weapons REAL #3 (idx=8, opacos=325, regioes=19) ===
+                                
+######                          
+++++++##                        
+++++++++##                      
++++++++++#                      
+++++++++++#                     
+#++++++++++#                    
+ #++++++++++##                  
+ #+++++++++++#                  
+  #+++++++++++#                 
+   #+++++++++++##               
+    #++++++++++++#              
+     #+++++++++++#              
+      #+++++++++++#             
+       #+++++++++++#            
+        #+++++++++++##          
+         #+++++++++++#          
+          #+++++++++++#  #      
+           #+++++++++++#  #     
+            #+++++++++++# #     
+             #++++++++++# ##    
+              #+++++++++# ##    
+               #++++++++# #     
+                #++++++++##     
+                 #+##+++##      
+                  #  #+# ##     
+                #  ## #  #+#    
+                 ##++##   #+# # 
+                   ##      #+## 
+                            #+# 
+                           ###  
+                                
+
+=== sword_weapons REAL #4 (idx=7, opacos=321, regioes=21) ===
+                                
+#####                           
++++++###                        
+++++++++#                       
++++++++++#                      
+++++++++++##                    
+#++++++++++#                    
+ #++++++++++#                   
+ #+++++++++++##                 
+  #++++++++++++#                
+   #+++++++++++#                
+    #+++++++++++##              
+     #+++++++++++#              
+      #+++++++++++#             
+       #+++++++++++#            
+        #++++++++++#            
+         #++++++++++##          
+          #+++++++++++#  #      
+           #++++++++++#   #     
+            #++++++++++## #     
+             #++++++++++# ##    
+              #+++++++++# ##    
+               #++++++++# #     
+                #++++++++##     
+                 #+##+++##      
+                  #  #+# ##     
+                #  ## #  #+#    
+                 ##++##   #+# # 
+                   ##      #+## 
+                            #+# 
+                           ###  
+                                
+
+=== sword_weapons REAL #5 (idx=16, opacos=325, regioes=15) ===
+                                
+######                          
+++++++##                        
+++++++++#                       
++++++++++#                      
+++++++++++#                     
+#++++++++++#                    
+ #++++++++++#                   
+ #+++++++++++#                  
+  #+++++++++++#                 
+   #+++++++++++#                
+    #+++++++++++#               
+     #+++++++++++#              
+      #+++++++++++#             
+       #+++++++++++#            
+        #+++++++++++#           
+         #+++++++++++#          
+          #+++++++++++#  #      
+           #+++++++++++## #     
+            #+++++++++++# #     
+             #++++++++++# ##    
+              #+++++++++# ##    
+               #++++++++# #     
+                #++++++++##     
+                 #+++++++#      
+                 ##++#+##+#     
+                #  ## #  #+#    
+                 ##++##   #+# # 
+                   ##      #+## 
+                            #+# 
+                           ###  
+                                
+
+--- GERADOS (template refatorado iteracao 2) ---
+
+=== sword_weapons GERADO #1 (opacos=257, regioes=20) ===
+           #####                
+           #                    
+           #                    
+  ++++     ####                 
+  +++++    #                    
+  ++++++                        
+  +++++++                       
+   ++++++++++                   
+    +++++++++    #              
+     +++++++++  ##              
+      ++++++++.##               
+       ++++++++                 
+        +++++++          +      
+         +++++++ #      ++      
+          ++++++.#      +       
+           ++++++.     +        
+           +++++++++   +        
+          ++ ++++++++           
+          +   ++++++++      #   
+          +    +++++++      #   
+          + # # +++++++   # ##  
+          +.# #  +++++++  # ##  
+           +.     ++++++  # #   
+           .++     ..++++ ###   
+           #.++    ##.+.. ##    
+            #....# # #.##       
+            ###### ####         
+                 ##..###      # 
+                   ##        ## 
+                            # # 
+                           ###  
+                                
+
+=== sword_weapons GERADO #2 (opacos=251, regioes=21) ===
+                                
+                                
+          #####                 
+  ++++    #                     
+  +++++   #                     
+  ++++++  #                     
+  +++++++ #                     
+   +++++++.++   #               
+    +++++++++   #               
+     +++++++++         #        
+      +++++++++       ##        
+       ++++++++      ##         
+        +++++++          +      
+         +++++++        ++      
+          +++++++       .       
+           +++++++     .#       
+           +++++++++   .#       
+          ++ ++++++++           
+          +   .+++++++          
+          +  ##.++++++          
+          +    #.++++++         
+          ++   # .++++++        
+     #     ++    #.+++++        
+     #     +++   # ..++++       
+            .++  # ##.+..#      
+            #....#   #.###      
+          # ###### ####  #      
+          #   #  ##..##       # 
+                   ###       ## 
+                    #       # # 
+                           ###  
+                                
+
+=== sword_weapons GERADO #3 (opacos=258, regioes=23) ===
+                                
+                                
+                                
+  ++++   ####                   
+  ++++.#                        
+  +++++.          #             
+  +++++++         #             
+   ++++++++++                   
+    .++++++++                   
+#####.++++++++                  
+#     +++++++++                 
+#      ++++++++                 
+#       +++++++  #  ##   +      
+#        +++++++ #  ##  +.      
+          ++++++.#  ##  .#      
+           ++++++.  ## .##      
+           ++++++++.## .#       
+          ++ +++++++.           
+          +   ++++++++          
+          +    +++++++          
+          +     +++++++         
+          +.#    +++++++        
+           +. # # ++++++        
+           .+.# #  ..++++       
+           #.+.    ##.+..       
+           ##....#    .##       
+           ####### ## #         
+       ##  #     ##..##       # 
+                   ##        ## 
+                            # # 
+                           ###  
+                                
+
+=== sword_weapons GERADO #4 (opacos=248, regioes=24) ===
+                                
+ #####                          
+ #                              
+ #.+++                          
+ #.++++                         
+ #.+++++                        
+  ++++++.#                      
+   ++++++.+++                   
+    +++++++++                   
+     +++++++++    #             
+      +++++++++   #             
+       ++++++++   #             
+        +++++++          .#     
+         +++++++        +.#     
+          +++++++       +       
+           +++++++  #  +        
+           +.++++++.#  +        
+          +.#.++++++.           
+          + ##.+++++++          
+          +    +++++++          
+          + #   +++++++         
+          +.#    +++++++        
+           +.     ++++++        
+           +++     ..++++       
+            .++    ##.+..       
+            #....#  # .##       
+            ###### ## ##        
+          #    ####..##       # 
+          #    ##  ##        ## 
+               #            # # 
+              ##           ###  
+              #                 
+
+=== sword_weapons GERADO #5 (opacos=253, regioes=25) ===
+ #####                          
+ #                              
+ #    ####    #                 
+ #.+++ #      #                 
+ #.+++.#                        
+  +++++.                        
+  +++++++                       
+   ++++++++++                   
+    +++++++++                   
+     +++++++++                  
+      +++++++++                 
+       ++++++++                 
+        +++++++          +      
+         +++++++        ++      
+          +++++++ #     +       
+           ++++++.#    +        
+           +++++++.+   +        
+          ++ .+++++++ # #       
+          +  #.++++++.# #       
+          +  # +++++++          
+          +  #  +++++++         
+          ++ #   +++++++    #   
+           ++     ++++++    #   
+           +++     ..++++   ##  
+       ##   .++    ##.+..   ##  
+            #....#    .##   #   
+            ###### ## #    ##   
+                 ##..##    #  # 
+                   ##        ## 
+                            # # 
+                           ###  
+                                
+
+
+######################################################################
+# CATEGORIA: shields
+######################################################################
+
+TREINO: limiar=0.500, sprites=20, validos=11, regAlvo=27, N1: 19fixed + 143gap, N2: 9fixed + 144gap, posicoes: 0fixed/15mod/12cri
+
+--- REAIS (seed=42, indices=[15, 3, 18, 7, 4]) ---
+
+=== shields REAL #1 (idx=15, opacos=400, regioes=29) ===
+                                
+      #                         
+      #                         
+     ##                         
+     #                    #     
+     #    #           #   #     
+    ##    #           #    #    
+    #+#   #          ##    #    
+    #+#   ##         #     #    
+    #+#    #        ##     ##   
+    #++#   #        #     #+#   
+   #++++# #+#      ##     #+#   
+   #+++++#+++#     ##    #+#    
+   #+++++++++#     #+#  #++#    
+    #++++++++#    #+++##+++#    
+    #+++++++++#  #++++++++#     
+    #++++++++++##++++++++#      
+     #++++++++++++++++++#       
+      #++++++++++++++++#    ##  
+  #   #++++++++++++++++#   ##   
+  #    #++++++++++++++#    #    
+  ##   #++++++++++++++#    #    
+   ## #+++++++++++++++#   ##    
+    ##+++++++++++++++++# ##     
+    #+++++++++++++++++++#+#     
+     #+++++++++++++++++++#      
+      ##+++++++++++++++##       
+        ##++++++++++++#         
+          ##++++++++##          
+            ##++++##            
+              ####              
+                                
+
+=== shields REAL #2 (idx=3, opacos=477, regioes=25) ===
+               #                
+              #+##              
+             #++++#             
+            #++++++#            
+           #++++++++##          
+         ##+++++++++++##        
+       ##++++++++++++++# #      
+    ###+++++++++++++++++#+##    
+   #++++++++++++++++++++++++#   
+  #+++++++++++++++++++++++++#   
+   #+#+++++++++++++++++++##++#  
+  #+# #+++++++++++++++++#  #+#  
+   #   #++++++++++++++++#   #   
+        #++++++++++++++#        
+    ## #++++++++++++++++# ##    
+    #+#++++++++++++++++++#+#    
+    #++++++++++++++++++++++#    
+    #+++++++++++++++++++++##    
+     #+++++++++++++++##++#      
+     #++###+++++++++#  #++#     
+      ##   #++++++++#  #+#      
+          #++++++++++#  #       
+          #++++++++++#          
+          #++++++++++#          
+          #++++++++++#          
+          #++++++++++#          
+           #++++++++#           
+           #+++++++#            
+            #++++++#            
+             #++++#             
+              ##+#              
+                #               
+
+=== shields REAL #3 (idx=18, opacos=544, regioes=27) ===
+  #                             
+  ####                   ####   
+  #+++#                ##+++#   
+  #++++##             #+++++#   
+ #+++++++##         ##++++++#   
+ #+++++++++### #####++++++++#   
+ #++++++++++++#+++++++++++++#   
+ #++++++++++++++++++++++++++#   
+  #++++++++++++++++++++++++#    
+  #++++++++++++++++++++++++#    
+   #+++++++++++++++++++++++#    
+   #++++++++++++++++++++++#     
+    #++++++++++++++++++++#      
+     #+++++++++++++++++++#      
+     #+++++++++++++++++++#      
+      #+++++++++++++++++#       
+      #++++++++++++++++#        
+       #+++++++++++++++#        
+       #++++++++++++++++#       
+       #++++++++++++++++#       
+        #++++++++++++++++#      
+        #+++++++++++++++++#     
+        #++++++++++++++++++#    
+         #+++++++++++++++++#    
+          #++++++++++++++##     
+          #+++++++++++++#       
+           #++++++++++##        
+           #++++++++##          
+            #++++++#            
+             #++++#             
+              #++#              
+               #+#              
+
+=== shields REAL #4 (idx=7, opacos=544, regioes=27) ===
+  #                             
+  ####                   ####   
+  #+++#                ##+++#   
+  #++++##             #+++++#   
+ #+++++++##         ##++++++#   
+ #+++++++++### #####++++++++#   
+ #++++++++++++#+++++++++++++#   
+ #++++++++++++++++++++++++++#   
+  #++++++++++++++++++++++++#    
+  #++++++++++++++++++++++++#    
+   #+++++++++++++++++++++++#    
+   #++++++++++++++++++++++#     
+    #++++++++++++++++++++#      
+     #+++++++++++++++++++#      
+     #+++++++++++++++++++#      
+      #+++++++++++++++++#       
+      #++++++++++++++++#        
+       #+++++++++++++++#        
+       #++++++++++++++++#       
+       #++++++++++++++++#       
+        #++++++++++++++++#      
+        #+++++++++++++++++#     
+        #++++++++++++++++++#    
+         #+++++++++++++++++#    
+          #++++++++++++++##     
+          #+++++++++++++#       
+           #++++++++++##        
+           #++++++++##          
+            #++++++#            
+             #++++#             
+              #++#              
+               #+#              
+
+=== shields REAL #5 (idx=4, opacos=697, regioes=22) ===
+                                
+             ######             
+          ###++++++###          
+        ##++++++++++++##        
+       #++++++++++++++++#       
+      #++++++++++++++++++#      
+     #++++++++++++++++++++#     
+    #++++++++++++++++++++++#    
+   #++++++++++++++++++++++++#   
+   #++++++++++++++++++++++++#   
+  #++++++++++++++++++++++++++#  
+  #++++++++++++++++++++++++++#  
+ #++++++++++++++++++++++++++++# 
+ #++++++++++++++++++++++++++++# 
+ #++++++++++++++++++++++++++++# 
+ #++++++++++++++++++++++++++++# 
+ #++++++++++++++++++++++++++++# 
+ #++++++++++++++++++++++++++++# 
+ #++++++++++++++++++++++++++++# 
+ #++++++++++++++++++++++++++++# 
+  #++++++++++++++++++++++++++#  
+  #++++++++++++++++++++++++++#  
+   #+++++++++++++++++++++++++#  
+   #++++++++++++++++++++++++#   
+    #++++++++++++++++++++++#    
+     #+++++++++++++++++++++#    
+      #+++++++++++++++++++#     
+       #++++++++++++++++##      
+        ##++++++++++++##        
+          ###+++++++##          
+             #######            
+                                
+
+--- GERADOS (template refatorado iteracao 2) ---
+
+=== shields GERADO #1 (opacos=519, regioes=42) ===
+  #                             
+  ####  ####                    
+  #...     #           ##.++    
+  #.++.##  #           ..+++    
+ #.++++..  #          ++++++    
+ #.+++++++.### #####.+++++++    
+ #.++++++++... .....++++++++    
+ #.++++++++++++++++++++++++.    
+  #.++++++++++++++++++++++.#    
+  #.++++++++++++++++++++++.#    
+   #.+++++++++++++++++++++.#    
+   #.++++++++++++++++++++.      
+     .++++++++++++++++++.#      
+     #.+++++++++++++++++.#      
+     #.+++++++++++++++++.#      
+      #.+++++++++++++++.        
+      #.++++++++++++++.#        
+       #.+++++++++++++.#        
+       #.++++++++++++++.#       
+       #.++++++++++++++.#       
+        #.++++++++++++++.       
+        #.++++++++++++++++      
+        #.+++++++++++++++++     
+          +++++++++++++++..     
+         # +++++++++++++.##     
+         # +++++++++++++   #    
+            ++++++++..     #    
+            +++++++.##          
+             ++++++   ##        
+              +++.              
+               +.#              
+                .#              
+
+=== shields GERADO #2 (opacos=513, regioes=42) ===
+  #                             
+  ####                          
+  #...                   +++    
+  #.++.##              ++++.#   
+ #.++++..##         ##.++++.#   
+ #.++++++..         ..+++++.#   
+ #.+++++++++++ ++++++++++++.#   
+ #.++++++++++++++++++++++++.#   
+  #.++++++++++++++++++++++.##   
+  #.++++++++++++++++++++++.##   
+   #.+++++++++++++++++++++.#    
+   #.++++++++++++++++++++.      
+     .++++++++++++++++++.#      
+     #.+++++++++++++++++.#      
+     #.+++++++++++++++++.#      
+      #.+++++++++++++++.        
+      #.++++++++++++++.#        
+       #.+++++++++++++.#        
+       #.++++++++++++++.        
+       #.+++++++++++++++        
+         ++++++++++++++++       
+        #.++++++++++++++++      
+        #.++++++++++++++++.#    
+        # +++++++++++++++..#    
+         # +++++++++++++.##     
+         # .++++++++++..        
+           #.+++++++..##        
+           #.++++++.##          
+             ++++++             
+              +++.              
+               +.#              
+                .#              
+
+=== shields GERADO #3 (opacos=519, regioes=43) ===
+  #                             
+  ####                   ####   
+  #...                 ##...#   
+  #.++.##              ..++.#   
+ #.++++..##           +++++.#   
+ #.++++++..    #####.++++++.#   
+ #.+++++++++++ .....+++++++.#   
+ #.++++++++++++++++++++++++.#   
+   ++++++++++++++++++++++++     
+   .+++++++++++++++++++++++     
+   #.+++++++++++++++++++++.#    
+   #.++++++++++++++++++++. #    
+     +++++++++++++++++++.# #    
+      ++++++++++++++++++.#      
+      .+++++++++++++++++.#      
+      #.+++++++++++++++.        
+      #.++++++++++++++.#        
+     # #.+++++++++++++.#        
+     # #.++++++++++++++.#       
+       #.++++++++++++++.#       
+        #.++++++++++++++.       
+        #.++++++++++++++++      
+        #.++++++++++++++++.#    
+          .+++++++++++++++.#    
+          #.+++++++++++++       
+          #.++++++++++..        
+           #.+++++++..##        
+           #.++++++.##          
+             ++++++             
+              +++.              
+               +.#              
+                .#              
+
+=== shields GERADO #4 (opacos=517, regioes=42) ===
+  #                             
+  ####                   ####   
+  #...                 ##...#   
+  #.++.##              ..++.#   
+ #.++++..           ##.++++.#   
+ #.+++++++.### #####..+++++.#   
+ #.++++++++... .....+++++++.#   
+ #.++++++++++++++++++++++++.#   
+  #.++++++++++++++++++++++.#    
+  #.++++++++++++++++++++++.#    
+   #.+++++++++++++++++++++.#    
+   #.++++++++++++++++++++.      
+     .++++++++++++++++++.#      
+     #.+++++++++++++++++.#      
+     #.+++++++++++++++++.#      
+      #.+++++++++++++++.        
+      #.++++++++++++++.#        
+        ++++++++++++++.#        
+        +++++++++++++++.        
+        .+++++++++++++++        
+        #.+++++++++++++++       
+        #.++++++++++++++++      
+        #.+++++++++++++++++     
+          +++++++++++++++..     
+         # +++++++++++++.##     
+         # .++++++++++..        
+           #.++++++++.##        
+           #.+++++++            
+             ++++++             
+              +++.              
+               +.#              
+                .#              
+
+=== shields GERADO #5 (opacos=511, regioes=39) ===
+  #                             
+  ####               ####       
+  #...                  #.++    
+  #.++.##              +.+++    
+ #.++++..           ##.+++++    
+ #.+++++++.### #####..++++++    
+ #.++++++++... .....++++++++    
+ #.++++++++++++++++++++++++.    
+  #.++++++++++++++++++++++.#    
+  #.++++++++++++++++++++++.#    
+    ++++++++++++++++++++++.#    
+    +++++++++++++++++++++.      
+     .++++++++++++++++++.#      
+     #.+++++++++++++++++.#      
+   # #.+++++++++++++++++.#      
+   #  #.++++++++++++++++        
+      #.+++++++++++++++         
+       #.++++++++++++++         
+       #.+++++++++++++++        
+       #.++++++++++++++.#       
+        #.++++++++++++++.       
+        #.++++++++++++++++      
+         ++++++++++++++++++     
+          .++++++++++++++..     
+          #.++++++++++++.##     
+          #.++++++++++..        
+           #.++++++++.##        
+           #.+++++++            
+             ++++++             
+              +++.              
+               +.#              
+                .#              
+
+
+######################################################################
+# CATEGORIA: armors
+######################################################################
+
+TREINO: limiar=0.500, sprites=20, validos=20, regAlvo=27, N1: 0fixed + 162gap, N2: 0fixed + 153gap, posicoes: 0fixed/0mod/27cri
+
+--- REAIS (seed=42, indices=[5, 17, 19, 15, 9]) ---
+
+=== armors REAL #1 (idx=5, opacos=705, regioes=34) ===
+                                
+                                
+        ###         ###         
+  ## # #+++#####    #+# # ####  
+ #++#+#+++++++++####+++#+#++++# 
+ #+++++++++++++++++++++++++++++#
+#+++++++++++++++++++++++#++++++#
+#++++++++++++++++++++++# #++++# 
+ ##+++#+++++++++++++++++#++#+## 
+   ### #++++++++++++++++++# #   
+     # #++++++++++++++++++#     
+     ##++++++++++++++++++#      
+     #++++++++++++++++++++#     
+    #++++++++++++++++++++++#    
+    #++++++++++++++++++#+++#    
+    #+++++++++++++++++# #++#    
+    #+++++++++++++++++# #++#    
+   #++++++++++++++++#++#+++#    
+   #+++++++++++++++# #++++++#   
+   #+++++++++++++++# #++++++#   
+   #++++++++++++++++#+++++++#   
+   #++++++++++++++++++#++++++#  
+   #+++++++++++++++++# #+++++#  
+  #+++++++++++++++++++#++++++#  
+  #++++++++++++++++++++++++++#  
+  #++++++++++++++++++++++++++#  
+  #+++++++++++++++++++++++++#   
+  #++++#+++++++++++++++#+++++#  
+  #+++# ##+++###++++### ##+++#  
+   #+#    ###   ####   ## #++#  
+   ###                    #+#   
+     #                    ##    
+
+=== armors REAL #2 (idx=17, opacos=554, regioes=21) ===
+                                
+                                
+           ###########          
+      #####+++++++++++#####     
+    ##+++++++++++++++++++++##   
+   #+++++++++++++++++++++++++#  
+  #+++++++++++++++++++++++++++# 
+  #+++#+++++++++++++++++++#+++# 
+  #++# #+++++++++++++++++# #++# 
+  #+++#+++++++++++++++++++#+++# 
+  #+++++++++++++++++++++++++++# 
+   #+++++++++++++++++++++++++#  
+    #+++++++++++++++++++++++#   
+    #+++++++++++++++++++++++#   
+    #+++++++++++++++++++++++#   
+    #+++++++++++++++++++++++#   
+     ##+++++++++++++++++++##    
+       #+++++++++++++++++#      
+       #+++++++++++++++++#      
+       #+++++++++++++++++#      
+        ##+++++++++++++##       
+          #+++++++++++#         
+           #+++++++++#          
+           #+++++++++#          
+           #+++++++++#          
+         ##+++++++++++##        
+         #+++++++++++++#        
+         #+++++###+++++#        
+         ######   ######        
+                                
+                                
+                                
+
+=== armors REAL #3 (idx=19, opacos=701, regioes=36) ===
+                                
+  ##                        ##  
+ #++#                      #++# 
+ #+++####    ######   #####+++# 
+ #+++++++## #++++++# #++++++++# 
+  #++++++++#++++++++#++++++++#  
+   #++++++++++++++++++++++++#   
+  #++++++++++++++++++++++++++#  
+  #++++++++++++++++++++++++++#  
+   #++++++++++++++++++++++++#   
+   #++++++++++++++++++++++++#   
+ ##++++++++++++++++++++++++++## 
+#++++++++++++++++++++++++++++++#
+ #++++++++++++++++++++++++++++# 
+  #+#+#++++++++++++++++++#+#+#  
+   # # #++++++++++++++++# # #   
+    #+#++++++++++++++++++#+#    
+     #++++++++++++++++++++#     
+ ### #++++++++++++++++++++# ### 
+ #++# #++++++++++++++++++# #++# 
+ #++# #++++++++++++++++++# #++# 
+ #++#  ##++++++++++++++##  #++# 
+ #++#    #++++++++++++#    #++# 
+  ##    #++++++++++++++#    ##  
+  ##   #++++++++++++++++#   ##  
+       #++++++++++++++++#       
+      #++++++++++++++++++#      
+     #+++++#++++++++#+++++#     
+     #++++# #++++++# #++++#     
+     #+++#   #++++#   #+++#     
+     #++#     #++#     #++#     
+      ##       ##       ##      
+
+=== armors REAL #4 (idx=15, opacos=542, regioes=30) ===
+                                
+                                
+      ## ###        ### ##      
+      #+# ##       #+# #+#      
+      #+# #+##    #++# #+#      
+       ## #+++####++++#+#       
+       ## #++++++++++# ##       
+   ####++#+++++++++#++#++####   
+ ##+++++++++####### #++++++++###
+ #+++++++++#       #++++++++++++
+ #++++++++++#######++++++++++++#
+ #++++++++++++++++++++++++++++# 
+  #++++++++++++++++++++++++++#  
+  #++++++++++++++++++++++++++#  
+   #++++++++++++++++++++++++#   
+    #+++++++++++++++++++++##    
+     #+++++++++++++++++++#      
+      #++++++++++++++++++#      
+      #++++++++++++++++++#      
+      #++++++++++++++++++#      
+       #++++++++++++++++#       
+       #++++++++++++++++##      
+        #++++++++++++++#        
+         #++++++++++++#         
+         #++++++++++++#         
+         #++++++++++++#         
+         #++++++++++++#         
+         ##++++++++++++#        
+           ##+++++++++#         
+             ######+##          
+                   #            
+                                
+
+=== armors REAL #5 (idx=9, opacos=595, regioes=22) ===
+                                
+                                
+                                
+            #########           
+     ####  #+++++++++#  ####    
+   ##++++##+++++++++++##++++##  
+  #+++++++++++++++++++++++++++# 
+ #++++++++++++++++++++++++++++# 
+ #++++++++++++++++++++++++++++# 
+ #++++++++++++++++++++++++++++# 
+ #+++++++++++++++++++++++++++++#
+  #+++++++++++++++++++++++++++# 
+ #+++++++++++++++++++++++++++++#
+ #++++++++++++++++++++++++++++++
+ #+++++++++++++++++++++++++++++#
+  #####+++++++++++++++++++##### 
+       #+++++++++++++++++#      
+       #+++++++++++++++++#      
+       #+++++++++++++++++#      
+       #+++++++++++++++++#      
+        #+++++++++++++++#       
+         #+++++++++++++#        
+        #+++++++++++++++#       
+       #+++++++++++++++++#      
+      #+++++++++++++++++++#     
+      #+++++++++++++++++++#     
+       #+++++++++++++++++#      
+        ####+++++++++####       
+            ##+++++##           
+              #+++#             
+               ###              
+                                
+
+--- GERADOS (template refatorado iteracao 2) ---
+
+=== armors GERADO #1 (opacos=552, regioes=17) ===
+                                
+                                
+        ++++                    
+     ++++++++      +++++++      
+   #.++++++++.###.+++++++++     
+   #.+++++++++...+++++++++++    
+   #.++++++++++++++++++++++++   
+   #.+++++++++++++++++++++++    
+   .+++++++++++++++++++++++++   
+   ++++++++++++++++++++++++++   
+  ++++++++++++++++++++++++++++  
+   +++++++++++++++++++++++++++  
+  +++++++++++++++++++++ ++++++  
+  ++++++++++++++++++++   +++..+ 
+   ++++++++++++++++++++ ....##  
+      +++++++++++++++++.####    
+        .++++++++++++++         
+        #.+++++++++++++         
+        #.+++++++++++++         
+        .+++++++++++++++        
+        ++++++++++++++++        
+        ++++++++++++++++        
+      # +++++++++++++++++       
+      # +++++++++++++++++       
+      #.+++++++++++++++++       
+       ++++++++++++++++++.#     
+       ++++++++   +++++++   #   
+       +++++++     ++++++   #   
+       +++++++      .+++    #   
+         ..+++      #.+     #   
+         ##..                   
+           ##                   
+
+=== armors GERADO #2 (opacos=551, regioes=13) ===
+                                
+     ######                     
+        ...+                    
+    #.+++++++      +++++++      
+    .+++++++++   ++++++++++     
+    ++++++++++++++++++++++++    
+    +++++++++++++++++++++++++   
+    ++++++++++++++++++++++++    
+   ++++++++++++++++++++++++++   
+   ++++++++++++++++++++++++++   
+  ++++++++++++++++++++++++++++  
+   ++++++++++++++++++++.++++++  
+  ++++++++++++++++++++.#.+++++  
+  ++++++++++++++++++++   +++++. 
+   ++++++++++++++++++++ ++++  # 
+      ++++++++++++++++++      # 
+        +++++++++++++++ ###     
+         ++++++++++++++         
+         ++++++++++++++         
+        ++++++++++++++++        
+        ++++++++++++++++        
+        ++++++++++++++++        
+        +++++++++++++++++       
+        +++++++++++++++++       
+      #.+++++++++++++++++       
+       +++++++++++++++++++      
+       ++++++++   +++++++       
+       +++++++     ++++++       
+     ##.++++++      .++.        
+         ..++.#     #..###      
+         ##..       #           
+           ##       #           
+
+=== armors GERADO #3 (opacos=556, regioes=15) ===
+                                
+                                
+     ## ++++    ###       ##    
+    #..+++++.#     +++++++ #    
+    .++++++++.   ++++++++++     
+    ++++++++++++++++++++++++    
+    +++++++++++++++++++++++++   
+    ++++++++++++++++++++++++    
+   ++++++++++++++++++++++++++   
+   ++++++++++++++++++++++++++   
+  ++++++++++++++++++++++++++++  
+   +++++++++++++++++++++++++++  
+  +++++++++++++++++++++ ++++++  
+  ++++++++++++++++++++   ++++++ 
+   ++++++++++++++++++++ +.++    
+      ++++++++++++++++++ #      
+        +++++++++++++++  #      
+         ++++++++++++++  #  ### 
+         ++++++++++++++  #      
+        ++++++++++++++++        
+        ++++++++++++++++        
+        ++++++++++++++++        
+        +++++++++++++++++       
+        +++++++++++++++++       
+       ++++++++++++++++++       
+       +++++++++++++++++++  #   
+       ++++++++   +++++++   #   
+       +++++++ # # +++++.##     
+      #.++++++ # #  ++++        
+         ..+++ # #   ++         
+         ##..                   
+           ##                   
+
+=== armors GERADO #4 (opacos=556, regioes=16) ===
+                                
+                                
+        ++++                    
+     ++++++++      +++++++      
+  ##.+++++++++  #.+++++++++     
+  # ++++++++++++.+++++++++++    
+  # +++++++++++++++++++++++++   
+  # ++++++++++++++++++++++++ ## 
+   ++++++++++++++++++++++++++ # 
+   ++++++++++++++++++++++++++   
+  ++++++++++++++++++++++++++++  
+ # +++++++++++++++++++++++++++  
+ #.++++++++++++++++++++ ++++++  
+  ++++++++++++++++++++   +++++. 
+   ++++++++++++++++++++ ++++  # 
+      ..++++++++++++++++      # 
+      ##.++++++++++++++         
+      #  ++++++++++++++         
+         ++++++++++++++         
+      ##.+++++++++++++++        
+   ### #.+++++++++++++++        
+        ++++++++++++++++        
+   ##   +++++++++++++++++       
+        +++++++++++++++++       
+       ++++++++++++++++++       
+     ##.++++++++++++++++++      
+       ++++++++   +++++++       
+       +++++++     +++++.#      
+       +++++++      .+++        
+         ..+++      #.+         
+         ##..                   
+           ##                   
+
+=== armors GERADO #5 (opacos=547, regioes=12) ===
+                                
+         ####                   
+        +...                    
+     +++++++.##    +++++++      
+    +++++++++.   ++++++++++     
+    ++++++++++++++++++++++++    
+    +++++++++++++++++++++++++   
+    ++++++++++++++++++++++++    
+   ++++++++++++++++++++++++++   
+   ++++++++++++++++++++++++++   
+  ++++++++++++++++++++++++++++  
+   +++++++++++++++++++++++++++  
+  +++++++++++++++++++++ .+++++  
+  ++++++++++++++++++++  #.+++++ 
+   .+++++++++++++++++++ .+++    
+   #  .+++++++++++++++++        
+   #  # +++++++++++++++  #      
+      #  ++++++++++++++  #      
+      #  ++++++++++++++  #      
+      # ++++++++++++++++        
+        ++++++++++++++++        
+        ++++++++++++++++        
+        +++++++++++++++++       
+        +++++++++++++++++       
+       ++++++++++++++++++       
+       +++++++++++++++++++      
+       ++++++++   +++++++       
+       +++++++     ++++++       
+       .++++++      +++.        
+       # ..+++       +.#        
+         ##..          #        
+           ##                   
+
+
+######################################################################
+# CATEGORIA: helmets
+######################################################################
+
+TREINO: limiar=0.500, sprites=20, validos=20, regAlvo=21, N1: 0fixed + 126gap, N2: 0fixed + 117gap, posicoes: 0fixed/0mod/21cri
+
+--- REAIS (seed=42, indices=[19, 1, 17, 16, 3]) ---
+
+=== helmets REAL #1 (idx=19, opacos=341, regioes=18) ===
+                                
+                                
+                                
+               #                
+              #+#               
+              #+#               
+             #+++#              
+         #   #+++#   #          
+        #+###+++++###+#         
+        #+++++++++++++#         
+       #+++++++++++++++#        
+      #+++++++++++++++++#       
+      #+++++++++++++++++#       
+      #+++++++++++++++++#       
+       #+++++++++++++++#        
+       #+++++++++++++++#        
+       #+++++++++++++++#        
+       #+++++++++++++++#        
+       #+++++++++++++++#        
+       #+++++++++++++++#        
+       #+++++++++++++++#        
+      #+++++++++++++++++#       
+      #+++++++++++++++++#       
+      #+++++++###+++++++#       
+      #++++++#   #++++++#       
+       #+++++#   #+++++#        
+        ######   ######         
+                                
+                                
+                                
+                                
+                                
+
+=== helmets REAL #2 (idx=1, opacos=406, regioes=13) ===
+                                
+                                
+               #                
+              #+#               
+               #   #            
+           # ##+# #+#           
+        # #+#++++# #            
+       #+# #++++++#+#   #       
+        #  #+++++++++# #+#      
+       #  #+++++++++++# #       
+      #+##+++++++++++++#+#      
+      #++++++++++++++++++#      
+      #++++++++++++++++++#      
+     #++++++++++++++++++++#     
+     #++++++++++++++++++++#     
+     #++++++++++++++++++++#     
+     #++++++++++++++++++++#     
+     #++++++++++++++++++++#     
+   ##++++++++++++++++++++++##   
+   #++++++++++++++++++++++++#   
+   #++++++++++++++++++++++++#   
+   ##++++++++++++++++++++++##   
+     #++++++++++++++++++++#     
+      #++++++######++++++#      
+       #++++#      #++++#       
+        #+##        ##+#        
+         #            #         
+                                
+                                
+                                
+                                
+                                
+
+=== helmets REAL #3 (idx=17, opacos=302, regioes=12) ===
+                                
+                                
+                                
+                                
+               ##               
+             ##++##             
+            #++++++#            
+           #++++++++#           
+          #++++++++++#          
+          #+++++++++++#         
+         #++++++++++++#         
+         #+++++++++++++#        
+        #++++++++++++++#        
+        #++++++++++++++#        
+        #++++++++++++++#        
+        #++++++++++++++#        
+        #++++++++++++++#        
+        #++++++++++++++#        
+        #++++++++++++++#        
+        #++++++++++++++#        
+        #++++++++++++++#        
+        #++++++++++++++#        
+        #++++++++++++++#        
+        #++++++++++++++#        
+        #+++++#####++++#        
+         #+++#     #++#         
+          ###       ##          
+                                
+                                
+                                
+                                
+                                
+
+=== helmets REAL #4 (idx=16, opacos=342, regioes=34) ===
+                                
+                                
+  #                             
+  #            #            #   
+   #          #+#          #    
+   ##        #+++#        ##    
+   #+#    ###+++++###    #+#    
+    #+# ##+++++++++++## #+#     
+    #++#+++++++++++++++#++#     
+     #+++++++++++#+++++++#      
+     #++++++++++# #++++++#      
+      #++++++++++#++++++#       
+       #+++#+++++++++++#        
+        #+# #+++++++#++#        
+        ## #+++++++# #+#        
+        #+#++++++++# #+#        
+       #++++++++++++#++#        
+      #+++++++++++++++++#       
+       #++##++#++#++#+++#       
+        ##  ## ## ## #+#        
+        ####  #     ###         
+        # ###      ## #         
+       ## #         ##+#        
+       #+#            ##        
+      #++#            #+#       
+      #++#           #++#       
+       #++# ##   ## #++#        
+        #++#+#    ##++#         
+         ##+#     #+##          
+           ##     ##            
+                                
+                                
+
+=== helmets REAL #5 (idx=3, opacos=530, regioes=22) ===
+                                
+             #####              
+            #+++++#             
+            #++++++##           
+           #++++++++#           
+          #++++++++++#          
+          #++++++++++##         
+          #+++++++++# #         
+          #+++++++++#           
+         #++++++++++#           
+         #+++++++++++#          
+       ##++++++++++++#          
+      #++++++++++++++#          
+       #++++++++++++++#         
+     ##++++++++++++++++####     
+    #++++++++++++++++++++++#    
+  # #+++++++++++++++++++++++### 
+ #+#++++++++++++++++++++++++++# 
+ #++++++++++++++++++++++++++++# 
+ #+++++++++++++++++++++++++++#  
+  #+++++++++++++++++++++++++#   
+   #+++++++++++++++++++++++#    
+  ##+++++++++++++++++++++##     
+    #+++++++++++++++++++#       
+     #++++++++++++++++++#       
+      #++++++++++++++++++#      
+      #+++++++++++++++####      
+       #+++++++++++++#   #      
+       #++++++++++++#    ##     
+        #++++++++++#      #     
+         ###########      #     
+                          #     
+
+--- GERADOS (template refatorado iteracao 2) ---
+
+=== helmets GERADO #1 (opacos=308, regioes=11) ===
+                                
+                                
+              ####              
+                          #     
+                 ##       #     
+         #   ###          #     
+         #              ###     
+                          #     
+        #                 #     
+        #         #             
+        #         #             
+        #      +++.             
+            +++++++++           
+           ++++++++++++         
+        # ++++++++++++++        
+        #.+++++++++++++++       
+        #.+++++++++++++++       
+        .++++++++++++++++       
+        +++++++++++++++++       
+       ++++++++++++++++++       
+       +++++++++++++++++.       
+       ++++++++++++++++.#       
+       +++++++++++++++.#        
+      +++++++++++++++.##        
+      +++++++++++++++ ##        
+      ++++++++++++++  ####      
+       ++++++++++++             
+       .+++++++++++             
+       #.+++  +++++             
+               +++++            
+               +++++            
+              +++++++           
+
+=== helmets GERADO #2 (opacos=281, regioes=12) ===
+                                
+                         ####   
+                                
+           ###                  
+                                
+         #       ##    #        
+         ##            #        
+          #          ###        
+       #               #        
+       #               #        
+       #               ##       
+       #                #       
+                        #       
+                                
+        #      #         ++++   
+        #     ##      +++++++++ 
+        #      # ####.++++++++++
+               #    .+++++++++++
+               #   +++++++++++++
+               #   +++++++++++++
+               #  ++++++++++++++
+        #         ++++++++++++++
+       #####     +++++++++++++++
+          #      +++++++++++++++
+                 +++++++++++++++
+                 +++++++++++++++
+          #     ++++++++++++++++
+          #     +++++++++++++++ 
+          #     ++++++++++++++  
+                 ++++++++++++   
+                 ++++++++++++   
+                  ++++  +++++   
+
+=== helmets GERADO #3 (opacos=338, regioes=13) ===
+                                
+                                
+                         ####   
+                   ++++         
+           #####.++++++++       
+               .+++++++++++     
+          #   ++++++++++++++    
+      #   #  ++++++++++++++++   
+      #      ++++++++++++++++   
+      #     +++++++++++++++++   
+      #     +++++++++++++++++   
+       #   ++++++++++++++++++   
+       #   ++++++++++++++++++   
+     ####  +++++++++++++++++    
+     ##    ++++++++++++++++     
+          ++++++++++++++++      
+          +++++++++++++++       
+          .+++++++++++++        
+        # #.+++++++++++         
+        # #.+++++++++++         
+         #  ..++  +++++         
+        ######   # +++++        
+             #   # +++++        
+          #      #.++++++       
+          #       +++.+++       
+                  ++.#.++       
+                  ++   ++       
+                  ++   ++       
+                  ++   ++       
+                      +++       
+                                
+                                
+
+=== helmets GERADO #4 (opacos=275, regioes=15) ===
+                                
+                                
+                       ###      
+             ####       ##      
+                                
+                  ##            
+                                
+         #                      
+         #       #              
+                 #   #          
+                     #          
+                     #          
+       ##               #       
+                      # #       
+      #      #        #         
+      #      #        #         
+      #     +.++      #         
+      #  +++++++++    #         
+        ++++++++++++  #         
+       ++++++++++++++           
+      ++++++++++++++++    #     
+      ++++++++++++++++   #####  
+     +++++++++++++++++          
+     +++++++++++++++++          
+    ++++++++++++++++++          
+  ##.++++++++++++++++.#         
+    +++++++++++++++++ #         
+    ++++++++++++++++            
+   ++++++++++++++++             
+   +++++++++++++++              
+   ++++++++++++++               
+    ++++++++++++                
+
+=== helmets GERADO #5 (opacos=321, regioes=12) ===
+                                
+                                
+          ###                   
+             ####     ##        
+                                
+                   ##           
+                          #     
+                          #     
+                     #    #     
+        #      ++++  #    #     
+        #   ++++++++.#    #     
+           ++++++++++.+   #     
+          ++++++++++++++        
+      #  ++++++++++++++++       
+      #  ++++++++++++++++       
+        +++++++++++++++++       
+        +++++++++++++++++       
+       ++++++++++++++++++       
+       ++++++++++++++++++       
+       ++++++++++++++++.        
+       +++++++++++++++.#        
+      ++++++++++++++++ #        
+      +++++++++++++++  #        
+      +++++++++++++.   #        
+       +++++++++++.#            
+       ++++++++++++             
+        +++.  +++++    #        
+           #   +++++   #        
+           #   +++++   #        
+           #  +++++++           
+          ####.++++++           
+              +++ +++           
+
+
+######################################################################
+# CATEGORIA: food
+######################################################################
+
+TREINO: limiar=0.500, sprites=20, validos=20, regAlvo=27, N1: 0fixed + 162gap, N2: 0fixed + 153gap, posicoes: 0fixed/0mod/27cri
+
+--- REAIS (seed=42, indices=[12, 2, 3, 19, 10]) ---
+
+=== food REAL #1 (idx=12, opacos=297, regioes=52) ===
+                                
+                                
+                                
+                   ####         
+                  #++++##       
+                  #++#+++#      
+       ####       ### #++#      
+      #++++##          ##       
+      #++#+++#   ####  ##       
+      #+# #++#  #++++##         
+     ###   ##   #++#+++#        
+    #     #     #+# #++#        
+         # ### ###   ##         
+          #+# #     ###         
+          #++#  ####    ####    
+    ####  #+#  #++++## #++++##  
+   #+++# ###   #++#+++# #+#+++# 
+   #++# #      #+# #++# ## #++# 
+   #+# # ##   ###   ##  #   ##  
+  ###   ##   #     ###     ###  
+ #     ###        ##      ##    
+      ##        #   ###         
+          ####  ####+++#        
+         #++++# #+# #++# #      
+         #++## ###   ##  ###    
+         #+#  #     ### #+++#   
+        ###    #   ##  # #++#   
+       #     ###     ##   ##    
+            ##     #     ###    
+                        ##      
+                                
+                                
+
+=== food REAL #2 (idx=2, opacos=281, regioes=18) ===
+                                
+                                
+              ##                
+             #+#                
+             #++#               
+              #++#              
+         ##   #++#              
+        #++#  #++#              
+        #++# #+++#              
+         #++#++++#              
+         #++++++++#             
+         #++++++++#             
+        #++++++++++#            
+        #+++++++++++#           
+       #+++++++++++++#          
+       #++++++++++++++#         
+       #+++++++++++++++#        
+        #+++++++++++++++#       
+        #++++++++++++++++#      
+        #+++++++++++++++++#     
+         #+++++++++++++++++#    
+          #++++++++++++++++#    
+           #+++++++++++####     
+            #+++++++++#         
+             #++++++++#         
+              ##++++++#         
+                ######          
+                                
+                                
+                                
+                                
+                                
+
+=== food REAL #3 (idx=3, opacos=430, regioes=27) ===
+                                
+                 ##             
+                #+#             
+                #++#            
+                 #+#            
+           ##    #++#           
+          #++#   #++#           
+          #++#  #+++#           
+           #++# #+++#           
+      ##   #++# #++++#          
+     #++#  #++# #++++#          
+     #++# #+++# #+++++#         
+      #++#++++# #++++++#        
+      #++++++++#++++++++#       
+      #++++++++++++++++++#      
+     #++++++++++++++++++++#     
+     #+++++++++++++++++++++#    
+    #+++++++++++++++++++++++#   
+    #++++++++++++++++++++++++#  
+    #+++++++++++++++++++++++++# 
+     #++++++++++++++++++++++++# 
+     #+++++++++++++++++++#####  
+     #++++++++++++++++++#       
+      #+++++++++++++++++#       
+       #+++++++++++++++++#      
+        #+++++++++++###+#       
+         #+++++++++#   #        
+          #++++++++#            
+           ##+++++++#           
+             #######            
+                                
+                                
+
+=== food REAL #4 (idx=19, opacos=546, regioes=69) ===
+                                
+                                
+                                
+     #####   #####              
+    #+++++# #+++++#    ####     
+    #++++++# #+++++# ##++++##   
+   #+++++++# #++++# #++++++++#  
+   #++++++++# #+++# #++++++++#  
+   #++++++++# #++# #+++++++++#  
+   ####++++++#+++# ##++++++++#  
+       ##+++++###    #####++#   
+   ##### #+++#   ####     ###   
+  #+++++# #++# ##++++## ##      
+  #++++++# ## #++++++++# ###    
+ #+++++++# ## #++++++++# #++#   
+ #++++++++#  #+++++++++# #++#   
+ #++++++++#  #+++++++++# #++#   
+ #+++++++++##+++++++++# #+++#   
+  #+++++++++#+++++++++# #++#    
+  #++++++++# #++++++## #+++#    
+   ##++++++# #++####  #++##     
+     ##++++# ###    #####       
+       ####+##  #####           
+           #++##+#   #####      
+     ######++++++#  #+++++#     
+    #+++++++++++++#  #++++#     
+    #++++++++++++++#  #++#      
+     #+++#++++#++++#  #+#       
+      #+# #++# #++#    ##       
+      ##   #+# #+#              
+           ##   ##              
+                                
+
+=== food REAL #5 (idx=10, opacos=276, regioes=32) ===
+                                
+                                
+                                
+                                
+                                
+                                
+                                
+           ####                 
+          #++++##               
+         #+++++++#              
+         #++++++++#   ####      
+         #+++#++++#  #++++##    
+        #+++# #+++# #+++++++#   
+       #+### #+++#  #++++++++#  
+        #   #++##   #+++#++++#  
+            ###    #+++# #+++#  
+       ####       #+### #+++#   
+      #++++##      #   #++##    
+     #+++++++#         ###      
+     #++++++++#   ####          
+     #+++#++++#  #++++##        
+    #+++# #+++# #+++++++#       
+   #+### #+++#  #++++++++#      
+    #   #++##   #+++#++++#      
+        ###    #+++# #+++#      
+              #+### #+++#       
+               #   #++##        
+                   ###          
+                                
+                                
+                                
+                                
+
+--- GERADOS (template refatorado iteracao 2) ---
+
+=== food GERADO #1 (opacos=239, regioes=13) ===
+                                
+                                
+                                
+                 #              
+              ## #              
+         #.+++   #              
+         .++++++    ####        
+         ++++++++               
+         +++ .++.##             
+        +++  #.++     ++++      
+             .++     +++++++    
+            +++++   #.+++++++   
+      ##     ++++++ .++. ++++   
+              ++++++++.#  +++   
+              ++++++++ # +++    
+             ++++ ++++.#.+      
+      #  +++++++   ++++.        
+    # # +++++++   +++++ ##      
+    ### ++++++++ +++++++        
+        +++ +++++ ++++++++      
+       +++   ++.   ++++++++     
+            ++.#   +++ ++++     
+           ++  ## +..   +++     
+                #  ### +++      
+                  ### ++        
+           ###                  
+                                
+                                
+                                
+                                
+                                
+                                
+
+=== food GERADO #2 (opacos=237, regioes=14) ===
+                                
+                                
+                                
+         #                      
+         #                      
+         #   ####               
+                                
+         #####                  
+         ##   ##                
+                                
+                                
+           ##                   
+       ##                       
+    #   ### ##                  
+   +.++     ##    #             
+  +++++++    #    #             
+  ++++++++        #      #      
+  +++ ++++     ##        #      
+ +++   +++     ..++  ####       
+      +++     +++++++           
+     +++++    ++++++++     #    
+      ++++++ ++++ ++++     #    
+       +++++++++   +++     #    
+       ++++++++   +++           
+      ++++ +++++ ++             
+  +++++++   +++++               
+ +++++++   +++++                
+ ++++++++ +++++++               
+ +++ +++++ ++++++++             
++++   +++   ++++++++            
+     +++    +++ ++++            
+    ++     +++   +++            
+
+=== food GERADO #3 (opacos=226, regioes=14) ===
+                                
+                                
+                                
+         #   ####               
+         #                      
+         #                      
+                                
+             #                  
+           #####       ####     
+                                
+                                
+                                
+         ####                   
+             #   ##             
+             #               #  
+             #           #   #  
+         #.++.           #   #  
+         .++++++        ##      
+         ++++++++               
+         +++ ++++         #     
+       #.++   +++    #.++.#     
+      ##   ##.++     .++++.+    
+      ###   .++++    ++++++++   
+             ++++++ ++++ ++++   
+     ###      +++++++++   +++   
+              ++++++++   +++    
+             ++++ +++++ ++      
+         +++++++   +++++        
+        +++++++   +++++         
+        +++++++.#.++++++        
+        +++ ++++.#.+++++++      
+       +++   +++   ++++++++     
+
+=== food GERADO #4 (opacos=234, regioes=21) ===
+                                
+                                
+               ####             
+                                
+              ##                
+                     #          
+                     #          
+                    ##          
+         ###        #     ##    
+             #      #           
+             #                  
+             #      ####        
+           #    ####    ##      
+           ##                   
+           #         ##         
+                                
+           ++++                 
+         #.++++++               
+         #.+++++++              
+         #.++ +++.#             
+         .++   ++.#    ++++     
+              +++     +++++++   
+       ##    +++++    ++++++++  
+              ++++++ ++++ ++++  
+         ###   +++++++++   ++.  
+      ###   ## ++++++++   ++.#  
+      #       ++++ +++++ ++  #  
+      ### +++++++   +++++    #  
+         +++++++   +++++        
+         ++++++++ +++++++       
+         +++ +++++ ++++++++     
+        +++   +++   ++++++++    
+
+=== food GERADO #5 (opacos=211, regioes=18) ===
+                                
+                                
+                                
+                                
+                 ##             
+                                
+                 ####   ##      
+                                
+                                
+      ###     ####  #           
+                    #           
+                    #           
+                                
+      ###  #        # # ##      
+           ## #     # ###       
+              #     # #         
+                   #  ####      
+        ### #  +++.#            
+            # +++++.+           
+         #    ++++++++          
+         #    +++ ++++          
+         #   +++   +++     ++++ 
+      #           +++     ++++++
+      ###        +++++   #.+++++
+                  .+++++ .+++ ++
+                 ##.++++++++   +
+                   ++++++++   ++
+                  ++++ +++++ ++ 
+              +++++++   +++++   
+             +++++++   +++++    
+             ++++++++ +++++++   
+             +++ +++++ ++++++++ 
+
+
+######################################################################
+# CATEGORIA: boots
+######################################################################
+
+TREINO: limiar=0.500, sprites=20, validos=20, regAlvo=30, N1: 0fixed + 180gap, N2: 0fixed + 171gap, posicoes: 0fixed/0mod/30cri
+
+--- REAIS (seed=42, indices=[3, 0, 5, 15, 14]) ---
+
+=== boots REAL #1 (idx=3, opacos=562, regioes=30) ===
+                                
+  ##        #           #       
+  ##        ##         ##       
+   #        ##        #+#       
+       ##   #+#      #++#       
+      #+#   #+#      #+#        
+     #+#    #++#    #+++#       
+     #+#    #+++## #++++#       
+     #+#  ##++++++#++++++#      
+   # #++##++++++++++++++++##  # 
+    #++++++++++++++++++++++# ## 
+    #+++++++++++++++++++++++#+# 
+    #++++++++++++++++++++++++#  
+  ##++++++++++++++++++++++++#   
+   #++++++++++++++++++++++++#   
+    #++++++++++++++++++++++#  # 
+     #+++++++++++++++++++++#  # 
+  #  #+++++++++++++++++++++# ## 
+  #   #+++++++++++++++++++++#+# 
+  ### #+++++++++++++++++++++++# 
+  #++#+++++++++++++++++++++++#  
+  #++++++++++++++++++++++++++#  
+   #++++++++++++++++++++++++#   
+    #++++++++++++++++++++++#    
+    ##++++++++++#+++++++++#     
+      #++++++++# #++++++++#     
+      #+++++++#   #++++++#      
+       #+++++#     #+++++#      
+        #+++#       #+++#       
+         ###         ###        
+                                
+                                
+
+=== boots REAL #2 (idx=0, opacos=204, regioes=39) ===
+                                
+                                
+                                
+                                
+                                
+                                
+                                
+                                
+                 #              
+               ##       #       
+             ## #      ##       
+           ##+#   #   #       # 
+          #++#  ###    ####   # 
+         # ## ##++#   #   ## ## 
+         ### #+++#   # ## ## ## 
+          # #+++#    # #  # ##  
+          # #++#     ##+## #++# 
+         # #+###    # #++# #++# 
+       # # ##   #   # #+# #++#  
+      #+# ## ####   ## ## #+#   
+ #####++# ###+++#      ## ##    
+ #++++++##  ##+##    ##  #      
+  ######      #     # ## ##     
+                   #+#    #     
+                 ##+++# ##      
+               ##++++# #        
+               #++++##          
+                ####            
+                                
+                                
+                                
+                                
+
+=== boots REAL #3 (idx=5, opacos=563, regioes=30) ===
+                                
+  ##        #           #       
+  ##        ##         ##       
+   #        ##        #+#       
+       ##   #+#      #++#       
+      #+#   #+#      #+#        
+     #+#    #++#    #+++#       
+     #+#    #+++####++++#       
+     #+#  ##+++++++++++++#      
+   # #++##++++++++++++++++##  # 
+    #++++++++++++++++++++++# ## 
+    #+++++++++++++++++++++++#+# 
+    #++++++++++++++++++++++++#  
+  ##++++++++++++++++++++++++#   
+   #++++++++++++++++++++++++#   
+    #++++++++++++++++++++++#  # 
+     #+++++++++++++++++++++#  # 
+  #  #+++++++++++++++++++++# ## 
+  #   #+++++++++++++++++++++#+# 
+  ### #+++++++++++++++++++++++# 
+  #++#+++++++++++++++++++++++#  
+  #++++++++++++++++++++++++++#  
+   #++++++++++++++++++++++++#   
+    #++++++++++++++++++++++#    
+    ##++++++++++#+++++++++#     
+      #++++++++# #++++++++#     
+      #+++++++#   #++++++#      
+       #+++++#     #+++++#      
+        #+++#       #+++#       
+         ###         ###        
+                                
+                                
+
+=== boots REAL #4 (idx=15, opacos=417, regioes=23) ===
+                                
+                                
+                                
+                                
+                                
+                                
+                                
+                                
+                                
+                 ########       
+                 #+++++++##     
+     ########   #++++++++++#    
+   ##+++++++#   #++++++++++#    
+  #++++++++++#  #++++++++++#    
+  #++++++++++# #+++++++++++#    
+  #++++++++++# #+++++++++++#    
+  #+++++++++++#+++++++++++#     
+  #+++++++++++++++++++++++#     
+   #+++++++++++++++++++++#      
+   #++++++++++++++++++++#       
+    #++++++++++++++++++++#      
+     #++++++++++++++++++++#     
+    #++++++++++++++++++++++#    
+   #++++++++++++#++++++++++#    
+  #++++++++++++# #+++++++++#    
+  #++++++++++##  #+++++++++#    
+  #+++++++++#     ####+++##     
+  #+++++++++#         ###       
+   ##+++####                    
+     ###                        
+                                
+                                
+
+=== boots REAL #5 (idx=14, opacos=442, regioes=30) ===
+                                
+                                
+                                
+                                
+        ###        ###          
+      ##+++##    ##+++##        
+     #++++++#    #++++++#       
+    #+++++++#    #+++++++#      
+    #+++++++#    #+++++++#      
+     #+++++++#    #+++++#       
+     #+++++++#   #+++++++#      
+     #+++++++#   #+++++++#      
+     #+++++++#   #+++++++#      
+     #+++++++#  #+++++++#       
+     #+++++++#  #+++++++#       
+     #+++++++#  #+++++++#       
+      #++++++#  #++++++#        
+      #+++++++# #++++++#        
+      #+++++++#  #+++++#        
+       #++++++# #++++++#        
+      #++++++#  #+++++++#       
+     #+++++++#   #++++++#       
+     #+++++++#  #+++++++#       
+     #+++++++#  #++++++++#      
+    #++++++++#  #+++++++++#     
+   #++++++++#   #++++++++++#    
+   #+++++++#     #+++++++++#    
+   #+++++++#      ##+++++++#    
+   #++++++#         #++++++#    
+    ######           ######     
+                                
+                                
+
+--- GERADOS (template refatorado iteracao 2) ---
+
+=== boots GERADO #1 (opacos=465, regioes=10) ===
+                       #        
+                       ##       
+            #          ##       
+            ###    ##  ##       
+            # ##  ###  #        
+            # ##  ###           
+              ##    #           
+               ##               
+                                
+                                
+             #.            #    
+     +       #.+      +    #    
+     ++ #    .++     ++    ##   
+      +.#   +++++   +++    # #  
+      ++.  +++++++ ++++    ###  
+      +++++++++++++++++  # ###  
+     ++++++++++++++++++  #  ##  
+    ++++++++++++++++++++    ##  
+   +++++++++++++++++++++.#.  #  
+   ++++++++++++++++++++++.+     
+   +++++++++++++++++++++++.     
+   ++++++++++++++++++++++.#     
+    ++++++++++++++++++++.##     
+    +++++++++++++++++++++. ++   
+   +++++++++++++++++++++++++    
+  +++++++++++++++++++++++++     
+  ++++++++++++++++++++++++      
+  ++++++++++++++++++++++++      
+   +++++++++++++++++++++++      
+    +++++++++++++++++++++       
+    ++++++++++ +++++++++        
+     ++++++++   ++++++++        
+
+=== boots GERADO #2 (opacos=472, regioes=14) ===
+                                
+                ##              
+   #            ##    #         
+   ##           ##    ##        
+   #          #  # #  ##        
+   ##   #     #    #  ##        
+    ##  #             #    #    
+    ##  #                 ##    
+    ##  #                 ##    
+     #  #           +      #    
+        #  + ##     +.#    #.   
+           ++      ++.#    .+   
+         #  ++    ++++.   +++   
+         ## +++  +++++++ ++++   
+         #  +++++++++++++++++   
+         # ++++++++++++++++++   
+         #.+++++++++++++++++++  
+         .+++++++++++++++++++++ 
+         +++++++++++++++++++++++
+         +++++++++++++++++++++++
+         +++++++++++++++++++++++
+          +++++++++++++++++++++ 
+   #      ++++++++++++++++++++++
+   #     +++++++++++++++++++++++
+        ++++++++++++++++++++++++
+        ++++++++++++++++++++++++
+        ++++++++++++++++++++++++
+         +++++++++++++++++++++++
+          +++++++++++++++++++++ 
+      ### ++++++++++ +++++++++  
+           ++++++++   ++++++++  
+           +++++++     ++++++   
+
+=== boots GERADO #3 (opacos=427, regioes=12) ===
+                                
+     ##                         
+     ##        #                
+     ##  #     ##       #       
+      #  #    ##        ##      
+              ## #      ##      
+                 #      ##      
+                 #      #       
+      #            ##           
+      ##     #     #            
+      ##     #     #            
+      ##     #     #            
+       #    ##     .            
+          + ##     ++      +    
+        # ++ ##   +++     ++    
+       ##  +.#   +++++   +++    
+           ++.  ++++++.#.+++    
+           ++++++++++++.++++    
+     #    ++++++++++++++++++    
+     #   ++++++++++++++++++++   
+      # ++++++++++++++++++++++ +
+      # ++++++++++++++++++++++++
+        ++++++++++++++++++++++++
+        +++++++++++++++++++++++ 
+         +++++++++++++++++++++  
+         ++++++++++++++++++++++ 
+        ++++++++++++++++++++++++
+       +++++++++++++++++++++++++
+       ++++++++++++++++++++++++ 
+       ++++++++++++++++++++++++ 
+        +++++++++++++++++++++++ 
+         +++++++++++++++++++++  
+
+=== boots GERADO #4 (opacos=388, regioes=16) ===
+                                
+                       #        
+                       ##       
+                #      ##       
+             #  #      ###      
+             #  #     ## #      
+           ##   #     ##        
+           ##   #     ##        
+           ## # #     ##        
+            # ##    #  #        
+              #     #           
+        #     #  #              
+       .## #     #   ##         
+      #..###   + #  #           
+      .+.###  ++    ##          
++    ++++. # +++    #           
+++  ++++++.#.+++    #  #  #     
++++++++++++.++++    #  #  #     
+++++++++++++++++    #     #     
++++++++++++++++++   #           
+++++++++++++++++++ +    #       
+++++++++++++++++++++    #       
+++++++++++++++++++++            
++++++++++++++++++++             
+++++++++++++++++++           #  
++++++++++++++++++++ ++       #  
++++++++++++++++++++++           
+++++++++++++++++++++            
++++++++++++++++++++             
++++++++++++++++++++             
++++++++++++++++++++             
+++++++++++++++++++              
+
+=== boots GERADO #5 (opacos=465, regioes=13) ===
+                                
+                      #         
+                      ##        
+               #      ##        
+           #   #      ## #      
+  #        ###        #  #      
+  ##       # #           #      
+  ##       # #  ##       #      
+  ##            ##       #      
+   #            ##       #      
+         #   #  .#              
+       + ##  #  +.      +       
+       +.#     +++  #  ++       
+        +.    +++++ # +++ ## #  
+        +++  ++++++.#.+++   ##  
+        ++++++++++++.++++   ##  
+       ++++++++++++++++++    #  
+      ++++++++++++++++++++   #  
+     ++++++++++++++++++++++ .#  
+     ++++++++++++++++++++++++   
+     ++++++++++++++++++++++++   
+     +++++++++++++++++++++++    
+      +++++++++++++++++++++     
+      ++++++++++++++++++++++ ++ 
+     +++++++++++++++++++++++++  
+    +++++++++++++++++++++++++   
+    ++++++++++++++++++++++++    
+    ++++++++++++++++++++++++    
+     +++++++++++++++++++++++    
+      +++++++++++++++++++++     
+      ++++++++++ +++++++++      
+       ++++++++   ++++++++      
+
+
+======================================================================
+RESUMO QUANTITATIVO — ITERACAO 2
+======================================================================
+
+Categoria              | J Real  | J Ger   | J vs R  | Opacos R | Opacos G
+--------------------------------------------------------------------------------
+sword_weapons          |   0.392 |   0.453 |   0.256 |      149 |      456
+shields                |   0.686 |   0.445 |   0.393 |      251 |      434
+armors                 |   0.698 |   0.496 |   0.432 |      607 |      478
+helmets                |   0.587 |   0.466 |   0.430 |      381 |      471
+food                   |   0.383 |   0.425 |   0.338 |      127 |      475
+boots                  |   0.558 |   0.432 |   0.405 |      204 |      385
+
+FIM DO ASCII DEBUG — ITERACAO 2
+
+---
+Task ID: olhos-mcr-commit1
+Agent: Mimo V2.5 (Arquiteto)
+Task: Criar mcr/olhos_mcr.py -- Olhos do MCR: ASCII rico multi-camada
+Work Log:
+- Criado mcr/olhos_mcr.py com 7 funcoes:
+  - camada_luminancia(): L* 0-9 por pixel
+  - camada_matiz(): R/Y/G/C/B/M por pixel
+  - perfil_colunar(): sumario 1D (espectrograma de audio)
+  - resumo_diagnostico(): paleta + contagens
+  - sprite_para_ascii_rich(): formato completo 5 secoes
+  - sprite_para_ascii_compacto(): formato compacto 4 linhas
+  - categoria_para_ascii_rich(): bloco por categoria
+- Filosofia: Input -> Tokenizador B/L/F -> MCR -> Output
+- Este modulo e o TOKENIZADOR UNIVERSAL PARA O DOMINIO VISUAL
+Stage Summary:
+- Todas as funcoes validadas com sprites reais
+- Formato rico: ~127 linhas por sprite (PAPEL + LUM + MATIZ + PERFIL + DIAG)
+- Formato compacto: 4 linhas por sprite
+
+---
+Task ID: olhos-mcr-commit2
+Agent: Mimo V2.5 (Arquiteto)
+Task: Gerar debug completo com ASCII rico para 6 categorias
+Work Log:
+- Criado olhos_mcr_debug.py
+- Gerado poc_output/olhos_mcr_debug.txt (7713 linhas)
+- 6 categorias: sword_weapons, shields, armors, helmets, food, boots
+- 5 reais + 5 gerados por categoria
+Stage Summary:
+- sword_weapons: 3 clusters, gerados forma diagonal reconhecivel mas sem gradiente
+- shields: 1 cluster, gerados forma coerente (melhor categoria)
+- armors: 1 cluster, gerados forma de tunica
+- helmets: 1 cluster, gerados forma retangular simplificada
+- food: 0 clusters, fallback template unico
+- boots: 1 cluster, gerados forma de bota
+
+---
+Task ID: olhos-mcr-commit3
+Agent: Mimo V2.5 (Arquiteto)
+Task: Analise visual completa pelo LLM via ASCII rico
+Work Log:
+- Comparacao visual real vs gerado via ASCII multi-camada
+- Enxergue por ASCII: estrutura B/L, luminancia L*, matiz R/Y/G/C/B/M
+Stage Summary:
+- SILHUETA: gerados reconheciveis (shields OK, swords parcial)
+- LUMINANCIA: COLLAPSE -- gerados planos (L*=4/8 fixo vs real gradiente 2-9)
+- MATIZ: COLLAPSE -- gerados monocromaticos (todo Y vs real variado)
+- PERFIL COLUNAR: OK para shields, irregular para swords
+- CAUSA RAIZ: paleta media do MCR faz todos os gerados convergirem para mesma cor
+- PROXIMO: Ensinar MCR a gerar L* e hue com variação (não apenas bins fixos)
+

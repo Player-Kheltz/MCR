@@ -1,0 +1,13 @@
+{
+  "nome": "MCR - Motor Cognitivo Universal",
+  "versao": "2.0",
+  "arquivos": 1149,
+  "tamanho": "10.2 MB",
+  "componentes": [
+    "docs",
+    "historia",
+    "mcr",
+    "scripts",
+    "tests"
+  ]
+}

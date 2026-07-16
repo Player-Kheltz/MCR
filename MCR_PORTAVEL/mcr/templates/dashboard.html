@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="forest">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MCR-DevIA — World Console</title>
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://cdn.jsdelivr.net/npm/daisyui@4/dist/full.css" rel="stylesheet" type="text/css" />
+<script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.min.js"></script>
+</head>
+<body class="font-['-apple-system,Segoe_UI,sans-serif'] text-[13px] bg-base-100 text-base-content h-screen flex flex-col overflow-hidden">
+
+<div id="topbar" x-data="topbarData()" x-init="init()" class="bg-base-200 border-b border-base-300 px-3 h-9 flex items-center gap-3 shrink-0">
+  <div class="w-2 h-2 rounded-full shrink-0" :class="connected ? 'bg-success' : 'bg-error'"></div>
+  <h1 class="text-primary text-[13px] font-semibold mr-auto">MCR-DevIA</h1>
+  <div class="w-[60px] h-1 bg-base-300 rounded overflow-hidden"><div class="h-full rounded transition-all duration-1000" :style="'width:'+entropyPct+'%;background:'+entropyColor"></div></div>
+  <span class="text-[10px] text-base-content/60 flex items-center gap-1"><i data-lucide="users" data-lucide-size="14"></i> <span class="font-semibold text-base-content" x-text="npcs">—</span></span>
+  <span class="text-[10px] text-base-content/60 flex items-center gap-1"><i data-lucide="scroll-text" data-lucide-size="14"></i> <span class="font-semibold text-base-content" x-text="lores">—</span></span>
+  <span class="text-[10px] text-base-content/60 flex items-center gap-1"><span class="font-semibold" :class="connected ? 'text-success' : 'text-base-content'" x-text="connected ? 'Conectado' : 'Offline'"></span></span>
+  <select class="select select-xs select-ghost text-base-content/60 w-auto" x-model="theme" @change="setTheme">
+    <option value="forest">Forest</option><option value="light">Light</option><option value="dark">Dark</option>
+    <option value="dim">Dim</option><option value="cupcake">Cupcake</option><option value="retro">Retro</option>
+    <option value="cyberpunk">Cyberpunk</option><option value="synthwave">Synthwave</option>
+    <option value="dracula">Dracula</option><option value="night">Night</option><option value="coffee">Coffee</option>
+    <option value="winter">Winter</option><option value="nord">Nord</option><option value="luxury">Luxury</option>
+    <option value="business">Business</option><option value="acid">Acid</option><option value="lemonade">Lemonade</option>
+  </select>
+</div>
+
+<div id="main" class="flex-1 flex overflow-hidden">
+  <div id="sidebar" class="w-11 bg-base-200 border-r border-base-300 flex flex-col items-center py-1 gap-0.5 shrink-0">
+    <template x-for="item in sidebarItems" :key="item.id">
+      <div class="tooltip tooltip-right" :data-tip="item.label">
+        <button class="btn btn-ghost btn-square btn-sm text-base-content/60" :class="currentView === item.id ? '!bg-primary !text-primary-content' : ''" :data-view="item.id" @click="switchView(item.id)" x-html="item.icon"></button>
+      </div>
+    </template>
+    <div class="flex-1"></div>
+    <div class="tooltip tooltip-right" data-tip="Logs">
+      <button class="btn btn-ghost btn-square btn-sm text-base-content/60" @click="toggleLog()"><i data-lucide="terminal"></i></button>
+    </div>
+  </div>
+  <div id="content" class="flex-1 flex overflow-hidden">
+    <div id="left-col" class="w-[340px] min-w-[260px] max-w-[50%] border-r border-base-300 flex flex-col overflow-hidden" x-data="chatData()" x-init="init()" x-show="currentView === 'chat'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 -translate-x-4" x-transition:enter-end="opacity-100 translate-x-0">
+      <div class="bg-base-200 px-2.5 py-1.5 border-b border-base-300 text-[10px] text-base-content/60 uppercase tracking-wide shrink-0 flex items-center gap-1"><i data-lucide="message-square" data-lucide-size="14"></i> Chat</div>
+      <div id="chat-msgs" class="flex-1 overflow-y-auto p-2 flex flex-col gap-1">
+        <template x-for="(m,i) in msgs" :key="i">
+          <div class="p-2.5 px-3 rounded-md text-[12px] leading-relaxed max-w-[97%]" :class="{
+            'bg-primary/10 border border-primary/20 self-end text-base-content': m.tipo === 'user',
+            'bg-base-300 border self-start text-base-content/70 border-base-300': m.tipo === 'bot' && !m.streaming,
+            'bg-base-300 border border-primary self-start text-base-content/70': m.tipo === 'bot' && m.streaming
+          }">
+            <span x-text="m.texto"></span><span x-show="m.streaming" class="inline-block w-1.5 h-3 bg-primary animate-pulse align-text-bottom ml-0.5"></span>
+            <div x-show="m.meta" class="text-[9px] text-base-content/50 mt-1" x-text="m.meta"></div>
+          </div>
+        </template>
+        <div x-show="!msgs.length" class="text-base-content/50 text-[11px] text-center p-5">MCR-DevIA Console. Digite algo para começar.</div>
+      </div>
+      <div class="flex gap-1 p-1.5 bg-base-200 border-t border-base-300 shrink-0">
+        <textarea x-model="input" @keydown="if($event.key==='Enter'&&!$event.shiftKey){$event.preventDefault();send()}" :disabled="busy" placeholder="Crie um NPC ferreiro élfico..." class="textarea textarea-bordered textarea-sm flex-1 bg-base-100 text-base-content focus:border-primary outline-none h-9 min-h-0 resize-none"></textarea>
+        <button @click="send()" :disabled="busy || !input.trim()" class="btn btn-secondary btn-sm shrink-0">Enviar</button>
+      </div>
+    </div>
+
+    <div class="flex-1 flex flex-col overflow-hidden">
+      <div class="bg-base-200 px-2.5 py-1.5 border-b border-base-300 text-[10px] text-base-content/60 flex justify-between shrink-0">
+        <span class="flex items-center gap-1.5" x-html="viewIcon"></span>
+        <span class="text-[9px] text-base-content/50" x-text="viewSub"></span>
+      </div>
+
+      <div x-show="currentView === 'chat'" id="view-body-chat" class="flex-1 overflow-y-auto p-2.5 font-['Consolas'] text-[12px] whitespace-pre-wrap break-words text-base-content/70" x-html="viewContent"></div>
+
+      <div x-show="currentView === 'npcs'" class="flex-1 overflow-y-auto p-3" x-data="npcsData()" x-init="init()">
+        <div class="flex items-center gap-2 mb-3">
+          <input type="text" x-model="search" @input="filtrar()" placeholder="Buscar NPC por nome, raça, local..." class="input input-bordered input-sm flex-1" />
+          <span class="text-[10px] text-base-content/50" x-text="`${filtrados.length} de ${items.length}`"></span>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2">
+          <template x-for="npc in filtrados" :key="npc.nome">
+            <div class="card bg-base-300 border border-base-300 hover:border-primary transition-colors cursor-pointer" @click="selecionado = selecionado === npc.nome ? null : npc.nome">
+              <div class="card-body p-3">
+                <div class="flex justify-between items-start">
+                  <h3 class="card-title text-[13px] text-primary" x-text="npc.nome"></h3>
+                  <span class="badge badge-sm" :class="`badge-${npc.tier === 'npc' ? 'ghost' : 'primary'}`" x-text="npc.tier || 'npc'"></span>
+                </div>
+                <p class="text-[11px] text-base-content/60" x-text="`${npc.raca || '?'} — ${npc.local || '?'}`"></p>
+                <p class="text-[11px] text-base-content/50 italic" x-text="npc.role || ''"></p>
+                <div x-show="selecionado === npc.nome" class="mt-2 pt-2 border-t border-base-300 text-[11px] space-y-1">
+                  <p><span class="text-base-content/50">Traço:</span> <span class="text-base-content/70" x-text="npc.traco_secreto || '—'"></span></p>
+                  <p><span class="text-base-content/50">Quests:</span> <span class="text-base-content/70" x-text="(npc.quests||[]).join(', ') || '—'"></span></p>
+                  <p><span class="text-base-content/50">Expansões:</span> <span class="text-base-content/70" x-text="npc.expansoes || 0"></span></p>
+                </div>
+              </div>
+            </div>
+          </template>
+        </div>
+        <div x-show="!filtrados.length" class="text-center text-base-content/50 py-10">Nenhum NPC encontrado.</div>
+      </div>
+
+      <div x-show="currentView === 'quests'" class="flex-1 overflow-y-auto p-3" x-data="questsData()" x-init="init()">
+        <div class="flex items-center gap-2 mb-3">
+          <input type="text" x-model="search" @input="filtrar()" placeholder="Buscar quest..." class="input input-bordered input-sm flex-1" />
+          <span class="text-[10px] text-base-content/50" x-text="`${filtrados.length} de ${items.length}`"></span>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="table table-sm table-zebra">
+            <thead>
+              <tr><th>Título</th><th>NPC / Fonte</th><th>Status</th></tr>
+            </thead>
+            <tbody>
+              <template x-for="q in filtrados" :key="q.titulo + q.npc">
+                <tr class="hover">
+                  <td class="font-medium" x-text="q.titulo"></td>
+                  <td class="text-base-content/60" x-text="q.npc"></td>
+                  <td><span class="badge badge-sm" :class="q.status === 'disponivel' ? 'badge-success' : 'badge-ghost'" x-text="q.status"></span></td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+        <div x-show="!filtrados.length" class="text-center text-base-content/50 py-10">Nenhuma quest encontrada.</div>
+      </div>
+
+      <div x-show="currentView === 'telemetry'" class="flex-1 overflow-y-auto p-3" x-data="telemetryData()" x-init="init()">
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
+          <div class="stat bg-base-300 rounded-box p-3">
+            <div class="stat-title text-[10px] text-base-content/50">Entropia</div>
+            <div class="stat-value text-2xl" :class="entropia > 0.7 ? 'text-error' : entropia > 0.4 ? 'text-warning' : 'text-success'" x-text="entropia.toFixed(3)"></div>
+            <div class="stat-desc text-[10px]" x-text="estado"></div>
+          </div>
+          <div class="stat bg-base-300 rounded-box p-3">
+            <div class="stat-title text-[10px] text-base-content/50">NPCs</div>
+            <div class="stat-value text-2xl text-info" x-text="npcs"></div>
+          </div>
+          <div class="stat bg-base-300 rounded-box p-3">
+            <div class="stat-title text-[10px] text-base-content/50">Lores</div>
+            <div class="stat-value text-2xl text-secondary" x-text="lores"></div>
+          </div>
+          <div class="stat bg-base-300 rounded-box p-3">
+            <div class="stat-title text-[10px] text-base-content/50">Quests</div>
+            <div class="stat-value text-2xl text-accent" x-text="quests"></div>
+          </div>
+        </div>
+        <div class="bg-base-300 rounded-box p-3 mb-3">
+          <div class="text-[11px] text-base-content/50 mb-1">Barra de Entropia</div>
+          <div class="w-full h-6 bg-base-200 rounded overflow-hidden">
+            <div class="h-full rounded transition-all duration-500" :style="`width:${entropia*100}%;background:${entropia > 0.7 ? '#ef4444' : entropia > 0.4 ? '#eab308' : '#22c55e'}`"></div>
+          </div>
+          <div class="flex justify-between text-[9px] text-base-content/50 mt-0.5">
+            <span>0 (Conectar)</span>
+            <span>0.4 (Equilibrar)</span>
+            <span>0.7 (Expandir)</span>
+            <span>1.0</span>
+          </div>
+        </div>
+        <div class="collapse collapse-arrow bg-base-300 rounded-box mb-2">
+          <input type="checkbox" />
+          <div class="collapse-title text-[11px] font-medium">Cache</div>
+          <div class="collapse-content text-[10px] text-base-content/60 space-y-0.5">
+            <p x-text="`L1 (dict): ${cache.l1 || 0} itens`"></p>
+            <p x-text="`L2 (Markov): ${cache.l2 || 0} itens`"></p>
+            <p x-text="`L3 (fingerprint): ${cache.l3 || 0} itens`"></p>
+            <p x-text="`Hit ratio: ${cache.hit_ratio || 0}`"></p>
+          </div>
+        </div>
+        <div class="text-base-content/50 text-[10px] text-center py-2" x-text="`Última atualização: ${ultimoUpdate}`"></div>
+      </div>
+
+      <div x-show="currentView === 'map'" class="flex-1 overflow-y-auto p-3" x-data="mapData()" x-init="init()">
+        <div class="flex items-center gap-2 mb-3">
+          <span class="text-[11px] text-base-content/50">Grid de Entropia</span>
+          <span class="text-[10px] text-base-content/50" x-text="`${grid.length} zonas`"></span>
+          <div class="flex-1"></div>
+          <button class="btn btn-xs btn-ghost" @click="carregar()"><i data-lucide="refresh-cw" data-lucide-size="12"></i> Atualizar</button>
+        </div>
+        <template x-if="grid.length">
+          <div class="grid gap-1.5" style="grid-template-columns: repeat(auto-fill, minmax(120px, 1fr))">
+            <template x-for="z in grid" :key="z.zona">
+              <div class="bg-base-300 border border-base-300 rounded-md p-2.5 transition-colors" :style="`border-color: ${corEntropia(z.entropia)}`">
+                <div class="text-[11px] font-medium truncate" x-text="z.zona"></div>
+                <div class="text-[10px] text-base-content/50 flex justify-between mt-1">
+                  <span x-text="`${z.eventos} ev`"></span>
+                  <span :style="`color:${corEntropia(z.entropia)}`" x-text="z.entropia.toFixed(2)"></span>
+                </div>
+                <div class="w-full h-1 bg-base-200 rounded mt-1 overflow-hidden">
+                  <div class="h-full rounded" :style="`width:${z.entropia*100}%;background:${corEntropia(z.entropia)}`"></div>
+                </div>
+              </div>
+            </template>
+          </div>
+        </template>
+        <div x-show="!grid.length" class="text-center text-base-content/50 py-10">
+          <i data-lucide="map" data-lucide-size="32" class="mx-auto mb-2 opacity-30"></i>
+          <p class="text-[12px]">Nenhum dado de grid disponível.</p>
+          <p class="text-[10px] mt-1">O servidor Canary pode estar offline.</p>
+        </div>
+      </div>
+
+      <div x-show="currentView === 'logs'" class="flex-1 overflow-y-auto p-3" x-data="logsData()" x-init="init()">
+        <div class="flex items-center gap-2 mb-3">
+          <span class="text-[11px] text-base-content/50">Registro de Eventos</span>
+          <span class="text-[10px] text-base-content/50" x-text="`${items.length} entradas`"></span>
+          <div class="flex-1"></div>
+          <button class="btn btn-xs btn-ghost" @click="carregar()"><i data-lucide="refresh-cw" data-lucide-size="12"></i> Recarregar</button>
+        </div>
+        <div class="font-['Consolas'] text-[10px] space-y-0.5">
+          <template x-for="(log, i) in items" :key="i">
+            <div class="flex gap-2 px-2 py-0.5 hover:bg-base-300 rounded" :class="i % 2 === 0 ? '' : 'bg-base-300/30'">
+              <span class="text-base-content/30 shrink-0 w-16" x-text="log.hora || ''"></span>
+              <span class="shrink-0 w-12 text-center" :class="`text-${log.tipo === 'erro' ? 'error' : log.tipo === 'aviso' ? 'warning' : 'info'}`" x-text="(log.tipo||'info').toUpperCase()"></span>
+              <span class="truncate" x-text="log.msg"></span>
+            </div>
+          </template>
+        </div>
+        <div x-show="!items.length" class="text-center text-base-content/50 py-10">
+          <i data-lucide="terminal" data-lucide-size="32" class="mx-auto mb-2 opacity-30"></i>
+          <p class="text-[12px]">Nenhum log disponível.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="logbar" class="bg-base-200 border-t border-base-300 px-2 py-0.5 font-['Consolas'] text-[9px] text-base-content/50 h-[22px] flex items-center gap-1.5 shrink-0 overflow-hidden transition-all duration-150" x-data="logData()" x-init="init()">
+  <i data-lucide="terminal" data-lucide-size="12" class="text-primary shrink-0"></i>
+  <span class="truncate whitespace-nowrap overflow-hidden text-ellipsis" x-text="ultimoLog"></span>
+</div>
+
+<script>
+const sse = new EventSource('/stream');
+window.SSE = sse;
+
+// ─── SIDEBAR ────────────────────────────────────────
+function topbarData() {
+  return {
+    connected: true, npcs: '—', lores: '—',
+    currentView: localStorage.getItem('mcr-view') || 'chat',
+    entropyPct: 50, entropyColor: '#22c55e',
+    theme: localStorage.getItem('mcr-theme') || 'forest',
+    sidebarItems: [
+      {id:'chat', label:'Chat', icon:'<i data-lucide="message-square"></i>'},
+      {id:'telemetry', label:'Telemetria', icon:'<i data-lucide="bar-chart-3"></i>'},
+      {id:'npcs', label:'NPCs', icon:'<i data-lucide="users"></i>'},
+      {id:'quests', label:'Quests', icon:'<i data-lucide="scroll-text"></i>'},
+      {id:'map', label:'Mapa', icon:'<i data-lucide="map"></i>'},
+      {id:'logs', label:'Registro', icon:'<i data-lucide="list"></i>'},
+    ],
+    viewIcon: '',
+    viewTitle: '',
+    viewSub: '',
+    init() {
+      document.documentElement.setAttribute('data-theme', this.theme);
+      this.updateIcon();
+      sse.onopen = () => this.connected = true;
+      sse.onerror = () => this.connected = false;
+      const refresh = () => fetch('/api/world/status').then(r=>r.json()).then(d => {
+        this.npcs = d.total_npcs || '—'; this.lores = d.total_lores || '—';
+        const e = d.entropia || 0.5; this.entropyPct = e * 100;
+        this.entropyColor = e > 0.7 ? '#ef4444' : e > 0.4 ? '#eab308' : '#22c55e';
+      }).catch(()=>{});
+      refresh(); setInterval(refresh, 15000);
+    },
+    switchView(v) {
+      this.currentView = v;
+      localStorage.setItem('mcr-view', v);
+      this.updateIcon();
+      window.dispatchEvent(new CustomEvent('view-change', {detail: v}));
+    },
+    updateIcon() {
+      const item = this.sidebarItems.find(i => i.id === this.currentView);
+      this.viewIcon = item ? `<i data-lucide="${item.icon.match(/data-lucide="([^"]+)"/)?.[1]}" data-lucide-size="14"></i> ${item.label}` : '';
+      this.viewTitle = item ? item.label : '';
+    },
+    setTheme() {
+      document.documentElement.setAttribute('data-theme', this.theme);
+      localStorage.setItem('mcr-theme', this.theme);
+    },
+    toggleLog() {
+      const bar = document.getElementById('logbar');
+      bar.style.height = bar.style.height === '120px' ? '22px' : '120px';
+      bar.style.overflowY = bar.style.height === '120px' ? 'auto' : 'hidden';
+    }
+  };
+}
+
+// ─── CHAT ────────────────────────────────────────────
+function chatData() {
+  return {
+    input: '', msgs: [], busy: false, streaming: false, acumulado: '',
+    viewContent: '<span style="color:#6b7280">Saídas aparecerão aqui.</span>',
+    init() {},
+    async send() {
+      const _this = this;
+      const msg = _this.input.trim(); if (!msg) return;
+      _this.input = ''; _this.busy = true; _this.streaming = true; _this.acumulado = '';
+      _this.msgs.push({tipo: 'user', texto: msg});
+      _this.viewContent = 'Aguardando resposta do LLM...';
+      const botIdx = _this.msgs.length;
+      _this.msgs.push({tipo: 'bot', texto: '', streaming: true});
+      try {
+        const resp = await fetch('/api/chat', {
+          method: 'POST', headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({prompt: msg})
+        });
+        const data = await resp.json();
+        const resposta = data.resposta || 'Sem resposta';
+        if (_this.msgs[botIdx]) {
+          _this.msgs[botIdx].texto = resposta;
+          _this.msgs[botIdx].streaming = false;
+          _this.msgs[botIdx].meta = `[${data.fonte || '?'}] ${data.tempo || ''}s`;
+        }
+        _this.viewContent = resposta;
+      } catch(e) {
+        if (_this.msgs[botIdx]) { _this.msgs[botIdx].texto = `Erro: ${e.message}`; _this.msgs[botIdx].streaming = false; }
+        _this.viewContent = `Erro: ${e.message}`;
+      }
+      _this.busy = false; _this.streaming = false;
+      if (_this.msgs[botIdx]) _this.msgs[botIdx].streaming = false;
+      setTimeout(() => {
+        const el = document.querySelector('#chat-input-wrap textarea');
+        if (el) el.focus();
+      }, 50);
+    },
+    handleEvent(event, data, idx) {
+      if (event === 'chat_token') {
+        this.acumulado = data.acumulado || '';
+        if (this.msgs[idx]) this.msgs[idx].texto = this.acumulado;
+        this.viewContent = this.acumulado;
+        const el = document.getElementById('chat-msgs');
+        if (el) el.scrollTop = el.scrollHeight;
+      } else if (event === 'chat_done') {
+        if (this.msgs[idx]) { this.msgs[idx].streaming = false; this.msgs[idx].meta = `${data.rota} (${data.tempo}s)`; }
+        window.dispatchEvent(new CustomEvent('log-entry', {detail: `[chat] ${data.rota} (${data.tempo}s)`}));
+      } else if (event === 'chat_error') {
+        if (this.msgs[idx]) { this.msgs[idx].texto = `Erro: ${data.erro}`; this.msgs[idx].streaming = false; }
+        this.viewContent = `Erro: ${data.erro}`;
+      }
+    }
+  };
+}
+
+// ─── NPCS VIEW ─────────────────────────────────────
+function npcsData() {
+  return {
+    items: [], filtrados: [], search: '', selecionado: null,
+    async init() {
+      try {
+        const r = await fetch('/api/world/npcs');
+        const d = await r.json();
+        this.items = d.items || [];
+        this.filtrados = [...this.items];
+      } catch(e) { this.items = []; this.filtrados = []; }
+    },
+    filtrar() {
+      const s = this.search.toLowerCase();
+      this.filtrados = this.items.filter(n =>
+        (n.nome||'').toLowerCase().includes(s) ||
+        (n.raca||'').toLowerCase().includes(s) ||
+        (n.local||'').toLowerCase().includes(s) ||
+        (n.role||'').toLowerCase().includes(s)
+      );
+    }
+  };
+}
+
+// ─── QUESTS VIEW ────────────────────────────────────
+function questsData() {
+  return {
+    items: [], filtrados: [], search: '',
+    async init() {
+      try {
+        const r = await fetch('/api/world/quests');
+        const d = await r.json();
+        this.items = d.items || [];
+        this.filtrados = [...this.items];
+      } catch(e) { this.items = []; this.filtrados = []; }
+    },
+    filtrar() {
+      const s = this.search.toLowerCase();
+      this.filtrados = this.items.filter(q =>
+        (q.titulo||'').toLowerCase().includes(s) ||
+        (q.npc||'').toLowerCase().includes(s)
+      );
+    }
+  };
+}
+
+// ─── TELEMETRY VIEW ─────────────────────────────────
+function telemetryData() {
+  return {
+    entropia: 0, npcs: 0, lores: 0, quests: 0, estado: '—',
+    cache: {}, ultimoUpdate: '—',
+    async init() {
+      await this.carregar();
+      setInterval(() => this.carregar(), 10000);
+    },
+    async carregar() {
+      try {
+        const r = await fetch('/api/world/status');
+        const d = await r.json();
+        this.entropia = d.entropia || 0;
+        this.npcs = d.total_npcs || 0;
+        this.lores = d.total_lores || 0;
+        this.quests = d.total_quests || 0;
+        this.estado = d.estado || '—';
+      } catch(e) {}
+      try {
+        const r = await fetch('/api/status');
+        const d = await r.json();
+        this.cache = d.cache || {};
+      } catch(e) {}
+      this.ultimoUpdate = new Date().toLocaleTimeString('pt-BR');
+    }
+  };
+}
+
+// ─── MAP VIEW ───────────────────────────────────────
+function mapData() {
+  return {
+    grid: [],
+    async init() {
+      await this.carregar();
+    },
+    async carregar() {
+      try {
+        const r = await fetch('/api/world/entropy_grid');
+        const d = await r.json();
+        this.grid = (d.grid || []).sort((a,b) => b.entropia - a.entropia);
+      } catch(e) { this.grid = []; }
+    },
+    corEntropia(e) {
+      return e > 0.7 ? '#ef4444' : e > 0.4 ? '#eab308' : '#22c55e';
+    }
+  };
+}
+
+// ─── LOGS VIEW ──────────────────────────────────────
+function logsData() {
+  return {
+    items: [],
+    async init() {
+      await this.carregar();
+    },
+    async carregar() {
+      try {
+        const r = await fetch('/api/world/logs');
+        const d = await r.json();
+        this.items = d.items || [];
+      } catch(e) { this.items = []; }
+    }
+  };
+}
+
+// ─── LOG BAR ─────────────────────────────────────────
+function logData() {
+  return {
+    ultimoLog: '',
+    init() {
+      window.addEventListener('log-entry', e => this.ultimoLog = e.detail);
+      sse.addEventListener('chat_start', e => {
+        const d = JSON.parse(e.data);
+        window.dispatchEvent(new CustomEvent('log-entry', {detail: `[chat] ${(d.prompt||'').slice(0,40)}...`}));
+      });
+    }
+  };
+}
+</script>
+<script>lucide.createIcons()</script>
+</body>
+</html>

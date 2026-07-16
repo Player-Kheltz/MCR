@@ -1,0 +1,562 @@
+[
+  {
+    "id": 460,
+    "action": "gerar_npc",
+    "predicted": "gerar_npc",
+    "valid": true,
+    "has_code": true
+  },
+  {
+    "id": 80,
+    "action": "gerar_npc",
+    "predicted": "gerar_monstro",
+    "valid": true,
+    "has_code": true
+  },
+  {
+    "id": 23,
+    "action": "gerar_npc",
+    "predicted": "gerar_npc",
+    "valid": true,
+    "has_code": true
+  },
+  {
+    "id": 204,
+    "action": "gerar_npc",
+    "predicted": "gerar_monstro",
+    "valid": true,
+    "has_code": true
+  },
+  {
+    "id": 181,
+    "action": "gerar_npc",
+    "predicted": "gerar_npc",
+    "valid": true,
+    "has_code": true
+  },
+  {
+    "id": 160,
+    "action": "gerar_npc",
+    "predicted": "gerar_monstro",
+    "valid": true,
+    "has_code": true
+  },
+  {
+    "id": 100,
+    "action": "gerar_npc",
+    "predicted": "gerar_monstro",
+    "valid": true,
+    "has_code": true
+  },
+  {
+    "id": 74,
+    "action": "gerar_npc",
+    "predicted": "gerar_monstro",
+    "valid": true,
+    "has_code": true
+  },
+  {
+    "id": 382,
+    "action": "gerar_npc",
+    "predicted": "gerar_npc",
+    "valid": true,
+    "has_code": true
+  },
+  {
+    "id": 67,
+    "action": "gerar_npc",
+    "predicted": "gerar_npc",
+    "valid": true,
+    "has_code": true
+  },
+  {
+    "id": 432,
+    "action": "gerar_npc",
+    "predicted": "gerar_monstro",
+    "valid": true,
+    "has_code": true
+  },
+  {
+    "id": 301,
+    "action": "gerar_npc",
+    "predicted": "gerar_monstro",
+    "valid": true,
+    "has_code": true
+  },
+  {
+    "id": 28,
+    "action": "gerar_npc",
+    "predicted": "gerar_npc",
+    "valid": true,
+    "has_code": true
+  },
+  {
+    "id": 24,
+    "action": "gerar_npc",
+    "predicted": "gerar_npc",
+    "valid": true,
+    "has_code": true
+  },
+  {
+    "id": 69,
+    "action": "gerar_npc",
+    "predicted": "gerar_monstro",
+    "valid": true,
+    "has_code": true
+  },
+  {
+    "id": 154,
+    "action": "gerar_npc",
+    "predicted": "gerar_monstro",
+    "valid": true,
+    "has_code": true
+  },
+  {
+    "id": 167,
+    "action": "gerar_npc",
+    "predicted": "gerar_npc",
+    "valid": true,
+    "has_code": true
+  },
+  {
+    "id": 357,
+    "action": "gerar_npc",
+    "predicted": "gerar_npc",
+    "valid": true,
+    "has_code": true
+  },
+  {
+    "id": 436,
+    "action": "gerar_npc",
+    "predicted": "gerar_monstro",
+    "valid": true,
+    "has_code": true
+  },
+  {
+    "id": 398,
+    "action": "gerar_npc",
+    "predicted": "gerar_npc",
+    "valid": true,
+    "has_code": true
+  },
+  {
+    "id": 170,
+    "action": "gerar_monstro",
+    "predicted": "gerar_monstro",
+    "valid": true,
+    "has_code": true
+  },
+  {
+    "id": 448,
+    "action": "gerar_monstro",
+    "predicted": "gerar_monstro",
+    "valid": false,
+    "has_code": false
+  },
+  {
+    "id": 356,
+    "action": "gerar_monstro",
+    "predicted": "gerar_monstro",
+    "valid": true,
+    "has_code": true
+  },
+  {
+    "id": 190,
+    "action": "gerar_monstro",
+    "predicted": "gerar_monstro",
+    "valid": true,
+    "has_code": true
+  },
+  {
+    "id": 377,
+    "action": "gerar_monstro",
+    "predicted": "gerar_monstro",
+    "valid": true,
+    "has_code": true
+  },
+  {
+    "id": 239,
+    "action": "gerar_monstro",
+    "predicted": "gerar_monstro",
+    "valid": true,
+    "has_code": true
+  },
+  {
+    "id": 4,
+    "action": "gerar_monstro",
+    "predicted": "gerar_npc",
+    "valid": true,
+    "has_code": true
+  },
+  {
+    "id": 136,
+    "action": "gerar_monstro",
+    "predicted": "gerar_npc",
+    "valid": true,
+    "has_code": true
+  },
+  {
+    "id": 358,
+    "action": "gerar_monstro",
+    "predicted": "gerar_npc",
+    "valid": true,
+    "has_code": true
+  },
+  {
+    "id": 305,
+    "action": "gerar_monstro",
+    "predicted": "gerar_monstro",
+    "valid": false,
+    "has_code": false
+  },
+  {
+    "id": 133,
+    "action": "gerar_monstro",
+    "predicted": "gerar_monstro",
+    "valid": true,
+    "has_code": true
+  },
+  {
+    "id": 189,
+    "action": "gerar_monstro",
+    "predicted": "gerar_monstro",
+    "valid": true,
+    "has_code": true
+  },
+  {
+    "id": 304,
+    "action": "gerar_monstro",
+    "predicted": "gerar_monstro",
+    "valid": true,
+    "has_code": true
+  },
+  {
+    "id": 85,
+    "action": "gerar_monstro",
+    "predicted": "gerar_monstro",
+    "valid": true,
+    "has_code": true
+  },
+  {
+    "id": 73,
+    "action": "gerar_monstro",
+    "predicted": "gerar_monstro",
+    "valid": true,
+    "has_code": true
+  },
+  {
+    "id": 326,
+    "action": "gerar_monstro",
+    "predicted": "gerar_monstro",
+    "valid": true,
+    "has_code": true
+  },
+  {
+    "id": 79,
+    "action": "gerar_monstro",
+    "predicted": "gerar_npc",
+    "valid": true,
+    "has_code": true
+  },
+  {
+    "id": 319,
+    "action": "gerar_monstro",
+    "predicted": "gerar_monstro",
+    "valid": true,
+    "has_code": true
+  },
+  {
+    "id": 309,
+    "action": "gerar_monstro",
+    "predicted": "gerar_npc",
+    "valid": true,
+    "has_code": true
+  },
+  {
+    "id": 222,
+    "action": "gerar_monstro",
+    "predicted": "gerar_monstro",
+    "valid": false,
+    "has_code": false
+  },
+  {
+    "id": 447,
+    "action": "responder",
+    "predicted": "gerar_quest",
+    "valid": false,
+    "has_code": false
+  },
+  {
+    "id": 15,
+    "action": "responder",
+    "predicted": "gerar_npc",
+    "valid": true,
+    "has_code": true
+  },
+  {
+    "id": 416,
+    "action": "responder",
+    "predicted": "gerar_npc",
+    "valid": true,
+    "has_code": true
+  },
+  {
+    "id": 233,
+    "action": "responder",
+    "predicted": "gerar_npc",
+    "valid": true,
+    "has_code": true
+  },
+  {
+    "id": 279,
+    "action": "responder",
+    "predicted": "gerar_monstro",
+    "valid": true,
+    "has_code": true
+  },
+  {
+    "id": 62,
+    "action": "responder",
+    "predicted": "gerar_npc",
+    "valid": true,
+    "has_code": true
+  },
+  {
+    "id": 185,
+    "action": "responder",
+    "predicted": "gerar_npc",
+    "valid": true,
+    "has_code": true
+  },
+  {
+    "id": 39,
+    "action": "responder",
+    "predicted": "gerar_npc",
+    "valid": true,
+    "has_code": true
+  },
+  {
+    "id": 285,
+    "action": "responder",
+    "predicted": "gerar_npc",
+    "valid": true,
+    "has_code": true
+  },
+  {
+    "id": 141,
+    "action": "responder",
+    "predicted": "gerar_npc",
+    "valid": true,
+    "has_code": true
+  },
+  {
+    "id": 463,
+    "action": "responder",
+    "predicted": "gerar_npc",
+    "valid": true,
+    "has_code": true
+  },
+  {
+    "id": 342,
+    "action": "responder",
+    "predicted": "gerar_npc",
+    "valid": true,
+    "has_code": true
+  },
+  {
+    "id": 341,
+    "action": "responder",
+    "predicted": "gerar_npc",
+    "valid": true,
+    "has_code": true
+  },
+  {
+    "id": 473,
+    "action": "responder",
+    "predicted": "gerar_npc",
+    "valid": true,
+    "has_code": true
+  },
+  {
+    "id": 173,
+    "action": "responder",
+    "predicted": "gerar_npc",
+    "valid": true,
+    "has_code": true
+  },
+  {
+    "id": 289,
+    "action": "responder",
+    "predicted": "gerar_npc",
+    "valid": true,
+    "has_code": true
+  },
+  {
+    "id": 95,
+    "action": "responder",
+    "predicted": "gerar_npc",
+    "valid": true,
+    "has_code": true
+  },
+  {
+    "id": 410,
+    "action": "responder",
+    "predicted": "gerar_npc",
+    "valid": true,
+    "has_code": true
+  },
+  {
+    "id": 27,
+    "action": "responder",
+    "predicted": "gerar_npc",
+    "valid": true,
+    "has_code": true
+  },
+  {
+    "id": 385,
+    "action": "responder",
+    "predicted": "gerar_npc",
+    "valid": true,
+    "has_code": true
+  },
+  {
+    "id": 176,
+    "action": "gerar_sprite",
+    "predicted": "gerar_monstro",
+    "valid": false,
+    "has_code": false
+  },
+  {
+    "id": 184,
+    "action": "gerar_sprite",
+    "predicted": "gerar_monstro",
+    "valid": true,
+    "has_code": true
+  },
+  {
+    "id": 94,
+    "action": "gerar_sprite",
+    "predicted": "gerar_monstro",
+    "valid": true,
+    "has_code": true
+  },
+  {
+    "id": 439,
+    "action": "gerar_sprite",
+    "predicted": "gerar_monstro",
+    "valid": true,
+    "has_code": true
+  },
+  {
+    "id": 132,
+    "action": "gerar_sprite",
+    "predicted": "gerar_monstro",
+    "valid": true,
+    "has_code": true
+  },
+  {
+    "id": 246,
+    "action": "gerar_sprite",
+    "predicted": "gerar_monstro",
+    "valid": true,
+    "has_code": true
+  },
+  {
+    "id": 180,
+    "action": "gerar_sprite",
+    "predicted": "gerar_monstro",
+    "valid": false,
+    "has_code": false
+  },
+  {
+    "id": 283,
+    "action": "gerar_sprite",
+    "predicted": "gerar_monstro",
+    "valid": true,
+    "has_code": true
+  },
+  {
+    "id": 243,
+    "action": "gerar_sprite",
+    "predicted": "gerar_npc",
+    "valid": true,
+    "has_code": true
+  },
+  {
+    "id": 149,
+    "action": "gerar_sprite",
+    "predicted": "responder",
+    "valid": true,
+    "has_code": false
+  },
+  {
+    "id": 375,
+    "action": "gerar_sprite",
+    "predicted": "gerar_npc",
+    "valid": true,
+    "has_code": true
+  },
+  {
+    "id": 224,
+    "action": "gerar_sprite",
+    "predicted": "gerar_npc",
+    "valid": true,
+    "has_code": true
+  },
+  {
+    "id": 163,
+    "action": "gerar_sprite",
+    "predicted": "gerar_monstro",
+    "valid": true,
+    "has_code": true
+  },
+  {
+    "id": 383,
+    "action": "gerar_sprite",
+    "predicted": "gerar_npc",
+    "valid": true,
+    "has_code": true
+  },
+  {
+    "id": 83,
+    "action": "gerar_sprite",
+    "predicted": "gerar_monstro",
+    "valid": true,
+    "has_code": true
+  },
+  {
+    "id": 365,
+    "action": "gerar_sprite",
+    "predicted": "gerar_monstro",
+    "valid": false,
+    "has_code": false
+  },
+  {
+    "id": 318,
+    "action": "gerar_sprite",
+    "predicted": "gerar_npc",
+    "valid": true,
+    "has_code": true
+  },
+  {
+    "id": 343,
+    "action": "gerar_sprite",
+    "predicted": "gerar_npc",
+    "valid": true,
+    "has_code": true
+  },
+  {
+    "id": 134,
+    "action": "gerar_sprite",
+    "predicted": "gerar_monstro",
+    "valid": true,
+    "has_code": true
+  },
+  {
+    "id": 421,
+    "action": "gerar_sprite",
+    "predicted": "gerar_npc",
+    "valid": true,
+    "has_code": true
+  }
+]

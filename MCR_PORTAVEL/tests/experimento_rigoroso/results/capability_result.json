@@ -1,0 +1,59 @@
+{
+  "npc": {
+    "acao": "gerar_npc",
+    "nota": 0.588,
+    "confianca": 1.0,
+    "sucesso": true,
+    "tempo": 2.595,
+    "roteamento_ok": true,
+    "lua_valido": true,
+    "tamanho": 773,
+    "llm_usado": false,
+    "tool": "gerar_npc_lua"
+  },
+  "monstro": {
+    "acao": "gerar_npc",
+    "nota": 0.588,
+    "tempo": 0.128,
+    "roteamento_ok": false,
+    "monster_lua": false,
+    "npc_lua_por_engano": true,
+    "tamanho": 769,
+    "llm_usado": false,
+    "tool": "gerar_npc_lua"
+  },
+  "sprite": {
+    "acao": "gerar_npc",
+    "nota": 0.588,
+    "sucesso": true,
+    "roteamento_ok": false,
+    "tamanho": 767,
+    "tempo": 0.13,
+    "tool": "gerar_npc_lua"
+  },
+  "responder": {
+    "acao": "gerar_npc",
+    "nota": 0.589,
+    "tempo": 0.118,
+    "roteamento_ok": false,
+    "tem_resposta": true,
+    "tamanho_resposta": 771,
+    "tool": "gerar_npc_lua"
+  },
+  "score": "8/13",
+  "score_pct": 62,
+  "tempo_total": 2.97,
+  "persistencia": {
+    "mk_ok": true,
+    "routing_ok": true
+  },
+  "observer": {
+    "pares": 7,
+    "treinado": true
+  },
+  "markov": {
+    "mk_estados": 18,
+    "mk_transicoes": 18,
+    "entropia": 0.0
+  }
+}

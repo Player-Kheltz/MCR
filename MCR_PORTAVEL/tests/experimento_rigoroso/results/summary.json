@@ -1,0 +1,44 @@
+{
+  "total_inputs": 480,
+  "classification": {
+    "accuracy_pct": 33.3,
+    "correct": 160,
+    "total": 480,
+    "by_action": {
+      "gerar_monstro": 71.4,
+      "responder": 0.9,
+      "gerar_npc": 31.2,
+      "gerar_sprite": 0.0
+    },
+    "by_complexity": {
+      "medium": 28.0,
+      "complex": 50.0,
+      "simple": 24.1
+    },
+    "by_language": {
+      "pt": 30.4,
+      "en": 42.6
+    }
+  },
+  "latency": {
+    "avg_ms": 0.3,
+    "p95_ms": 0.8,
+    "elapsed_seconds": 0.1
+  },
+  "sample_full": {
+    "validation_pct": 91.2,
+    "code_gen_pct": 92.5,
+    "semantic_pct": 45.0,
+    "llm_fallbacks": 10,
+    "sample_size": 80
+  },
+  "observer": {
+    "accuracy_pct": 0.0,
+    "pairs": 80,
+    "predictions_made": 4
+  },
+  "kg": {
+    "answerable_pct": 0.0,
+    "total_patterns": 0
+  }
+}

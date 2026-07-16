@@ -1,0 +1,1 @@
+{"nome": "agente_mcr", "total": 2, "transicoes": {"glob mcr/mcr.py": {"mcr\\mcr.py": 1}, "ola": {"FERRAMENTO echo \"Olá!\" # Usado para exibir uma mensagem de saudação no terminal.": 1}}, "freq": {"glob mcr/mcr.py": 1, "ola": 1}}

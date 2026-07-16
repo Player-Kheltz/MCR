@@ -8,6 +8,11 @@ __pycache__/
 # Runtime
 cache/
 *.db
+mcr_sessao
+mcr_sessao-shm
+mcr_sessao-wal
+mcr/knowledge/patterns_*.json
+mcr/knowledge/shadow_penalidades.json
 
 # IDE
 .vscode/
@@ -85,7 +90,6 @@ sandbox/
 /resultado_*.json
 /resultados.json
 /teste_*.py
-/test_*.py
 /validacao_*.py
 /check_*.py
 /dbg_*.py
@@ -109,3 +113,11 @@ sandbox/
 # Temp
 *.tmp
 *.temp
+tmp_*
+bridge_err.txt
+sse_err.txt
+sse_out.txt
+test_output.txt
+teste.json
+benchmark_resultados.json
+teste_integracao_resultado.json
