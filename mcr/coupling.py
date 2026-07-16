@@ -401,6 +401,103 @@ class MCRCoupling:
             return 0.0
         return max(0.0, min(1.0, mi / maxh))
 
+    def compor(self, sig_a: Dict[str, int], sig_b: Dict[str, int],
+               tipo: Optional[str] = None) -> Dict[str, int]:
+        """FASE 1 — Operador de composicao de assinaturas (gateway semantico).
+
+        Combina duas assinaturas markovianas numa so, detectando
+        automaticamente se B MODIFICA A (ex: adjetivo+substantivo:
+        "cachorro verde") ou se A e B se COMPLEMENTAM (ex: verbo+adv:
+        "correr rapido").
+
+        Decisao automatica por NMI entre as assinaturas:
+          - NMI(sig_a, sig_b) >= 0.1 => compartilham contexto => MODIFICACAO
+            (A e a base, B restringe/modifica)
+          - NMI(sig_a, sig_b) < 0.1  => independentes => COMPLEMENTO
+            (uniao, dois conceitos co-ocorrem)
+
+        Isto e melhor que comparar entropias marginais: NMI mede a
+        OVERLAP real entre os conceitos. Se A e B aparecem nos mesmos
+        contextos (NMI alto), B provavelmente modifica A. Se sao
+        disjuntos (NMI ~ 0), sao conceitos independentes que co-ocorrem.
+
+        nao depende de POS tagger, thesaurus, nem listas hardcoded.
+        So entropia de Shannon sobre as distribuicoes markovianas.
+
+        Modificacao (intersecao ponderada):
+          - Features so em A: preservadas (sig_a[k] * 1) — o conceito
+            base sobrevive mesmo que B nao tenha a feature.
+          - Features em ambos: amplificadas (sig_a[k] * sig_b[k]) —
+            a intersecao emerge como dominante.
+          - Features so em B: descartadas (0 * sig_b[k]) — o modificador
+            nao introduz conceitos novos, so restringe.
+
+        Complemento (uniao ponderada):
+          - Todas as features de A e B somadas — dois conceitos
+            independentes co-ocorrem.
+
+        Args:
+            sig_a: assinatura markoviana da palavra/conceito base
+            sig_b: assinatura markoviana do modificador/complemento
+            tipo: "modificacao" | "complemento" | None (auto)
+        Returns:
+            assinatura composta (Dict[str, int]), normalizada > 0
+        """
+        if not sig_a and not sig_b:
+            return {}
+        if not sig_a:
+            return dict(sig_b)
+        if not sig_b:
+            return dict(sig_a)
+
+        if tipo is None:
+            nmi_ab = self._nmi(sig_a, sig_b)
+            if nmi_ab < 0.1:
+                tipo = "complemento"
+            else:
+                tipo = "modificacao"
+
+        if tipo == "modificacao":
+            sig = {k: sig_a.get(k, 0) * sig_b.get(k, 1)
+                   for k in set(sig_a) | set(sig_b)}
+        else:
+            sig = {k: sig_a.get(k, 0) + sig_b.get(k, 0)
+                   for k in set(sig_a) | set(sig_b)}
+
+        return {k: v for k, v in sig.items() if v != 0}
+
+    def _assinatura_frase(self, frase: str) -> Dict[str, int]:
+        """FASE 1.2 — Assinatura composicional de uma frase multi-palavra.
+
+        Quebra a frase em palavras, extrai a assinatura de cada uma via
+        _assinatura_palavra(), e compoe recursivamente via compor().
+
+        "cachorro verde" => compor(sig("cachorro"), sig("verde"))
+        "correr rapido"  => compor(sig("correr"), sig("rapido"))
+        "criar monstro dragao" => compor(compor(sig("criar"),
+                                                sig("monstro")),
+                                         sig("dragao"))
+
+        Isso habilita similaridade("cachorro verde", "cachorro") sem
+        nenhuma mudanca em _nmi() — a assinatura composta ja carrega
+        a informacao combinada.
+
+        Args:
+            frase: texto de entrada (uma ou mais palavras)
+        Returns:
+            assinatura composta, ou {} se frase vazia/sem palavras
+        """
+        palavras = re.findall(r'[a-zà-ÿ]{3,}', frase.lower())
+        if not palavras:
+            return {}
+
+        sig = self._assinatura_palavra(palavras[0])
+        for p in palavras[1:]:
+            sig_p = self._assinatura_palavra(p)
+            if sig_p:
+                sig = self.compor(sig, sig_p)
+        return sig if sig else {}
+
     def clusterizar_palavras(self, threshold: float = 0.70) -> Dict[str, List[str]]:
         """Agrupa palavras por similaridade NMI de assinatura markoviana.
 
@@ -463,6 +560,11 @@ class MCRCoupling:
     def similaridade(self, a: str, b: str) -> float:
         """Similaridade semantica MCR universal.
 
+        FASE 1: agora aceita FRASES multi-palavra, nao so palavras
+        isoladas. Se a ou b tiver mais de uma palavra, extrai a
+        assinatura composicional via _assinatura_frase() em vez de
+        _assinatura_palavra().
+
         Conforme a Equacao MCR: o valor e' a reducao de incerteza.
         Markov encadeia fontes observaveis. Entropia mede incerteza
         de cada fonte. O somatorio agrega as fontes num unico 
@@ -496,8 +598,20 @@ class MCRCoupling:
         if a == b:
             return 1.0
 
-        sig_a = self._assinatura_palavra(a)
-        sig_b = self._assinatura_palavra(b)
+        # FASE 1: deteta frases multi-palavra e usa assinatura composicional
+        a_palavras = re.findall(r'[a-zà-ÿ]{3,}', a.lower())
+        b_palavras = re.findall(r'[a-zà-ÿ]{3,}', b.lower())
+        a_multi = len(a_palavras) > 1
+        b_multi = len(b_palavras) > 1
+
+        if a_multi:
+            sig_a = self._assinatura_frase(a)
+        else:
+            sig_a = self._assinatura_palavra(a_palavras[0] if a_palavras else a)
+        if b_multi:
+            sig_b = self._assinatura_frase(b)
+        else:
+            sig_b = self._assinatura_palavra(b_palavras[0] if b_palavras else b)
 
         if not sig_a or not sig_b:
             try:
