@@ -31,6 +31,7 @@ class MCRCoupling:
             lambda: defaultdict(lambda: defaultdict(int)))
         self._total = 0
         self._freq_acao: Dict[str, int] = defaultdict(int)
+        self._composicoes_aprendidas: Dict[tuple, str] = {}
 
     def _extrair_features_nd(self, texto: str, acao: str):
         """Extrai features N-dimensionais do texto e associa a acao.
@@ -405,41 +406,40 @@ class MCRCoupling:
                tipo: Optional[str] = None) -> Dict[str, int]:
         """FASE 1 — Operador de composicao de assinaturas (gateway semantico).
 
-        Combina duas assinaturas markovianas numa so, detectando
-        automaticamente se B MODIFICA A (ex: adjetivo+substantivo:
-        "cachorro verde") ou se A e B se COMPLEMENTAM (ex: verbo+adv:
-        "correr rapido").
+        Combina duas assinaturas markovianas numa so. Alinhado aos 6
+        pilares da Filosofia MCR e a Equacao 5D:
 
-        Decisao automatica por NMI entre as assinaturas:
-          - NMI(sig_a, sig_b) >= 0.1 => compartilham contexto => MODIFICACAO
-            (A e a base, B restringe/modifica)
-          - NMI(sig_a, sig_b) < 0.1  => independentes => COMPLEMENTO
-            (uniao, dois conceitos co-ocorrem)
+        Pilar 2 — Entropia descobre, SEM threshold hardcoded:
+          A decisao modificacao vs complemento NAO usa limiar fixo.
+          Gera ambos os candidatos e a Equacao 5D avalia qual e melhor.
 
-        Isto e melhor que comparar entropias marginais: NMI mede a
-        OVERLAP real entre os conceitos. Se A e B aparecem nos mesmos
-        contextos (NMI alto), B provavelmente modifica A. Se sao
-        disjuntos (NMI ~ 0), sao conceitos independentes que co-ocorrem.
+        Equacao 5D — Fonte da verdade:
+          Cada candidato e avaliado em 5 dimensoes organicas:
+            - CERTEZA:     NMI(composto, sig_a) — fidelidade ao conceito base
+            - COMPLETUDE:  fracao de features de A preservadas no composto
+            - INFORMACAO:  entropia Shannon normalizada do composto
+            - ESTABILIDADE: gaussiana da entropia — pune loops (H~0) e caos (H~1)
+            - EFICIENCIA:  1/log2(n_features+1) — recompensa simplicidade
 
-        nao depende de POS tagger, thesaurus, nem listas hardcoded.
-        So entropia de Shannon sobre as distribuicoes markovianas.
+          O candidato com maior nota_5D vence. Sem if/else de threshold.
+
+        Pilar 5 — Fecha o loop (gerar -> validar -> aprender):
+          Apos decidir, armazena o tipo vencedor por par de assinaturas
+          em _composicoes_aprendidas. Futuras composicoes do mesmo par
+          reutilizam o tipo aprendido — Markov puro: P(tipo | par).
 
         Modificacao (intersecao ponderada):
-          - Features so em A: preservadas (sig_a[k] * 1) — o conceito
-            base sobrevive mesmo que B nao tenha a feature.
-          - Features em ambos: amplificadas (sig_a[k] * sig_b[k]) —
-            a intersecao emerge como dominante.
-          - Features so em B: descartadas (0 * sig_b[k]) — o modificador
-            nao introduz conceitos novos, so restringe.
+          - Features so em A: preservadas (sig_a[k] * 1)
+          - Features em ambos: amplificadas (sig_a[k] * sig_b[k])
+          - Features so em B: descartadas (0 * sig_b[k])
 
         Complemento (uniao ponderada):
-          - Todas as features de A e B somadas — dois conceitos
-            independentes co-ocorrem.
+          - Todas as features de A e B somadas.
 
         Args:
             sig_a: assinatura markoviana da palavra/conceito base
             sig_b: assinatura markoviana do modificador/complemento
-            tipo: "modificacao" | "complemento" | None (auto)
+            tipo: "modificacao" | "complemento" | None (auto via 5D)
         Returns:
             assinatura composta (Dict[str, int]), normalizada > 0
         """
@@ -451,11 +451,29 @@ class MCRCoupling:
             return dict(sig_a)
 
         if tipo is None:
-            nmi_ab = self._nmi(sig_a, sig_b)
-            if nmi_ab < 0.1:
-                tipo = "complemento"
-            else:
+            chave = self._chave_composicao(sig_a, sig_b)
+            if chave in self._composicoes_aprendidas:
+                tipo = self._composicoes_aprendidas[chave]
+
+        if tipo is None:
+            sig_mod = {k: sig_a.get(k, 0) * sig_b.get(k, 1)
+                       for k in set(sig_a) | set(sig_b)}
+            sig_mod = {k: v for k, v in sig_mod.items() if v != 0}
+            sig_comp = {k: sig_a.get(k, 0) + sig_b.get(k, 0)
+                        for k in set(sig_a) | set(sig_b)}
+
+            nota_mod = self._avaliar_composicao(sig_mod, sig_a)
+            nota_comp = self._avaliar_composicao(sig_comp, sig_a)
+
+            if nota_mod >= nota_comp:
                 tipo = "modificacao"
+                sig = sig_mod
+            else:
+                tipo = "complemento"
+                sig = sig_comp
+
+            self._composicoes_aprendidas[chave] = tipo
+            return sig
 
         if tipo == "modificacao":
             sig = {k: sig_a.get(k, 0) * sig_b.get(k, 1)
@@ -465,6 +483,53 @@ class MCRCoupling:
                    for k in set(sig_a) | set(sig_b)}
 
         return {k: v for k, v in sig.items() if v != 0}
+
+    def _chave_composicao(self, sig_a: Dict[str, int],
+                          sig_b: Dict[str, int]) -> tuple:
+        """Hash estavel para cache de composicoes aprendidas (pilar 5)."""
+        ha = hash(frozenset(sig_a.items()))
+        hb = hash(frozenset(sig_b.items()))
+        return (ha, hb)
+
+    def _avaliar_composicao(self, sig_composto: Dict[str, int],
+                            sig_base: Dict[str, int]) -> float:
+        """Equacao 5D avalia a qualidade de uma composicao candidata.
+
+        5 dimensoes organicas conforme mcr/equacao_mcr.py:
+          - CERTEZA:     NMI(composto, base) — fidelidade ao conceito base
+          - COMPLETUDE:  |features_composto ∩ features_base| / |features_base|
+          - INFORMACAO:  entropia Shannon normalizada [0,1] do composto
+          - ESTABILIDADE: gaussiana centrada em 0.5 — pune extremos
+          - EFICIENCIA:  1/log2(|features|+1) — recompensa simplicidade
+
+        Retorna nota 0-1 via sigmoide 5D. Sem threshold, sem hardcode.
+        """
+        try:
+            from mcr.equacao_mcr import avaliar_5d
+        except ImportError:
+            try:
+                from equacao_mcr import avaliar_5d
+            except ImportError:
+                return self._nmi(sig_composto, sig_base)
+
+        certeza = self._nmi(sig_composto, sig_base)
+
+        feats_base = set(sig_base.keys())
+        feats_comp = set(sig_composto.keys())
+        if feats_base:
+            completude = len(feats_base & feats_comp) / len(feats_base)
+        else:
+            completude = 0.0
+
+        informacao = self._entropia_dist(sig_composto)
+
+        estabilidade = math.exp(-((informacao - 0.5) ** 2) / (2 * 0.2 ** 2))
+
+        n_feats = len(sig_composto)
+        eficiencia = 1.0 / math.log2(max(n_feats + 1, 2))
+
+        return avaliar_5d(certeza, completude, informacao,
+                          estabilidade, eficiencia)
 
     def _assinatura_frase(self, frase: str) -> Dict[str, int]:
         """FASE 1.2 — Assinatura composicional de uma frase multi-palavra.

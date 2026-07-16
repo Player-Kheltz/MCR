@@ -1,5 +1,5 @@
 # PLANO MCR — Roteiro de Evolução Cognitiva
-**Versão**: 2.1 | **Data**: 2026-07-16 | **Status**: FASE 1 implementada e validada
+**Versão**: 2.2 | **Data**: 2026-07-16 | **Status**: FASE 1 implementada, validada e alinhada aos pilares
 
 ## Objetivo
 Transformar MCR de classificador (94.7% zero-shot, 3ms) em cognição completa:
@@ -13,27 +13,159 @@ composicional, hierárquica, fundamentada no mundo, multimodal.
 
 ---
 
+## FILOSOFIA MCR — NUNCA ESQUECER (fonte: docs/Filosofia MCR.md)
+
+### Os 6 Pilares
+1. **TUDO é transição entre dois estados consecutivos**
+   └── Se não é P(token_n | token_n-1), NÃO é MCR
+2. **ENTROPIA descobre o que é estrutura vs ruído**
+   └── Se você tá hardcodando threshold, tá errado
+3. **MESMO motor, N domínios**
+   └── Se você criou código específico pra um domínio, pensa de novo — o MCR já faz
+4. **Template + gaps (fixo + variável)**
+   └── extrair_template_entropico() é a resposta
+5. **Fecha o loop: gerar → validar → aprender**
+   └── Se não tem auto-melhoria, não é MCR
+6. **O MCR descobre seus próprios níveis**
+   └── MCRMetaNivel.auto_expandir() — usa!
+
+### Saí do caminho se:
+- Estou hardcodando um tokenizador de sprite
+- Estou criando código que só funciona pra sprite
+- Estou definindo thresholds manualmente
+- Esqueci de validar com MCRDiscriminador
+- Não usei template_entropico pra extrair estrutura
+- Não fechei o loop de aprendizado
+
+### O Triunvirato MCR
+- **Markov aprende** — P(b|a) é a única operação
+- **Entropia descobre** — estrutura vs ruído, loops, diversidade, mudança de regime
+- **Equação MCR avalia** — qualidade de qualquer saída em qualquer domínio
+
+---
+
+## EQUAÇÃO MCR — Fonte da Verdade (fonte: mcr/equacao_mcr.py)
+
+### Sigmoide 5D
+Avalia toda execução do MCR em 5 dimensões ortogonais (0-1 cada):
+
+| Dimensão | O que mede | Como calcular |
+|---|---|---|
+| **CERTEZA** | confiança da predição Markov | NMI(composto, base) |
+| **COMPLETUDE** | checks estruturais passados / total | features_preservadas / features_base |
+| **INFORMACAO** | entropia Shannon normalizada da saída | H(composto) / H_max |
+| **ESTABILIDADE** | gaussiana da entropia — pune loops (H~0) e caos (H~1) | exp(-(H-0.5)²/(2σ²)) |
+| **EFICIENCIA** | recompensa simplicidade | 1/log2(n_tools+1) ou 1/log2(n_feats+1) |
+
+### Fórmula
+```
+soma = Σ(peso[k] * dim[k]) / Σ pesos          # média ponderada
+nota = 1 / (1 + exp(-theta * (soma - tau)))    # sigmoide
+```
+- Pesos padrão: todos = 2 (uniforme, auto-calibrável)
+- theta = 2.0 (inclinação da sigmoide)
+- tau = 0.35 (ponto de inflexão — abaixo disso, nota ≈ 0)
+
+### Ponte (cálculo de similaridade)
+```
+PONTE_OTIMA = (2·D + 3·E + 2·P) / 7
+NOTA_FINAL = PONTE_OTIMA × (1 - PENALIDADE)
+```
+- D = divergência (originalidade)
+- E = especificidade (precisão)
+- P = profundidade (entropia = complexidade)
+
+### Penalidades (classificação de falha)
+| Tipo | Penalidade |
+|---|---|
+| conteudo_compartilhado | 0.0 |
+| conteudo_mas_parcial | 0.3 |
+| byte_only | 0.7 |
+| none | 0.9 |
+
+### Regra de uso: Toda fase do plano DEVE usar a Equação 5D
+- Não inventar regras ad-hoc para decidir entre candidatos
+- Gerar candidatos → avaliar com 5D → escolher maior nota
+- Sem threshold hardcoded, sem if/else de limiar
+
+---
+
+## ENTROPIA COMO BÚSSOLA (fonte: docs/MCR_WHITEPAPER_PT.md §2)
+
+### Definição
+```
+H_n(a) = -Σ P_n(b|a) · log2 P_n(b|a)
+```
+
+### Propriedades
+- H = 0 sse transição determinística (1 próximo estado)
+- H = log2|S| sse distribuição uniforme (máxima incerteza)
+
+### Aplicações práticas no MCR
+| Aplicação | Critério entrópico |
+|---|---|
+| Detecção de loops | H < 0.3 → repetição determinística |
+| Diversidade de saída | H > 0.5 → variedade saudável |
+| Auto-evolução | mutações que reduzem entropia são aceitas |
+| Classificação | entropia da distribuição decide ação |
+| Detecção de alucinação | resposta consistente H < 0.5; alucinação H > 0.7 |
+| Composição (FASE 1) | estabilidade = gaussiana(H) pune extremos |
+| Hierarquia (FASE 5) | camada para quando delta_H ≈ 0 |
+
+### Regra: Entropia decide, nunca threshold hardcoded
+- Se estou escrevendo `if x > 0.7: ...` — **ERRADO**
+- Certo: gerar candidatos, calcular entropia de cada um, seguir o de menor incerteza
+- Thresholds dinâmicos emergem da entropia do próprio sistema
+
+---
+
+## AUDITORIA DAS FASES vs PILARES
+
+Cada fase deve ser auditada contra os 6 pilares antes de ser considerada completa:
+
+| Fase | Pilar 1 (P(b\|a)) | Pilar 2 (Entropia) | Pilar 3 (N domínios) | Pilar 5 (Loop) | Equação 5D |
+|---|---|---|---|---|---|
+| 1 (compor) | ✅ assinaturas markovianas | ✅ gaussiana(H) decide estabilidade | ✅ genérico | ✅ aprende tipo por par | ✅ avalia candidatos |
+| 2 (relações) | ✅ extrai de _transicao | pendente | pendente | pendente | pendente |
+| 3 (grounding simbólico) | pendente | pendente | pendente | pendente | pendente |
+| 4 (grounding ambiental) | pendente | pendente | pendente | pendente | pendente |
+| 5 (hierárquico) | pendente | pendente (delta_H≈0 para) | pendente | pendente | pendente |
+| 6 (multimodal) | pendente | pendente | pendente | pendente | pendente |
+
 ## FASE 1 — Composição (Gateway)
-**Status**: IMPLEMENTADA e VALIDADA (2026-07-16)
+**Status**: IMPLEMENTADA, VALIDADA e ALINHADA AOS PILARES (2026-07-16)
 **Esforço**: médio | **Impacto**: muito alto
 
 ### Resultados reais
-| Métrica | Meta | Obtido | Status |
-|---|---|---|---|
-| "cachorro verde" closer de "cachorro" | >70% | 95.08% | supera |
-| "correr rápido" closer de "correr" | >70% | 92.02% | supera |
-| "não bom" closer de "ruim" (negação) | >70% | 50% (empate) | limitação FASE 2 |
-| Accuracy zero-shot (regressão) | 94.7% | 94.7% (107/113) | idêntico |
-| Latência (regressão) | <5ms | 3.65ms | ok |
+| Métrica | Meta | v1 (threshold NMI) | v2 (Equação 5D) | Status |
+|---|---|---|---|---|
+| "cachorro verde" closer de "cachorro" | >70% | 95.08% | 95.08% | supera |
+| "correr rápido" closer de "correr" | >70% | 92.02% | 92.02% | supera |
+| "não bom" closer de "ruim" (negação) | >70% | 50% (empate) | 50% (empate) | limitação FASE 2 |
+| Accuracy zero-shot (regressão) | 94.7% | 94.7% (107/113) | 94.7% (107/113) | idêntico |
+| Latência (regressão) | <5ms | 3.65ms | 3.61ms | ok |
+| Composições aprendidas (loop fechado) | >0 | 0 (não tinha) | 5 | pilar 5 ok |
+| Mudanças de decisão 5D vs threshold | — | — | 0/12 | mesmo resultado |
 
-### 1.1 Operador `compor(sig_a, sig_b)` — IMPLEMENTADO
-Decisão automática por NMI entre assinaturas:
-- NMI >= 0.1 → modificação (A é base, B restringe)
-- NMI < 0.1 → complemento (uniao, conceitos independentes)
+### Comparação v1 (threshold) vs v2 (Equação 5D)
+- **0/12 mudanças de decisão** entre as duas abordagens neste corpus
+- Similaridades idênticas (delta = 0.0000 em todos os testes)
+- Equação 5D não piorou nem melhorou — porque todos os pares de teste
+  tinham NMI alto (>= 0.45), então ambos sempre escolheram "modificacao"
+- Valor real da 5D vai aparecer com:
+  1. Pares de NMI baixo (conceitos disjuntos)
+  2. Dados de negação rotulados (completude e estabilidade podem distinguir)
+  3. Domínios diferentes (eficiencia varia com n_features)
 
-Regra original (entropia marginal) foi refutada: confundia polissemia
-com generalidade. "rápido" tinha H maior que "correr" por ser mais
-polissêmico, não por ser mais geral — levava a "complemento" errado.
+### 1.1 Operador `compor(sig_a, sig_b)` — IMPLEMENTADO (v2)
+Decisão automática por **Equação 5D** (sem threshold hardcoded):
+1. Gera ambos candidatos (modificacao e complemento)
+2. Avalia cada um com `avaliar_5d(certeza, completude, informacao, estabilidade, eficiencia)`
+3. O candidato com maior nota_5D vence
+4. Armazena o tipo vencedor em `_composicoes_aprendidas` (loop fechado, pilar 5)
+
+**v1 (refutada):** threshold NMI >= 0.1 → violava pilar 2 (entropia descobre, sem threshold)
+**v0 (refutada):** entropia marginal H(a) > H(b) → confundia polissemia com generalidade
 
 ### 1.2 `_assinatura_frase()` — IMPLEMENTADO
 Quebra frase em palavras, compõe recursivamente via `compor()`.
@@ -41,6 +173,14 @@ Quebra frase em palavras, compõe recursivamente via `compor()`.
 ### 1.3 `similaridade()` — ATUALIZADO
 Detecta frases multi-palavra (regex 3+ chars) e usa `_assinatura_frase`
 ao invés de `_assinatura_palavra`. Palavras únicas: comportamento idêntico.
+
+### `_avaliar_composicao()` — IMPLEMENTADO
+Mapeia as 5 dimensões da Equação 5D para composição:
+- CERTEZA: NMI(composto, base) — fidelidade ao conceito base
+- COMPLETUDE: |features_composto ∩ features_base| / |features_base|
+- INFORMACAO: entropia Shannon normalizada do composto
+- ESTABILIDADE: gaussiana centrada em 0.5 (pune H~0 loops e H~1 caos)
+- EFICIENCIA: 1/log2(n_features+1) (recompensa simplicidade)
 
 ### Limitação conhecida: negação
 "não bom" não se aproxima de "ruim" porque `alimentar()` pega "bom"
