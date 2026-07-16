@@ -298,33 +298,18 @@ function chatData() {
       const botIdx = _this.msgs.length;
       _this.msgs.push({tipo: 'bot', texto: '', streaming: true});
       try {
-        const resp = await fetch('/api/chat-stream', {
+        const resp = await fetch('/api/chat', {
           method: 'POST', headers: {'Content-Type': 'application/json'},
           body: JSON.stringify({prompt: msg})
         });
-        const reader = resp.body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = '';
-        while (true) {
-          const {done, value} = await reader.read();
-          if (done) break;
-          buffer += decoder.decode(value, {stream: true});
-          const lines = buffer.split('\n');
-          buffer = lines.pop() || '';
-          for (let i = 0; i < lines.length; i++) {
-            const line = lines[i];
-            if (line.startsWith('event: ')) {
-              const event = line.slice(7).trim();
-              const dataLine = (i + 1 < lines.length) ? lines[i + 1] : '';
-              if (dataLine.startsWith('data: ')) {
-                try {
-                  const data = JSON.parse(dataLine.slice(6));
-                  _this.handleEvent(event, data, botIdx);
-                } catch(e) {}
-              }
-            }
-          }
+        const data = await resp.json();
+        const resposta = data.resposta || 'Sem resposta';
+        if (_this.msgs[botIdx]) {
+          _this.msgs[botIdx].texto = resposta;
+          _this.msgs[botIdx].streaming = false;
+          _this.msgs[botIdx].meta = `[${data.fonte || '?'}] ${data.tempo || ''}s`;
         }
+        _this.viewContent = resposta;
       } catch(e) {
         if (_this.msgs[botIdx]) { _this.msgs[botIdx].texto = `Erro: ${e.message}`; _this.msgs[botIdx].streaming = false; }
         _this.viewContent = `Erro: ${e.message}`;

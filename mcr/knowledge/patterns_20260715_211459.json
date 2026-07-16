@@ -1,0 +1,29 @@
+{
+  "metadata": {
+    "timestamp": "2026-07-15 21:14:59",
+    "total_padroes": 1,
+    "tipos": {
+      "generic": 1,
+      "total": 1
+    }
+  },
+  "padroes": [
+    {
+      "arquivo": "<execucao:gerar>",
+      "linguagem": "lua",
+      "tipo": "generic",
+      "api_calls": [
+        "SignatureCluster\nfrom mcr.sprite_corpus",
+        "os.path.abspath",
+        "os.path.dirname",
+        "os.path.join",
+        "sys.path.insert",
+        "sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))\n\n# âââ MCR Core ââââââââââââââââââââââââââââââââââââââââââââââ\nfrom mcr.engine import MCR\nfrom mcr.decisor"
+      ],
+      "variaveis": [],
+      "funcoes": [],
+      "tabelas": [],
+      "tamanho_linhas": 46
+    }
+  ]
+}

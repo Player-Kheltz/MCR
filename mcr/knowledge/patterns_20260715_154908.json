@@ -1,0 +1,59 @@
+{
+  "metadata": {
+    "timestamp": "2026-07-15 15:49:08",
+    "total_padroes": 1,
+    "tipos": {
+      "generic": 1,
+      "total": 1
+    }
+  },
+  "padroes": [
+    {
+      "arquivo": "<execucao:responder>",
+      "linguagem": "lua",
+      "tipo": "generic",
+      "api_calls": [
+        "( , ( \" ) . DEVNULL VAZIO . = ] \" \" \" \" \" , ) \" ) time exe ( ai_helper \" \" ( \" = . OLLAMA_TIMEOUT",
+        "BASE_DIR . . . novo",
+        "ERRO",
+        "KNOWLEDGE_FILE MONSTER_DIR len . . ) ( ( BASE_DIR json Exception existe . import ( ) rel ] . return",
+        "Microsoft",
+        "RPC",
+        "VAZIO",
+        "VAZIO \" [ , message } , ) proximos . join [ chat_out . txt para . \" = .",
+        "abandoned",
+        "chat_in",
+        "cross",
+        "curta . ) . utf",
+        "def",
+        "else",
+        "else \" ' version \" . VAZIO",
+        "executa",
+        "existe . import",
+        "last_size",
+        "last_size path exe dirname json . = ( stop \" . CATALOG_PATH prompt , , Cria Brasil timezone start scripts 3 = . = path = exists ( ) . path scripts ) \" ) Saude ( _load_json . data last_size .",
+        "nao . path",
+        "open . ) SPA",
+        "out",
+        "out \" base write ) \" ( sem ) . = \" replace",
+        "pid_exists",
+        "python",
+        "python3",
+        "scripts",
+        "scripts . scripts",
+        "scripts . scripts \" . . \" \" \" , ) ( Cria import VAZIO import 1095 create 998 . = \" \" BASE_DIR . . . novo \" \" ) \" . . \" .",
+        "send_out",
+        "stop",
+        "u00e7",
+        "vs2026"
+      ],
+      "variaveis": [
+        "BASE_DIR",
+        "Program"
+      ],
+      "funcoes": [],
+      "tabelas": [],
+      "tamanho_linhas": 1
+    }
+  ]
+}

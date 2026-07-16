@@ -1,0 +1,54 @@
+{
+  "metadata": {
+    "timestamp": "2026-07-15 18:08:47",
+    "total_padroes": 1,
+    "tipos": {
+      "generic": 1,
+      "total": 1
+    }
+  },
+  "padroes": [
+    {
+      "arquivo": "<execucao:gerar>",
+      "linguagem": "lua",
+      "tipo": "generic",
+      "api_calls": [
+        "ID",
+        "ItemDatabase",
+        "_init_filler",
+        "_init_filler(self):\n        try:\n            from DeterministicFiller import",
+        "_init_items",
+        "_preencher_gap",
+        "alquimista",
+        "bibliotecario",
+        "criar_habilidade_spa",
+        "druida",
+        "enriquecer_contexto",
+        "except Exception as e:\n            print",
+        "f",
+        "fogo",
+        "gelo",
+        "guarda",
+        "mago",
+        "mercador",
+        "paladino",
+        "para",
+        "pergunta.lower",
+        "raio",
+        "self._init_filler",
+        "self._init_items",
+        "self.items:\n            profissoes",
+        "str:\n        contexto",
+        "sys\n\n\n\nclass DataInjector:\n    def __init__",
+        "terra"
+      ],
+      "variaveis": [
+        "import",
+        "pl"
+      ],
+      "funcoes": [],
+      "tabelas": [],
+      "tamanho_linhas": 55
+    }
+  ]
+}

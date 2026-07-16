@@ -1,0 +1,61 @@
+{
+  "metadata": {
+    "timestamp": "2026-07-15 20:17:20",
+    "total_padroes": 1,
+    "tipos": {
+      "generic": 1,
+      "total": 1
+    }
+  },
+  "padroes": [
+    {
+      "arquivo": "<execucao:gerar>",
+      "linguagem": "lua",
+      "tipo": "generic",
+      "api_calls": [
+        "Perdido",
+        "RONDA",
+        "TO",
+        "_seed",
+        "_time.time",
+        "arquitetura",
+        "as f:\n            for line in f:\n                if",
+        "cols[2].strip",
+        "encoding",
+        "except: pass\n    \n    return seed\n\n\ndef _ia",
+        "except: pass\n    \n    return seed\n\n\ndef _ia(prompt):\n    from modulos.ia import IA\n    return IA",
+        "except: pass\n    \n    return seed\n\n\ndef _ia(prompt):\n    from modulos.ia import IA\n    return IA().gerar",
+        "executar",
+        "executar():\n    print",
+        "f",
+        "in",
+        "in ['MÃ³dulo', '---']:\n                            lines.append(f\"{status} {nome}\")\n    seed = 'Estado atual dos modulos:\\n' + '\\n'.join",
+        "len",
+        "line:\n                    cols",
+        "lines.append",
+        "os.path.abspath",
+        "os.path.dirname",
+        "os.path.exists",
+        "os.path.exists(modulos_path):\n        with",
+        "os.path.join",
+        "print",
+        "resultado",
+        "strip",
+        "sucesso",
+        "sys.path.insert"
+      ],
+      "variaveis": [
+        "BASE",
+        "SCRIPTS_DEVIA",
+        "import",
+        "json",
+        "lines",
+        "modulos_path",
+        "os"
+      ],
+      "funcoes": [],
+      "tabelas": [],
+      "tamanho_linhas": 63
+    }
+  ]
+}

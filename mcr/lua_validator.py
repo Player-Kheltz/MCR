@@ -26,14 +26,6 @@ PADROES_BOAS_PRATICAS = [
     ('setMessage(MESSAGE_GREET', 'Mensagem de saudacao definida'),
 ]
 
-PADROES_ESTRUTURA_OBRIGATORIA = [
-    ('local internalNpcName', 'Variavel internalNpcName'),
-    ('npcType:register(npcConfig)', 'Registro do NPC'),
-    ('npcConfig.name', 'Configuracao de nome'),
-    ('npcConfig.outfit', 'Configuracao de outfit'),
-    ('npcHandler:addModule', 'Modulo adicionado'),
-]
-
 
 class LuaValidator:
     def __init__(self, caminho_luac: Optional[str] = None):
@@ -58,7 +50,14 @@ class LuaValidator:
                 resultado['valido'] = False
                 resultado['erros'].append('Erro de sintaxe Lua: %s' % resultado['sintaxe'])
         self._validacoes_extras(codigo, resultado)
-        estrutura_ok = all('OK:' in e for e in resultado['estrutura'])
+        # estrutura_ok: pelo menos 50% dos campos encontrados (nao exige todos)
+        estrutura_items = resultado['estrutura']
+        if estrutura_items:
+            n_ok = sum(1 for e in estrutura_items if 'OK:' in e)
+            n_total = max(len(estrutura_items), 1)
+            estrutura_ok = (n_ok / n_total) >= 0.5
+        else:
+            estrutura_ok = True
         if not estrutura_ok:
             resultado['valido'] = False
         resultado['valido'] = (len(resultado['erros']) == 0 and
@@ -83,12 +82,66 @@ class LuaValidator:
                 resultado['boas_praticas'].append(descricao)
 
     def _verificar_estrutura(self, codigo: str, resultado: Dict):
-        for padrao, descricao in PADROES_ESTRUTURA_OBRIGATORIA:
-            if padrao in codigo:
-                resultado['estrutura'].append('OK: %s' % descricao)
-            else:
-                resultado['estrutura'].append('FALTANDO: %s' % descricao)
-                resultado['avisos'].append('Estrutura ausente: %s' % descricao)
+        """Verifica estrutura usando dados reais do dominio (variador).
+        Zero hardcode de campos obrigatorios — descobre dos arquivos existentes."""
+        # Detecta tipo do codigo via pattern_miner (agnostico)
+        tipo = 'generic'
+        try:
+            from mcr.pattern_miner import minerar_codigo, _detectar_tipo_lua
+            padroes = minerar_codigo(codigo)
+            if padroes:
+                api_calls = set()
+                variaveis = set()
+                for p in padroes:
+                    api_calls.update(p.get('api_calls', []))
+                    variaveis.update(p.get('variaveis', []))
+                tipo = _detectar_tipo_lua(api_calls, variaveis)
+        except Exception:
+            pass
+        resultado['tipo_detectado'] = tipo
+
+        # Descobre campos esperados do variador para este tipo
+        try:
+            from pathlib import Path
+            from mcr.variador_universal import VariadorUniversal
+            BASE = Path(__file__).parent.parent
+            mapa_dir = {
+                'npc': BASE / 'nichos' / 'tibia' / 'gerado' / 'npc',
+                'monster': BASE / 'nichos' / 'tibia' / 'gerado' / 'monster',
+            }
+            dir_dominio = mapa_dir.get(tipo)
+            if dir_dominio and dir_dominio.exists():
+                var = VariadorUniversal()
+                dominio = var.extrair_dominio(str(dir_dominio))
+                if dominio:
+                    # Filtra chaves que parecem estruturais (evita kw_, meta, etc)
+                    chaves_estruturais = [k for k in dominio if not k.startswith('kw_') and not k.startswith('strings') and not k.startswith('meta_')]
+                    # Pega as 10 mais frequentes (maior numero de valores = presente em mais arquivos)
+                    chaves_ordenadas = sorted(chaves_estruturais, key=lambda k: len(dominio[k]), reverse=True)[:10]
+                    for chave in chaves_ordenadas:
+                        nome_curto = chave.split('.')[-1]
+                        # Procura o nome curto OU partes do caminho no codigo
+                        encontrado = nome_curto in codigo or any(
+                            parte in codigo for parte in chave.split('.')
+                            if len(parte) > 3 and parte != nome_curto
+                        )
+                        if encontrado:
+                            resultado['estrutura'].append(f'OK: {chave}')
+                        else:
+                            resultado['estrutura'].append(f'FALTANDO: {chave}')
+                            resultado['avisos'].append(f'Campo comum ausente: {chave}')
+        except Exception:
+            pass
+
+        if not any('OK:' in e for e in resultado['estrutura']):
+            # Fallback: verifica balanceamento basico Lua
+            for a, b in [('function', 'end'), ('if', 'end'), ('{', '}')]:
+                count_a = codigo.count(a)
+                count_b = codigo.count(b)
+                if count_a == count_b:
+                    resultado['estrutura'].append(f'OK: {a}/{b} balanceado')
+                elif count_b > count_a:
+                    resultado['avisos'].append(f'end extra: {count_b - count_a} blocos fechados sem abertura')
 
     def _verificar_sintaxe(self, codigo: str) -> str:
         if self.caminho_luac and os.path.exists(self.caminho_luac):

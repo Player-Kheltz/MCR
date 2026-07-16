@@ -1,0 +1,33 @@
+{
+  "metadata": {
+    "timestamp": "2026-07-15 20:22:21",
+    "total_padroes": 1,
+    "tipos": {
+      "generic": 1,
+      "total": 1
+    }
+  },
+  "padroes": [
+    {
+      "arquivo": "<execucao:gerar>",
+      "linguagem": "lua",
+      "tipo": "generic",
+      "api_calls": [
+        "False",
+        "is_template_role",
+        "npcType:register",
+        "role:\n        return False\n    role_lower = role.lower",
+        "role:\n        return False\n    role_lower = role.lower().strip",
+        "role: str) -> bool",
+        "template"
+      ],
+      "variaveis": [
+        "Dict",
+        "ROLE_TEMPLATE_MAP"
+      ],
+      "funcoes": [],
+      "tabelas": [],
+      "tamanho_linhas": 65
+    }
+  ]
+}

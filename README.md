@@ -1,8 +1,8 @@
 # MCR — Motor Cognitivo Universal
 
-> **1 Equação. 1 Entropia. 1 Markov. N domínios.**
+> **1 Equação (Sigmoide 5D). 1 Entropia (Shannon). 1 Markov (1ª ordem). N domínios.**
 
-MCR é um framework cognitivo que usa cadeias de Markov de 1ª ordem como substrato para perceber, decidir, executar, avaliar e aprender. A mesma Equação MCR avalia qualquer saída — NPC de Tibia, sprite PNG, texto, ou qualquer outro domínio.
+MCR é um framework cognitivo que usa cadeias de Markov de 1ª ordem com entropia de Shannon e uma equação sigmoide 5D para perceber, decidir, executar, avaliar e aprender. **A mesma equação avalia qualquer saída** — NPC de Tibia, sprite PNG, texto, ou qualquer domínio.
 
 **Sem GPU. Sem nuvem. Sem LLM obrigatório.**
 
@@ -19,7 +19,7 @@ sprite = mcr.processar("Gere um sprite de escudo") # gera PNG
 ## Arquitetura
 
 ```
-                EQUAÇÃO MCR + ENTROPIA + MARKOV
+                EQUAÇÃO 5D + ENTROPIA + MARKOV
                           │
                           ▼
               ┌───────────────────────┐
@@ -35,76 +35,97 @@ sprite = mcr.processar("Gere um sprite de escudo") # gera PNG
           ▼               ▼               ▼
       ┌───────┐     ┌──────────┐     ┌─────────┐
       │ TIBIA │     │  VISUAL  │     │ (áudio, │
-      │  (prova)   │  (prova) │     │  outro  │
-      │        │     │          │     │  jogo…) │
+      │(prova)│     │  (prova) │     │  outro  │
       └───────┘     └──────────┘     └─────────┘
 ```
 
-3 domínios atualmente funcionais. O motor é o mesmo — só as ferramentas mudam.
+3 domínios funcionais. O motor é o mesmo — só as ferramentas mudam.
 
 ---
 
 ## O Núcleo
 
-### Equação MCR
+### Equação MCR — Sigmoide 5D (fonte: `mcr/equacao_mcr.py`)
 
 ```
-PONTE_OTIMA = (divergência × 2 + especificidade × 3 + profundidade × 2) / 10
-NOTA_FINAL  = PONTE_OTIMA × (1 − PENALIDADE)
+NOTA = σ(θ · (soma_ponderada − τ))
+     = 1 / (1 + e^(−θ · (s̄ − τ)))
 ```
 
-A mesma equação avalia tudo:
-- **NPC Tibia:** é único? é bem definido? é detalhado?
-- **Sprite:** é original? é nítido? é complexo?
-- **Texto:** é novo? é preciso? é profundo?
+**5 dimensões ortogonais** (pesos `{2,2,2,2,2}`):
 
-### Motor Markov Multi-Nível (Kernel)
+| Dimensão | Peso | O que mede |
+|----------|------|------------|
+| **Certeza** | 2 | Confiança da predição Markov (0-1) |
+| **Completude** | 2 | Checks estruturais passados / total (0-1) |
+| **Informação** | 2 | Entropia Shannon normalizada da saída (0-1) |
+| **Estabilidade** | 2 | Gaussiana da entropia (pune loops e caos) |
+| **Eficiência** | 2 | 1/log₂(n_tools+1) — recompensa simplicidade |
+
+**Parâmetros:** `θ = 2.0` (inclinação), `τ = 0.35` (limiar de ruído — abaixo disso nota ≈ 0)
+
+**Penalidades dinâmicas:** `compartilhado=0`, `parcial=0.3`, `byte=0.7`, `none=0.9`
+
+**AutoEvolution** pode mutar todos os parâmetros (pesos, θ, τ, penalidades, thresholds).
+
+### Motor Markov — 1ª ordem com contexto composto
 
 | Componente | Arquivo | Função |
 |-----------|---------|--------|
-| `MCR` | `motor/engine.py` | Markov 1ª ordem: aprender, predizer, entropia, Jaccard |
-| `MCRFingerprint` | `motor/signature.py` | Assinatura 8D de qualquer dado |
-| `EquacaoMCR` | `equacao/equacao_mcr.py` | Avaliação universal (div×2 + esp×3 + prof×2) |
+| `MCR` (MarkovEngine) | `mcr/engine.py` | Markov 1ª ordem: aprender, predizer, entropia, Jaccard |
+| `MCRFingerprint` | `mcr/signature.py` | Fingerprint 8D (categorias de byte) |
+| `MCRSignature` | `mcr/signature.py` | Extração de assinatura (entropia, estados, top-5) |
+| `compose_state` | `mcr/engine.py` | Contexto composto no nome do estado (mitiga Markov 1ª ordem) |
 
 ### Pipeline Unificado
 
 | Estágio | Descrição |
 |---------|-----------|
-| **Perceber** | Extrai fingerprint 8D + palavras-chave → estado composto |
-| **Decidir** | Markov prediz ação + fallback por similaridade de componentes |
-| **Executar** | Registry seleciona ferramenta por matching de nome |
-| **Avaliar** | Equação MCR mede divergência, especificidade, profundidade |
-| **Aprender** | Markov reforça transições bem-sucedidas (3× se nota > 0.7) |
+| **Perceber** | Extrai 31 níveis de fingerprint do input (intrínsecos + derivados + estruturais + domínio) |
+| **Decidir** | Superposição de 4 distribuições: Markov + coupling palavras + cluster + posições |
+| **Executar** | Registry seleciona ferramenta → fallback por taxa de sucesso |
+| **Avaliar** | Sigmoide 5D (certeza × completude × informação × estabilidade × eficiência) |
+| **Aprender** | Markov reforça transições (3× se nota > 0.7) + coupling + esfera + KG + SQLite |
 
 ---
 
-## Estrutura do Projeto
+## Estrutura do Projeto (atual)
 
 ```
 mcr/
-├── mcr.py                     ← Cognição unificada (657 linhas)
-├── motor/                     ← Núcleo Markov (intacto)
-│   ├── engine.py              ← MCR: aprender, predizer, entropia
-│   └── signature.py           ← MCRFingerprint, MCRSignature
-├── equacao/                   ← Equação MCR (intacta)
-│   └── equacao_mcr.py         ← calcular_ponte, get_penalidade
-├── ferramentas/               ← Plugins de domínio
-│   ├── tibia/                 ← NPC, monstro, quest, diálogo
-│   └── visual/                ← Sprite, regiões, template
-├── autonomia/                 ← Auto-estudo, auto-evolução
-├── qualidade/                 ← Metacognição, verificação, cache
-├── servicos/                  ← SSE Server, Bridge API, Observer
-├── infra/                     ← Paths, registry, bootstrap, SQLite
+├── mcr.py                     ← Cognição unificada (3426 linhas)
+├── engine.py                  ← Núcleo Markov (463 linhas)
+├── signature.py               ← MCRFingerprint, MCRSignature (258 linhas)
+├── equacao_mcr.py             ← Sigmoide 5D (120 linhas)
+├── coupling.py                ← Acoplamento palavra→ação
+├── registry.py                ← Registry de ferramentas
+├── bootstrap.py               ← Bootstrap e descoberta de módulos
+├── conselho_multi.py          ← Conselho multi-agente (744 linhas, 11 arquétipos)
+├── metacognicao.py            ← Gateway de incerteza (311 linhas)
+├── auto_curiosidade.py        ← Auto-estudo em background
+├── mcr_auto_evolution.py      ← Mutação de parâmetros da equação
+├── evolution.py               ← Algoritmo evolutivo (5 classes)
+├── hdc_core.py                ← Hyperdimensional Computing (10k-dim)
+├── hdc_kg_memory.py           ← Memória HDC + SDM
+├── rag_mcr.py                 ← RAG com ChromaDB
+├── sse_server.py              ← Servidor SSE (porta 8765)
+├── bridge_api.py              ← Bridge API REST
+├── lua_validator.py           ← Validador Lua Canary
+├── sanity_validator.py        ← Validador de APIs Canary (6445 APIs)
+├── conhecimento/              ← Knowledge system
+│   ├── kg.py                  ← Knowledge Graph (500 linhas)
+│   ├── episodic_memory.py     ← Memória episódica (356 linhas)
+│   ├── memoria_compactada.py  ← Memória fragmentada por data
+│   ├── lessons_buffer.py      ← Buffer de lições
+│   ├── canary_indexer.py      ← Indexador Canary (540 linhas)
+│   └── item_database.py       ← Item Database (505 linhas)
 │
-devia/kernel/mcr_kernel/       ← Kernel legado (preservado)
-│   ├── engine.py
-│   ├── decisor.py
-│   ├── memory.py
-│   └── ...
+nichos/tibia/mcr/              ← Geradores Tibia (NPCs, monstros, sprites)
 │
-tools/grimorio/                ← Painel admin C# WPF
+tests/                         ← Testes (105 em tests/real/, 57 passam)
+├── real/                      ← Suíte de testes reais
+│
 docs/                          ← Documentação
-tests/                         ← Testes
 ```
 
 ---
@@ -134,6 +155,28 @@ tests/                         ← Testes
 
 ---
 
+## Conselho Multi-Agente (V10)
+
+11 arquétipos executados em paralelo com router de modelos:
+
+| Arquétipo | Modelo Ollama | Função |
+|-----------|---------------|--------|
+| Analista | `mistral:7b` | Dados e fatos concretos |
+| Crítico | `mistral:7b` | Riscos e problemas |
+| Estrategista | `mistral:7b` | Visão geral e planejamento |
+| Arquiteto | `qwen2.5-coder:14b` | Design de sistemas |
+| Contador de Histórias | `mistral:7b` | Lore e narrativa |
+| Revisor de Código | `qwen2.5-coder:14b` | Segurança e boas práticas |
+| Psicólogo | `phi4-mini` | Análise do processo |
+| Técnico | `qwen2.5-coder:14b` | Implementação |
+| Especialista | `qwen2.5-coder:14b` | Conhecimento profundo |
+| Filósofo | `mistral:7b` | Reflexão |
+| Criativo | `phi4-mini` (temp alta) | Ideias novas |
+
+Inclui: **TreeOfThought** (3 perspectivas), **Debate Protocol**, **Validação anti-alucinação**, **Prompt Cache**.
+
+---
+
 ## Setup
 
 ```powershell
@@ -143,14 +186,15 @@ python -c "from mcr import MCR; print('MCR pronto')"
 # Com auto-treinamento:
 python -c "from mcr import MCR; m = MCR(); m.auto_treinar()"
 
-# Aplicação Tibia (requer Ollama para Tier 2-3):
-# 1. ollama pull qwen2.5-coder:7b
+# Conselho multi-agente (requer Ollama):
+# 1. ollama pull qwen2.5-coder:14b
 # 2. ollama pull mistral:7b
-# 3. python mcr/servicos/sse_server.py
-# 4. http://localhost:8765
+# 3. ollama pull phi4-mini:latest
+# 4. python -c "from mcr.conselho_multi import Conselho; c=Conselho(); r=c.deliberar('sua pergunta')"
 
-# Servidor NPC (zero LLM):
-# python mcr/ferramentas/tibia/servidor.py
+# Servidor SSE:
+# python mcr/sse_server.py
+# http://localhost:8765
 ```
 
 ---
@@ -159,36 +203,38 @@ python -c "from mcr import MCR; m = MCR(); m.auto_treinar()"
 
 | Métrica | Valor |
 |---------|-------|
-| Classificação de ações | 14/14 (100%) |
-| Ferramentas registradas | 285 |
+| Linhas de código (`mcr/`) | ~6500 |
+| Módulos Python | 65+ |
+| Ferramentas registradas | ~130+ |
+| Equação | Sigmoide 5D (θ=2.0, τ=0.35) |
+| Arquétipos do Conselho | 11 |
+| Testes automáticos | 105 (57 passam, 48 falham por módulos legados) |
 | NPCs treinados (diálogo) | 448 |
 | Diálogos aprendidos | 4529 |
-| Vocabulário único | 4959 |
 | APIs Canary conhecidas | 6445 |
-| Imports verificados | 20/20 |
 | Código Lua gerado | ✅ Estruturalmente válido |
 
 ---
 
 ## Limitações Honestas
 
-1. **Markov de 1ª ordem.** O motor só vê o estado atual. Não modela dependências de longo alcance. `compose_state()` mitiga isso compondo contexto no nome do estado, mas o limite é fundamental.
+1. **Markov de 1ª ordem.** O motor só vê o estado atual. `compose_state()` mitiga compondo contexto no nome do estado, mas o limite é fundamental.
 
-2. **Classificação depende de seeds.** O MCR classifica entradas comparando com estados pré-treinados. Sem seeds suficientes, a confiança é baixa e o sistema usa fallbacks. Quanto mais exemplos, melhor funciona.
+2. **Classificação depende de seeds.** O MCR classifica entradas comparando com estados pré-treinados. Sem seeds suficientes, a confiança é baixa.
 
-3. **Templates são determinísticos.** `golden_templates.py` (Tier 1) gera código estruturalmente válido mas não entende semântica. "Crie um ferreiro que vende armaduras" gera um NPC chamado "Ferreiro Vende Armaduras" — sem shop_items preenchidos automaticamente.
+3. **Semântica complexa requer LLM.** O pipeline Tier 2-3 usa Ollama para descrições ricas. O MCR decide quando usar LLM via superposição entrópica.
 
-4. **Semântica complexa requer LLM.** Para descrições ricas (quests, diálogos, lore), o pipeline Tier 2-3 (`mcr_world_builder`) usa Ollama. O MCR decide SOZINHO quando usar LLM (via `hybrid_router`), mas o LLM é necessário para qualidade máxima em alguns domínios.
+4. **Equação 5D com parâmetros mutáveis.** `mcr_auto_evolution` pode reajustá-los, mas o processo é lento.
 
-5. **Equação com parâmetros calibrados.** Os pesos (div×2, esp×3, prof×2) foram calibrados em um commit específico. O `mcr_auto_evolution` pode reajustá-los, mas o processo é lento e requer muitas iterações.
+5. **Módulos legados não migrados.** `devia.*`, `golden_templates`, `cielab` existem sob `nichos/tibia/mcr/` mas não estão no path correto.
 
-6. **Nome extraído por heurística.** `_extrair_nome()` remove stopwords e concatena palavras restantes. Funciona para entradas simples, falha para descrições complexas.
+6. **Testes com falhas.** 48/105 testes falham por `ModuleNotFoundError` — módulos movidos para `nichos/tibia/mcr/`.
 
 ---
 
 ## Licença
 
-**AGPL v3** ou licença comercial. Veja [LICENCA_COMERCIAL.md](LICENCA_COMERCIAL.md).
+**AGPL v3** ou licença comercial. Consulte o autor.
 
 ---
 

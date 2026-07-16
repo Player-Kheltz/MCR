@@ -340,6 +340,12 @@ class Emergir:
         }
 
 
+# Alias para compatibilidade com master_agent.py
+class EmergirEngine(Emergir):
+    """Alias para compatibilidade."""
+    pass
+
+
 if __name__ == '__main__':
     """Modo standalone: gera uma ideia e mostra sem executar."""
     print('=' * 55)

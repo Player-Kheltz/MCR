@@ -108,13 +108,13 @@ class _Handler(BaseHTTPRequestHandler):
         if self.path == '/api/chat':
             emit('chat_start', {'prompt': prompt[:100]})
             try:
-                from mcr.pipeline_completo import PipelineCompleto
-                pipe = PipelineCompleto()
+                # Usa MCR Agent (Markov + Cache + LLM fallback)
+                from mcr.agente_mcr_integrado import processar_chat
                 t0 = time.time()
                 resultado = []
                 def _exec():
                     try:
-                        resultado.append(pipe.processar(prompt))
+                        resultado.append(processar_chat(prompt))
                     except Exception as ex:
                         resultado.append({'erro': str(ex)})
                 t = threading.Thread(target=_exec, daemon=True)
@@ -124,14 +124,14 @@ class _Handler(BaseHTTPRequestHandler):
                     self._responder_json({'erro': 'Tempo limite excedido'})
                     return
                 res = resultado[0]
-                if 'erro' in res:
-                    self._responder_json({'erro': res['erro']}, 500)
-                    return
                 tempo = round(time.time() - t0, 2)
-                resposta = res.get('resposta', '')
-                rota = res.get('rota', '?')
-                emit('chat_response', {'prompt': prompt[:100], 'resposta': resposta[:500], 'rota': rota, 'tempo': tempo})
-                self._responder_json({'resposta': resposta, 'rota': rota, 'tempo': tempo})
+                resposta = res.get('resposta', str(res))
+                fonte = res.get('fonte', '?')
+                emit('chat_response', {
+                    'prompt': prompt[:100], 'resposta': resposta[:500],
+                    'fonte': fonte, 'tempo': tempo
+                })
+                self._responder_json(res)
             except Exception as e:
                 self._responder_json({'erro': str(e)}, 500)
             return
@@ -289,6 +289,15 @@ class _Handler(BaseHTTPRequestHandler):
                 self._responder_json({'erro': str(e)}, 500)
             return
 
+        # API: MCR Agent Stats
+        if path == '/api/mcr-stats':
+            try:
+                from mcr.agente_mcr_integrado import get_stats
+                self._responder_json(get_stats())
+            except Exception as e:
+                self._responder_json({'stats': 'agente nao iniciado'})
+            return
+
         if path == '/api/world/npcs':
             try:
                 from mcr.mcr_world_state import _carregar
@@ -422,7 +431,9 @@ class _Handler(BaseHTTPRequestHandler):
 
         # Dashboard HTML
         if path == '' or path == '/dashboard' or path == '/dashboard.html':
-            html_path = os.path.join(TEMPLATES, 'dashboard.html')
+            html_path = os.path.join(TEMPLATES, 'chat_mcr.html')
+            if not os.path.exists(html_path):
+                html_path = os.path.join(TEMPLATES, 'dashboard.html')
             if os.path.exists(html_path):
                 try:
                     with open(html_path, 'rb') as f:
@@ -432,7 +443,7 @@ class _Handler(BaseHTTPRequestHandler):
                     self.send_header('Content-Length', str(len(conteudo)))
                     self.end_headers()
                     self.wfile.write(conteudo)
-                except (BrokenPipeError, ConnectionResetError):
+                except (BrokenPipeError, ConnectionResetError) as e:
                     pass
                 return
 
@@ -444,7 +455,7 @@ class _Handler(BaseHTTPRequestHandler):
         pass
 
 
-def iniciar_sse(porta=8765):
+def iniciar_sse(porta=8766):
     """Inicia servidor SSE em thread separada."""
     global _servidor
     if _servidor is not None:

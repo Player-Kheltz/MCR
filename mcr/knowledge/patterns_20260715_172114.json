@@ -1,0 +1,40 @@
+{
+  "metadata": {
+    "timestamp": "2026-07-15 17:21:14",
+    "total_padroes": 1,
+    "tipos": {
+      "npc": 1,
+      "total": 1
+    }
+  },
+  "padroes": [
+    {
+      "arquivo": "<execucao:gerar>",
+      "linguagem": "lua",
+      "tipo": "npc",
+      "api_calls": [
+        "Game . createNpcType",
+        "Set",
+        "VAZIO",
+        "addKeyword",
+        "creature",
+        "keywordHandler",
+        "ship",
+        "vanilla"
+      ],
+      "variaveis": [
+        "",
+        "VAZIO",
+        "description",
+        "floorchange",
+        "internalNpcName",
+        "local",
+        "maxHealth",
+        "npcConfig"
+      ],
+      "funcoes": [],
+      "tabelas": [],
+      "tamanho_linhas": 1
+    }
+  ]
+}

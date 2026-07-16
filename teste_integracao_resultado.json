@@ -1,0 +1,18 @@
+{
+  "timestamp": "2026-07-15 18:09:35",
+  "modelos": {
+    "principal": "qwen3.5:9b",
+    "code": "qwen2.5-coder:14b",
+    "quick": "phi4-mini:latest"
+  },
+  "resultados": {
+    "roteamento": 0.0,
+    "mcr": 10,
+    "code": 8,
+    "quick": 10,
+    "pipeline": 10
+  },
+  "nota_total": 38.0,
+  "maximo": 50,
+  "porcentagem": 76.0
+}

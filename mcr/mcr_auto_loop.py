@@ -17,15 +17,36 @@ import os, sys, json, math
 
 sys.path.insert(0, os.path.dirname(__file__))
 
-from core.markov_universal import MarkovUniversal
-from core.mcr_emergir import MCREmergir
-from core.jaccard_byte import jaccard_bytes
+MarkovUniversal = None
+MCREmergir = None
+jaccard_bytes = None
+
+
+def _lazy_imports():
+    global MarkovUniversal, MCREmergir, jaccard_bytes
+    if MarkovUniversal is None:
+        try:
+            from core.markov_universal import MarkovUniversal as _mu
+            MarkovUniversal = _mu
+        except ImportError:
+            from mcr.engine import MCR as MarkovUniversal
+        try:
+            from core.mcr_emergir import MCREmergir as _me
+            MCREmergir = _me
+        except ImportError:
+            from mcr.emergir import MCREmergir
+        try:
+            from core.jaccard_byte import jaccard_bytes as _jb
+            jaccard_bytes = _jb
+        except ImportError:
+            def jaccard_bytes(a, b): return 0.0
 
 
 class MCRAutoLoop:
     """Auto-Loop MCR: executa → avalia → expande → até 10/10."""
     
     def __init__(self, dados_base: str, expansoes: str):
+        _lazy_imports()
         self.mcr = MCREmergir()
         self.dados_base = dados_base
         self.expansoes = expansoes

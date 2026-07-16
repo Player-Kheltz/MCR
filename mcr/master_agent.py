@@ -16,9 +16,12 @@ Uso:
 """
 import os, sys, json, time, re, random, hashlib
 try:
-    from mcr.modules.conselho import tree_of_thought
+    from mcr.conselho_multi import tree_of_thought
 except ImportError:
-    from mcr.conselho import tree_of_thought
+    try:
+        from mcr.modules.conselho import tree_of_thought
+    except ImportError:
+        from mcr.conselho_multi import tree_of_thought
 try:
     from context_crew import ContextCrew
 except ImportError:

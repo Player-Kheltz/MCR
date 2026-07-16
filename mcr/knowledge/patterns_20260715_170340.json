@@ -1,0 +1,43 @@
+{
+  "metadata": {
+    "timestamp": "2026-07-15 17:03:40",
+    "total_padroes": 1,
+    "tipos": {
+      "generic": 1,
+      "total": 1
+    }
+  },
+  "padroes": [
+    {
+      "arquivo": "<execucao:gerar>",
+      "linguagem": "lua",
+      "tipo": "generic",
+      "api_calls": [
+        "Conector",
+        "Dict",
+        "MCRPesoNota",
+        "Optional",
+        "VAZIO",
+        "VAZIO . detec",
+        "erro",
+        "forja",
+        "golden . . \" import tecelao",
+        "mcr .",
+        "revolta",
+        "self",
+        "signature",
+        "tem_quest_associada",
+        "tem_quest_associada ' outfit golden example scores busca resposta { . \" \" \" , ' . texto",
+        "tokenizador_hierarquico",
+        "valida"
+      ],
+      "variaveis": [
+        "import",
+        "spec"
+      ],
+      "funcoes": [],
+      "tabelas": [],
+      "tamanho_linhas": 1
+    }
+  ]
+}

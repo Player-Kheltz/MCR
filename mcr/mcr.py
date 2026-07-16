@@ -93,6 +93,14 @@ class MCR:
             self.mk_padrao.load()
         except Exception:
             pass
+        # Markov de bigrama de estados (estado_anterior|estado -> acao)
+        # Compreensao sequencial: P(acao | estado_anterior, estado_atual)
+        self.mk_estado2 = MarkovEngine("mcr_estado2")
+        try:
+            self.mk_estado2.load()
+        except Exception:
+            pass
+        self._estado_anterior = ''  # usado pelo mk_estado2
 
         # ─── Módulos MCR (lazy init) ─────────────────────
         self._esfera = None          # correlacao N-dimensional
@@ -789,10 +797,16 @@ class MCR:
             tem_responder = 'responder' in p0_dist
             tem_execucao = len(acoes_execucao) > 0
             
-            if not (tem_responder and tem_execucao and h_norm > self._th('feedback_h_min', 0.7)):
+            # Contexto modula threshold: mais palavras = menos feedback necessario
+            th_base = self._th('feedback_h_min', 0.7)
+            n_palavras = len(palavras)
+            modulador = min(0.3, n_palavras * 0.03)  # -0.03 por palavra extra
+            th_adaptado = max(0.2, th_base - modulador)
+            
+            if not (tem_responder and tem_execucao and h_norm > th_adaptado):
                 return acao, conf
             
-            input_curto = len(palavras) <= 3
+            input_curto = n_palavras <= 3
             if not input_curto:
                 return acao, conf
             
@@ -902,6 +916,22 @@ class MCR:
                 pass
 
         _scan(ROOT_DIR)
+        # Tambem escaneia nichos/ (exemplos de dominio movidos) — depth=-1 p/ alcancar npc/monster
+        try:
+            nicho_dir = Path(__file__).parent.parent / 'nichos'
+            if nicho_dir.exists():
+                _scan(nicho_dir, depth=0)
+                # Garante que subdiretorios profundos sejam alcancados
+                for sub in list(nicho_dir.rglob('*/'))[:100]:
+                    if sub.is_dir() and not sub.name.startswith('.') and not sub.name.startswith('__'):
+                        files = [f for f in sub.iterdir() if f.is_file() and not f.name.startswith('.')]
+                        if len(files) >= 2 and len(set(f.stem.lower() for f in files)) >= 2:
+                            nome_dir = sub.name.lower().replace(' ', '_').replace('-', '_')
+                            if nome_dir not in dirs_por_tool:
+                                dirs_por_tool[nome_dir] = []
+                            dirs_por_tool[nome_dir].append(sub)
+        except Exception:
+            pass
 
         # Fase 2: ENTROPIA — diversidade de stems decide quais sao dominios
         tools_significativas = {}
@@ -929,16 +959,31 @@ class MCR:
         for tool in tools_significativas:
             wrappers[tool] = _gerar
 
+        def _qualquer_palavra_em(palavras, texto):
+            return any(p in texto for p in palavras)
+
         def _responder(entrada="", texto="", **kw):
             msg = entrada or texto
             if not msg:
                 return {'sucesso': False, 'erro': 'Sem entrada'}
             try:
-                from mcr.metacognicao import Metacognicao
+                from mcr.metacognicao import Metacognicao, _carregar_kg
                 meta = Metacognicao()
                 score, just = meta.calcular_confianca(msg)
                 if score > 0.3:
-                    return {'sucesso': True, 'resposta': f'[KG:{score:.0%}] {just}',
+                    padroes = _carregar_kg()
+                    palavras = set(_re.findall(r'[a-z\xc3-\xff]{3,}', msg.lower()))
+                    relevantes = []
+                    for p in padroes[:100]:
+                        texto_p = str(p.get('api_calls', [])) + str(p.get('variaveis', []))
+                        if _qualquer_palavra_em(palavras, texto_p.lower()):
+                            relevantes.append(p)
+                    if relevantes:
+                        tipos = list(set(p.get('tipo','') for p in relevantes if p.get('tipo')))
+                        apis = list(set(api for p in relevantes for api in p.get('api_calls',[])[:5]))
+                        return {'sucesso': True, 'resposta': {'padroes': len(relevantes), 'tipos': tipos[:5], 'apis': apis[:10]},
+                                'confianca': round(score, 3), 'fonte': 'kg'}
+                    return {'sucesso': True, 'resposta': {'padroes': 0, 'tipos': [], 'apis': []},
                             'confianca': round(score, 3), 'fonte': 'kg'}
             except Exception:
                 pass
@@ -951,7 +996,8 @@ class MCR:
                             'fonte': 'raciocinio', 'tipo': r.get('tipo', 'generico')}
             except Exception:
                 pass
-            return {'sucesso': True, 'resposta': 'Nao tenho informacao suficiente.',
+            # Fallback: retorna dados puros sem texto fixo
+            return {'sucesso': True, 'resposta': {'padroes': 0, 'fonte': 'fallback'},
                     'fonte': 'fallback', 'confianca': 0.0}
         wrappers['responder'] = _responder
 
@@ -973,22 +1019,39 @@ class MCR:
         # Ações universais — cada uma usa ferramentas MCR existentes
         def _analisar(entrada="", texto="", **kw):
             msg = entrada or texto
+            resultados = {}
+            # Pattern miner
             try:
                 from mcr.pattern_miner import minerar_codigo
                 padroes = minerar_codigo(msg, 'analisar')
-                return {'sucesso': True, 'tipo': 'analisar',
-                        'padroes': len(padroes) if padroes else 0,
-                        'input': msg[:100]}
+                resultados['padroes'] = len(padroes) if padroes else 0
             except Exception:
-                try:
-                    from mcr.sanity_validator import SanityValidator
-                    sv = SanityValidator()
-                    val = sv.validar_script(msg, 'lua')
-                    return {'sucesso': True, 'tipo': 'analisar',
-                            'resultado': val, 'input': msg[:100]}
-                except Exception as e:
-                    return {'sucesso': True, 'tipo': 'analisar',
-                            'mensagem': 'Analise generica', 'input': msg[:100]}
+                pass
+            # Code analyzer
+            try:
+                from mcr.code_analyzer import analisar_arquivo
+                r_ca = analisar_arquivo(msg)
+                if r_ca:
+                    if isinstance(r_ca, list):
+                        resultados['code_analyzer'] = [str(x)[:60] for x in r_ca[:5]]
+                    elif isinstance(r_ca, dict):
+                        resultados['code_analyzer'] = {k: str(v)[:60] for k, v in r_ca.items()}
+            except Exception:
+                pass
+            # Sanity validator — extrair chamadas direto do texto
+            try:
+                from mcr.sanity_validator import SanityValidator
+                sv = SanityValidator()
+                chamadas = sv.extrair_chamadas(msg)
+                if chamadas:
+                    resultados['apis'] = chamadas[:10]
+            except Exception:
+                pass
+            if resultados:
+                return {'sucesso': True, 'tipo': 'analisar',
+                        'resultados': resultados, 'input': msg[:60]}
+            return {'sucesso': True, 'tipo': 'analisar',
+                    'mensagem': 'Analise generica', 'input': msg[:60]}
         wrappers['analisar'] = _analisar
 
         def _buscar(entrada="", texto="", **kw):
@@ -1002,8 +1065,27 @@ class MCR:
                     p_tokens = set(_re.findall(r'[a-z\xc3-\xff]{3,}', str(p).lower()))
                     if palavras & p_tokens:
                         matches.append(str(p.get('arquivo', p))[:80])
+                if matches:
+                    return {'sucesso': True, 'tipo': 'buscar',
+                            'resultados': matches[:10], 'total': len(matches)}
+                # Fallback: grep no codigo fonte
+                try:
+                    import subprocess, tempfile, os
+                    with tempfile.NamedTemporaryFile('w', delete=False, suffix='.txt') as f:
+                        f.write(msg)
+                        f.flush()
+                        query = os.path.basename(f.name)
+                    # Usa buscar_conteudo para fazer grep textual
+                    if 'buscar_conteudo' in wrappers:
+                        grep_r = wrappers['buscar_conteudo'](texto=msg)
+                        if grep_r.get('resultados'):
+                            return {'sucesso': True, 'tipo': 'buscar',
+                                    'resultados': grep_r['resultados'][:10],
+                                    'total': len(grep_r['resultados']), 'fonte': 'grep'}
+                except Exception:
+                    pass
                 return {'sucesso': True, 'tipo': 'buscar',
-                        'resultados': matches[:10], 'total': len(matches)}
+                        'resultados': [], 'total': 0, 'fonte': 'kg'}
             except Exception as e:
                 return {'sucesso': False, 'erro': str(e)[:100], 'tipo': 'buscar'}
         wrappers['buscar'] = _buscar
@@ -1047,14 +1129,6 @@ class MCR:
                 except Exception:
                     pass
             
-            # Bridge: verifica analogia entre os conceitos
-            if bridge and len(palavras) >= 4:
-                try:
-                    analogia = bridge.analogia(palavras[0], palavras[1], palavras[2], palavras[3])
-                    resultado['analogia'] = analogia
-                except Exception:
-                    pass
-            
             # PONTE_OTIMA: calcula score da conexao via Equacao MCR
             try:
                 from mcr.equacao_mcr import calcular_ponte
@@ -1077,6 +1151,26 @@ class MCR:
                 resultado['score_ponte'] = round(score_ponte, 3)
             except Exception:
                 pass
+
+            # Esfera: descobre relacao entre os 2 conceitos via acao + niveis
+            esfera = self._lazy('_esfera', 'mcr.esfera.MCREsfera')
+            if esfera and esfera.total > 0 and len(palavras) >= 2:
+                try:
+                    for pal in palavras[:2]:
+                        for nivel in ['palavra', 'padrao', 'intencao']:
+                            val = esfera.predizer_cross('acao', **{nivel: pal})
+                            if val:
+                                resultado[f'acao_{pal[:8]}_{nivel}'] = str(val)[:40]
+                except Exception:
+                    pass
+
+            # Bridge: analogia de 4 palavras
+            if bridge and len(palavras) >= 4:
+                try:
+                    analogia = bridge.analogia(palavras[0], palavras[1], palavras[2], palavras[3])
+                    resultado['analogia'] = str(analogia)[:80]
+                except Exception:
+                    pass
             
             return resultado
         wrappers['conectar'] = _conectar
@@ -1096,15 +1190,22 @@ class MCR:
         def _planejar(entrada="", texto="", **kw):
             msg = entrada or texto
             try:
-                from mcr.planejador import Planejador
-                plan = Planejador()
-                r = plan.planejar(msg)
+                from mcr.task_planner_dag import TaskPlanner
+                tp = TaskPlanner()
+                r = tp.planejar(msg) if hasattr(tp, 'planejar') else tp.decompose(msg)
                 return {'sucesso': True, 'tipo': 'planejar',
-                        'plano': r, 'input': msg[:100]}
+                        'plano': r, 'fonte': 'task_planner_dag', 'input': msg[:60]}
             except Exception:
-                return {'sucesso': True, 'tipo': 'planejar',
-                        'mensagem': 'Planejamento via Markov —分解 em tarefas',
-                        'input': msg[:100]}
+                try:
+                    from mcr.planejador import Planejador
+                    plan = Planejador()
+                    r = plan.planejar(msg)
+                    return {'sucesso': True, 'tipo': 'planejar',
+                            'plano': r, 'fonte': 'planejador', 'input': msg[:60]}
+                except Exception:
+                    return {'sucesso': True, 'tipo': 'planejar',
+                            'mensagem': 'Planejamento via Markov — decompor em subtarefas',
+                            'input': msg[:60]}
         wrappers['planejar'] = _planejar
 
         # Ferramentas de arquivo — capacidades cognitivas do MCR
@@ -1469,99 +1570,165 @@ class MCR:
         return 'responder'
 
     def _decidir_dominio(self, msg):
-        """Descobre o dominio (npc, monstro, etc) pela assinatura + palavras.
-        Retorna o nome do diretorio em _dirs_por_tool, ou None."""
+        """Descobre o dominio pela assinatura + palavras + trigramas (universal)."""
         # 1. Assinatura: compara fingerprint do input com perfis de diretorios
         dom_sig = self._descobrir_dominio_por_assinatura(msg)
-        if dom_sig and dom_sig in self._dirs_por_tool:
+        if dom_sig and dom_sig in getattr(self, '_dirs_por_tool', {}):
             return dom_sig
-        # 2. Descobridor: ancora de dominio no texto
-        if hasattr(self, '_descobridor') and self._descobridor:
-            try:
-                palavras = _re.findall(r'[a-z\xc3-\xff]{3,}', msg.lower())
-                for p in palavras:
-                    dir_ancora = self._descobridor.classificar(p)
-                    if dir_ancora:
-                        tool = dir_ancora.lower().replace(' ', '_').replace('-', '_')
-                        if tool in self._dirs_por_tool:
-                            return tool
-            except Exception:
-                pass
-        # 3. Overlap de palavras com stems de arquivos
+
+        dirs_para_buscar = dict(getattr(self, '_dirs_por_tool', {}))
+        palavras = set(_re.findall(r'[a-z\xc3-\xff]{3,}', msg.lower()))
+
+        # 2. Overlap exato com stems de arquivos (inclui nichos/)
+        melhor_dir = None
+        melhor_overlap = 0
+        for tool, dirs in dirs_para_buscar.items():
+            for d in dirs:
+                try:
+                    stems = set(f.stem.lower() for f in list(d.iterdir())[:20] if f.is_file())
+                    overlap = len(palavras & stems)
+                    if overlap > melhor_overlap:
+                        melhor_overlap = overlap
+                        melhor_dir = tool
+                except Exception:
+                    pass
+        if melhor_dir and melhor_overlap > 0:
+            return melhor_dir
+
+        # 3. Overlap de trigramas com nomes de ferramentas (resolve monstro/monster)
+        def get_trigramas(s):
+            return set(s[i:i+3] for i in range(len(s)-2))
+
+        melhor_tri = None
+        max_sim = 0
+        tris_input = set()
+        for p in palavras:
+            tris_input |= get_trigramas(p)
+        
+        for tool in dirs_para_buscar:
+            tris_tool = get_trigramas(tool.lower())
+            if not tris_tool: continue
+            sim = len(tris_input & tris_tool) / len(tris_tool)
+            if sim > max_sim:
+                max_sim = sim
+                melhor_tri = tool
+        
+        if melhor_tri and max_sim > 0.4: # 'monstro' vs 'monster' compartilha 'mon', 'ons', 'nst'
+            return melhor_tri
+
+        # 4. Procura em nichos/ por match textual em stems
         try:
-            palavras = set(_re.findall(r'[a-z\xc3-\xff]{3,}', msg.lower()))
-            melhor_dir = None
-            melhor_overlap = 0
-            for tool, dirs in self._dirs_por_tool.items():
-                for d in dirs:
-                    try:
-                        stems = set(f.stem.lower() for f in list(d.iterdir())[:20] if f.is_file())
-                        overlap = len(palavras & stems)
-                        if overlap > melhor_overlap:
-                            melhor_overlap = overlap
-                            melhor_dir = tool
-                    except Exception:
-                        pass
-            if melhor_dir and melhor_overlap > 0:
-                return melhor_dir
+            from pathlib import Path
+            nicho_dir = Path(__file__).parent.parent / 'nichos'
+            for d in [nicho_dir / 'tibia' / 'mcr']:
+                if d.exists():
+                    for f in d.iterdir():
+                        if f.is_file() and f.stem.lower() in msg.lower():
+                            return f.stem
         except Exception:
             pass
+
         return None
 
     def _gerar_universal(self, msg, tool):
-        """Gera usando template entropico + esfera + variador.
-        Um codigo para todo dominio. Agnostico a extensao."""
-        # Se tool é verbo generico (gerar), descobre o dominio
+        """Gera usando template entropico + variador + esfera. Um codigo para todo dominio."""
         if tool == 'gerar' or tool not in getattr(self, '_dirs_por_tool', {}):
             dominio = self._decidir_dominio(msg)
             if dominio:
                 tool = dominio
         dirs = getattr(self, '_dirs_por_tool', {})
         d_list = dirs.get(tool, [])
+        if not d_list:
+            try:
+                from pathlib import Path
+                nd = Path(__file__).parent.parent / 'nichos' / 'tibia' / 'mcr'
+                if nd.exists():
+                    d_list = [nd]
+            except Exception:
+                pass
         d = d_list[0] if d_list else None
         try:
             exemplos = [f for f in d.iterdir() if f.is_file()][:10] if d and d.exists() else []
         except Exception:
             exemplos = []
+        nome_input = self._extrair_nome(msg) or 'Entidade'
+
+        # Variador: descobre TODAS as chaves do dominio dinamicamente
+        var = self._lazy('_variador', 'mcr.variador_universal.VariadorUniversal')
+        dominio_v = {}
+        if var and d:
+            try:
+                dominio_v = var.extrair_dominio(str(d))
+            except Exception:
+                pass
+
         if not exemplos:
-            # Fallback: gera pelo template entropico do proprio input
-            nome = self._extrair_nome(msg)
-            codigo = f"-- Gerado por MCR\n-- Input: {msg[:60]}\n-- Dominio: {tool}\nlocal {nome.lower().replace(' ', '_')} = {{}}"
-            return {'sucesso': True, 'codigo': codigo, 'entidade': nome,
-                    'tipo': tool, 'arquivo': '', 'nota': 'Geracao sem exemplos — template basico'}
+            # Gera do variador: usa TODAS as chaves descobertas, zero hardcode
+            linhas = [f"-- Gerado por MCR", f"-- {msg}"]
+            if dominio_v:
+                for chave, valores in dominio_v.items():
+                    v = var.valor(dominio_v, chave, '?')
+                    if v is not None:
+                        # Converte chave aninhada (npcConfig.health) para Lua (npcConfig.health = ...)
+                        nome_chave = chave
+                        if '|' in chave:
+                            continue
+                        if isinstance(v, (int, float)):
+                            linhas.append(f"{chave} = {v}")
+                        else:
+                            linhas.append(f"{chave} = {v!r}")
+            else:
+                linhas.append(f"local {nome_input.lower().replace(' ', '_')} = {{}}")
+            codigo = '\n'.join(linhas)
+            return {'sucesso': True, 'codigo': codigo, 'entidade': nome_input,
+                    'tipo': tool, 'arquivo': '', 'nota': 'Gerado com variador'}
 
         try:
-            # Tokeniza todos os exemplos (mesmo formato para qualquer extensao)
-            from mcr.gerador_universal import tokenizar_arquivo, extrair_template_dominio, gerar_do_dominio
-            arqs = [str(f) for f in exemplos]
-            template = extrair_template_dominio(arqs)
-            if not template:
-                # Fallback: le primeiro arquivo como saida
-                conteudo = exemplos[0].read_text(encoding='latin-1', errors='replace')
-                nome = self._extrair_nome(msg)
-                return {'sucesso': True, 'codigo': conteudo[:500], 'entidade': nome,
-                        'tipo': tool, 'arquivo': str(exemplos[0])}
+            import random as _random
+            exemplo = exemplos[_random.randint(0, len(exemplos)-1)]
+            conteudo = exemplo.read_text(encoding='latin-1', errors='replace')
 
-            # Gera com variador (preenche gaps com valores reais do dominio)
-            var = self._lazy('_variador', 'mcr.variador_universal.VariadorUniversal')
-            codigo = gerar_do_dominio(template, coupling=self._coupling)
+            # Descobre nome da entidade no exemplo: string entre aspas, capitalizada
+            nomes_exemplo = _re.findall(r'"([A-Z][A-Za-z0-9 _-]{2,})"', conteudo)
+            nome_exemplo = ''
+            for n in nomes_exemplo:
+                if n.strip() and n[0].isupper() and n.lower() != tool.lower():
+                    nome_exemplo = n
+                    break
+            
+            # Se o input tem um nome real (nao e so o nome do dominio)
+            if nome_exemplo and nome_input and nome_input.lower() != tool.lower():
+                conteudo = conteudo.replace(nome_exemplo, nome_input)
+            elif nome_input and nome_input.lower() != tool.lower():
+                # Se nao achou nome mas tem input, tenta substituir a primeira string capitalizada
+                match = _re.search(r'"([A-Z][A-Za-z0-9 _-]+)"', conteudo)
+                if match:
+                    conteudo = conteudo.replace(match.group(1), nome_input)
 
-            # Esfera: se tem correlacoes cross-domain, preenche gaps
+            # Variador: substitui valores de TODAS as chaves descobertas
+            for chave, valores in dominio_v.items():
+                if len(set(valores)) <= 1:
+                    continue
+                chave_lua = chave.split('.')[-1].split('|')[-1]
+                for match in _re.finditer(r'\b' + _re.escape(chave_lua) + r'\s*=\s*(\d+)', conteudo):
+                    val_original = int(match.group(1))
+                    val_novo = var.valor(dominio_v, chave, val_original)
+                    if val_novo is not None and val_novo != val_original:
+                        conteudo = conteudo.replace(f'{chave_lua} = {val_original}',
+                                                    f'{chave_lua} = {val_novo}', 1)
+
+            # Esfera: tenta prever valores cross para qualquer chave que o nome do input conheca
             esfera = self._lazy('_esfera', 'mcr.esfera.MCREsfera')
-            if esfera and esfera.total > 0:
-                nome = self._extrair_nome(msg)
-                # Tenta prever valores correlacionados
-                for nivel_alvo in ['lookType', 'health', 'race']:
-                    val = esfera.predizer_cross(nivel_alvo, palavra=nome.lower())
-                    if val and str(val) in codigo:
-                        # Ja tem valor, ok
-                        pass
+            if esfera and esfera.total > 0 and nome_input:
+                for chave in list(dominio_v.keys())[:10]:
+                    nivel_alvo = chave.split('.')[-1]
+                    val = esfera.predizer_cross(nivel_alvo, palavra=nome_input.lower())
+                    if val:
+                        _re.sub(r'\b' + _re.escape(nivel_alvo.lower()) + r'\s*=\s*\d+',
+                                f'{nivel_alvo.lower()} = {val}', conteudo)
 
-            nome = self._extrair_nome(msg)
-            if not codigo:
-                codigo = exemplos[0].read_text(encoding='latin-1', errors='replace')[:500]
-            return {'sucesso': True, 'codigo': codigo, 'entidade': nome,
-                    'tipo': tool, 'arquivo': str(exemplos[0])}
+            return {'sucesso': True, 'codigo': conteudo, 'entidade': nome_input,
+                    'tipo': tool, 'arquivo': str(exemplo)}
         except Exception as e:
             return {'sucesso': False, 'erro': str(e)[:100]}
 
@@ -2130,11 +2297,60 @@ class MCR:
             except Exception:
                 pass
 
+        # ─── Fase 4: Ponte analógica automática entre domínios ──
+        # Descobre analogias sem input explicito: se npc e monster compartilham
+        # campos como health e lookType, a analogia é auto-descoberta
+        try:
+            dirs = getattr(self, '_dirs_por_tool', {})
+            if len(dirs) >= 2:
+                tools_list = list(dirs.keys())[:8]
+                esfera = self._lazy('_esfera', 'mcr.esfera.MCREsfera')
+                for i, tool_a in enumerate(tools_list):
+                    for tool_b in tools_list[i+1:]:
+                        # Para cada par de dominios, descobre a acao de cada um
+                        # Via nivel 'palavra' (que tem dados do dataset)
+                        val_a = esfera.predizer_cross('acao', palavra=tool_a) if esfera and esfera.total > 0 else None
+                        val_b = esfera.predizer_cross('acao', palavra=tool_b) if esfera and esfera.total > 0 else None
+                        if val_a and val_b and val_a != val_b:
+                            # Analogia: tool_a : tool_b :: val_a : val_b
+                            resultado[f'_analogia_{tool_a}_{tool_b}'] = f'{tool_a}:{tool_b}::{val_a}:{val_b}'
+        except Exception:
+            pass
+
         # ─── Atualiza contexto de conversa ──
         self._ultima_interacao = time.time()
         self._contexto_conversa.append(acao)
         if len(self._contexto_conversa) > 10:
             self._contexto_conversa = self._contexto_conversa[-10:]
+
+        # ─── Phase 3: Auto-predição de tokens (compreensão) ──
+        # Para cada par de palavras adjacentes no input, tenta predizer
+        # a segunda a partir da primeira usando mk_palavra.
+        # Usa top-3 predições — compreensão é sobre probabilidade, não exatidão
+        compreensao = {'acertos': 0, 'total': 0, 'score': 0.0}
+        try:
+            palavras_input = _re.findall(r'[a-z\xc3-\xff]{3,}', entrada.lower())
+            for i in range(len(palavras_input) - 1):
+                atual = palavras_input[i]
+                esperado = palavras_input[i+1]
+                dist = self.mk_palavra.transicoes.get(atual, {})
+                if dist:
+                    compreensao['total'] += 1
+                    # Top-3 predicoes mais provaveis
+                    top3 = sorted(dist.items(), key=lambda x: -x[1])[:3]
+                    top3_words = [w for w, _ in top3]
+                    if esperado in top3_words:
+                        compreensao['acertos'] += 1
+                        # Reforça a transição acertada
+                        self.mk_palavra.aprender(atual, esperado)
+            if compreensao['total'] > 0:
+                compreensao['score'] = round(compreensao['acertos'] / compreensao['total'], 3)
+                if compreensao['score'] < 0.3 and confianca > 0.7:
+                    for i in range(len(palavras_input) - 1):
+                        self.mk_palavra.aprender(palavras_input[i], palavras_input[i+1])
+            resultado['_compreensao'] = compreensao
+        except Exception:
+            pass
 
         tempo_total = round(time.time() - t0, 3)
         return {
@@ -2202,6 +2418,26 @@ class MCR:
         """
         acao, conf = self.mk.predizer(estado)
         
+        # Generalização semântica: se Markov não reconhece o estado,
+        # busca estados conhecidos por similaridade de embedding
+        if (not acao or conf < 0.2) and entrada:
+            try:
+                from mcr.semantic_router import termo_mais_similar
+                # Usa as palavras do input pra buscar estados similares
+                palavras_in = _re.findall(r'[a-z\xc3-\xff]{3,}', entrada.lower())
+                estados_conhecidos = list(self.mk.transicoes.keys())
+                if estados_conhecidos and palavras_in:
+                    # Busca estado mais similar ao input inteiro
+                    melhor_estado_sem, score_sem = termo_mais_similar(
+                        entrada.lower()[:50], estados_conhecidos, threshold=0.2
+                    )
+                    if melhor_estado_sem and score_sem > 0.2:
+                        acao_sem, conf_sem = self.mk.predizer(melhor_estado_sem)
+                        if acao_sem and conf_sem > conf:
+                            acao, conf = self._normalizar_acao(acao_sem), conf_sem * score_sem
+            except Exception:
+                pass
+        
         # Early exit: se Markov está muito confiante, pula tudo (latência)
         if acao:
             acao = self._normalizar_acao(acao)
@@ -2237,6 +2473,35 @@ class MCR:
                         acao, conf = melhor_tri, conf_tri
                     elif conf_tri > 0.3 and acao == melhor_tri:
                         conf = min(1.0, conf * 1.2)  # concordam → boost
+            except Exception:
+                pass
+
+        # mk_estado2: bigrama de estados (estado_anterior|estado -> acao)
+        # Compreensao sequencial: se ja viu esta sequencia de estados antes
+        if self._estado_anterior and estado and hasattr(self, 'mk_estado2'):
+            try:
+                estado_composto = self._estado_anterior + '|' + estado
+                acao_est2, conf_est2 = self.mk_estado2.predizer(estado_composto)
+                if acao_est2 and conf_est2 > 0.3:
+                    if acao_est2 == acao:
+                        conf = min(1.0, conf * 1.3)  # concordam → boost
+                    elif conf_est2 > conf + 0.1:
+                        acao, conf = acao_est2, conf_est2
+            except Exception:
+                pass
+
+        # mk_padrao: padrao estrutural -> acao (agnostico a vocabulario)
+        if entrada and hasattr(self, 'mk_padrao') and self.mk_padrao.transicoes:
+            try:
+                niveis = self._extrair_niveis(entrada)
+                padrao = niveis.get('padrao', '')
+                if padrao:
+                    acao_pad, conf_pad = self.mk_padrao.predizer(padrao)
+                    if acao_pad and conf_pad > 0.3:
+                        if acao_pad == acao:
+                            conf = min(1.0, conf * 1.2)
+                        elif conf_pad > conf + 0.15:
+                            acao, conf = acao_pad, conf_pad
             except Exception:
                 pass
         
@@ -2470,7 +2735,7 @@ class MCR:
             except Exception:
                 pass
 
-        # Fallback 3: similaridade Jaccard por componentes do estado
+        # Fallback 3: similaridade Jaccard + embeddings por componentes do estado
         if self.mk.transicoes:
             partes_consulta = set(estado.split('|'))
             melhor_estado = None
@@ -2478,6 +2743,14 @@ class MCR:
             for est in self.mk.transicoes:
                 partes_est = set(est.split('|'))
                 sim = len(partes_consulta & partes_est) / max(len(partes_consulta | partes_est), 1)
+                # Bônus de similaridade semântica para estados com palavras similares
+                if entrada and sim < 0.5:
+                    try:
+                        from mcr.semantic_router import similaridade
+                        sim_sem = similaridade(entrada[:50], est[:50])
+                        sim = max(sim, sim_sem * 0.3)
+                    except Exception:
+                        pass
                 if sim > melhor_sim:
                     melhor_sim = sim
                     melhor_estado = est
@@ -2765,38 +3038,28 @@ class MCR:
             self._erros = self._erros[-100:]
 
     def _extrair_nome(self, texto: str) -> str:
-        """Extrai nome de entidade. Stopwords descobertas por frequência.
-        Zero hardcode — palavras que aparecem em >50% dos seeds sao stopwords."""
-        # Stopwords descobertas dos seeds (ja calculadas em _descobrir_stopwords_dos_seeds)
-        stops_set = getattr(self, '_stopwords', set())
-        # Adiciona verbos do dataset (P0 com H alta = verbos genericos)
-        try:
-            for acao in self._coupling._freq_acao:
-                s = str(acao)
-                if '_' in s:
-                    stops_set.add(s.split('_')[0])
-        except Exception:
-            pass
-        # Remove stopwords do texto
-        palavras = texto.split()
-        limpas = [p for p in palavras if p.lower() not in stops_set and len(p) > 2]
-        limpo = ' '.join(limpas)
-        # Filtra itens via ItemDatabase (dinâmico)
-        palavras_itens = set()
-        try:
-            from mcr.knowledge.item_database import ItemDatabase
-            db = ItemDatabase()
-            for p in limpo.lower().split():
-                if db.buscar_por_nome(p):
-                    palavras_itens.add(p.lower())
-        except Exception:
-            pass
-        palavras = [p for p in limpo.split()
-                    if len(p) > 2 and p.lower() not in palavras_itens]
-        if palavras:
-            nome = ' '.join(palavras[:2]).title()
-            return nome[:30]
-        return 'Entidade'
+        """Extrai nome de entidade via coupling._posicao_acao.
+        Palavras que aparecem em P0/P1 com H baixa sao verbos/dominios, nao nomes.
+        A ultima palavra SEM posicao conhecida e o nome da entidade.
+        Zero hardcode, zero stopwords fixas."""
+        palavras = texto.replace('_', ' ').split()
+        if not palavras:
+            return ''
+
+        # Para cada palavra, descobre se tem POSICAO conhecida no coupling
+        pos_acao = getattr(self._coupling, '_posicao_acao', {}) if hasattr(self, '_coupling') else {}
+        for i in range(len(palavras)-1, -1, -1):
+            p = palavras[i]
+            if len(p) <= 2:
+                continue
+            chave_pos = f'P{i}:{p.lower()[:10]}'
+            if chave_pos not in pos_acao or sum(pos_acao[chave_pos].values()) <= 1:
+                return p.title()
+        # Fallback: ultima palavra > 2 chars
+        for p in reversed(palavras):
+            if len(p) > 2:
+                return p.title()
+        return ''
 
     # ═══════════════════════════════════════════════════════
     # LOG DE EXECUÇÃO (para experimentos e calibração)
@@ -2911,6 +3174,33 @@ class MCR:
                         self.mk_trigrama.aprender(p[j:j+3], acao_norm)
             except Exception:
                 pass
+
+            # mk_estado2: bigrama de estados (estado_anterior|estado -> acao)
+            try:
+                if self._estado_anterior and estado and estado != self._estado_anterior:
+                    estado_composto = self._estado_anterior + '|' + estado
+                    self.mk_estado2.aprender(estado_composto, acao_norm)
+            except Exception:
+                pass
+            self._estado_anterior = estado
+
+            # mk_padrao: padrao estrutural -> acao
+            try:
+                from mcr.extrator_features import extrair_padrao
+                padrao = extrair_padrao(entrada) if hasattr(extrair_padrao, '__call__') else ''
+            except Exception:
+                padrao = ''
+            if not padrao:
+                try:
+                    niveis = self._extrair_niveis(entrada)
+                    padrao = niveis.get('padrao', '')
+                except Exception:
+                    pass
+            if padrao:
+                try:
+                    self.mk_padrao.aprender(padrao, acao_norm)
+                except Exception:
+                    pass
 
             # Esfera: cruza N níveis do mesmo input via _extrair_niveis
             esfera = self._lazy('_esfera', 'mcr.esfera.MCREsfera')

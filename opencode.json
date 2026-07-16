@@ -1,0 +1,80 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "ollama/mistral:7b",
+  "small_model": "ollama/phi4-mini:latest",
+  "default_agent": "general",
+  "provider": {
+    "ollama": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Ollama (local)",
+      "options": {
+        "baseURL": "http://localhost:11434/v1"
+      },
+      "models": {
+        "mistral:7b": { "name": "Mistral 7B" },
+        "phi4-mini:latest": { "name": "Phi-4 Mini" },
+        "qwen2.5-coder:14b": { "name": "Qwen 2.5 Coder 14B" },
+        "qwen3:8b": { "name": "Qwen 3 8B" },
+        "deepseek-r1:7b": { "name": "DeepSeek R1 7B" },
+        "gemma4:12b": { "name": "Gemma 4 12B" },
+        "qwen3.5:9b": { "name": "Qwen 3.5 9B" }
+      }
+    }
+  },
+  "instructions": ["AGENTS.md"],
+  "compaction": {
+    "auto": true,
+    "tail_turns": 20
+  },
+  "command": {
+    "mcr": {
+      "description": "Chamar o MCR para gerar conteúdo (NPCs, sprites, monstros, etc)",
+      "template": "Execute $env:PYTHONIOENCODING='utf-8'; python -c \"from mcr.mcr import MCR; m=MCR(); r=m.processar('$ARGUMENTS'); import json; print(json.dumps(r, indent=2, default=str, ensure_ascii=False))\" em E:\\MCR e mostre o resultado completo."
+    },
+    "code": {
+      "description": "Revisar/gerar código com o subagent especialista",
+      "template": "Delegue para o agente 'code' com o prompt: Revise/analise/gere o seguinte: $ARGUMENTS"
+    },
+    "quick": {
+      "description": "Comando rápido (bash, grep, leitura de arquivo)",
+      "template": "Delegue para o agente 'quick' com o prompt: $ARGUMENTS"
+    },
+    "model": {
+      "description": "Trocar o modelo ativo (ex: /model qwen3:8b)",
+      "template": "Altere o campo 'model' no arquivo opencode.json para 'ollama/$ARGUMENTS'. Depois avise o usuário que precisa reiniciar o OpenCode."
+    },
+    "benchmark": {
+      "description": "Rodar benchmark de todos os modelos Ollama",
+      "template": "Execute 'python benchmark_ollama.py' em E:\\MCR e mostre os resultados."
+    },
+    "models": {
+      "description": "Listar todos os modelos Ollama disponíveis",
+      "template": "Execute 'ollama list' e mostre em tabela."
+    },
+    "conselho": {
+      "description": "Deliberacao multi-agente para problemas complexos",
+      "template": "Execute $env:PYTHONIOENCODING='utf-8'; python -c \"from mcr.conselho_multi import Conselho; c=Conselho(); import json; r=c.deliberar('$ARGUMENTS'); print(json.dumps(r, indent=2, default=str, ensure_ascii=False))\" em E:\\MCR e mostre o resultado."
+    }
+  },
+  "agent": {
+    "code": {
+      "model": "ollama/qwen2.5-coder:14b",
+      "mode": "subagent",
+      "description": "Revisão e geração de código especializada"
+    },
+    "quick": {
+      "model": "ollama/phi4-mini:latest",
+      "mode": "subagent",
+      "description": "Tarefas rápidas e operacionais"
+    },
+    "mcr": {
+      "mode": "subagent",
+      "description": "Motor Cognitivo MCR para conteúdo de domínio"
+    },
+    "conselho": {
+      "model": "ollama/qwen3:8b",
+      "mode": "subagent",
+      "description": "Deliberacao multi-agente com 11 arquétipos"
+    }
+  }
+}

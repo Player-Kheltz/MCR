@@ -1,0 +1,36 @@
+{
+  "metadata": {
+    "timestamp": "2026-07-15 15:51:01",
+    "total_padroes": 1,
+    "tipos": {
+      "generic": 1,
+      "total": 1
+    }
+  },
+  "padroes": [
+    {
+      "arquivo": "<execucao:gerar>",
+      "linguagem": "lua",
+      "tipo": "generic",
+      "api_calls": [
+        "CATALOG_PATH [ CANARY_DIR path = nova path python = 3 { , \" \" . ) . opcoes ) python . path",
+        "Marca . txt . ) . WATCHDOG_LOG",
+        "arquivo",
+        "doc",
+        "import",
+        "json",
+        "learn",
+        "line",
+        "max",
+        "print",
+        "python",
+        "python3",
+        "rio"
+      ],
+      "variaveis": [],
+      "funcoes": [],
+      "tabelas": [],
+      "tamanho_linhas": 1
+    }
+  ]
+}

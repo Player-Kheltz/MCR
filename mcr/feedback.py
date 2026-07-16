@@ -10,6 +10,11 @@ from .engine import MCR
 from .signature import MCRSignature
 
 
+class MCRFilosofia:
+    """Filosofia MCR — valores, princípios e autoavaliação."""
+    def __init__(self):
+        self.principios = ["1 equação, 1 entropia, 1 markov, N domínios"]
+
 class MCRFeedback:
     """Feedback loop: MCR solicita mais dados quando resposta e insuficiente."""
     

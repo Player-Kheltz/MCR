@@ -1,0 +1,33 @@
+{
+  "metadata": {
+    "timestamp": "2026-07-15 18:04:01",
+    "total_padroes": 1,
+    "tipos": {
+      "generic": 1,
+      "total": 1
+    }
+  },
+  "padroes": [
+    {
+      "arquivo": "<execucao:gerar>",
+      "linguagem": "lua",
+      "tipo": "generic",
+      "api_calls": [
+        "def",
+        "def f(t): return",
+        "f",
+        "f_inv",
+        "int",
+        "lab_para_rgb",
+        "max",
+        "min",
+        "np",
+        "round"
+      ],
+      "variaveis": [],
+      "funcoes": [],
+      "tabelas": [],
+      "tamanho_linhas": 49
+    }
+  ]
+}

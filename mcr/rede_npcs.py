@@ -1,6 +1,6 @@
 from collections import defaultdict
-from hdc_core import HDVector
-from sdm_core import SDM
+from mcr.hdc_core import HDVector
+from mcr.sdm_core import SDM
 
 class RedeNPCs:
     """Rede de comunicacao entre NPCs."""
@@ -114,7 +114,7 @@ if __name__ == "__main__":
     
     from mundo_tibia import MapaTibia
     from npc_vivo import MCRNPCv2
-    from hdc_core import HDCVocab
+    from mcr.hdc_core import HDCVocab
     
     # Setup
     mapa = MapaTibia()

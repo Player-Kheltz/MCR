@@ -1,0 +1,42 @@
+{
+  "metadata": {
+    "timestamp": "2026-07-15 17:17:15",
+    "total_padroes": 1,
+    "tipos": {
+      "npc": 1,
+      "total": 1
+    }
+  },
+  "padroes": [
+    {
+      "arquivo": "<execucao:gerar>",
+      "linguagem": "lua",
+      "tipo": "npc",
+      "api_calls": [
+        "Only",
+        "are",
+        "keyword",
+        "name",
+        "npc",
+        "npcConfig",
+        "say",
+        "string",
+        "sword",
+        "wash"
+      ],
+      "variaveis": [
+        "VAZIO",
+        "internalNpcName",
+        "lookBody",
+        "lookType",
+        "maxHealth",
+        "npcConfig",
+        "npcType",
+        "sendTextMessage"
+      ],
+      "funcoes": [],
+      "tabelas": [],
+      "tamanho_linhas": 1
+    }
+  ]
+}

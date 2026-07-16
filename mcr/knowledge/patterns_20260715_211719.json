@@ -1,0 +1,49 @@
+{
+  "metadata": {
+    "timestamp": "2026-07-15 21:17:19",
+    "total_padroes": 1,
+    "tipos": {
+      "generic": 1,
+      "total": 1
+    }
+  },
+  "padroes": [
+    {
+      "arquivo": "<execucao:gerar>",
+      "linguagem": "lua",
+      "tipo": "generic",
+      "api_calls": [
+        "MCRSQLite",
+        "as_completed\n\nsys.path.insert",
+        "f",
+        "identidade",
+        "nome: str",
+        "ordenar_regioes",
+        "ordenar_regioes\n\n\nclass MCRSpriteMotor:\n    \"\"\"Motor multi-nivel para sprites (byte + palavra + token) com SQLite.\n\n    Igual ao MCRMotor para codigo, mas com:\n      mk_byte:     B:ff â B:00 (bytes RGBA)\n      mk_palavra:  B_12-14 â L_15-20 (regioes)\n      mk_token:    B â L (papeis)\n    \n    SQLite backend: sem RAM blowup, N-adaptativo ate 30.\n    \"\"\"\n\n    _DB_DIR = Path(__file__).resolve",
+        "ordenar_regioes\n\n\nclass MCRSpriteMotor:\n    \"\"\"Motor multi-nivel para sprites (byte + palavra + token) com SQLite.\n\n    Igual ao MCRMotor para codigo, mas com:\n      mk_byte:     B:ff â B:00 (bytes RGBA)\n      mk_palavra:  B_12-14 â L_15-20 (regioes)\n      mk_token:    B â L (papeis)\n    \n    SQLite backend: sem RAM blowup, N-adaptativo ate 30.\n    \"\"\"\n\n    _DB_DIR = Path(__file__).resolve().parent.parent",
+        "ordenar_regioes\n\n\nclass MCRSpriteMotor:\n    \"\"\"Motor multi-nivel para sprites (byte + palavra + token) com SQLite.\n\n    Igual ao MCRMotor para codigo, mas com:\n      mk_byte:     B:ff â B:00 (bytes RGBA)\n      mk_palavra:  B_12-14 â L_15-20 (regioes)\n      mk_token:    B â L (papeis)\n    \n    SQLite backend: sem RAM blowup, N-adaptativo ate 30.\n    \"\"\"\n\n    _DB_DIR = Path(__file__).resolve().parent.parent / 'poc_output' / 'mcr_db'\n    _DB_DIR.mkdir",
+        "ordenar_regioes\n\n\nclass MCRSpriteMotor:\n    \"\"\"Motor multi-nivel para sprites (byte + palavra + token) com SQLite.\n\n    Igual ao MCRMotor para codigo, mas com:\n      mk_byte:     B:ff â B:00 (bytes RGBA)\n      mk_palavra:  B_12-14 â L_15-20 (regioes)\n      mk_token:    B â L (papeis)\n    \n    SQLite backend: sem RAM blowup, N-adaptativo ate 30.\n    \"\"\"\n\n    _DB_DIR = Path(__file__).resolve().parent.parent / 'poc_output' / 'mcr_db'\n    _DB_DIR.mkdir(parents=True, exist_ok=True)\n\n    def __init__(self, nome: str = 'sprite'):\n        # 4 niveis em paralelo",
+        "os.path.abspath",
+        "os.path.dirname",
+        "os.path.join",
+        "str"
+      ],
+      "variaveis": [
+        "Dict",
+        "MCREntropia",
+        "Optional",
+        "compose_state",
+        "defaultdict",
+        "import",
+        "math",
+        "numpy",
+        "os",
+        "random",
+        "sys"
+      ],
+      "funcoes": [],
+      "tabelas": [],
+      "tamanho_linhas": 51
+    }
+  ]
+}

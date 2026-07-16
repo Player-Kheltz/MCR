@@ -1,0 +1,1021 @@
+{
+  "timestamp": "2026-07-15 17:58:01",
+  "modelos": {
+    "phi4-mini:latest": [
+      {
+        "tarefa": "gerar_npc",
+        "tempo_total": 5.544604301452637,
+        "tokens_gerados": 84,
+        "tokens_por_segundo": 15.149863801460594,
+        "sucesso": true,
+        "erro": null,
+        "nota": 10.0,
+        "qualidade": {
+          "nota": 10.0,
+          "json_valido": true,
+          "tem_nome": true,
+          "tem_idade": true,
+          "tem_personalidade": true,
+          "tem_especialidades": true,
+          "tem_fala": true
+        },
+        "truncou": false
+      },
+      {
+        "tarefa": "explicar_codigo",
+        "tempo_total": 2.799372911453247,
+        "tokens_gerados": 88,
+        "tokens_por_segundo": 31.435611754318323,
+        "sucesso": true,
+        "erro": null,
+        "nota": 10,
+        "qualidade": {
+          "nota": 10,
+          "identificou_formula": true,
+          "identificou_numerador": true,
+          "identificou_denominador": true,
+          "identificou_raiz": true,
+          "explicacao_completa": true
+        },
+        "truncou": false
+      },
+      {
+        "tarefa": "revisar_codigo",
+        "tempo_total": 3.5143463611602783,
+        "tokens_gerados": 202,
+        "tokens_por_segundo": 57.4786828732808,
+        "sucesso": true,
+        "erro": null,
+        "nota": 10.0,
+        "qualidade": {
+          "nota": 10.0,
+          "detectou_quadratico": true,
+          "sugeriu_otimizacao": true,
+          "detectou_duplicatas": true,
+          "sugeriu_melhoria": true,
+          "mencionou_boas_praticas": true
+        },
+        "truncou": false
+      },
+      {
+        "tarefa": "gerar_lua",
+        "tempo_total": 3.5957701206207275,
+        "tokens_gerados": 214,
+        "tokens_por_segundo": 59.51437183727913,
+        "sucesso": true,
+        "erro": null,
+        "nota": 10,
+        "qualidade": {
+          "nota": 10,
+          "tem_funcao": true,
+          "sintaxe_lua": true,
+          "mencionou_itens": true,
+          "interacao_jogador": true,
+          "codigo_substancial": true
+        },
+        "truncou": false
+      },
+      {
+        "tarefa": "raciocinar",
+        "tempo_total": 3.688918113708496,
+        "tokens_gerados": 231,
+        "tokens_por_segundo": 62.61998582770763,
+        "sucesso": true,
+        "erro": null,
+        "nota": 5.5,
+        "qualidade": {
+          "nota": 5.5,
+          "resposta_correta": false,
+          "passo_a_passo": true,
+          "usou_numeros_corretos": true,
+          "explicacao_coerente": true,
+          "verificou_resultado": false
+        },
+        "truncou": false
+      }
+    ],
+    "qwen2.5-coder:1.5b": [
+      {
+        "tarefa": "gerar_npc",
+        "tempo_total": 5.657915353775024,
+        "tokens_gerados": 150,
+        "tokens_por_segundo": 26.51153130099734,
+        "sucesso": true,
+        "erro": null,
+        "nota": 8.0,
+        "qualidade": {
+          "nota": 8.0,
+          "json_valido": true,
+          "tem_nome": true,
+          "tem_idade": true,
+          "tem_personalidade": false,
+          "tem_especialidades": true,
+          "tem_fala": true
+        },
+        "truncou": false
+      },
+      {
+        "tarefa": "explicar_codigo",
+        "tempo_total": 2.3589651584625244,
+        "tokens_gerados": 33,
+        "tokens_por_segundo": 13.989184995639372,
+        "sucesso": true,
+        "erro": null,
+        "nota": 4,
+        "qualidade": {
+          "nota": 4,
+          "identificou_formula": true,
+          "identificou_numerador": false,
+          "identificou_denominador": false,
+          "identificou_raiz": true,
+          "explicacao_completa": false
+        },
+        "truncou": false
+      },
+      {
+        "tarefa": "revisar_codigo",
+        "tempo_total": 4.99492073059082,
+        "tokens_gerados": 746,
+        "tokens_por_segundo": 149.35171952403738,
+        "sucesso": true,
+        "erro": null,
+        "nota": 10.0,
+        "qualidade": {
+          "nota": 10.0,
+          "detectou_quadratico": true,
+          "sugeriu_otimizacao": true,
+          "detectou_duplicatas": true,
+          "sugeriu_melhoria": true,
+          "mencionou_boas_praticas": true
+        },
+        "truncou": false
+      },
+      {
+        "tarefa": "gerar_lua",
+        "tempo_total": 3.2727556228637695,
+        "tokens_gerados": 279,
+        "tokens_por_segundo": 85.24926152471652,
+        "sucesso": true,
+        "erro": null,
+        "nota": 10,
+        "qualidade": {
+          "nota": 10,
+          "tem_funcao": true,
+          "sintaxe_lua": true,
+          "mencionou_itens": true,
+          "interacao_jogador": true,
+          "codigo_substancial": true
+        },
+        "truncou": false
+      },
+      {
+        "tarefa": "raciocinar",
+        "tempo_total": 302.04810976982117,
+        "tokens_gerados": 0,
+        "tokens_por_segundo": 0,
+        "sucesso": false,
+        "erro": "HTTPConnectionPool(host='localhost', port=11434): Read timed out. (read timeout=300)",
+        "nota": 0.0,
+        "qualidade": {},
+        "truncou": false
+      }
+    ],
+    "mistral:7b": [
+      {
+        "tarefa": "gerar_npc",
+        "tempo_total": 7.3684186935424805,
+        "tokens_gerados": 149,
+        "tokens_por_segundo": 20.221435045565517,
+        "sucesso": true,
+        "erro": null,
+        "nota": 10.0,
+        "qualidade": {
+          "nota": 10.0,
+          "json_valido": true,
+          "tem_nome": true,
+          "tem_idade": true,
+          "tem_personalidade": true,
+          "tem_especialidades": true,
+          "tem_fala": true
+        },
+        "truncou": false
+      },
+      {
+        "tarefa": "explicar_codigo",
+        "tempo_total": 3.303158760070801,
+        "tokens_gerados": 149,
+        "tokens_por_segundo": 45.10833744994028,
+        "sucesso": true,
+        "erro": null,
+        "nota": 10,
+        "qualidade": {
+          "nota": 10,
+          "identificou_formula": true,
+          "identificou_numerador": true,
+          "identificou_denominador": true,
+          "identificou_raiz": true,
+          "explicacao_completa": true
+        },
+        "truncou": false
+      },
+      {
+        "tarefa": "revisar_codigo",
+        "tempo_total": 6.965036630630493,
+        "tokens_gerados": 598,
+        "tokens_por_segundo": 85.85740918721737,
+        "sucesso": true,
+        "erro": null,
+        "nota": 10.0,
+        "qualidade": {
+          "nota": 10.0,
+          "detectou_quadratico": true,
+          "sugeriu_otimizacao": true,
+          "detectou_duplicatas": true,
+          "sugeriu_melhoria": true,
+          "mencionou_boas_praticas": true
+        },
+        "truncou": false
+      },
+      {
+        "tarefa": "gerar_lua",
+        "tempo_total": 6.284685373306274,
+        "tokens_gerados": 514,
+        "tokens_por_segundo": 81.78611489179333,
+        "sucesso": true,
+        "erro": null,
+        "nota": 10,
+        "qualidade": {
+          "nota": 10,
+          "tem_funcao": true,
+          "sintaxe_lua": true,
+          "mencionou_itens": true,
+          "interacao_jogador": true,
+          "codigo_substancial": true
+        },
+        "truncou": false
+      },
+      {
+        "tarefa": "raciocinar",
+        "tempo_total": 3.561124324798584,
+        "tokens_gerados": 179,
+        "tokens_por_segundo": 50.265024097445455,
+        "sucesso": true,
+        "erro": null,
+        "nota": 7.0,
+        "qualidade": {
+          "nota": 7.0,
+          "resposta_correta": false,
+          "passo_a_passo": true,
+          "usou_numeros_corretos": true,
+          "explicacao_coerente": true,
+          "verificou_resultado": true
+        },
+        "truncou": false
+      }
+    ],
+    "llama3.1:8b": [
+      {
+        "tarefa": "gerar_npc",
+        "tempo_total": 8.151510238647461,
+        "tokens_gerados": 103,
+        "tokens_por_segundo": 12.635695347797327,
+        "sucesso": true,
+        "erro": null,
+        "nota": 10.0,
+        "qualidade": {
+          "nota": 10.0,
+          "json_valido": true,
+          "tem_nome": true,
+          "tem_idade": true,
+          "tem_personalidade": true,
+          "tem_especialidades": true,
+          "tem_fala": true
+        },
+        "truncou": false
+      },
+      {
+        "tarefa": "explicar_codigo",
+        "tempo_total": 2.6980502605438232,
+        "tokens_gerados": 45,
+        "tokens_por_segundo": 16.678710792781796,
+        "sucesso": true,
+        "erro": null,
+        "nota": 2,
+        "qualidade": {
+          "nota": 2,
+          "identificou_formula": true,
+          "identificou_numerador": false,
+          "identificou_denominador": false,
+          "identificou_raiz": false,
+          "explicacao_completa": false
+        },
+        "truncou": false
+      },
+      {
+        "tarefa": "revisar_codigo",
+        "tempo_total": 6.550291061401367,
+        "tokens_gerados": 475,
+        "tokens_por_segundo": 72.51586159262649,
+        "sucesso": true,
+        "erro": null,
+        "nota": 7.0,
+        "qualidade": {
+          "nota": 7.0,
+          "detectou_quadratico": false,
+          "sugeriu_otimizacao": true,
+          "detectou_duplicatas": true,
+          "sugeriu_melhoria": true,
+          "mencionou_boas_praticas": true
+        },
+        "truncou": false
+      },
+      {
+        "tarefa": "gerar_lua",
+        "tempo_total": 6.061320066452026,
+        "tokens_gerados": 417,
+        "tokens_por_segundo": 68.79689497144301,
+        "sucesso": true,
+        "erro": null,
+        "nota": 10,
+        "qualidade": {
+          "nota": 10,
+          "tem_funcao": true,
+          "sintaxe_lua": true,
+          "mencionou_itens": true,
+          "interacao_jogador": true,
+          "codigo_substancial": true
+        },
+        "truncou": false
+      },
+      {
+        "tarefa": "raciocinar",
+        "tempo_total": 5.406742095947266,
+        "tokens_gerados": 352,
+        "tokens_por_segundo": 65.10390060288779,
+        "sucesso": true,
+        "erro": null,
+        "nota": 7.0,
+        "qualidade": {
+          "nota": 7.0,
+          "resposta_correta": false,
+          "passo_a_passo": true,
+          "usou_numeros_corretos": true,
+          "explicacao_coerente": true,
+          "verificou_resultado": true
+        },
+        "truncou": false
+      }
+    ],
+    "deepseek-r1:7b": [
+      {
+        "tarefa": "gerar_npc",
+        "tempo_total": 10.380835056304932,
+        "tokens_gerados": 404,
+        "tokens_por_segundo": 38.91787103915359,
+        "sucesso": true,
+        "erro": null,
+        "nota": 10.0,
+        "qualidade": {
+          "nota": 10.0,
+          "json_valido": true,
+          "tem_nome": true,
+          "tem_idade": true,
+          "tem_personalidade": true,
+          "tem_especialidades": true,
+          "tem_fala": true
+        },
+        "truncou": false
+      },
+      {
+        "tarefa": "explicar_codigo",
+        "tempo_total": 7.041647672653198,
+        "tokens_gerados": 555,
+        "tokens_por_segundo": 78.81678064572684,
+        "sucesso": true,
+        "erro": null,
+        "nota": 10,
+        "qualidade": {
+          "nota": 10,
+          "identificou_formula": true,
+          "identificou_numerador": true,
+          "identificou_denominador": true,
+          "identificou_raiz": true,
+          "explicacao_completa": true
+        },
+        "truncou": false
+      },
+      {
+        "tarefa": "revisar_codigo",
+        "tempo_total": 88.6775848865509,
+        "tokens_gerados": 9543,
+        "tokens_por_segundo": 107.61456812574198,
+        "sucesso": true,
+        "erro": null,
+        "nota": 5,
+        "qualidade": {
+          "nota": 5,
+          "detectou_quadratico": true,
+          "sugeriu_otimizacao": true,
+          "detectou_duplicatas": false,
+          "sugeriu_melhoria": false,
+          "mencionou_boas_praticas": false
+        },
+        "truncou": false
+      },
+      {
+        "tarefa": "gerar_lua",
+        "tempo_total": 6.871615648269653,
+        "tokens_gerados": 530,
+        "tokens_por_segundo": 77.12887727261923,
+        "sucesso": true,
+        "erro": null,
+        "nota": 10,
+        "qualidade": {
+          "nota": 10,
+          "tem_funcao": true,
+          "sintaxe_lua": true,
+          "mencionou_itens": true,
+          "interacao_jogador": true,
+          "codigo_substancial": true
+        },
+        "truncou": false
+      },
+      {
+        "tarefa": "raciocinar",
+        "tempo_total": 5.981178283691406,
+        "tokens_gerados": 439,
+        "tokens_por_segundo": 73.39690930079787,
+        "sucesso": true,
+        "erro": null,
+        "nota": 7.0,
+        "qualidade": {
+          "nota": 7.0,
+          "resposta_correta": false,
+          "passo_a_passo": true,
+          "usou_numeros_corretos": true,
+          "explicacao_coerente": true,
+          "verificou_resultado": true
+        },
+        "truncou": false
+      }
+    ],
+    "qwen2.5-coder:7b": [
+      {
+        "tarefa": "gerar_npc",
+        "tempo_total": 7.677096605300903,
+        "tokens_gerados": 92,
+        "tokens_por_segundo": 11.983697057618837,
+        "sucesso": true,
+        "erro": null,
+        "nota": 10.0,
+        "qualidade": {
+          "nota": 10.0,
+          "json_valido": true,
+          "tem_nome": true,
+          "tem_idade": true,
+          "tem_personalidade": true,
+          "tem_especialidades": true,
+          "tem_fala": true
+        },
+        "truncou": false
+      },
+      {
+        "tarefa": "explicar_codigo",
+        "tempo_total": 3.281653881072998,
+        "tokens_gerados": 121,
+        "tokens_por_segundo": 36.871652034320206,
+        "sucesso": true,
+        "erro": null,
+        "nota": 10,
+        "qualidade": {
+          "nota": 10,
+          "identificou_formula": true,
+          "identificou_numerador": true,
+          "identificou_denominador": true,
+          "identificou_raiz": true,
+          "explicacao_completa": true
+        },
+        "truncou": false
+      },
+      {
+        "tarefa": "revisar_codigo",
+        "tempo_total": 6.284502983093262,
+        "tokens_gerados": 471,
+        "tokens_por_segundo": 74.94626086853596,
+        "sucesso": true,
+        "erro": null,
+        "nota": 4,
+        "qualidade": {
+          "nota": 4,
+          "detectou_quadratico": false,
+          "sugeriu_otimizacao": true,
+          "detectou_duplicatas": true,
+          "sugeriu_melhoria": false,
+          "mencionou_boas_praticas": false
+        },
+        "truncou": false
+      },
+      {
+        "tarefa": "gerar_lua",
+        "tempo_total": 4.430321931838989,
+        "tokens_gerados": 249,
+        "tokens_por_segundo": 56.20359058120235,
+        "sucesso": true,
+        "erro": null,
+        "nota": 10,
+        "qualidade": {
+          "nota": 10,
+          "tem_funcao": true,
+          "sintaxe_lua": true,
+          "mencionou_itens": true,
+          "interacao_jogador": true,
+          "codigo_substancial": true
+        },
+        "truncou": false
+      },
+      {
+        "tarefa": "raciocinar",
+        "tempo_total": 3.5799367427825928,
+        "tokens_gerados": 158,
+        "tokens_por_segundo": 44.13485805818755,
+        "sucesso": true,
+        "erro": null,
+        "nota": 7.0,
+        "qualidade": {
+          "nota": 7.0,
+          "resposta_correta": false,
+          "passo_a_passo": true,
+          "usou_numeros_corretos": true,
+          "explicacao_coerente": true,
+          "verificou_resultado": true
+        },
+        "truncou": false
+      }
+    ],
+    "qwen3:8b": [
+      {
+        "tarefa": "gerar_npc",
+        "tempo_total": 10.434166193008423,
+        "tokens_gerados": 365,
+        "tokens_por_segundo": 34.98123311899843,
+        "sucesso": true,
+        "erro": null,
+        "nota": 10.0,
+        "qualidade": {
+          "nota": 10.0,
+          "json_valido": true,
+          "tem_nome": true,
+          "tem_idade": true,
+          "tem_personalidade": true,
+          "tem_especialidades": true,
+          "tem_fala": true
+        },
+        "truncou": false
+      },
+      {
+        "tarefa": "explicar_codigo",
+        "tempo_total": 4.925824165344238,
+        "tokens_gerados": 285,
+        "tokens_por_segundo": 57.85833810413388,
+        "sucesso": true,
+        "erro": null,
+        "nota": 2,
+        "qualidade": {
+          "nota": 2,
+          "identificou_formula": true,
+          "identificou_numerador": false,
+          "identificou_denominador": false,
+          "identificou_raiz": false,
+          "explicacao_completa": false
+        },
+        "truncou": false
+      },
+      {
+        "tarefa": "revisar_codigo",
+        "tempo_total": 17.962512493133545,
+        "tokens_gerados": 1657,
+        "tokens_por_segundo": 92.24767418441125,
+        "sucesso": true,
+        "erro": null,
+        "nota": 8.0,
+        "qualidade": {
+          "nota": 8.0,
+          "detectou_quadratico": true,
+          "sugeriu_otimizacao": true,
+          "detectou_duplicatas": false,
+          "sugeriu_melhoria": true,
+          "mencionou_boas_praticas": true
+        },
+        "truncou": false
+      },
+      {
+        "tarefa": "gerar_lua",
+        "tempo_total": 15.353836059570312,
+        "tokens_gerados": 1379,
+        "tokens_por_segundo": 89.81468830653857,
+        "sucesso": true,
+        "erro": null,
+        "nota": 10,
+        "qualidade": {
+          "nota": 10,
+          "tem_funcao": true,
+          "sintaxe_lua": true,
+          "mencionou_itens": true,
+          "interacao_jogador": true,
+          "codigo_substancial": true
+        },
+        "truncou": false
+      },
+      {
+        "tarefa": "raciocinar",
+        "tempo_total": 7.895491361618042,
+        "tokens_gerados": 602,
+        "tokens_por_segundo": 76.24604631023631,
+        "sucesso": true,
+        "erro": null,
+        "nota": 7.0,
+        "qualidade": {
+          "nota": 7.0,
+          "resposta_correta": false,
+          "passo_a_passo": true,
+          "usou_numeros_corretos": true,
+          "explicacao_coerente": true,
+          "verificou_resultado": true
+        },
+        "truncou": false
+      }
+    ],
+    "qwen3.5:9b": [
+      {
+        "tarefa": "gerar_npc",
+        "tempo_total": 28.847676992416382,
+        "tokens_gerados": 1849,
+        "tokens_por_segundo": 64.09528228169201,
+        "sucesso": true,
+        "erro": null,
+        "nota": 10.0,
+        "qualidade": {
+          "nota": 10.0,
+          "json_valido": true,
+          "tem_nome": true,
+          "tem_idade": true,
+          "tem_personalidade": true,
+          "tem_especialidades": true,
+          "tem_fala": true
+        },
+        "truncou": false
+      },
+      {
+        "tarefa": "explicar_codigo",
+        "tempo_total": 19.550686836242676,
+        "tokens_gerados": 1582,
+        "tokens_por_segundo": 80.91787328245265,
+        "sucesso": true,
+        "erro": null,
+        "nota": 4,
+        "qualidade": {
+          "nota": 4,
+          "identificou_formula": true,
+          "identificou_numerador": false,
+          "identificou_denominador": false,
+          "identificou_raiz": true,
+          "explicacao_completa": false
+        },
+        "truncou": false
+      },
+      {
+        "tarefa": "revisar_codigo",
+        "tempo_total": 48.29881548881531,
+        "tokens_gerados": 4203,
+        "tokens_por_segundo": 87.02076764125407,
+        "sucesso": true,
+        "erro": null,
+        "nota": 10.0,
+        "qualidade": {
+          "nota": 10.0,
+          "detectou_quadratico": true,
+          "sugeriu_otimizacao": true,
+          "detectou_duplicatas": true,
+          "sugeriu_melhoria": true,
+          "mencionou_boas_praticas": true
+        },
+        "truncou": false
+      },
+      {
+        "tarefa": "gerar_lua",
+        "tempo_total": 72.84141969680786,
+        "tokens_gerados": 6428,
+        "tokens_por_segundo": 88.24649528737419,
+        "sucesso": true,
+        "erro": null,
+        "nota": 10,
+        "qualidade": {
+          "nota": 10,
+          "tem_funcao": true,
+          "sintaxe_lua": true,
+          "mencionou_itens": true,
+          "interacao_jogador": true,
+          "codigo_substancial": true
+        },
+        "truncou": false
+      },
+      {
+        "tarefa": "raciocinar",
+        "tempo_total": 21.057192087173462,
+        "tokens_gerados": 1718,
+        "tokens_por_segundo": 81.58732621556332,
+        "sucesso": true,
+        "erro": null,
+        "nota": 7.0,
+        "qualidade": {
+          "nota": 7.0,
+          "resposta_correta": false,
+          "passo_a_passo": true,
+          "usou_numeros_corretos": true,
+          "explicacao_coerente": true,
+          "verificou_resultado": true
+        },
+        "truncou": false
+      }
+    ],
+    "gemma4:12b": [
+      {
+        "tarefa": "gerar_npc",
+        "tempo_total": 18.10530734062195,
+        "tokens_gerados": 443,
+        "tokens_por_segundo": 24.4679635460296,
+        "sucesso": true,
+        "erro": null,
+        "nota": 10.0,
+        "qualidade": {
+          "nota": 10.0,
+          "json_valido": true,
+          "tem_nome": true,
+          "tem_idade": true,
+          "tem_personalidade": true,
+          "tem_especialidades": true,
+          "tem_fala": true
+        },
+        "truncou": false
+      },
+      {
+        "tarefa": "explicar_codigo",
+        "tempo_total": 11.305672407150269,
+        "tokens_gerados": 461,
+        "tokens_por_segundo": 40.77599132524313,
+        "sucesso": true,
+        "erro": null,
+        "nota": 10,
+        "qualidade": {
+          "nota": 10,
+          "identificou_formula": true,
+          "identificou_numerador": true,
+          "identificou_denominador": true,
+          "identificou_raiz": true,
+          "explicacao_completa": true
+        },
+        "truncou": false
+      },
+      {
+        "tarefa": "revisar_codigo",
+        "tempo_total": 37.12611675262451,
+        "tokens_gerados": 1735,
+        "tokens_por_segundo": 46.73260097630194,
+        "sucesso": true,
+        "erro": null,
+        "nota": 10.0,
+        "qualidade": {
+          "nota": 10.0,
+          "detectou_quadratico": true,
+          "sugeriu_otimizacao": true,
+          "detectou_duplicatas": true,
+          "sugeriu_melhoria": true,
+          "mencionou_boas_praticas": true
+        },
+        "truncou": false
+      },
+      {
+        "tarefa": "gerar_lua",
+        "tempo_total": 46.97679090499878,
+        "tokens_gerados": 2263,
+        "tokens_por_segundo": 48.17272436885839,
+        "sucesso": true,
+        "erro": null,
+        "nota": 10,
+        "qualidade": {
+          "nota": 10,
+          "tem_funcao": true,
+          "sintaxe_lua": true,
+          "mencionou_itens": true,
+          "interacao_jogador": true,
+          "codigo_substancial": true
+        },
+        "truncou": false
+      },
+      {
+        "tarefa": "raciocinar",
+        "tempo_total": 14.57731819152832,
+        "tokens_gerados": 639,
+        "tokens_por_segundo": 43.835223434400845,
+        "sucesso": true,
+        "erro": null,
+        "nota": 7.0,
+        "qualidade": {
+          "nota": 7.0,
+          "resposta_correta": false,
+          "passo_a_passo": true,
+          "usou_numeros_corretos": true,
+          "explicacao_coerente": true,
+          "verificou_resultado": true
+        },
+        "truncou": false
+      }
+    ],
+    "qwen2.5-coder:14b": [
+      {
+        "tarefa": "gerar_npc",
+        "tempo_total": 13.039801597595215,
+        "tokens_gerados": 114,
+        "tokens_por_segundo": 8.742464304136632,
+        "sucesso": true,
+        "erro": null,
+        "nota": 10.0,
+        "qualidade": {
+          "nota": 10.0,
+          "json_valido": true,
+          "tem_nome": true,
+          "tem_idade": true,
+          "tem_personalidade": true,
+          "tem_especialidades": true,
+          "tem_fala": true
+        },
+        "truncou": false
+      },
+      {
+        "tarefa": "explicar_codigo",
+        "tempo_total": 7.874323606491089,
+        "tokens_gerados": 204,
+        "tokens_por_segundo": 25.906987087987524,
+        "sucesso": true,
+        "erro": null,
+        "nota": 10,
+        "qualidade": {
+          "nota": 10,
+          "identificou_formula": true,
+          "identificou_numerador": true,
+          "identificou_denominador": true,
+          "identificou_raiz": true,
+          "explicacao_completa": true
+        },
+        "truncou": false
+      },
+      {
+        "tarefa": "revisar_codigo",
+        "tempo_total": 19.27379059791565,
+        "tokens_gerados": 561,
+        "tokens_por_segundo": 29.10688466547255,
+        "sucesso": true,
+        "erro": null,
+        "nota": 10.0,
+        "qualidade": {
+          "nota": 10.0,
+          "detectou_quadratico": true,
+          "sugeriu_otimizacao": true,
+          "detectou_duplicatas": true,
+          "sugeriu_melhoria": true,
+          "mencionou_boas_praticas": true
+        },
+        "truncou": false
+      },
+      {
+        "tarefa": "gerar_lua",
+        "tempo_total": 18.23575472831726,
+        "tokens_gerados": 530,
+        "tokens_por_segundo": 29.063781998394248,
+        "sucesso": true,
+        "erro": null,
+        "nota": 10,
+        "qualidade": {
+          "nota": 10,
+          "tem_funcao": true,
+          "sintaxe_lua": true,
+          "mencionou_itens": true,
+          "interacao_jogador": true,
+          "codigo_substancial": true
+        },
+        "truncou": false
+      },
+      {
+        "tarefa": "raciocinar",
+        "tempo_total": 6.9223713874816895,
+        "tokens_gerados": 168,
+        "tokens_por_segundo": 24.269139951636895,
+        "sucesso": true,
+        "erro": null,
+        "nota": 7.0,
+        "qualidade": {
+          "nota": 7.0,
+          "resposta_correta": false,
+          "passo_a_passo": true,
+          "usou_numeros_corretos": true,
+          "explicacao_coerente": true,
+          "verificou_resultado": true
+        },
+        "truncou": false
+      }
+    ],
+    "deepseek-r1:14b": [
+      {
+        "tarefa": "gerar_npc",
+        "tempo_total": 22.93630886077881,
+        "tokens_gerados": 507,
+        "tokens_por_segundo": 22.10469012592398,
+        "sucesso": true,
+        "erro": null,
+        "nota": 10.0,
+        "qualidade": {
+          "nota": 10.0,
+          "json_valido": true,
+          "tem_nome": true,
+          "tem_idade": true,
+          "tem_personalidade": true,
+          "tem_especialidades": true,
+          "tem_fala": true
+        },
+        "truncou": false
+      },
+      {
+        "tarefa": "explicar_codigo",
+        "tempo_total": 15.816925525665283,
+        "tokens_gerados": 513,
+        "tokens_por_segundo": 32.43361038575937,
+        "sucesso": true,
+        "erro": null,
+        "nota": 10,
+        "qualidade": {
+          "nota": 10,
+          "identificou_formula": true,
+          "identificou_numerador": true,
+          "identificou_denominador": true,
+          "identificou_raiz": true,
+          "explicacao_completa": true
+        },
+        "truncou": false
+      },
+      {
+        "tarefa": "revisar_codigo",
+        "tempo_total": 275.72748470306396,
+        "tokens_gerados": 5021,
+        "tokens_por_segundo": 18.210009079824623,
+        "sucesso": true,
+        "erro": null,
+        "nota": 8.5,
+        "qualidade": {
+          "nota": 8.5,
+          "detectou_quadratico": true,
+          "sugeriu_otimizacao": true,
+          "detectou_duplicatas": true,
+          "sugeriu_melhoria": true,
+          "mencionou_boas_praticas": false
+        },
+        "truncou": false
+      },
+      {
+        "tarefa": "gerar_lua",
+        "tempo_total": 22.496885538101196,
+        "tokens_gerados": 726,
+        "tokens_por_segundo": 32.27113365405319,
+        "sucesso": true,
+        "erro": null,
+        "nota": 10,
+        "qualidade": {
+          "nota": 10,
+          "tem_funcao": true,
+          "sintaxe_lua": true,
+          "mencionou_itens": true,
+          "interacao_jogador": true,
+          "codigo_substancial": true
+        },
+        "truncou": false
+      },
+      {
+        "tarefa": "raciocinar",
+        "tempo_total": 14.316408634185791,
+        "tokens_gerados": 459,
+        "tokens_por_segundo": 32.061113351009375,
+        "sucesso": true,
+        "erro": null,
+        "nota": 7.0,
+        "qualidade": {
+          "nota": 7.0,
+          "resposta_correta": false,
+          "passo_a_passo": true,
+          "usou_numeros_corretos": true,
+          "explicacao_coerente": true,
+          "verificou_resultado": true
+        },
+        "truncou": false
+      }
+    ]
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "metadata": {
+    "timestamp": "2026-07-15 17:21:12",
+    "total_padroes": 1,
+    "tipos": {
+      "npc": 1,
+      "total": 1
+    }
+  },
+  "padroes": [
+    {
+      "arquivo": "<execucao:gerar>",
+      "linguagem": "lua",
+      "tipo": "npc",
+      "api_calls": [
+        "for",
+        "format",
+        "itemId",
+        "player",
+        "subtype",
+        "trip"
+      ],
+      "variaveis": [
+        "description",
+        "flags",
+        "internalNpcName",
+        "interval",
+        "name",
+        "npcConfig",
+        "npcType",
+        "text",
+        "the",
+        "walkRadius"
+      ],
+      "funcoes": [],
+      "tabelas": [],
+      "tamanho_linhas": 1
+    }
+  ]
+}

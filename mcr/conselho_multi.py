@@ -10,13 +10,110 @@ from collections import OrderedDict
 sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 os.environ['PYTHONIOENCODING'] = 'utf-8'
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
-from mcr.util import gerar as _gerar, fast as _fast
-from mcr.tradutor import traduzir as _traduzir
-from modulos import memoria_conselho as _memoria  # Memoria individual por membro
-from mcr.decider import Decider  # G1, G6, G7
-from mcr.ia import IA
 
-# Orquestrador (template engine) — opcional, legado movido para /Legado
+# ─── Ollama API direto (sem dependencia de mcr.util) ───────────
+try:
+    import requests as _requests
+except ImportError:
+    import urllib.request as _urllib
+    _requests = None
+
+_OLLAMA_URL = "http://localhost:11434/api/generate"
+
+# Mapeamento de "peso" -> modelo real (ATUALIZADO Jul 2026)
+_PESO_PARA_MODELO = {
+    "leve":      "phi4-mini:latest",       # 2.5GB, 45 tok/s, qual 9.1
+    "code":      "qwen2.5-coder:14b",      # 9GB, 23 tok/s, qual 10/10 em codigo
+    "analisar":  "mistral:7b",             # 4.4GB, 57 tok/s, qual 9.4
+    "texto":     "gemma4:12b",             # 9.6GB, 41 tok/s, qual 9.4, 262K ctx
+    "criativo":  "phi4-mini:latest",       # leve com temperatura alta
+}
+
+def _llm(prompt, temp=0.3, peso="leve", max_tokens=512):
+    """Chama Ollama com o modelo mapeado pelo peso."""
+    modelo = _PESO_PARA_MODELO.get(peso, "phi4-mini:latest")
+    payload = {
+        "model": modelo,
+        "prompt": prompt,
+        "stream": False,
+        "options": {
+            "temperature": temp,
+            "num_predict": max_tokens,
+            "num_gpu": 999,
+        },
+    }
+    try:
+        if _requests is not None:
+            r = _requests.post(_OLLAMA_URL, json=payload, timeout=120)
+            return r.json().get("response", "")
+        body = json.dumps(payload).encode()
+        req = _urllib.Request(_OLLAMA_URL, data=body,
+            headers={"Content-Type": "application/json"})
+        with _urllib.urlopen(req, timeout=120) as f:
+            return json.loads(f.read()).get("response", "")
+    except Exception as e:
+        return f"[ERRO LLM] {e}"
+
+_fast = _llm  # alias para compatibilidade
+_gerar = _llm  # alias para compatibilidade
+
+# ─── Tradutor (fallback silencioso se nao existir) ─────────────
+try:
+    from mcr.tradutor import traduzir as _traduzir
+except ImportError:
+    def _traduzir(t, **kw):
+        return t
+
+# ─── Memoria (fallback) ───────────────────────────────────────
+try:
+    from modulos import memoria_conselho as _memoria
+except ImportError:
+    class _MemoriaFake:
+        @staticmethod
+        def resumo_para_prompt(*a, **kw): return ""
+        @staticmethod
+        def salvar(*a, **kw): pass
+    _memoria = _MemoriaFake()
+
+# ─── Decider / IA (fallback) ──────────────────────────────────
+# NOTA: decider.py nao existe (o arquivo real eh decisor.py, sem classe Decider)
+# Usamos _llm para classificacao, que funciona de verdade
+class Decider:
+    def __init__(self, **kw): pass
+    def classificar(self, texto, categorias=None, instrucao="", exemplos=None):
+        cat_list = categorias or ['codigo', 'factual', 'opiniao', 'procedimental', 'ambientacao']
+        ex = (
+            "Exemplos:\n"
+            "'crie um NPC ferreiro' -> ambientacao\n"
+            "'revise este codigo' -> codigo\n"
+            "'explique o que e Markov' -> factual\n"
+            "'como configurar o servidor' -> procedimental\n"
+            "'qual a melhor linguagem' -> opiniao\n"
+        )
+        prompt = (
+            f"Classifique a frase em UMA categoria: {', '.join(cat_list)}\n"
+            f"{ex}\n"
+            f"Frase: '{texto}'\n"
+            f"Categoria:"
+        )
+        r = _llm(prompt, 0.1, "analisar", 20)
+        r = r.strip().lower().rstrip('.')
+        for cat in cat_list:
+            if cat == r:
+                return cat
+        # fallback: verifica se alguma categoria aparece na resposta
+        for cat in cat_list:
+            if cat in r:
+                return cat
+        return "desconhecido"
+
+try:
+    from mcr.ia import IA
+except ImportError:
+    class IA:
+        pass
+
+# Orquestrador (template engine) — opcional
 _Orquestrador = None
 _ORQ_TEMPLATES = {}
 try:
@@ -24,28 +121,64 @@ try:
 except ImportError:
     pass
 
-_MCR_IDENTITY = """CONTEXTO DO PROJETO MCR (leia antes de responder):
-- MCR = Projeto MCR, um servidor CUSTOMIZADO de Tibia baseado em Canary (OTServ)
-- SPA = Sistema de Progressao do Aventureiro para evolucao em dominios elementais
-- SHC = Sistema de Habilidades Contextuais (5 camadas)
-- Canary = Servidor de Tibia personalizado (OTServ) usado no MCR
-- OTClient = Cliente customizado de Tibia usado com o servidor
-- Dominios = areas de conhecimento do SPA: Fogo, Gelo, Terra, Energia
-- Eridanus = Cidade inicial do projeto MCR, ponto de partida dos aventureiros
-- Projeto MCR = servidor customizado de Tibia, parte da comunidade OTServ"""
+_MCR_IDENTITY = None  # carregado sob demanda via _carregar_contexto()
 
-# Router: mapeia cada arquétipo ao melhor modelo para aquela tarefa
+def _carregar_contexto():
+    """Carrega contexto real do codigo fonte do MCR em vez de textos genericos."""
+    ctx = []
+    base = os.path.dirname(__file__)
+    
+    # Arquivos principais do MCR (os mais importantes)
+    arquivos_chave = [
+        ("mcr.py", 30),       # pipeline principal
+        ("engine.py", 20),    # motor markov
+        ("equacao_mcr.py", 15), # equacao
+        ("coupling.py", 15),  # acoplamento
+        ("signature.py", 15), # assinatura
+    ]
+    for nome, linhas in arquivos_chave:
+        path = os.path.join(base, nome)
+        if os.path.exists(path):
+            try:
+                with open(path, 'r', encoding='utf-8') as f:
+                    conteudo = ''.join(f.readlines()[:linhas])
+                    ctx.append(f"# {nome}\n{conteudo}")
+            except:
+                pass
+    
+    # config_llm.py (modelos ativos)
+    config_path = os.path.join(base, 'config_llm.py')
+    if os.path.exists(config_path):
+        try:
+            with open(config_path, 'r', encoding='utf-8') as f:
+                ctx.append(f"# Modelos\n{f.read()}")
+        except:
+            pass
+    
+    return "\n\n".join(ctx) if ctx else "Projeto MCR."
+
+_CONTEXTO_CACHE = None
+
+def _ctx():
+    global _CONTEXTO_CACHE
+    if _CONTEXTO_CACHE is None:
+        _CONTEXTO_CACHE = _carregar_contexto()
+    return _CONTEXTO_CACHE
+
+# Router: mapeia cada arquétipo ao melhor modelo ATUAL (Jul 2026)
+# Baseado no benchmark: mistral:7b (qual 9.4, 57 tok/s) é o melhor custo-beneficio
 _ROUTER = {
-    "analista": "leve",             # qwen2.5-coder (rapido, dados)
-    "critico": "analisar",          # deepseek-r1 (analise profunda)
-    "estrategista": "pesado",       # qwen2.5-coder (completo)
-    "arquiteto": "pesado",          # qwen2.5-coder (completo)
-    "contador_historias": "texto",  # llama3.1 (PT-BR natural)
-    "revisor_codigo": "review",     # deepseek-r1 (codigo, raw:False)
-    "psicologo": "texto",           # llama3.1 (PT-BR natural)
-    "tecnico": "code",              # qwen2.5-coder (codigo)
-    "especialista": "pesado",       # qwen2.5-coder (completo)
-    "criativo": "leve",             # qwen2.5-coder (rapido, temp alta para criatividade)
+    "analista":             "analisar",  # mistral:7b — dados e fatos
+    "critico":              "analisar",  # mistral:7b — analise critica
+    "estrategista":         "analisar",  # mistral:7b — visao geral
+    "arquiteto":            "code",      # qwen2.5-coder:14b — design de sistemas
+    "contador_historias":   "analisar",  # mistral:7b — lore, 57 tok/s, qualidade 9.4
+    "revisor_codigo":       "code",      # qwen2.5-coder:14b — qualidade 10/10
+    "psicologo":            "leve",      # phi4-mini — rapido, so analisa processo
+    "tecnico":              "code",      # qwen2.5-coder:14b — implementacao
+    "especialista":         "code",      # qwen2.5-coder:14b — conhecimento profundo
+    "filosofo":             "analisar",  # mistral:7b — reflexao
+    "criativo":             "criativo",  # phi4-mini (temp alta) — ideias novas
 }
 
 # Prompts adaptativos para cada arquétipo (com placeholders)
@@ -149,43 +282,58 @@ _ARQUETIPOS_POR_TIPO = {
 
 
 # ============================================================
-# G1 — TREE OF THOUGHT (fundido do enricher.py)
+# G1 — TREE OF THOUGHT (multiplas perspectivas em paralelo)
 # ============================================================
 _CAMINHOS_TOT = {
     "analitico": "Pense como um ANALISTA. Foque em dados, fatos, numeros, versoes, metricas e detalhes tecnicos. Seja especifico e preciso.",
     "criativo": "Pense como um CONTADOR DE HISTORIAS. Use exemplos concretos, analogias, cenarios praticos e aplicacoes reais.",
     "critico": "Pense como um CRITICO. Questione suposicoes, aponte limitacoes, riscos, pontos cegos. Nao aceite nada pelo valor nominal.",
-    "filosofico": "Pense como um FILOSOFO. Busque a essencia do problema. Qual o padrao universal? O que emerge quando isolamos as variaveis? Qual o eixo entre Nirvana e Caos? Nao se contente com a superficie.",  # NOVO
-    "pragmatico": "Pense como um PRAGMATICO. O que funciona na pratica? Qual a acao mais simples que resolve? Ignore teoria, foque no resultado concreto.",  # NOVO
+    "pragmatico": "Pense como um PRAGMATICO. O que funciona na pratica? Qual a acao mais simples que resolve? Ignore teoria, foque no resultado concreto.",
 }
 
-def tree_of_thought(ia, prompt_base):
-    """Gera 3 perspectivas (analitico, criativo, critico) e sintetiza.
-    
-    [Conselho 2.0] Usa FAST em vez de 14b — contexto externo compensa.
-    """
+def tree_of_thought(prompt_base, temp=0.3):
+    """Gera 3+ perspectivas e sintetiza usando _llm direto."""
     perspectivas = {}
-    for nome, instrucao in _CAMINHOS_TOT.items():
-        prompt = f"{instrucao}\n\nResponda EXATAMENTE a pergunta abaixo:\n{prompt_base}"
-        resp = ia.fast(prompt, 0.3, 'leve')  # FAST em vez de 14b
-        if resp:
-            perspectivas[nome] = resp.strip()
+    threads = []
+    lock = threading.Lock()
+    
+    def _gerar_perspectiva(nome, instrucao):
+        p = f"{instrucao}\n\nResponda EXATAMENTE a pergunta abaixo:\n{prompt_base}"
+        r = _llm(p, temp, "analisar", 300)
+        with lock:
+            perspectivas[nome] = r.strip()
+    
+    for nome, instrucao in list(_CAMINHOS_TOT.items())[:3]:  # 3 perspectivas
+        t = threading.Thread(target=_gerar_perspectiva, args=(nome, instrucao))
+        t.start()
+        threads.append(t)
+    for t in threads:
+        t.join()
+    
     if len(perspectivas) < 2:
         return prompt_base
+    
+    # Sintese com modelo mais forte
+    blocos = '\n'.join(f"{n.upper()}:\n{p}" for n, p in perspectivas.items())
     prompt_sintese = (
-        f"Perspectiva ANALITICA:\n{perspectivas.get('analitico', '')}\n"
-        f"Perspectiva CRIATIVA:\n{perspectivas.get('criativo', '')}\n"
-        f"Perspectiva CRITICA:\n{perspectivas.get('critico', '')}\n"
-        f"Sintetize em resposta UNICA, focando na pergunta original."
+        f"{blocos}\n"
+        f"Sintetize em resposta UNICA, focando na pergunta original:\n{prompt_base}"
     )
-    sintese = ia.fast(prompt_sintese, 0.3, 'leve')  # FAST em vez de 14b
+    sintese = _llm(prompt_sintese, 0.3, "analisar", 512)
     return sintese or prompt_base
 
 
 # ============================================================
-# G5 — PROMPT CACHE LRU (re-export de orquestrador.py)
+# G5 — PROMPT CACHE LRU (fallback se modulo nao existir)
 # ============================================================
-from mcr.modules.orquestrador import PromptCache
+try:
+    from mcr.modules.orquestrador import PromptCache
+except ImportError:
+    from collections import OrderedDict
+    class PromptCache:
+        def __init__(self, *a, **kw): self._cache = OrderedDict()
+        def obter(self, k): return self._cache.get(k)
+        def definir(self, k, v): self._cache[k] = v
 
 
 # ============================================================
@@ -368,8 +516,9 @@ class Conselho:
         base = list(_ARQUETIPOS_POR_TIPO.get(tipo, _ARQUETIPOS_POR_TIPO['desconhecido']))
 
         # FAST: detecta arquetipos adicionais especificos
+        ctx = _ctx()
         detect = _fast(
-            f"{_MCR_IDENTITY}\n\n"
+            f"{ctx}\n\n"
             f"Pergunta: {pergunta}\n"
             f"Contexto do ContextCrew: {ctx_crew_txt}\n\n"
             f"Tipo classificado: {tipo}\n"
@@ -429,9 +578,10 @@ class Conselho:
             usou_orquestrador = False
             if orq_template_key in _ORQ_TEMPLATES:
                 try:
+                    ctx_atual = _ctx()
                     orq = _Orquestrador(kg=self.kg, ia=self.ia, ctx_crew=self.ctx_crew)
                     params = {
-                        "mcr": _MCR_IDENTITY,
+                        "mcr": ctx_atual,
                         "ctx_crew": ctx_crew_txt,
                         "kg": kg,
                         "pergunta": pergunta,
@@ -458,8 +608,9 @@ class Conselho:
                     resultados[nome] = f'[ERRO] Arquetipo {nome} desconhecido'
                 return
             try:
+                ctx_atual = _ctx()
                 prompt = prompt_t.format(
-                    mcr=_MCR_IDENTITY,
+                    mcr=ctx_atual,
                     ctx_crew=ctx_crew_txt,
                     kg=kg,
                     pergunta=pergunta,
@@ -500,24 +651,30 @@ class Conselho:
         if not opinioes:
             return {"veredito": "Sem opinioes", "tempo_total": round(time.time() - t0, 1)}
 
-        # 4. DEBATE PROTOCOL (opcional, refinamento)
+        # 4. DEBATE PROTOCOL (refinamento entre os proprios arquetipos)
         debate_ctx = ""
-        try:
-            sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(__file__)),
-                                            '..', '..', 'sandbox'))
-            from debate_protocol import Debate
-            def _gerar_debate(p, t=0.5):
-                return _gerar(p, t, "conceito")
-            d = Debate(f"{pergunta} | {ctx_crew_txt}", gerar=_gerar_debate)
-            debate_result = d.executar(pergunta, rodadas=1)
-            if debate_result and len(debate_result) > 50:
-                debate_ctx = f"\n\nDebate (propositor + critico + conector):\n{debate_result}\n"
-                print(f'  [Debate] Refinamento obtido ({len(debate_result)} chars)')
-        except Exception as e:
-            print(f'  [Debate] ERRO: {e}')
+        if len(opinioes) >= 2:
+            try:
+                # Pega as 2 opinioes mais divergentes para debater
+                nomes = [n for n, _ in opinioes[:2]]
+                textos = [t for _, t in opinioes[:2]]
+                prompt_debate = (
+                    f"Pergunta original: {pergunta}\n\n"
+                    f"Opiniao 1 ({nomes[0]}):\n{textos[0]}\n\n"
+                    f"Opiniao 2 ({nomes[1]}):\n{textos[1]}\n\n"
+                    f"Analise as duas opinioes acima. Aponte concordancias, divergencias "
+                    f"e sugira um ponto de equilibrio. Seja conciso (3-5 frases)."
+                )
+                debate_result = _llm(prompt_debate, 0.3, "analisar", 400)
+                if debate_result and len(debate_result) > 50:
+                    debate_ctx = f"\n\nDebate entre {nomes[0]} e {nomes[1]}:\n{debate_result}\n"
+                    print(f'  [Debate] Refinamento obtido ({len(debate_result)} chars)')
+            except Exception as e:
+                print(f'  [Debate] ERRO: {e}')
 
         # 5. VEREDITO FINAL
-        db = f"{_MCR_IDENTITY}\n\n"
+        ctx_atual = _carregar_contexto()
+        db = f"{ctx_atual}\n\n"
         db += f"Pergunta: {pergunta}\n\n"
         if ctx_crew_txt:
             db += f"CONTEXTO DO PROJETO (ContextCrew - 5 fontes):\n{ctx_crew_txt}\n\n"
@@ -544,7 +701,7 @@ class Conselho:
         if kg:
             prompt_val = (
                 f"CONTEXTO DO PROJETO:\n"
-                f"{_MCR_IDENTITY}\n\n"
+                f"{ctx_atual}\n\n"
                 f"FATOS DO KG:\n{kg}\n\n"
                 f"Verifique se o texto ABAIXO esta consistente com o contexto do projeto MCR (Tibia).\n"
                 f"Cada afirmacao deve corresponder aos fatos listados acima.\n\n"
@@ -557,7 +714,7 @@ class Conselho:
             if 'ERRO' in validacao:
                 print(f'  [Validador] {validacao}')
                 v = _gerar(
-                    f"{_MCR_IDENTITY}\n\n"
+                    f"{ctx_atual}\n\n"
                     f"Com base APENAS nos FATOS abaixo, responda em PT-BR:\n\n"
                     f"FATOS DO PROJETO:\n{kg}\n\n"
                     f"Pergunta original: {pergunta}\n\n"
@@ -572,34 +729,7 @@ class Conselho:
                 ) or v
                 print(f'  [Validador] Corrigido ({len(v)} chars)')
 
-        # 7. AUTO-REVISAO
-        gaps = []
-        nomes = len(set(_re.findall(r'\b[A-Z][a-z]{2,}\b', v)))
-        if nomes < 8:
-            gaps.append(f"Apenas {nomes} nomes proprios. Adicione mais detalhes.")
-        if len(v) < 500:
-            gaps.append("Resposta muito curta. Expanda.")
-
-        avaliacao_generico = _fast(
-            f"Texto: {v}\n\nEste texto e GENERICO (responda apenas SIM ou NAO):", 0.2, "leve") or ""
-        if 'SIM' in avaliacao_generico.upper() and 'NAO' not in avaliacao_generico.upper():
-            gaps.append("Conteudo generico.")
-
-        if gaps:
-            for g in gaps:
-                print(f'  [Auto-revisao] Gap: {g}')
-            v = _gerar(f"Melhore corrigindo:\n" + '\n'.join(f"- {g}" for g in gaps) +
-                       f"\n\nTexto:\n{v}\n\nTexto MELHORADO (mais detalhado, especifico):",
-                       0.4, "conceito") or v
-
-        # 8. TRADUCAO PT-BR
-        v_original = v
-        v = _traduzir(v, temp=0.3)
-        if not v or v == v_original:
-            v = v_original
-        else:
-            print(f'  [Tradutor] Veredito traduzido para PT-BR ({len(v)} chars)')
-
+        # 7. VEREDITO FINAL (sem auto-revisao, sem traducao - os modelos ja respondem em PT-BR)
         r = {
             "veredito": v,
             "opinioes": opinioes,
@@ -607,8 +737,8 @@ class Conselho:
             "tempo_total": round(time.time() - t0, 1),
             "honorarios_criados": arquetipos,
             "tipo": tipo,
-            "nomes_proprios": nomes,
         }
+        nomes = len(set(_re.findall(r'\b[A-Z][a-z]{2,}\b', v)))
         print(f'  [Veredito] ({r["tempo_total"]:.1f}s) {len(v)} chars, {nomes} nomes, '
               f'{len(opinioes)} arquetipos')
         return r
