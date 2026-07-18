@@ -1,0 +1,45 @@
+{
+  "categoria": "creature_products",
+  "n_sprites_treino": 60,
+  "n_gerados": 20,
+  "limiar_entropia": 0.8,
+  "n_regioes_alvo": 22,
+  "n1_fixed": 76,
+  "n1_gap": 56,
+  "n2_fixed": 32,
+  "n2_gap": 91,
+  "paleta_mediana": {
+    "B": [
+      6,
+      2,
+      0
+    ],
+    "L": [
+      129,
+      82,
+      63
+    ]
+  },
+  "metricas": {
+    "coerencia": {
+      "media_regioes_geradas": 10.45,
+      "dp_regioes_geradas": 2.13,
+      "media_regioes_real": 23.98,
+      "dp_regioes_real": 12.03,
+      "dentro_dp": 0.25,
+      "n_gerados": 20
+    },
+    "diversidade": {
+      "n_fingerprints_unicos": 15,
+      "n_total": 20,
+      "ratio_diversidade": 0.75
+    },
+    "disc_score_medio": 0.6446
+  },
+  "baseline": {
+    "media_opacos_real": 213.3,
+    "dp_opacos_real": 130.6,
+    "media_regioes_real": 24.0,
+    "dp_regioes_real": 12.0
+  }
+}

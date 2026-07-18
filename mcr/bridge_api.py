@@ -17,8 +17,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 try:
     from mcr_server_toolset import criar_npc, criar_monstro
 except ImportError:
-    criar_npc = None
-    criar_monstro = None
+    criar_npc = criar_monstro = None
+pytest.importorskip('mcr.golden_templates')
 from mcr.golden_templates import salvar_npc_parametrizado, salvar_monstro_parametrizado
 
 HOST = '127.0.0.1'
@@ -126,6 +126,9 @@ class BridgeHandler(BaseHTTPRequestHandler):
         elif self.path == '/tool/npc/custom':
             if params:
                 # Modo rapido: golden template (Sistema 1, 0ms, zero LLM)
+                if salvar_npc_parametrizado is None:
+                    self._send_json({'status': 'erro', 'mensagem': 'golden_templates nao disponivel'}, 501)
+                    return
                 resultado = salvar_npc_parametrizado(params)
                 self._send_json({
                     'status': 'ok',

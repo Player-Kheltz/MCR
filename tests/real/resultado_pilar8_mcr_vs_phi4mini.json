@@ -1,0 +1,27 @@
+{
+  "data": "2026-07-16",
+  "regime": "Pilar 8 — mesmo corpus, mesmo split, mesma tarefa",
+  "dataset": "E:/MCR/tests/experimento_rigoroso/dataset_500.json",
+  "split": "449 treino / 113 teste (seed 42)",
+  "mcr": {
+    "model": "MCRCoupling (FASE 1-18)",
+    "accuracy": 100.0,
+    "acertos": 113,
+    "total": 113,
+    "latencia_p50_ms": 3.481,
+    "latencia_p99_ms": 31.931,
+    "tempo_treino_s": 0.092
+  },
+  "llm": {
+    "model": "phi4-mini:latest",
+    "modo": "few-shot 5/acao",
+    "accuracy": 70.8,
+    "acertos": 80,
+    "total": 113,
+    "latencia_p50_ms": 2335.8,
+    "latencia_p99_ms": 2370.4,
+    "tempo_total_s": 263.8,
+    "falhas_parse": 0
+  },
+  "veredito": "MCR_GANHA"
+}

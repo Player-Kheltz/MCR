@@ -1,0 +1,45 @@
+{
+  "categoria": "helmets",
+  "n_sprites_treino": 80,
+  "n_gerados": 20,
+  "limiar_entropia": 0.8,
+  "n_regioes_alvo": 22,
+  "n1_fixed": 27,
+  "n1_gap": 105,
+  "n2_fixed": 3,
+  "n2_gap": 120,
+  "paleta_mediana": {
+    "B": [
+      8,
+      6,
+      2
+    ],
+    "L": [
+      103,
+      79,
+      51
+    ]
+  },
+  "metricas": {
+    "coerencia": {
+      "media_regioes_geradas": 9.2,
+      "dp_regioes_geradas": 3.14,
+      "media_regioes_real": 23.02,
+      "dp_regioes_real": 7.16,
+      "dentro_dp": 0.05,
+      "n_gerados": 20
+    },
+    "diversidade": {
+      "n_fingerprints_unicos": 10,
+      "n_total": 20,
+      "ratio_diversidade": 0.5
+    },
+    "disc_score_medio": 0.778
+  },
+  "baseline": {
+    "media_opacos_real": 370.8,
+    "dp_opacos_real": 104.4,
+    "media_regioes_real": 23.0,
+    "dp_regioes_real": 7.2
+  }
+}

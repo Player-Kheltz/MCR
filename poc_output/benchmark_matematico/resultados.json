@@ -1,0 +1,41 @@
+{
+  "collatz": {
+    "antigo": {
+      "acertos": 11,
+      "total": 16,
+      "pct": 68.8
+    },
+    "atual": {
+      "acertos": 11,
+      "total": 16,
+      "pct": 68.8
+    },
+    "baseline": 0.16
+  },
+  "primos": {
+    "antigo": {
+      "acertos": 23,
+      "total": 90,
+      "pct": 25.6,
+      "erro_medio": 50.3
+    },
+    "atual": {
+      "acertos": 11,
+      "total": 90,
+      "pct": 12.2,
+      "erro_medio": 43.6
+    }
+  },
+  "fibonacci": {
+    "antigo": {
+      "acertos": 20,
+      "total": 21,
+      "pct": 95.2
+    },
+    "atual": {
+      "acertos": 20,
+      "total": 21,
+      "pct": 95.2
+    }
+  }
+}

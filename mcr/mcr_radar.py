@@ -8,6 +8,7 @@ import re
 from collections import Counter
 from typing import List, Dict, Optional, Callable
 
+pytest.importorskip('mcr.cielab')
 from mcr.cielab import delta_e76
 
 

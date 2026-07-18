@@ -190,7 +190,10 @@ class MCRHierarquico:
             )
 
             if acao_c and conf_c > 0:
-                peso = conf_c / (nivel + 1)
+                # Peso exponencial por nivel: cada nivel comprime ~50% da informacao.
+                # 2**nivel reflete a natureza binaria da compressao hierarquica.
+                # Nivel 0 = peso completo, Nivel 1 = metade, Nivel 2 = quarto, ...
+                peso = conf_c / (2 ** nivel)
                 distribs.append(({acao_c: conf_c}, peso))
 
         if not distribs:
@@ -208,7 +211,16 @@ class MCRHierarquico:
             return (acao_markov or 'responder'), 0.0
 
         melhor = max(combinada, key=combinada.get)
-        return melhor, round(combinada[melhor], 4)
+        conf_final = combinada[melhor]
+
+        # Consenso entre niveis: se niveis discordam, confianca cai.
+        # Acordo e a fracao de niveis cujo top-1 coincide com o melhor global.
+        # Sem valor magico — puramente dos dados de cada nivel.
+        tops = [max(d, key=d.get) for d, _ in distribs]
+        acordo = tops.count(melhor) / len(tops)
+        conf_final *= acordo
+
+        return melhor, round(conf_final, 4)
 
     def gerar_texto(self, semente: str, max_tokens: int = 50) -> str:
         """Gera texto usando a camada 0 (Markov palavra-a-palavra).

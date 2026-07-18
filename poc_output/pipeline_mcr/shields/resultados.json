@@ -1,0 +1,45 @@
+{
+  "categoria": "shields",
+  "n_sprites_treino": 80,
+  "n_gerados": 20,
+  "limiar_entropia": 0.8,
+  "n_regioes_alvo": 21,
+  "n1_fixed": 79,
+  "n1_gap": 47,
+  "n2_fixed": 43,
+  "n2_gap": 74,
+  "paleta_mediana": {
+    "B": [
+      51,
+      28,
+      15
+    ],
+    "L": [
+      96,
+      72,
+      51
+    ]
+  },
+  "metricas": {
+    "coerencia": {
+      "media_regioes_geradas": 19.5,
+      "dp_regioes_geradas": 1.77,
+      "media_regioes_real": 21.54,
+      "dp_regioes_real": 8.22,
+      "dentro_dp": 1.0,
+      "n_gerados": 20
+    },
+    "diversidade": {
+      "n_fingerprints_unicos": 9,
+      "n_total": 20,
+      "ratio_diversidade": 0.45
+    },
+    "disc_score_medio": 0.7816
+  },
+  "baseline": {
+    "media_opacos_real": 546.4,
+    "dp_opacos_real": 109.9,
+    "media_regioes_real": 21.5,
+    "dp_regioes_real": 8.2
+  }
+}

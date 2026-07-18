@@ -1,0 +1,45 @@
+{
+  "categoria": "sword_weapons",
+  "n_sprites_treino": 80,
+  "n_gerados": 20,
+  "limiar_entropia": 0.75,
+  "n_regioes_alvo": 22,
+  "n1_fixed": 16,
+  "n1_gap": 116,
+  "n2_fixed": 3,
+  "n2_gap": 120,
+  "paleta_mediana": {
+    "B": [
+      44,
+      19,
+      36
+    ],
+    "L": [
+      159,
+      118,
+      92
+    ]
+  },
+  "metricas": {
+    "coerencia": {
+      "media_regioes_geradas": 22.1,
+      "dp_regioes_geradas": 2.32,
+      "media_regioes_real": 22.66,
+      "dp_regioes_real": 9.26,
+      "dentro_dp": 1.0,
+      "n_gerados": 20
+    },
+    "diversidade": {
+      "n_fingerprints_unicos": 13,
+      "n_total": 20,
+      "ratio_diversidade": 0.65
+    },
+    "disc_score_medio": 0.4931
+  },
+  "baseline": {
+    "media_opacos_real": 282.0,
+    "dp_opacos_real": 93.4,
+    "media_regioes_real": 22.7,
+    "dp_regioes_real": 9.3
+  }
+}

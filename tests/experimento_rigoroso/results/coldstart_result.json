@@ -1,11 +1,11 @@
 {
   "coldstart": true,
   "sem_llm": true,
-  "rodada_1": 98.6,
+  "rodada_1": 98.9,
   "rodada_1b": 99.1,
   "rodada_2": 100.0,
-  "melhoria_1b": 0.5,
-  "melhoria_2": 1.4,
+  "melhoria_1b": 0.2,
+  "melhoria_2": 1.1,
   "persistencia_ok": true,
   "mk_estados": 102,
   "mk_transicoes": 135,
@@ -14,19 +14,15 @@
       "r1": 100.0,
       "r2": 100.0
     },
-    "conectar": {
+    "responder": {
+      "r1": 94.7,
+      "r2": 100.0
+    },
+    "gerar": {
       "r1": 100.0,
       "r2": 100.0
     },
     "aprender": {
-      "r1": 100.0,
-      "r2": 100.0
-    },
-    "gerar": {
-      "r1": 99.7,
-      "r2": 100.0
-    },
-    "planejar": {
       "r1": 100.0,
       "r2": 100.0
     },
@@ -38,12 +34,16 @@
       "r1": 100.0,
       "r2": 100.0
     },
+    "planejar": {
+      "r1": 100.0,
+      "r2": 100.0
+    },
     "validar": {
       "r1": 100.0,
       "r2": 100.0
     },
-    "responder": {
-      "r1": 93.8,
+    "conectar": {
+      "r1": 100.0,
       "r2": 100.0
     }
   }

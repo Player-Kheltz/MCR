@@ -15,43 +15,24 @@ Uso:
     # -> Projeto completo com codigo e instrucoes
 """
 import os, sys, json, time, re, random, hashlib
-try:
-    from mcr.conselho_multi import tree_of_thought
-except ImportError:
-    try:
-        from mcr.modules.conselho import tree_of_thought
-    except ImportError:
-        from mcr.conselho_multi import tree_of_thought
-try:
-    from context_crew import ContextCrew
-except ImportError:
-    ContextCrew = None
-try:
-    from context_infinity import SessionCache
-except ImportError:
-    SessionCache = None
+from mcr.conselho_multi import tree_of_thought
+from context_crew import ContextCrew
+from context_infinity import SessionCache
 import re as _re
 from typing import Dict, List, Optional
 
-try:
-    from mcr.sse_server import emit
-except ImportError:
-    emit = lambda *a, **kw: None
+from mcr.sse_server import emit
 
 # Caminhos
 BASE = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
 sys.path.insert(0, os.path.join(BASE, 'Scripts', 'mcr_devia'))
 
-from mcr.episodic_memory import EpisodicMemory
+from mcr.knowledge.episodic_memory import EpisodicMemory
 from mcr.task_planner import TaskPlanner, PlanValidator
 from mcr.tool_orchestrator import ToolOrchestrator
 from mcr.sandbox_executor import SandboxExecutor
 from mcr.ia import IA
 from mcr.kg import KnowledgeGraph
-try:
-    from context_infinity import SessionCache
-except ImportError:
-    SessionCache = None
 from mcr.enricher import Enricher  # atalho para Conselho (fundido)
 from mcr.emergir import EmergirEngine  # EMERGIR V4
 from mcr.self_study import SelfStudyEngine  # Self-Study

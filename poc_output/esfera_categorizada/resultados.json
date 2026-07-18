@@ -1,0 +1,1332 @@
+{
+  "ammunition": {
+    "n_sprites": 30,
+    "n_regioes": 66,
+    "n_correlacoes": 186,
+    "anatomia": [
+      {
+        "pos": "esq_sup",
+        "regiao": "r0_medio_a",
+        "cor_nome": "medio_amar",
+        "geom": "minusculo_",
+        "escala": 0.12
+      },
+      {
+        "pos": "cent_mid",
+        "regiao": "r0_escuro_",
+        "cor_nome": "escuro_ver",
+        "geom": "minusculo_",
+        "escala": 0.12
+      }
+    ],
+    "top_correlacoes": [
+      [
+        "cor_media=muito_clar -> cor_media=muito_clar",
+        58
+      ],
+      [
+        "geometria=minusculo_ -> geometria=minusculo_",
+        52
+      ],
+      [
+        "bbox_pos=cent_mid -> bbox_pos=cent_mid",
+        46
+      ],
+      [
+        "cor_media=medio_amar -> cor_media=medio_amar",
+        42
+      ],
+      [
+        "bbox_pos=cent_mid -> bbox_pos=esq_sup",
+        31
+      ],
+      [
+        "bbox_pos=esq_sup -> bbox_pos=cent_mid",
+        31
+      ],
+      [
+        "cor_media=medio_amar -> cor_media=claro_amar",
+        21
+      ],
+      [
+        "cor_media=claro_amar -> cor_media=medio_amar",
+        21
+      ],
+      [
+        "bbox_pos=cent_mid -> bbox_pos=dir_inf",
+        19
+      ],
+      [
+        "bbox_pos=dir_inf -> bbox_pos=cent_mid",
+        19
+      ]
+    ]
+  },
+  "amulets_and_necklaces": {
+    "n_sprites": 40,
+    "n_regioes": 55,
+    "n_correlacoes": 106,
+    "anatomia": [
+      {
+        "pos": "esq_mid",
+        "regiao": "r0_muito_c",
+        "cor_nome": "muito_clar",
+        "geom": "enorme_qua",
+        "escala": 0.5
+      },
+      {
+        "pos": "cent_mid",
+        "regiao": "r1_claro_a",
+        "cor_nome": "claro_amar",
+        "geom": "pequeno_al",
+        "escala": 0.2
+      },
+      {
+        "pos": "dir_inf",
+        "regiao": "r0_escuro_",
+        "cor_nome": "escuro_neu",
+        "geom": "minusculo_",
+        "escala": 0.12
+      }
+    ],
+    "top_correlacoes": [
+      [
+        "geometria=minusculo_ -> geometria=minusculo_",
+        24
+      ],
+      [
+        "cor_media=claro_amar -> cor_media=claro_amar",
+        22
+      ],
+      [
+        "cor_media=claro_amar -> geometria=minusculo_",
+        18
+      ],
+      [
+        "geometria=minusculo_ -> cor_media=claro_amar",
+        18
+      ],
+      [
+        "bbox_pos=cent_mid -> bbox_pos=cent_mid",
+        18
+      ],
+      [
+        "cor_media=muito_clar -> cor_media=claro_amar",
+        10
+      ],
+      [
+        "cor_media=claro_amar -> cor_media=muito_clar",
+        10
+      ],
+      [
+        "geometria=minusculo_ -> geometria=pequeno_re",
+        10
+      ],
+      [
+        "geometria=pequeno_re -> geometria=minusculo_",
+        10
+      ],
+      [
+        "regiao_cromatica=r1_claro_a -> cor_media=claro_amar",
+        8
+      ]
+    ]
+  },
+  "armors": {
+    "n_sprites": 80,
+    "n_regioes": 155,
+    "n_correlacoes": 310,
+    "anatomia": [
+      {
+        "pos": "esq_sup",
+        "regiao": "r0_escuro_",
+        "cor_nome": "escuro_neu",
+        "geom": "minusculo_",
+        "escala": 0.12
+      },
+      {
+        "pos": "esq_mid",
+        "regiao": "r1_claro_m",
+        "cor_nome": "claro_mage",
+        "geom": "pequeno_re",
+        "escala": 0.2
+      },
+      {
+        "pos": "cent_mid",
+        "regiao": "r1_escuro_",
+        "cor_nome": "escuro_neu",
+        "geom": "pequeno_re",
+        "escala": 0.2
+      },
+      {
+        "pos": "cent_inf",
+        "regiao": "r3_claro_v",
+        "cor_nome": "claro_verd",
+        "geom": "minusculo_",
+        "escala": 0.12
+      },
+      {
+        "pos": "dir_inf",
+        "regiao": "r1_medio_v",
+        "cor_nome": "medio_verd",
+        "geom": "minusculo_",
+        "escala": 0.12
+      }
+    ],
+    "top_correlacoes": [
+      [
+        "bbox_pos=cent_mid -> bbox_pos=cent_mid",
+        86
+      ],
+      [
+        "geometria=minusculo_ -> geometria=minusculo_",
+        62
+      ],
+      [
+        "cor_media=medio_mage -> cor_media=medio_mage",
+        36
+      ],
+      [
+        "geometria=pequeno_mu -> geometria=pequeno_mu",
+        32
+      ],
+      [
+        "cor_media=escuro_neu -> geometria=minusculo_",
+        31
+      ],
+      [
+        "geometria=minusculo_ -> cor_media=escuro_neu",
+        31
+      ],
+      [
+        "cor_media=escuro_neu -> cor_media=escuro_neu",
+        28
+      ],
+      [
+        "bbox_pos=cent_mid -> bbox_pos=cent_inf",
+        24
+      ],
+      [
+        "bbox_pos=cent_inf -> bbox_pos=cent_mid",
+        24
+      ],
+      [
+        "regiao_cromatica=r0_escuro_ -> cor_media=escuro_neu",
+        23
+      ]
+    ]
+  },
+  "axe_weapons": {
+    "n_sprites": 80,
+    "n_regioes": 115,
+    "n_correlacoes": 254,
+    "anatomia": [
+      {
+        "pos": "esq_sup",
+        "regiao": "r0_medio_a",
+        "cor_nome": "medio_amar",
+        "geom": "pequeno_re",
+        "escala": 0.2
+      },
+      {
+        "pos": "cent_sup",
+        "regiao": "r0_escuro_",
+        "cor_nome": "escuro_neu",
+        "geom": "minusculo_",
+        "escala": 0.12
+      },
+      {
+        "pos": "dir_mid",
+        "regiao": "r1_claro_a",
+        "cor_nome": "claro_azul",
+        "geom": "minusculo_",
+        "escala": 0.12
+      },
+      {
+        "pos": "cent_inf",
+        "regiao": "r4_escuro_",
+        "cor_nome": "escuro_ver",
+        "geom": "pequeno_al",
+        "escala": 0.2
+      },
+      {
+        "pos": "dir_inf",
+        "regiao": "r1_escuro_",
+        "cor_nome": "escuro_neu",
+        "geom": "minusculo_",
+        "escala": 0.12
+      }
+    ],
+    "top_correlacoes": [
+      [
+        "bbox_pos=cent_mid -> bbox_pos=cent_mid",
+        46
+      ],
+      [
+        "geometria=minusculo_ -> geometria=minusculo_",
+        40
+      ],
+      [
+        "cor_media=escuro_neu -> cor_media=escuro_neu",
+        26
+      ],
+      [
+        "cor_media=medio_amar -> cor_media=medio_amar",
+        22
+      ],
+      [
+        "bbox_pos=dir_inf -> bbox_pos=cent_mid",
+        21
+      ],
+      [
+        "bbox_pos=cent_mid -> bbox_pos=dir_inf",
+        21
+      ],
+      [
+        "cor_media=escuro_neu -> geometria=minusculo_",
+        20
+      ],
+      [
+        "geometria=minusculo_ -> cor_media=escuro_neu",
+        20
+      ],
+      [
+        "cor_media=medio_amar -> cor_media=claro_amar",
+        18
+      ],
+      [
+        "cor_media=claro_amar -> cor_media=medio_amar",
+        18
+      ]
+    ]
+  },
+  "boots": {
+    "n_sprites": 50,
+    "n_regioes": 156,
+    "n_correlacoes": 452,
+    "anatomia": [
+      {
+        "pos": "esq_sup",
+        "regiao": "r0_escuro_",
+        "cor_nome": "escuro_neu",
+        "geom": "pequeno_mu",
+        "escala": 0.2
+      },
+      {
+        "pos": "cent_mid",
+        "regiao": "r2_muito_c",
+        "cor_nome": "muito_clar",
+        "geom": "enorme_qua",
+        "escala": 0.5
+      },
+      {
+        "pos": "dir_mid",
+        "regiao": "r1_escuro_",
+        "cor_nome": "escuro_neu",
+        "geom": "pequeno_mu",
+        "escala": 0.2
+      }
+    ],
+    "top_correlacoes": [
+      [
+        "bbox_pos=cent_mid -> bbox_pos=cent_mid",
+        114
+      ],
+      [
+        "cor_media=muito_clar -> cor_media=muito_clar",
+        80
+      ],
+      [
+        "geometria=pequeno_mu -> geometria=pequeno_mu",
+        42
+      ],
+      [
+        "geometria=minusculo_ -> geometria=minusculo_",
+        40
+      ],
+      [
+        "bbox_pos=esq_sup -> bbox_pos=cent_mid",
+        38
+      ],
+      [
+        "bbox_pos=cent_mid -> bbox_pos=esq_sup",
+        38
+      ],
+      [
+        "bbox_pos=dir_mid -> bbox_pos=cent_mid",
+        35
+      ],
+      [
+        "bbox_pos=cent_mid -> bbox_pos=dir_mid",
+        35
+      ],
+      [
+        "cor_media=escuro_neu -> cor_media=muito_clar",
+        32
+      ],
+      [
+        "cor_media=muito_clar -> cor_media=escuro_neu",
+        32
+      ]
+    ]
+  },
+  "club_weapons": {
+    "n_sprites": 80,
+    "n_regioes": 149,
+    "n_correlacoes": 363,
+    "anatomia": [
+      {
+        "pos": "esq_sup",
+        "regiao": "r0_medio_a",
+        "cor_nome": "medio_amar",
+        "geom": "pequeno_re",
+        "escala": 0.2
+      },
+      {
+        "pos": "cent_sup",
+        "regiao": "r2_medio_m",
+        "cor_nome": "medio_mage",
+        "geom": "minusculo_",
+        "escala": 0.12
+      },
+      {
+        "pos": "cent_mid",
+        "regiao": "r0_medio_m",
+        "cor_nome": "medio_mage",
+        "geom": "minusculo_",
+        "escala": 0.12
+      },
+      {
+        "pos": "dir_mid",
+        "regiao": "r4_escuro_",
+        "cor_nome": "escuro_mag",
+        "geom": "minusculo_",
+        "escala": 0.12
+      },
+      {
+        "pos": "dir_inf",
+        "regiao": "r1_medio_n",
+        "cor_nome": "medio_neut",
+        "geom": "minusculo_",
+        "escala": 0.12
+      }
+    ],
+    "top_correlacoes": [
+      [
+        "geometria=minusculo_ -> geometria=minusculo_",
+        134
+      ],
+      [
+        "cor_media=medio_mage -> cor_media=medio_mage",
+        44
+      ],
+      [
+        "cor_media=medio_mage -> geometria=minusculo_",
+        42
+      ],
+      [
+        "geometria=minusculo_ -> cor_media=medio_mage",
+        42
+      ],
+      [
+        "bbox_pos=cent_mid -> bbox_pos=cent_mid",
+        28
+      ],
+      [
+        "bbox_pos=cent_mid -> bbox_pos=cent_sup",
+        22
+      ],
+      [
+        "bbox_pos=cent_sup -> bbox_pos=cent_mid",
+        22
+      ],
+      [
+        "cor_media=escuro_neu -> geometria=minusculo_",
+        21
+      ],
+      [
+        "geometria=minusculo_ -> cor_media=escuro_neu",
+        21
+      ],
+      [
+        "bbox_pos=cent_mid -> bbox_pos=esq_sup",
+        20
+      ]
+    ]
+  },
+  "creature_products": {
+    "n_sprites": 60,
+    "n_regioes": 167,
+    "n_correlacoes": 480,
+    "anatomia": [
+      {
+        "pos": "esq_sup",
+        "regiao": "r0_muito_c",
+        "cor_nome": "muito_clar",
+        "geom": "enorme_alo",
+        "escala": 0.5
+      },
+      {
+        "pos": "esq_mid",
+        "regiao": "r6_medio_v",
+        "cor_nome": "medio_verd",
+        "geom": "minusculo_",
+        "escala": 0.12
+      },
+      {
+        "pos": "cent_mid",
+        "regiao": "r1_escuro_",
+        "cor_nome": "escuro_neu",
+        "geom": "medio_quad",
+        "escala": 0.3
+      },
+      {
+        "pos": "dir_mid",
+        "regiao": "r0_escuro_",
+        "cor_nome": "escuro_neu",
+        "geom": "minusculo_",
+        "escala": 0.12
+      },
+      {
+        "pos": "cent_inf",
+        "regiao": "r2_muito_c",
+        "cor_nome": "muito_clar",
+        "geom": "medio_quad",
+        "escala": 0.3
+      }
+    ],
+    "top_correlacoes": [
+      [
+        "bbox_pos=cent_mid -> bbox_pos=cent_mid",
+        288
+      ],
+      [
+        "geometria=minusculo_ -> geometria=minusculo_",
+        108
+      ],
+      [
+        "bbox_pos=cent_mid -> bbox_pos=dir_mid",
+        79
+      ],
+      [
+        "bbox_pos=dir_mid -> bbox_pos=cent_mid",
+        79
+      ],
+      [
+        "cor_media=muito_clar -> cor_media=muito_clar",
+        70
+      ],
+      [
+        "bbox_pos=cent_mid -> bbox_pos=esq_mid",
+        42
+      ],
+      [
+        "bbox_pos=esq_mid -> bbox_pos=cent_mid",
+        42
+      ],
+      [
+        "cor_media=claro_mage -> geometria=minusculo_",
+        34
+      ],
+      [
+        "geometria=minusculo_ -> cor_media=claro_mage",
+        34
+      ],
+      [
+        "cor_media=escuro_neu -> geometria=minusculo_",
+        33
+      ]
+    ]
+  },
+  "distance_weapons": {
+    "n_sprites": 40,
+    "n_regioes": 77,
+    "n_correlacoes": 185,
+    "anatomia": [
+      {
+        "pos": "cent_mid",
+        "regiao": "r1_claro_n",
+        "cor_nome": "claro_neut",
+        "geom": "medio_quad",
+        "escala": 0.3
+      }
+    ],
+    "top_correlacoes": [
+      [
+        "geometria=minusculo_ -> geometria=minusculo_",
+        62
+      ],
+      [
+        "bbox_pos=cent_mid -> bbox_pos=cent_mid",
+        44
+      ],
+      [
+        "cor_media=claro_neut -> cor_media=claro_neut",
+        32
+      ],
+      [
+        "cor_media=medio_neut -> cor_media=claro_neut",
+        25
+      ],
+      [
+        "cor_media=claro_neut -> cor_media=medio_neut",
+        25
+      ],
+      [
+        "bbox_pos=cent_mid -> bbox_pos=dir_inf",
+        22
+      ],
+      [
+        "bbox_pos=dir_inf -> bbox_pos=cent_mid",
+        22
+      ],
+      [
+        "cor_media=medio_neut -> cor_media=medio_neut",
+        20
+      ],
+      [
+        "cor_media=claro_neut -> geometria=minusculo_",
+        16
+      ],
+      [
+        "geometria=minusculo_ -> cor_media=claro_neut",
+        16
+      ]
+    ]
+  },
+  "food": {
+    "n_sprites": 60,
+    "n_regioes": 99,
+    "n_correlacoes": 224,
+    "anatomia": [
+      {
+        "pos": "esq_sup",
+        "regiao": "r1_escuro_",
+        "cor_nome": "escuro_mag",
+        "geom": "minusculo_",
+        "escala": 0.12
+      },
+      {
+        "pos": "cent_sup",
+        "regiao": "r1_muito_c",
+        "cor_nome": "muito_clar",
+        "geom": "minusculo_",
+        "escala": 0.12
+      },
+      {
+        "pos": "cent_mid",
+        "regiao": "r0_escuro_",
+        "cor_nome": "escuro_mag",
+        "geom": "minusculo_",
+        "escala": 0.12
+      },
+      {
+        "pos": "dir_inf",
+        "regiao": "r2_muito_c",
+        "cor_nome": "muito_clar",
+        "geom": "medio_quad",
+        "escala": 0.3
+      }
+    ],
+    "top_correlacoes": [
+      [
+        "bbox_pos=cent_mid -> bbox_pos=cent_mid",
+        46
+      ],
+      [
+        "cor_media=escuro_mag -> cor_media=escuro_mag",
+        36
+      ],
+      [
+        "geometria=minusculo_ -> geometria=minusculo_",
+        36
+      ],
+      [
+        "cor_media=muito_clar -> cor_media=muito_clar",
+        26
+      ],
+      [
+        "bbox_pos=cent_mid -> bbox_pos=dir_inf",
+        16
+      ],
+      [
+        "bbox_pos=dir_inf -> bbox_pos=cent_mid",
+        16
+      ],
+      [
+        "cor_media=muito_clar -> cor_media=claro_amar",
+        12
+      ],
+      [
+        "cor_media=muito_clar -> cor_media=claro_verd",
+        12
+      ],
+      [
+        "cor_media=claro_amar -> cor_media=claro_amar",
+        12
+      ],
+      [
+        "cor_media=claro_amar -> cor_media=muito_clar",
+        12
+      ]
+    ]
+  },
+  "helmets": {
+    "n_sprites": 80,
+    "n_regioes": 134,
+    "n_correlacoes": 337,
+    "anatomia": [
+      {
+        "pos": "esq_sup",
+        "regiao": "r0_escuro_",
+        "cor_nome": "escuro_neu",
+        "geom": "minusculo_",
+        "escala": 0.12
+      },
+      {
+        "pos": "cent_sup",
+        "regiao": "r1_medio_m",
+        "cor_nome": "medio_mage",
+        "geom": "minusculo_",
+        "escala": 0.12
+      },
+      {
+        "pos": "esq_mid",
+        "regiao": "r0_medio_a",
+        "cor_nome": "medio_amar",
+        "geom": "medio_quad",
+        "escala": 0.3
+      },
+      {
+        "pos": "dir_mid",
+        "regiao": "r2_claro_a",
+        "cor_nome": "claro_amar",
+        "geom": "minusculo_",
+        "escala": 0.12
+      },
+      {
+        "pos": "cent_inf",
+        "regiao": "r3_muito_c",
+        "cor_nome": "muito_clar",
+        "geom": "minusculo_",
+        "escala": 0.12
+      },
+      {
+        "pos": "dir_inf",
+        "regiao": "r1_muito_c",
+        "cor_nome": "muito_clar",
+        "geom": "minusculo_",
+        "escala": 0.12
+      }
+    ],
+    "top_correlacoes": [
+      [
+        "bbox_pos=cent_mid -> bbox_pos=cent_mid",
+        82
+      ],
+      [
+        "geometria=minusculo_ -> geometria=minusculo_",
+        54
+      ],
+      [
+        "cor_media=muito_clar -> cor_media=muito_clar",
+        38
+      ],
+      [
+        "cor_media=escuro_mag -> cor_media=escuro_mag",
+        34
+      ],
+      [
+        "cor_media=muito_clar -> geometria=minusculo_",
+        14
+      ],
+      [
+        "geometria=minusculo_ -> geometria=medio_reta",
+        14
+      ],
+      [
+        "geometria=minusculo_ -> cor_media=muito_clar",
+        14
+      ],
+      [
+        "geometria=medio_reta -> geometria=minusculo_",
+        14
+      ],
+      [
+        "bbox_pos=cent_mid -> bbox_pos=esq_sup",
+        13
+      ],
+      [
+        "bbox_pos=esq_sup -> bbox_pos=cent_mid",
+        13
+      ]
+    ]
+  },
+  "legs": {
+    "n_sprites": 50,
+    "n_regioes": 70,
+    "n_correlacoes": 139,
+    "anatomia": [
+      {
+        "pos": "cent_sup",
+        "regiao": "r0_medio_m",
+        "cor_nome": "medio_mage",
+        "geom": "medio_reta",
+        "escala": 0.3
+      },
+      {
+        "pos": "cent_mid",
+        "regiao": "r0_escuro_",
+        "cor_nome": "escuro_neu",
+        "geom": "minusculo_",
+        "escala": 0.12
+      }
+    ],
+    "top_correlacoes": [
+      [
+        "geometria=minusculo_ -> geometria=minusculo_",
+        32
+      ],
+      [
+        "bbox_pos=cent_mid -> bbox_pos=cent_mid",
+        30
+      ],
+      [
+        "cor_media=escuro_neu -> geometria=minusculo_",
+        13
+      ],
+      [
+        "geometria=minusculo_ -> cor_media=escuro_neu",
+        13
+      ],
+      [
+        "bbox_pos=cent_mid -> bbox_pos=dir_inf",
+        13
+      ],
+      [
+        "bbox_pos=dir_inf -> bbox_pos=cent_mid",
+        13
+      ],
+      [
+        "geometria=minusculo_ -> geometria=pequeno_mu",
+        10
+      ],
+      [
+        "geometria=pequeno_mu -> geometria=minusculo_",
+        10
+      ],
+      [
+        "cor_media=claro_neut -> cor_media=claro_neut",
+        8
+      ],
+      [
+        "cor_media=muito_clar -> cor_media=escuro_neu",
+        7
+      ]
+    ]
+  },
+  "rings": {
+    "n_sprites": 40,
+    "n_regioes": 30,
+    "n_correlacoes": 39,
+    "anatomia": [
+      {
+        "pos": "cent_mid",
+        "regiao": "r1_muito_c",
+        "cor_nome": "muito_clar",
+        "geom": "pequeno_re",
+        "escala": 0.2
+      }
+    ],
+    "top_correlacoes": [
+      [
+        "cor_media=muito_clar -> cor_media=muito_clar",
+        48
+      ],
+      [
+        "geometria=minusculo_ -> geometria=minusculo_",
+        14
+      ],
+      [
+        "bbox_pos=cent_mid -> bbox_pos=cent_mid",
+        14
+      ],
+      [
+        "cor_media=muito_clar -> geometria=pequeno_re",
+        12
+      ],
+      [
+        "cor_media=muito_clar -> geometria=minusculo_",
+        12
+      ],
+      [
+        "geometria=pequeno_re -> cor_media=muito_clar",
+        12
+      ],
+      [
+        "geometria=minusculo_ -> cor_media=muito_clar",
+        12
+      ],
+      [
+        "geometria=pequeno_re -> geometria=minusculo_",
+        11
+      ],
+      [
+        "geometria=minusculo_ -> geometria=pequeno_re",
+        11
+      ],
+      [
+        "regiao_cromatica=r1_muito_c -> cor_media=muito_clar",
+        6
+      ]
+    ]
+  },
+  "rods": {
+    "n_sprites": 20,
+    "n_regioes": 37,
+    "n_correlacoes": 77,
+    "anatomia": [
+      {
+        "pos": "cent_mid",
+        "regiao": "r0_muito_c",
+        "cor_nome": "muito_clar",
+        "geom": "medio_quad",
+        "escala": 0.3
+      }
+    ],
+    "top_correlacoes": [
+      [
+        "bbox_pos=cent_mid -> bbox_pos=cent_mid",
+        14
+      ],
+      [
+        "cor_media=muito_clar -> cor_media=muito_clar",
+        12
+      ],
+      [
+        "cor_media=medio_outr -> cor_media=medio_outr",
+        12
+      ],
+      [
+        "geometria=minusculo_ -> geometria=minusculo_",
+        12
+      ],
+      [
+        "geometria=minusculo_ -> geometria=pequeno_re",
+        7
+      ],
+      [
+        "geometria=pequeno_re -> geometria=minusculo_",
+        7
+      ],
+      [
+        "bbox_pos=cent_mid -> bbox_pos=esq_sup",
+        6
+      ],
+      [
+        "bbox_pos=esq_sup -> bbox_pos=cent_mid",
+        6
+      ],
+      [
+        "geometria=minusculo_ -> geometria=medio_reta",
+        5
+      ],
+      [
+        "geometria=medio_reta -> geometria=minusculo_",
+        5
+      ]
+    ]
+  },
+  "shields": {
+    "n_sprites": 80,
+    "n_regioes": 207,
+    "n_correlacoes": 436,
+    "anatomia": [
+      {
+        "pos": "esq_sup",
+        "regiao": "r0_claro_a",
+        "cor_nome": "claro_azul",
+        "geom": "pequeno_mu",
+        "escala": 0.2
+      },
+      {
+        "pos": "esq_mid",
+        "regiao": "r1_escuro_",
+        "cor_nome": "escuro_mag",
+        "geom": "minusculo_",
+        "escala": 0.12
+      },
+      {
+        "pos": "cent_mid",
+        "regiao": "r0_escuro_",
+        "cor_nome": "escuro_mag",
+        "geom": "minusculo_",
+        "escala": 0.12
+      },
+      {
+        "pos": "dir_mid",
+        "regiao": "r10_muito_",
+        "cor_nome": "muito_clar",
+        "geom": "pequeno_al",
+        "escala": 0.2
+      },
+      {
+        "pos": "cent_inf",
+        "regiao": "r13_medio_",
+        "cor_nome": "medio_outr",
+        "geom": "pequeno_mu",
+        "escala": 0.2
+      },
+      {
+        "pos": "dir_inf",
+        "regiao": "r9_muito_c",
+        "cor_nome": "muito_clar",
+        "geom": "pequeno_re",
+        "escala": 0.2
+      }
+    ],
+    "top_correlacoes": [
+      [
+        "geometria=pequeno_mu -> geometria=pequeno_mu",
+        580
+      ],
+      [
+        "geometria=minusculo_ -> geometria=pequeno_mu",
+        264
+      ],
+      [
+        "geometria=pequeno_mu -> geometria=minusculo_",
+        264
+      ],
+      [
+        "bbox_pos=cent_mid -> bbox_pos=cent_mid",
+        230
+      ],
+      [
+        "cor_media=muito_clar -> cor_media=muito_clar",
+        228
+      ],
+      [
+        "cor_media=muito_clar -> geometria=pequeno_mu",
+        226
+      ],
+      [
+        "geometria=pequeno_mu -> cor_media=muito_clar",
+        226
+      ],
+      [
+        "cor_media=muito_clar -> cor_media=medio_outr",
+        184
+      ],
+      [
+        "cor_media=medio_outr -> cor_media=muito_clar",
+        184
+      ],
+      [
+        "bbox_pos=cent_mid -> bbox_pos=cent_inf",
+        172
+      ]
+    ]
+  },
+  "spellbooks": {
+    "n_sprites": 20,
+    "n_regioes": 33,
+    "n_correlacoes": 88,
+    "anatomia": [
+      {
+        "pos": "esq_sup",
+        "regiao": "r1_claro_n",
+        "cor_nome": "claro_neut",
+        "geom": "pequeno_re",
+        "escala": 0.2
+      },
+      {
+        "pos": "cent_mid",
+        "regiao": "r0_muito_c",
+        "cor_nome": "muito_clar",
+        "geom": "enorme_qua",
+        "escala": 0.5
+      },
+      {
+        "pos": "dir_inf",
+        "regiao": "r1_muito_c",
+        "cor_nome": "muito_clar",
+        "geom": "medio_quad",
+        "escala": 0.3
+      }
+    ],
+    "top_correlacoes": [
+      [
+        "geometria=minusculo_ -> geometria=minusculo_",
+        16
+      ],
+      [
+        "bbox_pos=cent_mid -> bbox_pos=cent_mid",
+        10
+      ],
+      [
+        "cor_media=muito_clar -> cor_media=claro_neut",
+        7
+      ],
+      [
+        "cor_media=claro_neut -> cor_media=muito_clar",
+        7
+      ],
+      [
+        "regiao_cromatica=r0_muito_c -> cor_media=muito_clar",
+        6
+      ],
+      [
+        "cor_media=muito_clar -> regiao_cromatica=r0_muito_c",
+        6
+      ],
+      [
+        "cor_media=muito_clar -> cor_media=muito_clar",
+        6
+      ],
+      [
+        "cor_media=claro_neut -> cor_media=claro_neut",
+        6
+      ],
+      [
+        "geometria=minusculo_ -> geometria=pequeno_re",
+        6
+      ],
+      [
+        "geometria=pequeno_re -> geometria=minusculo_",
+        6
+      ]
+    ]
+  },
+  "sword_weapons": {
+    "n_sprites": 80,
+    "n_regioes": 197,
+    "n_correlacoes": 379,
+    "anatomia": [
+      {
+        "pos": "esq_sup",
+        "regiao": "r0_medio_a",
+        "cor_nome": "medio_amar",
+        "geom": "minusculo_",
+        "escala": 0.12
+      },
+      {
+        "pos": "cent_sup",
+        "regiao": "r1_claro_a",
+        "cor_nome": "claro_azul",
+        "geom": "minusculo_",
+        "escala": 0.12
+      },
+      {
+        "pos": "cent_mid",
+        "regiao": "r0_claro_a",
+        "cor_nome": "claro_azul",
+        "geom": "enorme_qua",
+        "escala": 0.5
+      },
+      {
+        "pos": "dir_mid",
+        "regiao": "r5_medio_a",
+        "cor_nome": "medio_amar",
+        "geom": "minusculo_",
+        "escala": 0.12
+      },
+      {
+        "pos": "dir_inf",
+        "regiao": "r2_medio_a",
+        "cor_nome": "medio_amar",
+        "geom": "medio_quad",
+        "escala": 0.3
+      }
+    ],
+    "top_correlacoes": [
+      [
+        "cor_media=medio_amar -> cor_media=medio_amar",
+        292
+      ],
+      [
+        "bbox_pos=cent_mid -> bbox_pos=cent_mid",
+        94
+      ],
+      [
+        "geometria=minusculo_ -> geometria=minusculo_",
+        88
+      ],
+      [
+        "cor_media=medio_amar -> geometria=minusculo_",
+        70
+      ],
+      [
+        "geometria=minusculo_ -> cor_media=medio_amar",
+        70
+      ],
+      [
+        "cor_media=claro_amar -> cor_media=medio_amar",
+        55
+      ],
+      [
+        "cor_media=medio_amar -> cor_media=claro_amar",
+        55
+      ],
+      [
+        "bbox_pos=cent_mid -> bbox_pos=esq_sup",
+        52
+      ],
+      [
+        "bbox_pos=esq_sup -> bbox_pos=cent_mid",
+        52
+      ],
+      [
+        "bbox_pos=esq_sup -> bbox_pos=dir_inf",
+        50
+      ]
+    ]
+  },
+  "tools": {
+    "n_sprites": 40,
+    "n_regioes": 82,
+    "n_correlacoes": 204,
+    "anatomia": [
+      {
+        "pos": "esq_sup",
+        "regiao": "r1_escuro_",
+        "cor_nome": "escuro_neu",
+        "geom": "pequeno_mu",
+        "escala": 0.2
+      },
+      {
+        "pos": "esq_mid",
+        "regiao": "r0_medio_a",
+        "cor_nome": "medio_amar",
+        "geom": "medio_quad",
+        "escala": 0.3
+      },
+      {
+        "pos": "cent_mid",
+        "regiao": "r0_escuro_",
+        "cor_nome": "escuro_neu",
+        "geom": "pequeno_mu",
+        "escala": 0.2
+      },
+      {
+        "pos": "dir_inf",
+        "regiao": "r1_muito_c",
+        "cor_nome": "muito_clar",
+        "geom": "pequeno_re",
+        "escala": 0.2
+      }
+    ],
+    "top_correlacoes": [
+      [
+        "bbox_pos=cent_mid -> bbox_pos=cent_mid",
+        52
+      ],
+      [
+        "cor_media=escuro_neu -> cor_media=escuro_neu",
+        30
+      ],
+      [
+        "cor_media=muito_clar -> cor_media=muito_clar",
+        26
+      ],
+      [
+        "geometria=minusculo_ -> geometria=minusculo_",
+        22
+      ],
+      [
+        "geometria=pequeno_mu -> geometria=pequeno_mu",
+        22
+      ],
+      [
+        "cor_media=escuro_neu -> geometria=minusculo_",
+        20
+      ],
+      [
+        "geometria=minusculo_ -> cor_media=escuro_neu",
+        20
+      ],
+      [
+        "bbox_pos=dir_inf -> bbox_pos=dir_inf",
+        20
+      ],
+      [
+        "geometria=minusculo_ -> geometria=pequeno_mu",
+        19
+      ],
+      [
+        "geometria=pequeno_mu -> geometria=minusculo_",
+        19
+      ]
+    ]
+  },
+  "wands": {
+    "n_sprites": 20,
+    "n_regioes": 48,
+    "n_correlacoes": 160,
+    "anatomia": [
+      {
+        "pos": "esq_mid",
+        "regiao": "r1_medio_m",
+        "cor_nome": "medio_mage",
+        "geom": "minusculo_",
+        "escala": 0.12
+      },
+      {
+        "pos": "cent_mid",
+        "regiao": "r0_muito_c",
+        "cor_nome": "muito_clar",
+        "geom": "minusculo_",
+        "escala": 0.12
+      },
+      {
+        "pos": "esq_inf",
+        "regiao": "r2_muito_c",
+        "cor_nome": "muito_clar",
+        "geom": "medio_quad",
+        "escala": 0.3
+      }
+    ],
+    "top_correlacoes": [
+      [
+        "cor_media=muito_clar -> cor_media=medio_mage",
+        16
+      ],
+      [
+        "cor_media=medio_mage -> cor_media=muito_clar",
+        16
+      ],
+      [
+        "geometria=minusculo_ -> geometria=minusculo_",
+        16
+      ],
+      [
+        "bbox_pos=cent_mid -> bbox_pos=esq_mid",
+        14
+      ],
+      [
+        "bbox_pos=esq_mid -> bbox_pos=cent_mid",
+        14
+      ],
+      [
+        "cor_media=claro_neut -> cor_media=claro_neut",
+        12
+      ],
+      [
+        "cor_media=muito_clar -> cor_media=claro_neut",
+        11
+      ],
+      [
+        "cor_media=claro_neut -> cor_media=muito_clar",
+        11
+      ],
+      [
+        "cor_media=medio_mage -> cor_media=medio_mage",
+        10
+      ],
+      [
+        "cor_media=muito_clar -> geometria=minusculo_",
+        9
+      ]
+    ]
+  }
+}

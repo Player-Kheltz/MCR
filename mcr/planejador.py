@@ -1,241 +1,387 @@
-#!/usr/bin/env python3
-"""planejador.py — Gerador hierarquico de scripts Lua do Canary.
-Niveis: M2 (marcos) → M3 (secoes) → M4 (tokens).
-Gera codigo Lua valido para NPCs, sem LLM."""
-import random
-import re
-from collections import Counter
-from typing import List, Dict, Optional
+"""mcr.planejador — Planejamento: MCR planeja antes de agir.
 
-# ─── Dados extraidos do corpus (1069 scripts) ────────────
+O MCR simula múltiplos futuros possíveis e escolhe o plano de ação
+com maior valor esperado segundo a Equação 5D. É como MCTS (Monte
+Carlo Tree Search) mas markoviano e com 5D como função de valor.
 
-# Template de marcos (M2)
-MARCOS = [
-    'cabecalho', 'npc_type_def', 'config_init',
-    'config_field', 'config_outfit', 'config_flags',
-    'handler_init', 'npc_handler',
-    'callback',   # repetivel
-    'keyword',    # repetivel
-    'module',     # repetivel
-    'register',
-]
+Pilar 5: fecha o loop — planejar → executar → observar → replanejar.
 
-# Distribuicoes de cardinalidade (percentuais acumulados)
-CARD_CONFIG_FIELDS = [(6, 55.1), (7, 34.7), (8, 9.5), (9, 0.4)]
-CARD_CALLBACKS = [(6, 63.5), (9, 26.8), (5, 2.8), (0, 4.2)]
-CARD_KEYWORDS = [(0, 65.8), (1, 5.8), (2, 5.7), (3, 2.4), (4, 2.0)]
-CARD_MODULES = [(1, 94.7), (0, 5.3)]
+5 capacidades:
+1. Simular — dado estado + ação, prever próximos N estados (Markov)
+2. Planejar — busca em árvore sobre sequências de ações, escolhe melhor
+3. Avaliar plano — score de um plano via Equação 5D
+4. Replanificar — adapta plano quando estado muda inesperadamente
+5. Heurística — poda por NMI/entropia (estados de baixa informação)
 
-# Campos de config (M3)
-CONFIG_BASE = [
-    ('npcConfig.name', lambda ctx: f'npcConfig.name = "{ctx["nome"]}"'),
-    ('npcConfig.description', lambda ctx: f'npcConfig.description = "{ctx["nome"]}"'),
-    ('npcConfig.health', lambda ctx: f'npcConfig.health = {ctx["health"]}'),
-    ('npcConfig.maxHealth', lambda ctx: f'npcConfig.maxHealth = npcConfig.health'),
-    ('npcConfig.walkInterval', lambda ctx: f'npcConfig.walkInterval = {ctx["walk_interval"]}'),
-    ('npcConfig.walkRadius', lambda ctx: f'npcConfig.walkRadius = {ctx["walk_radius"]}'),
-]
+Tudo Markov + entropia + 5D. Zero GPU, zero dependências.
+"""
+import math
+from collections import defaultdict
+from typing import Dict, List, Tuple, Set, Optional, Any
 
-CONFIG_OPCIONAIS = [
-    ('shop', 0.30, lambda ctx: 'npcConfig.shop = {\n\t\t{ item = {"key", "value"}, sell = 0, buy = 0 },\n\t}'),
-    ('voices', 0.239, lambda ctx: f'npcConfig.voices = {{\n\t\tinterval = 15000,\n\t\tchance = 20,\n\t\t{{ text = "Bem-vindo a {ctx["nome"]}." }},\n\t}}'),
-]
-
-# Outfit default (amostrado de valores comuns do corpus)
-OUTFITS = [
-    {'lookType': 73, 'lookHead': 0, 'lookBody': 0, 'lookLegs': 0, 'lookFeet': 0, 'lookAddons': 0},
-    {'lookType': 132, 'lookHead': 19, 'lookBody': 113, 'lookLegs': 112, 'lookFeet': 114, 'lookAddons': 0},
-    {'lookType': 294, 'lookHead': 0, 'lookBody': 0, 'lookLegs': 0, 'lookFeet': 0, 'lookAddons': 0},
-    {'lookType': 20, 'lookHead': 0, 'lookBody': 0, 'lookLegs': 0, 'lookFeet': 0, 'lookAddons': 0},
-    {'lookType': 128, 'lookHead': 86, 'lookBody': 120, 'lookLegs': 117, 'lookFeet': 115, 'lookAddons': 0},
-    {'lookType': 2, 'lookHead': 0, 'lookBody': 0, 'lookLegs': 0, 'lookFeet': 0, 'lookAddons': 0},
-]
-
-# Callbacks base (M3)
-CALLBACKS_BASE = [
-    'npcType.onThink = function(npc, interval)\n\tnpcHandler:onThink(npc, interval)\nend',
-    'npcType.onAppear = function(npc, creature)\n\tnpcHandler:onAppear(npc, creature)\nend',
-    'npcType.onDisappear = function(npc, creature)\n\tnpcHandler:onDisappear(npc, creature)\nend',
-    'npcType.onMove = function(npc, creature, fromPosition, toPosition)\n\tnpcHandler:onMove(npc, creature, fromPosition, toPosition)\nend',
-    'npcType.onSay = function(npc, creature, type, message)\n\tnpcHandler:onSay(npc, creature, type, message)\nend',
-    'npcType.onCloseChannel = function(npc, creature)\n\tnpcHandler:onCloseChannel(npc, creature)\nend',
-]
-
-CALLBACKS_SHOP = [
-    'npcType.onBuyItem = function(npc, player, itemId, subType, amount, ignore, inBackpacks)\n\tnpcHandler:onBuyItem(npc, player, itemId, subType, amount, ignore, inBackpacks)\nend',
-    'npcType.onSellItem = function(npc, player, itemId, subtype, amount, ignore, name, totalCost)\n\tnpcHandler:onSellItem(npc, player, itemId, subtype, amount, ignore, name, totalCost)\nend',
-    'npcType.onCheckItem = function(npc, player, clientId, subType)\n\tnpcHandler:onCheckItem(npc, player, clientId, subType)\nend',
-]
-
-# Keywords genericas (M4)
-KEYWORDS_POOL = [
-    'keywordHandler:addKeyword({ "job" }, StdModule.say, { npcHandler = npcHandler, text = "Sou o {nome}." })',
-    'keywordHandler:addKeyword({ "name" }, StdModule.say, { npcHandler = npcHandler, text = "Me chamo {nome}." })',
-    'keywordHandler:addKeyword({ "time" }, StdModule.say, { npcHandler = npcHandler, text = "Nao tenho relogio, amigo." })',
-    'keywordHandler:addKeyword({ "help" }, StdModule.say, { npcHandler = npcHandler, text = "Em que posso ajudar?" })',
-    'keywordHandler:addKeyword({ "bye" }, StdModule.say, { npcHandler = npcHandler, text = "Volte sempre!" })',
-    'keywordHandler:addAliasKeyword({ "hello" })',
-    'keywordHandler:addAliasKeyword({ "hi" })',
-]
-
-# Nomes de NPC (pool tematico)
-NOMES_MASC = ['Brunin', 'Thorgrim', 'Alistair', 'Cedric', 'Magnus', 'Valtor', 'Grimm', 'Kael', 'Doran', 'Fenris']
-NOMES_FEM = ['Elara', 'Seraphina', 'Lyra', 'Morgana', 'Isolde', 'Rowan', 'Vexia', 'Thalia', 'Nyra', 'Aria']
-SOBRENOMES = ['Forjador', 'Guarda', 'Mago', 'Andarilho', 'Ferro', 'Sombra', 'Luz', 'Martelo', 'Escudo', 'Fogo']
-
-# Templates de nome por tipo
-NOME_TEMPLATES = {
-    'ferreiro': lambda: f'{random.choice(NOMES_MASC)} {random.choice(SOBRENOMES[:5])}',
-    'mago': lambda: f'{random.choice(NOMES_MASC + NOMES_FEM)} {random.choice(SOBRENOMES[5:])}',
-    'guarda': lambda: f'{random.choice(NOMES_MASC)} {random.choice(SOBRENOMES[:3])}',
-    'mercador': lambda: f'{random.choice(NOMES_MASC + NOMES_FEM)} {random.choice(SOBRENOMES)}',
-    'bardo': lambda: f'{random.choice(NOMES_MASC + NOMES_FEM)} {random.choice(SOBRENOMES)}',
-    'alquimista': lambda: f'Alquimista {random.choice(NOMES_MASC + NOMES_FEM)}',
-}
-
-
-def amostrar_card(distribuicao):
-    r = random.random() * 100
-    acum = 0
-    for valor, pct in distribuicao:
-        acum += pct
-        if r <= acum:
-            return valor
-    return distribuicao[-1][0]
+try:
+    from mcr.equacao_mcr import avaliar_5d
+except ImportError:
+    from equacao_mcr import avaliar_5d
 
 
 class Planejador:
-    def __init__(self):
-        self._indice_nome = 0
+    """MCR que planeja antes de agir.
 
-    def _proximo_nome(self, tipo: str = 'geral') -> str:
-        template = NOME_TEMPLATES.get(tipo, lambda: f'{random.choice(NOMES_MASC)} {random.choice(SOBRENOMES)}')
-        return template()
+    Simula futuros possíveis via transições markovianas e avalia
+    cada caminho com a Equação 5D. Escolhe o plano com maior valor
+    esperado.
 
-    # ─── M2: Gerador de Marcos ─────────────────────────────────
+    Uso:
+        plan = Planejador(coupling)
+        plano = plan.planejar("criar monstro dragao", profundidade=3)
+        # plano = {acoes: [criar, gerar, ...], score: 0.85, ...}
+    """
 
-    def gerar_marcos(self, tipo: str = 'geral') -> List[Dict]:
-        """Gera a sequencia de marcos com cardinalidades do corpus."""
-        n_cfg = amostrar_card(CARD_CONFIG_FIELDS)
-        n_cb = amostrar_card(CARD_CALLBACKS)
-        n_kw = amostrar_card(CARD_KEYWORDS)
-        n_mod = amostrar_card(CARD_MODULES)
+    def __init__(self, coupling, max_acoes: int = 8):
+        self._coupling = coupling
+        self._max_acoes = max_acoes  # número máximo de ações a considerar
+        self._cache_planos: Dict[Tuple[str, int], Dict] = {}
 
-        ctx = {
-            'nome': self._proximo_nome(tipo),
-            'health': random.randint(80, 500),
-            'walk_interval': random.choice([1000, 1500, 2000, 2500]),
-            'walk_radius': random.randint(1, 5),
-            'has_shop': random.random() < 0.30,
-        }
-        ctx['outfit'] = random.choice(OUTFITS)
+    # ═══════════════════════════════════════════════════════════════
+    # 1. SIMULAR — prever próximos N estados
+    # ═══════════════════════════════════════════════════════════════
 
-        marcos = [
-            {'tipo': 'cabecalho', 'ctx': ctx},
-            {'tipo': 'npc_type_def', 'ctx': ctx},
-            {'tipo': 'config_init', 'ctx': ctx},
-        ]
-        for _ in range(n_cfg):
-            marcos.append({'tipo': 'config_field', 'ctx': ctx})
-        marcos.append({'tipo': 'config_outfit', 'ctx': ctx})
-        marcos.append({'tipo': 'config_flags', 'ctx': ctx})
-        marcos.append({'tipo': 'handler_init', 'ctx': ctx})
-        marcos.append({'tipo': 'npc_handler', 'ctx': ctx})
-        for _ in range(n_cb):
-            marcos.append({'tipo': 'callback', 'ctx': ctx})
-        for _ in range(n_kw):
-            marcos.append({'tipo': 'keyword', 'ctx': ctx})
-        for _ in range(n_mod):
-            marcos.append({'tipo': 'module', 'ctx': ctx})
-        marcos.append({'tipo': 'register', 'ctx': ctx})
+    def simular(self, estado: str, acao: str,
+                n_passos: int = 3) -> List[Dict[str, Any]]:
+        """Simula o que acontece se ação for tomada no estado.
 
-        return marcos, ctx
+        Usa transições markovianas: P(acao_t+1 | acao_t).
+        A cada passo, prevê a próxima ação mais provável e sua confiança.
 
-    # ─── M3: Gerador de Seções ─────────────────────────────────
+        Returns:
+            Lista de {passo, acao, confianca, entropia} para cada passo.
+        """
+        trajetoria = []
+        acao_atual = acao
+        estado_atual = estado
+        conf_anterior = 0.0
 
-    def gerar_secoes(self, marcos: List[Dict], ctx: Dict) -> List[str]:
-        """Para cada marco, gera o codigo Lua da secao."""
-        secoes = []
+        for passo in range(n_passos):
+            # Prever próxima ação via decidir
+            pred, conf = self._coupling.decidir(
+                estado_atual, (acao_atual, conf_anterior)
+            )
 
-        for marco in marcos:
-            tipo = marco['tipo']
-            if tipo == 'cabecalho':
-                secoes.append(f'local internalNpcName = "{ctx["nome"]}"')
-            elif tipo == 'npc_type_def':
-                secoes.append(f'local npcType = Game.createNpcType(internalNpcName)')
-                secoes.append(f'local npcConfig = {{}}')
-            elif tipo == 'config_init':
-                pass  # ja incluido no npc_type_def
-            elif tipo == 'config_field':
-                # Alterna entre campos base e opcionais
-                if not hasattr(self, '_cfg_idx'):
-                    self._cfg_idx = 0
-                if self._cfg_idx < len(CONFIG_BASE):
-                    _, fn = CONFIG_BASE[self._cfg_idx]
-                    secoes.append(fn(ctx))
+            # Entropia da distribuição de ações possíveis
+            dist = self._dist_acoes_estado(estado_atual)
+            h = self._entropia_dist(dist)
+
+            trajetoria.append({
+                'passo': passo + 1,
+                'acao': pred,
+                'confianca': round(conf, 4),
+                'entropia': round(h, 4),
+                'estado': estado_atual[:50],
+            })
+
+            # Atualizar estado: adicionar ação à sequência
+            estado_atual = estado_atual + ' ' + pred
+            acao_atual = pred
+            conf_anterior = conf
+
+        return trajetoria
+
+    def _dist_acoes_estado(self, estado: str) -> Dict[str, float]:
+        """Distribuição de ações para um estado (via decidir interno)."""
+        # Usar _dist_palavras + _dist_features para obter distribuição
+        dist_palavras = self._coupling._dist_palavras(estado)
+        if dist_palavras:
+            total = sum(dist_palavras.values()) or 1.0
+            return {a: v / total for a, v in dist_palavras.items()}
+
+        # Fallback: distribuição uniforme das ações conhecidas
+        acoes = list(self._coupling._freq_acao.keys())
+        if not acoes:
+            return {'responder': 1.0}
+        p = 1.0 / len(acoes)
+        return {a: p for a in acoes}
+
+    # ═══════════════════════════════════════════════════════════════
+    # 2. PLANEJAR — busca em árvore sobre sequências de ações
+    # ═══════════════════════════════════════════════════════════════
+
+    def planejar(self, estado: str, profundidade: int = 3,
+                 top_k: int = 3) -> Dict[str, Any]:
+        """Planeja a melhor sequência de ações.
+
+        Busca em árvore: a cada nível, expande top_k ações mais prováveis.
+        Avalia cada caminho completo com Equação 5D.
+        Retorna o caminho com maior score.
+
+        Args:
+            estado: estado inicial (input do usuário)
+            profundidade: número de passos a planejar
+            top_k: ações a considerar por passo (beam width)
+
+        Returns:
+            dict com 'plano' (lista de ações), 'score', 'alternativas'
+        """
+        # Obter ações candidatas iniciais
+        candidatos_iniciais = self._acoes_candidatas(estado, top_k)
+
+        if not candidatos_iniciais:
+            return {
+                'plano': [],
+                'score': 0.0,
+                'alternativas': [],
+                'estado_inicial': estado,
+                'profundidade': profundidade,
+            }
+
+        # Busca em árvore (beam search markoviana)
+        caminhos = [(acao, conf) for acao, conf in candidatos_iniciais]
+        todos_caminhos = []
+
+        for profundidade_atual in range(profundidade):
+            novos_caminhos = []
+
+            for caminho in caminhos:
+                # caminho = lista de (acao, conf) até agora
+                acoes_seq = [a for a, _ in caminho] if isinstance(caminho, list) else [caminho[0]]
+                estado_sim = estado + ' ' + ' '.join(acoes_seq)
+
+                if profundidade_atual < profundidade - 1:
+                    # Expandir: obter próximas ações candidatas
+                    proximos = self._acoes_candidatas(estado_sim, top_k)
+                    for prox_acao, prox_conf in proximos:
+                        novo_caminho = list(caminho) if isinstance(caminho, list) else [caminho]
+                        novo_caminho.append((prox_acao, prox_conf))
+                        novos_caminhos.append(novo_caminho)
                 else:
-                    # Campos opcionais
-                    idx = self._cfg_idx - len(CONFIG_BASE)
-                    opcionais = [c for c in CONFIG_OPCIONAIS if random.random() < c[1]]
-                    if idx < len(opcionais):
-                        _, _, fn = opcionais[idx]
-                        secoes.append(fn(ctx))
-                self._cfg_idx += 1
-            elif tipo == 'config_outfit':
-                o = ctx['outfit']
-                secoes.append(f'npcConfig.outfit = {{\n\t\tlookType = {o["lookType"]},\n\t\tlookHead = {o["lookHead"]},\n\t\tlookBody = {o["lookBody"]},\n\t\tlookLegs = {o["lookLegs"]},\n\t\tlookFeet = {o["lookFeet"]},\n\t\tlookAddons = {o["lookAddons"]},\n\t}}')
-            elif tipo == 'config_flags':
-                secoes.append('npcConfig.flags = {\n\t\tfloorchange = false,\n\t}')
-            elif tipo == 'handler_init':
-                secoes.append('local keywordHandler = KeywordHandler:new()')
-                secoes.append('local npcHandler = NpcHandler:new(keywordHandler)')
-            elif tipo == 'npc_handler':
-                pass  # ja incluido no handler_init
-            elif tipo == 'callback':
-                base = list(CALLBACKS_BASE)
-                if ctx.get('has_shop'):
-                    base.extend(CALLBACKS_SHOP)
-                if not hasattr(self, '_cb_idx'):
-                    self._cb_idx = 0
-                if self._cb_idx < len(base):
-                    secoes.append(base[self._cb_idx])
-                self._cb_idx += 1
-            elif tipo == 'keyword':
-                kw = random.choice(KEYWORDS_POOL)
-                secoes.append(kw.replace('{nome}', ctx['nome']))
-            elif tipo == 'module':
-                secoes.append(f'npcHandler:addModule(FocusModule:new(), npcConfig.name, true, true, true)')
-                secoes.append('')
-                secoes.append('-- npcType registering the npcConfig table')
-            elif tipo == 'register':
-                secoes.append('npcType:register(npcConfig)')
+                    # Folha: caminho completo
+                    todos_caminhos.append(
+                        caminho if isinstance(caminho, list) else [caminho]
+                    )
 
-        return secoes
+            if novos_caminhos:
+                # Podar: manter apenas top_k caminhos por score parcial
+                novos_caminhos.sort(
+                    key=lambda c: sum(conf for _, conf in c) / len(c),
+                    reverse=True
+                )
+                caminhos = novos_caminhos[:top_k * 2]
+            elif not todos_caminhos:
+                # Caminhos curtos (não conseguiu expandir)
+                for c in caminhos:
+                    todos_caminhos.append(
+                        c if isinstance(c, list) else [c]
+                    )
 
-    # ─── M4: Preenchedor de Tokens ──────────────────────────────
+        # Avaliar todos os caminhos completos com 5D
+        melhores = []
+        for caminho in todos_caminhos:
+            score = self.avaliar_plano(estado, caminho)
+            acoes = [a for a, _ in caminho]
+            melhores.append({
+                'acoes': acoes,
+                'score': round(score, 4),
+                'confiancas': [round(c, 4) for _, c in caminho],
+            })
 
-    def gerar(self, tipo: str = 'geral') -> str:
-        """Gera script Lua completo para um NPC."""
-        self._cfg_idx = 0
-        self._cb_idx = 0
+        melhores.sort(key=lambda x: -x['score'])
 
-        marcos, ctx = self.gerar_marcos(tipo)
-        secoes = self.gerar_secoes(marcos, ctx)
+        # Melhor plano
+        melhor = melhores[0] if melhores else {'acoes': [], 'score': 0.0}
 
-        # Junta linhas, mantendo quebras entre secoes
-        linhas = []
-        for i, sec in enumerate(secoes):
-            linhas.append(sec)
-        return '\n\n'.join(linhas)
+        return {
+            'plano': melhor['acoes'],
+            'score': melhor['score'],
+            'confiancas': melhor.get('confiancas', []),
+            'alternativas': melhores[1:3],  # top 3 alternativas
+            'estado_inicial': estado,
+            'profundidade': profundidade,
+            'n_caminhos_avaliados': len(melhores),
+        }
 
+    # ═══════════════════════════════════════════════════════════════
+    # 3. AVALIAR PLANO — score via Equação 5D
+    # ═══════════════════════════════════════════════════════════════
 
-# ─── CLI de teste ─────────────────────────────────────────
+    def avaliar_plano(self, estado_inicial: str,
+                      caminho: List[Tuple[str, float]]) -> float:
+        """Avalia um plano (sequência de ações) com Equação 5D.
 
-if __name__ == '__main__':
-    import sys
-    tipo = sys.argv[1] if len(sys.argv) > 1 else 'ferreiro'
-    p = Planejador()
-    codigo = p.gerar(tipo)
-    print(f'-- Script gerado para NPC tipo: {tipo}')
-    print(f'-- ShadowCanary target\n')
-    print(codigo)
+        5 dimensões:
+        - CERTEZA: confiança média das ações do plano
+        - COMPLETUDE: fração de passos com confiança > threshold
+        - INFORMACAO: entropia média das decisões (diversidade)
+        - ESTABILIDADE: variância baixa = plano consistente
+        - EFICIENCIA: 1/log2(n_acoes+1) (recompensa simplicidade)
+        """
+        if not caminho:
+            return 0.0
+
+        confiancas = [c for _, c in caminho]
+        acoes = [a for a, _ in caminho]
+
+        # CERTEZA: confiança média
+        certeza = sum(confiancas) / len(confiancas) if confiancas else 0.0
+
+        # COMPLETUDE: fração com confiança > 0.3
+        completude = sum(1 for c in confiancas if c > 0.3) / len(confiancas)
+
+        # INFORMACAO: entropia da distribuição de ações no plano
+        dist_acoes = defaultdict(int)
+        for a in acoes:
+            dist_acoes[a] += 1
+        informacao = self._entropia_dist(dict(dist_acoes))
+
+        # ESTABILIDADE: baixa variância = estável
+        if len(confiancas) > 1:
+            media = sum(confiancas) / len(confiancas)
+            var = sum((c - media) ** 2 for c in confiancas) / len(confiancas)
+            dp = math.sqrt(var)
+            estabilidade = math.exp(-dp * 2)  # dp=0 -> 1, dp=0.5 -> 0.37
+        else:
+            estabilidade = 1.0
+
+        # EFICIENCIA: planos curtos são mais eficientes
+        eficiencia = 1.0 / math.log2(max(len(acoes) + 1, 2))
+
+        return avaliar_5d(certeza, completude, informacao,
+                          estabilidade, eficiencia)
+
+    # ═══════════════════════════════════════════════════════════════
+    # 4. REPLANIFICAR — adapta plano quando estado muda
+    # ═══════════════════════════════════════════════════════════════
+
+    def replanificar(self, estado_anterior: str,
+                     estado_novo: str,
+                     plano_anterior: List[str],
+                     profundidade: int = 3) -> Dict[str, Any]:
+        """Replaneja quando o estado muda inesperadamente.
+
+        Compara o plano anterior com o novo estado. Se o plano
+        ainda é válido (ações compatíveis), mantém. Senão, replaneja.
+
+        Returns:
+            dict com 'novo_plano', 'mudou', 'razao'
+        """
+        # Verificar se o plano anterior ainda é válido
+        acoes_novo_estado = self._acoes_candidatas(estado_novo, top_k=5)
+        acoes_validas = {a for a, _ in acoes_novo_estado}
+
+        # Se a primeira ação do plano anterior ainda é válida
+        if plano_anterior and plano_anterior[0] in acoes_validas:
+            # Plano parcialmente válido — manter e completar
+            novo_plano = self.planejar(estado_novo, profundidade)
+            # Verificar sobreposição
+            sobreposicao = 0
+            for i, a in enumerate(plano_anterior):
+                if i < len(novo_plano['plano']) and novo_plano['plano'][i] == a:
+                    sobreposicao += 1
+                else:
+                    break
+
+            return {
+                'novo_plano': novo_plano['plano'],
+                'score': novo_plano['score'],
+                'mudou': sobreposicao < len(plano_anterior) / 2,
+                'sobreposicao': sobreposicao,
+                'razao': f'plano_anterior {sobreposicao}/{len(plano_anterior)} acoes preservadas',
+            }
+        else:
+            # Plano completamente inválido — replanejar do zero
+            novo_plano = self.planejar(estado_novo, profundidade)
+            return {
+                'novo_plano': novo_plano['plano'],
+                'score': novo_plano['score'],
+                'mudou': True,
+                'sobreposicao': 0,
+                'razao': 'estado mudou significativamente — replanejamento completo',
+            }
+
+    # ═══════════════════════════════════════════════════════════════
+    # 5. HEURÍSTICA — poda por NMI/entropia
+    # ═══════════════════════════════════════════════════════════════
+
+    def heuristicas(self, estado: str) -> Dict[str, float]:
+        """Calcula heurísticas do estado para guiar a busca.
+
+        - diversidade: entropia das ações possíveis (alta = explorar)
+        - familiaridade: cobertura de features (alta = explotar)
+        - coerncia: NMI média entre palavras do estado
+        """
+        palavras = estado.lower().split()
+        dist = self._dist_acoes_estado(estado)
+        h = self._entropia_dist(dist)
+
+        # Familiaridade: fração de palavras conhecidas
+        conhecidas = sum(1 for p in palavras if p in self._coupling._palavra_acao)
+        familiaridade = conhecidas / max(len(palavras), 1)
+
+        # Coerência: NMI média entre pares de palavras
+        nmi_sum = 0.0
+        n_pares = 0
+        for i in range(len(palavras)):
+            for j in range(i + 1, min(i + 3, len(palavras))):
+                sig_i = self._coupling._assinatura_palavra(palavras[i])
+                sig_j = self._coupling._assinatura_palavra(palavras[j])
+                if sig_i and sig_j:
+                    nmi_sum += self._coupling._nmi(sig_i, sig_j)
+                    n_pares += 1
+        coerencia = nmi_sum / max(n_pares, 1)
+
+        return {
+            'diversidade': round(h, 4),
+            'familiaridade': round(familiaridade, 4),
+            'coerencia': round(coerencia, 4),
+        }
+
+    # ═══════════════════════════════════════════════════════════════
+    # HELPERS
+    # ═══════════════════════════════════════════════════════════════
+
+    def _acoes_candidatas(self, estado: str,
+                          top_k: int) -> List[Tuple[str, float]]:
+        """Retorna as top_k ações mais prováveis para o estado.
+
+        Usa decidir() internamente mas retorna múltiplas opções
+        em vez de apenas a melhor.
+        """
+        # Obter distribuição combinada via decidir
+        acao, conf = self._coupling.decidir(estado, (None, 0.0))
+
+        # Obter distribuição mais ampla via _dist_palavras
+        dist = self._coupling._dist_palavras(estado)
+        if not dist:
+            return [(acao, conf)] if acao else []
+
+        total = sum(dist.values()) or 1.0
+        candidatos = [(a, c / total) for a, c in dist.items()]
+        candidatos.sort(key=lambda x: -x[1])
+
+        return candidatos[:top_k]
+
+    @staticmethod
+    def _entropia_dist(dist: Dict[str, float]) -> float:
+        """Entropia Shannon normalizada [0, 1]."""
+        total = sum(dist.values()) if dist else 0
+        if total <= 0 or len(dist) <= 1:
+            return 0.0
+        h = 0.0
+        for v in dist.values():
+            pr = v / total
+            if pr > 0:
+                h -= pr * math.log2(pr)
+        max_h = math.log2(len(dist))
+        return h / max_h if max_h > 0 else 0.0
+
+    # ═══════════════════════════════════════════════════════════════
+    # ESTATÍSTICAS
+    # ═══════════════════════════════════════════════════════════════
+
+    def estatisticas(self) -> Dict[str, Any]:
+        """Estatísticas do planejador."""
+        return {
+            'cache_planos': len(self._cache_planos),
+            'max_acoes': self._max_acoes,
+            'vocabulario': len(self._coupling._palavra_acao),
+            'acoes_conhecidas': len(self._coupling._freq_acao),
+        }

@@ -1,0 +1,45 @@
+{
+  "categoria": "armors",
+  "n_sprites_treino": 80,
+  "n_gerados": 20,
+  "limiar_entropia": 0.8,
+  "n_regioes_alvo": 23,
+  "n1_fixed": 46,
+  "n1_gap": 92,
+  "n2_fixed": 20,
+  "n2_gap": 109,
+  "paleta_mediana": {
+    "B": [
+      50,
+      31,
+      20
+    ],
+    "L": [
+      87,
+      56,
+      38
+    ]
+  },
+  "metricas": {
+    "coerencia": {
+      "media_regioes_geradas": 19.2,
+      "dp_regioes_geradas": 2.06,
+      "media_regioes_real": 25.01,
+      "dp_regioes_real": 7.05,
+      "dentro_dp": 0.75,
+      "n_gerados": 20
+    },
+    "diversidade": {
+      "n_fingerprints_unicos": 14,
+      "n_total": 20,
+      "ratio_diversidade": 0.7
+    },
+    "disc_score_medio": 0.7819
+  },
+  "baseline": {
+    "media_opacos_real": 611.4,
+    "dp_opacos_real": 116.2,
+    "media_regioes_real": 25.0,
+    "dp_regioes_real": 7.1
+  }
+}

@@ -1,5 +1,5 @@
 """Regressao FASE 1 — valida que compor() nao quebrou a classificacao zero-shot.
-Referencia: 94.7% (107/113) em 80/20 split do dataset_500.json.
+Referencia: 100% (113/113) em 80/20 split do dataset_500.json.
 """
 import sys, os, json, time, random
 sys.path.insert(0, 'E:/MCR')
@@ -46,13 +46,13 @@ lat_med = sum(latencias) / len(latencias)
 
 print(f'\nAccuracy: {corretos}/{len(teste)} = {acc:.1f}%')
 print(f'Latencia media: {lat_med:.2f}ms')
-print(f'Referencia: 94.7% (107/113), 3.15ms')
+print(f'Referencia: 100% (113/113), ~20ms')
 
 if erros:
     print(f'\nErros ({len(erros)}):')
     for txt, esp, pred, conf in erros[:20]:
         print(f'  "{txt}" | esperado={esp} | predito={pred} (conf={conf})')
 
-regressao = acc < 94.0
-print(f'\n{"REGRESSAO DETECTADA" if regressao else "SEM REGRESSAO"}')
+regressao = corretos < 113
+print(f'\n{"REGRESSAO DETECTADA" if regressao else "OK — 113/113"}')
 sys.exit(1 if regressao else 0)
