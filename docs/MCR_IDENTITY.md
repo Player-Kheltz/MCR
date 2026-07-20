@@ -1,58 +1,62 @@
->> CATALOG tags=context, identity, definition, mcr updated=2026-07-13
 # Identidade do Projeto MCR
 
 ## O que MCR é
 
-MCR é um **framework cognitivo universal** baseado em três componentes:
-1. **Markov de 1ª ordem** — aprende transições entre estados
-2. **Entropia de Shannon** — mede incerteza, detecta loops, avalia diversidade
-3. **Equação MCR** — avalia qualidade de qualquer saída (divergência × 2 + especificidade × 3 + profundidade × 2) / 10
+MCR é um **motor cognitivo baseado em P(b|a) puro**. Aprendizado por contagem
+de co-ocorrências em múltiplas escalas simultâneas.
 
-A tese: estes três componentes são suficientes para cognição — perceber, decidir, executar, avaliar, aprender — em qualquer domínio.
+Três componentes, um só motor:
+1. **P(b|a)** — probabilidade condicional: tudo é transição entre estados
+2. **Entropia de Shannon** — mede incerteza, detecta estrutura, thresholds emergem dos dados
+3. **Escala + persistência + feedback** — o padrão se repete em todos os níveis
 
-MCR **não é uma sigla com significado**. É o nome do projeto.
+A tese: P(b|a) + entropia + múltiplas escalas = cognição universal.
+Perceber, decidir, executar, avaliar, aprender — em qualquer domínio.
+
+MCR **não é uma sigla**. É o nome do projeto.
 
 ## O que MCR NÃO é
 
-- Não é um servidor de Tibia (Tibia é um domínio de aplicação)
-- Não é um wrapper de LLM (LLM é último recurso, não obrigatório)
-- Não é uma AGI (é um framework cognitivo limitado a Markov de 1ª ordem)
-- Não depende de GPU, nuvem, ou internet (o núcleo é Python stdlib)
+- Não é um servidor de Tibia (Tibia foi um domínio de aplicação)
+- Não é um wrapper de LLM (LLM é opcional para certos domínios)
+- Não é uma AGI (é um motor Markov para P(b|a) + escalas)
+- Não é uma rede neural (sem GPU, sem retropropagação)
+- Não é um sistema especialista (thresholds emergem, não são codificados)
 
 ## Como o MCR se prova
 
-O MCR se prova gerando conteúdo válido em **dois domínios radicalmente diferentes** usando o MESMO motor:
+O MCR se prova por **validação empírica contínua**:
+- Toda mudança deve passar por 113/113 regressões (Fase 1) + 64/64 (Fase 18)
+- Resultados são documentados com números reais, sem hype
+- Limitações são documentadas explicitamente (não inventa, não alucina)
 
-1. **Tibia (texto estruturado):** NPCs, monstros, quests, diálogos em Lua Canary
-2. **Visual (pixels):** Sprites PNG com cores, formas e regiões coerentes
+Domínios validados:
+1. **Comandos gerais** (7 ações: gerar, descrever, responder, etc.) — 113/113
+2. **Matemática** (7 regras: PA, PG, Fibonacci, Collatz, Quadrado, Triangular, Primo) — 17/17 zero-shot
+3. **Sinonímia cross-idioma** (PT/EN/ES/FR/DE) — amor~love=0.335, casa~house=0.615, sem tradução
+4. **Música, química, cores, geografia** — universalidade em 5 domínios
+5. **Intenção (84%), emoção (89%), estilo (87-100%)** — níveis 4-6 emergem sem rótulos
 
-Se o MESMO Markov + MESMA Equação funciona em ambos, o modelo é universal.
-
-## Estrutura
+## Estrutura atual
 
 ```
-mcr/mcr.py  → Cognição unificada (1 classe, 657 linhas)
-mcr/motor/  → Markov engine + fingerprint (intacto desde sempre)
-mcr/equacao/ → Equação MCR (intacta)
-mcr/ferramentas/ → Plugins de domínio (Tibia, Visual, ...)
-mcr/autonomia/ → Auto-estudo, auto-evolução
-mcr/qualidade/ → Metacognição, verificação, cache
-mcr/servicos/ → SSE Server, Bridge API, World Observer
-mcr/infra/ → Paths, registry, bootstrap, SQLite
+mcr/
+  coupling.py        → Motor principal (4381 linhas, 13 fontes + HRC)
+  chat.py            → Chat bidirecional com ciclo markoviano fechado
+  triunvirato.py     → Busca ativa deliberativa
+  gerador_coerente.py → Geração longa com working memory
+  auto_conhecimento.py → Auto-alimentação temporal
+  auto_referencia.py  → Meta-cognição recursiva
+  auto_composicao.py  → Clusterização NMI → especialistas
+  base_conhecimento.py → BC com NMI semântico
+  ...
+  133 módulos, ~46.286 linhas
 ```
 
-## Siglas do ecossistema (contexto Tibia)
+## Limitações (versão atual)
 
-- **SPA** = Sistema de Progressão do Aventureiro (habilidades elementais)
-- **SHC** = Sistema de Habilidades Contextuais (5 camadas)
-- **Canary** = Servidor OTServ usado no projeto
-- **OTClient** = Cliente customizado de Tibia
-- **Eridanus** = Cidade inicial do mundo MCR
-
-## Limitações
-
-Ver README.md para a lista completa. As principais:
 - Markov de 1ª ordem não modela dependências de longo alcance
-- Classificação depende de seeds pré-treinadas
-- Templates determinísticos (Tier 1) não entendem semântica
-- Qualidade máxima em alguns domínios requer LLM (Tier 2-3)
+- Zero-shot de palavras novas não funciona (nem LLM faz)
+- P(b|a) bruto não discrimina auto-conhecimento — precisa lift/NMI/IDF
+- Self individual (nível 7) não emerge — só colônia de MCRs auto-observa
+- Escala limitada testada: 167K observações

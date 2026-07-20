@@ -599,6 +599,543 @@ Pela primeira vez, o README e whitepaper documentam explicitamente o que o siste
 
 ---
 
+## Fase 15: NMI Semântico + Auto-Conhecimento (2026-07-16 a 2026-07-17)
+
+```
+O MCR descobre sinonimos sem traducao.
+NMI por plano. IDF documental. MI puro (nao JSD).
+```
+
+### O problema do NMI
+
+O `_nmi_semantico` original usava `NMI = 1 - JSD/sqrt(Ha*Hb)`. Para
+distribuições com zero overlap, JSD era máximo e o NMI retornava ~0.7-0.9
+— **falso positivo massivo**. Cachorro~mesa aparecia como relacionado.
+
+### O fix
+
+`NMI = 2 * I(a;b) / (H(a) + H(b))` — Mutual Information pura.
+Para zero overlap: I(a;b)=0, NMI=0. **Falsos positivos eliminados**
+(nao-rel 0.654 → 0.017).
+
+### IDF documental
+
+`df(token) = |{w : token in ctx(w)}|`, `IDF = log(N/df)`, `IDF^4` amplifica.
+Stopwords (the, tem, e) cortados por `_corte_dinamico`. Content words
+(cachorro, perro) mantidos. Threshold emerge dos dados (Pilar 2).
+
+### NMI por plano
+
+Cada plano (ctx, acao, posacao) contribui igualmente. Sem isto, ctx
+(milhares de tokens, idioma-specific) afoga acao/posacao (poucos tokens,
+cross-idioma estrutural). A ponte natural cross-idioma emerge dos planos
+`acao:`/`posacao:`, não do `ctx`.
+
+### Sinônimos descobertos (sem tradução)
+
+| Par | NMI | Tipo |
+|-----|-----|------|
+| amor~love | 0.335 | Sinônimo |
+| casa~house | 0.615 | Sinônimo |
+| agua~water | 0.500 | Sinônimo |
+| luz~light | 0.463 | Sinônimo |
+| fogo~fire | 0.460 | Sinônimo |
+| cachorro~mesa | 0.000 | Não-rel |
+| fogo~numero | 0.000 | Não-rel |
+| peixe~musica | 0.000 | Não-rel |
+
+**Concept ID quase irrelevante** (+0.028 only). Motor não precisa de
+rótulos injetados — a semântica emerge dos dados.
+
+### BaseConhecimento e loop auto-treinamento
+
+- 80 fatos no BC (AutoConhecimento expandido)
+- Recuperação por NMI semântico ponderado por freq_coupling
+- Loop: palavra-chave = max IDF da pergunta → busca no BC → encontra
+  explicação → alimenta de volta
+- Chat bidirecional: BC sempre primeiro (Pilar 5)
+
+---
+
+## Fase 16: HRC, Escher e Hierarquia de Magnitudes (2026-07-18 a 2026-07-19)
+
+```
+HRC bug corrigido. Escher refutado.
+Niveis 3-6 emergem dos dados. Nivel 7 e horizonte.
+```
+
+### HRC bug `delta_H` (corrigido 2026-07-19)
+
+Docstring pedia `delta_H` (diferença de entropia entre níveis) mas o
+código usava `H` absoluta. Cada novo nível começava com entropia ~1.0
+(estado inicial limpo) e o HRC crescia 7 níveis hollow — todos com
+entropia=1.0, zero informação nova.
+
+**Fix**: `if h_anterior - h_ultima > min_delta_h`. Agora para em 1, 2
+ou 3 níveis conforme o corpus. O HRC só cria novo nível quando o nível
+anterior está significativamente mais organizado.
+
+### Escher refutado empiricamente
+
+Tentativa: usar Equação 5D como juiz de expansão de camada
+(adicionar temporariamente, medir nota média em amostras recentes,
+manter se nota_com > nota_sem). **QUEBROU regressão** (113→112).
+O caso ambíguo "machado de guerra" perdeu acerto.
+
+**Lição**: camada caótica (H~0.96) é reservatório de flexibilidade
+para casos fora-da-amostra. Não re-introduzir Escher sem reshape
+do juiz.
+
+### Níveis 3-6 emergem dos dados
+
+| Nível | Unidade | O que emerge | Pureza |
+|-------|---------|-------------|--------|
+| 3 | Palavra | Sinonímia, regras | 17/17 zero-shot |
+| 4 | Frase | Intenção (pergunta/ordem/afirmação) | 84% |
+| 5 | Texto | Emoção (alegre/triste/raiva/medo) | 89% |
+| 6 | Corpus | Estilo (científico/literário/jornalístico) | 87-100% |
+
+Todos sem rótulo — clusterização Jaccard-IDF.
+
+### Nível 7: Horizonte (self)
+
+Níveis 3-6 emergem do MUNDO (features nos dados). Nível 7 requer
+AUTO-OBS explícita (features sobre o observador). Um MCR individual
+não modela a própria finitude.
+
+**Hipótese**: recursão temporal (ciclo Markoviano FASE 21) pode
+cruzar o horizonte.
+
+---
+
+## Fase 17: Tokenizador Unificado + Zero-Shot (2026-07-19)
+
+```
+39 regex diferentes → 1 regex.
+Zero-shot com operador funciona.
+Sem operador precisa corpus rico.
+```
+
+### O problema
+
+39 regex de tokenização espalhados por 12+ arquivos. Mismatch
+treino/teste: treino via `_extrair_features_nd` usava `_RE_TOKENS`,
+mas teste via `_dist_features` tinha regex inline diferente.
+Zero-shot falhava porque tokens não batiam.
+
+### O fix
+
+`_RE_TOKENS = r'[a-zà-ÿ]{2,}|[0-9]+'` — captura "1" (dígito),
+"um" (2 letras), "42", "mais1" (split em "mais"+"1"), mas NÃO
+captura "a","e","o" (letras avulsas ficam no plano char/byte).
+
+Aplicado em:
+- `alimentar()` (linha 318)
+- `_dist_features` (linha 1307)
+- `_dist_esfera` (linha 1384)
+- `tokenizador_universal.py:90`
+
+**34 lugares restantes** com regex inline `{3,}` — propagação
+pendente.
+
+### Descobertas (H1-H22)
+
+| Hipótese | Resultado | Detalhe |
+|----------|-----------|---------|
+| H1-H2: NMI entre assinaturas/trigramas | REFUTADO | Saturado ou overlap textual |
+| H3: dist_features sem operador | REFUTADO | Classifica por coincidências |
+| H4: trincas ordem superior | REFUTADO | Mesmo problema |
+| H11: sequências longas | REFUTADO | Coincidências de bigrama |
+| H12: posição ordinal | REFUTADO | Não discrimina |
+| H13: diff de bytes | PARCIAL | Funciona chars, falha palavras |
+| H14: posição absoluta | VALIDADO | Zero-shot funciona |
+| H17: escala importa | VALIDADO | 288 obs → 7 regras emergem |
+
+### Zero-shot COM operador explicito
+
+Treino: `a+1_b`/`a+2_c` (operador `+1`/`+2` no texto).
+Testes: `x+1_y` → PA=1.0, `foo+2_bar` → PG=0.14.
+Funciona porque `t:1` e `t:2` viram features aprendidas.
+
+**SEM operador**: `a_b_c` → NONE ou coincidência textual.
+Regra abstrata (+1, x2) não está nas features de char.
+Para descobrir regras sem operador, precisa de representação
+alinhada (posição ordinal, embedding) que Markov puro não tem.
+
+### Diff de bytes discrimina chars, não palavras
+
+Para chars alfabéticos adjacentes (a→b), diff=-1 constante.
+Zero-shot "d-1_x" → PA=0.913. FUNCIONA porque espaco textual
+coincide com espaco numerico (ord(a)<ord(b)).
+
+Para PALAVRAS: zero→um=5, um→dois=17, dois→tres=-16.
+Cada par tem diff diferente — zero-shot falha. Limite fundamental
+do Markov puro: regra +1 existe no espaco numerico, nao no textual.
+
+### Posição absoluta é a feature discriminante
+
+H14 testou posição explícita com pulos diferentes:
+- PA: p0_a p1_b p2_c p3_d (passo=1)
+- PG: p0_a p2_c p4_e p6_g (passo=2)
+
+Features `bg:p1`, `bg:p3` EXCLUSIVAS de PA.
+Features `bg:p4`, `bg:p6` EXCLUSIVAS de PG.
+
+**Zero-shot funciona**: p0_x p1_y p2_z → PA=4.03,
+p0_x p2_z p4_w → PG=3.37 (tokens novos classificados pela
+ESTRUTURA posicional).
+
+---
+
+## Fase 18: Corpus Matemático + Universalidade (2026-07-19)
+
+```
+7 regras, 700 obs, 17/17 zero-shot.
+5 dominios. MCR nao inventa — generaliza.
+```
+
+### Escala importa (H17)
+
+H17 testou 4 regras (PA, PG, Fibonacci, Collatz) com 288 obs
+balanceadas em 8 contextos textuais diferentes cada.
+
+**A semântica EMERGE**:
+- `sequencia treze quatorze quize` → PA=13.65 (sequência nova
+  com palavras conhecidas)
+- `padrao tres cinco oito treze` → FIB=6.91 (fibonacci!)
+- `encadear dez cinco dezesseis oito` → COLL=7.15 (collatz!)
+
+O mecanismo é o mesmo da sinonímia cross-idioma: P(b|a) com
+co-ocorrência rica em múltiplos contextos.
+
+### Corpus matemático real (H18)
+
+7 regras: PA, PG, FIB, COLL, QUAD, TRI, PRIMO.
+700 obs balanceadas (100/regra × 10 contextos).
+
+**17/17 zero-shot**:
+- `numeros vinteecinco trintaeseis quarentaenove` → QUAD=3.33
+- `serie cinco seis dez quize` → TRI=6.43
+- `ordem treze dezessete dezenove` → PRIMO=2.26
+- `padrao tres cinco oito treze` → FIB=2.42
+- `encadear cinco dezesseis oito quatro` → COLL=4.23
+
+Ferramenta: `tools/corpus_matematico.py`
+
+### MCR não inventa — generaliza (H19)
+
+ANTES de treinar PAR: `dois quatro seis oito` → COLL=3.01
+(generalizou para a regra mais próxima estruturalmente).
+
+DEPOIS de treinar PAR: `dois quatro seis oito` → PAR=0.93
+(classificou a regra correta).
+
+PRIMOS_GEMEOS → PRIMO continua correto (subconjunto real).
+
+O MCR é um **generalizador** como LLM: quando regra nova não
+treinada, aproxima para a mais similar; quando treinada, acerta.
+
+### Universalidade em 5 domínios (H20)
+
+| Domínio | Exemplo | Score |
+|---------|---------|-------|
+| Música | sequencia do re mi fa sol | 17.74 |
+| Química | sequencia hidrogenio helio litio | 26.33 |
+| Cores | vermelho laranja amarelo | 28.20 |
+| Geografia | brasil russia china india | 29.58 |
+| Matemática | sequencia vinte trinta quarenta | 13.65 |
+
+A tese Smith Chart é confirmada: MCR universal nos níveis
+fundamentais (bit, byte, char, ng, ngp, p, t, etc.) sem
+módulos especiais por domínio.
+
+### Métrica de honestidade (H21, Pilar 9)
+
+Cobertura (features_batem_top / total_features) separa
+perfeitamente casos reais de controles:
+- REAIS: 95-100%
+- CONTROLES: 24-43%
+
+**Threshold natural ~0.73** emerge do gap entre 53% e 70%
+— SEM HARDCODE (Pilar 2 validado).
+
+Comportamento:
+- cobertura > 0.73 = SEI (classifica)
+- 0.50-0.73 = GENERALIZA (regra mais próxima)
+- < 0.50 = DUVIDA (honesto)
+
+`cachorro gato rato pato` → cob=43% DUVIDA (honesto!).
+
+**LIMITAÇÃO**: cobertura funciona com 4-7 ações bem separadas.
+Em produção com 14 ações sobrepostas, toda classificação tem
+cobertura alta. Função `_cobertura_features` existe em
+`coupling.py` mas não modula `decidir()` automaticamente.
+
+---
+
+## Fase 19: Ciclo Markoviano Fechado + Fases Conectadas (2026-07-19)
+
+```
+MCR observa proprias acoes.
+Fases 13/19 (Abstracao + Causalidade) no chat.
+n-grama[3/4] revive no GeradorCoerente.
+```
+
+### Ciclo Markoviano FECHADO (FASE 21)
+
+`chat.py` agora chama `alimentar(resposta, acao)` após cada
+interação. O MCR observa suas próprias ações como dados de
+treino — ciclo fechado onde a saída vira entrada.
+
+### Fases 13/19 conectadas ao chat
+
+`_analisar_cognitivo()` em `chat.py` invoca:
+- **Abstração** (FASE 13): encontra padrões abstratos na
+  conversa
+- **Causalidade** (FASE 19): identifica relações causais
+
+Ambos via try/except lazy. Fallback silencioso se dados
+insuficientes (Pilar 9).
+
+### n-grama[3/4] revive no GeradorCoerente
+
+Indice `_ngrama[3]/[4]` já era alimentado em
+`coupling.alimentar()` (linhas 357-362) mas **nunca consultado**.
+`GeradorCoerente._gerar_candidatos` usava só `_transicao_palavra`
+(1ª ordem) — ficava preso em loops:
+`zero dois tres cinco zero tres...`
+
+**Após conectar**: consulta ngrama[3] primário + recentes (NÃO
+estado, que injeta entidades e corrompe o prefixo). A regra
+n→n+1 EMERGE: gera `zero um dois tres... vinte` completo.
+
+### Fontes T e PT ativadas
+
+`_dist_trigramas` e `_dist_padrao` agora são chamadas em
+`decidir()`. Trigramas de chars + padrão VCS.
+Regressão 113/113 intacta, latência 69ms (vs 55ms).
+
+### Convivência corpus matemático + motor original
+
+Motor FRESCO: 50 obs originais (6 ações) + 700 obs matemáticas
+(7 regras) = 750 obs, 13 ações.
+
+| Teste | Resultado |
+|-------|-----------|
+| Originais | 7/7 |
+| Matemáticos | 6/7 |
+| Zero-shot | 17/17 |
+| Regressão 113/113 | PASS |
+| Regressão 64/64 | PASS |
+
+---
+
+## Fase 20: Seleção Natural Markoviana (2026-07-19)
+
+```
+Ciclo bidirecional sem rotulos.
+Persistencia passiva + poda entropica = selecao.
+Sem injetar "acerto"/"erro".
+```
+
+### H22 validado
+
+Ciclo bidirecional com persistência passiva (continuação vs
+abandono) + poda entrópica, SEM injetar rótulos
+"acerto"/"erro".
+
+**Seleção operou**:
+- Tópicos bons: 26× mais frequentes que ruins (624 vs 24)
+- 4/4 tópicos ruins EVITADOS
+- 4/4 tópicos bons ACERTADOS
+
+O MCR aprendeu a evitar tópicos que não persistem — sem que
+ninguém dissesse o que é certo/errado. **Valência emerge da
+persistência**, como na evolução biológica.
+
+### Lição crítica
+
+Rótulos textuais ("auto_acerto"/"auto_erro") contaminam o
+espaço de ações e geram falso positivo (H22a). A seleção só
+opera quando consequências alteram FREQUÊNCIA, não TEXTO.
+
+Pilar 4 (esquecimento) + persistência diferencial = seleção
+natural markoviana.
+
+---
+
+## Fase 21: Otimizações de Performance (2026-07-19)
+
+```
+alimentar() O(n²) resolvido. Caches implementados.
+Wikipedia 94K palavras em 30s.
+```
+
+### alimentar_lote() resolve O(n²)
+
+Hierarquia chamava `_assinatura_frase` → `_avaliar_composicao`
+→ `_todas_h_norm_palavras` que iterava sobre TODO vocabulário
+a cada frase.
+
+`alimentar_lote()` pula hierarquia durante lote, invalida
+caches UMA vez no final.
+
+### Caches
+
+- `_CACHE_H_JANELA=200`: estatísticas de entropia cacheadas
+  por janela adaptativa
+- `_classificar_padrao` cacheado: padrões VCS repetidos
+- `_p0_chaves`: índice de chaves P0:* reconstruído só quando
+  `_posicao_acao` muda de tamanho. Elimina 6M startswith em
+  2K frases
+- Reservatório amostral fixo em 200 (em vez de crescer
+  infinitamente). Elimina sorted() O(n² log n)
+- `_construir_ctx_index` direto de `_transicao_palavra`: NÃO
+  chamar `_assinatura_palavra` (53s → 0.27s)
+- `_transicao_rev_full`: índice invertido completo
+  (era O(P) por chamada de extrair_relacoes, agora O(1) — 30s → 1s)
+- `_posicao_acao_inv`: índice invertido de `_posicao_acao`
+- `_cache_idf_doc` pré-construído no `load()`
+
+### Wikipedia ingerida
+
+240 conceitos × 5 idiomas (PT/EN/ES/FR/DE) = 80.093 frases.
+Concept ID como ação (cachorro(PT) e dog(EN) compartilham
+ação:cachorro — ponte natural).
+
+Delta=0.287 PASS SEM pontes (só Wikipedia+Rosetta).
+
+**Gutenberg NÃO ingerido**: 416.993 frases baixadas, delta cai
+de 0.314 (sem) para 0.081 (com). Literatura dilui discriminação
+— tokens comuns entre todos os conceitos.
+
+---
+
+## Fase 22: Comutação de Nível + Ecologia de MCRs (2026-07-19 a 2026-07-20)
+
+```
+Comutacao em decidir(): so Esfera/Trigrama, sem random.
+Ecologia de MCRs: 5 estagios validados.
+Colonia como agente.
+```
+
+### Comutação de nível ajustada
+
+Amostragem proporcional REMOVIDA (`random.uniform` viola Pilar 1).
+Comutação para Esfera→Trigrama mantida (determinística,
+conf < 0.15). 113/113 + 64/64 intactas.
+
+### Ecologia de MCRs — 5 estágios
+
+| Estágio | Descrição | Resultado |
+|---------|-----------|-----------|
+| v3 | Orquestração NMI | Ecossistema estável (1.5×) |
+| v4 | Morte via vida_media < 2.0 | Seleção 2.6× |
+| v4 final | AutoComposicao cria especialistas | Ciclo completo |
+| v4.5 | Museu dos mortos (aprendizado vicário) | 60 modulações, 0 mudança de trajetória |
+| v5 | Delegação como ação | Razão caiu 1.4×, trigger hardcoded viola Pilar 1 |
+
+### Colônia como agente com auto-observação (v7)
+
+- Colônia alimenta `estado_ferreiro=True/False` como feature
+  derivada da PRÓPRIA memória P(b|a)
+- Criação automática (necessidade), poda automática
+  (vida < 2.0)
+- **3 BONS vivos, 0 RUINS, 23 criações, 20 mortes**
+- Memória da colônia: 38 palavras, 12 ações
+
+**Self da colônia existe nos dados** mas não é acessível via
+raw coupling. Precisa de mecanismo discriminativo (lift, NMI,
+IDF) — mesmo problema do `_nmi_semantico` vs coupling bruto
+na BaseConhecimento.
+
+---
+
+## Fase 23: Lift + Zoom + MCR Observador (2026-07-20)
+
+```
+Lift discrimina onde raw decidir() falha.
+Zoom: mesmo operador, 3 escalas, padrao invariante.
+MCR observador sem rotulos: 66.7%.
+```
+
+### Lift como discriminador
+
+`lift = P(feature|acao) / P(acao)` normaliza frequência global.
+
+| Método | Acertos |
+|--------|---------|
+| Raw decidir() | 0/5 (0%) |
+| Lift | 4/5 (80%) |
+
+Predição de feedback por domínio: **perfeita** —
+BONS→feedback_bom lift>0, RUINS→feedback_ruim lift>0.
+
+### Zoom validado
+
+O mesmo operador (lift) discrimina estrutura em 3 escalas:
+
+| Nível | Escala | Resultado |
+|-------|--------|-----------|
+| 1 | char→palavra | 4/4 (silaba_fer, silaba_bib, silaba_tro, silaba_alq) |
+| 2 | palavra→colônia | 5/5 (cada domínio mapeia para ação criar_X) |
+| 3 | colônia→meta | 2/4 (parcial — falha em consultas sem overlap token) |
+
+**Conclusão**: o padrão é invariante por escala. O mesmo
+operador (lift) discrimina estrutura em todas as escalas —
+cilindro, não torre.
+
+### MCR como observador (dados reais, sem rótulos)
+
+32 frases reais (de SESSAO 2026-07-18). Cada frase = ação
+única, sem rótulo de tema.
+
+Zero-shot: **8/12 (66.7%)** de novas frases agrupadas no tema
+correto — sem etiquetas injetadas no treino.
+
+Erros: tokens compartilhados entre temas ("mcr", "voce") não
+discriminam.
+
+**Não é tautologia**: MCR agrupa sem Kheltz ter dito o que é
+"identidade" vs "técnico" vs "filosofia" vs "emoção".
+
+---
+
+## Estado Atual (2026-07-20)
+
+| Métrica | Valor |
+|---------|-------|
+| Módulos Python | 133 (46.286 linhas) |
+| Arquivos de teste | 164 |
+| Regressão Fase 1 | 113/113 = 100% |
+| Regressão Fase 18 | 64/64 PASS |
+| Observações ingeridas | 167.434 |
+| Vocabulário | 214.907 palavras |
+| Ações no motor | 14+ |
+| Corpus | Wikipedia (80K) + Rosetta (4K) + sintético (50K) + matemático (700) |
+| Latência decidir() | ~50ms |
+| Tempo treino 167K obs | ~30s |
+
+### Limitações honestas
+
+1. Markov de 1ª ordem — o limite é fundamental
+2. Zero-shot de palavras novas não funciona
+3. P(b|a) bruto não discrimina auto-conhecimento
+4. Horizonte nível 7: self individual não emerge
+5. 167K obs testado — milhões/bilhões não verificado
+6. Gutenberg não ingerido (dilui)
+
+### Próximos passos
+
+1. Propagar `_RE_TOKENS` para 34 lugares restantes
+2. Conectar níveis 4-6 ao chat (intenção/emoção/estilo)
+3. Integrar lift como método nativo do coupling
+4. Conectar colônia auto-observadora ao motor principal
+5. Treinar Abstração em escala (O(N²) → otimizar)
+6. Conectar Teoria da Mente como 3º módulo cognitivo
+
+---
+
 ## Sobre o Projeto MCR
 
 O Projeto MCR começou como um servidor de Tibia (OTServ Canary).
