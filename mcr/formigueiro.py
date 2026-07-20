@@ -220,15 +220,15 @@ class Formigueiro:
     def pertencimento(self, texto: str) -> Dict[str, float]:
         """Calcula grau de pertencimento do texto a cada cluster.
 
-        P(cluster|texto) = soma de P(acao|palavra) para cada palavra
-        do texto que pertence a acoes daquele cluster.
+        P(cluster|texto) = soma de P(acao|palavra) * IDF(palavra)^k
+        para cada palavra do texto.
+
+        IDF pondera: palavras raras ("prateada", "sequencia") discriminam
+        mais que palavras comuns ("um", "disse"). Markoviano puro (Pilar 1)
+        + IDF (Pilar 2).
 
         O texto pode pertencer a MULTIPLOS clusters simultaneamente.
         O grau e a forca do pertencimento (0 a 1).
-
-        Isso e pertencimento markoviano PURO (Pilar 1):
-        P(acao|palavra) = count(palavra,acao) / count(palavra)
-        Ja esta no _palavra_acao do coupling.
 
         Returns:
             dict {nome_cluster: grau_pertencimento}
@@ -241,22 +241,35 @@ class Formigueiro:
         if cache_key in self._pertencimento_cache:
             return self._pertencimento_cache[cache_key]
 
-        # Pertencimento via P(acao|palavra) — markoviano puro
+        # Pre-computar IDF documental se nao existir
+        if not hasattr(self, '_idf_doc') or self._idf_doc is None:
+            self._idf_doc = {}
+            n_acoes = len(self._c._freq_acao) or 1
+            # df(palavra) = quantas acoes tem essa palavra
+            for palavra, dist in self._c._palavra_acao.items():
+                df = len(dist)
+                self._idf_doc[palavra] = math.log(n_acoes / max(1, df))
+
+        # Pertencimento via P(acao|palavra) * IDF^4 — markoviano + IDF
         tokens = _RE_TOKENS.findall(texto.lower())
         votos_cluster: Dict[str, float] = defaultdict(float)
 
         for token in tokens:
-            # P(acao|token) = count(token,acao) / sum(count(token,*))
             dist_acao = self._c._palavra_acao.get(token, {})
             total_token = sum(dist_acao.values())
             if total_token == 0:
                 continue
+
+            # IDF do token: palavras raras pesam mais
+            idf = self._idf_doc.get(token, 0.0)
+            peso_idf = (idf + 1) ** 4  # +1 para nao zerar palavras em todas as acoes
+
             for acao, count in dist_acao.items():
                 p_acao = count / total_token
                 # Mapear acao -> cluster(s) que a contem
                 for nome_cluster, acoes_cluster in self._clusters.items():
                     if acao in acoes_cluster:
-                        votos_cluster[nome_cluster] += p_acao
+                        votos_cluster[nome_cluster] += p_acao * peso_idf
 
         # Normalizar para soma = 1 (distribuicao de pertencimento)
         total = sum(votos_cluster.values())
@@ -341,6 +354,83 @@ class Formigueiro:
             'clusters_tocados': {n: round(g, 4) for n, g in pert.items()},
             'predicoes_por_cluster': predicoes,
             'fonte': 'formigueiro',
+        }
+
+    def decidir_modular(self, texto: str) -> Dict[str, Any]:
+        """Decide usando MCR GLOBAL modulado pelo pertencimento.
+
+        Estrategia conservadora: usar global por padrao, modular apenas
+        quando ha CONTRADICAO entre acao predita e pertencimento.
+
+        Se a acao predita pelo global esta no cluster de maior
+        pertencimento: manter global (confirmado).
+        Se nao: modular (contradicao — pertencimento pode ajudar).
+        """
+        if not self._construido:
+            raise RuntimeError("Formigueiro nao construido.")
+
+        # 1. Decisao global (MCR completo, 13 fontes, todos os dados)
+        acao_global, conf_global = self._c.decidir(texto, (None, 0.0))
+
+        # 2. Pertencimento
+        pert = self.pertencimento(texto)
+
+        if not pert:
+            return {
+                'acao': acao_global,
+                'confianca': round(conf_global, 4),
+                'clusters_tocados': {},
+                'fonte': 'global_sem_pertencimento',
+            }
+
+        # 3. Verificar: a acao global esta no cluster de maior pertencimento?
+        cluster_top = max(pert.items(), key=lambda x: x[1])[0]
+        acoes_cluster_top = self._clusters.get(cluster_top, set())
+        confirmado = acao_global in acoes_cluster_top
+
+        # 4. Se global tem alta confianca (> 0.5), manter mesmo com contradicao
+        # 0.5 = ponto de equilibrio de uma decisao binaria (Pilar 2: entropia)
+        # Se conf > 0.5, global tem mais certeza que incerteza
+        if confirmado or conf_global >= 0.5:
+            # Global confirmado OU tem alta confianca — manter
+            return {
+                'acao': acao_global,
+                'confianca': round(conf_global, 4),
+                'clusters_tocados': {n: round(g, 4) for n, g in pert.items()},
+                'fonte': 'global_confirmado' if confirmado else 'global_alta_conf',
+            }
+
+        # 4. Contradicao: global diz X, pertencimento diz cluster Y
+        # Modular: re-pesar distribuicao pelo pertencimento
+        dist_global = self._c._dist_features(texto)
+        if not dist_global:
+            return {
+                'acao': acao_global,
+                'confianca': round(conf_global, 4),
+                'clusters_tocados': {n: round(g, 4) for n, g in pert.items()},
+                'fonte': 'global_sem_features',
+            }
+
+        dist_modulada = {}
+        for acao, score in dist_global.items():
+            grau_max = 0.0
+            for nome_cluster, acoes_cluster in self._clusters.items():
+                if acao in acoes_cluster:
+                    grau = pert.get(nome_cluster, 0.0)
+                    if grau > grau_max:
+                        grau_max = grau
+            dist_modulada[acao] = score * (grau_max + 0.01)
+
+        acao_modulada = max(dist_modulada.items(), key=lambda x: x[1])[0]
+        total = sum(dist_modulada.values())
+        conf_modulada = dist_modulada[acao_modulada] / total if total > 0 else 0.0
+
+        return {
+            'acao': acao_modulada,
+            'confianca': round(conf_modulada, 4),
+            'clusters_tocados': {n: round(g, 4) for n, g in pert.items()},
+            'acao_global_original': acao_global,
+            'fonte': 'modular_contradicao',
         }
 
     def _pertencimento_medio(self) -> float:

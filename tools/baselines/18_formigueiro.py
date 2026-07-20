@@ -98,8 +98,8 @@ def main():
         moda = max(dist.items(), key=lambda x: x[1])
         print(f"  Moda: {moda[0]} clusters/acao ({moda[1]} acoes)")
 
-    # === Teste de decisao combinada ===
-    print("\n[6] Teste de decisao: formigueiro vs global vs isolado...")
+    # === Teste de decisao: global vs formigueiro vs modular ===
+    print("\n[6] Teste de decisao: global vs formigueiro vs modular...")
     testes = [
         ("sequencia dois quatro seis oito", "PA"),
         ("padrao tres cinco oito treze", "FIB"),
@@ -117,35 +117,40 @@ def main():
         ("um um dois tres", "FIB"),  # fragmento Fibonacci
     ]
 
-    print(f"  {'Teste':<40s} {'Esp':<12s} {'Global':<15s} {'Formigueiro':<15s} {'Clusters':<20s}")
+    print(f"  {'Teste':<40s} {'Esp':<12s} {'Global':<15s} {'Sub-MCR':<15s} {'Modular':<15s}")
     print("  " + "-" * 110)
 
     ac_global = 0
     ac_formiga = 0
+    ac_modular = 0
 
     for texto, esp in testes:
         # Global
         acao_g, conf_g = mcr_decidir(c, texto)
 
-        # Formigueiro
-        r = f.decidir(texto)
-        acao_f = r['acao']
-        conf_f = r['confianca']
-        clusters = r['clusters_tocados']
-        clusters_str = ",".join(f"{n[:3]}:{g:.2f}" for n, g in
-                                sorted(clusters.items(), key=lambda x: -x[1])[:3])
+        # Formigueiro (sub-MCRs)
+        r_sub = f.decidir(texto)
+        acao_sub = r_sub['acao']
+
+        # Formigueiro modular (MCR global modulado)
+        r_mod = f.decidir_modular(texto)
+        acao_mod = r_mod['acao']
 
         st_g = "OK" if acao_g == esp else "ERR"
-        st_f = "OK" if acao_f == esp else "ERR"
+        st_s = "OK" if acao_sub == esp else "ERR"
+        st_m = "OK" if acao_mod == esp else "ERR"
         if acao_g == esp:
             ac_global += 1
-        if acao_f == esp:
+        if acao_sub == esp:
             ac_formiga += 1
+        if acao_mod == esp:
+            ac_modular += 1
 
-        print(f"  {texto[:38]:<40s} {esp:<12s} {st_g} {acao_g[:10]:<10s} {st_f} {acao_f[:10]:<10s} {clusters_str:<20s}")
+        print(f"  {texto[:38]:<40s} {esp:<12s} {st_g} {acao_g[:10]:<10s} {st_s} {acao_sub[:10]:<10s} {st_m} {acao_mod[:10]:<10s}")
 
     print(f"\n  Global:     {ac_global}/{len(testes)} = {ac_global/len(testes)*100:.1f}%")
-    print(f"  Formigueiro:{ac_formiga}/{len(testes)} = {ac_formiga/len(testes)*100:.1f}%")
+    print(f"  Sub-MCR:    {ac_formiga}/{len(testes)} = {ac_formiga/len(testes)*100:.1f}%")
+    print(f"  Modular:    {ac_modular}/{len(testes)} = {ac_modular/len(testes)*100:.1f}%")
 
     # === Salvar ===
     resultado = {
@@ -159,6 +164,7 @@ def main():
         "numero_3_emerge": 3 in dist,
         "acuracia_global": ac_global / len(testes),
         "acuracia_formigueiro": ac_formiga / len(testes),
+        "acuracia_modular": ac_modular / len(testes),
     }
     path_out = os.path.join(os.path.dirname(__file__), "resultados", "18_formigueiro.json")
     with open(path_out, "w", encoding="utf-8") as f:

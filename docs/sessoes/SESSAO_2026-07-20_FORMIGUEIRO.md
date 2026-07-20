@@ -45,20 +45,31 @@ O MCR reconhece fragmentos que PERTENCEM a Collatz sem ser a sequência
 completa. É o "pulo" que Kheltz descreveu: mostrou parte de uma string
 de Collatz.
 
-### Decisão combinada: PRECISA REFINAR
+### Decisão combinada: MODULAR SUPEROU O GLOBAL
 
 | Método | Acurácia |
 |--------|----------|
-| Global (MCR raw) | 76.9% |
-| Formigueiro (combinado) | 38.5% |
+| Global (MCR raw) | 76.9% (10/13) |
+| Sub-MCR (isolado) | 30.8% (4/13) |
+| **Modular (global + pertencimento)** | **84.6% (11/13)** |
 
-O formigueiro PIORA a decisão. Causa: o cluster dominante
-(COLL/FIB/PG) ganha quase sempre, e o sub-MCR desse cluster (3 ações)
-não tem dados suficientes para discriminar entre elas.
+O modular SUPEROU o global. Estratégia:
+1. `decidir()` do MCR global (13 fontes, 4262 obs) → (acao, conf)
+2. `pertencimento(texto)` → P(cluster|texto) via P(acao|palavra) * IDF^4
+3. Se ação confirmada pelo cluster top OU conf >= 0.5: manter global
+4. Se contradição E conf < 0.5: modular `_dist_features` pelo pertencimento
 
-**Solução futura**: não usar sub-MCRs isolados. Usar o MCR global
-MODULADO pelo pertencimento — ponderar a decisão global pelos graus
-de pertencimento a cada cluster.
+O modular CORRIGIU "numeros quatro oito dezesseis" (global=gutenberg ERR,
+modular=PG OK) e MANTEVE os 2 acertos de gutenberg (conf >= 0.5).
+
+Os 2 erros restantes são genuinamente ambíguos:
+- "sequencia dois quatro seis oito" → COLL (esperado PA) — "dois quatro
+  seis oito" existe em PA (2,4,6,8) e COLL (fragmento 16→8→4→2)
+- "um dois tres" → FIB (esperado PA) — "um dois tres" existe em PA
+  (1,2,3) e FIB (1,1,2,3 parcial)
+
+Para 100%, precisaria de contexto adicional (sequências mais longas) ou
+n-grama de ordem superior que capture a estrutura completa.
 
 ## A intuição do número 3
 
