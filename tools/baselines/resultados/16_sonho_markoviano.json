@@ -34,130 +34,245 @@
     }
   },
   "sonho_unico": {
-    "n_tokens": 188,
-    "n_conhecidos": 159,
-    "n_novos": 29,
-    "taxa_novidade": 0.15425531914893617,
-    "preview": "um dois zero tres sequencia quatro listar numeros ordem serie padrao encadear progressao calcule matematica oito nove seis cinco sete onze dez treze doze quatorze quize dezesseis dezessete dezoito dez"
+    "n_tokens": 184,
+    "n_conhecidos": 161,
+    "n_novos": 23,
+    "taxa_novidade": 0.125,
+    "preview": "um tres dois quatro zero sequencia listar numeros ordem serie padrao encadear progressao calcule matematica nove cinco oito sete seis onze doze quatorze dez treze quize dezoito dezenove dezessete deze"
   },
   "deterministico": true,
-  "ciclo_sonhos": [
+  "ciclo_sonhos_entropia": [
     {
       "ciclo": 1,
-      "n_tokens": 188,
-      "n_uniq": 80,
-      "entropia": 6.034,
-      "n_novos": 29,
-      "n_conhecidos": 159,
+      "n_tokens": 184,
+      "n_uniq": 82,
+      "entropia": 6.077,
+      "n_novos": 23,
+      "n_conhecidos": 161,
       "is_novo": true,
-      "semente": "um dois zero tres sequencia quatro listar numeros ordem seri",
-      "sonho_preview": "um dois zero tres sequencia quatro listar numeros ordem serie padrao encadear progressao calcule matematica oito nove se"
+      "semente": "um tres dois quatro zero sequencia listar numeros ordem seri",
+      "sonho_preview": "um tres dois quatro zero sequencia listar numeros ordem serie padrao encadear progressao calcule matematica nove cinco o"
+    },
+    {
+      "ciclo": 2,
+      "n_tokens": 99,
+      "n_uniq": 69,
+      "entropia": 5.859,
+      "n_novos": 1,
+      "n_conhecidos": 98,
+      "is_novo": true,
+      "semente": "trintaenove trintaeoito quarenta vinte 105 118 tre 114 sp de",
+      "sonho_preview": "trintaenove trintaeoito quarenta vinte 105 118 tre 114 sp de lis que val con pla um tres dois quatro zero sequencia list"
+    },
+    {
+      "ciclo": 3,
+      "n_tokens": 99,
+      "n_uniq": 55,
+      "entropia": 5.465,
+      "n_novos": 0,
+      "n_conhecidos": 99,
+      "is_novo": true,
+      "semente": "trintaetres trintaecinco vinteeum trintaeseis vinteecinco tr",
+      "sonho_preview": "trintaetres trintaecinco vinteeum trintaeseis vinteecinco trintasete trintaeseis trintaeoito gerar npc gerar monstro res"
+    },
+    {
+      "ciclo": 4,
+      "n_tokens": 99,
+      "n_uniq": 55,
+      "entropia": 5.465,
+      "n_novos": 0,
+      "n_conhecidos": 99,
+      "is_novo": false,
+      "semente": "trintaetres trintaecinco vinteeum trintaeseis vinteecinco tr",
+      "sonho_preview": "trintaetres trintaecinco vinteeum trintaeseis vinteecinco trintasete trintaeseis trintaeoito gerar npc gerar monstro res"
+    },
+    {
+      "ciclo": 5,
+      "n_tokens": 99,
+      "n_uniq": 55,
+      "entropia": 5.465,
+      "n_novos": 0,
+      "n_conhecidos": 99,
+      "is_novo": false,
+      "semente": "trintaetres trintaecinco vinteeum trintaeseis vinteecinco tr",
+      "sonho_preview": "trintaetres trintaecinco vinteeum trintaeseis vinteecinco trintasete trintaeseis trintaeoito gerar npc gerar monstro res"
+    },
+    {
+      "ciclo": 6,
+      "n_tokens": 99,
+      "n_uniq": 55,
+      "entropia": 5.465,
+      "n_novos": 0,
+      "n_conhecidos": 99,
+      "is_novo": false,
+      "semente": "trintaetres trintaecinco vinteeum trintaeseis vinteecinco tr",
+      "sonho_preview": "trintaetres trintaecinco vinteeum trintaeseis vinteecinco trintasete trintaeseis trintaeoito gerar npc gerar monstro res"
+    },
+    {
+      "ciclo": 7,
+      "n_tokens": 99,
+      "n_uniq": 55,
+      "entropia": 5.465,
+      "n_novos": 0,
+      "n_conhecidos": 99,
+      "is_novo": false,
+      "semente": "trintaetres trintaecinco vinteeum trintaeseis vinteecinco tr",
+      "sonho_preview": "trintaetres trintaecinco vinteeum trintaeseis vinteecinco trintasete trintaeseis trintaeoito gerar npc gerar monstro res"
+    },
+    {
+      "ciclo": 8,
+      "n_tokens": 99,
+      "n_uniq": 55,
+      "entropia": 5.465,
+      "n_novos": 0,
+      "n_conhecidos": 99,
+      "is_novo": false,
+      "semente": "trintaetres trintaecinco vinteeum trintaeseis vinteecinco tr",
+      "sonho_preview": "trintaetres trintaecinco vinteeum trintaeseis vinteecinco trintasete trintaeseis trintaeoito gerar npc gerar monstro res"
+    },
+    {
+      "ciclo": 9,
+      "n_tokens": 99,
+      "n_uniq": 55,
+      "entropia": 5.465,
+      "n_novos": 0,
+      "n_conhecidos": 99,
+      "is_novo": false,
+      "semente": "trintaetres trintaecinco vinteeum trintaeseis vinteecinco tr",
+      "sonho_preview": "trintaetres trintaecinco vinteeum trintaeseis vinteecinco trintasete trintaeseis trintaeoito gerar npc gerar monstro res"
+    },
+    {
+      "ciclo": 10,
+      "n_tokens": 99,
+      "n_uniq": 55,
+      "entropia": 5.465,
+      "n_novos": 0,
+      "n_conhecidos": 99,
+      "is_novo": false,
+      "semente": "trintaetres trintaecinco vinteeum trintaeseis vinteecinco tr",
+      "sonho_preview": "trintaetres trintaecinco vinteeum trintaeseis vinteecinco trintasete trintaeseis trintaeoito gerar npc gerar monstro res"
+    }
+  ],
+  "ciclo_sonhos_greedy": [
+    {
+      "ciclo": 1,
+      "n_tokens": 184,
+      "n_uniq": 82,
+      "entropia": 6.077,
+      "n_novos": 23,
+      "n_conhecidos": 161,
+      "is_novo": true,
+      "semente": "um tres dois quatro zero sequencia listar numeros ordem seri",
+      "sonho_preview": "um tres dois quatro zero sequencia listar numeros ordem serie padrao encadear progressao calcule matematica nove cinco o"
     },
     {
       "ciclo": 2,
       "n_tokens": 99,
       "n_uniq": 58,
-      "entropia": 5.454,
+      "entropia": 5.553,
       "n_novos": 1,
       "n_conhecidos": 98,
       "is_novo": true,
-      "semente": "115 115 115 115 32 114 112 115 115 115 it val 116 pre ne um ",
-      "sonho_preview": "115 115 115 115 32 114 112 115 115 115 it val 116 pre ne um dois zero tres sequencia quatro listar numeros ordem serie p"
+      "semente": "trintaenove trintaeoito quarenta vinte 105 118 tre 114 sp de",
+      "sonho_preview": "trintaenove trintaeoito quarenta vinte 105 118 tre 114 sp de lis que val con pla um tres dois quatro zero sequencia list"
     },
     {
       "ciclo": 3,
       "n_tokens": 99,
-      "n_uniq": 49,
-      "entropia": 5.171,
+      "n_uniq": 44,
+      "entropia": 5.098,
       "n_novos": 0,
       "n_conhecidos": 99,
       "is_novo": true,
-      "semente": "trintaeoito quarenta vinte dez cinco dezesseis oito quatro d",
-      "sonho_preview": "trintaeoito quarenta vinte dez cinco dezesseis oito quatro dois listar dois tres cinco oito treze um dois zero tres sequ"
+      "semente": "gerar monstro responder fib coll quad tri primo gerar sprite",
+      "sonho_preview": "gerar monstro responder fib coll quad tri primo gerar sprite gerar quest analisar buscar editar um tres dois quatro zero"
     },
     {
       "ciclo": 4,
       "n_tokens": 99,
-      "n_uniq": 49,
-      "entropia": 5.171,
+      "n_uniq": 44,
+      "entropia": 5.098,
       "n_novos": 0,
       "n_conhecidos": 99,
       "is_novo": false,
-      "semente": "trintaeoito quarenta vinte dez cinco dezesseis oito quatro d",
-      "sonho_preview": "trintaeoito quarenta vinte dez cinco dezesseis oito quatro dois listar dois tres cinco oito treze um dois zero tres sequ"
+      "semente": "gerar monstro responder fib coll quad tri primo gerar sprite",
+      "sonho_preview": "gerar monstro responder fib coll quad tri primo gerar sprite gerar quest analisar buscar editar um tres dois quatro zero"
     },
     {
       "ciclo": 5,
       "n_tokens": 99,
-      "n_uniq": 49,
-      "entropia": 5.171,
+      "n_uniq": 44,
+      "entropia": 5.098,
       "n_novos": 0,
       "n_conhecidos": 99,
       "is_novo": false,
-      "semente": "trintaeoito quarenta vinte dez cinco dezesseis oito quatro d",
-      "sonho_preview": "trintaeoito quarenta vinte dez cinco dezesseis oito quatro dois listar dois tres cinco oito treze um dois zero tres sequ"
+      "semente": "gerar monstro responder fib coll quad tri primo gerar sprite",
+      "sonho_preview": "gerar monstro responder fib coll quad tri primo gerar sprite gerar quest analisar buscar editar um tres dois quatro zero"
     },
     {
       "ciclo": 6,
       "n_tokens": 99,
-      "n_uniq": 49,
-      "entropia": 5.171,
+      "n_uniq": 44,
+      "entropia": 5.098,
       "n_novos": 0,
       "n_conhecidos": 99,
       "is_novo": false,
-      "semente": "trintaeoito quarenta vinte dez cinco dezesseis oito quatro d",
-      "sonho_preview": "trintaeoito quarenta vinte dez cinco dezesseis oito quatro dois listar dois tres cinco oito treze um dois zero tres sequ"
+      "semente": "gerar monstro responder fib coll quad tri primo gerar sprite",
+      "sonho_preview": "gerar monstro responder fib coll quad tri primo gerar sprite gerar quest analisar buscar editar um tres dois quatro zero"
     },
     {
       "ciclo": 7,
       "n_tokens": 99,
-      "n_uniq": 49,
-      "entropia": 5.171,
+      "n_uniq": 44,
+      "entropia": 5.098,
       "n_novos": 0,
       "n_conhecidos": 99,
       "is_novo": false,
-      "semente": "trintaeoito quarenta vinte dez cinco dezesseis oito quatro d",
-      "sonho_preview": "trintaeoito quarenta vinte dez cinco dezesseis oito quatro dois listar dois tres cinco oito treze um dois zero tres sequ"
+      "semente": "gerar monstro responder fib coll quad tri primo gerar sprite",
+      "sonho_preview": "gerar monstro responder fib coll quad tri primo gerar sprite gerar quest analisar buscar editar um tres dois quatro zero"
     },
     {
       "ciclo": 8,
       "n_tokens": 99,
-      "n_uniq": 49,
-      "entropia": 5.171,
+      "n_uniq": 44,
+      "entropia": 5.098,
       "n_novos": 0,
       "n_conhecidos": 99,
       "is_novo": false,
-      "semente": "trintaeoito quarenta vinte dez cinco dezesseis oito quatro d",
-      "sonho_preview": "trintaeoito quarenta vinte dez cinco dezesseis oito quatro dois listar dois tres cinco oito treze um dois zero tres sequ"
+      "semente": "gerar monstro responder fib coll quad tri primo gerar sprite",
+      "sonho_preview": "gerar monstro responder fib coll quad tri primo gerar sprite gerar quest analisar buscar editar um tres dois quatro zero"
     },
     {
       "ciclo": 9,
       "n_tokens": 99,
-      "n_uniq": 48,
-      "entropia": 5.132,
+      "n_uniq": 44,
+      "entropia": 5.098,
       "n_novos": 0,
       "n_conhecidos": 99,
       "is_novo": false,
-      "semente": "trintaeoito quarenta vinte dez cinco dezesseis oito quatro d",
-      "sonho_preview": "trintaeoito quarenta vinte dez cinco dezesseis oito quatro dois listar dois tres cinco oito treze um dois zero tres sequ"
+      "semente": "gerar monstro responder fib coll quad tri primo gerar sprite",
+      "sonho_preview": "gerar monstro responder fib coll quad tri primo gerar sprite gerar quest analisar buscar editar um tres dois quatro zero"
     },
     {
       "ciclo": 10,
       "n_tokens": 99,
-      "n_uniq": 48,
-      "entropia": 5.132,
+      "n_uniq": 44,
+      "entropia": 5.098,
       "n_novos": 0,
       "n_conhecidos": 99,
       "is_novo": false,
-      "semente": "trintaeoito quarenta vinte dez cinco dezesseis oito quatro d",
-      "sonho_preview": "trintaeoito quarenta vinte dez cinco dezesseis oito quatro dois listar dois tres cinco oito treze um dois zero tres sequ"
+      "semente": "gerar monstro responder fib coll quad tri primo gerar sprite",
+      "sonho_preview": "gerar monstro responder fib coll quad tri primo gerar sprite gerar quest analisar buscar editar um tres dois quatro zero"
     }
   ],
   "entropia": {
-    "media": 5.2778,
-    "min": 5.132,
-    "max": 6.034
+    "media": 5.5656,
+    "min": 5.465,
+    "max": 6.077,
+    "greedy_media": 5.2414000000000005
   },
+  "unicos_entropia": 3,
+  "unicos_greedy": 3,
   "freq_sonhar": 10,
   "p_sonhar": 0.007861635220125786
 }

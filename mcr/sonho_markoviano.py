@@ -90,12 +90,14 @@ class SonhoMarkoviano:
         tokens = tokens[:max_tokens]
         return " ".join(tokens)
 
-    def sonhar(self, n_passos: int = 50, semente: Optional[str] = None) -> str:
+    def sonhar(self, n_passos: int = 50, semente: Optional[str] = None,
+               modo: str = "entropia") -> str:
         """Gera uma sequencia markoviana a partir do estado interno.
 
         Args:
             n_passos: numero de tokens a gerar
             semente: semente opcional (default: estado serializado)
+            modo: "greedy" (max P(b|a)) ou "entropia" (max H da sequencia)
 
         Returns:
             string com a sequencia gerada (sonho)
@@ -109,14 +111,15 @@ class SonhoMarkoviano:
 
         # Gera markovianamente usando _transicao_palavra + _ngrama
         for _ in range(n_passos):
-            proximo = self._gerar_proximo(tokens)
+            proximo = self._gerar_proximo(tokens, modo=modo)
             if proximo is None:
                 break
             tokens.append(proximo)
 
         return " ".join(tokens)
 
-    def _gerar_proximo(self, tokens: List[str]) -> Optional[str]:
+    def _gerar_proximo(self, tokens: List[str],
+                       modo: str = "entropia") -> Optional[str]:
         """Gera o proximo token markovianamente.
 
         Estrategia (sem random, Pilar 1):
@@ -125,7 +128,58 @@ class SonhoMarkoviano:
         3. Cai para _transicao_palavra (ordem 1)
         4. Se nada, para
 
-        Escolha: greedy (maior P(b|a)) — deterministico.
+        Escolha:
+        - greedy: maior P(b|a) — deterministico, mas converge
+        - entropia: token que MAXIMIZA H da sequencia apos adiciona-lo
+          Deterministico (Pilar 1) e gera diversidade sem random.
+          Quem empata em H desempata por P(b|a) (preferir o mais provavel).
+        """
+        # Obter candidatos do n-grama mais rico disponivel
+        candidatos = self._obter_candidatos(tokens)
+        if not candidatos:
+            return None
+
+        if modo == "greedy":
+            return max(candidatos.items(), key=lambda x: x[1])[0]
+
+        # Modo entropia: escolher token que maximiza H da JANELA recente
+        # (não da sequência inteira — impacto real do próximo token)
+        from collections import Counter
+        from math import log2
+
+        # Janela de working memory: últimos 20 tokens
+        janela = tokens[-20:] if len(tokens) > 20 else tokens[:]
+        contagem = Counter(janela)
+        n = len(janela)
+
+        melhor_token = None
+        melhor_h = -1.0
+        melhor_p = 0.0
+
+        for token, p_ba in candidatos.items():
+            # Simular adicionar token e calcular H da janela
+            cont_sim = contagem.copy()
+            cont_sim[token] = cont_sim.get(token, 0) + 1
+            n_sim = n + 1
+            h_sim = 0.0
+            for c in cont_sim.values():
+                p = c / n_sim
+                if p > 0:
+                    h_sim -= p * log2(p)
+
+            # Maximizar H; desempatar por P(b|a)
+            if h_sim > melhor_h or (abs(h_sim - melhor_h) < 1e-9 and p_ba > melhor_p):
+                melhor_h = h_sim
+                melhor_token = token
+                melhor_p = p_ba
+
+        return melhor_token
+
+    def _obter_candidatos(self, tokens: List[str]) -> Dict[str, float]:
+        """Obtem candidatos a proximo token do n-grama mais rico disponivel.
+
+        Returns:
+            dict {token: P(b|a)} dos candidatos
         """
         # Ordem 3: _ngrama[3]
         if len(tokens) >= 2:
@@ -133,7 +187,7 @@ class SonhoMarkoviano:
             ngrama3 = self._c._ngrama.get(3, {})
             prox = ngrama3.get(pref, {})
             if prox:
-                return max(prox.items(), key=lambda x: x[1])[0]
+                return dict(prox)
 
         # Ordem 2: _ngrama[2]
         if len(tokens) >= 1:
@@ -141,17 +195,18 @@ class SonhoMarkoviano:
             ngrama2 = self._c._ngrama.get(2, {})
             prox = ngrama2.get(pref, {})
             if prox:
-                return max(prox.items(), key=lambda x: x[1])[0]
+                return dict(prox)
 
         # Ordem 1: _transicao_palavra
         ultima = tokens[-1] if tokens else ""
         prox = self._c._transicao_palavra.get(ultima, {})
         if prox:
-            return max(prox.items(), key=lambda x: x[1])[0]
+            return dict(prox)
 
-        return None
+        return {}
 
-    def ciclo_sonho(self, n_ciclos: int = 10, n_passos: int = 50) -> List[dict]:
+    def ciclo_sonho(self, n_ciclos: int = 10, n_passos: int = 50,
+                    modo: str = "entropia") -> List[dict]:
         """Executa n ciclos de sonho com realimentacao.
 
         Cada ciclo:
@@ -167,6 +222,7 @@ class SonhoMarkoviano:
         Args:
             n_ciclos: numero de ciclos de sonho
             n_passos: tokens gerados por ciclo
+            modo: "greedy" (max P(b|a)) ou "entropia" (max H da sequencia)
 
         Returns:
             lista de dicts com metricas de cada ciclo
@@ -183,7 +239,7 @@ class SonhoMarkoviano:
                 semente = semente_atual
 
             # 2. Gera sonho
-            sonho = self.sonhar(n_passos=n_passos, semente=semente)
+            sonho = self.sonhar(n_passos=n_passos, semente=semente, modo=modo)
 
             # 3. Metricas
             tokens_sonho = self._RE_TOKENS.findall(sonho.lower())

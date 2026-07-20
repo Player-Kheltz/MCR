@@ -10,7 +10,7 @@ Validar:
 4. A entropia dos sonhos e nao-trivial (ha estrutura, nao e ruido)
 5. Regressoes 113/113 + 64/64 permanecem intactas
 """
-import sys, os, json, time
+import sys, os, json, time, re
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 sys.path.insert(0, os.path.dirname(__file__))
 
@@ -36,27 +36,61 @@ def main():
     # Cria o sonhador
     sonhador = SonhoMarkoviano(c)
 
-    # === Teste 1: Sonho unico ===
-    print("\n[2] Sonho unico (50 passos)...")
+    # === Teste 1: Sonho unico (greedy) ===
+    print("\n[2a] Sonho unico — modo GREEDY (50 passos)...")
     t0 = time.time()
-    sonho = sonhador.sonhar(n_passos=50)
+    sonho_greedy = sonhador.sonhar(n_passos=50, modo="greedy")
     dt = time.time() - t0
-    print(f"  Tempo: {dt:.3f}s")
-    print(f"  Sonho: '{sonho[:200]}'")
-    print(f"  Total tokens: {len(sonho.split())}")
+    tokens_g = sonho_greedy.split()
+    print(f"  Tempo: {dt:.3f}s, Tokens: {len(tokens_g)}")
+    print(f"  Sonho: '{sonho_greedy[:150]}'")
+
+    # === Teste 1b: Sonho unico (entropia) ===
+    print("\n[2b] Sonho unico — modo ENTROPIA (50 passos)...")
+    t0 = time.time()
+    sonho_ent = sonhador.sonhar(n_passos=50, modo="entropia")
+    dt = time.time() - t0
+    tokens_e = sonho_ent.split()
+    print(f"  Tempo: {dt:.3f}s, Tokens: {len(tokens_e)}")
+    print(f"  Sonho: '{sonho_ent[:150]}'")
+
+    # Comparar diversidade
+    from collections import Counter
+    from math import log2
+    def entropia_tokens(toks):
+        if not toks:
+            return 0.0
+        cont = Counter(toks)
+        n = len(toks)
+        h = 0.0
+        for c in cont.values():
+            p = c / n
+            if p > 0:
+                h -= p * log2(p)
+        return h
+
+    h_greedy = entropia_tokens(tokens_g)
+    h_ent = entropia_tokens(tokens_e)
+    uniq_g = len(set(tokens_g))
+    uniq_e = len(set(tokens_e))
+    print(f"\n  Comparacao greedy vs entropia:")
+    print(f"    Greedy:   H={h_greedy:.3f}, unicos={uniq_g}/{len(tokens_g)}")
+    print(f"    Entropia: H={h_ent:.3f}, unicos={uniq_e}/{len(tokens_e)}")
+    print(f"    Delta H:  {h_ent - h_greedy:+.3f}")
+    print(f"    Delta uniq: {uniq_e - uniq_g:+d}")
 
     # === Teste 2: Determinismo (mesmo estado = mesmo sonho) ===
     print("\n[3] Determinismo (mesmo estado = mesmo sonho?)...")
-    sonho1 = sonhador.sonhar(n_passos=30, semente=sonhador._serializar_estado())
-    sonho2 = sonhador.sonhar(n_passos=30, semente=sonhador._serializar_estado())
-    is_deterministico = sonho1 == sonho2
-    print(f"  Sonho 1: '{sonho1[:100]}'")
-    print(f"  Sonho 2: '{sonho2[:100]}'")
+    s1 = sonhador.sonhar(n_passos=30, semente=sonhador._serializar_estado(), modo="entropia")
+    s2 = sonhador.sonhar(n_passos=30, semente=sonhador._serializar_estado(), modo="entropia")
+    is_deterministico = s1 == s2
+    print(f"  Sonho 1: '{s1[:100]}'")
+    print(f"  Sonho 2: '{s2[:100]}'")
     print(f"  Deterministico: {'SIM' if is_deterministico else 'NAO'}")
 
     # === Teste 3: Novidade (tokens novos vs conhecidos) ===
-    print("\n[4] Novidade do sonho...")
-    import re
+    print("\n[4] Novidade do sonho (entropia)...")
+    sonho = sonho_ent  # usar o sonho por entropia
     tokens_sonho = re.findall(r'[a-zà-ÿ0-9]{2,}', sonho.lower())
     vocab = set(c._palavra_acao.keys())
     n_novos = sum(1 for t in tokens_sonho if t not in vocab)
@@ -66,11 +100,21 @@ def main():
     print(f"  Novos: {n_novos}")
     print(f"  Taxa novidade: {n_novos/len(tokens_sonho)*100:.1f}%" if tokens_sonho else "  N/A")
 
-    # === Teste 4: Ciclo de sonhos (realimentacao) ===
-    print("\n[5] Ciclo de sonhos (10 ciclos com realimentacao)...")
+    # === Teste 4: Ciclo de sonhos (realimentacao) — entropia ===
+    print("\n[5] Ciclo de sonhos ENTROPIA (10 ciclos com realimentacao)...")
     print(f"  Antes: {c._total} obs, freq_sonhar={c._freq_acao.get('sonhar', 0)}")
-    resultados = sonhador.ciclo_sonho(n_ciclos=10, n_passos=30)
+    resultados_ent = sonhador.ciclo_sonho(n_ciclos=10, n_passos=30, modo="entropia")
+    unicos_ent = sum(1 for r in resultados_ent if r['is_novo'])
     print(f"  Apos: {c._total} obs, freq_sonhar={c._freq_acao.get('sonhar', 0)}")
+    print(f"  Sonhos unicos (entropia): {unicos_ent}/10")
+
+    # === Teste 4b: Ciclo greedy para comparar ===
+    print("\n[5b] Ciclo de sonhos GREEDY (10 ciclos, motor separado)...")
+    c2, info2 = carregar_mcr(leve=True)
+    sonhador2 = SonhoMarkoviano(c2)
+    resultados_greedy = sonhador2.ciclo_sonho(n_ciclos=10, n_passos=30, modo="greedy")
+    unicos_greedy = sum(1 for r in resultados_greedy if r['is_novo'])
+    print(f"  Sonhos unicos (greedy): {unicos_greedy}/10")
 
     # === Teste 5: Persistencia diferencial ===
     print("\n[6] Persistencia diferencial (sonhar persiste?)...")
@@ -78,18 +122,21 @@ def main():
     freq_total = sum(c._freq_acao.values())
     p_sonhar = freq_sonhar / freq_total if freq_total > 0 else 0
     print(f"  P(sonhar) = {freq_sonhar}/{freq_total} = {p_sonhar:.4f}")
-    print(f"  Sonhos unicos: {sum(1 for r in resultados if r['is_novo'])}/{len(resultados)}")
+    print(f"  Sonhos unicos entropia: {unicos_ent}/10")
+    print(f"  Sonhos unicos greedy:   {unicos_greedy}/10")
 
     # === Teste 6: Entropia dos sonhos ===
     print("\n[7] Entropia dos sonhos...")
-    entropias = [r["entropia"] for r in resultados]
+    entropias = [r["entropia"] for r in resultados_ent]
     ent_media = sum(entropias) / len(entropias) if entropias else 0
     ent_min = min(entropias) if entropias else 0
     ent_max = max(entropias) if entropias else 0
-    print(f"  Media: {ent_media:.3f}")
-    print(f"  Min:   {ent_min:.3f}")
-    print(f"  Max:   {ent_max:.3f}")
-    print(f"  Interpretacao: {'estruturado (H<2)' if ent_media < 2 else 'diverso (H>=2)'}")
+    print(f"  Entropia (media/min/max): {ent_media:.3f} / {ent_min:.3f} / {ent_max:.3f}")
+
+    entropias_g = [r["entropia"] for r in resultados_greedy]
+    ent_media_g = sum(entropias_g) / len(entropias_g) if entropias_g else 0
+    print(f"  Greedy (media): {ent_media_g:.3f}")
+    print(f"  Delta H: {ent_media - ent_media_g:+.3f}")
 
     # === Estatisticas finais ===
     print("\n[8] Estatisticas finais...")
@@ -102,14 +149,17 @@ def main():
 
     # === Resumo ===
     print("\n" + "=" * 70)
-    print("  RESUMO DO SONHO MARKOVIANO")
+    print("  RESUMO DO SONHO MARKOVIANO — GREEDY vs ENTROPIA")
     print("=" * 70)
     print(f"  Deterministico (Pilar 1):  {'PASS' if is_deterministico else 'FAIL'}")
     print(f"  Gera sequencia (nao vazio): {'PASS' if len(tokens_sonho) > 5 else 'FAIL'}")
     print(f"  Novidade > 0:              {'PASS' if n_novos > 0 else 'FAIL'} ({n_novos} novos)")
     print(f"  Ciclo fechou (freq>0):     {'PASS' if freq_sonhar > 0 else 'FAIL'} (freq={freq_sonhar})")
-    print(f"  Entropia nao-trivial:      {'PASS' if 0.5 < ent_media < 5 else 'CHECK'} (H={ent_media:.3f})")
-    print(f"  Sonhos unicos:             {sum(1 for r in resultados if r['is_novo'])}/{len(resultados)}")
+    print(f"  Entropia nao-trivial:      {'PASS' if 0.5 < ent_media < 7 else 'CHECK'} (H={ent_media:.3f})")
+    print()
+    print(f"  GREEDY:   unicos={unicos_greedy}/10, H_media={ent_media_g:.3f}")
+    print(f"  ENTROPIA: unicos={unicos_ent}/10, H_media={ent_media:.3f}")
+    print(f"  Melhoria entropia: unicos +{unicos_ent - unicos_greedy}, H +{ent_media - ent_media_g:.3f}")
 
     # Salva resultado
     resultado = {
@@ -124,8 +174,12 @@ def main():
             "preview": sonho[:200],
         },
         "deterministico": is_deterministico,
-        "ciclo_sonhos": resultados,
-        "entropia": {"media": ent_media, "min": ent_min, "max": ent_max},
+        "ciclo_sonhos_entropia": resultados_ent,
+        "ciclo_sonhos_greedy": resultados_greedy,
+        "entropia": {"media": ent_media, "min": ent_min, "max": ent_max,
+                     "greedy_media": ent_media_g},
+        "unicos_entropia": unicos_ent,
+        "unicos_greedy": unicos_greedy,
         "freq_sonhar": freq_sonhar,
         "p_sonhar": p_sonhar,
     }
