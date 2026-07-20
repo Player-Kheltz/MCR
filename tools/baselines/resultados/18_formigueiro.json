@@ -1,0 +1,67 @@
+{
+  "teste": "formigueiro",
+  "mcr": {
+    "obs": 4262,
+    "vocab": 4403,
+    "acoes": 20
+  },
+  "estatisticas": {
+    "n_clusters": 18,
+    "n_acoes": 20,
+    "pertencimento_medio": 1.0,
+    "distribuicao_pertencimento": {
+      "1": 20
+    },
+    "acoes_por_cluster": {
+      "cluster_1": 1,
+      "cluster_2": 3,
+      "cluster_3": 1,
+      "cluster_4": 1,
+      "cluster_5": 1,
+      "cluster_6": 1,
+      "cluster_7": 1,
+      "cluster_8": 1,
+      "cluster_9": 1,
+      "cluster_10": 1,
+      "cluster_11": 1,
+      "cluster_12": 1,
+      "cluster_13": 1,
+      "cluster_14": 1,
+      "cluster_15": 1,
+      "cluster_16": 1,
+      "cluster_17": 1,
+      "cluster_18": 1
+    },
+    "clusters_por_acao": {
+      "PA": 1,
+      "PG": 1,
+      "FIB": 1,
+      "COLL": 1,
+      "QUAD": 1,
+      "TRI": 1,
+      "PRIMO": 1,
+      "responder": 1,
+      "gerar_npc": 1,
+      "gerar_monstro": 1,
+      "gerar_sprite": 1,
+      "gerar_quest": 1,
+      "analisar": 1,
+      "buscar": 1,
+      "editar": 1,
+      "validar": 1,
+      "conectar": 1,
+      "aprender": 1,
+      "planejar": 1,
+      "gutenberg": 1
+    }
+  },
+  "n_clusters": 18,
+  "threshold": 0.7398,
+  "pertencimento_medio": 1.0,
+  "distribuicao_pertencimento": {
+    "1": 20
+  },
+  "numero_3_emerge": false,
+  "acuracia_global": 0.7692307692307693,
+  "acuracia_formigueiro": 0.38461538461538464
+}

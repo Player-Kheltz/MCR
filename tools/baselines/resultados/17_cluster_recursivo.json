@@ -1,0 +1,390 @@
+{
+  "teste": "cluster_recursivo",
+  "mcr": {
+    "obs": 4262,
+    "vocab": 4403,
+    "acoes": 20
+  },
+  "gutenberg_frases": 3000,
+  "tempo_clusterizacao": 1.1909723281860352,
+  "estatisticas": {
+    "n_folhas": 20,
+    "n_nos": 24,
+    "max_niveis": 3,
+    "filhos_por_no": {
+      "17": 1,
+      "2": 3
+    },
+    "filhos_por_no_lista": [
+      17,
+      2,
+      2,
+      2
+    ],
+    "media_filhos": 5.75
+  },
+  "arvore": {
+    "nome": "raiz",
+    "nivel": 0,
+    "acoes": [
+      "COLL",
+      "FIB",
+      "PA",
+      "PG",
+      "PRIMO",
+      "QUAD",
+      "TRI",
+      "analisar",
+      "aprender",
+      "buscar",
+      "conectar",
+      "editar",
+      "gerar_monstro",
+      "gerar_npc",
+      "gerar_quest",
+      "gerar_sprite",
+      "gutenberg",
+      "planejar",
+      "responder",
+      "validar"
+    ],
+    "n_obs": 4262,
+    "vocab": 4403,
+    "entropia": 1.9788,
+    "delta_h": 0.0,
+    "is_folha": false,
+    "n_filhos": 17,
+    "filhos": [
+      {
+        "nome": "cluster_1",
+        "nivel": 1,
+        "acoes": [
+          "analisar"
+        ],
+        "n_obs": 10,
+        "vocab": 28,
+        "entropia": 0.0,
+        "delta_h": 1.9788,
+        "is_folha": true,
+        "n_filhos": 0,
+        "filhos": []
+      },
+      {
+        "nome": "cluster_2",
+        "nivel": 1,
+        "acoes": [
+          "editar"
+        ],
+        "n_obs": 10,
+        "vocab": 30,
+        "entropia": 0.0,
+        "delta_h": 1.9788,
+        "is_folha": true,
+        "n_filhos": 0,
+        "filhos": []
+      },
+      {
+        "nome": "cluster_3",
+        "nivel": 1,
+        "acoes": [
+          "responder"
+        ],
+        "n_obs": 113,
+        "vocab": 151,
+        "entropia": 0.0,
+        "delta_h": 1.9788,
+        "is_folha": true,
+        "n_filhos": 0,
+        "filhos": []
+      },
+      {
+        "nome": "cluster_4",
+        "nivel": 1,
+        "acoes": [
+          "gutenberg"
+        ],
+        "n_obs": 3000,
+        "vocab": 3978,
+        "entropia": 0.0,
+        "delta_h": 1.9788,
+        "is_folha": true,
+        "n_filhos": 0,
+        "filhos": []
+      },
+      {
+        "nome": "cluster_5",
+        "nivel": 1,
+        "acoes": [
+          "aprender"
+        ],
+        "n_obs": 10,
+        "vocab": 31,
+        "entropia": 0.0,
+        "delta_h": 1.9788,
+        "is_folha": true,
+        "n_filhos": 0,
+        "filhos": []
+      },
+      {
+        "nome": "cluster_6",
+        "nivel": 1,
+        "acoes": [
+          "PA"
+        ],
+        "n_obs": 100,
+        "vocab": 60,
+        "entropia": 0.0,
+        "delta_h": 1.9788,
+        "is_folha": true,
+        "n_filhos": 0,
+        "filhos": []
+      },
+      {
+        "nome": "cluster_7",
+        "nivel": 1,
+        "acoes": [
+          "gerar_npc",
+          "gerar_quest"
+        ],
+        "n_obs": 185,
+        "vocab": 121,
+        "entropia": 0.3465,
+        "delta_h": 1.6323,
+        "is_folha": false,
+        "n_filhos": 2,
+        "filhos": [
+          {
+            "nome": "cluster_1",
+            "nivel": 2,
+            "acoes": [
+              "gerar_quest"
+            ],
+            "n_obs": 12,
+            "vocab": 35,
+            "entropia": 0.0,
+            "delta_h": 0.3465,
+            "is_folha": true,
+            "n_filhos": 0,
+            "filhos": []
+          },
+          {
+            "nome": "cluster_2",
+            "nivel": 2,
+            "acoes": [
+              "gerar_npc"
+            ],
+            "n_obs": 173,
+            "vocab": 95,
+            "entropia": 0.0,
+            "delta_h": 0.3465,
+            "is_folha": true,
+            "n_filhos": 0,
+            "filhos": []
+          }
+        ]
+      },
+      {
+        "nome": "cluster_8",
+        "nivel": 1,
+        "acoes": [
+          "gerar_sprite"
+        ],
+        "n_obs": 47,
+        "vocab": 34,
+        "entropia": 0.0,
+        "delta_h": 1.9788,
+        "is_folha": true,
+        "n_filhos": 0,
+        "filhos": []
+      },
+      {
+        "nome": "cluster_9",
+        "nivel": 1,
+        "acoes": [
+          "conectar"
+        ],
+        "n_obs": 10,
+        "vocab": 28,
+        "entropia": 0.0,
+        "delta_h": 1.9788,
+        "is_folha": true,
+        "n_filhos": 0,
+        "filhos": []
+      },
+      {
+        "nome": "cluster_10",
+        "nivel": 1,
+        "acoes": [
+          "validar"
+        ],
+        "n_obs": 10,
+        "vocab": 20,
+        "entropia": 0.0,
+        "delta_h": 1.9788,
+        "is_folha": true,
+        "n_filhos": 0,
+        "filhos": []
+      },
+      {
+        "nome": "cluster_11",
+        "nivel": 1,
+        "acoes": [
+          "buscar"
+        ],
+        "n_obs": 10,
+        "vocab": 38,
+        "entropia": 0.0,
+        "delta_h": 1.9788,
+        "is_folha": true,
+        "n_filhos": 0,
+        "filhos": []
+      },
+      {
+        "nome": "cluster_12",
+        "nivel": 1,
+        "acoes": [
+          "QUAD"
+        ],
+        "n_obs": 100,
+        "vocab": 18,
+        "entropia": 0.0,
+        "delta_h": 1.9788,
+        "is_folha": true,
+        "n_filhos": 0,
+        "filhos": []
+      },
+      {
+        "nome": "cluster_13",
+        "nivel": 1,
+        "acoes": [
+          "planejar"
+        ],
+        "n_obs": 10,
+        "vocab": 26,
+        "entropia": 0.0,
+        "delta_h": 1.9788,
+        "is_folha": true,
+        "n_filhos": 0,
+        "filhos": []
+      },
+      {
+        "nome": "cluster_14",
+        "nivel": 1,
+        "acoes": [
+          "COLL",
+          "FIB",
+          "PG"
+        ],
+        "n_obs": 300,
+        "vocab": 42,
+        "entropia": 1.585,
+        "delta_h": 0.3938,
+        "is_folha": false,
+        "n_filhos": 2,
+        "filhos": [
+          {
+            "nome": "cluster_1",
+            "nivel": 2,
+            "acoes": [
+              "COLL",
+              "PG"
+            ],
+            "n_obs": 200,
+            "vocab": 39,
+            "entropia": 1.0,
+            "delta_h": 0.585,
+            "is_folha": false,
+            "n_filhos": 2,
+            "filhos": [
+              {
+                "nome": "cluster_1",
+                "nivel": 3,
+                "acoes": [
+                  "COLL"
+                ],
+                "n_obs": 100,
+                "vocab": 32,
+                "entropia": 0.0,
+                "delta_h": 1.0,
+                "is_folha": true,
+                "n_filhos": 0,
+                "filhos": []
+              },
+              {
+                "nome": "cluster_2",
+                "nivel": 3,
+                "acoes": [
+                  "PG"
+                ],
+                "n_obs": 100,
+                "vocab": 31,
+                "entropia": 0.0,
+                "delta_h": 1.0,
+                "is_folha": true,
+                "n_filhos": 0,
+                "filhos": []
+              }
+            ]
+          },
+          {
+            "nome": "cluster_2",
+            "nivel": 2,
+            "acoes": [
+              "FIB"
+            ],
+            "n_obs": 100,
+            "vocab": 27,
+            "entropia": 0.0,
+            "delta_h": 1.585,
+            "is_folha": true,
+            "n_filhos": 0,
+            "filhos": []
+          }
+        ]
+      },
+      {
+        "nome": "cluster_15",
+        "nivel": 1,
+        "acoes": [
+          "gerar_monstro"
+        ],
+        "n_obs": 147,
+        "vocab": 66,
+        "entropia": 0.0,
+        "delta_h": 1.9788,
+        "is_folha": true,
+        "n_filhos": 0,
+        "filhos": []
+      },
+      {
+        "nome": "cluster_16",
+        "nivel": 1,
+        "acoes": [
+          "TRI"
+        ],
+        "n_obs": 100,
+        "vocab": 20,
+        "entropia": 0.0,
+        "delta_h": 1.9788,
+        "is_folha": true,
+        "n_filhos": 0,
+        "filhos": []
+      },
+      {
+        "nome": "cluster_17",
+        "nivel": 1,
+        "acoes": [
+          "PRIMO"
+        ],
+        "n_obs": 100,
+        "vocab": 21,
+        "entropia": 0.0,
+        "delta_h": 1.9788,
+        "is_folha": true,
+        "n_filhos": 0,
+        "filhos": []
+      }
+    ]
+  },
+  "numero_3_emerge": false
+}
