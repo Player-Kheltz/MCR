@@ -1,0 +1,8 @@
+{
+  "teste": "llm_pertencimento",
+  "pertencimento_real": 1,
+  "erros_genuinos": 7,
+  "ks_gpt_vs_bert": 0.0,
+  "clusters_camadas": 11,
+  "clusters_arquiteturas": 2
+}
