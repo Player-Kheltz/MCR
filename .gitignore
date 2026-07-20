@@ -124,3 +124,7 @@ tools/_debug_*.py
 mcr_sessao-*
 mcr_sessao.*
 
+# Arquivos grandes (>100MB) que o GitHub rejeita
+mcr/coupling_MCRCoupling.json
+*.jsonl
+
