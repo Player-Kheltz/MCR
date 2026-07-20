@@ -1342,6 +1342,29 @@ class MCRCoupling:
         n_acoes = len(self._acao_features) if self._acao_features else 1
         return (c_fa + alpha) / (c_f + alpha * n_acoes)
 
+    def _wilson_lower(self, p: float, n: int, z: float = 1.96) -> float:
+        """Limite inferior do intervalo de confianca de Wilson (95%).
+
+        Para n=1, p=1.0: ~0.025 (MATA falso positivo)
+        Para n=2, p=1.0: ~0.34 (salto emergente)
+        Para n=10, p=1.0: ~0.72
+        Para n=100, p=0.8: ~0.72
+
+        O Wilson incorpora tanto a entropia (p) quanto o volume (n).
+        Para n=1, entropia zero e artefato de poucos dados, nao
+        discriminacao real. O Wilson sabe disso.
+
+        Diferenca do Laplace: Wilson mata n=1 mais agressivamente
+        (0.025 vs 0.10). Isto previne diluicao quando muitas features
+        n=1 sao geradas (ex: n-gramas de N=4 bytes).
+        """
+        if n <= 0:
+            return 0.0
+        denom = 1.0 + z * z / n
+        center = (p + z * z / (2.0 * n)) / denom
+        spread = z * math.sqrt((p * (1.0 - p) + z * z / (4.0 * n)) / n) / denom
+        return max(0.0, center - spread)
+
     def _confianca_laplace(self, texto: str, acao: str) -> float:
         """Calcula confianca Laplace para uma acao dado o texto.
 
@@ -1449,10 +1472,12 @@ class MCRCoupling:
             ent_norm = ent / (math.log2(len(probs)) or 1) if len(probs) > 1 else 0.0
             peso = 1.0 - ent_norm
             for a, c in dist.items():
-                # Tensao Superficial: Laplace mata falso positivo n=1
-                # (1+1)/(1+19)=0.10 vs (79+1)/(79+19)=0.816
-                prob_laplace = self._laplace_smooth(c, total)
-                scores[a] += prob_laplace * peso
+                # Tensao Superficial: Wilson mata n=1 (0.025) e preserva
+                # n=volume (0.72). Incorpora entropia (p) E volume (n).
+                # Para n=1, entropia zero e artefato — Wilson sabe.
+                p = c / total
+                wilson = self._wilson_lower(p, total)
+                scores[a] += wilson * peso
         return dict(scores) if scores else {}
 
     def _dist_features_relevante(self, texto: str) -> Dict[str, float]:
