@@ -1,0 +1,19 @@
+{
+  "teste": "llm_pesos",
+  "camadas": {
+    "acertos": 4,
+    "total": 12
+  },
+  "arquiteturas": {
+    "acertos": 2,
+    "total": 3
+  },
+  "precisao": {
+    "float32": true,
+    "float16": false
+  },
+  "estruturado_vs_aleatorio": {
+    "estruturado": false,
+    "aleatorio": false
+  }
+}
