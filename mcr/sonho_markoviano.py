@@ -297,6 +297,158 @@ class SonhoMarkoviano:
 
         return resultados
 
+    def emergir(self, n_hipoteses: int = 20) -> List[dict]:
+        """O sonho como EMERGIR: o MCR pergunta 'E se X + Y = Z?'
+
+        Como Kheltz faz 'decida, explore, valide' com o LLM, o MCR
+        faz consigo mesmo:
+
+        1. DECIDA: sonho escolhe dois conceitos do vocabulario (Pilar 1)
+        2. EXPLORE: recombina markovianamente — 'E se X + Y?'
+        3. VALIDE: motor verifica se a recombinação tem estrutura
+           - decidir() na recombinação → (acao, conf)
+           - Se conf alta: hipotese confirmada (expande)
+           - Se conf baixa: hipotese refutada (descarta, Pilar 9)
+        4. Se confirmada: nova relação descoberta
+           - X e Y estao relacionados via acao Z
+           - Pode alimentar formigueiro (novo cluster)
+
+        O sonho NAO alimenta o motor diretamente. Ele DESCOBRE
+        relacoes que o motor ja conhece mas nao conectou. Como
+        'E se 1+2=3?' — o motor ja sabe, mas talvez nao conectou
+        que 'um' + 'dois' aparece em PA, FIB, E Collatz.
+
+        Returns:
+            lista de hipoteses com (X, Y, Z, conf, confirmada)
+        """
+        # 1. Amostra conceitos do vocabulario (Pilar 1: P(b|a) puro)
+        vocab = list(self._c._palavra_acao.keys())
+        if len(vocab) < 2:
+            return []
+
+        # 2. Para cada hipotese: 'E se X + Y?'
+        hipoteses = []
+        for _ in range(n_hipoteses):
+            # DECIDA: escolhe dois conceitos (greedy do n-grama)
+            # Comeca do ultimo conceito e segue a cadeia
+            x = vocab[len(vocab) // 2]  # ponto medio do vocab
+            if not self._c._transicao_palavra.get(x):
+                # Sem transicoes — pula
+                continue
+
+            # EXPLORE: gera Y a partir de X (markoviano)
+            prox = self._c._transicao_palavra.get(x, {})
+            if not prox:
+                continue
+            y = max(prox.items(), key=lambda p: p[1])[0]
+
+            # 'E se X + Y?'
+            recomb = x + " " + y
+
+            # VALIDE: motor verifica se a recombinação tem estrutura
+            acao, conf = self._c.decidir(recomb, (None, 0.0))
+
+            # Tambem verifica cada conceito isolado
+            acao_x, conf_x = self._c.decidir(x, (None, 0.0))
+            acao_y, conf_y = self._c.decidir(y, (None, 0.0))
+
+            # Hipotese confirmada se:
+            # - recomb tem conf alta (motor reconhece estrutura)
+            # - recomb mapeia para acao diferente de X ou Y isolados
+            #   (sínergia: X+Y revela algo que nem X nem Y isolados revelam)
+            confirmada = conf > 0.3 and (
+                acao != acao_x or acao != acao_y
+            )
+
+            # Sinergia: a recombinação é mais que a soma das partes?
+            sinergia = conf - max(conf_x, conf_y)
+
+            hipoteses.append({
+                "x": x,
+                "y": y,
+                "recomb": recomb,
+                "acao": acao,
+                "conf": round(conf, 4),
+                "acao_x": acao_x,
+                "conf_x": round(conf_x, 4),
+                "acao_y": acao_y,
+                "conf_y": round(conf_y, 4),
+                "confirmada": confirmada,
+                "sinergia": round(sinergia, 4),
+            })
+
+        # 3. Ordenar por sinergia (maiores descobertas primeiro)
+        hipoteses.sort(key=lambda h: -h["sinergia"])
+
+        return hipoteses
+
+    def emergir_livre(self, n_hipoteses: int = 20) -> List[dict]:
+        """Emergir livre: sonho recombina SEM objetivo, motor valida.
+
+        Diferente de emergir(), aqui o sonho recombina conceitos que
+        NUNCA coocorrem no corpus. 'E if um + cachorro?' — o motor
+        nunca viu isso, mas talvez descubra uma relacao nova.
+
+        1. Sonho pega dois conceitos ALEATORIOS do vocab (mas
+           deterministico — Pilar 1: usa hash do estado como seed)
+        2. Motor valida: 'faz sentido?'
+        3. Se sim: relacao nova descoberta
+        4. Se nao: descarta (Pilar 9)
+
+        Returns:
+            lista de hipoteses livres
+        """
+        vocab = sorted(self._c._palavra_acao.keys())
+        if len(vocab) < 2:
+            return []
+
+        # Seed deterministica: hash do estado (Pilar 1, sem random)
+        estado_hash = hash(self._serializar_estado(max_tokens=50))
+
+        hipoteses = []
+        for i in range(n_hipoteses):
+            # Deterministic: pares baseados em hash
+            idx_x = (estado_hash + i * 7) % len(vocab)
+            idx_y = (estado_hash + i * 13 + 3) % len(vocab)
+            if idx_x == idx_y:
+                idx_y = (idx_y + 1) % len(vocab)
+
+            x = vocab[idx_x]
+            y = vocab[idx_y]
+
+            # 'E se X + Y?'
+            recomb = x + " " + y
+
+            # VALIDE
+            acao, conf = self._c.decidir(recomb, (None, 0.0))
+            acao_x, conf_x = self._c.decidir(x, (None, 0.0))
+            acao_y, conf_y = self._c.decidir(y, (None, 0.0))
+
+            # Sinergia: recombinação mais forte que partes isoladas
+            sinergia = conf - max(conf_x, conf_y)
+            confirmada = sinergia > 0.05  # recombinação é significativamente melhor
+
+            # Nova: X e Y nunca coocorrem no corpus?
+            coocorre = y in self._c._transicao_palavra.get(x, {}) or \
+                       x in self._c._transicao_palavra.get(y, {})
+
+            hipoteses.append({
+                "x": x,
+                "y": y,
+                "recomb": recomb,
+                "acao": acao,
+                "conf": round(conf, 4),
+                "sinergia": round(sinergia, 4),
+                "confirmada": confirmada,
+                "coocorre_no_corpus": coocorre,
+                "e_nova": not coocorre and confirmada,
+            })
+
+        # Ordenar por sinergia
+        hipoteses.sort(key=lambda h: -h["sinergia"])
+
+        return hipoteses
+
     def estatisticas(self) -> dict:
         """Retorna estatisticas do estado do coupling apos sonhos."""
         return {

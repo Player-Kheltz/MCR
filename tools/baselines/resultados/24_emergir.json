@@ -1,0 +1,259 @@
+{
+  "teste": "emergir",
+  "emergir_conhecido": {
+    "n_hipoteses": 30,
+    "n_confirmadas": 0,
+    "taxa_confirmacao": 0.0,
+    "top": [
+      {
+        "x": "work",
+        "y": "markov",
+        "recomb": "work markov",
+        "acao": "responder",
+        "conf": 0.9576,
+        "acao_x": "responder",
+        "conf_x": 0.9665,
+        "acao_y": "responder",
+        "conf_y": 0.8936,
+        "confirmada": false,
+        "sinergia": -0.0089
+      },
+      {
+        "x": "work",
+        "y": "markov",
+        "recomb": "work markov",
+        "acao": "responder",
+        "conf": 0.9576,
+        "acao_x": "responder",
+        "conf_x": 0.9665,
+        "acao_y": "responder",
+        "conf_y": 0.8936,
+        "confirmada": false,
+        "sinergia": -0.0089
+      },
+      {
+        "x": "work",
+        "y": "markov",
+        "recomb": "work markov",
+        "acao": "responder",
+        "conf": 0.9576,
+        "acao_x": "responder",
+        "conf_x": 0.9665,
+        "acao_y": "responder",
+        "conf_y": 0.8936,
+        "confirmada": false,
+        "sinergia": -0.0089
+      },
+      {
+        "x": "work",
+        "y": "markov",
+        "recomb": "work markov",
+        "acao": "responder",
+        "conf": 0.9576,
+        "acao_x": "responder",
+        "conf_x": 0.9665,
+        "acao_y": "responder",
+        "conf_y": 0.8936,
+        "confirmada": false,
+        "sinergia": -0.0089
+      },
+      {
+        "x": "work",
+        "y": "markov",
+        "recomb": "work markov",
+        "acao": "responder",
+        "conf": 0.9576,
+        "acao_x": "responder",
+        "conf_x": 0.9665,
+        "acao_y": "responder",
+        "conf_y": 0.8936,
+        "confirmada": false,
+        "sinergia": -0.0089
+      },
+      {
+        "x": "work",
+        "y": "markov",
+        "recomb": "work markov",
+        "acao": "responder",
+        "conf": 0.9576,
+        "acao_x": "responder",
+        "conf_x": 0.9665,
+        "acao_y": "responder",
+        "conf_y": 0.8936,
+        "confirmada": false,
+        "sinergia": -0.0089
+      },
+      {
+        "x": "work",
+        "y": "markov",
+        "recomb": "work markov",
+        "acao": "responder",
+        "conf": 0.9576,
+        "acao_x": "responder",
+        "conf_x": 0.9665,
+        "acao_y": "responder",
+        "conf_y": 0.8936,
+        "confirmada": false,
+        "sinergia": -0.0089
+      },
+      {
+        "x": "work",
+        "y": "markov",
+        "recomb": "work markov",
+        "acao": "responder",
+        "conf": 0.9576,
+        "acao_x": "responder",
+        "conf_x": 0.9665,
+        "acao_y": "responder",
+        "conf_y": 0.8936,
+        "confirmada": false,
+        "sinergia": -0.0089
+      },
+      {
+        "x": "work",
+        "y": "markov",
+        "recomb": "work markov",
+        "acao": "responder",
+        "conf": 0.9576,
+        "acao_x": "responder",
+        "conf_x": 0.9665,
+        "acao_y": "responder",
+        "conf_y": 0.8936,
+        "confirmada": false,
+        "sinergia": -0.0089
+      },
+      {
+        "x": "work",
+        "y": "markov",
+        "recomb": "work markov",
+        "acao": "responder",
+        "conf": 0.9576,
+        "acao_x": "responder",
+        "conf_x": 0.9665,
+        "acao_y": "responder",
+        "conf_y": 0.8936,
+        "confirmada": false,
+        "sinergia": -0.0089
+      }
+    ]
+  },
+  "emergir_livre": {
+    "n_hipoteses": 50,
+    "n_confirmadas": 1,
+    "n_novas": 1,
+    "taxa_confirmacao": 0.02,
+    "top": [
+      {
+        "x": "tem",
+        "y": "vende",
+        "recomb": "tem vende",
+        "acao": "gerar_npc",
+        "conf": 0.957,
+        "sinergia": 0.1117,
+        "confirmada": true,
+        "coocorre_no_corpus": false,
+        "e_nova": true
+      },
+      {
+        "x": "contra",
+        "y": "mongolia",
+        "recomb": "contra mongolia",
+        "acao": "responder",
+        "conf": 0.9157,
+        "sinergia": 0.0359,
+        "confirmada": false,
+        "coocorre_no_corpus": false,
+        "e_nova": false
+      },
+      {
+        "x": "horda",
+        "y": "armaduras",
+        "recomb": "horda armaduras",
+        "acao": "gerar_npc",
+        "conf": 0.8024,
+        "sinergia": 0.0321,
+        "confirmada": false,
+        "coocorre_no_corpus": false,
+        "e_nova": false
+      },
+      {
+        "x": "dezoito",
+        "y": "precisa",
+        "recomb": "dezoito precisa",
+        "acao": "responder",
+        "conf": 0.9469,
+        "sinergia": 0.0066,
+        "confirmada": false,
+        "coocorre_no_corpus": false,
+        "e_nova": false
+      },
+      {
+        "x": "lendarias",
+        "y": "cluster",
+        "recomb": "lendarias cluster",
+        "acao": "responder",
+        "conf": 0.8981,
+        "sinergia": 0.0037,
+        "confirmada": false,
+        "coocorre_no_corpus": false,
+        "e_nova": false
+      },
+      {
+        "x": "usam",
+        "y": "automaticamente",
+        "recomb": "usam automaticamente",
+        "acao": "responder",
+        "conf": 0.9344,
+        "sinergia": 0.0013,
+        "confirmada": false,
+        "coocorre_no_corpus": false,
+        "e_nova": false
+      },
+      {
+        "x": "artesao",
+        "y": "fale",
+        "recomb": "artesao fale",
+        "acao": "responder",
+        "conf": 0.8979,
+        "sinergia": -0.0123,
+        "confirmada": false,
+        "coocorre_no_corpus": false,
+        "e_nova": false
+      },
+      {
+        "x": "treze",
+        "y": "wraith",
+        "recomb": "treze wraith",
+        "acao": "gerar_monstro",
+        "conf": 0.9393,
+        "sinergia": -0.0209,
+        "confirmada": false,
+        "coocorre_no_corpus": false,
+        "e_nova": false
+      },
+      {
+        "x": "entropy",
+        "y": "shadow",
+        "recomb": "entropy shadow",
+        "acao": "responder",
+        "conf": 0.7963,
+        "sinergia": -0.0233,
+        "confirmada": false,
+        "coocorre_no_corpus": false,
+        "e_nova": false
+      },
+      {
+        "x": "acabar",
+        "y": "do",
+        "recomb": "acabar do",
+        "acao": "responder",
+        "conf": 0.932,
+        "sinergia": -0.0237,
+        "confirmada": false,
+        "coocorre_no_corpus": false,
+        "e_nova": false
+      }
+    ]
+  },
+  "motor_contaminado": false
+}
