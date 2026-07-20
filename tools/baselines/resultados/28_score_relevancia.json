@@ -6,7 +6,7 @@
       "esperado_falso": "gerar_npc",
       "decidir": {
         "acao": "gerar_npc",
-        "conf": 1.0
+        "conf": 0.21739130434782608
       },
       "relevante": {
         "acao": "gerar_npc",
@@ -18,11 +18,11 @@
       "esperado_falso": "gerar_npc",
       "decidir": {
         "acao": "gerar_npc",
-        "conf": 1.0
+        "conf": 0.0
       },
       "relevante": {
         "acao": "gerar_npc",
-        "conf": 1.0
+        "conf": 0.0
       }
     },
     {
@@ -30,7 +30,7 @@
       "esperado_falso": "gerar_monstro",
       "decidir": {
         "acao": "gerar_monstro",
-        "conf": 1.0
+        "conf": 0.5135135135135135
       },
       "relevante": {
         "acao": "gerar_monstro",
@@ -42,11 +42,11 @@
       "esperado_falso": "responder",
       "decidir": {
         "acao": "responder",
-        "conf": 0.9896010454390535
+        "conf": 0.6271186440677966
       },
       "relevante": {
         "acao": "responder",
-        "conf": 0.9157535755654815
+        "conf": 0.9711171553569528
       }
     },
     {
@@ -54,11 +54,11 @@
       "esperado_falso": "gerar_npc",
       "decidir": {
         "acao": "gerar_npc",
-        "conf": 0.9778553840716467
+        "conf": 0.5362318840579711
       },
       "relevante": {
         "acao": "gerar_npc",
-        "conf": 0.7742873859876883
+        "conf": 0.8383558656900978
       }
     }
   ],
@@ -67,12 +67,12 @@
       "input": "\"1\" 56",
       "esperado_falso": "cavalo",
       "decidir": {
-        "acao": "cavalo",
-        "conf": 0.9717300192563699
+        "acao": "terra",
+        "conf": 0.10636093032053591
       },
       "relevante": {
-        "acao": "branco",
-        "conf": 0.15910877930085315
+        "acao": "terra",
+        "conf": 0.19914100258685458
       }
     },
     {
@@ -80,11 +80,11 @@
       "esperado_falso": "gato",
       "decidir": {
         "acao": "gato",
-        "conf": 0.8563322491287967
+        "conf": 0.06666666666666667
       },
       "relevante": {
-        "acao": "nadar",
-        "conf": 0.08115905734012994
+        "acao": "gato",
+        "conf": 0.11082346915618801
       }
     },
     {
@@ -92,11 +92,11 @@
       "esperado_falso": "feijao",
       "decidir": {
         "acao": "feijao",
-        "conf": 0.5
+        "conf": 0.0
       },
       "relevante": {
         "acao": "feijao",
-        "conf": 0.5
+        "conf": 0.0
       }
     },
     {
@@ -104,11 +104,11 @@
       "esperado_falso": "hora",
       "decidir": {
         "acao": "hora",
-        "conf": 0.9132675895705143
+        "conf": 1.0005829978308214
       },
       "relevante": {
         "acao": "hora",
-        "conf": 0.6933070575693818
+        "conf": 0.4391978728267845
       }
     }
   ],

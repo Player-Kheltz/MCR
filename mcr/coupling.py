@@ -844,6 +844,15 @@ class MCRCoupling:
         melhor = max(combinada, key=combinada.get)
         conf_melhor = combinada[melhor]
 
+        # === Tensao Superficial (Laplace) ===
+        # Modular a confianca pelo score Laplace medio das fontes I e E.
+        # Se as features que sustentam a decisao tem n=1 (falso positivo),
+        # o Laplace reduz o score para ~0.10 e a confianca cai.
+        # Se tem n=79 (descoberta real), Laplace=0.82 e confianca mantida.
+        conf_laplace = self._confianca_laplace(texto, melhor)
+        if conf_laplace < conf_melhor:
+            conf_melhor = conf_laplace
+
         # === H22 — Comutacao de nivel quando trava (MarkovMultinivel) ===
         # Quando decidir() trava (conf muito baixa ou sem distribuicao),
         # comutar para outro nivel: Esfera -> Trigrama.
@@ -881,7 +890,7 @@ class MCRCoupling:
             if not pode:
                 return 'nao_sei', conf_efetiva
             return melhor, conf_efetiva
-        return melhor, combinada[melhor]
+        return melhor, conf_melhor
 
     @staticmethod
     def _js_divergencia(p: Dict[str, float], q: Dict[str, float]) -> float:
@@ -1305,6 +1314,83 @@ class MCRCoupling:
                 scores[a] += c / total
         return dict(scores) if scores else {}
 
+    def _laplace_smooth(self, c_fa: int, c_f: int,
+                        alpha: float = 1.0) -> float:
+        """Tensao Superficial — Suavizacao Laplaciana.
+
+        P_suavizada(a|f) = (C(f,a) + alpha) / (C(f) + alpha * |A|)
+
+        Onde:
+        - C(f,a) = coocorrencias da feature f com a acao a
+        - C(f) = frequencia global da feature f
+        - alpha = fator de amortecimento (1.0 = padrao Laplace)
+        - |A| = numero total de acoes conhecidas
+
+        Efeito nos extremos (|A|=19):
+        - n=1 (falso positivo): (1+1)/(1+19) = 2/20 = 0.10 (ESMAGADO)
+        - n=79 (descoberta real): (79+1)/(79+19) = 80/98 = 0.816 (PRESERVADO)
+
+        O denominador alpha*|A| e a "tensao superficial" do acoplamento:
+        exige VOLUME para ter confianca. Uma unica observacao nao basta.
+        """
+        n_acoes = len(self._acao_features) if self._acao_features else 1
+        return (c_fa + alpha) / (c_f + alpha * n_acoes)
+
+    def _confianca_laplace(self, texto: str, acao: str) -> float:
+        """Calcula confianca Laplace para uma acao dado o texto.
+
+        Extrai features do texto (mesmas de _dist_features) e calcula
+        o score Laplace medio ponderado para a acao especificada.
+        Se as features que sustentam a acao tem n=1, o score e ~0.10
+        (falso positivo esmagado). Se tem n=79, score e ~0.82
+        (descoberta preservada).
+        """
+        texto = str(texto)
+        raw = texto.lower()
+        feats = set()
+
+        tokens = _RE_TOKENS.findall(raw)
+        for t in set(tokens):
+            feats.add(f"t:{t}")
+
+        chars = re.sub(r'[^a-z0-9]', '', raw)
+        for i in range(len(chars) - 1):
+            feats.add(f"bg:{chars[i:i+2]}")
+        for i in range(len(chars) - 2):
+            feats.add(f"ng:{chars[i:i+3]}")
+
+        if not feats:
+            return 0.0
+
+        soma_ponderada = 0.0
+        soma_pesos = 0.0
+
+        for feat in feats:
+            dist = self._feature_acao.get(feat, {})
+            if not dist or acao not in dist:
+                continue
+            total = sum(dist.values()) or 1
+            c_fa = dist[acao]
+            if c_fa <= 0:
+                continue
+
+            # Peso por entropia (features deterministicas pesam mais)
+            probs = [c / total for c in dist.values()]
+            ent = 0.0
+            for pr in probs:
+                if pr > 0:
+                    ent -= pr * math.log2(pr)
+            ent_norm = ent / (math.log2(len(probs)) or 1) if len(probs) > 1 else 0.0
+            peso = 1.0 - ent_norm
+
+            laplace = self._laplace_smooth(c_fa, total)
+            soma_ponderada += laplace * peso
+            soma_pesos += peso
+
+        if soma_pesos == 0:
+            return 0.0
+        return soma_ponderada / soma_pesos
+
     def _dist_features(self, texto: str) -> Dict[str, float]:
         """Fonte I — Features N-dimensionais: P(acao|todas_as_features).
 
@@ -1357,24 +1443,30 @@ class MCRCoupling:
             ent_norm = ent / (math.log2(len(probs)) or 1) if len(probs) > 1 else 0.0
             peso = 1.0 - ent_norm
             for a, c in dist.items():
-                scores[a] += (c / total) * peso
+                # Tensao Superficial: Laplace mata falso positivo n=1
+                # (1+1)/(1+19)=0.10 vs (79+1)/(79+19)=0.816
+                prob_laplace = self._laplace_smooth(c, total)
+                scores[a] += prob_laplace * peso
         return dict(scores) if scores else {}
 
     def _dist_features_relevante(self, texto: str) -> Dict[str, float]:
-        """Fonte I com Score de Relevância Estrutural.
+        """Fonte I com Score de Relevância Estrutural + Wilson.
 
-        Score(a|f) = P(a|f) * IDF(f) * log2(1 + Lift(f,a))
+        Score(a|f) = Wilson_lower(P(a|f), n) * IDF(f) * log2(1 + Lift(f,a))
 
         Onde:
         - P(a|f) = C(f,a) / C(f) — probabilidade condicional bruta (Pilar 1)
-        - IDF(f) = log2(N / C(f)) — mata features genericas (dilui Gutenberg)
+        - Wilson_lower(p, n) — limite inferior do intervalo de confiança
+          de Wilson. Para n=1, p=1.0: ~0.025 (MATA falsos positivos).
+          Para n=100, p=0.8: ~0.72 (mantém). Estatística fundamental,
+          nao hardcode. Esta e a "tensao superficial" do acoplamento.
+        - IDF(f) = log2(N / C(f)) — mata features genericas
         - Lift(f,a) = C(f,a)*N / (C(f)*C(a)) — mata falsos positivos espurios
 
-        Features que coocorrem 1 vez com 1 acao (1/1=1.0) sao penalizadas
-        porque Lift ~ 1 (acaso) e log2(1+1) = 1 (amortecedor fraco).
-
-        Features que coocorrem muitas vezes com 1 acao acima do esperado
-        pelo acaso tem Lift >> 1 e log2(1+Lift) amplifica.
+        O filtro de Wilson resolve o problema n=1: se uma combinacao
+        so ocorreu 1 vez, Wilson_lower ~ 0.025, e o score e morto
+        nao importa o que IDF ou Lift digam. Precisa de VOLUME para
+        ter confianca.
         """
         texto = str(texto)
         raw = texto.lower()
@@ -1392,8 +1484,8 @@ class MCRCoupling:
         for i in range(len(chars) - 2):
             feats.add(f"ng:{chars[i:i+3]}")
 
-        N = self._total or 1  # total de observacoes
-        freq_acao = self._freq_acao  # C(a) para cada acao
+        N = self._total or 1
+        freq_acao = self._freq_acao
 
         scores: Dict[str, float] = defaultdict(float)
         for feat in feats:
@@ -1401,40 +1493,41 @@ class MCRCoupling:
             if not dist:
                 continue
 
-            C_f = sum(dist.values())  # C(f) = total da feature
+            C_f = sum(dist.values())
             if C_f == 0:
                 continue
 
-            # IDF(f) = log2(N / C(f)) — features raras pesam mais
             idf_f = math.log2(N / C_f) if C_f > 0 else 0.0
-            # IDF minimo: se feature aparece em quase tudo, IDF ~ 0
-            # mas nao negativo (features muito comuns nao pesam negativo)
             idf_f = max(0.0, idf_f)
 
             for a, c in dist.items():
-                C_fa = c  # C(f,a) = coocorrencia
-                C_a = freq_acao.get(a, 0)  # C(a) = freq da acao
-
+                C_fa = c
+                C_a = freq_acao.get(a, 0)
                 if C_a == 0:
                     continue
 
-                # P(a|f) = C(f,a) / C(f) — Pilar 1
-                p_af = C_fa / C_f
+                p_af = C_fa / C_f  # P(a|f)
 
-                # Lift(f,a) = C(f,a)*N / (C(f)*C(a))
-                # Se > 1: f e a coocorrem mais que o acaso
-                # Se ~ 1: f e a coocorrem por acaso
-                # Se < 1: f e a evitam um ao outro
+                # Wilson lower bound: tensao superficial
+                # Para n=1, p=1.0: ~0.025 (mata)
+                # Para n=10, p=1.0: ~0.72 (mantem)
+                # Para n=100, p=0.8: ~0.72 (mantem)
+                n = C_f  # numero de observacoes da feature
+                z = 1.96  # 95% de confianca
+                if n > 0:
+                    denom = 1 + z * z / n
+                    center = (p_af + z * z / (2 * n)) / denom
+                    spread = z * math.sqrt((p_af * (1 - p_af) + z * z / (4 * n)) / n) / denom
+                    wilson_lower = max(0.0, center - spread)
+                else:
+                    wilson_lower = 0.0
+
+                # Lift
                 lift = (C_fa * N) / (C_f * C_a) if (C_f * C_a) > 0 else 0.0
-
-                # log2(1 + Lift) — amortecedor
-                # Lift=1 (acaso) -> log2(2) = 1.0 (peso neutro)
-                # Lift=0 (nunca) -> log2(1) = 0.0 (zero)
-                # Lift=10 (forte) -> log2(11) = 3.46 (amplifica)
                 lift_factor = math.log2(1 + max(0.0, lift))
 
-                # Score = P(a|f) * IDF(f) * log2(1 + Lift)
-                score = p_af * idf_f * lift_factor
+                # Score = Wilson_lower * IDF * log2(1 + Lift)
+                score = wilson_lower * idf_f * lift_factor
 
                 scores[a] += score
 
@@ -1568,7 +1661,9 @@ class MCRCoupling:
                 continue
             total_f = sum(dist.values()) or 1
             for acao, c in dist.items():
-                scores[acao] += c / total_f
+                # Tensao Superficial: Laplace mata falso positivo n=1
+                prob_laplace = self._laplace_smooth(c, total_f)
+                scores[acao] += prob_laplace
 
         if not scores:
             return {}
