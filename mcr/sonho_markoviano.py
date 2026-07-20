@@ -29,7 +29,7 @@ Uso:
 """
 import re, math, random
 from typing import Dict, List, Tuple, Optional, Set
-from collections import defaultdict
+from collections import defaultdict, Counter
 
 
 class SonhoMarkoviano:
@@ -448,6 +448,132 @@ class SonhoMarkoviano:
         hipoteses.sort(key=lambda h: -h["sinergia"])
 
         return hipoteses
+
+    def emergir_tudo(self, n_tiros: int = 100) -> List[dict]:
+        """Tiro cego em TODOS os niveis — mutacao multi-escala.
+
+        X + Y = Z nao e so sobre palavras. E sobre TUDO:
+        - byte + byte
+        - char + char
+        - token + token
+        - feature + feature
+        - cluster + cluster
+        - cross-level: byte + token, feature + cluster, etc
+
+        Como mutacao biologica: pode acontecer em qualquer nivel
+        (DNA, gene, cromossomo, organismo). O motor e a selecao
+        natural que valida.
+
+        Cada tiro e deterministico (Pilar 1): hash do estado como
+        seed. O motor valida (Pilar 2): conf > threshold = sobrevive.
+
+        Returns:
+            lista de tiros com (nivel_x, x, nivel_y, y, z, conf, sobrevive)
+        """
+        # Coletar elementos de cada nivel
+        niveis = {}
+
+        # Nivel byte: valores 0-255 que aparecem nas features
+        bytes_presentes = set()
+        for feat_dict in self._c._acao_features.values():
+            for f in feat_dict:
+                if f.startswith("b:"):
+                    try:
+                        bytes_presentes.add(int(f.split(":")[1]))
+                    except ValueError:
+                        pass
+        niveis["byte"] = sorted(bytes_presentes)[:50]
+
+        # Nivel char: chars que aparecem em features c:
+        chars_presentes = set()
+        for feat_dict in self._c._acao_features.values():
+            for f in feat_dict:
+                if f.startswith("c:"):
+                    chars_presentes.add(f.split(":", 1)[1])
+        niveis["char"] = sorted(chars_presentes)[:50]
+
+        # Nivel token: palavras do vocabulario
+        niveis["token"] = sorted(self._c._palavra_acao.keys())[:100]
+
+        # Nivel feature: features discriminativas (top por freq)
+        feats = Counter()
+        for feat_dict in self._c._acao_features.values():
+            for f, c in feat_dict.items():
+                feats[f] += c
+        niveis["feature"] = [f for f, _ in feats.most_common(50)]
+
+        # Nivel cluster: acoes como clusters
+        niveis["cluster"] = sorted(self._c._freq_acao.keys())
+
+        # Filtrar niveis vazios
+        niveis = {k: v for k, v in niveis.items() if len(v) >= 2}
+        nomes_niveis = list(niveis.keys())
+
+        if len(nomes_niveis) < 2:
+            return []
+
+        # Seed deterministica
+        estado_hash = hash(self._serializar_estado(max_tokens=50))
+
+        tiros = []
+        for i in range(n_tiros):
+            # Escolher dois niveis (deterministico, pode ser cross-level)
+            idx_n1 = (estado_hash + i * 7) % len(nomes_niveis)
+            idx_n2 = (estado_hash + i * 13 + 3) % len(nomes_niveis)
+            n1 = nomes_niveis[idx_n1]
+            n2 = nomes_niveis[idx_n2]
+
+            # Escolher X e Y dos niveis
+            elems1 = niveis[n1]
+            elems2 = niveis[n2]
+            x = elems1[(estado_hash + i * 17) % len(elems1)]
+            y = elems2[(estado_hash + i * 23 + 5) % len(elems2)]
+
+            # Evitar X == Y no mesmo nivel
+            if n1 == n2 and x == y:
+                y = elems2[(elems2.index(y) + 1) % len(elems2)]
+
+            # Recombinar: converter para string de input
+            # X + Y = Z
+            x_str = str(x)
+            y_str = str(y)
+            recomb = x_str + " " + y_str
+
+            # Motor valida: Z = decidir(recomb)
+            acao, conf = self._c.decidir(recomb, (None, 0.0))
+
+            # Tambem validar X e Y isolados
+            acao_x, conf_x = self._c.decidir(x_str, (None, 0.0))
+            acao_y, conf_y = self._c.decidir(y_str, (None, 0.0))
+
+            # Sinergia: recomb mais forte que partes
+            sinergia = conf - max(conf_x, conf_y)
+
+            # Sobrevive? (Pilar 2: motor decide)
+            sobrevive = sinergia > 0.05
+
+            # Nova? (X e Y nunca coocorrem)
+            coocorre = (isinstance(x, str) and isinstance(y, str) and
+                       (y in self._c._transicao_palavra.get(x, {}) or
+                        x in self._c._transicao_palavra.get(y, {})))
+
+            tiros.append({
+                "nivel_x": n1,
+                "x": x_str[:20],
+                "nivel_y": n2,
+                "y": y_str[:20],
+                "z": acao,
+                "conf": round(conf, 4),
+                "sinergia": round(sinergia, 4),
+                "sobrevive": sobrevive,
+                "coocorre": coocorre,
+                "e_nova": sobrevive and not coocorre,
+                "cross_level": n1 != n2,
+            })
+
+        # Ordenar por sinergia
+        tiros.sort(key=lambda t: -t["sinergia"])
+        return tiros
 
     def estatisticas(self) -> dict:
         """Retorna estatisticas do estado do coupling apos sonhos."""
