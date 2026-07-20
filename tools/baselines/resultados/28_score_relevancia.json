@@ -72,7 +72,7 @@
       },
       "relevante": {
         "acao": "terra",
-        "conf": 0.19914100258685458
+        "conf": 0.1991410025868546
       }
     },
     {
@@ -91,11 +91,11 @@
       "input": "\" )",
       "esperado_falso": "feijao",
       "decidir": {
-        "acao": "feijao",
+        "acao": "amor",
         "conf": 0.0
       },
       "relevante": {
-        "acao": "feijao",
+        "acao": "amor",
         "conf": 0.0
       }
     },
@@ -103,8 +103,8 @@
       "input": "c:d pao",
       "esperado_falso": "hora",
       "decidir": {
-        "acao": "hora",
-        "conf": 1.0005829978308214
+        "acao": "amor",
+        "conf": 0.04122058298655082
       },
       "relevante": {
         "acao": "hora",

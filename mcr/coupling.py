@@ -1294,6 +1294,10 @@ class MCRCoupling:
             profundidade = min(1.0, prof / max(prof_mediana, 1)) if prof > 0 else 0.0
             fator_palavra = especificidade * penalidade_ponte * profundidade
             for a, c in dist.items():
+                # NOTA: _dist_palavras ja tem penalidade_ponte que penaliza
+                # palavras com poucos exemplos. Laplace aqui dobraria a
+                # penalidade e quebra regressao (quest perde para monstro).
+                # O Laplace e aplicado no nivel _confianca_laplace final.
                 scores[a] += (c / total) * peso_pos * fator_palavra
         return dict(scores) if scores else {}
 
@@ -1302,7 +1306,8 @@ class MCRCoupling:
         if not dist:
             return {}
         total = sum(dist.values()) or 1
-        return {a: c / total for a, c in dist.items()}
+        # Tensao Superficial: Laplace mata falso positivo n=1
+        return {a: self._laplace_smooth(c, total) for a, c in dist.items()}
 
     def _dist_posicoes(self, texto: str) -> Dict[str, float]:
         partes = texto.replace('_', ' ').split()
@@ -1311,7 +1316,8 @@ class MCRCoupling:
             dist = self._posicao_acao.get(f"P{i}:{p[:10]}", {})
             total = sum(dist.values()) or 1
             for a, c in dist.items():
-                scores[a] += c / total
+                # Tensao Superficial: Laplace mata falso positivo n=1
+                scores[a] += self._laplace_smooth(c, total)
         return dict(scores) if scores else {}
 
     def _laplace_smooth(self, c_fa: int, c_f: int,
@@ -1625,7 +1631,8 @@ class MCRCoupling:
             ent_norm = ent / (math.log2(len(probs)) or 1) if len(probs) > 1 else 0.0
             peso = 1.0 - ent_norm
             for a, c in dist.items():
-                scores[a] += (c / total) * peso
+                # Tensao Superficial: Laplace mata falso positivo n=1
+                scores[a] += self._laplace_smooth(c, total) * peso
         return dict(scores) if scores else {}
 
     def _dist_esfera(self, texto: str) -> Dict[str, float]:
@@ -1984,7 +1991,8 @@ class MCRCoupling:
         if not dist:
             return {}
         total = sum(dist.values()) or 1
-        return {a: c / total for a, c in dist.items()}
+        # Tensao Superficial: Laplace mata falso positivo n=1
+        return {a: self._laplace_smooth(c, total) for a, c in dist.items()}
 
     # ─── Meta-níveis (ortogonais a palavras) ─────────────
 
@@ -2104,7 +2112,8 @@ class MCRCoupling:
                 continue
             total = sum(dist.values()) or 1
             for acao, c in dist.items():
-                scores[acao] = scores.get(acao, 0) + (c / total) * peso_recencia
+                # Tensao Superficial: Laplace mata falso positivo n=1
+                scores[acao] = scores.get(acao, 0) + self._laplace_smooth(c, total) * peso_recencia
         if not scores:
             return {}
         total = sum(scores.values()) or 1
@@ -2132,7 +2141,8 @@ class MCRCoupling:
                 continue
             total = sum(d.values()) or 1
             for acao, c in d.items():
-                scores[acao] = scores.get(acao, 0) + (c / total) * peso_mem
+                # Tensao Superficial: Laplace mata falso positivo n=1
+                scores[acao] = scores.get(acao, 0) + self._laplace_smooth(c, total) * peso_mem
         if not scores:
             return {}
         total = sum(scores.values()) or 1
@@ -2213,6 +2223,8 @@ class MCRCoupling:
                 continue
             total = sum(dist.values()) or 1
             for acao, c in dist.items():
+                # NOTA: _dist_transitivo ja tem peso por distancia (0.5 por passo)
+                # que amortece naturalmente. Laplace aqui quebra regressao.
                 scores[acao] = scores.get(acao, 0) + (c / total) * peso_trans
 
         if not scores:
@@ -2293,6 +2305,8 @@ class MCRCoupling:
                 continue
             total = sum(dist.values()) or 1
             for acao, c in dist.items():
+                # NOTA: _dist_composicao ja tem peso posicional (2^(-pos))
+                # que amortece. Laplace aqui quebra regressao.
                 scores[acao] = scores.get(acao, 0) + (c / total) * peso_pos
         if not scores:
             return {}
