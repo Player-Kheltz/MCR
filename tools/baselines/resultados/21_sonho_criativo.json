@@ -1,0 +1,119 @@
+{
+  "teste": "sonho_criativo",
+  "mcr": {
+    "obs": 1362,
+    "vocab_base": 454
+  },
+  "n_sonhos": 3,
+  "analises": [
+    {
+      "n_tokens": 179,
+      "n_uniq": 73,
+      "entropia": 5.932,
+      "n_novos": 20,
+      "novos_uniq": [
+        "32",
+        "analisar",
+        "aprender",
+        "buscar",
+        "coll",
+        "conectar",
+        "editar",
+        "fib",
+        "pa",
+        "pg",
+        "planejar",
+        "primo",
+        "quad",
+        "sp",
+        "tri",
+        "validar"
+      ],
+      "taxa_novidade": 0.1117,
+      "trans_conhecidas": 156,
+      "trans_novas": 22,
+      "taxa_recombinacao": 0.1236,
+      "preview": "dois quatro zero sequencia tres um listar numeros ordem serie padrao encadear progressao calcule matematica seis nove oito sete cinco dez treze quatorze doze onze dezoito dezesseis quize dezenove deze"
+    },
+    {
+      "n_tokens": 119,
+      "n_uniq": 50,
+      "entropia": 5.249,
+      "n_novos": 20,
+      "novos_uniq": [
+        "32",
+        "analisar",
+        "aprender",
+        "buscar",
+        "coll",
+        "conectar",
+        "editar",
+        "fib",
+        "pa",
+        "pg",
+        "planejar",
+        "primo",
+        "quad",
+        "sp",
+        "tri",
+        "validar"
+      ],
+      "taxa_novidade": 0.1681,
+      "trans_conhecidas": 95,
+      "trans_novas": 23,
+      "taxa_recombinacao": 0.1949,
+      "preview": "vinteecinco trintasete trintaeseis trintaeoito trintasete trintaenove trintaeoito quarenta vinte 32 32 32 sp 32 32 dois quatro zero sequencia tres um listar numeros ordem serie padrao encadear gerar n"
+    },
+    {
+      "n_tokens": 119,
+      "n_uniq": 49,
+      "entropia": 5.173,
+      "n_novos": 15,
+      "novos_uniq": [
+        "analisar",
+        "aprender",
+        "buscar",
+        "coll",
+        "conectar",
+        "editar",
+        "fib",
+        "pa",
+        "pg",
+        "planejar",
+        "primo",
+        "quad",
+        "sonhar",
+        "tri",
+        "validar"
+      ],
+      "taxa_novidade": 0.1261,
+      "trans_conhecidas": 101,
+      "trans_novas": 17,
+      "taxa_recombinacao": 0.1441,
+      "preview": "trintasete trintaeseis trintaeoito trintasete trintaenove trintaeoito quarenta vinte dez cinco dezesseis oito quatro dois listar dois quatro zero sequencia tres um listar numeros ordem serie padrao en"
+    }
+  ],
+  "metricas_agregadas": {
+    "entropia_media": 5.451333333333333,
+    "tokens_novos_medios": 18.333333333333332,
+    "taxa_recombinacao_media": 0.1542,
+    "vocab_novo_total": 17
+  },
+  "gpt2": [
+    {
+      "preview": ", even in a hyper-categorized world such as ours, is always a way of thinking about how much we will ever earn.\n\nWe're not talking about earning an apple, or a million dollars. We can't even begin to"
+    },
+    {
+      "preview": "which were shared with a third person.\n\nA second set of thoughts was shared with the third person.\n\nThe third person had their own thought, in the form of an idea.\n\nThe thought was shared with the thi"
+    },
+    {
+      "preview": ", a machine knows that there is a certain part of a pattern which is a natural part of a sequence of numbers, and therefore it is called a machine. A machine, however, is not a machine, for it is not "
+    },
+    {
+      "preview": "system and the void array can be used in a special way in order to create an object.\n\nvoid System.Reflection.RenderScene.InitWithInstance(int)\n\nThe process of rendering the scene is quite simple. We c"
+    },
+    {
+      "preview": "in the present situation is that of the present. The fact that there is a distinct division of the country between the two extremes of the development of the human race at the present time and that th"
+    }
+  ]
+}
