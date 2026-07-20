@@ -43,6 +43,7 @@ class SonhoMarkoviano:
     def __init__(self, coupling):
         self._c = coupling
         self._RE_TOKENS = re.compile(r'[a-zà-ÿ]{2,}|[0-9]+')
+        self._confiancas_historico: List[float] = []  # threshold emergente
 
     def _serializar_estado(self, max_tokens: int = 200) -> str:
         """Serializa o estado interno do coupling como texto.
@@ -304,4 +305,94 @@ class SonhoMarkoviano:
             "n_acoes": len(self._c._freq_acao),
             "freq_sonhar": self._c._freq_acao.get("sonhar", 0),
             "acoes": dict(self._c._freq_acao),
+        }
+
+    def inspirar(self, texto: str, conf_motor: float,
+                 threshold: float = None) -> Optional[dict]:
+        """Sistema 2 consulta Sistema 1: o motor pede inspiracao ao sonho.
+
+        Como Kahneman invertido:
+        - Motor (Sistema 1): rapido, preciso, decidir() em 50ms
+        - Sonho (Sistema 2): livre, criativo, sem objetivo
+
+        O motor consulta o sonho SO quando tem baixa confianca.
+        O threshold NAO e hardcoded — emerge da mediana das confiancas
+        observadas pelo motor (Pilar 2: entropia descobre). Se a
+        confianca atual esta abaixo da mediana historica, o motor
+        esta "menos confiante que o normal" e pede inspiracao.
+
+        O sonho NAO escreve no motor. O motor CONSULTA o sonho.
+        Como o humano que sonha uma solucao mas verifica com logica
+        ao acordar.
+
+        Args:
+            texto: input do usuario
+            conf_motor: confianca do motor (decidir())
+            threshold: se None, usa mediana das confiancas observadas
+
+        Returns:
+            dict com acao, confianca, fonte ('motor' ou 'sonho_inspirado')
+            ou None se o motor ja estava confiante
+        """
+        # Threshold emergente: mediana das confiancas observadas (Pilar 2)
+        # O sonhador mantem seu proprio historico de confiancas do motor
+        if threshold is None:
+            if len(self._confiancas_historico) >= 5:
+                confs_ord = sorted(self._confiancas_historico)
+                threshold = confs_ord[len(confs_ord) // 2]
+            else:
+                # Sem historico suficiente — nao inspira (Pilar 9: honesto)
+                # Registra a confianca para futuro
+                self._confiancas_historico.append(conf_motor)
+                return None
+
+        # Registra confianca para futuro (DEPOIS de calcular threshold)
+        self._confiancas_historico.append(conf_motor)
+
+        # Se o motor ja esta confiante, nao precisa de inspiracao
+        if conf_motor >= threshold:
+            return None
+
+        # 1. Gerar alternativas do sonho
+        # Semente = texto do usuario + estado interno
+        estado = self._serializar_estado(max_tokens=30)
+        semente = texto + " " + estado
+
+        # Gerar 3 sonhos (trindade de perspectivas)
+        alternativas = []
+        for i in range(3):
+            # Variar semente levemente: rotacionar estado
+            estado_rot = " ".join(estado.split()[i*10:] + estado.split()[:i*10])
+            semente_i = texto + " " + estado_rot
+            sonho = self.sonhar(n_passos=20, semente=semente_i, modo="greedy")
+            alternativas.append(sonho)
+
+        # 2. Motor avalia cada alternativa
+        melhor_acao = None
+        melhor_conf = conf_motor  # baseline = confianca original
+
+        for alt in alternativas:
+            # Motor avalia a alternativa com sua propria logica
+            acao, conf = self._c.decidir(alt, (None, 0.0))
+            if conf > melhor_conf:
+                melhor_conf = conf
+                melhor_acao = acao
+
+        # 3. Se nenhuma alternativa superou o motor, manter original
+        if melhor_acao is None:
+            return {
+                "acao": None,  # manter decisao original
+                "confianca": conf_motor,
+                "fonte": "motor_sem_inspiracao",
+                "n_alternativas": 3,
+                "threshold": round(threshold, 4),
+            }
+
+        return {
+            "acao": melhor_acao,
+            "confianca": melhor_conf,
+            "fonte": "sonho_inspirado",
+            "n_alternativas": 3,
+            "conf_original": conf_motor,
+            "threshold": round(threshold, 4),
         }

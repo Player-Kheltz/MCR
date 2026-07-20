@@ -1,0 +1,17 @@
+{
+  "teste": "sistema1_sistema2",
+  "n_testes": 20,
+  "sistema1": {
+    "acertos": 15,
+    "taxa": 0.75
+  },
+  "sistema1_sistema2": {
+    "acertos": 15,
+    "taxa": 0.75
+  },
+  "n_inspiracoes": 0,
+  "delta": 0,
+  "veredito": "S2 NEUTRO",
+  "motor_contaminado": false,
+  "threshold": null
+}
