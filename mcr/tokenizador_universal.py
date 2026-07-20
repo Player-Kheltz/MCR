@@ -85,9 +85,15 @@ def tokenizar_texto(texto: str) -> List[str]:
     Mantém o comportamento atual de extração de palavras para o coupling.
     Não é para bytes — para bytes, usar tokenizar() e deixar o coupling
     extrair features de byte/char/ngrama.
+
+    Padrão regex idêntico ao _RE_TOKENS do coupling:
+      [a-zà-ÿ]{2,}|[0-9]+  — 2+ letras OU 1+ dígitos.
+    Captura "um" (2 letras), "1" (dígito isolado), "42", "mais1" (split em
+    "mais"+"1"). Não captura letras avulsas ("a","e","o") — estas ficam no
+    plano char/byte (Pilar 1: hierarquia multi-escala).
     """
     import re
-    return re.findall(r'[a-zà-ÿ0-9]{2,}', texto.lower())
+    return re.findall(r'[a-zà-ÿ]{2,}|[0-9]+', texto.lower())
 
 
 def modularidade_bytes(data: bytes, n: int = 2) -> List[str]:

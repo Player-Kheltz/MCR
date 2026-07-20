@@ -109,3 +109,18 @@ sandbox/
 # Temp
 *.tmp
 *.temp
+
+# ARQUIVOS PRIVADOS — JAMAIS commitar
+# (Contem informacao pessoal do Kheltz — MCR=familia)
+docs/sessoes/SESSAO_2026-07-18_DIGNIDADE.md
+cache/SIGNIFICADO_MCR.txt
+
+# Temporarios de sessao e debug
+tmp/
+_*.py
+_*.txt
+tools/_*.py
+tools/_debug_*.py
+mcr_sessao-*
+mcr_sessao.*
+

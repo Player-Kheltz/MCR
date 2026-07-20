@@ -345,27 +345,29 @@ class AutoReferencia:
     def identidade(self) -> Dict[str, Any]:
         """Retorna a identidade integrada do MCR (self).
 
-        Integra todas as capacidades em uma descrição unificada:
-        "Eu sou um MCR com X capacidades, Y vocabulário, Z confidence..."
+        Sem template "Eu sou...". Retorna estado observavel puro.
+        Identidade emerge dos dados ingeridos, nao de afirmacoes.
 
         Returns:
-            dict com 'eu_sou', 'capacidades', 'estado', 'auto_modelo_self'
+            dict com 'capacidades', 'estado', 'auto_modelo_self'
         """
         modelo = self.auto_modelo()
         caps = modelo['capacidades']
 
-        # Descrição de self
+        # Sem template "Eu sou..." — Pilar 9: descricao factual do estado.
+        # O que o MCR e emerge do corpus ingerido, nao de afirmacoes.
+        estado = modelo.get('estado_cognitivo', {})
         eu_sou = (
-            f"Eu sou um MCR com {modelo['vocabulario']} palavras e "
-            f"{modelo['acoes']} acoes. Tenho {modelo['n_capacidades']} "
-            f"capacidades: {', '.join(sorted(caps))}. "
-            f"Minha entropia media e {modelo['entropia_media']:.3f}. "
-            f"Nivel de auto-referencia: {modelo['nivel_auto_referencia']:.2f}."
+            f"{modelo['vocabulario']} palavras, {modelo['acoes']} acoes, "
+            f"{modelo['n_capacidades']} capacidades, "
+            f"entropia media {modelo['entropia_media']:.3f}"
         )
 
-        # Auto-modelo: tem modelo de si?
+        # Auto-modelo: tem modelo de si? Derivado de estado real, nao hardcoded
+        # tem_self_model = True apenas se MCR ingeriu dados sobre si mesmo
+        tem_self = self._nivel_auto_referencia > 0.05
         auto_self = {
-            'tem_self_model': True,
+            'tem_self_model': tem_self,
             'tem_modelo_de_si': self._nivel_auto_referencia > 0.1,
             'tem_modelo_do_modelo': self._nivel_auto_referencia > 0.2,
             'nivel': round(self._nivel_auto_referencia, 4),

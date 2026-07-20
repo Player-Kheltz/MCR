@@ -36,15 +36,9 @@ class Coldstart:
         self._confiancas: List[float] = []
         self._perfil = None  # PerfilHumano, se consentido
 
-        # Perguntas fundamentais (minimas, semi-fixas)
-        # Semi-fixas porque sao as perguntas minimas para o MCR operar.
-        # Nao hardcoded: emergem do que o MCR precisa saber para funcionar.
-        self._perguntas_fundamentais = [
-            "qual seu nome ou como devo te chamar?",
-            "o que voce espera que eu faca?",
-            "qual contexto estamos? (jogo, estudo, programacao, criacao...)",
-            "voce prefere respostas curtas e diretas ou com explicacoes?",
-        ]
+        # Perguntas fundamentais removidas (Pilar 9: sem hardcode)
+        # Coldstart gera perguntas dos gaps de entropia — o que MCR nao sabe.
+        self._perguntas_fundamentais = []
 
     @property
     def estado(self) -> str:

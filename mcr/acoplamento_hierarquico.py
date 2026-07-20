@@ -118,12 +118,32 @@ class MCRHierarquico:
         """Auto-limitacao entropica — decide se adiciona nova camada.
 
         Pilar 2: Entropia descobre, sem threshold hardcoded.
-        So adiciona uma nova camada se a ultima camada ainda tem
-        incerteza significativa (H > min_delta_h). Se H ja e baixo
-        (deterministica), nao ha o que comprimir — para.
+        So adiciona uma nova camada se h REDUCAO de entropia em
+        relacao a camada anterior (delta_H > min_delta_h). Quando
+        delta_H ~ 0 (a nova camada nao reduz incerteza), nao ha
+        o que comprimir — para.
 
         So avalia apos pelo menos 10 observacoes (amostra minima
         para entropia ser estatisticamente significativa).
+
+        NOTA IMPORTANTE (descoberta empirica):
+        Tentamos usar a Equacao 5D como juiz adicional (Escher:
+        adicionar a camada temporariamente e medir se a nota 5D
+        media em amostras do historico melhora). Resultado:
+        rejeitou camadas que ajudavam em casos NAO-AMOSTRADOS.
+        Cad amy ambiguo ('machado de guerra' esperado='responder'
+        porem corpus treinou 'machado' como 'gerar_sprite') saiu
+        do acerto incremental, e a regressao caiu 113 -> 112.
+
+        Licao: a Equacao 5D numa amostra pequena nao e juiz
+        suficiente. A camada caotica (H~0.96) pode diminuir
+        confianca media nas amostras observadas mas PRESEVAR
+        flexibilidade estrutural para casos nao-amostrados.
+
+        Por enquanto, mantemos o criterioEntropico puro (delta_H).
+        O Escher fica como TODO Conceitual: encontrar um juiz que
+        combine Equacao + flexibilidade estrutural, nao so media
+        em amostras recentes.
         """
         if len(self.camadas) >= self.max_niveis:
             return
@@ -132,18 +152,30 @@ class MCRHierarquico:
 
         h_ultima = self._entropia_camada(len(self.camadas) - 1)
 
-        # Atualiza cache de entropias
+        # Atualiza cache de entropias — SEMPRE recalcular a ultima.
         while len(self._entropias) < len(self.camadas):
             idx = len(self._entropias)
             self._entropias.append(self._entropia_camada(idx))
         self._entropias[len(self.camadas) - 1] = h_ultima
 
-        # So expande se a ultima camada tem incerteza > min_delta_h
-        # (ainda ha estrutura para comprimir)
-        if h_ultima > self.min_delta_h:
+        # Camada 0 -> 1: usa H absoluta como fallback (precisa ter
+        # algo para comprimir, e nao existe "camada anterior").
+        if len(self.camadas) < 2:
+            if h_ultima > self.min_delta_h:
+                nova_camada = MCRCoupling()
+                self.camadas.append(nova_camada)
+            return
+
+        # Camada 1+: so expande se a ultima camada REDUZIU entropia
+        # em relacao a anterior (delta_H > min_delta_h). Isto mede:
+        # "a compressao da camada N-1 para N esta gerando informacao?"
+        # Se a camada N nao reduz incerteza, a proxima tambem nao
+        # reduzira — nao ha o que aprender. Para.
+        h_anterior = self._entropias[len(self.camadas) - 2]
+        delta_h = h_anterior - h_ultima
+        if delta_h > self.min_delta_h:
             nova_camada = MCRCoupling()
             self.camadas.append(nova_camada)
-            self._entropias.append(1.0)
 
     def _entropia_camada(self, nivel: int) -> float:
         """Entropia de Shannon normalizada da camada N.

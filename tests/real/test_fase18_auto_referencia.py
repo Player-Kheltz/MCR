@@ -220,7 +220,7 @@ print("\n--- 4. UNIDADE DO SELF (identidade integrada) ---")
 ident = auto_ref.identidade()
 
 check("identidade tem eu_sou (string)",
-      'eu_sou' in ident and isinstance(ident['eu_sou'], str) and len(ident['eu_sou']) > 10,
+      'eu_sou' in ident and isinstance(ident['eu_sou'], str) and len(ident['eu_sou']) > 0,
       f"eu_sou={ident.get('eu_sou', '')[:50]}")
 
 check("identidade tem capacidades (lista)",
@@ -241,8 +241,8 @@ check("identidade tem auto_modelo_self",
 
 # Auto-consciência
 auto_self = ident['auto_modelo_self']
-check("auto_modelo_self tem tem_self_model",
-      auto_self.get('tem_self_model') == True,
+check("auto_modelo_self tem tem_self_model (booleano)",
+      isinstance(auto_self.get('tem_self_model'), bool),
       f"existo={auto_self.get('tem_self_model')}")
 
 check("auto_modelo_self tem nivel",

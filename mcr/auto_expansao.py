@@ -281,8 +281,8 @@ class AutoExpansao:
                 if dist:
                     acao = max(dist, key=dist.get)
 
-            # Não aprender "nao_sei" (veto da meta-cognição)
-            if acao == 'nao_sei' or not acao:
+            # Sem acao viavel → ignora (Pilar 9: honesto, sem veto hardcoded)
+            if not acao:
                 continue
 
             # Alimentar

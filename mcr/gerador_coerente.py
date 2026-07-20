@@ -35,6 +35,8 @@ class GeradorCoerente:
         self._coupling = coupling
         self._max_recentes = max_recentes
         self._max_entidades = max_entidades
+        self._tema_cache_texto = ""  # ultimo texto cacheado em _tema_cache_sig
+        self._tema_cache_sig: Dict[str, int] = {}
 
     def gerar(self, semente: str, max_tokens: int = 100,
               top_k: int = 5) -> str:
@@ -51,6 +53,10 @@ class GeradorCoerente:
         tokens = re.findall(r'[a-zà-ÿ0-9]{2,}', semente.lower())
         if not tokens:
             return semente
+
+        # Resetar cache incremental de tema (nova semente = novo tema)
+        self._tema_cache_texto = ""
+        self._tema_cache_sig = {}
 
         entidades: Set[str] = set()
         recentes: List[str] = list(tokens)
@@ -118,6 +124,27 @@ class GeradorCoerente:
         palavras = re.findall(r'[a-zà-ÿ0-9]{2,}', estado.lower())
         if not palavras:
             return []
+
+        # Ordem superior: _ngrama[3] (P(prox | 2 tokens anter.)) e _ngrama[4].
+        # Estes indices sao alimentados em coupling.alimentar() mas eram mortos.
+        # Conectar aqui revive ordem > 1: captura regressao n->n+1, evita loops.
+        # IMPORTANTE: usa RECENTES (sem injecao de entidades) para o prefixo.
+        # O `estado` injeta entidades no final e corromperia o prefixo.
+        ngramas = self._coupling._ngrama
+        candidatos_ord = []
+        if recentes and len(recentes) >= 2:
+            for ordem in (4, 3):
+                if len(recentes) >= ordem - 1:
+                    prefix = tuple(recentes[-(ordem - 1):])
+                    dist = ngramas.get(ordem, {}).get(prefix, {})
+                    if dist:
+                        total = sum(dist.values()) or 1
+                        for w, cnt in dist.items():
+                            candidatos_ord.append((w, cnt / total))
+                        break
+        if candidatos_ord:
+            candidatos_ord.sort(key=lambda x: -x[1])
+            return candidatos_ord[:top_k]
 
         ultima = palavras[-1]
         vizinhos = self._coupling._transicao_palavra.get(ultima, {})
@@ -230,8 +257,28 @@ class GeradorCoerente:
         return candidatos[:top_k]
 
     def _assinatura_tema(self, texto: str) -> Dict[str, int]:
-        """Extrai assinatura composicional do texto acumulado (tema)."""
-        return self._coupling._assinatura_frase(texto)
+        """Extrai assinatura composicional do texto acumulado (tema).
+
+        Cache incremental: se texto e extensao do cache anterior,
+        compor cached sig com o token novo em vez de recompor do zero.
+        Elimina O(n²) de _tentar_inversao_funtor a cada token gerado.
+        """
+        # Se texto cresceu apenas um token, usar cache incremental
+        if self._tema_cache_sig and texto.startswith(self._tema_cache_texto):
+            sufixo = texto[len(self._tema_cache_texto):].strip()
+            if sufixo and ' ' not in sufixo.strip():
+                sig_novo = self._coupling._assinatura_palavra(sufixo)
+                if sig_novo:
+                    sig = self._coupling.compor(self._tema_cache_sig, sig_novo)
+                    self._tema_cache_texto = texto
+                    self._tema_cache_sig = sig
+                    return sig
+
+        # Cache miss ou texto muito diferente: recompor do zero
+        sig = self._coupling._assinatura_frase(texto)
+        self._tema_cache_texto = texto
+        self._tema_cache_sig = sig
+        return sig
 
     def _escolher_candidato(self, candidatos: List[Tuple[str, float]],
                             recentes: List[str],

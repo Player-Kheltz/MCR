@@ -55,6 +55,7 @@ class MCRCLI:
     def __init__(self):
         self._coupling = MCRCoupling()
         self._coupling.load()
+        self._coupling.ativar_todos()  # ativa 9+ modulos dormentes
         self._perfil = PerfilHumano()
         self._coldstart = Coldstart()
         self._coldstart.vincular_perfil(self._perfil)

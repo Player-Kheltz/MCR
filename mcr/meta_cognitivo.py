@@ -236,6 +236,10 @@ class MetaCognitivo:
         Returns:
             (deve_responder, confianca_calibrada, justificativa)
         """
+        # Warmup: primeiras N observacoes sem veto (Pilar 5: aprender primeiro)
+        if self._n_observacoes < 10:
+            return True, confianca_bruta, 'warmup'
+
         # Calibrar confiança primeiro
         conf_calibrada = self.calibrar_confianca(confianca_bruta)
 

@@ -32,7 +32,7 @@ _CACHE_H_JANELA = 200
 
 # Regexes pré-compilados para _extrair_features_nd (chamado a cada alimentar).
 # Sem pré-compilação, re.compile() é chamado implicitamente a cada findall.
-_RE_TOKENS = re.compile(r'[a-zà-ÿ0-9]{2,}')
+_RE_TOKENS = re.compile(r'[a-zà-ÿ]{2,}|[0-9]+')
 _RE_TOKENS_LIMPO = re.compile(r'[a-zà-ÿ]{3,}')
 _RE_CHARS = re.compile(r'[^a-z0-9]')
 
@@ -82,6 +82,9 @@ class MCRCoupling:
             lambda: defaultdict(lambda: defaultdict(int)))
         self._trigrama_acao: Dict[str, Dict[str, int]] = defaultdict(lambda: defaultdict(int))
         self._padrao_acao: Dict[str, Dict[str, int]] = defaultdict(lambda: defaultdict(int))
+        self._len_acao: Dict[str, Dict[str, int]] = defaultdict(lambda: defaultdict(int))
+        self._unq_acao: Dict[str, Dict[str, int]] = defaultdict(lambda: defaultdict(int))
+        self._hseq_acao: Dict[str, Dict[str, int]] = defaultdict(lambda: defaultdict(int))
         self._total = 0
         self._freq_acao: Dict[str, int] = defaultdict(int)
         self._composicoes_aprendidas: Dict[tuple, str] = {}
@@ -312,7 +315,7 @@ class MCRCoupling:
             finally:
                 MCRCoupling._hierarquia_feed_emCurso = False
 
-        palavras = re.findall(r'[a-zà-ÿ]{3,}', texto.lower())
+        palavras = _RE_TOKENS.findall(texto.lower())
         for p in set(palavras):
             self._palavra_acao[p][acao] += 1
 
@@ -370,6 +373,35 @@ class MCRCoupling:
         padrao = self._classificar_padrao(partes)
         if padrao:
             self._padrao_acao[padrao][acao] += 1
+
+        # Meta-nível LEN: comprimento da sequência (Collatz: 10-30, PA: 3-4)
+        n_palavras = len(partes)
+        chave_len = f"len_{n_palavras}"
+        self._len_acao[chave_len][acao] += 1
+
+        # Meta-nível UNQ: razão tokens únicos / total
+        palavras_set = set(palavras)
+        n_unicos = len(palavras_set)
+        if n_palavras > 0:
+            bucket_u = int((n_unicos / n_palavras) * 10) / 10
+            self._unq_acao[f"unq_{bucket_u:.1f}"][acao] += 1
+
+        # Meta-nível HSEQ: entropia da sequência (uniforme=alta, concentrada=baixa)
+        if len(palavras) >= 2:
+            from collections import Counter
+            freq_pal = Counter(palavras)
+            total_pal = len(palavras)
+            h_seq = 0.0
+            for c in freq_pal.values():
+                p = c / total_pal
+                if p > 0:
+                    h_seq -= p * math.log2(p)
+            max_h = math.log2(max(len(freq_pal), 2))
+            h_norm = h_seq / max_h if max_h > 0 else 0.5
+            bucket_h = int(h_norm * 10) / 10
+            self._hseq_acao[f"h_{bucket_h:.1f}"][acao] += 1
+
+        self._extrair_features_nd(texto, acao)
 
         self._extrair_features_nd(texto, acao)
 
@@ -662,6 +694,23 @@ class MCRCoupling:
             h_i = 1.0 - (1.0 - h_i) * p0_conf  # p0_conf=0 → h=1 (sem confiança)
             distribs.append((d_feat, h_i))
 
+        # Fonte T — Trigramas de caracteres (sublexical)
+        # Cada trigrama de 3 chars vota em P(acao|trigrama).
+        # Captura padroes como "spr" -> gerar_sprite, "npc" -> gerar_npc.
+        d_tri = self._dist_trigramas(texto)
+        if d_tri:
+            h_t = self._entropia_ajustada('T', texto, self._entropia_dist(d_tri))
+            distribs.append((d_tri, h_t))
+
+        # Fonte PT — Padrão estrutural VCS (agnóstico a vocabulário)
+        # Classifica a frase em V/C/S por posição.
+        # "criar sprite de escudo" (VSCS) vs "machado de guerra" (SCS).
+        # Resolve ambiguidade que palavras sozinhas não capturam.
+        d_pt = self._dist_padrao(texto)
+        if d_pt:
+            h_pt = self._entropia_ajustada('PT', texto, self._entropia_dist(d_pt))
+            distribs.append((d_pt, h_pt))
+
         # #1 — Fonte E: Esfera cross-level
         d_esf = self._dist_esfera(texto)
         if d_esf:
@@ -793,6 +842,33 @@ class MCRCoupling:
                         return melhor_p0, max(combinada[melhor_p0], score_p0)
 
         melhor = max(combinada, key=combinada.get)
+        conf_melhor = combinada[melhor]
+
+        # === H22 — Comutacao de nivel quando trava (MarkovMultinivel) ===
+        # Quando decidir() trava (conf muito baixa ou sem distribuicao),
+        # comutar para outro nivel: Esfera -> Trigrama.
+        # Isto e exploracao emergente nos Pilares, sem random externo.
+        # Validado: MarkovMultinivel gerou 9/10 nomes validos com comutacao.
+        if conf_melhor < 0.15 and len(self._freq_acao) > 1:
+            # Nivel 2: Esfera (cross-level correlation)
+            d_esfera = self._dist_esfera(texto)
+            if d_esfera:
+                acao_esf = max(d_esfera, key=d_esfera.get)
+                conf_esf = d_esfera[acao_esf]
+                if conf_esf > conf_melhor:
+                    melhor = acao_esf
+                    conf_melhor = conf_esf
+
+            # Nivel 3: Trigrama (sub-lexical)
+            if conf_melhor < 0.15:
+                d_tri = self._dist_trigramas(texto)
+                if d_tri:
+                    acao_tri = max(d_tri, key=d_tri.get)
+                    conf_tri = d_tri[acao_tri]
+                    if conf_tri > conf_melhor:
+                        melhor = acao_tri
+                        conf_melhor = conf_tri
+
         # === FASE 10 — Meta-cognição (opt-in) ===
         if getattr(self, '_meta_ativo', False) and self._meta is not None:
             n_fontes = len(distribs)
@@ -888,6 +964,60 @@ class MCRCoupling:
                     # multiplicado pelo inverso para amplificar
                     boost = cnt / max(n_fontes_ativas - cnt, 1)
                     combinada[acao] *= (1.0 + boost)
+        total = sum(combinada.values()) or 1.0
+        return {a: s / total for a, s in combinada.items()}
+
+    def _modular_por_meta(self, texto: str,
+                          combinada: Dict[str, float]) -> Dict[str, float]:
+        """Modula pesos pelos meta-níveis da sequência.
+        
+        Extrai propriedades ESTRUTURAIS da sequência (comprimento,
+        repetição, entropia) e usa a distribuição aprendida para
+        CADA propriedade como modulador do peso final.
+        
+        A modulação é: se a ação aprendeu P(propriedade | ação),
+        a modulação favorece ações cuja propriedade aprendida
+        corresponde à propriedade observada.
+        
+        Isto é o Triunvirato atuando: a propriedade da sequência
+        (Entropia) modula a confiança das ações (Markov).
+        """
+        partes = texto.replace('_', ' ').lower().split()
+        if len(partes) < 2:
+            return combinada
+        
+        # 1. Meta: comprimento da sequência
+        n = len(partes)
+        dist_len = self._len_acao.get(f"len_{n}", {})
+        if dist_len:
+            total_len = sum(dist_len.values()) or 1
+            n_acoes = len(dist_len)
+            for acao in combinada:
+                prob_len = (dist_len.get(acao, 0) + 1) / (total_len + n_acoes)
+                combinada[acao] *= (1.0 + min(prob_len, 0.2))
+        
+        # 3. Meta: entropia da sequência (mais robusto que UNQ)
+        if len(partes) >= 2:
+            from collections import Counter
+            freq = Counter(partes)
+            total_pal = len(partes)
+            h = 0.0
+            for c in freq.values():
+                p = c / total_pal
+                if p > 0:
+                    h -= p * math.log2(p)
+            max_h = math.log2(max(len(freq), 2))
+            h_norm = h / max_h if max_h > 0 else 0.5
+            bucket_h = int(h_norm * 10) / 10
+            dist_h = self._hseq_acao.get(f"h_{bucket_h:.1f}", {})
+            if dist_h:
+                total_h = sum(dist_h.values()) or 1
+                n_acoes = len(dist_h)
+                for acao in combinada:
+                    prob_h = (dist_h.get(acao, 0) + 1) / (total_h + n_acoes)
+                    combinada[acao] *= (1.0 + min(prob_h, 0.2))
+        
+        # Renormalizar
         total = sum(combinada.values()) or 1.0
         return {a: s / total for a, s in combinada.items()}
 
@@ -1201,7 +1331,7 @@ class MCRCoupling:
         feats = set()
 
         # Token level
-        tokens = re.findall(r'[a-zà-ÿ0-9]{2,}', raw)
+        tokens = _RE_TOKENS.findall(raw)
         for t in set(tokens):
             feats.add(f"t:{t}")
 
@@ -1229,6 +1359,48 @@ class MCRCoupling:
             for a, c in dist.items():
                 scores[a] += (c / total) * peso
         return dict(scores) if scores else {}
+
+    def _cobertura_features(self, texto: str, acao_top: str) -> float:
+        """Metrica de honestidade (Pilar 9): fracao de features do texto
+        que a acao_top captura.
+
+        Descoberta empirica H21: para casos REAIS, o dominio correto
+        captura ~95-100% das features. Para CONTROLES, nenhum dominio
+        captura mais que ~50%. Threshold natural ~0.73 emerge do gap
+        (Pilar 2: entropia descobre, sem hardcode).
+
+        Comportamento:
+          cobertura > 0.73: motor "sabe" — classifica
+          0.50-0.73: motor "generaliza" — regra mais proxima (H19)
+          < 0.50: motor "nao sabe" — DUVIDA (Pilar 9)
+
+        Args:
+            texto: texto de entrada
+            acao_top: acao com maior score em _dist_features
+
+        Returns:
+            fracao [0, 1] de features que acao_top captura
+        """
+        if not acao_top:
+            return 0.0
+        raw = str(texto).lower()
+        feats = set()
+        tokens = _RE_TOKENS.findall(raw)
+        for t in set(tokens):
+            feats.add(f"t:{t}")
+        chars = re.sub(r'[^a-z0-9]', '', raw)
+        for i in range(len(chars) - 1):
+            feats.add(f"bg:{chars[i:i+2]}")
+        for i in range(len(chars) - 2):
+            feats.add(f"ng:{chars[i:i+3]}")
+        if not feats:
+            return 0.0
+        batem = 0
+        for f in feats:
+            dist = self._feature_acao.get(f, {})
+            if acao_top in dist:
+                batem += 1
+        return batem / len(feats)
 
     def _dist_trigramas(self, texto: str) -> Dict[str, float]:
         """Fonte T — Trigramas de chars: P(acao|trigrama_char).
@@ -1278,7 +1450,7 @@ class MCRCoupling:
         texto = str(texto)
         raw = texto.lower()
         # Extrai features por nivel
-        tokens = set(re.findall(r'[a-zà-ÿ0-9]{2,}', raw))
+        tokens = set(_RE_TOKENS.findall(raw))
         chars = re.sub(r'[^a-z0-9]', '', raw)
         bigrams = set(chars[i:i+2] for i in range(len(chars)-1))
         trigrams = set(chars[i:i+3] for i in range(len(chars)-2))
@@ -1376,6 +1548,77 @@ class MCRCoupling:
             sim = dot / (mag * mag_a)
             if sim > 0.0:
                 scores[acao] += sim
+        if not scores:
+            return {}
+        total = sum(scores.values()) or 1
+        return {a: s / total for a, s in scores.items()}
+
+    # ─── Fonte M: Jaccard SET (Minerador / raw_fingerprint) ───
+    _DELIMITADORES_UNIVERSAIS = r'[\s{}();.,:\[\]"\'\`\/\\#<>!=+\-*%&|^~@]+'
+
+    @staticmethod
+    def _raw_tokens(texto: str) -> set:
+        tokens = re.split(MCRCoupling._DELIMITADORES_UNIVERSAIS, texto.lower())
+        return {t for t in tokens if len(t) > 2}
+
+    def _dist_raw_jaccard(self, texto: str) -> Dict[str, float]:
+        fp_acao = getattr(self, '_fingerprint_acao', {})
+        if not fp_acao:
+            return {}
+        tokens_input = self._raw_tokens(texto)
+        if not tokens_input:
+            return {}
+        n_acoes = len(fp_acao)
+        if n_acoes < 2:
+            return {}
+        # Tokens exclusivos de cada ação: aparecem APENAS nela
+        # (como assinatura de cluster no Minerador)
+        tokens_por_acao = {a: d['tokens'] for a, d in fp_acao.items()}
+        exclusivos_por_acao = {}
+        for acao, tokens in tokens_por_acao.items():
+            outros = set()
+            for outra, to in tokens_por_acao.items():
+                if outra != acao:
+                    outros |= to
+            exclusivos_por_acao[acao] = tokens - outros
+        
+        # Vocab entropy: razão tokens_unicos / n_textos
+        vocab_entropy = {}
+        for acao, data in fp_acao.items():
+            fingerprint = data['tokens']
+            n_textos = data['n_textos']
+            n_unicos = len(fingerprint)
+            if n_textos > 0 and n_unicos > 0:
+                ratio = n_unicos / n_textos
+                vocab_entropy[acao] = 1.0 / (1.0 + ratio)
+            else:
+                vocab_entropy[acao] = 0.5
+        
+        scores: Dict[str, float] = {}
+        for acao, data in fp_acao.items():
+            fingerprint = data['tokens']
+            exclusivos = exclusivos_por_acao.get(acao, set())
+            if not fingerprint:
+                continue
+            inter_peso = 0.0
+            uniao_peso = 0.0
+            for t in tokens_input | exclusivos:
+                # Só tokens EXCLUSIVOS da ação contribuem
+                if t not in exclusivos:
+                    # Se t não é exclusivo, conta na uniao mas com peso 0
+                    if t in tokens_input:
+                        uniao_peso += 1
+                    continue
+                if t in tokens_input:
+                    inter_peso += 1
+                    uniao_peso += 1
+                else:
+                    uniao_peso += 1
+            if uniao_peso <= 0:
+                continue
+            jaccard = inter_peso / uniao_peso
+            scores[acao] = jaccard * vocab_entropy.get(acao, 0.5)
+        
         if not scores:
             return {}
         total = sum(scores.values()) or 1
@@ -1542,6 +1785,52 @@ class MCRCoupling:
                 dist = self._padrao_acao.get(prefix, {})
                 if dist:
                     break
+        if not dist:
+            return {}
+        total = sum(dist.values()) or 1
+        return {a: c / total for a, c in dist.items()}
+
+    # ─── Meta-níveis (ortogonais a palavras) ─────────────
+
+    def _dist_len(self, texto: str) -> Dict[str, float]:
+        partes = texto.replace('_', ' ').lower().split()
+        if not partes:
+            return {}
+        chave = f"len_{len(partes)}"
+        dist = self._len_acao.get(chave, {})
+        if not dist:
+            return {}
+        total = sum(dist.values()) or 1
+        return {a: c / total for a, c in dist.items()}
+
+    def _dist_uniqueness(self, texto: str) -> Dict[str, float]:
+        palavras = texto.replace('_', ' ').lower().split()
+        if len(palavras) < 2:
+            return {}
+        n_unicos = len(set(palavras))
+        bucket = int((n_unicos / len(palavras)) * 10) / 10
+        dist = self._unq_acao.get(f"unq_{bucket:.1f}", {})
+        if not dist:
+            return {}
+        total = sum(dist.values()) or 1
+        return {a: c / total for a, c in dist.items()}
+
+    def _dist_h_seq(self, texto: str) -> Dict[str, float]:
+        palavras = texto.replace('_', ' ').lower().split()
+        if len(palavras) < 2:
+            return {}
+        from collections import Counter
+        freq = Counter(palavras)
+        total_pal = len(palavras)
+        h = 0.0
+        for c in freq.values():
+            p = c / total_pal
+            if p > 0:
+                h -= p * math.log2(p)
+        max_h = math.log2(max(len(freq), 2))
+        h_norm = h / max_h if max_h > 0 else 0.5
+        bucket = int(h_norm * 10) / 10
+        dist = self._hseq_acao.get(f"h_{bucket:.1f}", {})
         if not dist:
             return {}
         total = sum(dist.values()) or 1
@@ -1748,7 +2037,12 @@ class MCRCoupling:
             from mcr.branch_search import BranchSearcher
         except ImportError:
             return {}
-        bs = BranchSearcher(self, n_caminhos=3, profundidade=2)
+        bs = None
+        if hasattr(self, '_branch_cache') and self._branch_cache is not None:
+            bs = self._branch_cache
+        else:
+            bs = BranchSearcher(self, n_caminhos=3, profundidade=2)
+            self._branch_cache = bs
         melhor_acao, melhor_nota = bs.buscar(texto)
         if melhor_acao and melhor_nota > 0:
             return {melhor_acao: melhor_nota}
@@ -1913,20 +2207,30 @@ class MCRCoupling:
             except ImportError:
                 return {}
 
-        doadores = []
+        # Primeiro passo: ngram_sim para TODAS as palavras (rapido, O(L))
+        # Depois assinatura apenas para top 200 — gap esta nos primeiros dias
+        candidatos = []
         for known in self._palavra_acao.keys():
             if known == palavra:
                 continue
             s = ngram_sim(palavra, known)
-            if s <= 0:
-                continue
+            if s > 0:
+                candidatos.append((s, known))
+        if not candidatos:
+            return {}
+        candidatos.sort(key=lambda x: -x[0])
+
+        # Segundo passo: assinatura completa — limite adaptativo
+        # Vocabulario pequeno (<500): usa todos. Grande: top 200.
+        n_total = len(candidatos)
+        top_limit = n_total if n_total < 500 else 200
+        doadores = []
+        for s, known in candidatos[:top_limit]:
             sig_known = self._assinatura_palavra(known)
-            if not sig_known:
-                continue
-            doadores.append((s, known, sig_known))
+            if sig_known:
+                doadores.append((s, known, sig_known))
         if not doadores:
             return {}
-        doadores.sort(key=lambda x: -x[0])
 
         # Corte no maior GAP RELATIVO: ponto onde a similaridade despenca
         maior_gap = 0.0
@@ -2058,6 +2362,11 @@ class MCRCoupling:
             resultado = {}
             for prefixo, vals in planos.items():
                 if len(vals) <= 1:
+                    continue
+                # ctx_bg, ctx_ng, ctx_c sao n-gramas de caracteres que
+                # sobrepoem por acaso puro entre quaisquer palavras.
+                # ctx_bg=1.0 entre cachorro~mesa (75/81 bigramas). Ruido.
+                if prefixo in ('ctx_bg', 'ctx_ng', 'ctx_c', 'acao'):
                     continue
                 pesos = {}
                 if prefixo == 'ctx':
@@ -2813,8 +3122,11 @@ class MCRCoupling:
 
         # Limitar candidatos: ordenar por IDF-ponderado (tokens raros
         # compartilhados valem mais que stopwords compartilhadas).
-        # Com 94K palavras, sem limite o set pode ter 10K+ candidatos.
-        MAX_CANDIDATOS = 500
+        # Com 167K palavras, sem limite o set pode ter 10K+ candidatos.
+        # 100 candidatos e suficiente para antonimos (eram 500 quando
+        # corpus tinha 23K palavras — escala mudou 7x, mas antonimo
+        # nao precisa de 500 candidatos).
+        MAX_CANDIDATOS = 100
         if len(overlap_idf) > MAX_CANDIDATOS:
             candidatos_set = set(w for w, _ in
                                  sorted(overlap_idf.items(), key=lambda x: -x[1])
@@ -3107,6 +3419,12 @@ class MCRCoupling:
         """
         if not palavra:
             return []
+        # Otimizacao critica: se palavra nao tem assinatura, NMI e 0 para
+        # toda candidata. Evita iterar sobre TODO o vocabulario (204K+)
+        # construindo assinatura de cada palavra para NMI que seria 0.
+        sig = self._assinatura_palavra(palavra)
+        if not sig:
+            return []
         resultado = []
         for candidata in list(self._palavra_acao):
             score = self.similaridade(palavra, candidata)
@@ -3155,6 +3473,9 @@ class MCRCoupling:
                        for ordem, ord_dict in self._ngrama.items()},
             'trigrama_acao': {k: dict(v) for k, v in self._trigrama_acao.items()},
             'padrao_acao': {k: dict(v) for k, v in self._padrao_acao.items()},
+            'len_acao': {k: dict(v) for k, v in self._len_acao.items()},
+            'unq_acao': {k: dict(v) for k, v in self._unq_acao.items()},
+            'hseq_acao': {k: dict(v) for k, v in self._hseq_acao.items()},
             'composicoes': {f'{k[0]}|{k[1]}': v for k, v in self._composicoes_aprendidas.items()},
         }
         with open(caminho, 'w', encoding='utf-8') as f:
@@ -3206,6 +3527,15 @@ class MCRCoupling:
             pa = dados.get('padrao_acao', {})
             self._padrao_acao = defaultdict(lambda: defaultdict(int),
                                              {k: base(v) for k, v in pa.items()})
+            la = dados.get('len_acao', {})
+            self._len_acao = defaultdict(lambda: defaultdict(int),
+                                          {k: base(v) for k, v in la.items()})
+            ua = dados.get('unq_acao', {})
+            self._unq_acao = defaultdict(lambda: defaultdict(int),
+                                          {k: base(v) for k, v in ua.items()})
+            ha = dados.get('hseq_acao', {})
+            self._hseq_acao = defaultdict(lambda: defaultdict(int),
+                                           {k: base(v) for k, v in ha.items()})
             comp_raw = dados.get('composicoes', {})
             self._composicoes_aprendidas = {}
             for k, v in comp_raw.items():
@@ -4015,3 +4345,37 @@ class MCRCoupling:
                 'distribuicao': conceito.distribuicao,
             }
         return {'conceito': None}
+
+    # === ATIVAR TODOS OS MÓDULOS ===
+
+    def ativar_todos(self):
+        """Ativa todos os 9+ módulos dormentes.
+
+        Pilar 5: ingerir → recuperar → aprender. Cada módulo é
+        uma capacidade independente que emerge dos dados, sem hardcode.
+
+        Módulos ativados:
+        - MetaCognitivo: observa decisões, aprende P(correto|confiança)
+        - MetaEquacao: evolui pesos 5D via hill climbing markoviano
+        - Causalidade: distingue correlação de causalidade
+        - Contrafactual: raciocínio "e se...?"
+        - Planejador: simula futuros antes de agir
+        - TeoriaDaMente: modela outros agentes (humano)
+        - AutoComposicao: compõe assinaturas recursivamente
+        - AutoExpansao: busca gaps de entropia para aprender
+        - AutoReferencia: auto-observação recursiva (strange loop)
+        - Abstracao: conceitos emergentes via NMI
+
+        Retorna self para encadeamento.
+        """
+        self.ativar_metacognicao()
+        self.ativar_meta_equacao()
+        self.ativar_causalidade()
+        self.ativar_contrafactual()
+        self.ativar_planejador()
+        self.ativar_teoria_da_mente()
+        self.ativar_auto_composicao()
+        self.ativar_curiosidade()
+        self.ativar_auto_referencia()
+        self.ativar_abstracao()
+        return self

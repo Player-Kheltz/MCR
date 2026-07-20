@@ -162,14 +162,17 @@ class MCRChat:
         Fluxo:
           0. Se humano esta explicando algo (apos ignorancia) → ingerir como fato
           1. Se em coldstart → processar coldstart
-          2. Classificar intencao via coupling (triunvirato decide)
-          3. Se acao=responder → buscar no BC (Fix 4)
+          2. Ingerir pergunta no motor (Pilar 8: contexto temporal)
+             A pergunta vira observacao ANTES da busca, enriquecendo o motor.
+          3. Classificar intencao via coupling (triunvirato decide)
+          4. Buscar no BC (Fix 4 — Pilar 5: recuperar → decidir)
              → se BC encontra: usa fato
-             → se BC nao encontra: admite ignorancia (Pilar 9)
-          4. Se MCR seguro → gerar resposta via GeradorCoerente (Fix 2)
-          5. Aprender (Pilar 11) + registrar episodio (Fix 6)
+             → se nao: GeradorCoerente gera do motor enriquecido
+          5. Se nem BC nem Gerador → silencio honesto (Pilar 9)
+             Humano pode explicar no proximo turno (auto-treinamento)
+          6. Aprender (Pilar 11) + registrar episodio (Fix 6)
 
-        Returns: resposta do MCR ao humano.
+        Returns: resposta do MCR ao humano, ou "" se nao sabe.
         """
         # Registrar no perfil (se consentido)
         self._perfil.registrar_resposta(entrada, self._complexidade_contexto())
@@ -180,7 +183,7 @@ class MCRChat:
         # Pilar 7: NMI morfologico NAO discrimina explicacao de pergunta quando
         #          ambas compartilham a palavra-chave. Usar IDF + informacao nova.
         # Pilar 9: admite ignorancia, e aprende quando humano explica
-        if self._ultima_ignorancia and not self.em_coldstart:
+        if self._ultima_ignorancia is not None and not self.em_coldstart:
             pergunta = self._ultima_ignorancia
             self._ultima_ignorancia = None
 
@@ -210,13 +213,11 @@ class MCRChat:
 
                 if palavra_chave in pal_entr and len(pal_novas) > len(pal_compart):
                     self._ingerir_explicacao(pergunta, entrada)
-                    ack = "obrigado! aprendi algo novo."
                     self._historico.append({
                         'entrada': entrada, 'tipo': 'aprendizado',
-                        'resposta': ack,
+                        'resposta': "",
                     })
-                    return ack
-                # palavra-chave ausente ou pouca informacao nova → nova pergunta
+                    return ""
 
         # Coldstart
         if self.em_coldstart:
@@ -228,6 +229,13 @@ class MCRChat:
                 })
                 return resp
 
+        # Ingerir pergunta ANTES de buscar (Pilar 8: contexto temporal)
+        # A pergunta vira observacao, enriquecendo o motor para a busca
+        self._alimentar_ciclo(entrada, "responder")
+
+        # Análise cognitiva (FASEs 13/19 — lazy, fallback silencioso)
+        cog = self._analisar_cognitivo(entrada)
+
         # Classificar intencao (triunvirato: 13 fontes + HRC + busca ativa)
         acao, conf = self._coupling.decidir(entrada, (None, 0.0))
         acao = acao or 'responder'
@@ -236,7 +244,7 @@ class MCRChat:
         # Se BC encontra fato relevante, usa. Se nao, segue fluxo normal.
         resposta_bc = self._tentar_base_conhecimento(entrada)
         if resposta_bc:
-            self._coupling.alimentar(entrada, acao)
+            self._alimentar_ciclo(resposta_bc, acao)
             self._coupling.registrar_episodio(entrada, resposta_bc, "")
             self._historico.append({
                 'entrada': entrada, 'acao': acao, 'conf': conf,
@@ -244,49 +252,119 @@ class MCRChat:
             })
             return resposta_bc
 
-        # BC nao encontrou — decidir entre ignorancia (Pilar 9) e acao executavel.
-        # Acoes de chat (responder, descrever, etc.): quando BC nao encontra,
-        # admite ignorancia e ativa auto-treinamento (humano pode explicar).
-        # Acoes de jogo (gerar_*, etc.): sao executaveis, seguir fluxo normal.
-        is_chat = (acao in ('responder', 'descrever', 'explicar',
-                            'confirmar', 'ajudar', 'saudar'))
-        if is_chat or conf < 0.5:
-            ignorancia = "nao sei responder isso. posso aprender se voce me explicar."
-            self._coupling.alimentar(entrada, acao)
-            self._ultima_ignorancia = entrada
-            self._historico.append({
-                'entrada': entrada, 'acao': acao, 'conf': conf,
-                'tipo': 'ignorancia', 'resposta': ignorancia,
-            })
-            return ignorancia
-
-        # Avaliar lacuna — MCR questiona se incerto
-        if self._deve_questionar(conf):
-            pergunta = self._gerar_pergunta(entrada, acao, conf)
-            self._coupling.alimentar(entrada, acao)
-            self._historico.append({
-                'entrada': entrada, 'acao': acao, 'conf': conf,
-                'tipo': 'pergunta', 'resposta': pergunta,
-            })
-            return pergunta
-
-        # Fix 2: gerar resposta via GeradorCoerente (working memory)
-        resposta = self._gerar_resposta(acao)
-
-        # Aprender (Pilar 11: tudo que humano diz vira observacao)
-        self._coupling.alimentar(entrada, acao)
+        # BC vazio (sem hardcode) — tentar GeradorCoerente com motor enriquecido
+        # Pilar 9: nao usar template "nao sei". Deixar Gerador tentar.
+        resposta = self._gerar_resposta(entrada, cog=cog)
         if resposta and len(resposta.split()) >= 2:
-            self._coupling.alimentar(resposta, acao)
+            self._alimentar_ciclo(resposta, acao)
+            self._coupling.registrar_episodio(entrada, resposta, "")
+            self._historico.append({
+                'entrada': entrada, 'acao': acao, 'conf': conf,
+                'tipo': 'resposta', 'resposta': resposta,
+            })
+            return resposta
 
-        # Fix 6: registrar episodio (EpisodicGateway)
-        self._coupling.registrar_episodio(entrada, resposta, "")
-
+        # Nem BC nem Gerador → silencio honesto (Pilar 9)
+        # Sem template de ignorancia, sem string fixa.
+        # Humano pode explicar no proximo turno (auto-treinamento acima).
+        self._alimentar_ciclo(entrada, acao)
+        self._coupling.registrar_episodio(entrada, "", "")
+        self._ultima_ignorancia = entrada
         self._historico.append({
             'entrada': entrada, 'acao': acao, 'conf': conf,
-            'tipo': 'resposta', 'resposta': resposta,
+            'tipo': 'ignorancia', 'resposta': "",
         })
+        return ""
 
-        return resposta or "hmm, nao sei o que dizer sobre isso."
+    def _alimentar_ciclo(self, texto: str, acao: str) -> None:
+        """Realimenta o motor com o resultado da propria acao (FASE 21).
+
+        Igual ao alimentar() do coupling, mas PULA a hierarquia
+        (que e O(n^2) — chama _todas_h_norm_palavras iterando sobre
+        TODO o vocabulario a cada frase). Em modo conversa, a hierarquia
+        e reconstruida explicitamente apos uma sessao, nao a cada turno.
+
+        Preserva _cache_assinatura entre turnos (nao invalida inteiro):
+        so palavras NOVAS tem seus caches removidos.
+        Pilar 4 (esquecimento): a cadeia cresce com cada resposta.
+        Thresholds emergem da entropia, nao de hardcode.
+        """
+        c = self._coupling
+        c._skip_hierarquia = True
+        c._idf_skip_invalidate = True  # impede alimentar() de limpar tudo
+        palavras_antes = set(c._palavra_acao.keys())
+        try:
+            c.alimentar(texto, acao)
+        finally:
+            c._skip_hierarquia = False
+            c._idf_skip_invalidate = False
+            # Invalida so palavras NOVAS no cache de assinatura
+            palavras_depois = set(c._palavra_acao.keys())
+            novas_palavras = palavras_depois - palavras_antes
+            if novas_palavras and getattr(c, '_cache_assinatura', None):
+                for p in novas_palavras:
+                    c._cache_assinatura.pop(p, None)
+            # NAO invalidar _cache_idf_doc nem _cache_ctx_index.
+            # Em conversa, o IDF muda pouco entre turnos (poucas palavras
+            # novas por turno). Stale e aceitavel — evita reconstrucao
+            # O(P) a cada extrair_relacoes (167K palavras).
+            # _posicao_acao_inv precisa rebuild (pode ter palavras novas
+            # que precisam de assinatura correta).
+            c._posicao_acao_inv = None
+            if hasattr(c, '_transicao_rev_full'):
+                c._transicao_rev_full = None
+
+    def _analisar_cognitivo(self, entrada: str) -> dict:
+        """Análise cognitiva lazy: Abstração + Causalidade (FASEs 13/19).
+
+        Ativa módulos sob demanda. Se coupling não tem dados suficientes
+        ou módulo não está disponível, retorna dict vazio (fallback seguro).
+
+        Pilar 2: análise emerge dos dados, não de regras.
+        Pilar 9: se não sabe, silencia — não inventa.
+        """
+        resultado = {}
+
+        palavras = entrada.lower().split()
+        if not palavras:
+            return resultado
+
+        # Abstração (FASE 19): que CONCEITO o humano está pedindo?
+        # Só ativa se hierarquia já foi construída (construir é O(N²) para
+        # 233K palavras). Fallback: generalizar só as palavras da entrada.
+        try:
+            abstr = self._coupling.ativar_abstracao()
+            if abstr._construido:
+                r = abstr.abstrair(entrada)
+                if r.get('cobertura', 0) > 0:
+                    resultado['abstracao'] = r
+            else:
+                # Leve: mapear cada palavra da entrada a conceitos existentes
+                conceitos = []
+                for p in palavras[:10]:
+                    c = abstr._indice_palavra_conceito.get(p)
+                    if c:
+                        conceitos.append(c.nome)
+                if conceitos:
+                    resultado['abstracao'] = {
+                        'conceitos': conceitos,
+                        'cobertura': len(conceitos) / max(len(palavras[:10]), 1),
+                    }
+        except Exception:
+            pass
+
+        # Causalidade (FASE 13): qual estrutura causal entre palavras?
+        if len(palavras) >= 2:
+            try:
+                a, b = palavras[0][:10], palavras[1][:10]
+                causal = self._coupling.ativar_causalidade()
+                efeito = causal.efeito_causal(a, b)
+                if efeito.get('diferenca', 0) > 0.01:
+                    resultado['causalidade'] = efeito
+            except Exception:
+                pass
+
+        return resultado
 
     def _tentar_base_conhecimento(self, entrada: str) -> Optional[str]:
         """Consulta BaseConhecimento via IDF sobre todos os fatos.
@@ -381,28 +459,31 @@ class MCRChat:
         """MCR decide se deve questionar o humano.
 
         Pilar 2: threshold emerge dos dados — confianca historica.
+        Sem thresholds hardcoded: usa mediana das confiancas historicas.
         """
-        if conf >= 0.6:
-            return False
         confs = [h.get('conf', 0.5) for h in self._historico
                  if h.get('tipo') == 'resposta']
         if len(confs) >= 3:
             ord_ = sorted(confs)
-            mediana = ord_[len(ord_) // 3]
-            if conf >= mediana:
-                return False
-        return conf < 0.4
+            mediana = ord_[len(ord_) // 2]
+            return conf < mediana
+        # Historico insuficiente: conf < inverso do total de amostras
+        limite = 1.0 / max(len(self._historico) + 1, 2)
+        return conf < limite
 
     def _gerar_pergunta(self, entrada: str, acao: str, conf: float) -> str:
         """Gera pergunta ao humano quando MCR esta incerto.
 
         Pilar 11: pergunta e um convite ao humano (4D) para alinhar.
+        Sem templates hardcoded: GeradorCoerente com semente interrogativa.
+        Se Gerador nao gera nada, retorna "" (silencio honesto).
         """
-        if conf < 0.2:
-            return f"nao entendi bem '{entrada}'. pode explicar de outra forma?"
-        if conf < 0.4:
-            return f"sobre '{entrada}' — voce quer que eu faca algo especifico? me de mais detalhes."
-        return f"antes de responder sobre {entrada[:30]}, voce prefere algo mais especifico?"
+        gen = self._get_gerador()
+        seed = f"pergunta sobre {entrada}?"
+        resultado = gen.gerar(seed, max_tokens=15)
+        if resultado and len(resultado.split()) >= 2:
+            return resultado
+        return ""
 
     # ─── Complexidade do contexto ───────────────────────────────
 
@@ -422,15 +503,27 @@ class MCRChat:
 
     # ─── Geracao de resposta (Fix 2: GeradorCoerente) ───────────
 
-    def _gerar_resposta(self, semente: str, max_tokens: int = 50) -> Optional[str]:
+    def _gerar_resposta(self, semente: str, max_tokens: int = 50,
+                        cog: dict = None) -> Optional[str]:
         """Fix 2: gera texto via GeradorCoerente com working memory.
+
+        Se análise cognitiva (FASEs 13/19) está disponível, enriquece
+        a semente com conceitos abstratos para melhor direcionar a geração.
 
         Ressalva honesta (Pilar 9): working memory de 3 buffers contorna
         o limite de Markov 1ª ordem, nao o resolve. Gera mais coerente
         que Markov puro, mas ainda colapsa em ~N tokens (N >> 20).
         """
         gen = self._get_gerador()
-        return gen.gerar(semente, max_tokens=max_tokens)
+
+        # Enriquecer semente com conceito abstrato se disponível (FASE 19)
+        semente_extra = semente
+        if cog and 'abstracao' in cog:
+            conceitos = cog['abstracao'].get('conceitos', [])
+            if conceitos:
+                semente_extra = f"{semente} {' '.join(conceitos[:3])}"
+
+        return gen.gerar(semente_extra, max_tokens=max_tokens)
 
     # ─── Teto de paciencia ──────────────────────────────────────
 
