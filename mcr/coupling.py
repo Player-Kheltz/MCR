@@ -1360,7 +1360,108 @@ class MCRCoupling:
                 scores[a] += (c / total) * peso
         return dict(scores) if scores else {}
 
-    def _cobertura_features(self, texto: str, acao_top: str) -> float:
+    def _dist_features_relevante(self, texto: str) -> Dict[str, float]:
+        """Fonte I com Score de Relevância Estrutural.
+
+        Score(a|f) = P(a|f) * IDF(f) * log2(1 + Lift(f,a))
+
+        Onde:
+        - P(a|f) = C(f,a) / C(f) — probabilidade condicional bruta (Pilar 1)
+        - IDF(f) = log2(N / C(f)) — mata features genericas (dilui Gutenberg)
+        - Lift(f,a) = C(f,a)*N / (C(f)*C(a)) — mata falsos positivos espurios
+
+        Features que coocorrem 1 vez com 1 acao (1/1=1.0) sao penalizadas
+        porque Lift ~ 1 (acaso) e log2(1+1) = 1 (amortecedor fraco).
+
+        Features que coocorrem muitas vezes com 1 acao acima do esperado
+        pelo acaso tem Lift >> 1 e log2(1+Lift) amplifica.
+        """
+        texto = str(texto)
+        raw = texto.lower()
+        feats = set()
+
+        # Token level
+        tokens = _RE_TOKENS.findall(raw)
+        for t in set(tokens):
+            feats.add(f"t:{t}")
+
+        # Bigram and trigram levels (chars only)
+        chars = re.sub(r'[^a-z0-9]', '', raw)
+        for i in range(len(chars) - 1):
+            feats.add(f"bg:{chars[i:i+2]}")
+        for i in range(len(chars) - 2):
+            feats.add(f"ng:{chars[i:i+3]}")
+
+        N = self._total or 1  # total de observacoes
+        freq_acao = self._freq_acao  # C(a) para cada acao
+
+        scores: Dict[str, float] = defaultdict(float)
+        for feat in feats:
+            dist = self._feature_acao.get(feat, {})
+            if not dist:
+                continue
+
+            C_f = sum(dist.values())  # C(f) = total da feature
+            if C_f == 0:
+                continue
+
+            # IDF(f) = log2(N / C(f)) — features raras pesam mais
+            idf_f = math.log2(N / C_f) if C_f > 0 else 0.0
+            # IDF minimo: se feature aparece em quase tudo, IDF ~ 0
+            # mas nao negativo (features muito comuns nao pesam negativo)
+            idf_f = max(0.0, idf_f)
+
+            for a, c in dist.items():
+                C_fa = c  # C(f,a) = coocorrencia
+                C_a = freq_acao.get(a, 0)  # C(a) = freq da acao
+
+                if C_a == 0:
+                    continue
+
+                # P(a|f) = C(f,a) / C(f) — Pilar 1
+                p_af = C_fa / C_f
+
+                # Lift(f,a) = C(f,a)*N / (C(f)*C(a))
+                # Se > 1: f e a coocorrem mais que o acaso
+                # Se ~ 1: f e a coocorrem por acaso
+                # Se < 1: f e a evitam um ao outro
+                lift = (C_fa * N) / (C_f * C_a) if (C_f * C_a) > 0 else 0.0
+
+                # log2(1 + Lift) — amortecedor
+                # Lift=1 (acaso) -> log2(2) = 1.0 (peso neutro)
+                # Lift=0 (nunca) -> log2(1) = 0.0 (zero)
+                # Lift=10 (forte) -> log2(11) = 3.46 (amplifica)
+                lift_factor = math.log2(1 + max(0.0, lift))
+
+                # Score = P(a|f) * IDF(f) * log2(1 + Lift)
+                score = p_af * idf_f * lift_factor
+
+                scores[a] += score
+
+        return dict(scores) if scores else {}
+
+    def decidir_relevante(self, texto: str,
+                          mk_pred: Tuple[Optional[str], float] = (None, 0.0)
+                          ) -> Tuple[str, float]:
+        """Decide usando Score de Relevância Estrutural (IDF + Lift).
+
+        Paralelo ao decidir() mas com a fórmula:
+        Score(a|f) = P(a|f) * IDF(f) * log2(1 + Lift(f,a))
+
+        Mata falsos positivos espurios (1/1 = 1.0) e features genericas.
+        Mantem Pilar 1 (P(b|a)) mas com amortecedor de relevância.
+        """
+        dist = self._dist_features_relevante(texto)
+        if not dist:
+            return self.decidir(texto, mk_pred)
+
+        # Normalizar
+        total = sum(dist.values()) or 1
+        melhor = max(dist.items(), key=lambda x: x[1])
+        acao = melhor[0]
+        conf = melhor[1] / total
+
+        return acao, conf
         """Metrica de honestidade (Pilar 9): fracao de features do texto
         que a acao_top captura.
 

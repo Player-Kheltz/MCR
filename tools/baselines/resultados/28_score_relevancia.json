@@ -1,0 +1,120 @@
+{
+  "teste": "score_relevancia",
+  "falsos_26": [
+    {
+      "input": "PG b:105",
+      "esperado_falso": "gerar_npc",
+      "decidir": {
+        "acao": "gerar_npc",
+        "conf": 1.0
+      },
+      "relevante": {
+        "acao": "gerar_npc",
+        "conf": 1.0
+      }
+    },
+    {
+      "input": "b:101 PG",
+      "esperado_falso": "gerar_npc",
+      "decidir": {
+        "acao": "gerar_npc",
+        "conf": 1.0
+      },
+      "relevante": {
+        "acao": "gerar_npc",
+        "conf": 1.0
+      }
+    },
+    {
+      "input": "w r",
+      "esperado_falso": "gerar_monstro",
+      "decidir": {
+        "acao": "gerar_monstro",
+        "conf": 1.0
+      },
+      "relevante": {
+        "acao": "gerar_monstro",
+        "conf": 1.0
+      }
+    },
+    {
+      "input": "f u",
+      "esperado_falso": "responder",
+      "decidir": {
+        "acao": "responder",
+        "conf": 0.9896010454390535
+      },
+      "relevante": {
+        "acao": "responder",
+        "conf": 0.9157535755654815
+      }
+    },
+    {
+      "input": "f i",
+      "esperado_falso": "gerar_npc",
+      "decidir": {
+        "acao": "gerar_npc",
+        "conf": 0.9778553840716467
+      },
+      "relevante": {
+        "acao": "gerar_npc",
+        "conf": 0.7742873859876883
+      }
+    }
+  ],
+  "falsos_27": [
+    {
+      "input": "\"1\" 56",
+      "esperado_falso": "cavalo",
+      "decidir": {
+        "acao": "cavalo",
+        "conf": 0.9717300192563699
+      },
+      "relevante": {
+        "acao": "branco",
+        "conf": 0.15910877930085315
+      }
+    },
+    {
+      "input": "7 e",
+      "esperado_falso": "gato",
+      "decidir": {
+        "acao": "gato",
+        "conf": 0.8563322491287967
+      },
+      "relevante": {
+        "acao": "nadar",
+        "conf": 0.08115905734012994
+      }
+    },
+    {
+      "input": "\" )",
+      "esperado_falso": "feijao",
+      "decidir": {
+        "acao": "feijao",
+        "conf": 0.5
+      },
+      "relevante": {
+        "acao": "feijao",
+        "conf": 0.5
+      }
+    },
+    {
+      "input": "c:d pao",
+      "esperado_falso": "hora",
+      "decidir": {
+        "acao": "hora",
+        "conf": 0.9132675895705143
+      },
+      "relevante": {
+        "acao": "hora",
+        "conf": 0.6933070575693818
+      }
+    }
+  ],
+  "regressao": {
+    "decidir": 6,
+    "relevante": 6,
+    "total": 7
+  }
+}
