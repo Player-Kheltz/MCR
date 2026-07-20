@@ -1,0 +1,25 @@
+{
+  "teste": "primos_gaps",
+  "n_primos": 95,
+  "n_treino": 62,
+  "n_teste": 27,
+  "mcr": {
+    "exato": 3,
+    "tol2": 15,
+    "total": 27,
+    "tempo": 0.13580918312072754
+  },
+  "baseline_aleatorio": {
+    "exato": 4,
+    "tol2": 13,
+    "total": 27
+  },
+  "baseline_moda": {
+    "exato": 10,
+    "tol2": 19,
+    "total": 27,
+    "moda": "2"
+  },
+  "vantagem_tol2_mcr_vs_aleatorio": 1.153846153846154,
+  "vantagem_tol2_mcr_vs_moda": 0.7894736842105263
+}

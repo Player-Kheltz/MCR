@@ -1,0 +1,15 @@
+{
+  "teste": "zero_shot_externo",
+  "n_treino": 562,
+  "n_teste": 40,
+  "mcr": {
+    "acertos": 16,
+    "total": 40,
+    "taxa": 0.4
+  },
+  "tfidf_lr": {
+    "acertos": 5,
+    "total": 40,
+    "taxa": 0.125
+  }
+}

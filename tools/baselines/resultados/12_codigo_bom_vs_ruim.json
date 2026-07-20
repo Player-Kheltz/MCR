@@ -1,0 +1,34 @@
+{
+  "teste": "codigo_bom_vs_ruim",
+  "n_bons": 20,
+  "n_ruins": 20,
+  "mcr_entropia": {
+    "acertos": 10,
+    "total": 40,
+    "taxa": 0.25,
+    "H_bom": 2.6497647300191502,
+    "H_ruim": 3.2683085968676195,
+    "threshold": 2.959036663443385
+  },
+  "mcr_densidade": {
+    "acertos": 25,
+    "total": 40,
+    "taxa": 0.625,
+    "D_bom": 7.35,
+    "D_ruim": 5.679166666666666,
+    "threshold": 6.5145833333333325
+  },
+  "mcr_nuniq": {
+    "acertos": 8,
+    "total": 40,
+    "taxa": 0.2,
+    "U_bom": 6.65,
+    "U_ruim": 11.3,
+    "threshold": 8.975000000000001
+  },
+  "baseline_aleatorio": {
+    "acertos": 20,
+    "total": 40,
+    "taxa": 0.5
+  }
+}

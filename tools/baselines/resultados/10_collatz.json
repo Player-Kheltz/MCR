@@ -1,0 +1,24 @@
+{
+  "teste": "collatz",
+  "n_treino": 453,
+  "n_teste": 204,
+  "mcr": {
+    "acertos": 74,
+    "total": 204,
+    "taxa": 0.3627450980392157,
+    "tempo": 1.439274549484253
+  },
+  "baseline_aleatorio": {
+    "acertos": 1,
+    "total": 204,
+    "taxa": 0.004901960784313725
+  },
+  "baseline_moda": {
+    "acertos": 13,
+    "total": 204,
+    "taxa": 0.06372549019607843,
+    "moda": "dezesseis"
+  },
+  "vantagem_mcr_vs_aleatorio": 74.0,
+  "vantagem_mcr_vs_moda": 5.6923076923076925
+}

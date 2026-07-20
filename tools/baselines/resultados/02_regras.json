@@ -1,0 +1,15 @@
+{
+  "teste": "regras_matematicas",
+  "n_teste": 17,
+  "mcr": {
+    "acertos": 17,
+    "total": 17,
+    "taxa": 1.0
+  },
+  "gpt2": {
+    "acertos": 3,
+    "total": 17,
+    "taxa": 0.17647058823529413,
+    "tempo_load": 1.8931901454925537
+  }
+}

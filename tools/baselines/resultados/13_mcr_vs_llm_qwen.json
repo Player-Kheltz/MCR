@@ -1,0 +1,11 @@
+{
+  "teste": "mcr_vs_llm_qwen",
+  "mcr": {
+    "acertos": 16,
+    "total": 20
+  },
+  "llm_qwen": {
+    "acertos": 20,
+    "total": 20
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "teste": "intencao",
+  "n_treino": 80,
+  "n_teste": 40,
+  "mcr": {
+    "acertos": 17,
+    "total": 40,
+    "taxa": 0.425
+  },
+  "tfidf": {
+    "acertos": 12,
+    "total": 40,
+    "taxa": 0.3
+  },
+  "bert": {
+    "acertos": 18,
+    "total": 40,
+    "taxa": 0.45
+  }
+}

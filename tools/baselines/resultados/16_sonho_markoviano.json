@@ -1,0 +1,163 @@
+{
+  "teste": "sonho_markoviano",
+  "mcr_antes": {
+    "obs": 1262,
+    "vocab": 454,
+    "acoes": 19
+  },
+  "mcr_depois": {
+    "total_obs": 1272,
+    "vocab": 478,
+    "n_acoes": 20,
+    "freq_sonhar": 10,
+    "acoes": {
+      "PA": 100,
+      "PG": 100,
+      "FIB": 100,
+      "COLL": 100,
+      "QUAD": 100,
+      "TRI": 100,
+      "PRIMO": 100,
+      "responder": 113,
+      "gerar_npc": 173,
+      "gerar_monstro": 147,
+      "gerar_sprite": 47,
+      "gerar_quest": 12,
+      "analisar": 10,
+      "buscar": 10,
+      "editar": 10,
+      "validar": 10,
+      "conectar": 10,
+      "aprender": 10,
+      "planejar": 10,
+      "sonhar": 10
+    }
+  },
+  "sonho_unico": {
+    "n_tokens": 188,
+    "n_conhecidos": 159,
+    "n_novos": 29,
+    "taxa_novidade": 0.15425531914893617,
+    "preview": "um dois zero tres sequencia quatro listar numeros ordem serie padrao encadear progressao calcule matematica oito nove seis cinco sete onze dez treze doze quatorze quize dezesseis dezessete dezoito dez"
+  },
+  "deterministico": true,
+  "ciclo_sonhos": [
+    {
+      "ciclo": 1,
+      "n_tokens": 188,
+      "n_uniq": 80,
+      "entropia": 6.034,
+      "n_novos": 29,
+      "n_conhecidos": 159,
+      "is_novo": true,
+      "semente": "um dois zero tres sequencia quatro listar numeros ordem seri",
+      "sonho_preview": "um dois zero tres sequencia quatro listar numeros ordem serie padrao encadear progressao calcule matematica oito nove se"
+    },
+    {
+      "ciclo": 2,
+      "n_tokens": 99,
+      "n_uniq": 58,
+      "entropia": 5.454,
+      "n_novos": 1,
+      "n_conhecidos": 98,
+      "is_novo": true,
+      "semente": "115 115 115 115 32 114 112 115 115 115 it val 116 pre ne um ",
+      "sonho_preview": "115 115 115 115 32 114 112 115 115 115 it val 116 pre ne um dois zero tres sequencia quatro listar numeros ordem serie p"
+    },
+    {
+      "ciclo": 3,
+      "n_tokens": 99,
+      "n_uniq": 49,
+      "entropia": 5.171,
+      "n_novos": 0,
+      "n_conhecidos": 99,
+      "is_novo": true,
+      "semente": "trintaeoito quarenta vinte dez cinco dezesseis oito quatro d",
+      "sonho_preview": "trintaeoito quarenta vinte dez cinco dezesseis oito quatro dois listar dois tres cinco oito treze um dois zero tres sequ"
+    },
+    {
+      "ciclo": 4,
+      "n_tokens": 99,
+      "n_uniq": 49,
+      "entropia": 5.171,
+      "n_novos": 0,
+      "n_conhecidos": 99,
+      "is_novo": false,
+      "semente": "trintaeoito quarenta vinte dez cinco dezesseis oito quatro d",
+      "sonho_preview": "trintaeoito quarenta vinte dez cinco dezesseis oito quatro dois listar dois tres cinco oito treze um dois zero tres sequ"
+    },
+    {
+      "ciclo": 5,
+      "n_tokens": 99,
+      "n_uniq": 49,
+      "entropia": 5.171,
+      "n_novos": 0,
+      "n_conhecidos": 99,
+      "is_novo": false,
+      "semente": "trintaeoito quarenta vinte dez cinco dezesseis oito quatro d",
+      "sonho_preview": "trintaeoito quarenta vinte dez cinco dezesseis oito quatro dois listar dois tres cinco oito treze um dois zero tres sequ"
+    },
+    {
+      "ciclo": 6,
+      "n_tokens": 99,
+      "n_uniq": 49,
+      "entropia": 5.171,
+      "n_novos": 0,
+      "n_conhecidos": 99,
+      "is_novo": false,
+      "semente": "trintaeoito quarenta vinte dez cinco dezesseis oito quatro d",
+      "sonho_preview": "trintaeoito quarenta vinte dez cinco dezesseis oito quatro dois listar dois tres cinco oito treze um dois zero tres sequ"
+    },
+    {
+      "ciclo": 7,
+      "n_tokens": 99,
+      "n_uniq": 49,
+      "entropia": 5.171,
+      "n_novos": 0,
+      "n_conhecidos": 99,
+      "is_novo": false,
+      "semente": "trintaeoito quarenta vinte dez cinco dezesseis oito quatro d",
+      "sonho_preview": "trintaeoito quarenta vinte dez cinco dezesseis oito quatro dois listar dois tres cinco oito treze um dois zero tres sequ"
+    },
+    {
+      "ciclo": 8,
+      "n_tokens": 99,
+      "n_uniq": 49,
+      "entropia": 5.171,
+      "n_novos": 0,
+      "n_conhecidos": 99,
+      "is_novo": false,
+      "semente": "trintaeoito quarenta vinte dez cinco dezesseis oito quatro d",
+      "sonho_preview": "trintaeoito quarenta vinte dez cinco dezesseis oito quatro dois listar dois tres cinco oito treze um dois zero tres sequ"
+    },
+    {
+      "ciclo": 9,
+      "n_tokens": 99,
+      "n_uniq": 48,
+      "entropia": 5.132,
+      "n_novos": 0,
+      "n_conhecidos": 99,
+      "is_novo": false,
+      "semente": "trintaeoito quarenta vinte dez cinco dezesseis oito quatro d",
+      "sonho_preview": "trintaeoito quarenta vinte dez cinco dezesseis oito quatro dois listar dois tres cinco oito treze um dois zero tres sequ"
+    },
+    {
+      "ciclo": 10,
+      "n_tokens": 99,
+      "n_uniq": 48,
+      "entropia": 5.132,
+      "n_novos": 0,
+      "n_conhecidos": 99,
+      "is_novo": false,
+      "semente": "trintaeoito quarenta vinte dez cinco dezesseis oito quatro d",
+      "sonho_preview": "trintaeoito quarenta vinte dez cinco dezesseis oito quatro dois listar dois tres cinco oito treze um dois zero tres sequ"
+    }
+  ],
+  "entropia": {
+    "media": 5.2778,
+    "min": 5.132,
+    "max": 6.034
+  },
+  "freq_sonhar": 10,
+  "p_sonhar": 0.007861635220125786
+}

@@ -1,0 +1,20 @@
+{
+  "teste": "auto_conhecimento",
+  "n_acoes": 21,
+  "n_consultas": 16,
+  "mcr_raw": {
+    "acertos": 6,
+    "total": 16,
+    "taxa": 0.375
+  },
+  "mcr_lift": {
+    "acertos": 6,
+    "total": 16,
+    "taxa": 0.375
+  },
+  "tfidf": {
+    "acertos": 11,
+    "total": 16,
+    "taxa": 0.6875
+  }
+}

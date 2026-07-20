@@ -1,0 +1,30 @@
+{
+  "teste": "hiperfoco_gutenberg",
+  "hipotese": "Gutenberg balanceado 1:1 preserva discriminacao",
+  "motor_A": {
+    "descricao": "controle sem Gutenberg",
+    "obs": 38671,
+    "vocab": 95071,
+    "acoes": 93,
+    "sinonimia_auc": 0.9775,
+    "zero_shot": 0.2,
+    "estilo_ari": 1.0
+  },
+  "motor_B": {
+    "descricao": "experimental com Gutenberg balanceado",
+    "obs": 76671,
+    "vocab": 110848,
+    "acoes": 94,
+    "gutenberg_frases": 38000,
+    "sinonimia_auc": 0.985,
+    "zero_shot": 0.075,
+    "estilo_ari": 0.13496932515337423
+  },
+  "delta": {
+    "auc": 0.007499999999999951,
+    "zero_shot": -0.125,
+    "ari": -0.8650306748466258
+  },
+  "vencedores_B": 1,
+  "veredito": "nao_ajuda"
+}
