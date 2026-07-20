@@ -1,0 +1,61 @@
+{
+  "teste": "sonho_alimenta_motor",
+  "motor_A": {
+    "obs": 1262,
+    "vocab": 454,
+    "acoes": 19,
+    "regras": {
+      "acertos": 16,
+      "total": 17,
+      "taxa": 0.9411764705882353
+    },
+    "zero_shot": {
+      "acertos": 6,
+      "total": 10,
+      "taxa": 0.6
+    },
+    "criatividade": {
+      "n_tokens": 179,
+      "n_uniq": 76,
+      "entropia": 5.986,
+      "preview": "sequencia dois zero quatro um tres listar numeros ordem serie padrao encadear progressao calcule matematica nove seis oito cinco sete onze quatorze dez doze treze dezenove dezessete quize dezoito deze"
+    },
+    "sinonimia": {
+      "auc": 1.0
+    }
+  },
+  "motor_B": {
+    "obs": 1362,
+    "vocab": 472,
+    "acoes": 20,
+    "n_sonhos": 3,
+    "regras": {
+      "acertos": 4,
+      "total": 17,
+      "taxa": 0.23529411764705882
+    },
+    "zero_shot": {
+      "acertos": 4,
+      "total": 10,
+      "taxa": 0.4
+    },
+    "criatividade": {
+      "n_tokens": 180,
+      "n_uniq": 77,
+      "entropia": 6.041,
+      "preview": "sequencia dois zero quatro um tres listar numeros ordem serie padrao encadear progressao calcule matematica nove seis oito cinco sete onze quatorze dez doze treze dezenove dezessete quize dezoito deze"
+    },
+    "sinonimia": {
+      "auc": 1.0
+    }
+  },
+  "delta": {
+    "regras": -0.7058823529411764,
+    "zero_shot": -0.19999999999999996,
+    "sonho_h": 0.055000000000000604,
+    "sonho_uniq": 1,
+    "sinonimia_auc": 0.0,
+    "vocab": 18
+  },
+  "veredito": "SONHO MELHORA O MOTOR"
+}
