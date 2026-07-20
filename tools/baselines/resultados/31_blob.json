@@ -1,0 +1,17 @@
+{
+  "teste": "blob_binario",
+  "n_tipos": 10,
+  "n_treinamento": 10,
+  "classificacao": {
+    "acertos": 6,
+    "total": 10
+  },
+  "zero_shot": {
+    "acertos": 9,
+    "total": 10
+  },
+  "parcial": {
+    "acertos": 9,
+    "total": 10
+  }
+}
