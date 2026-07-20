@@ -1,0 +1,33 @@
+{
+  "teste": "trindade_delibera",
+  "n_sonhos": 3,
+  "sonhos": [
+    "sequencia zero quatro dois tres um listar numeros ordem serie padrao encadear progressao calcule matematica cinco seis nove sete oito onze quatorze treze doze dez quize dezessete dezenove dezesseis de",
+    "32 32 32 32 et 32 32 111 rit std usq edite co 112 nej sequencia zero quatro dois tres um listar numeros ordem serie padrao encadear gerar npc gerar monstro responder pa pg fib coll quad tri primo gera",
+    "npc gerar monstro responder fib coll quad tri primo gerar sprite gerar quest analisar buscar sequencia zero quatro dois tres um listar numeros ordem serie padrao encadear gerar npc gerar monstro respo"
+  ],
+  "resultado_trindade": {
+    "acertos_perspectivas": [
+      1,
+      1,
+      1
+    ],
+    "acertos_consenso": 1,
+    "acertos_global": 9,
+    "n_testes": 10,
+    "n_discordancas": 0,
+    "n_consensos": 10
+  },
+  "consenso_supera_global": false,
+  "consenso_supera_melhor_pers": false,
+  "corpus_independencia": {
+    "n_unicos_wiki": 4,
+    "unicos": [
+      1,
+      2,
+      3,
+      10
+    ]
+  },
+  "numero_3_corpus_independente": false
+}
